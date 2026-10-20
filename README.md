@@ -68,7 +68,7 @@ npm run test:e2e -w src/backend    # needs the database
 4. **At least one approving review** from another member. New pushes dismiss earlier approvals.
 5. **After approval, the author merges and deploys** (Actions → Deploy → Run workflow).
 
-These rules are enforced by a branch ruleset on `main`, with no bypass for anyone, including the admin. Review duty follows the workstream: the Frontend Lead reviews frontend work, the Backend Lead reviews backend work, and the Project Lead reviews data-model and rule-engine changes. Builds B0–B3 are tagged.
+These rules are enforced by two rulesets on `main`. `protect-main` (pull request, CI, signed commits, no force-push or deletion) has no bypass for anyone. `require-approval` (rule 4) can be bypassed only by the repository admin (LamTer, Project Lead), and only when merging a pull request: the admin can merge their own or anyone's PR without an approval, but still never pushes to `main` directly or merges with red CI. Review duty follows the workstream: the Frontend Lead reviews frontend work, the Backend Lead reviews backend work, and the Project Lead reviews data-model and rule-engine changes. Builds B0–B3 are tagged.
 
 The workflow end to end (Discord tasks, branches, signing, review) and the AI policy are in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
