@@ -4,9 +4,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Started by the Release workflow for the Version Packages PR.
+  workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -17,6 +20,55 @@ env:
   NPM_VERSION: 11.21.1
 
 jobs:
+  changeset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Require a changeset in this PR
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # The Version Packages PR consumes changesets instead of adding one.
+          if [ "$HEAD_REF" = "changeset-release/main" ]; then
+            echo "Version Packages PR: no changeset needed."; exit 0
+          fi
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "Not a pull request: nothing to check."; exit 0
+          fi
+          added=$(git diff --name-only --diff-filter=A "$BASE_SHA"...HEAD -- '.changeset/*.md' ':!.changeset/README.md')
+          if [ -z "$added" ]; then
+            echo "::error::This PR has no changeset. Run 'npx changeset' (or 'npx changeset --empty' for changes that need no release) and commit the file."
+            exit 1
+          fi
+          echo "Changesets in this PR:"; echo "$added"
+
+  # Squash merges are signed by GitHub, so main's "required signatures" rule
+  # alone would let unsigned branch commits through. Check every PR commit.
+  signed-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every commit in this PR is signed and verified
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "Not a pull request: nothing to check."; exit 0
+          fi
+          unsigned=$(gh api --paginate "repos/$REPO/pulls/$PR/commits" \
+            --jq '.[] | select(.commit.verification.verified | not) | "\(.sha[0:7]) \(.commit.verification.reason) \(.commit.message | split("\n")[0])"')
+          if [ -n "$unsigned" ]; then
+            echo "::error::Unsigned or unverified commits (see CONTRIBUTING.md, 'Every commit must be signed'):"
+            echo "$unsigned"; exit 1
+          fi
+          echo "All commits verified."
+
   backend:
     runs-on: ubuntu-latest
     services:
