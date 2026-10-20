@@ -61,7 +61,8 @@ npm run test:e2e -w src/backend    # needs the database
 ## Rules for changing `main`
 
 1. **No direct pushes.** Every change arrives as a pull request.
-2. **CI must pass**: the `changeset`, `signed-commits`, `backend` and `frontend` checks.
+2. **CI must pass**: the `changeset`, `signed-commits`, `pr-title`, `commit-messages`, `backend` and `frontend` checks.
+   PR titles and commit messages follow [Conventional Commits](CONTRIBUTING.md#2-branches-commit-messages-and-pr-titles).
    Every PR includes a [changeset](.changeset/README.md) (`npx changeset`, or `npx changeset --empty` when nothing ships).
 3. **Every commit is signed** (SSH or GPG) and shows *Verified* on GitHub. The `signed-commits` check verifies every commit in the PR, because the squash commit GitHub creates on `main` is always signed by GitHub itself.
 4. **At least one approving review** from another member. New pushes dismiss earlier approvals.

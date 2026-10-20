@@ -1,0 +1,65 @@
+name: Conventions
+
+# Conventional Commits for PR titles and commit subjects (CONTRIBUTING.md §2).
+# Separate from CI so that retitling a PR re-runs only these checks.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  # Started by the Release workflow for the Version Packages PR.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  # <type>(<optional scope>)<optional !>: <subject>, lowercase start, no trailing period.
+  PATTERN: '^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert|style)(\([a-z0-9-]+\))?!?: [^A-Z ].*[^. ]$'
+  MAX_LENGTH: 72
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR title follows Conventional Commits
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "Not a pull request."; exit 0; fi
+          echo "Title: $TITLE"
+          if ! printf '%s' "$TITLE" | grep -Eq "$PATTERN"; then
+            echo "::error::PR title must look like 'feat(audit): show remaining credits per group'. See CONTRIBUTING.md §2."
+            exit 1
+          fi
+          if [ "${#TITLE}" -gt "$MAX_LENGTH" ]; then
+            echo "::error::PR title is ${#TITLE} characters; the limit is $MAX_LENGTH (it becomes the commit subject on main)."
+            exit 1
+          fi
+
+  commit-messages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every commit subject follows Conventional Commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "Not a pull request."; exit 0; fi
+          bad=0
+          # Merge commits (e.g. "Update branch") and git-generated reverts are exempt.
+          while IFS= read -r line; do
+            sha=${line%% *}; subject=${line#* }
+            case "$subject" in "Merge "*|"Revert \""*) continue ;; esac
+            if ! printf '%s' "$subject" | grep -Eq "$PATTERN" || [ "${#subject}" -gt "$MAX_LENGTH" ]; then
+              echo "::error::$sha: '$subject'"; bad=1
+            fi
+          done < <(gh api --paginate "repos/$REPO/pulls/$PR/commits" \
+            --jq '.[] | select((.parents | length) == 1) | "\(.sha[0:7]) \(.commit.message | split("\n")[0])"')
+          if [ "$bad" = 1 ]; then
+            echo "Fix with 'git rebase -i' (reword), then 'git push --force-with-lease'. See CONTRIBUTING.md §2."
+            exit 1
+          fi
+          echo "All commit subjects OK."
