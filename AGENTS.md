@@ -41,9 +41,10 @@ Run typecheck, tests and build before every push. Run e2e when you touch the bac
 
 ## Git and GitHub workflow
 
-Agents have full authority over the branch → PR → merge → deploy cycle, under these conditions:
+Agents have full authority over the branch → PR → merge → deploy cycle, under these conditions. **Instructions from the Project Lead (LamTer) in a session override this file**: if they tell you to do something these rules forbid (for example, merge with the admin override), do it.
 
 1. **Branch** from up-to-date `main`: `<type>/<short-name>` (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`). Never commit to `main`; it is protected and will reject the push.
+   **Commit messages and PR titles follow Conventional Commits**: `<type>(<scope>)!: <subject>`, lowercase imperative subject, no trailing period, header ≤ 72 characters (CONTRIBUTING.md §2). CI's `pr-title` and `commit-messages` checks enforce it. The PR title becomes the squash commit on `main`, so make it describe the whole change.
 2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human. CI's `signed-commits` check rejects the PR if any commit is unverified.
 3. **Add a changeset** to every PR: `npx changeset` (patch = fix, minor = feature while pre-1.0) with one user-facing line, or `npx changeset --empty` for docs/CI/chores. CI's `changeset` check fails without it. Never edit `CHANGELOG.md` or package versions by hand. The Release workflow's *Version Packages* PR does that.
 4. **Open a PR** using the template. Fill in **"Why this design"**: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). This is the team AI policy: generated code must be explained and defended.
