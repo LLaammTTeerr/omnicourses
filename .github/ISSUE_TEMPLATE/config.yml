@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Task (Discord, Sprint tab)
+    url: https://discord.com/
+    about: Tasks live in the team Discord, Sprint tab. Create or take a task there, not here.

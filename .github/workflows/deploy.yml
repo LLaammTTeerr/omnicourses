@@ -1,0 +1,46 @@
+name: Deploy
+
+# The author of a merged pull request runs this by hand (Actions > Deploy >
+# Run workflow), as the branch rules require: "after approval the author
+# merges and deploys". It only runs from main.
+on:
+  workflow_dispatch:
+    inputs:
+      build_tag:
+        description: 'Optional build tag to create on this commit (B0, B1, B2, B3)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  NPM_VERSION: 11.21.1
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build-${{ github.sha }}
+          path: |
+            src/backend/dist
+            src/frontend/dist
+      # TODO(Sprint 2): push the build to the free-tier staging host once it is
+      # chosen. Until then this job produces the deployable artifacts only.
+      - name: Tag build
+        if: inputs.build_tag != ''
+        run: |
+          git tag "${{ inputs.build_tag }}"
+          git push origin "${{ inputs.build_tag }}"
