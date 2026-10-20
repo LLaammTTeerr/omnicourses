@@ -14,14 +14,41 @@ All tasks live in the team Discord server, in the **Sprint** tab, one message pe
 
 The weekly report is copied from this list, so a task that isn't updated didn't happen.
 
-## 2. Branches and commits
+## 2. Branches, commit messages and PR titles
 
 ```bash
 git switch main && git pull
 git switch -c <type>/<short-name>      # e.g. feat/degree-audit, fix/credit-cap
 ```
 
-Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`.
+Commit messages and PR titles follow **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)**. CI checks both (`pr-title`, `commit-messages`). The **PR title matters most**: squash merge turns it into the one commit that lands on `main`.
+
+```
+<type>(<scope>): <subject>
+
+<body: what and why, wrapped at 72>
+
+<footer: Refs #12, BREAKING CHANGE: …, Co-Authored-By: …>
+```
+
+| Part | Rule |
+| --- | --- |
+| `type` | `feat` new feature · `fix` bug fix · `docs` · `test` · `refactor` (no behaviour change) · `perf` · `build` (deps, tooling) · `ci` · `chore` · `revert` · `style` (formatting only) |
+| `scope` | Optional, lowercase: `backend`, `frontend`, `db`, `rules` (rule engine), `audit`, `planner`, `ai`, `auth`, `deps`, `release`, … |
+| `!` | Breaking change: `feat(api)!: rename /plans to /roadmaps`, plus a `BREAKING CHANGE:` footer |
+| `subject` | Imperative mood ("add", not "added"), starts lowercase, no trailing period, whole header ≤ 72 characters |
+
+Examples:
+
+```
+feat(audit): show remaining credits per requirement group
+fix(rules): enforce the 12-credit cap in summer terms
+test(planner): cover prerequisite chains longer than three
+docs: add use-case specification UC-04
+build(deps): bump vitest to 5.0.5
+```
+
+Branch prefix = the type of the PR. The changeset bump usually follows the type: `fix` → patch, `feat` → minor (pre-1.0), `!` → major (after 1.0). `docs`/`test`/`ci`/`chore` → `--empty`.
 
 ### Every commit must be signed
 
