@@ -1,0 +1,51 @@
+name: Release
+
+# On every push to main, open or update the "Version Packages" PR: it applies
+# the pending changesets (semver bump + CHANGELOG.md) and deletes them.
+# Merging that PR is the release.
+on:
+  push:
+    branches: [main]
+
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+env:
+  NPM_VERSION: 11.21.1
+  RELEASE_BRANCH: changeset-release/main
+
+jobs:
+  version-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm install -g npm@${{ env.NPM_VERSION }}
+      - run: npm ci
+      - id: changesets
+        # Commits through the GitHub API (default in v2), so they are signed
+        # by GitHub and satisfy the "signed commits" rule on main.
+        uses: changesets/action@v2.1.2
+        with:
+          version-script: npm run version-packages
+          commit-message: 'chore(release): version packages'
+          pr-title: 'chore(release): version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # A PR pushed with GITHUB_TOKEN does not trigger pull_request workflows,
+      # so the required CI checks would never report. workflow_dispatch is the
+      # documented exception, so start CI on the release branch explicitly.
+      - name: Run CI on the version PR
+        if: steps.changesets.outputs.has-changesets == 'true'
+        run: gh workflow run ci.yml --ref "$RELEASE_BRANCH"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

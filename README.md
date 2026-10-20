@@ -33,6 +33,10 @@ pa/                         Assignment submissions (PA0 … PA5)
 
 Documents are written in Markdown and exported to .docx only for submission.
 
+## Versioning
+
+[Semantic versioning](https://semver.org) with [Changesets](https://github.com/changesets/changesets). Backend and frontend share one version (a `fixed` group). Each PR adds a changeset. On merge, the Release workflow opens a **Version Packages** PR that bumps the version and writes `src/*/CHANGELOG.md`. Merging that PR is the release.
+
 ## Run it locally
 
 Requirements: Node 22.12+, npm 11 (`npm i -g npm@11`), and Podman or Docker.
@@ -57,8 +61,9 @@ npm run test:e2e -w src/backend    # needs the database
 ## Rules for changing `main`
 
 1. **No direct pushes.** Every change arrives as a pull request.
-2. **CI must pass**: the `backend` and `frontend` checks.
-3. **Every commit is signed** (SSH or GPG) and shows *Verified* on GitHub.
+2. **CI must pass**: the `changeset`, `signed-commits`, `backend` and `frontend` checks.
+   Every PR includes a [changeset](.changeset/README.md) (`npx changeset`, or `npx changeset --empty` when nothing ships).
+3. **Every commit is signed** (SSH or GPG) and shows *Verified* on GitHub. The `signed-commits` check verifies every commit in the PR, because the squash commit GitHub creates on `main` is always signed by GitHub itself.
 4. **At least one approving review** from another member. New pushes dismiss earlier approvals.
 5. **After approval, the author merges and deploys** (Actions → Deploy → Run workflow).
 
