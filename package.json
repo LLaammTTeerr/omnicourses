@@ -15,6 +15,12 @@
     "test": "npm run test --workspaces",
     "db:up": "podman compose up -d db || docker compose up -d db",
     "dev:backend": "npm run start:dev -w src/backend",
-    "dev:frontend": "npm run dev -w src/frontend"
+    "dev:frontend": "npm run dev -w src/frontend",
+    "changeset": "changeset",
+    "version-packages": "changeset version && npm install --package-lock-only --ignore-scripts"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "1.0.1",
+    "@changesets/cli": "3.0.3"
   }
 }

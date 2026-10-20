@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Started by the Release workflow for the Version Packages PR.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,6 +19,32 @@ env:
   NPM_VERSION: 11.21.1
 
 jobs:
+  changeset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Require a changeset in this PR
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # The Version Packages PR consumes changesets instead of adding one.
+          if [ "$HEAD_REF" = "changeset-release/main" ]; then
+            echo "Version Packages PR: no changeset needed."; exit 0
+          fi
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "Not a pull request: nothing to check."; exit 0
+          fi
+          added=$(git diff --name-only --diff-filter=A "$BASE_SHA"...HEAD -- '.changeset/*.md' ':!.changeset/README.md')
+          if [ -z "$added" ]; then
+            echo "::error::This PR has no changeset. Run 'npx changeset' (or 'npx changeset --empty' for changes that need no release) and commit the file."
+            exit 1
+          fi
+          echo "Changesets in this PR:"; echo "$added"
+
   backend:
     runs-on: ubuntu-latest
     services:

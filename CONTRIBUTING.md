@@ -41,6 +41,12 @@ If you already pushed unsigned commits: `git rebase --exec 'git commit --amend -
 
 ## 3. Pull requests
 
+- **Add a changeset** before opening the PR. CI fails without one:
+  ```bash
+  npx changeset            # choose bump: patch = fix, minor = feature (pre-1.0), write one user-facing line
+  npx changeset --empty    # docs, CI, chores: nothing to release
+  ```
+  Commit the generated `.changeset/*.md` file. See [.changeset/README.md](.changeset/README.md).
 - Fill in the PR template. The **"Why this design"** section is required (see AI policy).
 - CI (`backend`, `frontend`) must be green.
 - At least **one approval** from another member. Pushing new commits dismisses earlier approvals.
@@ -51,6 +57,10 @@ If you already pushed unsigned commits: `git rebase --exec 'git commit --amend -
 1. After approval, **the author** clicks *Squash and merge*.
 2. **The author** deploys: *Actions → Deploy → Run workflow* on `main`. At the end of a sprint, fill in `build_tag` (`B0`…`B3`).
 3. Move the Discord task to **Done**.
+
+### Releases
+
+Every merge to `main` updates an open **chore(release): version packages** PR (opened by GitHub Actions). It bumps the version and writes the changelog from the changesets merged so far. It goes through the same review. Merge it at the end of a sprint, then deploy with the build tag (`B0`…`B3`).
 
 ## 5. AI policy
 
