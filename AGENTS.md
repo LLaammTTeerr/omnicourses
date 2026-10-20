@@ -44,10 +44,11 @@ Run typecheck, tests and build before every push. Run e2e when you touch the bac
 Agents have full authority over the branch → PR → merge → deploy cycle, under these conditions:
 
 1. **Branch** from up-to-date `main`: `<type>/<short-name>` (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`). Never commit to `main`; it is protected and will reject the push.
-2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human.
-3. **Open a PR** using the template. Fill in **"Why this design"**: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). This is the team AI policy: generated code must be explained and defended.
-4. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
-5. **Deploy after merging**: `gh workflow run deploy.yml --ref main`. Add `-f build_tag=B<n>` only when a human asks for a build tag.
-6. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
+2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human. CI's `signed-commits` check rejects the PR if any commit is unverified.
+3. **Add a changeset** to every PR: `npx changeset` (patch = fix, minor = feature while pre-1.0) with one user-facing line, or `npx changeset --empty` for docs/CI/chores. CI's `changeset` check fails without it. Never edit `CHANGELOG.md` or package versions by hand. The Release workflow's *Version Packages* PR does that.
+4. **Open a PR** using the template. Fill in **"Why this design"**: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). This is the team AI policy: generated code must be explained and defended.
+5. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
+6. **Deploy after merging**: `gh workflow run deploy.yml --ref main`. Add `-f build_tag=B<n>` only when a human asks for a build tag.
+7. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
 
 Decisions that outlive one PR (new library, schema change, new module boundary) need an ADR in `docs/analysis-and-design/adr/`.
