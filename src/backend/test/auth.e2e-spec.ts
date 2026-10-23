@@ -7,6 +7,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 
+// Calls to sign-up/sign-in here share the 10/min PASSWORD_LIMIT (auth.controller.ts);
+// at about 7 today. Adding more password calls may need a second describe with its own app.
 // Synthetic, unique per run, so reruns against the same database never collide.
 const email = `student-${randomUUID()}@example.com`;
 const password = 'correct horse battery';

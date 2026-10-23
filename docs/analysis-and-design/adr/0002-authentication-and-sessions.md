@@ -2,7 +2,8 @@
 
 - Status: accepted
 - Date: 2026-10-23
-- Deciders: Lâm (owner of `auth`, `users`), reviewed by Triết (Backend Lead)
+- Deciders: Lâm (owner of `auth`, `users`)
+- Reviewer: Triết (Backend Lead)
 
 ## Context
 
@@ -28,4 +29,5 @@ F1 (Vision §5) needs sign-up and sign-in. The security NFR (Vision §6) require
 
 - **Google OAuth**: needs an OAuth client ID and secret from Google Cloud. `google_sub` is already in the table.
 - **Email verification**: needs a mail sender. `email_verified_at` is already in the table.
+- **Trust proxy**: the rate limit keys on `req.ip`. Behind the staging host's proxy every request shares one IP, so set Express `trust proxy` when the host is chosen, or one person's typos lock everyone out of sign-in.
 - **Account export and delete**: Sprint 3. Deleting a user cascades to their sessions.
