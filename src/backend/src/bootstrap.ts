@@ -22,5 +22,6 @@ export function buildOpenApiConfig(): Omit<OpenAPIObject, 'paths'> {
     .setTitle('OmniCourse API')
     .setDescription('REST API of OmniCourse: degree audit, curriculum and roadmap planning.')
     .setVersion('0.0.0')
+    .addBearerAuth()
     .build();
 }
