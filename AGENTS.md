@@ -8,7 +8,7 @@ OmniCourse is a web app for HCMUS students (APCS first): degree audit, curriculu
 
 ## Stack (pinned exactly, do not use ranges)
 
-PostgreSQL 18.6 · NestJS 12.1.3, Nest CLI 12.0.8, Swagger 12.0.2 · Vue 3.5.44 · OpenAPI 3.2.0 · Vitest 5.0.4 · Vite 8.3.4 · TypeScript 6.0.3 · TypeORM 1.1 · Node 22 · **npm 11** (npm 10 crashes on this tree). Rationale: [ADR 0001](docs/analysis-and-design/adr/0001-technology-stack.md). Add new dependencies with exact versions (`npm i -E`).
+PostgreSQL 18.6 · NestJS 12.1.3, Nest CLI 12.0.8, Swagger 12.0.2 · Vue 3.5.44 · OpenAPI 3.2.0 · Vitest 5.0.4 · Vite 8.3.4 · TypeScript 6.0.3 · TypeORM 1.1 · Node 22.22.1 (`.nvmrc`) · **npm 11.21.1** (npm 10 crashes on this tree). Rationale: [ADR 0001](docs/analysis-and-design/adr/0001-technology-stack.md). Add new dependencies with exact versions (`npm i -E`).
 
 ## Commands
 
