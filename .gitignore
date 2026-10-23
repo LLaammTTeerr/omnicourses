@@ -10,3 +10,5 @@ coverage/
 !.vscode/extensions.json
 .idea/
 src/backend/openapi.json
+
+mise.local.toml
