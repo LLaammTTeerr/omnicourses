@@ -1,0 +1,184 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { AiUnavailableError } from './ai-unavailable.error.js';
+import { GatewayLlmService, toModelSchema } from './gateway-llm.service.js';
+import type { ChatEvent, ChatRequest } from './llm.service.js';
+import { ModelClient, ModelMessage, ModelStreamEvent, ModelTool, ModelToolCall } from './model-client.js';
+
+const context = { userId: '00000000-0000-4000-8000-000000000001', feature: 'test' };
+const usage = { inputTokens: 10, outputTokens: 5 };
+
+/** Scripted model: each complete()/stream() call takes the next reply. */
+class ScriptedModel extends ModelClient {
+  completions: string[] = [];
+  turns: Array<{ text?: string; toolCalls?: ModelToolCall[] } | Error> = [];
+  completeCalls: Array<Parameters<ModelClient['complete']>[0]> = [];
+  streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[] }> = [];
+
+  async complete(request: Parameters<ModelClient['complete']>[0]) {
+    this.completeCalls.push(request);
+    return { content: this.completions.shift() ?? '', usage };
+  }
+
+  async *stream(request: Parameters<ModelClient['stream']>[0]): AsyncIterable<ModelStreamEvent> {
+    // Snapshot: the gateway keeps appending to the same array.
+    this.streamCalls.push({ messages: [...request.messages], tools: request.tools });
+    const turn = this.turns.shift() ?? { text: '' };
+    if (turn instanceof Error) {
+      yield { type: 'text', delta: 'partial ' };
+      throw turn;
+    }
+    if (turn.text) yield { type: 'text', delta: turn.text };
+    yield { type: 'end', content: turn.text ?? '', toolCalls: turn.toolCalls ?? [], usage };
+  }
+}
+
+async function collect(events: AsyncIterable<ChatEvent>): Promise<ChatEvent[]> {
+  const out: ChatEvent[] = [];
+  for await (const event of events) out.push(event);
+  return out;
+}
+
+describe('GatewayLlmService', () => {
+  let model: ScriptedModel;
+  let guard: { assertWithinCap: ReturnType<typeof vi.fn>; record: ReturnType<typeof vi.fn> };
+  let llm: GatewayLlmService;
+
+  beforeEach(() => {
+    vi.stubEnv('AI_MODEL_STRUCTURED', 'small-model');
+    vi.stubEnv('AI_MODEL_CHAT', 'chat-model');
+    model = new ScriptedModel();
+    guard = { assertWithinCap: vi.fn(async () => undefined), record: vi.fn(async () => undefined) };
+    llm = new GatewayLlmService(model, guard as never);
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  describe('structured', () => {
+    const schema = z.object({ targetGraduationTerm: z.string().nullable(), creditsPerTerm: z.number().int().nullable() });
+    const request = { context, instructions: 'Fill the form.', input: 'graduate by 2028, 18 credits', schema };
+
+    it('returns the parsed reply and sends a strict schema without $schema', async () => {
+      model.completions = ['{"targetGraduationTerm":"2028-summer","creditsPerTerm":18}'];
+      await expect(llm.structured(request)).resolves.toEqual({ targetGraduationTerm: '2028-summer', creditsPerTerm: 18 });
+      const sent = model.completeCalls[0];
+      expect(sent.model).toBe('small-model');
+      expect(sent.jsonSchema.schema).not.toHaveProperty('$schema');
+      expect(sent.jsonSchema.schema).toMatchObject({ required: ['targetGraduationTerm', 'creditsPerTerm'], additionalProperties: false });
+      expect(sent.messages).toEqual([
+        { role: 'system', content: 'Fill the form.' },
+        { role: 'user', content: 'graduate by 2028, 18 credits' },
+      ]);
+    });
+
+    it('retries once when the reply misses the schema, and meters both attempts as one call', async () => {
+      model.completions = ['not json', '{"targetGraduationTerm":null,"creditsPerTerm":20}'];
+      await expect(llm.structured(request)).resolves.toEqual({ targetGraduationTerm: null, creditsPerTerm: 20 });
+      expect(guard.record).toHaveBeenCalledTimes(1);
+      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ ...context, model: 'small-model', inputTokens: 20, outputTokens: 10, succeeded: true }));
+    });
+
+    it('gives up after two unusable replies with ai_unavailable', async () => {
+      model.completions = ['{"creditsPerTerm":"many"}', '{}'];
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('The model returned an unusable reply'));
+      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ succeeded: false }));
+    });
+
+    it('answers ai_unavailable without calling the model when no model is configured', async () => {
+      vi.stubEnv('AI_MODEL_STRUCTURED', '');
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('AI is not configured'));
+      expect(model.completeCalls).toHaveLength(0);
+      expect(guard.record).not.toHaveBeenCalled();
+    });
+
+    it('does not call the model when the daily cap is spent', async () => {
+      guard.assertWithinCap.mockRejectedValue(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
+      await expect(llm.structured(request)).rejects.toBeInstanceOf(AiUnavailableError);
+      expect(model.completeCalls).toHaveLength(0);
+      expect(guard.assertWithinCap).toHaveBeenCalledWith(context.userId);
+    });
+  });
+
+  describe('chat', () => {
+    const handler = vi.fn(async ({ query }: { query: string }) => ({ clause: `Article 10: ${query}` }));
+    const search = { name: 'search_regulations', description: 'Find a clause', schema: z.object({ query: z.string() }), handler };
+    const request: ChatRequest = { context, instructions: 'You are the advisor.', messages: [{ role: 'user', content: 'Credit cap?' }], tools: [search] };
+
+    beforeEach(() => {
+      handler.mockClear();
+    });
+
+    it('streams text and ends with done', async () => {
+      model.turns = [{ text: 'Up to 25 credits.' }];
+      const events = await collect(llm.chat({ ...request, tools: [] }));
+      expect(events).toEqual([
+        { type: 'text', delta: 'Up to 25 credits.' },
+        { type: 'done', text: 'Up to 25 credits.' },
+      ]);
+      expect(model.streamCalls[0].messages[0]).toEqual({ role: 'system', content: 'You are the advisor.' });
+      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ model: 'chat-model', succeeded: true }));
+    });
+
+    it('runs a tool with parsed arguments and feeds the result back to the model', async () => {
+      model.turns = [{ toolCalls: [{ id: 'call-1', name: 'search_regulations', arguments: '{"query":"credit cap"}' }] }, { text: 'Up to 25.' }];
+      const events = await collect(llm.chat(request));
+      expect(handler).toHaveBeenCalledWith({ query: 'credit cap' });
+      expect(events).toEqual([
+        { type: 'tool_call', name: 'search_regulations', args: { query: 'credit cap' } },
+        { type: 'tool_result', name: 'search_regulations', ok: true },
+        { type: 'text', delta: 'Up to 25.' },
+        { type: 'done', text: 'Up to 25.' },
+      ]);
+      expect(model.streamCalls[0].tools).toEqual([{ name: 'search_regulations', description: 'Find a clause', parameters: toModelSchema(search.schema) }]);
+      expect(model.streamCalls[1].messages.at(-1)).toEqual({ role: 'tool', toolCallId: 'call-1', content: '{"clause":"Article 10: credit cap"}' });
+      expect(guard.record).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports invalid arguments to the model without calling the handler', async () => {
+      model.turns = [{ toolCalls: [{ id: 'call-1', name: 'search_regulations', arguments: '{"query":42}' }] }, { text: 'Sorry.' }];
+      const events = await collect(llm.chat(request));
+      expect(handler).not.toHaveBeenCalled();
+      expect(events).toContainEqual({ type: 'tool_result', name: 'search_regulations', ok: false });
+      const fed = model.streamCalls[1].messages.at(-1) as { content: string };
+      expect(JSON.parse(fed.content).error).toMatch(/^Invalid arguments/);
+    });
+
+    it('reports a throwing handler as a tool error and keeps going', async () => {
+      handler.mockRejectedValueOnce(new Error('database down'));
+      model.turns = [{ toolCalls: [{ id: 'call-1', name: 'search_regulations', arguments: '{"query":"x"}' }] }, { text: 'I could not check.' }];
+      const events = await collect(llm.chat(request));
+      expect(events).toContainEqual({ type: 'tool_result', name: 'search_regulations', ok: false });
+      expect(model.streamCalls[1].messages.at(-1)).toEqual({ role: 'tool', toolCallId: 'call-1', content: '{"error":"The tool failed"}' });
+      expect(events.at(-1)).toEqual({ type: 'done', text: 'I could not check.' });
+    });
+
+    it('gives the last step no tools, so the model must answer', async () => {
+      const call = { id: 'c', name: 'search_regulations', arguments: '{"query":"x"}' };
+      model.turns = [{ toolCalls: [call] }, { text: 'Final.' }];
+      const events = await collect(llm.chat({ ...request, maxSteps: 2 }));
+      expect(model.streamCalls[1].tools).toEqual([]);
+      expect(events.at(-1)).toEqual({ type: 'done', text: 'Final.' });
+    });
+
+    it('throws ai_unavailable mid-stream after the text already sent', async () => {
+      model.turns = [new AiUnavailableError('The AI provider timed out')];
+      const seen: ChatEvent[] = [];
+      await expect(async () => {
+        for await (const event of llm.chat(request)) seen.push(event);
+      }).rejects.toThrow(new AiUnavailableError('The AI provider timed out'));
+      expect(seen).toEqual([{ type: 'text', delta: 'partial ' }]);
+      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ succeeded: false }));
+    });
+
+    it('wraps an unexpected error as a generic ai_unavailable', async () => {
+      model.turns = [new TypeError('prompt text could be in here')];
+      await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError('AI is unavailable'));
+    });
+
+    it('still records usage when the caller stops early (client disconnected)', async () => {
+      model.turns = [{ text: 'Long answer' }];
+      for await (const _event of llm.chat(request)) break;
+      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ succeeded: false }));
+    });
+  });
+});

@@ -53,6 +53,29 @@ export class PlansController {
 
 Reference the user from your tables as `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Never read or return `users.password_hash`.
 
+## AI gateway (how to use it in your module)
+
+A model is allowed only in F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)). Import `AiModule`, inject `LlmService`, and write your prompt, zod schema and tools in your own module.
+
+```ts
+const goal = await this.llm.structured({
+  context: { userId: user.id, feature: 'goal-box' },
+  instructions: GOAL_PROMPT,
+  input: dto.sentence,
+  schema: PlanningGoalSchema,          // zod; .nullable(), not .optional()
+});
+
+@Post('ask')                           // F8: stream with streamChat, read it with fetch
+ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response) {
+  return streamChat(res, this.llm.chat({ context: { userId: user.id, feature: 'advisor' }, instructions, messages: dto.messages, tools }));
+}
+```
+
+- Every failure is `AiUnavailableError` → **503 `ai_unavailable`**. Give each AI screen a manual path. Document it with `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`.
+- Unit tests use `FakeLlmService` (`src/ai/testing/`). CI never calls OpenRouter. `npm run test:live -w src/backend` is the manual smoke test and spends credit.
+- Calls are capped per user per day (`AI_DAILY_CALLS_PER_USER`). Usage rows hold no content. Never log a prompt, a reply or tool arguments.
+- Two settings in the OpenRouter dashboard carry ADR 0003's guarantees. The Project Lead keeps them on: **Settings → Privacy → training opt-out**, and **a monthly credit limit on the API key**.
+
 ## Testing
 
 **Every behaviour change ships with a Vitest test**, and every bug fix with a test that failed before the fix. The rule engine must keep **≥ 80 % statement coverage** (Vision NFR). Never delete or weaken a test to make CI pass.
