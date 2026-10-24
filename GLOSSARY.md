@@ -90,6 +90,10 @@ _Avoid_: credit limit, load limit, max credits
 A student's placement of courses into terms from now until graduation; a student may keep several.
 _Avoid_: roadmap, schedule, timetable
 
+**Planning goal**:
+What a student wants a plan to achieve (target graduation term, load per term, internship term, courses to take or avoid), given in a form or in their own words.
+_Avoid_: prompt, preferences, wish
+
 **Target graduation term**:
 The term in which the student intends to graduate, set by the student.
 _Avoid_: expected graduation, deadline
