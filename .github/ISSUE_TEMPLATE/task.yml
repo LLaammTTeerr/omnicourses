@@ -1,0 +1,29 @@
+name: Task
+description: A feature, bug or chore for the sprint. Triage moves it to ready-for-agent or ready-for-human.
+labels: [needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use the words in [GLOSSARY.md](../blob/main/GLOSSARY.md). This repo is public: no real transcripts, student IDs or names.
+  - type: textarea
+    id: what
+    attributes:
+      label: What and why
+      description: The outcome a student, program administrator or advisor gets, and the Vision feature (F1–F12) or NFR it serves.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Done when
+      description: Checkable acceptance criteria. For an academic rule, cite the curriculum or regulation clause it comes from.
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+  - type: input
+    id: discord
+    attributes:
+      label: Discord task
+      description: Link to the Sprint tab message, if there is one.

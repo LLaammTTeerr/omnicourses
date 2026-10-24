@@ -57,6 +57,26 @@ Reference the user from your tables as `user_id uuid NOT NULL REFERENCES users(i
 
 **Every behaviour change ships with a Vitest test**, and every bug fix with a test that failed before the fix. The rule engine must keep **≥ 80 % statement coverage** (Vision NFR). Never delete or weaken a test to make CI pass.
 
+## Agent skills
+
+Configuration for the `mattpocock-skills` engineering skills (`/to-spec`, `/to-tickets`, `/triage`, `/wayfinder`, `/implement`, `/grill-with-docs`, `/code-review`, `/pr`, …).
+
+### Issue tracker
+
+GitHub Issues on this repo via `gh`; the Discord Sprint task links to the issue. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default roles, label string = role name (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the root, ADRs in `docs/analysis-and-design/adr/` (not `docs/adr/`). See `docs/agents/domain.md`.
+
+### PR bodies
+
+`.github/pull_request_template.md` already merges the `/pr` skill's Summary, Evidence and Merge Danger with this repo's required **Why this design**. Fill in that template.
+
 ## Hard rules: never
 
 1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps (14–25 main term, 12 summer), requirement coverage and graduation status are computed only by the deterministic rule engine. AI features (F2, F6, F8) call the engine as tools and explain its results; they never override them.
