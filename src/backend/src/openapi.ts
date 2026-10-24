@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { Test } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountModule } from './account/account.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { configureApp } from './bootstrap.js';
 import { dataSourceOptions } from './database/data-source.js';
@@ -17,6 +18,7 @@ async function main(): Promise<void> {
       HealthModule,
       UsersModule,
       AuthModule,
+      AccountModule,
     ],
   }).compile();
   const document = configureApp(moduleRef.createNestApplication());

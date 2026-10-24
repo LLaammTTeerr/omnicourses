@@ -2,6 +2,7 @@ import { DataSourceOptions } from 'typeorm';
 import { Session } from '../auth/session.entity.js';
 import { User } from '../users/user.entity.js';
 import { CreateUsersAndSessions1761696000000 } from './migrations/1761696000000-create-users-and-sessions.js';
+import { AddUsersDeletionRequestedAt1792886400000 } from './migrations/1792886400000-add-users-deletion-requested-at.js';
 
 // Entities and migrations are listed as imported classes, not globs: globs break
 // between ts (tests) and compiled js (dist), and a missing import fails typecheck.
@@ -9,6 +10,6 @@ import { CreateUsersAndSessions1761696000000 } from './migrations/1761696000000-
 export const dataSourceOptions = {
   type: 'postgres',
   entities: [User, Session],
-  migrations: [CreateUsersAndSessions1761696000000],
+  migrations: [CreateUsersAndSessions1761696000000, AddUsersDeletionRequestedAt1792886400000],
   synchronize: false,
 } satisfies DataSourceOptions;

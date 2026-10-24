@@ -28,6 +28,11 @@ export class User {
   @Column({ name: 'consent_at', type: 'timestamptz' })
   consentAt!: Date;
 
+  // Set by DELETE /users/me; the account is purged after the grace period
+  // unless the student signs in again (ADR 0004).
+  @Column({ name: 'deletion_requested_at', type: 'timestamptz', nullable: true })
+  deletionRequestedAt!: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

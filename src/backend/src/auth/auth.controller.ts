@@ -11,13 +11,10 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { User } from '../users/user.entity.js';
-import { CurrentSession, CurrentUser, Public } from './auth.decorators.js';
+import { CurrentSession, CurrentUser, PASSWORD_LIMIT, Public } from './auth.decorators.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { AuthService } from './auth.service.js';
 import { Session } from './session.entity.js';
-
-// Brute-force limit on the two endpoints that take a password.
-const PASSWORD_LIMIT = { default: { limit: 10, ttl: 60_000 } };
 
 @ApiTags('auth')
 @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
@@ -38,7 +35,7 @@ export class AuthController {
   @Throttle(PASSWORD_LIMIT)
   @Post('sign-in')
   @HttpCode(200)
-  @ApiOkResponse({ type: AuthResultDto })
+  @ApiOkResponse({ type: AuthResultDto, description: 'Signing in during the deletion grace period cancels the deletion (`accountRestored: true`).' })
   @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
   signIn(@Body() dto: SignInDto, @Headers('user-agent') userAgent?: string): Promise<AuthResultDto> {
     return this.auth.signIn(dto, userAgent);

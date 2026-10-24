@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { verify } from '@node-rs/argon2';
+import { hash, verify } from '@node-rs/argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
@@ -17,6 +17,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     googleSub: null,
     emailVerifiedAt: null,
     consentAt: new Date(),
+    deletionRequestedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -41,7 +42,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
 
 describe('AuthService', () => {
   let sessions: { create: ReturnType<typeof vi.fn>; save: ReturnType<typeof vi.fn>; findOne: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; find: ReturnType<typeof vi.fn> };
-  let users: { findByEmail: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
+  let users: { findByEmail: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; cancelDeletion: ReturnType<typeof vi.fn> };
   let service: AuthService;
 
   beforeEach(() => {
@@ -52,7 +53,7 @@ describe('AuthService', () => {
       update: vi.fn(async () => ({ affected: 1 })),
       find: vi.fn(async () => []),
     };
-    users = { findByEmail: vi.fn(async () => null), create: vi.fn(async (f: Partial<User>) => makeUser(f)) };
+    users = { findByEmail: vi.fn(async () => null), create: vi.fn(async (f: Partial<User>) => makeUser(f)), cancelDeletion: vi.fn(async () => undefined) };
     service = new AuthService(sessions as never, users as unknown as UsersService);
   });
 
@@ -99,6 +100,37 @@ describe('AuthService', () => {
       const unknownEmail = service.signIn({ email: 'nobody@example.com', password: 'whatever123' });
       await expect(unknownEmail).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
     });
+
+    it('cancels a pending deletion and says so', async () => {
+      const passwordHash = await hash('correct horse battery');
+      users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash, deletionRequestedAt: new Date() }));
+      const result = await service.signIn({ email: 'student@example.com', password: 'correct horse battery' });
+      expect(result.accountRestored).toBe(true);
+      expect(users.cancelDeletion).toHaveBeenCalledWith(makeUser().id);
+    });
+
+    it('does not touch deletion state on a normal sign-in', async () => {
+      users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash: await hash('correct horse battery') }));
+      const result = await service.signIn({ email: 'student@example.com', password: 'correct horse battery' });
+      expect(result.accountRestored).toBe(false);
+      expect(users.cancelDeletion).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('verifyPassword', () => {
+    it('accepts the right password and rejects a wrong one or a password-less account', async () => {
+      const user = makeUser({ passwordHash: await hash('correct horse battery') });
+      await expect(service.verifyPassword(user, 'correct horse battery')).resolves.toBe(true);
+      await expect(service.verifyPassword(user, 'wrong password!')).resolves.toBe(false);
+      await expect(service.verifyPassword(makeUser({ passwordHash: null }), 'anything')).resolves.toBe(false);
+    });
+  });
+
+  describe('revokeAll', () => {
+    it('revokes every live session of that user only', async () => {
+      await service.revokeAll('u1');
+      expect(sessions.update).toHaveBeenCalledWith({ userId: 'u1', revokedAt: expect.anything() }, { revokedAt: expect.any(Date) });
+    });
   });
 
   describe('authenticate', () => {
@@ -113,6 +145,7 @@ describe('AuthService', () => {
       ['unknown', null],
       ['expired', makeSession({ expiresAt: new Date(Date.now() - 1) })],
       ['revoked', makeSession({ revokedAt: new Date() })],
+      ['pending-deletion', makeSession({ user: makeUser({ deletionRequestedAt: new Date() }) })],
     ])('returns null for an %s session', async (_, session) => {
       sessions.findOne.mockResolvedValue(session);
       await expect(service.authenticate('token')).resolves.toBeNull();
