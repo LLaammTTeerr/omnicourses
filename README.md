@@ -45,6 +45,7 @@ Requirements: Node 22.12+, npm 11 (`npm i -g npm@11`), and Podman or Docker.
 cp .env.example .env
 npm install
 npm run db:up            # PostgreSQL 18.6 on localhost:5432
+npm run build -w src/backend && npm run db:migrate -w src/backend
 npm run dev:backend      # http://localhost:3000/api, Swagger at /api/docs
 npm run dev:frontend     # http://localhost:5173
 ```

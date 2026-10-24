@@ -29,6 +29,30 @@ Run typecheck, tests and build before every push. Run e2e when you touch the bac
 - Frontend: `<script setup lang="ts">` SFCs, Pinia for shared state, API calls in `src/frontend/src/api.ts` (or a sibling module), not inside components.
 - Tests sit next to the code as `*.spec.ts`; backend e2e in `src/backend/test/*.e2e-spec.ts`.
 
+## Authentication (how to use it in your module)
+
+Every route requires a signed-in user by default (global `AuthGuard`, see [ADR 0002](docs/analysis-and-design/adr/0002-authentication-and-sessions.md)). Do not add your own guard.
+
+```ts
+import { CurrentUser, Public } from '../auth/auth.decorators.js';
+import { User } from '../users/user.entity.js';
+
+@ApiBearerAuth()
+@Controller('plans')
+export class PlansController {
+  @Get()
+  list(@CurrentUser() user: User) {          // the signed-in user, never null here
+    return this.plans.listFor(user.id);
+  }
+
+  @Public()                                  // only for routes anyone may call
+  @Get('shared/:token')
+  shared(@Param('token') token: string) { … }
+}
+```
+
+Reference the user from your tables as `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Never read or return `users.password_hash`.
+
 ## Testing
 
 **Every behaviour change ships with a Vitest test**, and every bug fix with a test that failed before the fix. The rule engine must keep **≥ 80 % statement coverage** (Vision NFR). Never delete or weaken a test to make CI pass.
