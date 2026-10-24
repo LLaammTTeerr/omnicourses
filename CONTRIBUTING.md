@@ -2,9 +2,9 @@
 
 ## 1. Tasks: Discord, Sprint tab
 
-All tasks live in the team Discord server, in the **Sprint** tab, one message per task.
+All tasks live in the team Discord server, in the **Sprint** tab, one message per task. Each task also has a **GitHub issue** (*Issues → New → Task*), which holds the spec and is what AI agents read and write ([docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)). Use the words in [GLOSSARY.md](GLOSSARY.md).
 
-1. **Take or create a task** in the Sprint tab.
+1. **Take or create a task** in the Sprint tab, and link its GitHub issue in the message.
 2. **Tag the person who assigned it** in the task message.
 3. **Keep its state current** the day it changes:
    - **Bucket**: accepted, not started

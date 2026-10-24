@@ -1,6 +1,10 @@
-## What
+## Summary
 
-<!-- One or two sentences. Link the Discord task: "Task: <message link>" -->
+<!-- One or two sentences, in GLOSSARY.md vocabulary. Then the smallest picture that makes the point:
+     a call tree, file tree, diff sketch, pseudocode or Mermaid diagram. -->
+
+Closes #
+Task: <!-- Discord Sprint message link -->
 
 ## Why this design (required)
 
@@ -11,9 +15,17 @@
 - **Alternatives considered:**
 - **Evidence:** <!-- docs link, benchmark, test, issue, spec clause, prior ADR -->
 
-## How it was tested
+## Evidence it works
 
-<!-- Commands run, new tests, screenshots for UI changes -->
+<!-- Before / after: the test that failed and now passes, command output, or screenshots for UI changes. -->
+
+- **Before:**
+- **After:**
+
+## Merge danger
+
+- **Door:** <!-- two-way (easy to revert) or one-way (migration, data change, public contract) -->
+- **Blast radius:** <!-- one word, then what could break: other modules, the OpenAPI contract, existing plans… -->
 
 ## Checklist
 
