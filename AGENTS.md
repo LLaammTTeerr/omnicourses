@@ -79,9 +79,9 @@ Single-context: `GLOSSARY.md` at the root, ADRs in `docs/analysis-and-design/adr
 
 ## Hard rules: never
 
-1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps (14–25 main term, 12 summer), requirement coverage and graduation status are computed only by the deterministic rule engine. AI features (F2, F6, F8) call the engine as tools and explain its results; they never override them.
+1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps (14–25 main term, 12 summer), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically.
 2. **Never store a school-portal password or automate a registration** on a student's behalf. Integration with HCMUS is by link and by data the student uploads.
-3. **Never put personal data into AI tools, prompts, fixtures or logs**: no real transcripts, student IDs, names or secrets. Use synthetic data in tests and seeds.
+3. **Never put personal data into AI tools, prompts, fixtures or logs**: no real transcripts, student IDs, names or secrets. Use synthetic data in tests and seeds. The one runtime exception is F8, which may send the signed-in student's pseudonymous record (program, cohort, course codes, grades, terms) after consent, never identity fields (ADR 0003).
 
 ## Git and GitHub workflow
 
