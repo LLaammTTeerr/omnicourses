@@ -7,15 +7,16 @@ Version 2.0 (draft)
 | Date | Version | Description | Author |
 | --- | --- | --- | --- |
 | 18/10/2026 | 1.0 | Initial version submitted for PA1 | Lê Hữu Hoà |
-| 25/10/2026 | 2.0 draft | Estimates and risk register completed; ownership, scope and process updated to the Work Breakdown and ADRs 0001–0004; TA feedback pending | Phan Bình Nguyên Lâm |
+| 25/10/2026 | 2.0 draft | Estimates and risk register completed; ownership, scope and process updated to the Work Breakdown and ADRs 0001–0003; TA feedback pending | Phan Bình Nguyên Lâm |
 
 ### Changes from version 1.0
 
 - **§4.1 Project estimates and §4.3.2 risk register are filled in.** They were left empty in v1.0, as PA1 required.
 - **Scope of the language model** ([ADR 0003](../analysis-and-design/adr/0003-language-model-scope.md)). A model is used only by F6's goal box and by F8. The F2 transcript import is a deterministic parser, F12 curriculum data is entered by people, and F6 plans are built by a deterministic planner. Objective 3 and the Sprint 4 and 5 content are restated to match.
 - **Budget.** The zero-budget constraint becomes a small, capped budget for the model API. Free models log or train on prompts, which the privacy NFR forbids (ADR 0003).
-- **Ownership.** Each member owns whole features end to end for the whole project (§3.2), instead of rotating roles per sprint.
-- **Process.** Every task also has a GitHub issue, and CI now enforces the branch rules (§4.3.3).
+- **Ownership.** Each member owns whole features end to end for the whole project (§3.2), instead of rotating roles per sprint. The test plan moves to Thắng, as the week 2 report assigned it; Dũng keeps the test cases, regression and test reports.
+- **Schedule and builds.** The schedule names each key task's owner and handoff date from the Work Breakdown (§4.2.3). Authentication moves into Sprint 2, the AI gateway into Sprint 3, curriculum administration into Sprint 4 and what-if scenarios into Sprint 5. B1 gains onboarding and account export and deletion (§4.2.2).
+- **Process.** Every task also has a GitHub issue, and the Discord states are named as in the Sprint tab (Bucket, Doing, Done). CI now enforces signed commits, Conventional Commits and a changeset in every PR, and the Project Lead's admin override is defined (§4.3.3). Weekly reports are stored one file per week in `/docs/management/weekly-reports`.
 - **TA feedback on v1.0:** _pending_. It is applied here once received.
 
 ## 1. Introduction
@@ -36,7 +37,7 @@ OmniCourse is a public web application that gives an HCMUS student one page for 
 
 - degree audit;
 - curriculum explorer;
-- semester plan;
+- plan to graduation;
 - an AI-assisted planner and advisor;
 - the exact links and steps for school tasks the application does not perform itself.
 
@@ -61,7 +62,7 @@ Out of scope for this course:
 
 - **Fixed schedule:** five sprints of two weeks, 5/10/2026 to 13/12/2026, aligned with the course plan agreed in PA0. No extension is possible.
 - **Team:** five students, with no member added or removed during the project.
-- **Budget:** free tiers for hosting and CI. The model API is paid, for privacy reasons (ADR 0003), and capped by a monthly credit limit on the provider key and a per-user daily call limit.
+- **Budget:** free tiers for hosting and CI. The model API is paid, for privacy reasons (ADR 0003), and capped (§4.1 Budget).
 - **Effort:** at least 10 hours per member per week, about 50 hours per week for the team.
 - **Capacity:** all five members are full-time students, so lecture and examination weeks reduce it.
 - **Process:** fixed by the course: three RUP phases, five Scrum sprints, and the tools approved in PA0 (Moodle, Discord, GitHub).
@@ -109,11 +110,9 @@ All five members write code, so every member is a Developer. Each member owns a 
 | --- | --- | --- | --- |
 | Phan Bình Nguyên Lâm | Project Lead, Developer | F1 account and onboarding, F2 transcript import, F6 plan generator | The plan, schedule and weekly reports; the AI gateway; CI, staging deploy, backups and build tags; privacy and security |
 | Võ Nguyễn Minh Triết | Backend Lead, Developer | F3 degree audit, F4 curriculum explorer | Database schema, the rule engine, the software architecture document, migration review |
-| Lê Hữu Hoà | Frontend Lead, Developer | F5 semester plan, F7 what-if scenarios | App shell, i18n, Vision v2, the use-case model, the UI design document |
+| Lê Hữu Hoà | Frontend Lead, Developer | F5 planner, F7 what-if scenarios | App shell, i18n, Vision v2, the use-case model, the UI design document |
 | Nguyễn Anh Dũng | Developer, Tester | F8 advisor chat, F9 export and sharing, F10 notifications, F11 guides | Test cases, regression on every build, test reports |
 | Nguyễn Hữu Quốc Thắng | Developer, Tester | F12 curriculum administration, APCS curriculum data | Test plan, automated test suite, coverage gate, acceptance check of each build |
-
-Review duty follows the workstream: the Frontend Lead reviews `src/frontend`, the Backend Lead reviews `src/backend`, and the Project Lead reviews changes to the data model and the rules.
 
 ## 4. Management process
 
@@ -131,12 +130,12 @@ The Project Lead made these first estimates from the Work Breakdown. Each owner 
 
 | Member | Expected effort (h) | Capacity (h) | Load |
 | --- | ---: | ---: | ---: |
-| Lâm | 138 | 80 | 173% |
+| Lâm | 139 | 80 | 174% |
 | Triết | 94 | 80 | 118% |
 | Hoà | 94 | 80 | 118% |
 | Thắng | 79 | 80 | 99% |
-| Dũng | 75 | 80 | 94% |
-| **Team** | **481** | **400** | **120%** |
+| Dũng | 74 | 80 | 93% |
+| **Team** | **480** | **400** | **120%** |
 
 **Reading the totals:**
 - The plan needs about 20% more than the stated minimum effort. The project depends on members working above 10 hours in the construction sprints, which is risk R5.
@@ -160,7 +159,7 @@ The Project Lead made these first estimates from the Work Breakdown. Each owner 
 | Security pass | 4 | 6 | 10 | 6 |
 | Use cases UC-01, UC-02, UC-07 and their sequence diagrams | 4 | 6 | 9 | 6 |
 | Project management: SDP v2, weekly reports, final report, submissions | 12 | 16 | 24 | 17 |
-| **Total** | | | | **138** |
+| **Total** | | | | **139** |
 
 #### Triết
 
@@ -186,7 +185,7 @@ The Project Lead made these first estimates from the Work Breakdown. Each owner 
 | App shell, design tokens, i18n, responsive layout | 10 | 14 | 22 | 15 |
 | Sign-in and sign-up screens | 3 | 5 | 8 | 5 |
 | `plans` module and its API | 6 | 10 | 16 | 10 |
-| F5 semester plan: drag, live validation, compare | 16 | 24 | 36 | 25 |
+| F5 planner: drag, live validation, compare | 16 | 24 | 36 | 25 |
 | F7 what-if scenarios | 8 | 12 | 20 | 13 |
 | Accessibility audit and UI polish | 4 | 6 | 10 | 6 |
 | **Total** | | | | **94** |
@@ -196,12 +195,12 @@ The Project Lead made these first estimates from the Work Breakdown. Each owner 
 | Work item | O | M | P | E |
 | --- | ---: | ---: | ---: | ---: |
 | Use cases UC-08, UC-09, UC-10 and diagrams | 4 | 6 | 9 | 6 |
-| F11 quicklinks and guides | 6 | 10 | 16 | 10 |
+| F11 guides | 6 | 10 | 16 | 10 |
 | F10 notifications | 6 | 10 | 16 | 10 |
 | F9 plan export and sharing | 6 | 10 | 16 | 10 |
 | F8 advisor chat with cited clauses | 14 | 20 | 32 | 21 |
 | Test cases, regression on B0–B3, test reports | 12 | 16 | 24 | 17 |
-| **Total** | | | | **75** |
+| **Total** | | | | **74** |
 
 #### Thắng
 
@@ -213,12 +212,12 @@ The Project Lead made these first estimates from the Work Breakdown. Each owner 
 | CI coverage gate on the rule engine | 1 | 2 | 4 | 2 |
 | F12 curriculum administration API | 8 | 12 | 20 | 13 |
 | F12 curriculum administration UI | 8 | 12 | 20 | 13 |
-| Second program or cohort entered through the admin UI | 3 | 5 | 8 | 5 |
+| Second program or cohort entered through the curriculum administration UI | 3 | 5 | 8 | 5 |
 | Performance tests for the NFRs | 4 | 6 | 10 | 6 |
 | Acceptance checks of B1–B3 | 3 | 5 | 8 | 5 |
 | **Total** | | | | **79** |
 
-**Budget.** The model API is the only paid item. The monthly credit limit on the OpenRouter key is the hard cap, and the per-user daily call limit (20 by default) stops one user from spending it. The limit is set by the Project Lead in the OpenRouter dashboard and reported in the weekly report when it changes.
+**Budget.** The model API is the only paid item. The monthly spending limit on the OpenRouter key is the hard cap, and the per-user daily call limit (20 by default) stops one user from spending it. The limit is set by the Project Lead in the OpenRouter dashboard and reported in the weekly report when it changes.
 
 ### 4.2 Project plan
 
@@ -229,8 +228,8 @@ The Project Lead made these first estimates from the Work Breakdown. Each owner 
 | Inception | Sprint 1 | 5/10/2026 | 18/10/2026 | Project proposal, group and tools set up, first versions of the project plan and the vision document, UI sketches. |
 | Elaboration | Sprint 2 | 19/10/2026 | 1/11/2026 | Requirements baseline, use cases, initial architecture and database schema, authentication, running skeleton (build B0). |
 | Elaboration | Sprint 3 | 2/11/2026 | 15/11/2026 | Detailed design, test plan and test cases, APCS curriculum data, degree audit and curriculum explorer, AI gateway (build B1). |
-| Construction | Sprint 4 | 16/11/2026 | 29/11/2026 | Semester plan with live rule validation, transcript import, notifications, curriculum administration (build B2). |
-| Construction | Sprint 5 | 30/11/2026 | 13/12/2026 | Plan generator and advisor, what-if scenarios, quicklinks, performance and security pass, regression, release candidate (build B3). |
+| Construction | Sprint 4 | 16/11/2026 | 29/11/2026 | Planner with live rule validation, transcript import, notifications, curriculum administration (build B2). |
+| Construction | Sprint 5 | 30/11/2026 | 13/12/2026 | Plan generator and advisor chat, what-if scenarios, guides, performance and security pass, regression, release candidate (build B3). |
 
 Milestones:
 
@@ -250,30 +249,30 @@ Four builds are produced for testing. Each build is deployed to the staging envi
 | --- | --- | --- | --- |
 | B0 | 1/11/2026, end of Sprint 2 | Demo, walking skeleton | Deployment pipeline, database schema, sign-up and sign-in, one working screen. |
 | B1 | 15/11/2026, end of Sprint 3 | Demo, beta | Degree audit and curriculum explorer on the APCS curriculum; onboarding; account export and deletion. |
-| B2 | 29/11/2026, end of Sprint 4 | Beta | Semester plan with live rule validation, transcript import, notifications, curriculum administration. |
-| B3 | 13/12/2026, end of Sprint 5 | Release candidate | Plan generator with goal box, advisor chat, what-if scenarios, quicklinks and guides, full regression. |
+| B2 | 29/11/2026, end of Sprint 4 | Beta | Planner with live rule validation, transcript import, notifications, curriculum administration. |
+| B3 | 13/12/2026, end of Sprint 5 | Release candidate | Plan generator with goal box, advisor chat, what-if scenarios, guides, full regression. |
 
 #### 4.2.3 Project schedule
 
-Tasks are kept in the Discord **Sprint** tab, one message per task, each linked to a GitHub issue, and moved by its owner through Bucket, Doing and Done. The per-member checklist for each sprint is in the Work Breakdown; this table lists each sprint's key tasks.
+Tasks are kept in the Discord **Sprint** tab, each linked to a GitHub issue (§4.3.1). This table lists each sprint's key tasks, is copied from that list at the end of each sprint so progress can be checked against the dates, and may change after the review of PA2. The per-member checklist for each sprint is in the Work Breakdown.
 
 | Sprint | Dates | Key tasks | Owners |
 | --- | --- | --- | --- |
 | Sprint 1 | 5/10 – 18/10 | Project proposal and five user interviews; group registration; tools set-up; stack decision; project plan; vision document; UI sketches; two weekly reports. | All, coordinated by Lâm |
-| Sprint 2 | 19/10 – 1/11 | Curriculum schema (Triết, 28/10); authentication handoff (Lâm, 29/10); use-case specifications (all, 28/10) and use-case model (Hoà); Vision v2 (Hoà); initial architecture (Triết); app shell and sign-in screen (Hoà); test plan (Thắng); B0 test cases (Dũng); staging deploy and B0 (Lâm). | All |
+| Sprint 2 | 19/10 – 1/11 | Curriculum schema (Triết, 28/10); authentication handoff (Lâm, 29/10); use-case specifications (all, 28/10) and use-case model (Hoà); Vision v2 (Hoà); initial architecture and the `RulesService` interface (Triết, 1/11); app shell and sign-in screen (Hoà); test plan (Thắng); B0 test cases (Dũng); staging deploy and B0 (Lâm). | All |
 | Sprint 3 | 2/11 – 15/11 | Rule engine and degree audit (Triết); curriculum explorer (Triết); APCS seed data (Thắng, 8/11); `plans` API (Hoà, 8/11); AI gateway (Lâm, 8/11); onboarding, account export and deletion (Lâm); guides (Dũng); detailed design; build B1. | All |
-| Sprint 4 | 16/11 – 29/11 | Semester plan with live validation (Hoà, Triết's endpoint 16/11); transcript import and student record (Lâm, 22/11); notifications, export and sharing (Dũng); curriculum administration UI (Thắng); nightly backup (Lâm); build B2; regression. | All |
-| Sprint 5 | 30/11 – 13/12 | Plan generator (Lâm, rule-engine functions from Triết 29/11); advisor chat (Dũng); what-if scenarios (Hoà); second program through the admin UI (Thắng); performance and security pass; full regression; release candidate B3; final report. | All |
+| Sprint 4 | 16/11 – 29/11 | Planner with live validation (Hoà, Triết's endpoint 16/11); transcript import and student record (Lâm, 22/11); notifications, export and sharing (Dũng); curriculum administration UI (Thắng); nightly backup (Lâm); build B2; regression. | All |
+| Sprint 5 | 30/11 – 13/12 | Plan generator (Lâm, rule-engine functions from Triết 29/11); advisor chat (Dũng); what-if scenarios (Hoà); second program through the curriculum administration UI (Thắng); performance and security pass; full regression; release candidate B3; final report. | All |
 
 #### 4.2.4 Project resourcing
 
 Five members, each committing at least 10 hours per week: about 50 hours per week, and roughly 600 hours over the twelve weeks. Every task has an owner and a reviewer, so no task depends on a single person.
 
 - **Source control and review:** GitHub, one repository, protected `main` branch.
-- **Communication and task tracking:** one Discord server for the conversation and task state; GitHub issues for each task's specification.
+- **Communication and task tracking:** one Discord server, one channel per concern, for the conversation and task state; GitHub issues for each task's specification.
 - **Development:** NestJS and Vue run locally, with PostgreSQL 18.6 in a container and seeded curriculum data.
 - **Continuous integration and hosting:** GitHub Actions, and a free-tier cloud host for staging.
-- **Model API:** OpenRouter, behind the AI gateway, with a monthly credit limit (§4.1 Budget).
+- **Model API:** OpenRouter, behind the AI gateway, with a monthly spending limit (§4.1 Budget).
 - **Documents:** Markdown in `/docs`, exported to `.docx` for submission.
 
 ### 4.3 Project monitoring and control
@@ -297,16 +296,16 @@ Probability and impact are scored from 1 (low) to 5 (high), and exposure = proba
 | R1 | The curriculum schema is late (due 28/10). Every module's tables reference it, so every member waits. | 3 | 5 | 15 | High | Triết | Schema first, before the architecture document. Others build against interfaces and fakes until it lands. A slip of one day goes in Discord the same day; Lâm reassigns review help. |
 | R2 | No staging host is chosen, or the free tier sleeps, limits the database or disappears, so B0 cannot be deployed on 1/11. | 4 | 4 | 16 | High | Lâm | Choose the host by 28/10. Pick one with a managed PostgreSQL 18 and keep the deploy workflow host-agnostic (build artifact, migrations, start). Keep a second host's set-up written down as the fallback. |
 | R3 | Errors in the APCS curriculum data give students a wrong graduation status. | 3 | 5 | 15 | High | Thắng | Triết checks the seed data line by line against the official PDF (8/11). Unit tests per requirement group with known transcripts. Data is versioned per cohort, so a fix does not break old plans. |
-| R4 | The Project Lead is overloaded: management plus three features, at 173% of capacity (§4.1). | 4 | 4 | 16 | High | Lâm | Platform work (auth, AI gateway, account export and deletion) done in Sprint 2. If Sprint 4 slips, F6's planner moves to Dũng, who already uses the AI gateway. Two-factor authentication is dropped first. |
+| R4 | The Project Lead is overloaded: management plus three features, at 174% of capacity (§4.1). | 4 | 4 | 16 | High | Lâm | Platform work (auth, AI gateway, account export and deletion) done in Sprint 2. If Sprint 4 slips, F6's planner moves to Dũng, who already uses the AI gateway. Two-factor authentication, a Sprint 5 stretch item in the Work Breakdown, is dropped first. |
 | R5 | Lecture and examination weeks cut capacity, and the plan already needs 120% of the minimum hours (§4.1). | 4 | 3 | 12 | High | Lâm | Front-load critical-path work into Sprints 2 and 3. Keep Sprint 5 for the AI features, polish and regression. Cut by feature priority: Low features (F9, F10) are reduced first, as the Vision allows. |
 | R6 | The deterministic planner cannot find a valid plan within 30 seconds on real curriculum data. | 3 | 3 | 9 | Medium | Lâm | Planner ADR and a prototype on the APCS seed data in Sprint 4, before the UI. Bound the search, and fall back to a greedy plan that the rule engine still validates. |
 | R7 | The portal transcript PDF has no text layer, or its layout changes, so the F2 parser cannot read it. | 3 | 3 | 9 | Medium | Lâm | Check one real transcript locally before Sprint 4 (ADR 0003). Manual entry works in every case. Parser tests use synthetic fixtures of the known layout. |
-| R8 | Personal data leaks: a real transcript, student ID or name reaches an AI tool, a log, a fixture or the public repository. | 2 | 5 | 10 | Medium | Lâm | AGENTS.md hard rule 3; synthetic data in tests; uploaded files deleted after reading; no prompt content logged; review checks every PR. A leak is reported under Luật 91/2025/QH15. |
+| R8 | Personal data leaks: a real transcript, student ID or name reaches an AI tool, a log, a fixture or the public repository. | 2 | 5 | 10 | Medium | Lâm | AGENTS.md hard rule 3; synthetic data in tests; uploaded transcript files deleted after reading (proposed in UC-02); no prompt content logged; review checks every PR. A leak is reported under Luật 91/2025/QH15. |
 | R9 | A contract between slices changes late (the `plans` API, `RulesService`, the student record), breaking the receiver. | 3 | 3 | 9 | Medium | Triết | Contracts are merged PRs (OpenAPI or exported types) before anyone builds on them. A breaking change needs the receiver's approval. Backend e2e tests run in CI. |
 | R10 | Pull requests wait for review, since one approval is required and a new push dismisses it. | 3 | 2 | 6 | Medium | Lâm | Review within one working day. The Project Lead may merge with the admin override for urgent fixes or tie-breaks, and says why in the PR. |
-| R11 | The model provider is down, too slow or its budget is spent. | 2 | 3 | 6 | Medium | Lâm | Only the goal box and the advisor use a model. Both fail to a clear "AI unavailable" state while manual planning keeps working (Robustness NFR). Per-user daily cap and a monthly credit limit. |
+| R11 | The model provider is down, too slow or its budget is spent. | 2 | 3 | 6 | Medium | Lâm | Only the goal box and the advisor use a model. Both fail to a clear "AI unavailable" state while manual planning keeps working (Robustness NFR). Per-user daily cap and a monthly spending limit. |
 | R12 | TA feedback on PA1 or PA2 changes the scope. | 3 | 3 | 9 | Medium | Lâm | Feature priorities are already set (Vision §5). A scope change is answered by dropping Low features first and is recorded in this plan's revision history. |
-| R13 | A member cannot work for a period (illness, access problems; Hoà's GitHub invitation was still pending in week 3). | 2 | 4 | 8 | Medium | Lâm | Every contract has a named reviewer who knows it and can take it over. Access problems are fixed in the week they appear. |
+| R13 | A member cannot work for a period (illness, lost access to a tool). | 2 | 4 | 8 | Medium | Lâm | Every contract has a named reviewer who knows it and can take it over. Access problems are fixed in the week they appear. |
 | R14 | AI-generated code is merged that its author cannot explain. | 3 | 2 | 6 | Medium | Triết | AI policy (CONTRIBUTING.md §5): every PR's "Why this design" section defends each choice with evidence, and reviewers send back a PR its author cannot explain. |
 
 #### 4.3.3 Configuration management
