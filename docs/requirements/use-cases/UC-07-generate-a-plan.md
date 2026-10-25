@@ -42,11 +42,11 @@ A student states what they want from a plan, either in the planning-goal form or
 
 **A1. Plan without the goal box.** At step 3 the student skips the goal box and edits the form directly. The flow continues at step 6. No model is involved.
 
-**A2. AI unavailable.** At step 4 the gateway answers that AI is unavailable: no provider configured, the provider unreachable or timed out, the reply still invalid after one retry, or the monthly budget spent. The system says the goal box is unavailable right now, leaves the form as it was, and the flow continues at A1. Planning itself never depends on the model (Robustness NFR).
+**A2. AI unavailable.** At step 4 the gateway answers that AI is unavailable: no provider configured, the provider unreachable or timed out, the reply still not matching the form after one retry (gateway, PR #12), or the monthly budget spent. The system says the goal box is unavailable right now, leaves the form as it was, and the flow continues at A1. Planning itself never depends on the model (Robustness NFR).
 
-**A3. Daily AI limit reached.** At step 4 the student has used their daily number of AI calls. The system says when the goal box will work again. The flow continues at A1.
+**A3. Daily AI limit reached.** At step 4 the student has used their daily number of AI calls. The gateway gives the same "AI unavailable" answer with this reason, and the system says the goal box works again within 24 hours, as older calls leave the rolling window. The flow continues at A1.
 
-**A4. Field outside what the program allows.** At step 5 or 6 a field asks for something the rules forbid, such as 30 credits per term. The form keeps the value, since it is the student's wish. At step 7 the planner keeps every term inside the program's credit cap, and at step 8 the system says which wish it could not meet and why, citing the rule. The model never changes a value to fit a rule.
+**A4. Field outside what the program allows.** At step 5 or 6 a field asks for something the rules forbid, such as credits per term above the program's credit cap. The form keeps the value the student asked for. At step 7 the planner keeps every term inside the credit cap, and at step 8 the system says which part of the planning goal it could not meet and why, citing the rule. The model never changes a value to fit a rule.
 
 **A5. Goal cannot be met.** At step 7 no plan reaches the target graduation term without breaking a rule. The planner builds the plan with the earliest estimated graduation term it can. At step 8 the system shows that term and names the rules that make the target impossible, for example a prerequisite chain that is too long or a course offered only in one kind of term. The student can save it or change the goal (step 6).
 
@@ -54,9 +54,9 @@ A student states what they want from a plan, either in the planning-goal form or
 
 **A7. No transcript yet.** At step 2 the student has no saved transcript. The system warns that the plan assumes no course has been passed and offers to import one first (UC-02). The student can go on.
 
-**A8. Planning takes too long.** At step 7 the planner has not finished within 30 seconds (Performance NFR). It stops and the system asks the student to relax the goal, for example a later target term or fewer courses to avoid. Nothing is saved.
+**A8. Planning takes too long.** At step 7 the planner has not finished within 30 seconds (Performance NFR). The student can cancel at any time while progress shows. What the planner does at the limit is decided in its ADR (see Open).
 
-**A9. Discard.** At step 8 the student leaves without saving. Nothing is stored. The planning goal they typed is not kept.
+**A9. Discard.** At step 8 the student leaves without saving. No plan is stored.
 
 **A10. Edit after saving.** After step 10 the student opens the saved plan in the planner (UC-05) or tries a what-if scenario (UC-06) on it.
 
@@ -64,7 +64,7 @@ A student states what they want from a plan, either in the planning-goal form or
 
 - **Success:** a new plan is saved for the student, and the plan breaks no academic rule at the time it was generated.
 - **Discard or failure:** no plan is stored. The student's other plans are unchanged.
-- In both cases each call to the model leaves one usage record (feature, model, tokens, time taken) with none of the text sent or received (ADR 0003).
+- In both cases each call to the model leaves one usage record (user, feature, model, tokens, time taken) with none of the text sent or received (ADR 0003).
 
 ## 7. Special requirements
 
@@ -78,4 +78,7 @@ A student states what they want from a plan, either in the planning-goal form or
 
 - **Depends on:** Triết's rule engine as callable functions (due 29 Nov), and Hoà's plans API (due 8 Nov). The goal box uses the AI gateway (#12).
 - **Extension points:** UC-05 (edit the generated plan), UC-06 (what-if scenario on it).
-- **Open:** the planner's search method is a separate design, owned by Lâm (`plan-generator` module), and gets its own ADR before Sprint 5.
+- **Open**, for the planner's ADR (Lâm, `plan-generator` module, before Sprint 5):
+  - the search method;
+  - what happens at the 30-second limit (A8): stop and suggest relaxing the goal, or return the best rule-abiding plan found so far;
+  - whether the model also writes a plain-language summary of the result from the planner's reasons, which ADR 0003 allows. The summary could never change a placement.

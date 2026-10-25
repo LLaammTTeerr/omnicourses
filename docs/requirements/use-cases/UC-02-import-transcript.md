@@ -37,7 +37,7 @@ No other system takes part. The file is read on the OmniCourse server and is not
 
 **A2. A row is incomplete.** At step 4 a row is found but one of its fields cannot be read. The system shows the row with the missing field marked. At step 7 the system refuses to save until each such row is completed or removed.
 
-**A3. Course in progress.** At step 4 a row of the current term has no grade yet. The system marks it **In progress** and keeps it. The degree audit counts it as neither passed nor failed, and the planner treats it as being taken this term.
+**A3. Course in progress.** At step 4 a row of the current term has no grade yet. The system marks it **In progress** and keeps it. How the degree audit and the planner treat such a row belongs to UC-03 and UC-07.
 
 **A4. Manual entry.**
 1. At step 1, or from A1, the student chooses **Enter manually**. At step 6 the student chooses **Add a row**.
@@ -45,7 +45,7 @@ No other system takes part. The file is read on the OmniCourse server and is not
 3. The student enters the grade and the term; credits come from the curriculum when the course is in it.
 4. The flow resumes at step 6.
 
-**A5. Re-import over an existing transcript.** At step 5 the student already has a saved transcript. The system shows what would change compared with the saved one: rows added, rows changed and rows removed. At step 8 the new rows replace the old ones. F10 may then warn the student that the transcript changed (Dũng, UC-10 extension point).
+**A5. Re-import over an existing transcript.** At step 5 the student already has a saved transcript. The system shows what would change compared with the saved one: rows added, rows changed and rows removed. At step 8 the new rows replace the old ones. F10 notifications (Dũng) may then warn the student that the transcript changed; F10 has no use case of its own.
 
 **A6. The same course appears twice.** At step 4 a course was taken more than once, for example failed and then retaken. The system keeps both rows. Which attempt counts is decided by the rule engine, not by the import.
 
@@ -65,10 +65,12 @@ No other system takes part. The file is read on the OmniCourse server and is not
 - **Academic rules** (AGENTS.md hard rule 1): the import records what the transcript says and nothing more. Whether a grade passes, which attempt counts and how a course fills a requirement group are decided by the rule engine.
 - **Privacy** (Vision §6; AGENTS.md hard rule 3): the file is processed in memory or a temporary file, deleted after reading, never logged, and never sent to a model or third party. Parser tests use synthetic transcripts only; a real transcript is opened only locally by its owner and never committed.
 - **Determinism:** the same file always gives the same rows. The parser is unit-tested on synthetic portal-layout fixtures.
-- **Performance:** a transcript of 40 courses is read and shown for review in under 2 seconds.
 - **Usability:** the review table works from 360 px wide and by keyboard. Each problem (not in curriculum, incomplete, in progress) is marked in words as well as by colour.
 
 ## 8. Additional information
 
+- **Proposed here, to confirm** (no earlier source):
+  - The uploaded file is deleted as soon as it has been read, and is never kept (steps 2 and 8). This is the retention period the privacy NFR asks to state.
+  - Uploads are limited to 5 MB (A7). A portal transcript is a few hundred kilobytes.
 - Open (ADR 0003): before Sprint 4, confirm on one real portal transcript, locally, that the PDF has a text layer and a fixed layout. If it does not, F2 ships as manual entry only, and A1 is the outcome for every upload.
 - The saved transcript is the student record that Triết's audit and Dũng's advisor read (Work Breakdown handoff, due 22 Nov). Its table and API contract are designed in a separate PR.
