@@ -6,12 +6,13 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
+import { TranscriptRowDto } from '../src/transcript/transcript.dto.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 
 // Synthetic transcripts only (AGENTS.md hard rule 3).
 const password = 'correct horse battery';
 // Oldest term first, as the API returns it: a failed course, its retake in summer, one in progress.
-const first = [
+const first: TranscriptRowDto[] = [
   { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, grade: 4.5, term: { year: 2025, number: 1 } },
   { courseCode: 'MTH00003', courseName: 'Calculus 1B', credits: 3, grade: 7.3, term: { year: 2025, number: 1 } },
   { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, grade: 8, term: { year: 2025, number: 3 } },
