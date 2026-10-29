@@ -124,10 +124,11 @@ export class GatewayLlmService extends LlmService {
     try {
       usageId = await this.guard.reserve(request.context, model);
       for (let step = 1; step <= maxSteps; step++) {
-        // The last turn gets no tools, so the model has to answer.
+        // On the last turn the model has to answer: the tools stay defined, since
+        // the history holds tool calls, but tool choice is none.
         const last = step === maxSteps;
         let end: Extract<ModelStreamEvent, { type: 'end' }> | undefined;
-        for await (const event of this.model.stream({ model, messages, tools: last ? [] : modelTools })) {
+        for await (const event of this.model.stream({ model, messages, tools: modelTools, toolChoice: last ? 'none' : 'auto' })) {
           if (event.type === 'text') yield event;
           else end = event;
         }
@@ -156,6 +157,7 @@ export class GatewayLlmService extends LlmService {
   }
 
   private unavailable(error: unknown): AiUnavailableError {
+    // Provider errors arrive here already converted, and logged by the client.
     if (error instanceof AiUnavailableError) return error;
     // Name only: the error object may carry the prompt (AGENTS.md hard rule 3).
     this.logger.warn(`Unexpected AI gateway error: ${error instanceof Error ? error.name : typeof error}`);

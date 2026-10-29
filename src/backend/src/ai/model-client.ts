@@ -29,6 +29,13 @@ export type ModelStreamEvent =
   | { type: 'text'; delta: string }
   | { type: 'end'; content: string; toolCalls: ModelToolCall[]; usage: ModelUsage };
 
+export interface StreamRequest {
+  model: string;
+  messages: ModelMessage[];
+  tools: ModelTool[];
+  toolChoice?: 'auto' | 'none';
+}
+
 export abstract class ModelClient {
   /**
    * Throws AiUnavailableError('AI is not configured') when no request can be
@@ -44,6 +51,10 @@ export abstract class ModelClient {
     jsonSchema: { name: string; schema: Record<string, unknown> };
   }): Promise<{ content: string; usage: ModelUsage }>;
 
-  /** One streamed model turn, ending with exactly one `end` event. Throws AiUnavailableError. */
-  abstract stream(request: { model: string; messages: ModelMessage[]; tools: ModelTool[] }): AsyncIterable<ModelStreamEvent>;
+  /**
+   * One streamed model turn, ending with exactly one `end` event. Throws AiUnavailableError.
+   * `toolChoice: 'none'` keeps the tools defined (a history with tool calls
+   * needs them on some providers) but makes the model answer in text.
+   */
+  abstract stream(request: StreamRequest): AsyncIterable<ModelStreamEvent>;
 }

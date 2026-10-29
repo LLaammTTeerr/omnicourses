@@ -42,7 +42,7 @@ export interface ChatRequest {
   instructions: string;
   messages: ChatMessage[];
   tools?: ChatTool<any>[];
-  /** Model turns including the final answer; the last turn gets no tools. Default 5. */
+  /** Model turns including the final answer; on the last turn the model may not call a tool. Default 5. */
   maxSteps?: number;
 }
 

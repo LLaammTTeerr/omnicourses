@@ -13,7 +13,7 @@ class ScriptedModel extends ModelClient {
   completions: string[] = [];
   turns: Array<{ text?: string; toolCalls?: ModelToolCall[] } | Error> = [];
   completeCalls: Array<Parameters<ModelClient['complete']>[0]> = [];
-  streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[] }> = [];
+  streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[]; toolChoice?: 'auto' | 'none' }> = [];
   configured = true;
 
   assertConfigured(): void {
@@ -27,7 +27,7 @@ class ScriptedModel extends ModelClient {
 
   async *stream(request: Parameters<ModelClient['stream']>[0]): AsyncIterable<ModelStreamEvent> {
     // Snapshot: the gateway keeps appending to the same array.
-    this.streamCalls.push({ messages: [...request.messages], tools: request.tools });
+    this.streamCalls.push({ messages: [...request.messages], tools: request.tools, toolChoice: request.toolChoice });
     const turn = this.turns.shift() ?? { text: '' };
     if (turn instanceof Error) {
       yield { type: 'text', delta: 'partial ' };
@@ -223,11 +223,15 @@ describe('GatewayLlmService', () => {
       expect(events.at(-1)).toEqual({ type: 'done', text: 'I could not check.' });
     });
 
-    it('gives the last step no tools, so the model must answer', async () => {
+    it('keeps the tools on the last step but sets tool choice to none, so the model must answer', async () => {
       const call = { id: 'c', name: 'search_regulations', arguments: '{"query":"x"}' };
       model.turns = [{ toolCalls: [call] }, { text: 'Final.' }];
       const events = await collect(llm.chat({ ...request, maxSteps: 2 }));
-      expect(model.streamCalls[1].tools).toEqual([]);
+      // The history holds tool calls and results; some providers (Anthropic)
+      // reject such a request when it defines no tools.
+      const tools = [{ name: 'search_regulations', description: 'Find a clause', parameters: toModelSchema(search.schema) }];
+      expect(model.streamCalls[0]).toMatchObject({ tools, toolChoice: 'auto' });
+      expect(model.streamCalls[1]).toMatchObject({ tools, toolChoice: 'none' });
       expect(events.at(-1)).toEqual({ type: 'done', text: 'Final.' });
     });
 
