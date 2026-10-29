@@ -24,7 +24,7 @@ export class AccountExportDto {
   @ApiProperty({
     type: 'object',
     additionalProperties: { type: 'array', items: { type: 'object', additionalProperties: true } },
-    description: 'Every row that references this user, by table name, without credentials.',
+    description: 'Every row this user owns (user_id), by table name, without credentials.',
   })
   tables!: Record<string, Record<string, unknown>[]>;
 }

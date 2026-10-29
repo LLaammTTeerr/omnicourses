@@ -40,17 +40,18 @@ export async function purgeBlockers(db: Queryable): Promise<string[]> {
 }
 
 /**
- * Owned tables without their own single-column key to users(id): the purge
- * deletes their rows but the export, which reads only direct references,
- * would leave them out. AGENTS.md: reference the user from every table.
+ * Owned tables without their own user_id key to users(id): the purge deletes
+ * their rows but the export, which reads only user_id, would leave them out.
+ * AGENTS.md: reference the user from every table as user_id.
  */
 export async function ownedButNotExported(db: Queryable): Promise<string[]> {
   const rows: { name: string }[] = await db.query(`${OWNED}
     SELECT ${name('o.relid')} AS name FROM owned o
     WHERE NOT EXISTS (
       SELECT 1 FROM pg_constraint c
+      JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
       WHERE c.contype = 'f' AND c.conrelid = o.relid AND c.confrelid = 'users'::regclass
-        AND cardinality(c.conkey) = 1
+        AND cardinality(c.conkey) = 1 AND a.attname = 'user_id'
         AND c.confkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = 'users'::regclass AND attname = 'id')]
     )
     ORDER BY 1`);

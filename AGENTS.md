@@ -51,7 +51,7 @@ export class PlansController {
 }
 ```
 
-Reference the user from your tables as `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Never read or return `users.password_hash`. That reference is what makes account export and deletion cover your table with no extra code ([ADR 0004](docs/analysis-and-design/adr/0004-account-export-and-deletion.md)): the export reads every table that references `users`, and an e2e test fails on one that does not cascade, on a key that would block the purge, and on a table that reaches `users` only through another table (give it its own `user_id`). Name any credential column `*_hash`, `*_token`, `*_secret`, `*_key`, `*_password` or `*_sub` (snake_case or camelCase) so the export never selects it.
+Reference the user from your tables as `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Never read or return `users.password_hash`. That reference is what makes account export and deletion cover your table with no extra code ([ADR 0004](docs/analysis-and-design/adr/0004-account-export-and-deletion.md)): the export reads the rows whose `user_id` is the student (rows that only reference them in another column are someone else's), and an e2e test fails on one that does not cascade, on a key that would block the purge, and on a table that reaches `users` only through another table (give it its own `user_id`). Name any credential column `*_hash`, `*_token`, `*_secret`, `*_key`, `*_password` or `*_sub` (snake_case or camelCase) so the export never selects it.
 
 ## AI gateway (how to use it in your module)
 

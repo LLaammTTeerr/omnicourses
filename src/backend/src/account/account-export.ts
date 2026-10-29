@@ -1,6 +1,7 @@
-// The export reads every table with a foreign key to users.id from the catalog
-// (ADR 0004), so a module that adds a user table is exported without anyone
-// remembering to. Credential columns are never selected: the rule is the
+// The export reads every table whose user_id references users.id from the
+// catalog (ADR 0004), so a module that adds a user table is exported without
+// anyone remembering to. Only the student's own rows (user_id = them): a row
+// that merely references them (viewer_id, reviewed_by) belongs to someone else. Credential columns are never selected: the rule is the
 // documented suffix (AGENTS.md), in snake_case or camelCase (TypeORM names a
 // column after its property unless `name` is set).
 const SECRET_SUFFIX = /(^|_)(hash|token|secret|key|password|sub)$/;
@@ -44,9 +45,10 @@ export async function findUserColumns(db: Queryable): Promise<string[]> {
 }
 
 /**
- * Every single-column foreign key to users.id. Left out: a partition's copy of
- * its parent's key (the parent's SELECT already covers the partition) and a
- * self-reference on users, whose rows are other people's accounts.
+ * Every table whose user_id column has a foreign key to users.id. Left out:
+ * other columns that reference users (rows owned by someone else), a
+ * partition's copy of its parent's key (the parent's SELECT already covers the
+ * partition) and a self-reference on users, whose rows are other accounts.
  */
 export async function findUserTables(db: Queryable): Promise<UserTable[]> {
   return db.query(`
@@ -65,6 +67,7 @@ export async function findUserTables(db: Queryable): Promise<UserTable[]> {
       AND c.conrelid <> 'users'::regclass
       AND c.conparentid = 0
       AND cardinality(c.conkey) = 1
+      AND a.attname = 'user_id'
       AND c.confkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = 'users'::regclass AND attname = 'id')]
     ORDER BY cl.relname, a.attname`);
 }

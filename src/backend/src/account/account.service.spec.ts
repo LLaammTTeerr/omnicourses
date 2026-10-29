@@ -62,8 +62,7 @@ describe('AccountService', () => {
   describe('export', () => {
     const userTables = [
       { table: 'sessions', column: 'user_id', qualifiedTable: 'public.sessions', quotedColumn: 'user_id', onDelete: 'c', columns: ['id', 'user_id', 'token_hash', 'user_agent'] },
-      { table: 'shares', column: 'owner_id', qualifiedTable: 'public.shares', quotedColumn: 'owner_id', onDelete: 'c', columns: ['id', 'owner_id', 'viewer_id'] },
-      { table: 'shares', column: 'viewer_id', qualifiedTable: 'public.shares', quotedColumn: 'viewer_id', onDelete: 'c', columns: ['id', 'owner_id', 'viewer_id'] },
+      { table: 'shares', column: 'user_id', qualifiedTable: 'public.shares', quotedColumn: 'user_id', onDelete: 'c', columns: ['id', 'user_id', 'viewer_id'] },
     ];
 
     beforeEach(() => {
@@ -92,10 +91,9 @@ describe('AccountService', () => {
       for (const sql of selects()) expect(sql).not.toMatch(/password_hash|google_sub|token_hash|\*/);
     });
 
-    // Keys must not depend on which column sorts first.
-    it('keys a table that references users twice by table and column', async () => {
+    it('keys each table by its name', async () => {
       const result = await service.export('u1');
-      expect(Object.keys(result.tables)).toEqual(['sessions', 'shares.owner_id', 'shares.viewer_id']);
+      expect(Object.keys(result.tables)).toEqual(['sessions', 'shares']);
     });
 
     it('reads every table from one read-only snapshot', async () => {
