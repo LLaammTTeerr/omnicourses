@@ -31,7 +31,7 @@ A unit of study identified by a course code and worth a fixed number of credits.
 _Avoid_: subject, class, module
 
 **Course code**:
-The identifier HCMUS gives a course, such as CSC10001; one course keeps one code in every curriculum, cohort and transcript.
+The identifier HCMUS gives a course, such as CSC10001; a transcript and a curriculum name the same course exactly when they give the same code. When a revised curriculum replaces a course with an equivalent one under a new code, that equivalence is a separate rule the rule engine applies in the degree audit; the code itself does not say it.
 _Avoid_: course ID, subject code, mã học phần
 
 **Credit**:
