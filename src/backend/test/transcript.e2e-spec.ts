@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 import { TranscriptRowDto } from '../src/transcript/transcript.dto.js';
@@ -24,12 +24,18 @@ describe('Transcript against PostgreSQL (e2e)', () => {
   let db: DataSource;
   const http = () => request(app.getHttpServer());
 
-  async function signUp(): Promise<{ token: string; userId: string }> {
-    const res = await http()
-      .post('/api/auth/sign-up')
-      .send({ email: `transcript-${randomUUID()}@example.com`, password, displayName: 'Test Student', acceptedTerms: true })
-      .expect(201);
-    return { token: res.body.token, userId: res.body.user.id };
+  async function signUp(): Promise<{ token: string; userId: string; email: string }> {
+    const email = `transcript-${randomUUID()}@example.com`;
+    const res = await http().post('/api/auth/sign-up').send({ email, password, displayName: 'Test Student', acceptedTerms: true }).expect(201);
+    return { token: res.body.token, userId: res.body.user.id, email };
+  }
+
+  // Resolves once the backend with this pid is waiting on a lock another one holds.
+  async function blockedBy(pid: number): Promise<void> {
+    await vi.waitFor(async () => {
+      const [{ n }] = await db.query('SELECT count(*)::int AS n FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))', [pid]);
+      expect(n).toBeGreaterThan(0);
+    });
   }
 
   beforeAll(async () => {
@@ -91,21 +97,53 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     // Another save, paused halfway: it holds the user lock and has replaced the rows, uncommitted.
     const other = db.createQueryRunner();
     await other.connect();
-    await other.startTransaction();
-    await other.query('SELECT 1 FROM users WHERE id = $1 FOR UPDATE', [userId]);
-    await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
-    await other.query(
-      `INSERT INTO transcript_rows (user_id, course_code, course_name, credits, grade, term_year, term_number) VALUES ($1, 'BAA00101', 'Marxist-Leninist Philosophy', 3, 7, 2025, 1)`,
-      [userId],
-    );
+    let saving!: Promise<{ rows: TranscriptRowDto[] }>;
+    try {
+      await other.startTransaction();
+      const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
+      await other.query('SELECT 1 FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
+      await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
+      await other.query(
+        `INSERT INTO transcript_rows (user_id, course_code, course_name, credits, grade, term_year, term_number) VALUES ($1, 'BAA00101', 'Marxist-Leninist Philosophy', 3, 7, 2025, 1)`,
+        [userId],
+      );
 
-    const second = [first[3]];
-    const saving = app.get(TranscriptService).replace(userId, { rows: second });
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await other.commitTransaction();
-    await other.release();
+      saving = app.get(TranscriptService).replace(userId, { rows: [first[3]] });
+      // Commit only once the save is actually waiting on this transaction.
+      await blockedBy(pid);
+      await other.commitTransaction();
+    } finally {
+      if (other.isTransactionActive) await other.rollbackTransaction();
+      await other.release();
+    }
 
-    expect((await saving).rows).toEqual(second);
+    expect((await saving).rows).toEqual([first[3]]);
+  });
+
+  it('lets the student sign in while a save is in progress', async () => {
+    const { token, userId, email } = await signUp();
+    await http().put('/api/users/me/transcript').set('Authorization', `Bearer ${token}`).send({ rows: first }).expect(200);
+
+    // Holds the saved rows so the next save stops after taking its user lock.
+    const other = db.createQueryRunner();
+    await other.connect();
+    let saving!: Promise<unknown>;
+    try {
+      await other.startTransaction();
+      const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
+      await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
+      saving = app.get(TranscriptService).replace(userId, { rows: [first[3]] });
+      await blockedBy(pid);
+
+      // Sign-in inserts a session, whose foreign-key check needs a KEY SHARE lock on the user.
+      const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((res) => res.status);
+      const outcome = await Promise.race([signIn, new Promise((resolve) => setTimeout(() => resolve('still waiting'), 3000))]);
+      expect(outcome).toBe(200);
+    } finally {
+      if (other.isTransactionActive) await other.rollbackTransaction();
+      await other.release();
+    }
+    await saving;
   });
 
   it("shows each student only their own transcript and serves it to other modules", async () => {

@@ -24,7 +24,9 @@ export class TranscriptService {
   async replace(userId: string, dto: TranscriptDto): Promise<TranscriptDto> {
     await this.db.transaction(async (tx) => {
       // Locks the user so two saves at once run one after the other instead of merging.
-      await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR UPDATE', [userId]);
+      // NO KEY UPDATE conflicts with itself but not with the KEY SHARE lock of a foreign-key
+      // check, so inserts that reference the user (a sign-in's session) don't wait.
+      await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
       await tx.delete(TranscriptRow, { userId });
       if (dto.rows.length) await tx.insert(TranscriptRow, dto.rows.map((r) => toEntity(userId, r)));
     });
