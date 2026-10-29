@@ -307,6 +307,18 @@ describe('GatewayLlmService', () => {
       expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 10, succeeded: false }));
     });
 
+    it('fails with ai_unavailable instead of a blank answer when the last turn has no text', async () => {
+      // A provider may ignore tool_choice none and answer with tool calls only.
+      const call = { id: 'c', name: 'search_regulations', arguments: '{"query":"x"}' };
+      model.turns = [{ toolCalls: [call] }, { toolCalls: [call] }];
+      const seen: ChatEvent[] = [];
+      await expect(async () => {
+        for await (const event of llm.chat({ ...request, maxSteps: 2 })) seen.push(event);
+      }).rejects.toThrow(new AiUnavailableError('The model returned an unusable reply'));
+      expect(seen.some((e) => e.type === 'done')).toBe(false);
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ succeeded: false }));
+    });
+
     it('does not reserve a call or reach the model without a provider key', async () => {
       model.configured = false;
       await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError('AI is not configured'));

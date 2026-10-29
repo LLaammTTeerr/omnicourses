@@ -147,6 +147,9 @@ export class GatewayLlmService extends LlmService {
         if (!end) throw new AiUnavailableError('The model stream ended early');
         addUsage(usage, end.usage);
         if (end.toolCalls.length === 0 || last) {
+          // A provider may ignore tool_choice none and answer with tool calls
+          // only; a blank answer is no answer.
+          if (!end.content.trim()) throw new AiUnavailableError('The model returned an unusable reply');
           succeeded = true;
           yield { type: 'done', text: end.content };
           return;
