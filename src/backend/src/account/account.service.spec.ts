@@ -148,14 +148,30 @@ describe('AccountPurgeService', () => {
 
   it('purges the accounts whose stored deadline has passed, whatever the grace setting is now', async () => {
     vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '1');
-    const users = { purgeDue: vi.fn(async () => 2) };
+    const users = { findDue: vi.fn(async () => ['u1', 'u2']), purge: vi.fn(async () => true) };
     const now = new Date('2026-12-01T00:00:00Z');
     await expect(new AccountPurgeService(users as never).purge(now)).resolves.toBe(2);
-    expect(users.purgeDue).toHaveBeenCalledWith(now);
+    expect(users.findDue).toHaveBeenCalledWith(now);
+    expect(users.purge.mock.calls).toEqual([['u1', now], ['u2', now]]);
+  });
+
+  // One account whose rows can't be deleted must not keep every other account past its deadline.
+  it('purges each account on its own, so one failure does not block the rest', async () => {
+    const users = {
+      findDue: vi.fn(async () => ['u1', 'u2', 'u3']),
+      purge: vi.fn(async (id: string) => (id === 'u2' ? Promise.reject(new Error('violates foreign key')) : true)),
+    };
+    await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(2);
+    expect(users.purge).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not count an account signed back in since it was found', async () => {
+    const users = { findDue: vi.fn(async () => ['u1']), purge: vi.fn(async () => false) };
+    await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(0);
   });
 
   it('logs and survives a failed purge, so the next hour retries', async () => {
-    const users = { purgeDue: vi.fn(async () => Promise.reject(new Error('db down'))) };
+    const users = { findDue: vi.fn(async () => Promise.reject(new Error('db down'))), purge: vi.fn() };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(0);
   });
 });

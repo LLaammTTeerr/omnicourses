@@ -30,9 +30,18 @@ export class UsersService {
     return (result.affected ?? 0) > 0;
   }
 
-  /** Deletes accounts whose stored deadline has passed; every user table cascades. */
-  async purgeDue(now: Date): Promise<number> {
-    const result = await this.users.delete({ purgeAfter: LessThanOrEqual(now) });
-    return result.affected ?? 0;
+  /** Ids of the accounts whose stored deadline has passed. */
+  async findDue(now: Date): Promise<string[]> {
+    const due = await this.users.find({ select: { id: true }, where: { purgeAfter: LessThanOrEqual(now) } });
+    return due.map((u) => u.id);
+  }
+
+  /**
+   * Deletes one account if its deadline has still passed (a sign-in since
+   * findDue cancels it); every user table cascades. False if nothing matched.
+   */
+  async purge(userId: string, now: Date): Promise<boolean> {
+    const result = await this.users.delete({ id: userId, purgeAfter: LessThanOrEqual(now) });
+    return (result.affected ?? 0) > 0;
   }
 }

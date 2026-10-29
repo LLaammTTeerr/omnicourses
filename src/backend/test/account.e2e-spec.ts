@@ -8,6 +8,7 @@ import { findUserTables, isSecretColumn } from '../src/account/account-export.js
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
+import { notCascadingToUsers, ownedButNotExported, purgeBlockers } from './user-table-rules.js';
 
 // Uses 6 of the 10/min password budget per IP (sign-up, delete ×3, sign-in ×2);
 // it runs in its own app, so auth.e2e-spec's budget is separate.
@@ -46,6 +47,32 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   it('every table that references users cascades on delete (AGENTS.md rule)', async () => {
     const notCascading = (await findUserTables(db)).filter((t) => t.onDelete !== 'c').map((t) => `${t.table}.${t.column}`);
     expect(notCascading).toEqual([]);
+    expect(await notCascadingToUsers(db)).toEqual([]);
+  });
+
+  it('nothing blocks the purge and every table it deletes from is exported', async () => {
+    expect(await purgeBlockers(db)).toEqual([]);
+    expect(await ownedButNotExported(db)).toEqual([]);
+  });
+
+  it('the schema rules catch a grandchild table, a composite key and a self-reference', async () => {
+    const qr = db.createQueryRunner();
+    await qr.startTransaction();
+    try {
+      // Rolled back below. zz_plans is a well-formed user table; the rest break a rule.
+      await qr.query(`CREATE TABLE zz_plans (id uuid PRIMARY KEY, user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE)`);
+      await qr.query(`CREATE TABLE zz_plan_notes (plan_id uuid REFERENCES zz_plans(id))`);
+      await qr.query(`CREATE TABLE zz_plan_items (plan_id uuid REFERENCES zz_plans(id) ON DELETE CASCADE)`);
+      await qr.query(`CREATE UNIQUE INDEX zz_users_id_email ON users (id, email)`);
+      await qr.query(`CREATE TABLE zz_pairs (user_id uuid, email varchar(254), FOREIGN KEY (user_id, email) REFERENCES users(id, email))`);
+      await qr.query(`ALTER TABLE users ADD COLUMN zz_invited_by uuid REFERENCES users(id)`);
+      expect(await notCascadingToUsers(qr)).toEqual(['zz_pairs.zz_pairs_user_id_email_fkey']);
+      expect(await purgeBlockers(qr)).toEqual(['users.users_zz_invited_by_fkey', 'zz_pairs.zz_pairs_user_id_email_fkey', 'zz_plan_notes.zz_plan_notes_plan_id_fkey']);
+      expect(await ownedButNotExported(qr)).toEqual(['zz_plan_items']);
+    } finally {
+      await qr.rollbackTransaction();
+      await qr.release();
+    }
   });
 
   it('finds each user table once, and only keys that point at users.id', async () => {
