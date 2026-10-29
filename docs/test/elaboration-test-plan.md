@@ -32,7 +32,7 @@ Google sign-in was planned for Sprint 2 but is not built yet. Lâm must decide w
 - **Guides and curriculum administration:** guide search/browse and the curriculum administration API follow their agreed requirements.
 - **AI gateway:** test its structured-data and chat operations, fake implementation and unavailable response without calling a live provider. Its goal-box and advisor screens come later.
 
-Drag-and-drop, live plan validation, plan comparison, transcript parsing, notifications, sharing, the goal box, advisor chat, administration screens and the full performance tests belong to the later Construction plan. The administration API can be tested before its screens exist. Curriculum PDF import is excluded by ADR 0003.
+Drag-and-drop, live plan validation, plan comparison, transcript parsing, notifications, sharing, the goal box, advisor chat, administration screens and the full performance tests belong to the later Construction plan. The administration API can be tested before its screens exist. Curriculum PDF import also belongs to Construction (B2), following Thắng's scope confirmation on 29 October; [UC-12](../requirements/use-cases/UC-12-import-curriculum-pdf.md) defines the draft workflow and records the ADR 0003 wording that still needs alignment.
 
 ## 3. How we test and who does it
 
@@ -139,7 +139,7 @@ Stop affected tests if the environment is unreliable, migrations fail, test data
 
 | Due date | Thắng's work | What it needs |
 | --- | --- | --- |
-| 29 October | UC-11 and this test-plan draft. | Team review and a decision on UC-12's place in the use-case model. |
+| 29 October | UC-11, UC-12 and this test-plan draft. | Team review and alignment of the confirmed UC-12 scope with the use-case model and ADR 0003. |
 | 1 November, B0 | Browser tests with a sign-in journey; B0 acceptance check. | Hoà's screen ([#13](https://github.com/LLaammTTeerr/omnicourses/issues/13)), Triết's schema ([#23](https://github.com/LLaammTTeerr/omnicourses/pull/23)), Lâm's staging site and Dũng's cases. |
 | 8 November | APCS seed data checked by Triết. | Official source documents and the agreed database structure. Data entry can start before database integration. |
 | 15 November, B1 | Rules coverage check, administration API tests, B1 acceptance check and the Construction test-plan update. | The rules module, curriculum read API, permission decisions and B1 features. |

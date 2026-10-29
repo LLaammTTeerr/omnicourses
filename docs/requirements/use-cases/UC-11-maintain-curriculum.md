@@ -3,7 +3,7 @@
 - Feature: F12 Curriculum administration
 - Owner: Thắng
 - Status: draft for PA2; describes work still to be built
-- Scope: manual entry and editing. [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md) removes curriculum PDF import, formerly UC-12.
+- Scope: manual entry and editing. [UC-12](UC-12-import-curriculum-pdf.md) covers curriculum PDF import, retained by Thắng's scope confirmation on 29 October 2026. UC-12 records the wording that still needs to be reconciled in ADR 0003.
 
 ## 1. Brief description
 
@@ -104,9 +104,10 @@ A failed save leaves no partial change. If the result is unknown, the administra
 | Who can create programs and grant access? | Require explicit permission. Decide who grants access to the first administrator and to each new program's administrator. | Lâm and Triết |
 | How do we change a curriculum already used by students or plans? | Preserve what existing records mean. Decide when a correction needs a new curriculum version and which version each part of the app reads. | Triết and Hoà |
 | Can we delete data that other records use? | Refuse deletions that break those links. Remove a course from a group separately from deleting the course. Decide whether old data should be archived. | Triết |
-| What happens to UC-12? | PDF import is already excluded. Decide whether to remove UC-12 from the model or use that number for a separately agreed use case. | Hoà and Thắng; Lâm if the scope changes |
 
 The API routes, database tables and academic rules are defined in their own designs.
+
+UC-12 remains curriculum PDF import, with Thắng working alongside Triết. Its existence is no longer an open question. Lâm and Hoà still need to align ADR 0003 and the requirements baseline with the confirmed scope; see [UC-12](UC-12-import-curriculum-pdf.md).
 
 ### Examples to test
 
@@ -120,4 +121,4 @@ The API routes, database tables and academic rules are defined in their own desi
 
 ### Sources
 
-The scope and ownership come from the Project Lead's Work Breakdown dated 23 October 2026, supplied for this task, with the changes accepted in ADR 0003. Terms follow [GLOSSARY.md](../../../GLOSSARY.md), and the section structure follows [PR #16](https://github.com/LLaammTTeerr/omnicourses/pull/16). Check this draft against Hoà's Vision v2 and the agreed curriculum interfaces before approving it.
+The scope and ownership come from the Project Lead's Work Breakdown dated 23 October 2026, supplied for this task, and Thắng's UC-12 scope confirmation on 29 October 2026. The deterministic data handling follows [AGENTS.md](../../../AGENTS.md); UC-12 records the remaining conflict with ADR 0003. Terms follow [GLOSSARY.md](../../../GLOSSARY.md), and the section structure follows [PR #16](https://github.com/LLaammTTeerr/omnicourses/pull/16). Check this draft against Hoà's Vision v2 and the agreed curriculum interfaces before approving it.
