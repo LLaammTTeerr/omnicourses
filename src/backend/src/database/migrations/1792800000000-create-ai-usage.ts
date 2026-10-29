@@ -10,10 +10,10 @@ export class CreateAiUsage1792800000000 implements MigrationInterface {
         "user_id" uuid NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
         "feature" varchar(50) NOT NULL,
         "model" varchar(100) NOT NULL,
-        "input_tokens" integer NOT NULL,
-        "output_tokens" integer NOT NULL,
-        "latency_ms" integer NOT NULL,
-        "succeeded" boolean NOT NULL,
+        "input_tokens" integer NOT NULL DEFAULT 0,
+        "output_tokens" integer NOT NULL DEFAULT 0,
+        "latency_ms" integer NOT NULL DEFAULT 0,
+        "succeeded" boolean NOT NULL DEFAULT false,
         "created_at" timestamptz NOT NULL DEFAULT now()
       )`);
     await q.query(`CREATE INDEX "ix_ai_usage_user_id_created_at" ON "ai_usage" ("user_id", "created_at")`);

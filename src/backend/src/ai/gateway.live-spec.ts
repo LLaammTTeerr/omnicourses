@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import type { AiCostGuard } from './ai-cost-guard.service.js';
 import { GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent } from './llm.service.js';
 import { OpenRouterModelClient } from './openrouter-model.client.js';
@@ -9,7 +10,7 @@ import { OpenRouterModelClient } from './openrouter-model.client.js';
 // Synthetic input only (AGENTS.md hard rule 3).
 for (const file of ['.env', '../../.env']) if (existsSync(file) && !process.env.OPENROUTER_API_KEY) process.loadEnvFile(file);
 
-const noGuard = { assertWithinCap: async () => undefined, record: async () => undefined };
+const noGuard: Pick<AiCostGuard, 'reserve' | 'finish'> = { reserve: async () => 'live', finish: async () => undefined };
 const context = { userId: '00000000-0000-4000-8000-000000000000', feature: 'live-test' };
 
 describe.skipIf(!process.env.OPENROUTER_API_KEY)('AI gateway against OpenRouter (live)', () => {

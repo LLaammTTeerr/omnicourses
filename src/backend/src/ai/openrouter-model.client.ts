@@ -63,6 +63,10 @@ export class OpenRouterModelClient extends ModelClient {
     return this.client.sdk;
   }
 
+  assertConfigured(): void {
+    if (!aiConfig().apiKey) throw new AiUnavailableError('AI is not configured');
+  }
+
   async complete(request: Parameters<ModelClient['complete']>[0]): Promise<{ content: string; usage: ModelUsage }> {
     try {
       const completion = await this.sdk().chat.completions.create({

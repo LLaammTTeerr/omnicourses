@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { AiCostGuard } from './ai-cost-guard.service.js';
 import { aiConfig } from './ai-config.js';
 import { AiUnavailableError } from './ai-unavailable.error.js';
-import type { AiCallContext, ChatEvent, ChatRequest, ChatTool, StructuredRequest } from './llm.service.js';
+import type { ChatEvent, ChatRequest, ChatTool, StructuredRequest } from './llm.service.js';
 import { LlmService } from './llm.service.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelToolCall, ModelUsage } from './model-client.js';
 
@@ -69,7 +69,7 @@ export class GatewayLlmService extends LlmService {
 
   async structured<T>(request: StructuredRequest<T>): Promise<T> {
     const model = requireModel(aiConfig().structuredModel);
-    await this.guard.assertWithinCap(request.context.userId);
+    this.model.assertConfigured();
     const messages: ModelMessage[] = [
       { role: 'system', content: request.instructions },
       { role: 'user', content: request.input },
@@ -78,7 +78,11 @@ export class GatewayLlmService extends LlmService {
     const usage: ModelUsage = { inputTokens: 0, outputTokens: 0 };
     const started = Date.now();
     let succeeded = false;
+    let usageId: string | undefined;
     try {
+      // Reserved just before the first model request, so the call counts even
+      // if it never finishes (ai-cost-guard.service.ts).
+      usageId = await this.guard.reserve(request.context, model);
       // response_format is only a preference on OpenRouter, so a reply can still
       // miss the schema: one retry, then give up.
       for (let attempt = 1; attempt <= 2; attempt++) {
@@ -94,13 +98,13 @@ export class GatewayLlmService extends LlmService {
     } catch (error) {
       throw this.unavailable(error);
     } finally {
-      await this.record(request.context, model, usage, started, succeeded);
+      await this.finish(usageId, usage, started, succeeded);
     }
   }
 
   async *chat(request: ChatRequest): AsyncIterable<ChatEvent> {
     const model = requireModel(aiConfig().chatModel);
-    await this.guard.assertWithinCap(request.context.userId);
+    this.model.assertConfigured();
     const tools = request.tools ?? [];
     const modelTools = tools.map((t) => ({ name: t.name, description: t.description, parameters: toModelSchema(t.schema) }));
     const maxSteps = request.maxSteps ?? DEFAULT_MAX_STEPS;
@@ -108,7 +112,9 @@ export class GatewayLlmService extends LlmService {
     const usage: ModelUsage = { inputTokens: 0, outputTokens: 0 };
     const started = Date.now();
     let succeeded = false;
+    let usageId: string | undefined;
     try {
+      usageId = await this.guard.reserve(request.context, model);
       for (let step = 1; step <= maxSteps; step++) {
         // The last turn gets no tools, so the model has to answer.
         const last = step === maxSteps;
@@ -136,7 +142,8 @@ export class GatewayLlmService extends LlmService {
       throw this.unavailable(error);
     } finally {
       // Also runs when the client disconnects and the caller stops iterating.
-      await this.record(request.context, model, usage, started, succeeded);
+      // The row was reserved up front, so a stopped call still counts.
+      await this.finish(usageId, usage, started, succeeded);
     }
   }
 
@@ -147,7 +154,8 @@ export class GatewayLlmService extends LlmService {
     return new AiUnavailableError();
   }
 
-  private async record(context: AiCallContext, model: string, usage: ModelUsage, started: number, succeeded: boolean): Promise<void> {
-    await this.guard.record({ userId: context.userId, feature: context.feature, model, ...usage, latencyMs: Date.now() - started, succeeded });
+  private async finish(usageId: string | undefined, usage: ModelUsage, started: number, succeeded: boolean): Promise<void> {
+    if (usageId === undefined) return;
+    await this.guard.finish(usageId, { ...usage, latencyMs: Date.now() - started, succeeded });
   }
 }

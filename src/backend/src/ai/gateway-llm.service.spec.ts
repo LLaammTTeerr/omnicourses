@@ -14,6 +14,11 @@ class ScriptedModel extends ModelClient {
   turns: Array<{ text?: string; toolCalls?: ModelToolCall[] } | Error> = [];
   completeCalls: Array<Parameters<ModelClient['complete']>[0]> = [];
   streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[] }> = [];
+  configured = true;
+
+  assertConfigured(): void {
+    if (!this.configured) throw new AiUnavailableError('AI is not configured');
+  }
 
   async complete(request: Parameters<ModelClient['complete']>[0]) {
     this.completeCalls.push(request);
@@ -41,14 +46,14 @@ async function collect(events: AsyncIterable<ChatEvent>): Promise<ChatEvent[]> {
 
 describe('GatewayLlmService', () => {
   let model: ScriptedModel;
-  let guard: { assertWithinCap: ReturnType<typeof vi.fn>; record: ReturnType<typeof vi.fn> };
+  let guard: { reserve: ReturnType<typeof vi.fn>; finish: ReturnType<typeof vi.fn> };
   let llm: GatewayLlmService;
 
   beforeEach(() => {
     vi.stubEnv('AI_MODEL_STRUCTURED', 'small-model');
     vi.stubEnv('AI_MODEL_CHAT', 'chat-model');
     model = new ScriptedModel();
-    guard = { assertWithinCap: vi.fn(async () => undefined), record: vi.fn(async () => undefined) };
+    guard = { reserve: vi.fn(async () => 'row-1'), finish: vi.fn(async () => undefined) };
     llm = new GatewayLlmService(model, guard as never);
   });
 
@@ -74,28 +79,45 @@ describe('GatewayLlmService', () => {
     it('retries once when the reply misses the schema, and meters both attempts as one call', async () => {
       model.completions = ['not json', '{"targetGraduationTerm":null,"creditsPerTerm":20}'];
       await expect(llm.structured(request)).resolves.toEqual({ targetGraduationTerm: null, creditsPerTerm: 20 });
-      expect(guard.record).toHaveBeenCalledTimes(1);
-      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ ...context, model: 'small-model', inputTokens: 20, outputTokens: 10, succeeded: true }));
+      expect(guard.reserve).toHaveBeenCalledTimes(1);
+      expect(guard.reserve).toHaveBeenCalledWith(context, 'small-model');
+      expect(guard.finish).toHaveBeenCalledTimes(1);
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 20, outputTokens: 10, succeeded: true }));
     });
 
     it('gives up after two unusable replies with ai_unavailable', async () => {
       model.completions = ['{"creditsPerTerm":"many"}', '{}'];
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('The model returned an unusable reply'));
-      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ succeeded: false }));
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 20, succeeded: false }));
     });
 
     it('answers ai_unavailable without calling the model when no model is configured', async () => {
       vi.stubEnv('AI_MODEL_STRUCTURED', '');
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('AI is not configured'));
       expect(model.completeCalls).toHaveLength(0);
-      expect(guard.record).not.toHaveBeenCalled();
+      expect(guard.reserve).not.toHaveBeenCalled();
+    });
+
+    it('answers ai_unavailable without reserving a call when the provider has no key, so it does not count', async () => {
+      model.configured = false;
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('AI is not configured'));
+      expect(model.completeCalls).toHaveLength(0);
+      expect(guard.reserve).not.toHaveBeenCalled();
+      expect(guard.finish).not.toHaveBeenCalled();
+    });
+
+    it('turns a database error while reserving into ai_unavailable without calling the model', async () => {
+      guard.reserve.mockRejectedValue(new TypeError('connection refused'));
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('AI is unavailable'));
+      expect(model.completeCalls).toHaveLength(0);
+      expect(guard.finish).not.toHaveBeenCalled();
     });
 
     it('does not call the model when the daily cap is spent', async () => {
-      guard.assertWithinCap.mockRejectedValue(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
-      await expect(llm.structured(request)).rejects.toBeInstanceOf(AiUnavailableError);
+      guard.reserve.mockRejectedValue(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
       expect(model.completeCalls).toHaveLength(0);
-      expect(guard.assertWithinCap).toHaveBeenCalledWith(context.userId);
+      expect(guard.reserve).toHaveBeenCalledWith(context, 'small-model');
     });
   });
 
@@ -116,7 +138,8 @@ describe('GatewayLlmService', () => {
         { type: 'done', text: 'Up to 25 credits.' },
       ]);
       expect(model.streamCalls[0].messages[0]).toEqual({ role: 'system', content: 'You are the advisor.' });
-      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ model: 'chat-model', succeeded: true }));
+      expect(guard.reserve).toHaveBeenCalledWith(context, 'chat-model');
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 10, outputTokens: 5, succeeded: true }));
     });
 
     it('runs a tool with parsed arguments and feeds the result back to the model', async () => {
@@ -131,7 +154,9 @@ describe('GatewayLlmService', () => {
       ]);
       expect(model.streamCalls[0].tools).toEqual([{ name: 'search_regulations', description: 'Find a clause', parameters: toModelSchema(search.schema) }]);
       expect(model.streamCalls[1].messages.at(-1)).toEqual({ role: 'tool', toolCallId: 'call-1', content: '{"clause":"Article 10: credit cap"}' });
-      expect(guard.record).toHaveBeenCalledTimes(1);
+      expect(guard.reserve).toHaveBeenCalledTimes(1);
+      expect(guard.finish).toHaveBeenCalledTimes(1);
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 20, outputTokens: 10 }));
     });
 
     it('reports invalid arguments to the model without calling the handler', async () => {
@@ -167,7 +192,7 @@ describe('GatewayLlmService', () => {
         for await (const event of llm.chat(request)) seen.push(event);
       }).rejects.toThrow(new AiUnavailableError('The AI provider timed out'));
       expect(seen).toEqual([{ type: 'text', delta: 'partial ' }]);
-      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ succeeded: false }));
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ succeeded: false }));
     });
 
     it('wraps an unexpected error as a generic ai_unavailable', async () => {
@@ -175,10 +200,21 @@ describe('GatewayLlmService', () => {
       await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError('AI is unavailable'));
     });
 
-    it('still records usage when the caller stops early (client disconnected)', async () => {
+    it('counts a call the caller stops during the first model turn (client disconnected)', async () => {
       model.turns = [{ text: 'Long answer' }];
       for await (const _event of llm.chat(request)) break;
-      expect(guard.record).toHaveBeenCalledWith(expect.objectContaining({ succeeded: false }));
+      // The row is reserved before the first model request, so it counts toward
+      // the cap although the turn never ended and no tokens are known.
+      expect(guard.reserve).toHaveBeenCalledWith(context, 'chat-model');
+      expect(guard.reserve.mock.invocationCallOrder[0]).toBeLessThan(guard.finish.mock.invocationCallOrder[0]);
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 0, succeeded: false }));
+    });
+
+    it('does not reserve a call or reach the model without a provider key', async () => {
+      model.configured = false;
+      await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError('AI is not configured'));
+      expect(model.streamCalls).toHaveLength(0);
+      expect(guard.reserve).not.toHaveBeenCalled();
     });
   });
 });
