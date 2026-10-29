@@ -44,3 +44,7 @@ Vision v1.0 §5 puts a language model in four features: F2 (transcript extractio
 - Robustness NFR gets easier: only the goal box and the advisor go dark when the provider is down.
 - The planner algorithm and F8's retrieval of regulation clauses are separate designs, owned by Lâm and Dũng.
 - Open: confirm on one real portal transcript, locally, that the PDF has a text layer and a fixed layout before Sprint 4.
+
+## Notes
+
+- 2026-10-29 (Lâm): the curriculum seed files (`src/backend/src/database/seeds/`) were transcribed from the official PDFs by a model, and humans check every row against its printed page. This is allowed: it is a one-time dev-time seed reviewed like code, not a runtime import feature, and the deterministic rule engine still decides every rule.
