@@ -11,12 +11,15 @@ import { TranscriptService } from '../src/transcript/transcript.service.js';
 
 // Synthetic transcripts only (AGENTS.md hard rule 3).
 const password = 'correct horse battery';
-// Oldest term first, as the API returns it: a failed course, its retake in summer, one in progress.
+// Oldest term first, as the API returns it: a failed course, its retake in summer, one in progress,
+// an exemption and a pass/fail course.
 const first: TranscriptEntry[] = [
-  { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, grade: 4.5, term: { year: 2025, number: 1 } },
-  { courseCode: 'MTH00003', courseName: 'Calculus 1B', credits: 3, grade: 7.3, term: { year: 2025, number: 1 } },
-  { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, grade: 8, term: { year: 2025, number: 3 } },
-  { courseCode: 'CSC10002', courseName: 'Programming Techniques', credits: 4, grade: null, term: { year: 2026, number: 1 } },
+  { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, result: 'graded', grade: 4.5, term: { year: 2025, number: 1 } },
+  { courseCode: 'MTH00003', courseName: 'Calculus 1B', credits: 3, result: 'graded', grade: 7.3, term: { year: 2025, number: 1 } },
+  { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, result: 'graded', grade: 8, term: { year: 2025, number: 3 } },
+  { courseCode: 'CSC10002', courseName: 'Programming Techniques', credits: 4, result: 'in_progress', grade: null, term: { year: 2026, number: 1 } },
+  { courseCode: 'ENG00001', courseName: 'English 1', credits: 3, result: 'exempt', grade: null, term: { year: 2026, number: 1 } },
+  { courseCode: 'PED00001', courseName: 'Physical Education 1', credits: 1, result: 'pass', grade: null, term: { year: 2026, number: 1 } },
 ];
 
 describe('Transcript against PostgreSQL (e2e)', () => {
@@ -28,6 +31,15 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     const email = `transcript-${randomUUID()}@example.com`;
     const res = await http().post('/api/auth/sign-up').send({ email, password, displayName: 'Test Student', acceptedTerms: true }).expect(201);
     return { token: res.body.token, userId: res.body.user.id, email };
+  }
+
+  // A user created without the API, for tests that never call it: sign-up allows 10 a minute.
+  async function storedUser(): Promise<string> {
+    const [{ id }] = await db.query(
+      `INSERT INTO users (email, password_hash, display_name, consent_at) VALUES ($1, 'not-a-real-hash', 'Test Student', now()) RETURNING id`,
+      [`transcript-${randomUUID()}@example.com`],
+    );
+    return id;
   }
 
   // Resolves once the backend with this pid is waiting on a lock another one holds.
@@ -71,21 +83,17 @@ describe('Transcript against PostgreSQL (e2e)', () => {
   });
 
   it('returns the same course twice in one term in the same order on every read', async () => {
-    const { token, userId } = await signUp();
-    const auth = { Authorization: `Bearer ${token}` };
-    const twice = [first[0], { ...first[0], grade: 6 }, first[1]];
-    await http().put('/api/users/me/transcript').set(auth).send({ rows: twice }).expect(200);
+    const userId = await storedUser();
+    const transcript = app.get(TranscriptService);
+    const saved = await transcript.replace(userId, { rows: [first[0], { ...first[0], grade: 6 }, first[1]] });
 
     const byId: { grade: string }[] = await db.query(
       'SELECT grade FROM transcript_rows WHERE user_id = $1 ORDER BY term_year, term_number, course_code, id',
       [userId],
     );
-    const reads = [
-      (await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows,
-      (await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows,
-      await app.get(TranscriptService).rowsFor(userId),
-    ];
-    for (const rows of reads) expect(rows.map((r: TranscriptEntry) => r.grade)).toEqual(byId.map((r) => Number(r.grade)));
+    for (const rows of [saved.rows, await transcript.rowsFor(userId), await transcript.rowsFor(userId)]) {
+      expect(rows.map((r) => r.grade)).toEqual(byId.map((r) => Number(r.grade)));
+    }
   });
 
   it('keeps the saved transcript when a save is refused', async () => {
@@ -95,10 +103,27 @@ describe('Transcript against PostgreSQL (e2e)', () => {
 
     const { grade: _noGrade, ...gradeless } = first[1];
     const { term: _noTerm, ...termless } = first[1];
+    const { result: _noResult, ...resultless } = first[1];
     await http().put('/api/users/me/transcript').set(auth).send({ rows: [first[0], gradeless] }).expect(400);
     await http().put('/api/users/me/transcript').set(auth).send({ rows: [first[0], termless] }).expect(400);
+    await http().put('/api/users/me/transcript').set(auth).send({ rows: [first[0], resultless] }).expect(400);
+    await http().put('/api/users/me/transcript').set(auth).send({ rows: [{ ...first[4], grade: 8 }] }).expect(400);
     await http().put('/api/users/me/transcript').set(auth).send({ rows: [{ ...first[0], term: { year: 2025, number: 4 } }] }).expect(400);
     expect((await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows).toEqual(first);
+  });
+
+  it('stores a grade exactly when the result is graded, even past the API', async () => {
+    const userId = await storedUser();
+    const insert = (result: string, grade: number | null) =>
+      db.query(
+        `INSERT INTO transcript_rows (user_id, course_code, course_name, credits, result, grade, term_year, term_number) VALUES ($1, 'CSC10001', 'Introduction to Programming', 4, $2, $3, 2025, 1)`,
+        [userId, result, grade],
+      );
+    await expect(insert('graded', null)).rejects.toThrow(/ck_transcript_rows_grade_iff_graded/);
+    await expect(insert('exempt', 8)).rejects.toThrow(/ck_transcript_rows_grade_iff_graded/);
+    await expect(insert('audited', null)).rejects.toThrow(/ck_transcript_rows_result/);
+    await insert('graded', 8);
+    await insert('fail', null);
   });
 
   it('strips a field the row does not have', async () => {
@@ -122,7 +147,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       await other.query('SELECT 1 FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
       await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
       await other.query(
-        `INSERT INTO transcript_rows (user_id, course_code, course_name, credits, grade, term_year, term_number) VALUES ($1, 'BAA00101', 'Marxist-Leninist Philosophy', 3, 7, 2025, 1)`,
+        `INSERT INTO transcript_rows (user_id, course_code, course_name, credits, result, grade, term_year, term_number) VALUES ($1, 'BAA00101', 'Marxist-Leninist Philosophy', 3, 'graded', 7, 2025, 1)`,
         [userId],
       );
 

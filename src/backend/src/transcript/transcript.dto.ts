@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateIf, ValidateNested } from 'class-validator';
-import { Term, TranscriptEntry } from './transcript-entry.js';
+import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
+import { Term, TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
 
 export const MAX_TRANSCRIPT_ROWS = 300;
 
@@ -38,13 +38,29 @@ export class TranscriptRowDto implements TranscriptEntry {
   @Max(30)
   credits!: number;
 
-  // Must be sent: null means in progress (UC-02 A3), while a missing grade is an
-  // incomplete row that cannot be saved (A2).
-  @ApiProperty({ type: Number, nullable: true, example: 8.5, description: '10-point scale, one decimal; null while the course is in progress.' })
-  @ValidateIf((row: TranscriptRowDto) => row.grade !== null)
+  // Must be sent: a row without a result is incomplete and cannot be saved (UC-02 A2).
+  @ApiProperty({
+    enum: TRANSCRIPT_RESULTS,
+    example: 'graded',
+    description: 'graded: the grade is set. in_progress (UC-02 A3), exempt, pass, fail: no grade.',
+  })
+  @IsIn(TRANSCRIPT_RESULTS)
+  result!: TranscriptResult;
+
+  // Required when graded; otherwise null or left out. ValidateIf gates every rule below,
+  // so a grade sent with another result is still checked, and refused by nullUnlessGraded.
+  @ApiProperty({ type: Number, nullable: true, required: false, example: 8.5, description: '10-point scale, one decimal. Required when result is graded; null otherwise.' })
+  @ValidateIf((row: TranscriptRowDto) => row.result === 'graded' || (row.grade !== null && row.grade !== undefined))
   @IsNumber({ maxDecimalPlaces: 1 })
   @Min(0)
   @Max(10)
+  @ValidateBy({
+    name: 'nullUnlessGraded',
+    validator: {
+      validate: (_grade, args) => (args?.object as TranscriptRowDto).result === 'graded',
+      defaultMessage: () => 'grade must be null unless result is graded',
+    },
+  })
   grade!: number | null;
 
   // @ValidateNested() alone lets a missing term through.

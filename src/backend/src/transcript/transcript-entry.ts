@@ -7,11 +7,20 @@ export interface Term {
   number: 1 | 2 | 3;
 }
 
+/**
+ * What the transcript says about one attempt (ADR 0007). Only `graded` carries a grade.
+ * Whether a result passes or counts toward graduation is the rule engine's call.
+ */
+export const TRANSCRIPT_RESULTS = ['graded', 'in_progress', 'exempt', 'pass', 'fail'] as const;
+export type TranscriptResult = (typeof TRANSCRIPT_RESULTS)[number];
+
 /** One course taken in one term, as the student saved it. A retake is another entry. */
 export interface TranscriptEntry {
   courseCode: string;
   courseName: string;
   credits: number;
+  result: TranscriptResult;
+  /** 10-point scale, one decimal, when `result` is `graded`; null otherwise. */
   grade: number | null;
   term: Term;
 }

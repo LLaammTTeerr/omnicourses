@@ -8,6 +8,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
   courseCode: 'CSC10001',
   courseName: 'Introduction to Programming',
   credits: 4,
+  result: 'graded',
   grade: 8.5,
   term: { year: 2025, number: 1 },
   ...overrides,
@@ -21,8 +22,12 @@ async function errorsFor(rows: unknown[]): Promise<string[]> {
 }
 
 describe('TranscriptDto validation', () => {
-  it('accepts a graded row, a row in progress (grade null) and a retake in the same term', async () => {
-    expect(await errorsFor([row(), row({ courseCode: 'MTH00003', grade: null }), row({ grade: 3 })])).toEqual([]);
+  it('accepts a graded row and a retake of it in the same term', async () => {
+    expect(await errorsFor([row(), row({ grade: 3 })])).toEqual([]);
+  });
+
+  it.each(['in_progress', 'exempt', 'pass', 'fail'])('accepts a row with result %s and no grade, null or left out', async (result) => {
+    expect(await errorsFor([row({ result, grade: null }), row({ result, grade: undefined })])).toEqual([]);
   });
 
   it('normalises the course code to upper case without spaces', () => {
@@ -32,7 +37,13 @@ describe('TranscriptDto validation', () => {
   });
 
   it.each([
-    ['a missing grade (incomplete row, UC-02 A2)', { grade: undefined }, 'isNumber'],
+    ['a missing result (incomplete row, UC-02 A2)', { result: undefined }, 'isIn'],
+    ['an unknown result', { result: 'audited' }, 'isIn'],
+    ['a graded row without a grade (incomplete row, UC-02 A2)', { grade: undefined }, 'isNumber'],
+    ['a graded row with a null grade', { grade: null }, 'isNumber'],
+    ['an exempt row with a grade', { result: 'exempt', grade: 8 }, 'nullUnlessGraded'],
+    ['a row in progress with a grade of 0', { result: 'in_progress', grade: 0 }, 'nullUnlessGraded'],
+    ['a passed row with a grade', { result: 'pass', grade: 10 }, 'nullUnlessGraded'],
     ['grade above 10', { grade: 10.5 }, 'max'],
     ['negative grade', { grade: -1 }, 'min'],
     ['grade with two decimals', { grade: 7.25 }, 'isNumber'],

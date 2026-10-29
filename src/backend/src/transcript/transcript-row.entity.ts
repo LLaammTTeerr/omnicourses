@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '../users/user.entity.js';
+import type { TranscriptResult } from './transcript-entry.js';
 
 @Entity({ name: 'transcript_rows' })
 @Index('ix_transcript_rows_user_id', ['userId'])
@@ -24,7 +25,11 @@ export class TranscriptRow {
   @Column({ type: 'smallint' })
   credits!: number;
 
-  // 10-point scale, one decimal. Null while the course is in progress (UC-02 A3).
+  // graded, in_progress, exempt, pass or fail (ADR 0007). A CHECK keeps grade set exactly when graded.
+  @Column({ type: 'varchar', length: 20 })
+  result!: TranscriptResult;
+
+  // 10-point scale, one decimal, when the result is graded; null otherwise.
   @Column({
     type: 'numeric',
     precision: 3,

@@ -41,6 +41,7 @@ function toEntry(row: TranscriptRow): TranscriptEntry {
     courseCode: row.courseCode,
     courseName: row.courseName,
     credits: row.credits,
+    result: row.result,
     grade: row.grade,
     term: { year: row.termYear, number: row.termNumber as Term['number'] },
   };
@@ -52,7 +53,8 @@ function toEntity(userId: string, row: TranscriptRowDto): Partial<TranscriptRow>
     courseCode: row.courseCode,
     courseName: row.courseName,
     credits: row.credits,
-    grade: row.grade,
+    result: row.result,
+    grade: row.grade ?? null,
     termYear: row.term.year,
     termNumber: row.term.number,
   };
