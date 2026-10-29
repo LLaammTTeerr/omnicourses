@@ -205,6 +205,18 @@ describe('GatewayLlmService', () => {
       expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 20, outputTokens: 10 }));
     });
 
+    it('sends tool_call before the tool runs, so the browser can show progress during a slow tool', async () => {
+      const seen: ChatEvent[] = [];
+      let seenWhenToolRan: ChatEvent[] = [];
+      handler.mockImplementationOnce(async ({ query }) => {
+        seenWhenToolRan = [...seen];
+        return { clause: query };
+      });
+      model.turns = [{ toolCalls: [{ id: 'call-1', name: 'search_regulations', arguments: '{"query":"cap"}' }] }, { text: 'Done.' }];
+      for await (const event of llm.chat(request)) seen.push(event);
+      expect(seenWhenToolRan).toEqual([{ type: 'tool_call', name: 'search_regulations', args: { query: 'cap' } }]);
+    });
+
     it('reports invalid arguments to the model without calling the handler', async () => {
       model.turns = [{ toolCalls: [{ id: 'call-1', name: 'search_regulations', arguments: '{"query":42}' }] }, { text: 'Sorry.' }];
       const events = await collect(llm.chat(request));

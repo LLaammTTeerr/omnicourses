@@ -43,25 +43,35 @@ function clientMessages(messages: ChatMessage[]): ModelMessage[] {
     .map((m) => ({ role: m.role, content: m.content }));
 }
 
+type ParsedToolCall = { args: unknown; run: () => Promise<{ ok: boolean; content: string }> };
+
+const toolError = (error: string) => ({ ok: false, content: JSON.stringify({ error }) });
+
+// Split from running, so tool_call reaches the browser before a slow tool runs.
 // A bad call is reported back to the model as a tool result, so it can correct
 // itself, instead of failing the whole chat.
-async function runTool(tools: ChatTool<any>[], call: ModelToolCall): Promise<{ args: unknown; ok: boolean; content: string }> {
-  const fail = (args: unknown, error: string) => ({ args, ok: false, content: JSON.stringify({ error }) });
+function parseToolCall(tools: ChatTool<any>[], call: ModelToolCall): ParsedToolCall {
+  const failed = (args: unknown, error: string): ParsedToolCall => ({ args, run: async () => toolError(error) });
   const tool = tools.find((t) => t.name === call.name);
-  if (!tool) return fail(undefined, `Unknown tool ${call.name}`);
+  if (!tool) return failed(undefined, `Unknown tool ${call.name}`);
   let raw: unknown;
   try {
     raw = JSON.parse(call.arguments || '{}');
   } catch {
-    return fail(undefined, 'Arguments are not valid JSON');
+    return failed(undefined, 'Arguments are not valid JSON');
   }
   const parsed = tool.schema.safeParse(raw);
-  if (!parsed.success) return fail(raw, `Invalid arguments: ${z.prettifyError(parsed.error)}`);
-  try {
-    return { args: parsed.data, ok: true, content: JSON.stringify((await tool.handler(parsed.data)) ?? null) };
-  } catch {
-    return fail(parsed.data, 'The tool failed');
-  }
+  if (!parsed.success) return failed(raw, `Invalid arguments: ${z.prettifyError(parsed.error)}`);
+  return {
+    args: parsed.data,
+    run: async () => {
+      try {
+        return { ok: true, content: JSON.stringify((await tool.handler(parsed.data)) ?? null) };
+      } catch {
+        return toolError('The tool failed');
+      }
+    },
+  };
 }
 
 @Injectable()
@@ -141,8 +151,9 @@ export class GatewayLlmService extends LlmService {
         }
         messages.push({ role: 'assistant', content: end.content, toolCalls: end.toolCalls });
         for (const call of end.toolCalls) {
-          const result = await runTool(tools, call);
-          yield { type: 'tool_call', name: call.name, args: result.args };
+          const parsed = parseToolCall(tools, call);
+          yield { type: 'tool_call', name: call.name, args: parsed.args };
+          const result = await parsed.run();
           yield { type: 'tool_result', name: call.name, ok: result.ok };
           messages.push({ role: 'tool', toolCallId: call.id, content: result.content });
         }

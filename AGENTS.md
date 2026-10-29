@@ -66,14 +66,15 @@ const goal = await this.llm.structured({
 });
 
 @Post('ask')                           // F8: stream with streamChat, read it with fetch
-ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response) {
+ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response) {   // AskDto: @IsIn(['user', 'assistant']) on role
   return streamChat(res, this.llm.chat({ context: { userId: user.id, feature: 'advisor' }, instructions, messages: dto.messages, tools }));
 }
 ```
 
 - Every failure is `AiUnavailableError` → **503 `ai_unavailable`**. Give each AI screen a manual path. Document it with `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`.
+- Validate the role of each chat message with `@IsIn(['user', 'assistant'])`. The gateway also drops any other role, so a client cannot inject a system message.
 - Unit tests use `FakeLlmService` (`src/ai/testing/`). CI never calls OpenRouter. `npm run test:live -w src/backend` is the manual smoke test and spends credit.
-- Calls are capped per user per day (`AI_DAILY_CALLS_PER_USER`). Usage rows hold no content. Never log a prompt, a reply or tool arguments.
+- Calls are capped per user per day (`AI_DAILY_CALLS_PER_USER`). A call counts once it reaches the model, even if the student disconnects; one that fails before (no key, no model) does not. Usage rows hold no content. Never log a prompt, a reply, tool arguments or a provider error message.
 - Two settings in the OpenRouter dashboard carry ADR 0003's guarantees. The Project Lead keeps them on: **Settings → Privacy → training opt-out**, and **a monthly credit limit on the API key**.
 
 ## Testing

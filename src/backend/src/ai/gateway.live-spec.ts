@@ -13,7 +13,19 @@ for (const file of ['.env', '../../.env']) if (existsSync(file) && !process.env.
 const noGuard: Pick<AiCostGuard, 'reserve' | 'finish'> = { reserve: async () => 'live', finish: async () => undefined };
 const context = { userId: '00000000-0000-4000-8000-000000000000', feature: 'live-test' };
 
-describe.skipIf(!process.env.OPENROUTER_API_KEY)('AI gateway against OpenRouter (live)', () => {
+const configured = Boolean(process.env.OPENROUTER_API_KEY && process.env.AI_MODEL_STRUCTURED && process.env.AI_MODEL_CHAT);
+
+const creditCapTool = (calls: string[]) => ({
+  name: 'lookup_credit_cap',
+  description: 'Returns the credit cap for a term kind',
+  schema: z.object({ termKind: z.enum(['main', 'summer']) }),
+  handler: async ({ termKind }: { termKind: 'main' | 'summer' }) => {
+    calls.push(termKind);
+    return termKind === 'main' ? { min: 14, max: 25 } : { max: 12 };
+  },
+});
+
+describe.skipIf(!configured)('AI gateway against OpenRouter (live)', () => {
   const llm = new GatewayLlmService(new OpenRouterModelClient(), noGuard as never);
 
   it('structured() returns a reply that passes the schema', async () => {
@@ -34,21 +46,29 @@ describe.skipIf(!process.env.OPENROUTER_API_KEY)('AI gateway against OpenRouter 
       context,
       instructions: 'Answer using the lookup tool. Be brief.',
       messages: [{ role: 'user', content: 'What is the maximum number of credits in a main term?' }],
-      tools: [
-        {
-          name: 'lookup_credit_cap',
-          description: 'Returns the credit cap for a term kind',
-          schema: z.object({ termKind: z.enum(['main', 'summer']) }),
-          handler: async ({ termKind }) => {
-            calls.push(termKind);
-            return termKind === 'main' ? { min: 14, max: 25 } : { max: 12 };
-          },
-        },
-      ],
+      tools: [creditCapTool(calls)],
     })) {
       events.push(event);
     }
     expect(calls).toContain('main');
     expect(events.at(-1)).toMatchObject({ type: 'done', text: expect.stringContaining('25') });
+  });
+
+  // The last step keeps the tools with tool_choice none, since the history holds
+  // tool calls; this checks the configured chat model accepts that and answers.
+  it('chat() answers in text when it runs out of steps', async () => {
+    const calls: string[] = [];
+    const events: ChatEvent[] = [];
+    for await (const event of llm.chat({
+      context,
+      instructions: 'Always call the lookup tool again before answering, for every term kind, as many times as you can.',
+      messages: [{ role: 'user', content: 'What are the credit caps for main and summer terms?' }],
+      tools: [creditCapTool(calls)],
+      maxSteps: 2,
+    })) {
+      events.push(event);
+    }
+    expect(calls.length).toBeGreaterThan(0);
+    expect(events.at(-1)).toMatchObject({ type: 'done', text: expect.stringMatching(/\S/) });
   });
 });
