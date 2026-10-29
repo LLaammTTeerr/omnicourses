@@ -69,7 +69,13 @@ export interface PrintedGroup {
    * A group met by exactly one of several course sets (graduation: a thesis
    * or two capstone projects). Each set must add up to the group's credits.
    */
-  options?: { codes: string[]; page: Page }[];
+  options?: { codes: string[]; page: Page; at_least?: boolean }[];
+  /**
+   * true for a group the PDF requires but leaves out of the cohort total
+   * (GDTC, GDQP-AN in CLC). It is checked against its own printed total and
+   * belongs to no block.
+   */
+  outside_total?: boolean;
   rows: PrintedRow[];
   needs_check?: string;
 }
@@ -137,12 +143,28 @@ export interface KnownDiscrepancy {
   resolution: string;
 }
 
-/** One curriculum PDF, transcribed. */
+/** A printed subtotal over several groups, inside a block (CLC 7.1.3: 36). Not loaded. */
+export interface PrintedSubtotal {
+  name: string;
+  /** Required credits of the groups add up to this exactly. */
+  credits: number;
+  groups: string[];
+  page: Page;
+  note?: string;
+}
+
+/** One curriculum, transcribed from its PDF(s). */
 export interface CurriculumSeed {
-  source: { file: string; pages: number };
+  /**
+   * The PDF the rows come from. When `structure` is set, the rows' pages refer
+   * to `file` and every other page (program, curriculum, block, group) refers to
+   * `structure`; otherwise every page refers to `file`.
+   */
+  source: { file: string; pages: number; structure?: { file: string; pages: number } };
   program: SeedProgram;
   curriculum: SeedCurriculum;
   blocks: PrintedBlock[];
+  subtotals?: PrintedSubtotal[];
   groups: PrintedGroup[];
   appendix: AppendixRow[];
   known_discrepancies: KnownDiscrepancy[];
@@ -211,7 +233,8 @@ export interface EquivalenceCourse {
   code: string | null;
   code_printed: string;
   name: string;
-  credits: number;
+  /** null where the cell is blank. */
+  credits: number | null;
 }
 
 export interface EquivalenceRow {

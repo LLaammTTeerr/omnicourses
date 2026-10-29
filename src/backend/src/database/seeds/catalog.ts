@@ -94,8 +94,11 @@ export function buildCatalog(seeds: CurriculumSeed[], decisions: CatalogDecision
   for (const [code, list] of sightings) {
     const course: CatalogCourse = { ...list[0].course };
     for (const field of CATALOG_FIELDS) {
-      const distinct = [...new Set(list.map((s) => s.course[field]))];
-      if (distinct.length === 1) continue;
+      // null means "not printed" (a blank cell, a PDF without English names):
+      // it never conflicts, and the catalog takes the printed value.
+      const distinct = [...new Set(list.map((s) => s.course[field]).filter((v) => v !== null))];
+      (course as unknown as Record<string, unknown>)[field] = distinct.length ? distinct[0] : null;
+      if (distinct.length <= 1) continue;
       const decision = decisions.find((d) => d.code === code && d.field === field);
       const decided = decision ? new Set(decision.printed.map((p) => p.value)) : undefined;
       if (decision && distinct.every((v) => decided!.has(v)) && decided!.has(decision.catalog_value)) {
