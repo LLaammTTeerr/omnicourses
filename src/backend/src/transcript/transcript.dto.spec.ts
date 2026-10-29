@@ -57,6 +57,14 @@ describe('TranscriptDto validation', () => {
     expect((await errorsFor([row(overrides)])).some((e) => e.endsWith(`:${constraint}`))).toBe(true);
   });
 
+  // The grade rule only applies once the result is valid, so the client sees one error.
+  it.each([
+    ['a missing result', { result: undefined }],
+    ['an unknown result', { result: 'audited' }],
+  ])('rejects a row with a grade and %s with the result error only', async (_label, overrides) => {
+    expect(await errorsFor([row({ grade: 8.5, ...overrides })])).toEqual(['rows.0.result:isIn']);
+  });
+
   it(`rejects more than ${MAX_TRANSCRIPT_ROWS} rows`, async () => {
     const rows = Array.from({ length: MAX_TRANSCRIPT_ROWS + 1 }, (_, i) => row({ courseCode: `C${i}` }));
     expect(await errorsFor(rows)).toContain('rows:arrayMaxSize');
