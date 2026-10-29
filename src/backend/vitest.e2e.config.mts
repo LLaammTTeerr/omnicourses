@@ -8,5 +8,7 @@ export default defineConfig({
     include: ['test/**/*.e2e-spec.ts'],
     environment: 'node',
     testTimeout: 30_000,
+    // Files share one database and each runs the migrations: run them one at a time.
+    fileParallelism: false,
   },
 });
