@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { Term, TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
-import { TermDto, TranscriptDto, TranscriptRowDto } from './transcript.dto.js';
+import { TranscriptDto, TranscriptRowDto } from './transcript.dto.js';
 
 // The student's transcript (GLOSSARY): what the degree audit and the advisor read.
 // It records what the student saved and decides nothing: which attempt counts and
@@ -15,10 +16,10 @@ export class TranscriptService {
   ) {}
 
   /** The saved transcript, oldest term first; empty when nothing is saved. The read contract for other modules (ADR 0007). */
-  async rowsFor(userId: string): Promise<TranscriptRowDto[]> {
+  async rowsFor(userId: string): Promise<TranscriptEntry[]> {
     // id breaks ties (the same course twice in one term): arbitrary but the same on every read.
     const rows = await this.rows.find({ where: { userId }, order: { termYear: 'ASC', termNumber: 'ASC', courseCode: 'ASC', id: 'ASC' } });
-    return rows.map(toDto);
+    return rows.map(toEntry);
   }
 
   /** Replaces the whole transcript with the reviewed rows (UC-02 step 7, A5), all or nothing. */
@@ -35,13 +36,13 @@ export class TranscriptService {
   }
 }
 
-function toDto(row: TranscriptRow): TranscriptRowDto {
+function toEntry(row: TranscriptRow): TranscriptEntry {
   return {
     courseCode: row.courseCode,
     courseName: row.courseName,
     credits: row.credits,
     grade: row.grade,
-    term: { year: row.termYear, number: row.termNumber as TermDto['number'] },
+    term: { year: row.termYear, number: row.termNumber as Term['number'] },
   };
 }
 

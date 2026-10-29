@@ -6,13 +6,13 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
-import { TranscriptRowDto } from '../src/transcript/transcript.dto.js';
+import { TranscriptEntry } from '../src/transcript/transcript-entry.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 
 // Synthetic transcripts only (AGENTS.md hard rule 3).
 const password = 'correct horse battery';
 // Oldest term first, as the API returns it: a failed course, its retake in summer, one in progress.
-const first: TranscriptRowDto[] = [
+const first: TranscriptEntry[] = [
   { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, grade: 4.5, term: { year: 2025, number: 1 } },
   { courseCode: 'MTH00003', courseName: 'Calculus 1B', credits: 3, grade: 7.3, term: { year: 2025, number: 1 } },
   { courseCode: 'CSC10001', courseName: 'Introduction to Programming', credits: 4, grade: 8, term: { year: 2025, number: 3 } },
@@ -85,7 +85,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       (await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows,
       await app.get(TranscriptService).rowsFor(userId),
     ];
-    for (const rows of reads) expect(rows.map((r: TranscriptRowDto) => r.grade)).toEqual(byId.map((r) => Number(r.grade)));
+    for (const rows of reads) expect(rows.map((r: TranscriptEntry) => r.grade)).toEqual(byId.map((r) => Number(r.grade)));
   });
 
   it('keeps the saved transcript when a save is refused', async () => {
@@ -115,7 +115,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     // Another save, paused halfway: it holds the user lock and has replaced the rows, uncommitted.
     const other = db.createQueryRunner();
     await other.connect();
-    let saving!: Promise<{ rows: TranscriptRowDto[] }>;
+    let saving!: Promise<{ rows: TranscriptEntry[] }>;
     try {
       await other.startTransaction();
       const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');

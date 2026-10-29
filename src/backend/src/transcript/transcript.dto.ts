@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateIf, ValidateNested } from 'class-validator';
+import { Term, TranscriptEntry } from './transcript-entry.js';
 
 export const MAX_TRANSCRIPT_ROWS = 300;
 
 // ADR 0007: `year` is the first calendar year of the academic year; 3 is the summer term.
-export class TermDto {
+export class TermDto implements Term {
   @ApiProperty({ example: 2026, description: 'First calendar year of the academic year: 2026 means 2026–2027.' })
   @IsInt()
   @Min(2000)
@@ -17,7 +18,7 @@ export class TermDto {
   number!: 1 | 2 | 3;
 }
 
-export class TranscriptRowDto {
+export class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'CSC10001' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   @IsString()
