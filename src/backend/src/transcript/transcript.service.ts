@@ -16,7 +16,8 @@ export class TranscriptService {
 
   /** The saved transcript, oldest term first; empty when nothing is saved. The read contract for other modules (ADR 0007). */
   async rowsFor(userId: string): Promise<TranscriptRowDto[]> {
-    const rows = await this.rows.find({ where: { userId }, order: { termYear: 'ASC', termNumber: 'ASC', courseCode: 'ASC', createdAt: 'ASC' } });
+    // id breaks ties (the same course twice in one term): arbitrary but the same on every read.
+    const rows = await this.rows.find({ where: { userId }, order: { termYear: 'ASC', termNumber: 'ASC', courseCode: 'ASC', id: 'ASC' } });
     return rows.map(toDto);
   }
 

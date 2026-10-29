@@ -70,6 +70,24 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     expect((await http().put('/api/users/me/transcript').set(auth).send({ rows: [] }).expect(200)).body).toEqual({ rows: [] });
   });
 
+  it('returns the same course twice in one term in the same order on every read', async () => {
+    const { token, userId } = await signUp();
+    const auth = { Authorization: `Bearer ${token}` };
+    const twice = [first[0], { ...first[0], grade: 6 }, first[1]];
+    await http().put('/api/users/me/transcript').set(auth).send({ rows: twice }).expect(200);
+
+    const byId: { grade: string }[] = await db.query(
+      'SELECT grade FROM transcript_rows WHERE user_id = $1 ORDER BY term_year, term_number, course_code, id',
+      [userId],
+    );
+    const reads = [
+      (await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows,
+      (await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows,
+      await app.get(TranscriptService).rowsFor(userId),
+    ];
+    for (const rows of reads) expect(rows.map((r: TranscriptRowDto) => r.grade)).toEqual(byId.map((r) => Number(r.grade)));
+  });
+
   it('keeps the saved transcript when a save is refused', async () => {
     const { token } = await signUp();
     const auth = { Authorization: `Bearer ${token}` };
