@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateIf, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateIf, ValidateNested } from 'class-validator';
 
 export const MAX_TRANSCRIPT_ROWS = 300;
 
@@ -46,7 +46,9 @@ export class TranscriptRowDto {
   @Max(10)
   grade!: number | null;
 
+  // @ValidateNested() alone lets a missing term through.
   @ApiProperty({ type: TermDto })
+  @IsDefined()
   @ValidateNested()
   @Type(() => TermDto)
   term!: TermDto;

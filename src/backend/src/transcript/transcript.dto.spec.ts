@@ -36,6 +36,7 @@ describe('TranscriptDto validation', () => {
     ['grade above 10', { grade: 10.5 }, 'max'],
     ['negative grade', { grade: -1 }, 'min'],
     ['grade with two decimals', { grade: 7.25 }, 'isNumber'],
+    ['a missing term', { term: undefined }, 'isDefined'],
     ['term number 4', { term: { year: 2025, number: 4 } }, 'isIn'],
     ['term year out of range', { term: { year: 1999, number: 1 } }, 'min'],
     ['course code with punctuation', { courseCode: 'CSC-100' }, 'matches'],

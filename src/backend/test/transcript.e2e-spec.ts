@@ -69,11 +69,19 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     const auth = { Authorization: `Bearer ${token}` };
     await http().put('/api/users/me/transcript').set(auth).send({ rows: first }).expect(200);
 
-    const { grade: _missing, ...incomplete } = first[1];
-    await http().put('/api/users/me/transcript').set(auth).send({ rows: [first[0], incomplete] }).expect(400);
+    const { grade: _noGrade, ...gradeless } = first[1];
+    const { term: _noTerm, ...termless } = first[1];
+    await http().put('/api/users/me/transcript').set(auth).send({ rows: [first[0], gradeless] }).expect(400);
+    await http().put('/api/users/me/transcript').set(auth).send({ rows: [first[0], termless] }).expect(400);
     await http().put('/api/users/me/transcript').set(auth).send({ rows: [{ ...first[0], term: { year: 2025, number: 4 } }] }).expect(400);
-    await http().put('/api/users/me/transcript').set(auth).send({ rows: [{ ...first[0], studentId: 'x' }] }).expect(200 /* unknown field stripped */);
-    expect((await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows).toEqual([first[0]]);
+    expect((await http().get('/api/users/me/transcript').set(auth).expect(200)).body.rows).toEqual(first);
+  });
+
+  it('strips a field the row does not have', async () => {
+    const { token } = await signUp();
+    const auth = { Authorization: `Bearer ${token}` };
+    const saved = await http().put('/api/users/me/transcript').set(auth).send({ rows: [{ ...first[0], studentId: 'x' }] }).expect(200);
+    expect(saved.body.rows).toEqual([first[0]]);
   });
 
   it('waits for a save in progress instead of merging with it', async () => {
