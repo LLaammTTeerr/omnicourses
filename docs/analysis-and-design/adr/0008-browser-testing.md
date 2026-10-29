@@ -20,4 +20,4 @@ The Sprint 2 automation work requires Vitest browser mode. The existing frontend
 
 ## Consequences
 
-Browser installation is required locally and in CI. Playwright upgrades require installing its matching browser revision. Failed browser assertions fail the existing frontend CI job; failure screenshots are retained as a CI artifact when available. Only Chromium is covered initially; this does not claim cross-browser compatibility or B0 sign-in acceptance.
+Browser installation is required locally and in CI. CI installs only Chromium's headless shell with `--only-shell`; the local instructions retain full Chromium for visible-browser runs. Playwright upgrades require installing its matching browser revision. Failed browser assertions fail the existing frontend CI job; failure screenshots are retained as a CI artifact when available. The app boot smoke test checks the HTML entry declaration, real entry module, app shell and home route; the component tests cover health-response states. Only Chromium is covered initially; this does not claim cross-browser compatibility or B0 sign-in acceptance.

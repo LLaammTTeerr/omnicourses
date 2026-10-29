@@ -116,7 +116,7 @@ jobs:
       - run: npm run typecheck -w src/frontend
       - run: npm run test -w src/frontend
       - name: Install Chromium for browser tests
-        run: npm exec -w src/frontend -- playwright install --with-deps chromium
+        run: npm exec -w src/frontend -- playwright install --with-deps --only-shell chromium
       - run: npm run test:browser
       - name: Upload browser failure screenshots
         if: failure()
