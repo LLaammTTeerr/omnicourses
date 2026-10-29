@@ -11,7 +11,7 @@ describe('FakeLlmService', () => {
     const llm = new FakeLlmService().replyStructured({ creditsPerTerm: 18 }, { creditsPerTerm: 'x' });
     const schema = z.object({ creditsPerTerm: z.number() });
     await expect(llm.structured({ context, instructions: '', input: '', schema })).resolves.toEqual({ creditsPerTerm: 18 });
-    await expect(llm.structured({ context, instructions: '', input: '', schema })).rejects.toThrow();
+    await expect(llm.structured({ context, instructions: '', input: '', schema })).rejects.toThrow(new AiUnavailableError('The model returned an unusable reply'));
     expect(llm.structuredCalls).toHaveLength(2);
   });
 

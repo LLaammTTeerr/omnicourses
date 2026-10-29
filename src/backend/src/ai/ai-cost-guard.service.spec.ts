@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiCostGuard } from './ai-cost-guard.service.js';
 import { AiUnavailableError } from './ai-unavailable.error.js';
@@ -50,12 +51,28 @@ describe('AiCostGuard', () => {
       await expect(guard.reserve(context, 'chat-model')).rejects.toThrow(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
       expect(em.insert).not.toHaveBeenCalled();
     });
+
+    it.each(['', 'twenty', '0', '-5', '2.5'])('falls back to a cap of 20 when AI_DAILY_CALLS_PER_USER is %j', async (value) => {
+      vi.stubEnv('AI_DAILY_CALLS_PER_USER', value);
+      em.count.mockResolvedValue(19);
+      await expect(guard.reserve(context, 'm')).resolves.toBe('row-1');
+      em.count.mockResolvedValue(20);
+      await expect(guard.reserve(context, 'm')).rejects.toThrow(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
+    });
   });
 
   describe('finish', () => {
     it('fills in tokens, latency and outcome on the reserved row', async () => {
       await guard.finish('row-1', { inputTokens: 10, outputTokens: 5, latencyMs: 300, succeeded: true });
       expect(usage.update).toHaveBeenCalledWith('row-1', { inputTokens: 10, outputTokens: 5, latencyMs: 300, succeeded: true });
+    });
+
+    it('never throws: a failed update is logged by error name only', async () => {
+      const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      usage.update.mockRejectedValue(new TypeError('connection lost while sending prompt text'));
+      await expect(guard.finish('row-1', { inputTokens: 0, outputTokens: 0, latencyMs: 1, succeeded: false })).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalledWith('Could not record AI usage: TypeError');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('prompt');
     });
   });
 });

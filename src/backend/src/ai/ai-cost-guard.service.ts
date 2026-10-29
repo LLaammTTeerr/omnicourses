@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { aiConfig } from './ai-config.js';
@@ -20,6 +20,8 @@ export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'late
 // OpenRouter key itself.
 @Injectable()
 export class AiCostGuard {
+  private readonly logger = new Logger(AiCostGuard.name);
+
   constructor(@InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>) {}
 
   /**
@@ -38,8 +40,17 @@ export class AiCostGuard {
     });
   }
 
-  /** Fills in the reserved row once the call ends, however it ends. */
+  /**
+   * Fills in the reserved row once the call ends, however it ends. Never
+   * throws: it runs in the gateway's finally, where a throw would replace the
+   * reply. The row already counts, so a lost update loses only the numbers.
+   */
   async finish(id: string, result: AiUsageResult): Promise<void> {
-    await this.usage.update(id, result);
+    try {
+      await this.usage.update(id, result);
+    } catch (error) {
+      // Name only: a driver error can quote the statement's parameters.
+      this.logger.warn(`Could not record AI usage: ${error instanceof Error ? error.name : typeof error}`);
+    }
   }
 }

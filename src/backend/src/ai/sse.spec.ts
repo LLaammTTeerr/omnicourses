@@ -60,4 +60,57 @@ describe('streamChat', () => {
     expect(stopped).toBe(true);
     expect(res.written).toHaveLength(1);
   });
+
+  it('stops the chat when the browser leaves before the first event (during the first model turn)', async () => {
+    const res = fakeResponse();
+    let release!: () => void;
+    const firstTurn = new Promise<void>((resolve) => (release = resolve));
+    let yielded = 0;
+    let stopped = false;
+    async function* slowStart(): AsyncIterable<ChatEvent> {
+      try {
+        await firstTurn;
+        for (let i = 0; i < 3; i++) {
+          yielded++;
+          yield { type: 'text', delta: '.' };
+        }
+      } finally {
+        stopped = true;
+      }
+    }
+    const streaming = streamChat(res as never, slowStart());
+    await Promise.resolve();
+    res.emit('close');
+    release();
+    await streaming;
+    expect(stopped).toBe(true);
+    // The pending first next() still resolves, then return() runs: no later turn is asked for.
+    expect(yielded).toBe(1);
+    expect(res.written).toEqual([]);
+  });
+
+  it('does not leave an unhandled rejection when stopping the chat fails', async () => {
+    const res = fakeResponse();
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      async function* failingStop(): AsyncIterable<ChatEvent> {
+        try {
+          for (;;) {
+            yield { type: 'text', delta: '.' };
+            res.emit('close');
+          }
+        } finally {
+          // eslint-disable-next-line no-unsafe-finally
+          throw new Error('usage insert failed');
+        }
+      }
+      await streamChat(res as never, failingStop());
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
 });

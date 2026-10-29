@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { AiCostGuard } from './ai-cost-guard.service.js';
 import { aiConfig } from './ai-config.js';
 import { AiUnavailableError } from './ai-unavailable.error.js';
-import type { ChatEvent, ChatRequest, ChatTool, StructuredRequest } from './llm.service.js';
+import type { ChatEvent, ChatMessage, ChatRequest, ChatTool, StructuredRequest } from './llm.service.js';
 import { LlmService } from './llm.service.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelToolCall, ModelUsage } from './model-client.js';
 
@@ -33,6 +33,14 @@ function parseReply<T>(content: string, schema: z.ZodType<T>): T | undefined {
   } catch {
     return undefined;
   }
+}
+
+// Messages come from the browser: the role is only checked at compile time, so a
+// client could send a system or tool message. Only user and assistant text passes.
+function clientMessages(messages: ChatMessage[]): ModelMessage[] {
+  return messages
+    .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .map((m) => ({ role: m.role, content: m.content }));
 }
 
 // A bad call is reported back to the model as a tool result, so it can correct
@@ -108,7 +116,7 @@ export class GatewayLlmService extends LlmService {
     const tools = request.tools ?? [];
     const modelTools = tools.map((t) => ({ name: t.name, description: t.description, parameters: toModelSchema(t.schema) }));
     const maxSteps = request.maxSteps ?? DEFAULT_MAX_STEPS;
-    const messages: ModelMessage[] = [{ role: 'system', content: request.instructions }, ...request.messages];
+    const messages: ModelMessage[] = [{ role: 'system', content: request.instructions }, ...clientMessages(request.messages)];
     const usage: ModelUsage = { inputTokens: 0, outputTokens: 0 };
     const started = Date.now();
     let succeeded = false;
@@ -156,6 +164,12 @@ export class GatewayLlmService extends LlmService {
 
   private async finish(usageId: string | undefined, usage: ModelUsage, started: number, succeeded: boolean): Promise<void> {
     if (usageId === undefined) return;
-    await this.guard.finish(usageId, { ...usage, latencyMs: Date.now() - started, succeeded });
+    // AiCostGuard.finish never throws; this catch keeps that true for any guard,
+    // since a throw here would replace the reply or the AiUnavailableError.
+    try {
+      await this.guard.finish(usageId, { ...usage, latencyMs: Date.now() - started, succeeded });
+    } catch (error) {
+      this.logger.warn(`Could not record AI usage: ${error instanceof Error ? error.name : typeof error}`);
+    }
   }
 }

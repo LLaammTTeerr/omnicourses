@@ -40,7 +40,10 @@ export class FakeLlmService extends LlmService {
     this.structuredCalls.push(request as StructuredRequest<unknown>);
     if (this.failure) throw new AiUnavailableError(this.failure);
     if (!this.structuredReplies.length) throw new Error('FakeLlmService: no scripted structured reply left');
-    return request.schema.parse(this.structuredReplies.shift());
+    // Like the real gateway: a reply that misses the schema is a 503, not a ZodError.
+    const parsed = request.schema.safeParse(this.structuredReplies.shift());
+    if (!parsed.success) throw new AiUnavailableError('The model returned an unusable reply');
+    return parsed.data;
   }
 
   async *chat(request: ChatRequest): AsyncIterable<ChatEvent> {
