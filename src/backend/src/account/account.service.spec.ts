@@ -74,7 +74,10 @@ describe('AccountService', () => {
     const before = Date.now();
     const { purgeAfter } = await service.requestDeletion(user, 'correct horse battery');
     expect(auth.verifyPassword).toHaveBeenCalledWith(user, 'correct horse battery');
-    expect(users.requestDeletion).toHaveBeenCalledWith('u1', expect.any(Date));
+    // The deadline promised to the student is stored, so a later change of the setting can't move it.
+    const [, requestedAt, storedPurgeAfter] = users.requestDeletion.mock.calls[0]!;
+    expect(storedPurgeAfter).toEqual(purgeAfter);
+    expect(purgeAfter.getTime() - requestedAt.getTime()).toBe(30 * DAY);
     expect(auth.revokeAll).toHaveBeenCalledWith('u1');
     expect(purgeAfter.getTime() - before).toBeGreaterThanOrEqual(30 * DAY);
     expect(purgeAfter.getTime() - before).toBeLessThan(30 * DAY + 1000);
@@ -91,16 +94,16 @@ describe('AccountService', () => {
 describe('AccountPurgeService', () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it('purges requests older than the grace period', async () => {
-    vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '30');
-    const users = { purgeDeletionsRequestedBefore: vi.fn(async () => 2) };
+  it('purges the accounts whose stored deadline has passed, whatever the grace setting is now', async () => {
+    vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '1');
+    const users = { purgeDue: vi.fn(async () => 2) };
     const now = new Date('2026-12-01T00:00:00Z');
     await expect(new AccountPurgeService(users as never).purge(now)).resolves.toBe(2);
-    expect(users.purgeDeletionsRequestedBefore).toHaveBeenCalledWith(new Date('2026-11-01T00:00:00Z'));
+    expect(users.purgeDue).toHaveBeenCalledWith(now);
   });
 
   it('logs and survives a failed purge, so the next hour retries', async () => {
-    const users = { purgeDeletionsRequestedBefore: vi.fn(async () => Promise.reject(new Error('db down'))) };
+    const users = { purgeDue: vi.fn(async () => Promise.reject(new Error('db down'))) };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(0);
   });
 });

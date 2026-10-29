@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { UsersService } from '../users/users.service.js';
-import { deletionGraceMs } from './account.service.js';
 
 const HOUR_MS = 3_600_000;
 
@@ -26,7 +25,7 @@ export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDest
 
   async purge(now = new Date()): Promise<number> {
     try {
-      const purged = await this.users.purgeDeletionsRequestedBefore(new Date(now.getTime() - deletionGraceMs()));
+      const purged = await this.users.purgeDue(now);
       if (purged) this.logger.log(`Purged ${purged} account(s) after the deletion grace period`);
       return purged;
     } catch (error) {

@@ -44,9 +44,13 @@ export class AuthService {
       ? await verify(user.passwordHash, dto.password)
       : (await verify(await this.dummyHash, dto.password), false);
     if (!user || !valid) throw new UnauthorizedException('Invalid email or password');
-    // Signing in during the grace period is how a student undoes a deletion (ADR 0004).
+    // Signing in before the stored deadline is how a student undoes a deletion (ADR 0004).
+    // After it, or if the purge got there first, the account is gone: same answer as
+    // an unknown email, and no session (it would fail the foreign key anyway).
     const accountRestored = user.deletionRequestedAt !== null;
-    if (accountRestored) await this.users.cancelDeletion(user.id);
+    if (accountRestored && !(await this.users.cancelDeletion(user.id, new Date()))) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
     return { ...(await this.issue(user, userAgent)), accountRestored };
   }
 

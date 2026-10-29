@@ -5,6 +5,7 @@ import { User } from '../users/user.entity.js';
 import { CreateUsersAndSessions1761696000000 } from './migrations/1761696000000-create-users-and-sessions.js';
 import { CreateAiUsage1792800000000 } from './migrations/1792800000000-create-ai-usage.js';
 import { AddUsersDeletionRequestedAt1792886400000 } from './migrations/1792886400000-add-users-deletion-requested-at.js';
+import { AddUsersPurgeAfter1793318400000 } from './migrations/1793318400000-add-users-purge-after.js';
 
 // Entities and migrations are listed as imported classes, not globs: globs break
 // between ts (tests) and compiled js (dist), and a missing import fails typecheck.
@@ -16,6 +17,7 @@ export const dataSourceOptions = {
     CreateUsersAndSessions1761696000000,
     CreateAiUsage1792800000000,
     AddUsersDeletionRequestedAt1792886400000,
+    AddUsersPurgeAfter1793318400000,
   ],
   synchronize: false,
 } satisfies DataSourceOptions;

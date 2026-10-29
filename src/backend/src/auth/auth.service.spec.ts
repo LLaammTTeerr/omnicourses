@@ -18,6 +18,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     emailVerifiedAt: null,
     consentAt: new Date(),
     deletionRequestedAt: null,
+    purgeAfter: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -53,7 +54,7 @@ describe('AuthService', () => {
       update: vi.fn(async () => ({ affected: 1 })),
       find: vi.fn(async () => []),
     };
-    users = { findByEmail: vi.fn(async () => null), create: vi.fn(async (f: Partial<User>) => makeUser(f)), cancelDeletion: vi.fn(async () => undefined) };
+    users = { findByEmail: vi.fn(async () => null), create: vi.fn(async (f: Partial<User>) => makeUser(f)), cancelDeletion: vi.fn(async () => true) };
     service = new AuthService(sessions as never, users as unknown as UsersService);
   });
 
@@ -106,7 +107,19 @@ describe('AuthService', () => {
       users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash, deletionRequestedAt: new Date() }));
       const result = await service.signIn({ email: 'student@example.com', password: 'correct horse battery' });
       expect(result.accountRestored).toBe(true);
-      expect(users.cancelDeletion).toHaveBeenCalledWith(makeUser().id);
+      expect(users.cancelDeletion).toHaveBeenCalledWith(makeUser().id, expect.any(Date));
+    });
+
+    // cancelDeletion matches nothing once the stored deadline has passed, or when the
+    // purge deleted the row after findByEmail: the account is gone, so no session.
+    it('refuses, without issuing a session, when the deletion can no longer be cancelled', async () => {
+      const passwordHash = await hash('correct horse battery');
+      users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash, deletionRequestedAt: new Date(Date.now() - 31 * DAY), purgeAfter: new Date(Date.now() - DAY) }));
+      users.cancelDeletion.mockResolvedValueOnce(false);
+      await expect(service.signIn({ email: 'student@example.com', password: 'correct horse battery' })).rejects.toThrow(
+        new UnauthorizedException('Invalid email or password'),
+      );
+      expect(sessions.save).not.toHaveBeenCalled();
     });
 
     it('does not touch deletion state on a normal sign-in', async () => {

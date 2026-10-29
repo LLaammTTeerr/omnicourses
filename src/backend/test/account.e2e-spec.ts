@@ -9,7 +9,7 @@ import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 
-// Uses 4 of the 10/min password budget per IP (sign-up, delete ×2, sign-in);
+// Uses 6 of the 10/min password budget per IP (sign-up, delete ×3, sign-in ×2);
 // it runs in its own app, so auth.e2e-spec's budget is separate.
 const email = `account-${randomUUID()}@example.com`;
 const password = 'correct horse battery';
@@ -75,11 +75,29 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     expect(row.deletion_requested_at).toBeNull();
   });
 
-  it('purges the account and its rows once the grace period has passed', async () => {
+  it('refuses a sign-in once the stored deadline has passed, even before the purge runs', async () => {
     await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
-    const purge = app.get(AccountPurgeService, { strict: false });
-    await purge.purge(new Date(Date.now() + 31 * 86_400_000));
-    expect(await db.query('SELECT 1 FROM users WHERE id = $1', [userId])).toEqual([]);
-    expect(await db.query('SELECT 1 FROM sessions WHERE user_id = $1', [userId])).toEqual([]);
+    await db.query(`UPDATE users SET purge_after = now() - interval '1 minute' WHERE id = $1`, [userId]);
+    await http().post('/api/auth/sign-in').send({ email, password }).expect(401);
+    const [row] = await db.query('SELECT deletion_requested_at FROM users WHERE id = $1', [userId]);
+    expect(row.deletion_requested_at).not.toBeNull();
+    expect(await db.query('SELECT 1 FROM sessions WHERE user_id = $1 AND revoked_at IS NULL', [userId])).toEqual([]);
+  });
+
+  it('purges only the accounts whose deadline has passed, with their rows', async () => {
+    // A second account, deletion requested but still inside its grace period: it must survive.
+    const [waiting] = await db.query(
+      `INSERT INTO users (email, password_hash, display_name, consent_at, deletion_requested_at, purge_after)
+       VALUES ($1, 'not-a-real-hash', 'Waiting Student', now(), now(), now() + interval '1 day') RETURNING id`,
+      [`account-waiting-${randomUUID()}@example.com`],
+    );
+    try {
+      await app.get(AccountPurgeService, { strict: false }).purge();
+      expect(await db.query('SELECT 1 FROM users WHERE id = $1', [userId])).toEqual([]);
+      expect(await db.query('SELECT 1 FROM sessions WHERE user_id = $1', [userId])).toEqual([]);
+      expect(await db.query('SELECT 1 FROM users WHERE id = $1', [waiting.id])).toHaveLength(1);
+    } finally {
+      await db.query('DELETE FROM users WHERE id = $1', [waiting.id]);
+    }
   });
 });

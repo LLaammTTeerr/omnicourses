@@ -39,8 +39,9 @@ export class AccountService {
   async requestDeletion(user: User, password: string): Promise<DeletionScheduledDto> {
     if (!(await this.auth.verifyPassword(user, password))) throw new ForbiddenException('Wrong password');
     const requestedAt = new Date();
-    await this.users.requestDeletion(user.id, requestedAt);
+    const purgeAfter = new Date(requestedAt.getTime() + deletionGraceMs());
+    await this.users.requestDeletion(user.id, requestedAt, purgeAfter);
     await this.auth.revokeAll(user.id);
-    return { purgeAfter: new Date(requestedAt.getTime() + deletionGraceMs()) };
+    return { purgeAfter };
   }
 }
