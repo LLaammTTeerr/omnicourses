@@ -53,9 +53,10 @@ export function toAiUnavailable(error: unknown): AiUnavailableError {
   }
   if (error instanceof OpenAI.APIError) {
     logger.warn(`OpenRouter error: status=${error.status ?? '-'} code=${error.code ?? '-'} type=${error.type ?? '-'}`);
-    if (error.status === 401 || error.status === 403) return new AiUnavailableError('AI is not configured');
-    if (error.status === 402) return new AiUnavailableError('AI credit is used up');
-    if (error.status === 429) return new AiUnavailableError('The AI provider is busy, try again shortly');
+    // Refused before any work, so not billed: the call must not count.
+    if (error.status === 401 || error.status === 403) return new AiUnavailableError('AI is not configured', { billed: false });
+    if (error.status === 402) return new AiUnavailableError('AI credit is used up', { billed: false });
+    if (error.status === 429) return new AiUnavailableError('The AI provider is busy, try again shortly', { billed: false });
     return new AiUnavailableError('The AI provider failed');
   }
   logger.warn(`OpenRouter error: ${error instanceof Error ? error.name : typeof error}`);

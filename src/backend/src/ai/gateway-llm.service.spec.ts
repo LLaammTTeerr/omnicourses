@@ -10,7 +10,7 @@ const usage = { inputTokens: 10, outputTokens: 5 };
 
 /** Scripted model: each complete()/stream() call takes the next reply. */
 class ScriptedModel extends ModelClient {
-  completions: string[] = [];
+  completions: Array<string | Error> = [];
   turns: Array<{ text?: string; toolCalls?: ModelToolCall[] } | Error> = [];
   completeCalls: Array<Parameters<ModelClient['complete']>[0]> = [];
   streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[]; toolChoice?: 'auto' | 'none' }> = [];
@@ -22,7 +22,9 @@ class ScriptedModel extends ModelClient {
 
   async complete(request: Parameters<ModelClient['complete']>[0]) {
     this.completeCalls.push(request);
-    return { content: this.completions.shift() ?? '', usage };
+    const reply = this.completions.shift() ?? '';
+    if (reply instanceof Error) throw reply;
+    return { content: reply, usage };
   }
 
   async *stream(request: Parameters<ModelClient['stream']>[0]): AsyncIterable<ModelStreamEvent> {
@@ -46,14 +48,14 @@ async function collect(events: AsyncIterable<ChatEvent>): Promise<ChatEvent[]> {
 
 describe('GatewayLlmService', () => {
   let model: ScriptedModel;
-  let guard: { reserve: ReturnType<typeof vi.fn>; finish: ReturnType<typeof vi.fn> };
+  let guard: { reserve: ReturnType<typeof vi.fn>; finish: ReturnType<typeof vi.fn>; release: ReturnType<typeof vi.fn> };
   let llm: GatewayLlmService;
 
   beforeEach(() => {
     vi.stubEnv('AI_MODEL_STRUCTURED', 'small-model');
     vi.stubEnv('AI_MODEL_CHAT', 'chat-model');
     model = new ScriptedModel();
-    guard = { reserve: vi.fn(async () => 'row-1'), finish: vi.fn(async () => undefined) };
+    guard = { reserve: vi.fn(async () => 'row-1'), finish: vi.fn(async () => undefined), release: vi.fn(async () => undefined) };
     llm = new GatewayLlmService(model, guard as never);
   });
 
@@ -123,6 +125,24 @@ describe('GatewayLlmService', () => {
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('AI is unavailable'));
       expect(model.completeCalls).toHaveLength(0);
       expect(guard.finish).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a wrong key', 'AI is not configured'],
+      ['spent credit', 'AI credit is used up'],
+      ['a rate limit', 'The AI provider is busy, try again shortly'],
+    ])('releases the reserved call when the provider refuses it for %s, so a retry is not counted', async (_label, reason) => {
+      model.completions = [new AiUnavailableError(reason, { billed: false })];
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError(reason, { billed: false }));
+      expect(guard.release).toHaveBeenCalledWith('row-1');
+      expect(guard.finish).not.toHaveBeenCalled();
+    });
+
+    it('keeps the reserved call when the provider may have billed it (a timeout)', async () => {
+      model.completions = [new AiUnavailableError('The AI provider timed out')];
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('The AI provider timed out'));
+      expect(guard.release).not.toHaveBeenCalled();
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ succeeded: false }));
     });
 
     it('does not call the model when the daily cap is spent', async () => {
@@ -270,6 +290,21 @@ describe('GatewayLlmService', () => {
       expect(guard.reserve).toHaveBeenCalledWith(context, 'chat-model');
       expect(guard.reserve.mock.invocationCallOrder[0]).toBeLessThan(guard.finish.mock.invocationCallOrder[0]);
       expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 0, succeeded: false }));
+    });
+
+    it('releases the reserved call when the provider refuses the first turn without billing', async () => {
+      model.turns = [new AiUnavailableError('The AI provider is busy, try again shortly', { billed: false })];
+      await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError('The AI provider is busy, try again shortly', { billed: false }));
+      expect(guard.release).toHaveBeenCalledWith('row-1');
+      expect(guard.finish).not.toHaveBeenCalled();
+    });
+
+    it('keeps the call when a later turn is refused, since the earlier turn was billed', async () => {
+      const call = { id: 'c', name: 'search_regulations', arguments: '{"query":"x"}' };
+      model.turns = [{ toolCalls: [call] }, new AiUnavailableError('AI credit is used up', { billed: false })];
+      await expect(collect(llm.chat({ ...request, maxSteps: 3 }))).rejects.toThrow(new AiUnavailableError('AI credit is used up', { billed: false }));
+      expect(guard.release).not.toHaveBeenCalled();
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 10, succeeded: false }));
     });
 
     it('does not reserve a call or reach the model without a provider key', async () => {

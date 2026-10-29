@@ -14,8 +14,10 @@ export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'late
 // however many tool steps it takes. A call counts once it is about to reach the
 // model: the gateway reserves its row just before the first model request, so a
 // call the student stops early, or one still running, counts like a finished
-// one (the provider bills it either way). A call that fails before that (no
-// key, no model configured) writes no row. The window rolls over 24 hours, so
+// one (the provider bills it either way); so does a timeout or a provider 5xx.
+// A call that fails before that (no key, no model configured) writes no row,
+// and one the provider refused without billing (wrong key, no credit, rate
+// limit) has its row released. The window rolls over 24 hours, so
 // no time zone is involved. The monthly budget is the credit limit set on the
 // OpenRouter key itself.
 @Injectable()
@@ -51,6 +53,20 @@ export class AiCostGuard {
     } catch (error) {
       // Name only: a driver error can quote the statement's parameters.
       this.logger.warn(`Could not record AI usage: ${error instanceof Error ? error.name : typeof error}`);
+    }
+  }
+
+  /**
+   * Deletes the reserved row of a call the provider refused without billing
+   * (wrong key, no credit, rate limit), so a student's retries while it is
+   * broken don't use up the day. Never throws: if the delete fails, the call
+   * keeps counting, which errs on the side of the budget.
+   */
+  async release(id: string): Promise<void> {
+    try {
+      await this.usage.delete(id);
+    } catch (error) {
+      this.logger.warn(`Could not release AI usage: ${error instanceof Error ? error.name : typeof error}`);
     }
   }
 }

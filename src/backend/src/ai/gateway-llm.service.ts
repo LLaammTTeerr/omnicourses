@@ -114,7 +114,9 @@ export class GatewayLlmService extends LlmService {
       }
       throw new AiUnavailableError('The model returned an unusable reply');
     } catch (error) {
-      throw this.unavailable(error);
+      const failure = this.unavailable(error);
+      usageId = await this.releaseIfUnbilled(usageId, failure, usage);
+      throw failure;
     } finally {
       await this.finish(usageId, usage, started, succeeded);
     }
@@ -159,7 +161,9 @@ export class GatewayLlmService extends LlmService {
         }
       }
     } catch (error) {
-      throw this.unavailable(error);
+      const failure = this.unavailable(error);
+      usageId = await this.releaseIfUnbilled(usageId, failure, usage);
+      throw failure;
     } finally {
       // Also runs when the client disconnects and the caller stops iterating.
       // The row was reserved up front, so a stopped call still counts.
@@ -173,6 +177,17 @@ export class GatewayLlmService extends LlmService {
     // Name only: the error object may carry the prompt (AGENTS.md hard rule 3).
     this.logger.warn(`Unexpected AI gateway error: ${error instanceof Error ? error.name : typeof error}`);
     return new AiUnavailableError();
+  }
+
+  /**
+   * Releases the reserved call when the provider refused it without billing
+   * and no earlier turn was metered. Returns the row id still to finish, or
+   * undefined once released. A disconnect never gets here, so it still counts.
+   */
+  private async releaseIfUnbilled(usageId: string | undefined, failure: AiUnavailableError, usage: ModelUsage): Promise<string | undefined> {
+    if (usageId === undefined || failure.billed || usage.inputTokens > 0 || usage.outputTokens > 0) return usageId;
+    await this.guard.release(usageId);
+    return undefined;
   }
 
   private async finish(usageId: string | undefined, usage: ModelUsage, started: number, succeeded: boolean): Promise<void> {

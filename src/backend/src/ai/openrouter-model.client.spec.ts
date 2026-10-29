@@ -22,15 +22,17 @@ describe('OpenRouterModelClient', () => {
   });
 
   it.each([
-    [apiError(401), 'AI is not configured'],
-    [apiError(402), 'AI credit is used up'],
-    [apiError(429), 'The AI provider is busy, try again shortly'],
-    [apiError(500), 'The AI provider failed'],
-    [new OpenAI.APIConnectionTimeoutError(), 'The AI provider timed out'],
-    [new Error('anything'), 'The AI provider failed'],
-  ])('maps %s to a safe reason that drops the provider message', (error, reason) => {
+    [apiError(401), 'AI is not configured', false],
+    [apiError(403), 'AI is not configured', false],
+    [apiError(402), 'AI credit is used up', false],
+    [apiError(429), 'The AI provider is busy, try again shortly', false],
+    [apiError(500), 'The AI provider failed', true],
+    [new OpenAI.APIConnectionTimeoutError(), 'The AI provider timed out', true],
+    [new Error('anything'), 'The AI provider failed', true],
+  ])('maps %s to a safe reason that drops the provider message, and says whether it may be billed', (error, reason, billed) => {
     const mapped = toAiUnavailable(error);
     expect(mapped.reason).toBe(reason);
+    expect(mapped.billed).toBe(billed);
     expect(JSON.stringify(mapped.getResponse())).not.toContain('prompt');
   });
 

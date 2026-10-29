@@ -8,12 +8,12 @@ const context = { userId: 'u1', feature: 'advisor' };
 
 describe('AiCostGuard', () => {
   let em: { query: ReturnType<typeof vi.fn>; count: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn> };
-  let usage: { manager: { transaction: ReturnType<typeof vi.fn> }; update: ReturnType<typeof vi.fn> };
+  let usage: { manager: { transaction: ReturnType<typeof vi.fn> }; update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
   let guard: AiCostGuard;
 
   beforeEach(() => {
     em = { query: vi.fn(async () => []), count: vi.fn(async () => 0), insert: vi.fn(async () => ({ identifiers: [{ id: 'row-1' }] })) };
-    usage = { manager: { transaction: vi.fn(async (work: (m: typeof em) => unknown) => work(em)) }, update: vi.fn(async () => undefined) };
+    usage = { manager: { transaction: vi.fn(async (work: (m: typeof em) => unknown) => work(em)) }, update: vi.fn(async () => undefined), delete: vi.fn(async () => undefined) };
     guard = new AiCostGuard(usage as never);
   });
 
@@ -73,6 +73,20 @@ describe('AiCostGuard', () => {
       await expect(guard.finish('row-1', { inputTokens: 0, outputTokens: 0, latencyMs: 1, succeeded: false })).resolves.toBeUndefined();
       expect(warn).toHaveBeenCalledWith('Could not record AI usage: TypeError');
       expect(JSON.stringify(warn.mock.calls)).not.toContain('prompt');
+    });
+  });
+
+  describe('release', () => {
+    it('deletes the reserved row of a call the provider refused without billing', async () => {
+      await guard.release('row-1');
+      expect(usage.delete).toHaveBeenCalledWith('row-1');
+    });
+
+    it('never throws: a failed delete is logged by error name only, and the call keeps counting', async () => {
+      const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      usage.delete.mockRejectedValue(new TypeError('connection lost while sending prompt text'));
+      await expect(guard.release('row-1')).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalledWith('Could not release AI usage: TypeError');
     });
   });
 });
