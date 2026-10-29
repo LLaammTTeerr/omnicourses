@@ -40,7 +40,7 @@ export class TranscriptRow {
   })
   grade!: number | null;
 
-  // Term encoding of ADR 0007: academic year 2026 = 2026–2027; 1 and 2 are main terms, 3 is summer.
+  // Term encoding of ADR 0009: academic year 2026 = 2026–2027; 1 and 2 are main terms, 3 is summer.
   @Column({ name: 'term_year', type: 'smallint' })
   termYear!: number;
 

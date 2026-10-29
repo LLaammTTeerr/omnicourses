@@ -5,7 +5,7 @@ import { Term, TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './t
 
 export const MAX_TRANSCRIPT_ROWS = 300;
 
-// ADR 0007: `year` is the first calendar year of the academic year; 3 is the summer term.
+// ADR 0009: `year` is the first calendar year of the academic year; 3 is the summer term.
 export class TermDto implements Term {
   @ApiProperty({ example: 2026, description: 'First calendar year of the academic year: 2026 means 2026–2027.' })
   @IsInt()
