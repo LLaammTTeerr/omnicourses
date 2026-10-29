@@ -45,14 +45,15 @@ export class CreateCurriculumCourseSchema1792912952302 implements MigrationInter
         "credits_total_min" integer,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT "ck_requirement_groups_kind" CHECK ("kind" IN ('compulsory', 'elective'))
+        CONSTRAINT "ck_requirement_groups_kind" CHECK ("kind" IN ('compulsory', 'elective')),
+        CONSTRAINT "uq_requirement_groups_curriculum_name" UNIQUE ("curriculum_id", "name")
       )
     `);
     await q.query(`CREATE INDEX "ix_requirement_groups_curriculum_id" ON "requirement_groups" ("curriculum_id")`);
 
     await q.query(`
       CREATE TABLE "courses" (
-        "code" varchar(50) PRIMARY KEY,
+        "code" varchar(20) PRIMARY KEY,
         "name_vi" varchar(255) NOT NULL,
         "name_en" varchar(255),
         "credits" integer NOT NULL,
@@ -62,6 +63,7 @@ export class CreateCurriculumCourseSchema1792912952302 implements MigrationInter
         "project_time" integer DEFAULT 0,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT "ck_courses_code" CHECK ("code" ~ '^[A-Z0-9]{2,20}$'),
         CONSTRAINT "ck_courses_credits_positive" CHECK ("credits" > 0),
         CONSTRAINT "ck_courses_times_non_negative" CHECK (
           COALESCE("theory_time", 0) >= 0 AND
@@ -75,7 +77,7 @@ export class CreateCurriculumCourseSchema1792912952302 implements MigrationInter
     await q.query(`
       CREATE TABLE "requirement_group_courses" (
         "requirement_group_id" uuid NOT NULL REFERENCES "requirement_groups" ("id") ON DELETE CASCADE,
-        "course_code" varchar(50) NOT NULL REFERENCES "courses" ("code") ON DELETE RESTRICT,
+        "course_code" varchar(20) NOT NULL REFERENCES "courses" ("code") ON DELETE RESTRICT,
         "compulsory" boolean NOT NULL DEFAULT false,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY ("requirement_group_id", "course_code")
