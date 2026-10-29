@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuthService } from '../auth/auth.service.js';
+import { positiveInt } from '../config/env.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { findUserTables, withoutSecrets } from './account-export.js';
@@ -8,7 +9,7 @@ import { AccountExportDto, DeletionScheduledDto } from './account.dto.js';
 
 const DAY_MS = 86_400_000;
 
-export const deletionGraceMs = (): number => Number(process.env.ACCOUNT_DELETION_GRACE_DAYS ?? 30) * DAY_MS;
+export const deletionGraceMs = (): number => positiveInt(process.env.ACCOUNT_DELETION_GRACE_DAYS, 30) * DAY_MS;
 
 // Privacy NFR (Vision §6, Luật 91/2025/QH15): export and delete a whole account. ADR 0004.
 @Injectable()

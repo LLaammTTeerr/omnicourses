@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { User } from '../users/user.entity.js';
 import { isSecretColumn, withoutSecrets } from './account-export.js';
 import { AccountPurgeService } from './account-purge.service.js';
-import { AccountService } from './account.service.js';
+import { AccountService, deletionGraceMs } from './account.service.js';
 
 const DAY = 86_400_000;
 const user = { id: 'u1', passwordHash: 'h' } as User;
@@ -19,6 +19,21 @@ describe('secret columns', () => {
 
   it('removes them from a row', () => {
     expect(withoutSecrets({ id: 1, email: 'a@example.com', password_hash: 'x', google_sub: 'y' })).toEqual({ id: 1, email: 'a@example.com' });
+  });
+});
+
+describe('deletionGraceMs', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('reads whole days from ACCOUNT_DELETION_GRACE_DAYS', () => {
+    vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '7');
+    expect(deletionGraceMs()).toBe(7 * DAY);
+  });
+
+  // '' would read as 0 (purge at once) and a typo as NaN (never purge).
+  it.each(['', ' ', 'abc', '0', '-1', '1.5'])('falls back to 30 days when the setting is %j', (value) => {
+    vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', value);
+    expect(deletionGraceMs()).toBe(30 * DAY);
   });
 });
 
