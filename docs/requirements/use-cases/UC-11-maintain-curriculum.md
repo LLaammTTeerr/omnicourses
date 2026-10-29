@@ -45,7 +45,7 @@ At step 1, the program exists but the cohort does not. The administrator chooses
 
 At step 1, the program does not exist. A user with permission to create programs chooses **Add program**, enters its details and saves. The system checks that permission and rejects a duplicate program code.
 
-An access manager grants program-maintainer permission to an existing user for the new program. Creating a program does not automatically grant curriculum or catalog editing rights. The proposed permissions are defined in section 8.
+An access manager grants program-administrator permission to an existing user for the new program. Creating a program does not automatically grant curriculum or catalog editing rights. The proposed permissions are defined in section 8.
 
 ### A3. Invalid or missing values
 
@@ -118,9 +118,9 @@ Thắng owns this proposal and its implementation; Lâm reviews authentication i
 
 | Permission | Allows | Does not grant |
 | --- | --- | --- |
-| Program maintainer for a named program | Edit that program's details, cohorts, groups and course links; maintain its prerequisites/offering terms once their contract exists. | Shared catalog writes, another program's data, program creation or permission grants. |
+| Program administrator for a named program | Edit that program's details, cohorts, groups and course links; maintain its prerequisites/offering terms once their contract exists. | Shared catalog writes, another program's data, program creation or permission grants. |
 | Catalog maintainer, global | Create shared courses; correct their attributes after the A8 impact review; delete only unreferenced courses. | Editing curriculum membership or granting permissions. |
-| Access manager, global | Create programs and grant/revoke these permissions for existing users. | Automatic program-maintainer or catalog-maintainer rights. |
+| Access manager, global | Create programs and grant/revoke these permissions for existing users. | Automatic program-administrator or catalog-maintainer rights. |
 
 The Project Lead provisions the first access manager through a controlled setup step implemented by F12. After that, access managers grant/revoke permissions through F12; sign-up and onboarding never grant them. Every write checks the current grants, including after a revocation. The storage and bootstrap command belong in Thắng's F12 design.
 
@@ -140,9 +140,9 @@ IDs follow `TC-<build>-<area>-<number>`. Dũng expands each example into cases w
 
 | ID | Action | Expected result | Requirement / flow |
 | --- | --- | --- | --- |
-| TC-B2-ADM-01 | A catalog maintainer with no program grant opens the catalog directly and changes a course shared by two programs after reviewing both; a program-only maintainer tries the same write. | The authorized correction reaches both curricula; the program-only write is refused. Cohort-specific values are refused under the shared model. | F12; UC-11 A4, A8; ADR 0002, ADR 0005 (#23) |
+| TC-B2-ADM-01 | A catalog maintainer with no program grant opens the catalog directly and changes a course shared by two programs after reviewing both; a program-only administrator tries the same write. | The authorized correction reaches both curricula; the program-only write is refused. Cohort-specific values are refused under the shared model. | F12; UC-11 A4, A8; ADR 0002, ADR 0005 (#23) |
 | TC-B2-ADM-02 | Exercise each permission boundary and revoke a grant before another write. | Program writes stay within grants; catalog/access-manager operations require their own grants; revoked access cannot write. | F12; UC-11 A2, A4, §8; ADR 0002 |
-| TC-B2-ADM-03 | A program maintainer adds a second cohort and links an existing course. | Both cohorts exist; the first cohort's membership stays intact; no duplicate catalog course appears. | F12; UC-11 A1; ADR 0005 (#23) |
+| TC-B2-ADM-03 | A program administrator adds a second cohort and links an existing course. | Both cohorts exist; the first cohort's membership stays intact; no duplicate catalog course appears. | F12; UC-11 A1; ADR 0005 (#23) |
 | TC-B2-ADM-04 | Remove one of a course's group links, then attempt to delete the still-linked course. | The other group link and course remain; catalog deletion is refused while referenced. | F12; UC-11 A5, A8; ADR 0005 (#23) |
 | TC-B2-ADM-05 | Submit invalid codes or links; cancel; fail a save or lose its response; change course links during impact review. | Validate canonical codes; save nothing on rejection/cancel; no partial save; check an unknown result; require renewed impact review. | F12; UC-11 A3, A6–A8; ADR 0007 (#29) |
 

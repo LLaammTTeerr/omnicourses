@@ -22,7 +22,7 @@ The plan follows [AGENTS.md](../../AGENTS.md), [CONTRIBUTING.md](../../CONTRIBUT
 - **Screens:** sign-up and sign-in use the real API, the backend interface called by the app. At least one automated test signs in through a real browser. Check error messages, reloads, sign-out, keyboard use and screen widths from 360 to 1920 px.
 - **Deployment:** the database can be created from the merged migrations, and the running website reaches the API and database. Record the website URL and the tested commit, tagged B0. Uploading build files alone does not prove the website works.
 
-Google sign-in was planned for Sprint 2 but is not built yet. Lâm must decide whether it remains required for B0. Record that decision and any other scope changes before acceptance.
+Google sign-in is deferred until after B0 (Lâm, 29 Oct 2026); B0 covers email and password only.
 
 ### B1: curriculum and planning foundations
 
