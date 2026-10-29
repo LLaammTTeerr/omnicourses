@@ -1,7 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { User } from '../users/user.entity.js';
-import { isSecretColumn, withoutSecrets } from './account-export.js';
+import { isSecretColumn } from './account-export.js';
 import { AccountPurgeService } from './account-purge.service.js';
 import { AccountService, deletionGraceMs } from './account.service.js';
 
@@ -9,17 +9,21 @@ const DAY = 86_400_000;
 const user = { id: 'u1', passwordHash: 'h' } as User;
 
 describe('secret columns', () => {
-  it.each(['password_hash', 'token_hash', 'google_sub', 'api_key', 'refresh_token', 'client_secret'])('drops %s', (column) => {
-    expect(isSecretColumn(column)).toBe(true);
-  });
+  // TypeORM names a column after its property unless `name` is set, so camelCase counts too.
+  it.each(['password_hash', 'token_hash', 'google_sub', 'api_key', 'refresh_token', 'client_secret', 'passwordHash', 'apiKey', 'APIKey', 'Password_Hash', 'password', 'token'])(
+    'drops %s',
+    (column) => {
+      expect(isSecretColumn(column)).toBe(true);
+    },
+  );
 
-  it.each(['email', 'display_name', 'input_tokens', 'user_id', 'subject_code', 'keyboard_layout'])('keeps %s', (column) => {
-    expect(isSecretColumn(column)).toBe(false);
-  });
-
-  it('removes them from a row', () => {
-    expect(withoutSecrets({ id: 1, email: 'a@example.com', password_hash: 'x', google_sub: 'y' })).toEqual({ id: 1, email: 'a@example.com' });
-  });
+  // The documented rule is a suffix (AGENTS.md): a secret word elsewhere in the name is the student's data.
+  it.each(['email', 'display_name', 'input_tokens', 'user_id', 'subject_code', 'keyboard_layout', 'key_count', 'sub_total', 'hash_algorithm', 'token_expires_at'])(
+    'keeps %s',
+    (column) => {
+      expect(isSecretColumn(column)).toBe(false);
+    },
+  );
 });
 
 describe('deletionGraceMs', () => {
@@ -39,13 +43,15 @@ describe('deletionGraceMs', () => {
 
 describe('AccountService', () => {
   let db: { query: ReturnType<typeof vi.fn>; transaction: ReturnType<typeof vi.fn> };
-  const tx = { name: 'transaction manager' };
+  const tx = { query: vi.fn() };
   let users: { requestDeletion: ReturnType<typeof vi.fn> };
   let auth: { verifyPassword: ReturnType<typeof vi.fn>; revokeAll: ReturnType<typeof vi.fn> };
   let service: AccountService;
 
   beforeEach(() => {
-    db = { query: vi.fn(), transaction: vi.fn(async (cb: (m: unknown) => unknown) => cb(tx)) };
+    tx.query.mockReset();
+    // transaction(cb) and transaction(isolationLevel, cb): the callback is the last argument.
+    db = { query: vi.fn(), transaction: vi.fn(async (...args: unknown[]) => (args.at(-1) as (m: unknown) => unknown)(tx)) };
     users = { requestDeletion: vi.fn(async () => undefined) };
     auth = { verifyPassword: vi.fn(async () => true), revokeAll: vi.fn(async () => undefined) };
     service = new AccountService(db as never, users as never, auth as never);
@@ -53,21 +59,51 @@ describe('AccountService', () => {
 
   afterEach(() => vi.unstubAllEnvs());
 
-  it('exports the user and every referencing table without secrets', async () => {
-    db.query
-      .mockResolvedValueOnce([{ id: 'u1', email: 'a@example.com', password_hash: 'x' }])
-      .mockResolvedValueOnce([
-        { table: 'sessions', column: 'user_id', qualifiedTable: 'public.sessions', quotedColumn: 'user_id', onDelete: 'c' },
-        { table: 'shares', column: 'owner_id', qualifiedTable: 'public.shares', quotedColumn: 'owner_id', onDelete: 'c' },
-        { table: 'shares', column: 'viewer_id', qualifiedTable: 'public.shares', quotedColumn: 'viewer_id', onDelete: 'c' },
-      ])
-      .mockResolvedValueOnce([{ id: 's1', token_hash: 'y', user_agent: 'Firefox' }])
-      .mockResolvedValueOnce([{ id: 'p1' }])
-      .mockResolvedValueOnce([]);
-    const result = await service.export('u1');
-    expect(result.user).toEqual({ id: 'u1', email: 'a@example.com' });
-    expect(result.tables).toEqual({ sessions: [{ id: 's1', user_agent: 'Firefox' }], shares: [{ id: 'p1' }], 'shares.viewer_id': [] });
-    expect(db.query).toHaveBeenNthCalledWith(3, 'SELECT * FROM public.sessions WHERE user_id = $1', ['u1']);
+  describe('export', () => {
+    const userTables = [
+      { table: 'sessions', column: 'user_id', qualifiedTable: 'public.sessions', quotedColumn: 'user_id', onDelete: 'c', columns: ['id', 'user_id', 'token_hash', 'user_agent'] },
+      { table: 'shares', column: 'owner_id', qualifiedTable: 'public.shares', quotedColumn: 'owner_id', onDelete: 'c', columns: ['id', 'owner_id', 'viewer_id'] },
+      { table: 'shares', column: 'viewer_id', qualifiedTable: 'public.shares', quotedColumn: 'viewer_id', onDelete: 'c', columns: ['id', 'owner_id', 'viewer_id'] },
+    ];
+
+    beforeEach(() => {
+      tx.query.mockImplementation(async (sql: string) => {
+        if (sql.includes('pg_constraint')) return userTables;
+        if (sql.includes('pg_attribute')) return [{ columns: ['id', 'email', 'password_hash', 'google_sub'] }];
+        if (sql.includes('FROM "users"')) return [{ id: 'u1', email: 'a@example.com' }];
+        if (sql.includes('public.sessions')) return [{ id: 's1', user_agent: 'Firefox' }];
+        return [];
+      });
+    });
+
+    const selects = () => tx.query.mock.calls.map(([sql]) => sql as string).filter((sql) => sql.startsWith('SELECT') && !sql.includes('pg_'));
+
+    it('exports the user and every referencing table', async () => {
+      const result = await service.export('u1');
+      expect(result.user).toEqual({ id: 'u1', email: 'a@example.com' });
+      expect(result.tables.sessions).toEqual([{ id: 's1', user_agent: 'Firefox' }]);
+    });
+
+    // AGENTS.md: never read users.password_hash. Secret columns are left out of the SELECT, not filtered after it.
+    it('never selects a secret column', async () => {
+      await service.export('u1');
+      expect(selects()).toContain('SELECT "id", "email" FROM "users" WHERE "id" = $1');
+      expect(selects()).toContain('SELECT "id", "user_id", "user_agent" FROM public.sessions WHERE user_id = $1');
+      for (const sql of selects()) expect(sql).not.toMatch(/password_hash|google_sub|token_hash|\*/);
+    });
+
+    // Keys must not depend on which column sorts first.
+    it('keys a table that references users twice by table and column', async () => {
+      const result = await service.export('u1');
+      expect(Object.keys(result.tables)).toEqual(['sessions', 'shares.owner_id', 'shares.viewer_id']);
+    });
+
+    it('reads every table from one read-only snapshot', async () => {
+      await service.export('u1');
+      expect(db.transaction).toHaveBeenCalledWith('REPEATABLE READ', expect.any(Function));
+      expect(tx.query.mock.calls[0]![0]).toBe('SET TRANSACTION READ ONLY');
+      expect(db.query).not.toHaveBeenCalled();
+    });
   });
 
   it('schedules deletion after the grace period and signs out everywhere', async () => {

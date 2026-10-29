@@ -4,7 +4,7 @@ import { AuthService } from '../auth/auth.service.js';
 import { positiveInt } from '../config/env.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
-import { findUserTables, withoutSecrets } from './account-export.js';
+import { findUserColumns, findUserTables, selectList } from './account-export.js';
 import { AccountExportDto, DeletionScheduledDto } from './account.dto.js';
 
 const DAY_MS = 86_400_000;
@@ -21,14 +21,22 @@ export class AccountService {
   ) {}
 
   async export(userId: string): Promise<AccountExportDto> {
-    const [user] = await this.db.query(`SELECT * FROM "users" WHERE "id" = $1`, [userId]);
-    const tables: Record<string, Record<string, unknown>[]> = {};
-    for (const t of await findUserTables(this.db)) {
-      const rows: Record<string, unknown>[] = await this.db.query(`SELECT * FROM ${t.qualifiedTable} WHERE ${t.quotedColumn} = $1`, [userId]);
-      // A table that references users twice gets one entry per column.
-      tables[t.table in tables ? `${t.table}.${t.column}` : t.table] = rows.map(withoutSecrets);
-    }
-    return { exportedAt: new Date(), user: withoutSecrets(user), tables };
+    // One read-only snapshot, so every table is read as of the same moment.
+    return this.db.transaction('REPEATABLE READ', async (tx) => {
+      await tx.query('SET TRANSACTION READ ONLY');
+      // Secret columns are never selected (AGENTS.md: never read users.password_hash).
+      const [user] = await tx.query(`SELECT ${selectList(await findUserColumns(tx))} FROM "users" WHERE "id" = $1`, [userId]);
+      const userTables = await findUserTables(tx);
+      const references = new Map<string, number>();
+      for (const t of userTables) references.set(t.table, (references.get(t.table) ?? 0) + 1);
+      const tables: Record<string, Record<string, unknown>[]> = {};
+      for (const t of userTables) {
+        // A table that references users twice gets one entry per column, each named after it.
+        const key = references.get(t.table)! > 1 ? `${t.table}.${t.column}` : t.table;
+        tables[key] = await tx.query(`SELECT ${selectList(t.columns)} FROM ${t.qualifiedTable} WHERE ${t.quotedColumn} = $1`, [userId]);
+      }
+      return { exportedAt: new Date(), user, tables };
+    });
   }
 
   /**

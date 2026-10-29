@@ -48,14 +48,54 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     expect(notCascading).toEqual([]);
   });
 
+  it('finds each user table once, and only keys that point at users.id', async () => {
+    const qr = db.createQueryRunner();
+    await qr.startTransaction();
+    try {
+      // DDL is transactional in PostgreSQL: all of this is rolled back below.
+      await qr.query(`CREATE TABLE zz_parted (user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, term smallint NOT NULL) PARTITION BY LIST (term)`);
+      await qr.query(`CREATE TABLE zz_parted_1 PARTITION OF zz_parted FOR VALUES IN (1)`);
+      await qr.query(`CREATE TABLE zz_by_email (email varchar(254) REFERENCES users(email) ON DELETE CASCADE)`);
+      await qr.query(`ALTER TABLE users ADD COLUMN zz_invited_by uuid REFERENCES users(id) ON DELETE SET NULL`);
+      const found = (await findUserTables(qr)).map((t) => `${t.table}.${t.column}`).filter((name) => name.includes('zz_'));
+      expect(found).toEqual(['zz_parted.user_id']);
+    } finally {
+      await qr.rollbackTransaction();
+      await qr.release();
+    }
+  });
+
   it('exports the account with every user table and no secret column', async () => {
     const res = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
     expect(res.headers['content-disposition']).toContain('attachment');
     expect(res.body.user).toMatchObject({ id: userId, email, display_name: 'Test Student' });
     expect(res.body.tables.sessions).toHaveLength(1);
-    for (const t of await findUserTables(db)) expect(res.body.tables).toHaveProperty([t.table]);
-    expect(allKeys(res.body).filter(isSecretColumn)).toEqual([]);
-    expect(JSON.stringify(res.body)).not.toContain(token);
+    for (const t of await findUserTables(db)) expect([t.table, `${t.table}.${t.column}`].some((key) => key in res.body.tables)).toBe(true);
+    // Checked against the stored values, not the filter's own predicate: only sha256(token) is stored.
+    const [{ password_hash }] = await db.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+    const [{ token_hash }] = await db.query('SELECT token_hash FROM sessions WHERE user_id = $1', [userId]);
+    const body = JSON.stringify(res.body);
+    expect(body).not.toContain(password_hash);
+    expect(body).not.toContain(token_hash);
+    for (const key of ['password_hash', 'google_sub', 'token_hash']) expect(allKeys(res.body)).not.toContain(key);
+  });
+
+  // Independent of isSecretColumn: any column that merely mentions a credential word, in any
+  // case or plural, must either be dropped by the export or be listed here as the student's data.
+  it('every exported column that looks like a credential is dropped or known to be data', async () => {
+    const looksSecret = /(^|_)(hash|token|secret|key|password|sub)(e?s)?(_|$)/;
+    const known = ['ai_usage.input_tokens', 'ai_usage.output_tokens'];
+    const columns: { table: string; column: string }[] = await db.query(`
+      SELECT DISTINCT cl.relname AS "table", a.attname AS "column"
+      FROM pg_attribute a JOIN pg_class cl ON cl.oid = a.attrelid
+      WHERE a.attnum > 0 AND NOT a.attisdropped
+        AND (cl.oid = 'users'::regclass OR cl.oid IN (SELECT conrelid FROM pg_constraint WHERE contype = 'f' AND confrelid = 'users'::regclass))`);
+    const unflagged = columns
+      .filter(({ column }) => looksSecret.test(column.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()))
+      .filter(({ column }) => !isSecretColumn(column))
+      .map(({ table, column }) => `${table}.${column}`)
+      .filter((name) => !known.includes(name));
+    expect(unflagged).toEqual([]);
   });
 
   it('refuses deletion with a wrong password with 403, keeping the session', async () => {
