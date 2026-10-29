@@ -43,7 +43,7 @@ A student creates an OmniCourse account, signs in, and tells OmniCourse which pr
 
 **A3. Too many attempts.** At step 3, if one network address sends more than 10 sign-up requests in a minute, or more than 10 sign-in requests, the system refuses further attempts at that action for the rest of the minute and says so. The flow resumes at step 3 once the minute has passed.
 
-**A4. Sign up with Google** (not built: needs Google Cloud credentials, ADR 0002 "Deferred").
+**A4. Sign up with Google** (deferred until after B0, Lâm, 29 Oct 2026; B0 covers email and password only. Needs Google Cloud credentials, ADR 0002 "Deferred").
 1. At step 1 the student chooses **Continue with Google**.
 2. Google confirms the student's identity and verified email.
 3. The system asks for consent as in step 2, then creates the account with no password.

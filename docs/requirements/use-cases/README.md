@@ -14,7 +14,7 @@ One file per use case, in the RUP structure: brief description, actors, precondi
 | UC-08 Ask the advisor | F8 | Dũng | |
 | UC-09 Share or export a plan | F9 | Dũng | |
 | UC-10 Follow a school-task guide | F11 | Dũng | |
-| UC-11 Maintain curriculum | F12 | Thắng | |
-| UC-12 Import a curriculum PDF | F12 | Thắng | |
+| UC-11 Maintain curriculum | F12 | Thắng | [UC-11](UC-11-maintain-curriculum.md) (#30) |
+| ~~UC-12 Import a curriculum PDF~~ | F12 | | Dropped |
 
-UC-12 is out of scope after [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md), since curriculum data is entered by people only. Thắng and Hoà decide whether to drop it or replace it.
+UC-12 is dropped: [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md) allows no curriculum PDF-to-data import, so curriculum data is entered by a program administrator or catalog maintainer (UC-11). Restoring it needs a separate scope decision.
