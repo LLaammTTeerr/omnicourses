@@ -117,7 +117,7 @@ _Avoid_: validator, checker, solver
 ### People
 
 **User**:
-A person with an OmniCourse account; student, program administrator and advisor are the roles a user plays.
+A person with an OmniCourse account; student, program administrator, catalog maintainer, access manager and advisor are the roles a user plays.
 _Avoid_: member, account holder
 
 **Student**:
@@ -127,6 +127,14 @@ _Avoid_: learner
 **Program administrator**:
 A user who maintains the curriculum data of one or more programs.
 _Avoid_: admin, staff, editor
+
+**Catalog maintainer**:
+A user who maintains the shared course records that the curricula of every program link to.
+_Avoid_: course editor, catalog admin
+
+**Access manager**:
+A user who creates programs and grants or revokes the program administrator and catalog maintainer roles.
+_Avoid_: superuser, permission admin
 
 **Advisor**:
 A lecturer or academic advisor who reads a student's shared plan.
