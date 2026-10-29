@@ -11,7 +11,8 @@
     "test:e2e": "vitest run --config vitest.e2e.config.mts",
     "test:live": "vitest run --config vitest.live.config.mts",
     "openapi": "node dist/openapi.js",
-    "db:migrate": "node dist/database/migrate.js"
+    "db:migrate": "node dist/database/migrate.js",
+    "db:seed": "node dist/database/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "12.1.3",
