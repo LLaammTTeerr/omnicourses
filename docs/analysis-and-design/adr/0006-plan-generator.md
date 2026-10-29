@@ -52,7 +52,7 @@ interface StudentRules {                        // from RulesService.forStudent(
 - The planner holds no academic rule. When a rule changes, only the engine changes.
 - The planner can be built and tested before the real engine exists, against a fake `StudentRules` over a synthetic curriculum.
 - Plans may not be the shortest possible. Greedy packing, the order of elective picks and terms with limited offerings can each cost a term. If the APCS seed shows real losses, a search that swaps placements can be added later, under the same 30-second rule.
-- Terms are written as in ADR 0007 (transcript, #26).
+- Terms are written as in ADR 0009 (term encoding, #29).
 - Open:
   - how the APCS curriculum states the internship term's rules (row above);
   - the engine's cost per call, to be measured on the APCS seed.
