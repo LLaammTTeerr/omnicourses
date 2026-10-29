@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
-import { IsNull, MoreThan, Repository } from 'typeorm';
+import { EntityManager, IsNull, MoreThan, Repository } from 'typeorm';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
@@ -59,8 +59,8 @@ export class AuthService {
     return user.passwordHash ? verify(user.passwordHash, password) : false;
   }
 
-  async revokeAll(userId: string): Promise<void> {
-    await this.sessions.update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
+  async revokeAll(userId: string, tx?: EntityManager): Promise<void> {
+    await (tx?.getRepository(Session) ?? this.sessions).update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
   }
 
   /** Resolves a bearer token to its live session, or null if unknown, expired or revoked. */

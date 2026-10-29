@@ -38,13 +38,14 @@ describe('deletionGraceMs', () => {
 });
 
 describe('AccountService', () => {
-  let db: { query: ReturnType<typeof vi.fn> };
+  let db: { query: ReturnType<typeof vi.fn>; transaction: ReturnType<typeof vi.fn> };
+  const tx = { name: 'transaction manager' };
   let users: { requestDeletion: ReturnType<typeof vi.fn> };
   let auth: { verifyPassword: ReturnType<typeof vi.fn>; revokeAll: ReturnType<typeof vi.fn> };
   let service: AccountService;
 
   beforeEach(() => {
-    db = { query: vi.fn() };
+    db = { query: vi.fn(), transaction: vi.fn(async (cb: (m: unknown) => unknown) => cb(tx)) };
     users = { requestDeletion: vi.fn(async () => undefined) };
     auth = { verifyPassword: vi.fn(async () => true), revokeAll: vi.fn(async () => undefined) };
     service = new AccountService(db as never, users as never, auth as never);
@@ -78,9 +79,24 @@ describe('AccountService', () => {
     const [, requestedAt, storedPurgeAfter] = users.requestDeletion.mock.calls[0]!;
     expect(storedPurgeAfter).toEqual(purgeAfter);
     expect(purgeAfter.getTime() - requestedAt.getTime()).toBe(30 * DAY);
-    expect(auth.revokeAll).toHaveBeenCalledWith('u1');
+    expect(auth.revokeAll).toHaveBeenCalledWith('u1', tx);
     expect(purgeAfter.getTime() - before).toBeGreaterThanOrEqual(30 * DAY);
     expect(purgeAfter.getTime() - before).toBeLessThan(30 * DAY + 1000);
+  });
+
+  // If revoking failed after the request was saved, the client got a 500 for a
+  // deletion that was in fact scheduled, with its sessions still unrevoked.
+  it('schedules the deletion and revokes the sessions in one transaction', async () => {
+    await service.requestDeletion(user, 'correct horse battery');
+    expect(db.transaction).toHaveBeenCalledOnce();
+    expect(users.requestDeletion).toHaveBeenCalledWith('u1', expect.any(Date), expect.any(Date), tx);
+    expect(auth.revokeAll).toHaveBeenCalledWith('u1', tx);
+  });
+
+  it('fails the request when revoking fails, so the transaction rolls the schedule back', async () => {
+    auth.revokeAll.mockRejectedValue(new Error('db down'));
+    await expect(service.requestDeletion(user, 'correct horse battery')).rejects.toThrow('db down');
+    expect(db.transaction).toHaveBeenCalledOnce();
   });
 
   it('refuses with 403 (not 401, which would sign the client out) on a wrong password', async () => {

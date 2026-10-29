@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { EntityManager, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { User } from './user.entity.js';
 
 @Injectable()
@@ -15,8 +15,9 @@ export class UsersService {
     return this.users.save(this.users.create({ ...fields, email: fields.email.toLowerCase() }));
   }
 
-  async requestDeletion(userId: string, at: Date, purgeAfter: Date): Promise<void> {
-    await this.users.update(userId, { deletionRequestedAt: at, purgeAfter });
+  /** `tx` lets the caller schedule the deletion in the same transaction as other writes. */
+  async requestDeletion(userId: string, at: Date, purgeAfter: Date, tx?: EntityManager): Promise<void> {
+    await (tx?.getRepository(User) ?? this.users).update(userId, { deletionRequestedAt: at, purgeAfter });
   }
 
   /**
