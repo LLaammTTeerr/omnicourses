@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term, TranscriptEntry } from './transcript-entry.js';
+import { Term } from '../terms/term.js';
+import { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
 import { TranscriptDto, TranscriptRowDto } from './transcript.dto.js';
 

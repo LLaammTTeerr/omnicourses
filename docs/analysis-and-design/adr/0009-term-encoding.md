@@ -14,7 +14,7 @@ The transcript (ADR 0007), plans, offering terms (#23) and the planner (ADR 0006
 | Decision | Alternatives rejected | Evidence |
 | --- | --- | --- |
 | **A term is two numbers, `year` and `number`, in every module.** `year` is the first calendar year of the academic year (2026 = 2026–2027). `number` is 1 or 2 for main terms and 3 for summer. | A string such as `"2026-1"`; a term index counted from the cohort's start; start and end dates | Two small integers sort correctly, as `(year, number)`, and can't be mistyped. A cohort-relative index breaks when a student changes cohort. Dates differ by year and say nothing about the kind of term. |
-| **In SQL: `term_year smallint` and `term_number smallint CHECK (term_number IN (1, 2, 3))`. In JSON: `{ "year": 2026, "number": 1 }`.** In TypeScript, the `Term` interface exported from `transcript/transcript-entry.ts`. | One packed column (`20261`) | Two columns keep each part queryable and checkable. `transcript_rows` uses them, with `term_year BETWEEN 2000 AND 2100` as an input bound. |
+| **In SQL: `term_year smallint` and `term_number smallint CHECK (term_number IN (1, 2, 3))`. In JSON: `{ "year": 2026, "number": 1 }`.** In TypeScript, the `Term` interface in `terms/term.ts`, and `TermDto` in `terms/term.dto.ts` for validating a term in a request body; neither belongs to one feature module. | One packed column (`20261`) | Two columns keep each part queryable and checkable. `transcript_rows` uses them, with `term_year BETWEEN 2000 AND 2100` as an input bound. |
 
 ## Consequences
 

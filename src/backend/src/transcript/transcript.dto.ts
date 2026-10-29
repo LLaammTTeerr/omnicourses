@@ -1,22 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
-import { Term, TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
+import { TermDto } from '../terms/term.dto.js';
+import { TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
 
 export const MAX_TRANSCRIPT_ROWS = 300;
-
-// ADR 0009: `year` is the first calendar year of the academic year; 3 is the summer term.
-export class TermDto implements Term {
-  @ApiProperty({ example: 2026, description: 'First calendar year of the academic year: 2026 means 2026–2027.' })
-  @IsInt()
-  @Min(2000)
-  @Max(2100)
-  year!: number;
-
-  @ApiProperty({ enum: [1, 2, 3], description: '1 and 2 are main terms, 3 is the summer term.' })
-  @IsIn([1, 2, 3])
-  number!: 1 | 2 | 3;
-}
 
 export class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'CSC10001' })
