@@ -117,7 +117,7 @@ All **Screen**, through the real API. If #13 is not merged by 1 November: **not 
 | DB-01e | Without Authorize, call every route on the docs page except health, sign-up and sign-in. | Each answers **401**. No route is open by accident (ADR 0002, default deny). |
 | DB-01f | Curriculum constraints from PR #23: a duplicate cohort, a course code that breaks `^[A-Z0-9]{2,20}$`, and two requirement groups with the same name in one curriculum. | Each is refused by the database. The detailed steps are written when #23 lands. If #23 is not merged by 1 November: **not run: feature not merged** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). |
 
-Already automated: `app.e2e-spec.ts` covers b and the OpenAPI version in d; `auth.e2e-spec.ts` covers `GET /api/users/me` in e.
+Already automated: `app.e2e-spec.ts` covers b and the OpenAPI version in d; `public-routes.e2e-spec.ts` covers e on every route, including routes left out of the OpenAPI document.
 
 ## 6. TC-B0-DEP-01: Deployed build
 
