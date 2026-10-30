@@ -1,9 +1,10 @@
 # ADR 0010: Public pages and guide content
 
-- Status: proposed
+- Status: accepted
+- Amends: [ADR 0002](0002-authentication-and-sessions.md)
 - Date: 2026-10-30
 - Owner: Dũng (F9 sharing, F11 guides)
-- Deciders: Lâm (Project Lead), who accepts this on review
+- Deciders: Lâm (Project Lead), accepted 30 Oct 2026
 - Reviewers: Hoà (`plans` API), Triết (Backend Lead)
 
 ## Context
@@ -30,8 +31,15 @@ Lâm decided these points on 30 October 2026, in answer to Dũng's questions on 
 
 ## Consequences
 
-- After this ADR, five kinds of route are public: health, sign-up, sign-in, reading guides and reading a shared plan. Anyone can open them, but nobody can change anything without signing in. The one exception is sign-up and sign-in themselves, which must stay open or nobody can get in. Every other route stays default-deny, and a new public route needs a change to this ADR.
-- `src/backend/test/public-routes.e2e-spec.ts` takes the OpenAPI document of the whole app, calls every route without a token and expects 401, except for the routes on its allowed list. It also fails if a listed route is missing or answers 401, or if the list holds a write other than sign-up and sign-in. It runs in CI on every pull request. A new public route fails it until it is added to the list, where reviewers see it. Today the list holds health, sign-up and sign-in; the guides and shared-plan pull requests add their routes.
+- After this ADR, five kinds of route are public besides the API docs pages: health, sign-up, sign-in, reading guides and reading a shared plan. Anyone can open them, but nobody can change anything without signing in. The one exception is sign-up and sign-in themselves, which must stay open or nobody can get in. Every other route stays default-deny, and a new public route needs a change to this ADR.
+- `src/backend/test/public-routes.e2e-spec.ts` takes the OpenAPI document of the whole app, calls every route without a token and expects 401, except for the routes on its allowed list. It also fails:
+  - if a listed route is missing or answers 401;
+  - if the list holds a write other than sign-up and sign-in;
+  - if the document lacks `GET /api/users/me`, so the 401 check cannot pass by checking nothing;
+  - if Express serves a route the document lacks, such as one hidden with `@ApiExcludeEndpoint`.
+
+  It runs in CI on every pull request. A new public route fails it until it is added to the list, where reviewers see it. Today the list holds health, sign-up and sign-in; the guides and shared-plan pull requests add their routes.
+- The API docs pages are public too: `/api/docs` with its assets, `/api/docs-json` and `/api/docs-yaml`. `SwaggerModule.setup` serves them outside any controller, so they are not in the document, and the test skips them by path. They only describe the API.
 - Public routes use the global rate limit (120 requests a minute per address). Behind the staging host's proxy, all visitors share one address until `trust proxy` is set (ADR 0002, Deferred). That fix now protects public pages as well as sign-in.
 - Hoà's `plans` module exports one read-only method for the `sharing` module. F9 needs it before Sprint 4 (B2).
 - Regulation documents for the advisor chat (UC-08) use the same approach, also decided by Lâm on 30 October: files in the `advisor` module, typed by hand and reviewed in pull requests. They are not public pages.
