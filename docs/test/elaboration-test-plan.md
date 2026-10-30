@@ -127,12 +127,16 @@ File defects as GitHub issues linked from the Discord Sprint task, following [th
 - Have automated test results for that commit and an owner for each detailed test case.
 - For B1 academic features, have Triết check both the APCS data and the expected results.
 
-Other tests can run earlier. If a screen, staging site or verified dataset is missing, mark only the tests that need it as blocked, with an owner.
+Other tests can run earlier. If a staging site or verified dataset is missing, mark only the tests that need it as blocked; if a required feature is not merged, mark them not run. Give each an owner. B0's exceptions are listed under the acceptance criteria below.
 
 ### Proposed acceptance criteria
 
 - Typecheck, unit/component tests, build and backend e2e checks pass for the candidate commit. Required tests are not weakened or quietly skipped.
-- All required cases pass, including B0's real-API browser sign-in and deployed-site checks. B1 meets the rules coverage, audit/dashboard speed and usability requirements traced to Vision §6 in §5, including WCAG 2.1 AA contrast. Missing tests never count as passed by omission.
+- All required cases pass. For B0, two kinds of case do not count as failures (Lâm, 30 Oct 2026):
+  - No staging site is chosen yet and `deploy.yml` only builds files, so cases that need a deployed server (such as TC-B0-DEP-01) are marked **blocked: no server yet**.
+  - If the sign-in screens (#13) or the curriculum schema (#23) are not merged by 1 November, cases that need them (such as TC-B0-UI-01 and the cohort and course/group constraints in TC-B0-DB-01) are marked **not run: feature not merged** and move to B1.
+
+  These cases do not count as passed either. The report lists each one with an owner, and they are carried to B1. B1 meets the rules coverage, audit/dashboard speed and usability requirements traced to Vision §6 in §5, including WCAG 2.1 AA contrast. Missing tests never count as passed by omission.
 - No open defect exposes another user's or program's protected data, loses stored data, gives a known wrong academic result or blocks a required user task.
 - Smaller defects have an owner and a recorded decision. Lâm must approve any exception or scope reduction. Keep the original failed or blocked result in the report.
 - The report identifies the deployed commit and tag. Thắng records the acceptance findings, Dũng supplies the regression results, and Lâm decides whether to release or submit the build.
