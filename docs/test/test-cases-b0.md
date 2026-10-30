@@ -25,7 +25,7 @@ npm run dev:frontend       # app on http://localhost:5173
 2. To call a route that needs a signed-in user, copy the `token` from a sign-in or sign-up response. Press **Authorize** at the top, paste the token alone (without the word "Bearer"), press **Authorize**, then **Close**.
 3. To call as nobody, press **Authorize**, then **Logout**.
 
-**Screens.** Cases marked **Screen** need the sign-up and sign-in screens of issue #13, which are not merged on 30 October. If #13 is not merged by 1 November, mark these cases **not run, feature not merged**; [test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready) says how they count. The labels follow UC-01 (**Sign up**, **Sign in**, **Sign out**) and are updated when the screens land.
+**Screens.** Cases marked **Screen** need the sign-up and sign-in screens of issue #13, which are not merged on 30 October. If #13 is not merged by 1 November, mark these cases **not run: feature not merged**; [test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready) says how they count. The labels follow UC-01 (**Sign up**, **Sign in**, **Sign out**) and are updated when the screens land.
 
 **Test data.** Use made-up accounts only:
 - emails at `example.com`, such as `b0-01@example.com`, never a real or school address;
@@ -34,7 +34,7 @@ npm run dev:frontend       # app on http://localhost:5173
 
 **Rate limit.** Sign-up and sign-in each accept 10 requests a minute from one address. Wait a minute between batches of cases, or the next case fails with 429 for the wrong reason.
 
-**Recording results.** For every case, record: case ID, result (**passed**, **failed**, **blocked** or **not run**), build tag and commit, browser and version, and screen width for screen cases. Give the reason with **blocked** and **not run**, such as **blocked: no server yet** or **not run, feature not merged**. A blocked or skipped case never counts as passed (test plan §6).
+**Recording results.** For every case, record: case ID, result (**passed**, **failed**, **blocked** or **not run**), build tag and commit, browser and version, and screen width for screen cases. Give the reason with **blocked** and **not run**, such as **blocked: no server yet** or **not run: feature not merged**. A blocked or skipped case never counts as passed (test plan §6).
 
 ## 2. TC-B0-AUTH-01: Sign-up and sign-in
 
@@ -84,7 +84,7 @@ Already automated: `auth.e2e-spec.ts` covers a, c, e, f and j; `auth.service.spe
 
 ## 4. TC-B0-UI-01: Screens
 
-All **Screen**, through the real API. If #13 is not merged by 1 November: **not run, feature not merged** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). Use Chrome and record its version. Open DevTools with F12 where a case says so.
+All **Screen**, through the real API. If #13 is not merged by 1 November: **not run: feature not merged** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). Use Chrome and record its version. Open DevTools with F12 where a case says so.
 
 | ID | Do this | Expect |
 | --- | --- | --- |
@@ -96,9 +96,9 @@ All **Screen**, through the real API. If #13 is not merged by 1 November: **not 
 | UI-01f | On **Sign in**, enter a registered email and a wrong password. | "Invalid email or password" (or its Vietnamese text), shown in words, not only by a red colour. The form stays usable. |
 | UI-01g | Press **Sign in** with a wrong password 11 times within a minute. | The 11th attempt says to wait and try again, not "Invalid email or password". |
 | UI-01h | Signed in, open DevTools **Network**, and reload the page. | Still signed in. The network list shows one `POST /api/auth/refresh` answered **200**. |
-| UI-01i | Signed in, open DevTools **Application**: **Local Storage** and **Session Storage** for the app's address. | Local Storage holds no token. Session Storage holds it (ADR 0002, #13). |
-| UI-01j | Signed in, copy this tab's token from **Session Storage**. On the API docs page, authorize with it and call `POST /api/auth/sign-out`. Reload the tab. | The tab lands on the sign-in screen, with no error loop and no blank page. |
-| UI-01k | Sign in again and copy the new token from **Session Storage**. Press **Sign out**, then the browser's **Back** button. Look at **Session Storage**. Then call `GET /api/users/me` on the API docs page with the copied token. | Sign-in screen. **Back** shows no signed-in content. Session Storage holds no token. The copied token gives **401**. |
+| UI-01i | Signed in, open DevTools **Application**: **Local Storage** and **Session Storage** for the app's address. | Local Storage holds no token; the token is in memory or Session Storage, as #13 decides (ADR 0002). Make this exact when #13 lands. |
+| UI-01j | Signed in, open DevTools **Network**, open the latest `sign-in` or `refresh` request and copy `token` from its **Response** (a request's `Authorization` header may hold a token that refresh has already replaced). On the API docs page, authorize with it and call `POST /api/auth/sign-out`. Reload the tab. | The tab lands on the sign-in screen, with no error loop and no blank page. |
+| UI-01k | Sign in again and copy the new token as in UI-01j. Press **Sign out**, then the browser's **Back** button. Look at **Local Storage** and **Session Storage**. Then call `GET /api/users/me` on the API docs page with the copied token. | Sign-in screen. **Back** shows no signed-in content. Neither storage holds a token. The copied token gives **401**. |
 | UI-01l | Signed in, close the tab. Open a new tab and type the app's address. | Sign-in screen: a closed tab does not stay signed in. |
 | UI-01m | Without the mouse, sign up: Tab through every field, tick consent with Space, submit with Enter. Then sign in the same way. | Every control can be reached in a sensible order, the focused control is always visibly marked, and both forms work by keyboard alone. |
 | UI-01n | Switch the language to English, then to Vietnamese, on both forms. Trigger one error each time. | Every label, button and error message changes language. No text stays in the other language. |
@@ -115,23 +115,26 @@ All **Screen**, through the real API. If #13 is not merged by 1 November: **not 
 | DB-01c | Stop the database container (`podman stop` or `docker stop`) and open `/api/health` again. Then open the app's home page. Start the database again and wait a minute. | With the database stopped: still **200**, with `"status":"degraded"`, `"database":"down"` and `"postgresVersion":null`, and the home page says "API degraded · database down". After the restart: `"status":"ok"` again without restarting the API. |
 | DB-01d | Open `<API>/api/docs`. Then open `<API>/api/docs-json`. | The docs page lists the `health`, `auth` and `users` groups and has an **Authorize** button. The JSON starts with `"openapi": "3.2.0"`. |
 | DB-01e | Without Authorize, call every route on the docs page except health, sign-up and sign-in. | Each answers **401**. No route is open by accident (ADR 0002, default deny). |
-| DB-01f | Curriculum constraints from PR #23: a duplicate cohort, a course code that breaks `^[A-Z0-9]{2,20}$`, and two requirement groups with the same name in one curriculum. | Each is refused by the database. The detailed steps are written when #23 lands. If #23 is not merged by 1 November: **not run, feature not merged** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). |
+| DB-01f | Curriculum constraints from PR #23: a duplicate cohort, a course code that breaks `^[A-Z0-9]{2,20}$`, and two requirement groups with the same name in one curriculum. | Each is refused by the database. The detailed steps are written when #23 lands. If #23 is not merged by 1 November: **not run: feature not merged** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). |
 
 Already automated: `app.e2e-spec.ts` covers b and the OpenAPI version in d; `auth.e2e-spec.ts` covers `GET /api/users/me` in e.
 
 ## 6. TC-B0-DEP-01: Deployed build
 
-No staging server exists yet: no host is chosen (issue #24), and `deploy.yml` only builds the files. For B0, run DEP-01c and DEP-01d on your own machine, and mark the others **blocked: no server yet** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). All six run on staging once it exists.
+No staging server exists yet: no host is chosen (issue #24), and `deploy.yml` only builds the files. For B0, all six cases are **blocked: no server yet** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). You may try DEP-01c and DEP-01d on your own machine, but record that as a note on the blocked case, never as a pass. All six run on staging once it exists.
 
-| ID | Do this | Expect | For B0 |
-| --- | --- | --- | --- |
-| DEP-01a | Open the staging site's address. | The address starts with `https://`. The home page shows "API ok · database up (PostgreSQL 18.x)". | Blocked: no server yet |
-| DEP-01b | Open the staging `<API>/api/health`. | `"status":"ok"`, `"database":"up"`. | Blocked: no server yet |
-| DEP-01c | With DevTools **Console** open, load the site and sign in. | No CORS errors and no other red errors. | Run locally |
-| DEP-01d | Run AUTH-01a and AUTH-01k, and UI-01b once #13 is merged, with a new `example.com` email. | Sign-up and sign-in work end to end. | Run locally |
-| DEP-01e | Tester X runs AUTH-01o on staging. Within the same minute, tester Y, on another network, signs in. | Y is signed in. If Y gets **429**, the rate limit counts the host's proxy instead of each person (ADR 0002, "trust proxy"): file a defect. | Blocked: no server yet |
-| DEP-01f | On GitHub, open **Tags** and note the commit of `B0`. Open **Actions → Deploy** and note the commit of the run that created the tag. Note the commit this report tested. | All three commits are the same. | Blocked: no server yet |
+| ID | Do this | Expect |
+| --- | --- | --- |
+| DEP-01a | Open the staging site's address. | The address starts with `https://`. The home page shows "API ok · database up (PostgreSQL 18.x)". |
+| DEP-01b | Open the staging `<API>/api/health`. | `"status":"ok"`, `"database":"up"`. |
+| DEP-01c | With DevTools **Console** open, load the site and sign in. | No CORS errors and no other red errors. |
+| DEP-01d | Run AUTH-01a and AUTH-01k on staging, and UI-01b once #13 is deployed, with a new `example.com` email. | Sign-up and sign-in work end to end on staging. |
+| DEP-01e | Tester X runs AUTH-01o on staging. Within the same minute, tester Y, on another network, signs in. | Y is signed in. If Y gets **429**, the rate limit counts the host's proxy instead of each person (ADR 0002, "trust proxy"): file a defect. |
+| DEP-01f | On GitHub, open **Tags** and note the commit of `B0`. Open **Actions → Deploy** and note the commit of the run that created the tag. Note the commit this report tested. | All three commits are the same. |
 
 ## 7. Not in B0
 
-These are not B0 acceptance cases and are left out on purpose: Google sign-in (deferred after B0, UC-01 A4), email verification, onboarding, account export and deletion (B1, `TC-B1-USER-01`), transcript import, and the AI gateway (B1, `TC-B1-AI-01`).
+These are left out of the B0 cases on purpose:
+
+- **In the B0 build, tested in B1** (test plan §2): account export and deletion (#14, `TC-B1-USER-01`), transcript storage (#29) and the AI gateway (#12, `TC-B1-AI-01`).
+- **Not built yet:** Google sign-in (deferred after B0, UC-01 A4), email verification, onboarding, and transcript import from a portal PDF.
