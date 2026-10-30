@@ -9,7 +9,7 @@
 
 This plan says which school tasks get a guide, in what order, and what every guide contains. UC-10 says how a student finds and follows one.
 
-A guide covers one school task that OmniCourse does not perform: the direct link, the steps, the account needed and the notes (glossary **Guide**). OmniCourse only links to the portal. It never asks for a portal password and never acts on a portal (AGENTS.md hard rule 2). Anyone can read a guide without an account (ADR 0010, proposed).
+A guide covers one school task that OmniCourse does not perform: the direct link, the steps, the account needed and the notes (glossary **Guide**). OmniCourse only links to the portal. It never asks for a portal password and never acts on a portal (AGENTS.md hard rule 2). Anyone can read a guide without an account (ADR 0010).
 
 ## 2. What every guide contains
 
@@ -26,8 +26,8 @@ A guide covers one school task that OmniCourse does not perform: the direct link
 | Prepare | Documents, fees and earlier steps needed before starting, with links into OmniCourse where they help. | No |
 | Steps | Numbered steps. Each quotes the portal's labels as they appear on screen, and may have a screenshot and a link. | Yes |
 | Notes | What commonly goes wrong and what to do. Each note says where it comes from: a regulation clause, or the team's experience. | No |
-| Rule values | Named values that OmniCourse fills in from the rule engine for the student's program, such as the credit cap. Never typed into the text (UC-10 A3). | No |
-| Citations | The regulation documents and clauses the guide relies on. They come from the regulation files the advisor chat uses (UC-08). | No |
+| Rule values | Named values that OmniCourse fills in from the rule engine for the student's program, such as the credit cap. Never typed into the text. From B3 (UC-10 A3); until then the guide says the value depends on the program and cites the clause. | No |
+| Citations | The regulation documents and clauses the guide relies on. B1 guides link the official document and clause directly. They switch to the regulation files of the advisor chat (UC-08) once those exist in B3. | No |
 | If the portal is down | Another way to do the task, only when the school publishes one. | No |
 | Related | Other guides and OmniCourse features, such as the planner or the transcript import. | No |
 | Version | A number that goes up by one with every published change. | Yes |
@@ -35,7 +35,7 @@ A guide covers one school task that OmniCourse does not perform: the direct link
 | Last checked | The date a team member last followed the guide on the real portal, and who did. | Yes |
 | Status | Draft, published or withdrawn. Only published guides are shown. | Yes |
 
-Storage (ADR 0010, proposed; agreed by Lâm, 30 Oct 2026): one content file per guide and language in the repository, reviewed in a pull request and loaded into the database by a seed. Git keeps every version. There is no admin screen.
+Storage (ADR 0010): one content file per guide and language in the repository, reviewed in a pull request and loaded into the database by a seed. Git keeps every version. There is no admin screen.
 
 ## 3. Rules for writing a guide
 
@@ -85,8 +85,8 @@ Storage (ADR 0010, proposed; agreed by Lâm, 30 Oct 2026): one content file per 
 
 - **When:** each main term and the summer term, in the window the school announces (link).
 - **Prepare:**
-  - the courses the student's plan places in the next term, ready to copy (UC-10 A4);
-  - the credit cap for the student's program and term, from the rule engine (UC-10 A3).
+  - from B3: the courses the student's plan places in the next term, ready to copy (UC-10 A4);
+  - from B3: the credit cap for the student's program and term, from the rule engine (UC-10 A3). Until then the guide says the cap depends on the program and cites the clause.
 - **Steps cover:** signing in, opening registration, finding a course by its code, choosing a class section, checking for timetable clashes, confirming, and checking the result after the window closes.
 - **Notes:** what to do when a section is full; a failed course must be registered again, citing the clause that says when.
 - **To find out:**
@@ -123,8 +123,8 @@ Storage (ADR 0010, proposed; agreed by Lâm, 30 Oct 2026): one content file per 
 
 ### G07 View your grades and download your transcript PDF (B1)
 
-- **Shows:** where grades appear on the portal, and step by step which file to download, so the student gets the PDF that transcript import reads. It ends with a link to the import (UC-02).
-- **Notes:** the file holds personal data, so don't post it anywhere. OmniCourse reads it on its own server and deletes it after reading (proposed in UC-02).
+- **Shows:** where grades appear on the portal, and step by step which file to download, so the student gets the PDF that transcript import will read. For now it ends with a link to the student's transcript page in OmniCourse. A link to transcript import (UC-02) is added when import ships.
+- **Notes:** the file holds personal data, so don't post it anywhere. When import ships, the guide adds that OmniCourse reads the file on its own server and deletes it after reading (UC-02).
 - **To find out:** the exact download path. The same check answers ADR 0003's open question: whether the file has a text layer and a fixed layout, to be confirmed locally before Sprint 4.
 
 ### G08 Request an official transcript (B3)
@@ -178,7 +178,7 @@ Storage (ADR 0010, proposed; agreed by Lâm, 30 Oct 2026): one content file per 
 
 ## 6. How each guide is made
 
-1. Dũng drafts the guide in both languages from the school's published pages.
+1. Dũng drafts the guide in both languages from the school's published pages, typed by hand with no AI drafting: the same rule as the regulation files (Lâm, 30 Oct 2026).
 2. A team member who has used that portal follows it with their own account and records **Last checked**.
 3. Another team member reviews the pull request.
 4. The guide is published with version 1.
