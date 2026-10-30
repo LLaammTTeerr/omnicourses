@@ -99,8 +99,7 @@ None of the tools writes anything. In general mode (A1) only `search_regulations
 **Decided** (Lâm, 30 Oct 2026):
 - Conversations are not stored on the server. A conversation lives in the open page only, and leaving or reloading the page starts a new one. This avoids storing free text that may hold personal data.
 - A student who declines consent can still use the advisor chat for general questions about the regulations, and their record is never sent (A1).
-- Dũng types the regulation documents in as files in the repository, inside the `advisor` module. Each one goes through a pull request, and Triết or Thắng checks it against the official document. No AI types or drafts them (AGENTS.md hard rule 1, ADR 0003). Guides use the same approach (ADR 0010, proposed).
-- This use case is named "Ask the advisor chat". Lâm renames it in the PR #16 index, which called it "Ask the advisor".
+- Dũng types the regulation documents in as files in the repository, inside the `advisor` module. Each one goes through a pull request, and Triết or Thắng checks it against the official document. No AI types or drafts them (AGENTS.md hard rule 1, ADR 0003). Guides use the same approach (ADR 0010).
 
 **Proposed here, to confirm:** citation links are built only from clauses returned by `search_regulations`.
 

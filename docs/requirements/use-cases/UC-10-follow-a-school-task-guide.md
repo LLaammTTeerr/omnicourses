@@ -18,7 +18,7 @@ A student needs to do a school task that OmniCourse does not perform, such as re
 
 - At least one guide is published.
 
-No sign-in is needed to read guides (ADR 0010, proposed). Only the parts that use the student's data need it: the program's values (A3) also need finished onboarding (UC-01 A7), and the plan's courses (A4) need a saved plan. Reporting a problem (A6) needs sign-in too.
+No sign-in is needed to read guides (ADR 0010). Only the parts that use the student's data need it: the program's values (A3) also need finished onboarding (UC-01 A7), and the plan's courses (A4) need a saved plan. Reporting a problem (A6) needs sign-in too.
 
 ## 4. Basic flow
 
@@ -41,13 +41,13 @@ No sign-in is needed to read guides (ADR 0010, proposed). Only the parts that us
 
 **A1. Straight to the link.** At step 2 the student already knows what to do and presses the direct link in the list. The flow continues at step 7.
 
-**A2. No guide matches.** At step 3 nothing matches. The system says no guide covers it yet and shows the task groups to browse. It offers **Suggest a guide** (A6). From B3 it also offers to ask the advisor chat (UC-08).
+**A2. No guide matches.** At step 3 nothing matches. The system says no guide covers it yet and shows the task groups to browse. That is all A2 does in B1. From B3 it also offers **Suggest a guide** (A6) and asking the advisor chat (UC-08).
 
 **A3. A note that depends on the program.** At step 5 a note depends on the student's program, for example the credit cap when registering for courses. If the student is signed in and has finished onboarding, the system shows the value for their program and cohort as the rule engine gives it, with the regulation it comes from. Otherwise it says the value depends on the program and offers to sign in or finish onboarding (UC-01). The guide's own text never states the value (AGENTS.md hard rule 1).
 
 **A4. Course registration from a plan.** At step 5 of the course registration guide, a signed-in student with saved plans chooses one. A signed-out reader sees an offer to sign in instead. The system lists the courses that plan places in the next term, with their codes ready to copy. OmniCourse does not check sections or timetables, and never registers for the student (AGENTS.md hard rule 2). The portal does the registration.
 
-**A5. The guide may be out of date.** At step 5 the guide was last checked more than 6 months ago, or a student has reported a broken link that is not yet fixed. The system shows a warning that the portal may have changed, with the last-checked date. The guide stays readable.
+**A5. The guide may be out of date.** At step 5 the guide was last checked more than 6 months ago. The system shows a warning that the portal may have changed, with the last-checked date. The guide stays readable. In B1 this 6-month rule is the only trigger; from B3, when reports arrive with A6, a reported broken link that is not yet fixed also shows the warning.
 
 **A6. Report a problem.** At any step the student presses **Report a problem** (or **Suggest a guide** from A2). A signed-out reader is asked to sign in first. They choose a reason (link broken, steps changed, missing guide, other) and may add a short note. The form warns them not to include their name, student ID or password. The system stores the report against the guide and its version and thanks the student. Dũng reviews reports; a stale guide counts as a bug (Vision F11) and is fixed like any other defect.
 
@@ -74,8 +74,8 @@ No sign-in is needed to read guides (ADR 0010, proposed). Only the parts that us
 **Depends on:** the rule engine (Triết) for A3 and the `plans` API (Hoà) for A4. Search, browse and reading (steps 1–7) depend on nothing else, so they can ship in B1.
 
 **Decided** (Lâm, 30 Oct 2026):
-- B1 (15 Nov): steps 1–7, A1, A2 without the advisor chat, A5 and A8, with the first four guides of the guides plan. B3: A3, A4, A6 and the remaining guides.
-- Guides can be read without signing in, and are content files in the repository, loaded into the database by a seed, with no admin screen. Both change ADR 0002 and are recorded in ADR 0010 (proposed).
+- B1 (15 Nov): steps 1–7, A1, A2 with the task groups only, A5 with the 6-month rule only, and A8, with the first four guides of the guides plan. B3: A3, A4, A6, the rest of A2 and A5, and the remaining guides.
+- Guides can be read without signing in, and are content files in the repository, loaded into the database by a seed, with no admin screen. Both change ADR 0002 and are recorded in ADR 0010.
 
 **Proposed here, to confirm:** a guide is out of date (A5) when it was last checked more than 6 months ago. Every guide is checked again before each main term's registration.
 

@@ -67,7 +67,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 ## 7. Special requirements
 
 - **Privacy** (AGENTS.md hard rule 3; Vision §6, Luật 91/2025/QH15): a reader sees only the content listed in step 2. Grades, email, student ID and the transcript never appear in the shared view or the PDF. The page tells search engines not to index it (`noindex`).
-- **Security:** the link holds a random token at least as strong as a session token (32 random bytes, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)), so it cannot be found by guessing. The shared page is one of the public routes of ADR 0010 (proposed): it needs no sign-in, only reads, and is rate-limited like other routes (120 requests a minute per address).
+- **Security:** the link holds a random token at least as strong as a session token (32 random bytes, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)), so it cannot be found by guessing. The shared page is one of the public routes of ADR 0010: it needs no sign-in, only reads, and is rate-limited like other routes (120 requests a minute per address).
 - **Academic rules** (AGENTS.md hard rule 1): the violations and the estimated graduation term in the shared view and the PDF come from the rule engine, computed against the curriculum version the plan was made with.
 - **Usability:** the shared view works from 360 px wide and by keyboard, in Vietnamese and English (the reader's browser language). The PDF is readable when printed in black and white: violations are marked in words, not only by colour.
 
@@ -80,7 +80,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 - One live link per plan (A4), with no expiry date. The student can stop sharing at any time (A2).
 - The student's display name is hidden unless the student chooses to show it (step 2).
 - Links stay stopped when a pending account deletion is cancelled (A7).
-- The shared page opens without signing in. This changes ADR 0002 and is recorded in ADR 0010 (proposed).
+- The shared page opens without signing in. This changes ADR 0002 and is recorded in ADR 0010.
 - Sharing is Dũng's own `sharing` module. It reads plans only through a read-only method that Hoà's `PlansService` exports (ADR 0010).
 
 **Open:** whether the PDF is made in the browser (a print layout) or on the server. This is a design decision for the implementation PR.
