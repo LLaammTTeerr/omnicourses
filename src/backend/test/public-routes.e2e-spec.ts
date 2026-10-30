@@ -24,6 +24,22 @@ type Method = (typeof METHODS)[number];
 // Any well-formed value works: the auth guard runs before pipes parse the path.
 const PATH_PARAM = '00000000-0000-4000-8000-000000000000';
 
+// SwaggerModule.setup serves the docs pages itself, outside any controller and
+// outside the document: /api/docs, /api/docs/..., /api/docs-json, /api/docs-yaml.
+const isDocsPage = (path: string) => path === '/api/docs' || path.startsWith('/api/docs/') || path.startsWith('/api/docs-');
+
+interface ExpressApp {
+  router: { stack: { route?: { path: string; methods: Record<string, boolean> } }[] };
+}
+
+/** Every route Express serves, as `METHOD /path` with `{param}` like the document. */
+function servedRoutes(app: INestApplication): string[] {
+  const { router } = app.getHttpAdapter().getInstance() as ExpressApp;
+  return router.stack.flatMap(({ route }) =>
+    route ? Object.keys(route.methods).map((m) => `${m.toUpperCase()} ${route.path.replace(/:(\w+)/g, '{$1}')}`) : [],
+  );
+}
+
 describe('Public routes (e2e)', () => {
   let app: INestApplication;
   let routes: { method: Method; path: string; key: string }[];
@@ -48,12 +64,22 @@ describe('Public routes (e2e)', () => {
     await app?.close();
   });
 
+  // A route hidden with @ApiExcludeEndpoint or @ApiExcludeController is missing
+  // from the document, so the checks below would never call it.
+  it('documents every route the app serves, except the docs pages', () => {
+    const keys = routes.map((r) => r.key);
+    const hidden = servedRoutes(app).filter((key) => !isDocsPage(key.slice(key.indexOf(' ') + 1)) && !keys.includes(key));
+    expect(hidden).toEqual([]);
+  });
+
   it('finds every listed public route in the OpenAPI document', () => {
     const keys = routes.map((r) => r.key);
     expect(PUBLIC_ROUTES.filter((key) => !keys.includes(key))).toEqual([]);
   });
 
   it('answers 401 without a token on every route that is not listed', async () => {
+    // Guards against a document that holds only the public routes, which would check nothing.
+    expect(routes.map((r) => r.key)).toContain('GET /api/users/me');
     const open: string[] = [];
     for (const { method, path, key } of routes.filter((r) => !PUBLIC_ROUTES.includes(r.key))) {
       const res = await call(method, path);
