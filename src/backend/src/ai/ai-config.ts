@@ -1,14 +1,11 @@
+import { positiveInt } from '../config/env.js';
+
 // Read at call time, not at import, so tests and a changed .env take effect
 // without a rebuild. A missing key or model is not a startup error: the app
 // boots and AI calls answer 503 `ai_unavailable` (ADR 0003, robustness NFR).
-// A blank, non-numeric, zero or negative value falls back to the default:
-// '' would otherwise read as 0 (every call refused, or a 0 ms timeout) and a
-// typo as NaN (`used >= NaN` is never true, so the cap would switch off).
-function positiveInt(value: string | undefined, fallback: number): number {
-  const n = Number(value?.trim() || NaN);
-  return Number.isInteger(n) && n > 0 ? n : fallback;
-}
-
+// Numbers go through positiveInt: '' would otherwise read as 0 (every call
+// refused, or a 0 ms timeout) and a typo as NaN (`used >= NaN` is never true,
+// so the cap would switch off).
 export function aiConfig() {
   const env = process.env;
   return {

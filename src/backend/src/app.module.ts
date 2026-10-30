@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountModule } from './account/account.module.js';
 import { AiModule } from './ai/ai.module.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -19,6 +20,7 @@ import { UsersModule } from './users/users.module.js';
     HealthModule,
     UsersModule,
     AuthModule,
+    AccountModule,
     AiModule,
   ],
   providers: [
