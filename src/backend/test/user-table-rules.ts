@@ -15,25 +15,41 @@ const OWNED = `
 
 const name = (relid: string) => `format('%I', ${relid}::regclass::text)`;
 
-/** Foreign keys from another table to users that are not ON DELETE CASCADE (AGENTS.md rule). */
-export async function notCascadingToUsers(db: Queryable): Promise<string[]> {
+/**
+ * Foreign keys from another table to users with the wrong ON DELETE (AGENTS.md rule).
+ * A key with user_id among its columns owns the row: it must CASCADE, so the purge
+ * deletes the student's rows. Any other key (reviewed_by, viewer_id) points at
+ * someone else's row: CASCADE or SET NULL, so purging that user never blocks and
+ * SET NULL keeps the owner's row. NO ACTION, RESTRICT and SET DEFAULT fail.
+ */
+export async function wrongDeleteRuleToUsers(db: Queryable): Promise<string[]> {
   const rows: { name: string }[] = await db.query(`
-    SELECT ${name('conrelid')} || '.' || conname AS name FROM pg_constraint
-    WHERE contype = 'f' AND conparentid = 0 AND confrelid = 'users'::regclass
-      AND conrelid <> 'users'::regclass AND confdeltype <> 'c'
+    SELECT ${name('c.conrelid')} || '.' || c.conname AS name FROM pg_constraint c
+    WHERE c.contype = 'f' AND c.conparentid = 0 AND c.confrelid = 'users'::regclass
+      AND c.conrelid <> 'users'::regclass
+      AND CASE WHEN EXISTS (
+            SELECT 1 FROM pg_attribute a
+            WHERE a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey) AND a.attname = 'user_id')
+          THEN c.confdeltype <> 'c'
+          ELSE c.confdeltype NOT IN ('c', 'n') END
     ORDER BY 1`);
   return rows.map((r) => r.name);
 }
 
 /**
- * Foreign keys into users or an owned table with NO ACTION or RESTRICT: a row
- * behind one makes the purge's DELETE fail. Catches grandchild tables
- * (plan_items -> plans -> users) and self-references, which the direct check can't see.
+ * Foreign keys into users or an owned table that make the purge's DELETE fail:
+ * NO ACTION or RESTRICT, or SET NULL on a NOT NULL column. Catches grandchild
+ * tables (plan_items -> plans -> users) and self-references, which the direct
+ * check can't see.
  */
 export async function purgeBlockers(db: Queryable): Promise<string[]> {
   const rows: { name: string }[] = await db.query(`${OWNED}
     SELECT ${name('c.conrelid')} || '.' || c.conname AS name FROM pg_constraint c
-    WHERE c.contype = 'f' AND c.conparentid = 0 AND c.confdeltype IN ('a', 'r')
+    WHERE c.contype = 'f' AND c.conparentid = 0
+      AND (c.confdeltype IN ('a', 'r') OR (c.confdeltype = 'n' AND EXISTS (
+        SELECT 1 FROM pg_attribute a
+        WHERE a.attrelid = c.conrelid AND a.attnotnull
+          AND a.attnum = ANY(COALESCE(c.confdelsetcols, c.conkey)))))
       AND (c.confrelid = 'users'::regclass OR c.confrelid IN (SELECT relid FROM owned))
     ORDER BY 1`);
   return rows.map((r) => r.name);

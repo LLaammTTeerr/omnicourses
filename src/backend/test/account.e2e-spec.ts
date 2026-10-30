@@ -8,7 +8,7 @@ import { findUserTables, isSecretColumn } from '../src/account/account-export.js
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
-import { notCascadingToUsers, ownedButNotExported, purgeBlockers } from './user-table-rules.js';
+import { ownedButNotExported, purgeBlockers, wrongDeleteRuleToUsers } from './user-table-rules.js';
 
 // The 10/min password budget is per IP and per route: this file uses sign-in ×5,
 // delete ×4, sign-up ×1. It runs in its own app, so auth.e2e-spec's budget is separate.
@@ -44,10 +44,10 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     await app?.close();
   });
 
-  it('every table that references users cascades on delete (AGENTS.md rule)', async () => {
+  it('every user_id key to users cascades, and every other key cascades or sets null (AGENTS.md rule)', async () => {
     const notCascading = (await findUserTables(db)).filter((t) => t.onDelete !== 'c').map((t) => `${t.table}.${t.column}`);
     expect(notCascading).toEqual([]);
-    expect(await notCascadingToUsers(db)).toEqual([]);
+    expect(await wrongDeleteRuleToUsers(db)).toEqual([]);
   });
 
   it('nothing blocks the purge and every table it deletes from is exported', async () => {
@@ -55,11 +55,11 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     expect(await ownedButNotExported(db)).toEqual([]);
   });
 
-  it('the schema rules catch a grandchild table, a key not named user_id, a composite key and a self-reference', async () => {
+  it('the schema rules catch a grandchild table, a key not named user_id, a composite key, a self-reference and a wrong ON DELETE, and accept SET NULL on reviewed_by', async () => {
     const qr = db.createQueryRunner();
     await qr.startTransaction();
     try {
-      // Rolled back below. zz_plans is a well-formed user table; the rest break a rule.
+      // Rolled back below. zz_plans and zz_reviews are well-formed; the rest break a rule.
       await qr.query(`CREATE TABLE zz_plans (id uuid PRIMARY KEY, user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE)`);
       await qr.query(`CREATE TABLE zz_plan_notes (plan_id uuid REFERENCES zz_plans(id))`);
       await qr.query(`CREATE TABLE zz_plan_items (plan_id uuid REFERENCES zz_plans(id) ON DELETE CASCADE)`);
@@ -68,8 +68,25 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
       await qr.query(`CREATE UNIQUE INDEX zz_users_id_email ON users (id, email)`);
       await qr.query(`CREATE TABLE zz_pairs (user_id uuid, email varchar(254), FOREIGN KEY (user_id, email) REFERENCES users(id, email))`);
       await qr.query(`ALTER TABLE users ADD COLUMN zz_invited_by uuid REFERENCES users(id)`);
-      expect(await notCascadingToUsers(qr)).toEqual(['zz_pairs.zz_pairs_user_id_email_fkey']);
-      expect(await purgeBlockers(qr)).toEqual(['users.users_zz_invited_by_fkey', 'zz_pairs.zz_pairs_user_id_email_fkey', 'zz_plan_notes.zz_plan_notes_plan_id_fkey']);
+      // reviewed_by points at another user: SET NULL keeps the owner's row when the reviewer is purged.
+      await qr.query(`CREATE TABLE zz_reviews (user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, reviewed_by uuid REFERENCES users(id) ON DELETE SET NULL)`);
+      // A non-owner key with NO ACTION blocks the purge; an owner key must cascade, not set null.
+      await qr.query(`CREATE TABLE zz_audits (actor_id uuid REFERENCES users(id))`);
+      await qr.query(`CREATE TABLE zz_half (user_id uuid REFERENCES users(id) ON DELETE SET NULL)`);
+      // SET NULL on a NOT NULL column makes the purge's DELETE fail.
+      await qr.query(`CREATE TABLE zz_signoffs (signed_by uuid NOT NULL REFERENCES users(id) ON DELETE SET NULL)`);
+      expect(await wrongDeleteRuleToUsers(qr)).toEqual([
+        'zz_audits.zz_audits_actor_id_fkey',
+        'zz_half.zz_half_user_id_fkey',
+        'zz_pairs.zz_pairs_user_id_email_fkey',
+      ]);
+      expect(await purgeBlockers(qr)).toEqual([
+        'users.users_zz_invited_by_fkey',
+        'zz_audits.zz_audits_actor_id_fkey',
+        'zz_pairs.zz_pairs_user_id_email_fkey',
+        'zz_plan_notes.zz_plan_notes_plan_id_fkey',
+        'zz_signoffs.zz_signoffs_signed_by_fkey',
+      ]);
       expect(await ownedButNotExported(qr)).toEqual(['zz_owned_by', 'zz_plan_items']);
     } finally {
       await qr.rollbackTransaction();
