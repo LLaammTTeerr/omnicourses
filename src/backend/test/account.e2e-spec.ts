@@ -10,8 +10,8 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 import { notCascadingToUsers, ownedButNotExported, purgeBlockers } from './user-table-rules.js';
 
-// Uses 7 of the 10/min password budget per IP (sign-up, delete ×3, sign-in ×3);
-// it runs in its own app, so auth.e2e-spec's budget is separate.
+// The 10/min password budget is per IP and per route: this file uses sign-in ×5,
+// delete ×4, sign-up ×1. It runs in its own app, so auth.e2e-spec's budget is separate.
 const email = `account-${randomUUID()}@example.com`;
 const password = 'correct horse battery';
 
@@ -164,6 +164,22 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     token = signIn.body.token;
     const [row] = await db.query('SELECT deletion_requested_at FROM users WHERE id = $1', [userId]);
     expect(row.deletion_requested_at).toBeNull();
+  });
+
+  // A double-click or two tabs: the first sign-in clears the deadline before the second
+  // cancels, and an already-cancelled deletion must still count as restored (PR #14 review).
+  it('two concurrent sign-ins to an account pending deletion both succeed', async () => {
+    await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
+    const [first, second] = await Promise.all([
+      http().post('/api/auth/sign-in').send({ email, password }),
+      http().post('/api/auth/sign-in').send({ email, password }),
+    ]);
+    expect([first.status, second.status]).toEqual([200, 200]);
+    expect(first.body.token).toEqual(expect.any(String));
+    expect(second.body.token).toEqual(expect.any(String));
+    token = first.body.token;
+    const [row] = await db.query('SELECT deletion_requested_at, purge_after FROM users WHERE id = $1', [userId]);
+    expect(row).toEqual({ deletion_requested_at: null, purge_after: null });
   });
 
   it('refuses a sign-in once the stored deadline has passed, even before the purge runs', async () => {
