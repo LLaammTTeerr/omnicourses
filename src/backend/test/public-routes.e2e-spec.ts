@@ -68,7 +68,10 @@ describe('Public routes (e2e)', () => {
   // from the document, so the checks below would never call it.
   it('documents every route the app serves, except the docs pages', () => {
     const keys = routes.map((r) => r.key);
-    const hidden = servedRoutes(app).filter((key) => !isDocsPage(key.slice(key.indexOf(' ') + 1)) && !keys.includes(key));
+    const served = servedRoutes(app);
+    // Guards against an empty list, for example if Express moves router.stack.
+    expect(served).toContain('GET /api/users/me');
+    const hidden = served.filter((key) => !isDocsPage(key.slice(key.indexOf(' ') + 1)) && !keys.includes(key));
     expect(hidden).toEqual([]);
   });
 
