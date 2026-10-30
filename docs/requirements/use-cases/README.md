@@ -11,9 +11,9 @@ One file per use case, in the RUP structure: brief description, actors, precondi
 | UC-05 Build and edit a plan | F5 | Hoà | |
 | UC-06 Simulate a what-if scenario | F7 | Hoà | |
 | UC-07 Generate a plan | F6 | Lâm | [UC-07](UC-07-generate-a-plan.md) |
-| UC-08 Ask the advisor | F8 | Dũng | |
-| UC-09 Share or export a plan | F9 | Dũng | |
-| UC-10 Follow a school-task guide | F11 | Dũng | |
+| UC-08 Ask the advisor chat | F8 | Dũng | [UC-08](UC-08-ask-the-advisor-chat.md) |
+| UC-09 Share or export a plan | F9 | Dũng | [UC-09](UC-09-share-or-export-a-plan.md) |
+| UC-10 Follow a school-task guide | F11 | Dũng | [UC-10](UC-10-follow-a-school-task-guide.md) |
 | UC-11 Maintain curriculum | F12 | Thắng | [UC-11](UC-11-maintain-curriculum.md) (#30) |
 | ~~UC-12 Import a curriculum PDF~~ | F12 | | Dropped |
 
