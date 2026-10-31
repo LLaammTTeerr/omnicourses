@@ -1,6 +1,7 @@
 import { DataSourceOptions } from 'typeorm';
 import { AiUsage } from '../ai/ai-usage.entity.js';
 import { Session } from '../auth/session.entity.js';
+import { TranscriptRow } from '../transcript/transcript-row.entity.js';
 import { User } from '../users/user.entity.js';
 import { CreateUsersAndSessions1761696000000 } from './migrations/1761696000000-create-users-and-sessions.js';
 import { CreateAiUsage1792800000000 } from './migrations/1792800000000-create-ai-usage.js';

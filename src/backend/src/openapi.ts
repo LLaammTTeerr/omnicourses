@@ -1,10 +1,12 @@
 import { writeFileSync } from 'node:fs';
 import { Test } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountModule } from './account/account.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { configureApp } from './bootstrap.js';
 import { dataSourceOptions } from './database/data-source.js';
 import { HealthModule } from './health/health.module.js';
+import { TranscriptModule } from './transcript/transcript.module.js';
 import { UsersModule } from './users/users.module.js';
 
 // Writes the OpenAPI contract to openapi.json without a database, so CI can
@@ -17,6 +19,8 @@ async function main(): Promise<void> {
       HealthModule,
       UsersModule,
       AuthModule,
+      AccountModule,
+      TranscriptModule,
     ],
   }).compile();
   const document = configureApp(moduleRef.createNestApplication());

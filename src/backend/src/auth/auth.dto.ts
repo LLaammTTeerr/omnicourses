@@ -53,6 +53,9 @@ export class AuthResultDto {
 
   @ApiProperty({ type: UserDto })
   user!: UserDto;
+
+  @ApiProperty({ description: 'True when this sign-in cancelled a pending account deletion; tell the student.' })
+  accountRestored!: boolean;
 }
 
 export class SessionDto {

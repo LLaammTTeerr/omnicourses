@@ -2,6 +2,9 @@ import { createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/com
 import type { User } from '../users/user.entity.js';
 import type { Session } from './session.entity.js';
 
+/** Brute-force limit for endpoints that take a password: `@Throttle(PASSWORD_LIMIT)`. */
+export const PASSWORD_LIMIT = { default: { limit: 10, ttl: 60_000 } };
+
 export const IS_PUBLIC = 'isPublic';
 
 /** Opts a route (or a whole controller) out of the global AuthGuard. */

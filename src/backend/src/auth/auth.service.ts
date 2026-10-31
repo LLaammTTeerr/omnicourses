@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
-import { IsNull, MoreThan, Repository } from 'typeorm';
+import { EntityManager, IsNull, MoreThan, Repository } from 'typeorm';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
@@ -44,7 +44,23 @@ export class AuthService {
       ? await verify(user.passwordHash, dto.password)
       : (await verify(await this.dummyHash, dto.password), false);
     if (!user || !valid) throw new UnauthorizedException('Invalid email or password');
-    return this.issue(user, userAgent);
+    // Signing in before the stored deadline is how a student undoes a deletion (ADR 0004).
+    // After it, or if the purge got there first, the account is gone: same answer as
+    // an unknown email, and no session (it would fail the foreign key anyway).
+    const accountRestored = user.deletionRequestedAt !== null;
+    if (accountRestored && !(await this.users.cancelDeletion(user.id, new Date()))) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    return { ...(await this.issue(user, userAgent)), accountRestored };
+  }
+
+  /** Re-checks the password of a signed-in user before a destructive action. */
+  async verifyPassword(user: User, password: string): Promise<boolean> {
+    return user.passwordHash ? verify(user.passwordHash, password) : false;
+  }
+
+  async revokeAll(userId: string, tx?: EntityManager): Promise<void> {
+    await (tx?.getRepository(Session) ?? this.sessions).update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
   }
 
   /** Resolves a bearer token to its live session, or null if unknown, expired or revoked. */
@@ -54,6 +70,8 @@ export class AuthService {
       relations: { user: true },
     });
     if (!session || session.revokedAt || session.expiresAt.getTime() <= Date.now()) return null;
+    // Sessions are revoked when deletion is requested; this covers a race with that.
+    if (session.user.deletionRequestedAt) return null;
     return { user: session.user, session };
   }
 
@@ -63,7 +81,7 @@ export class AuthService {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.ttlMs);
     await this.sessions.update(session.id, { tokenHash: hashToken(token), rotatedAt: now, expiresAt });
-    return { token, expiresAt, user: UserDto.from(session.user) };
+    return { token, expiresAt, user: UserDto.from(session.user), accountRestored: false };
   }
 
   async signOut(session: Session): Promise<void> {
@@ -101,7 +119,7 @@ export class AuthService {
         expiresAt,
       }),
     );
-    return { token, expiresAt, user: UserDto.from(user) };
+    return { token, expiresAt, user: UserDto.from(user), accountRestored: false };
   }
 }
 

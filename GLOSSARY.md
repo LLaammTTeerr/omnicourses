@@ -30,6 +30,10 @@ _Avoid_: syllabus, degree plan, program structure, CTĐT
 A unit of study identified by a course code and worth a fixed number of credits.
 _Avoid_: subject, class, module
 
+**Course code**:
+The identifier HCMUS gives a course, such as CSC10001; a transcript and a curriculum name the same course exactly when they give the same code. When a revised curriculum replaces a course with an equivalent one under a new code, that equivalence is a separate rule the rule engine applies in the degree audit; the code itself does not say it.
+_Avoid_: course ID, subject code, mã học phần
+
 **Credit**:
 The unit of a course's weight under the national credit regulation (Thông tư 08/2021/TT-BGDĐT).
 _Avoid_: unit, hour
@@ -61,7 +65,7 @@ _Avoid_: policy, rules, quy chế (in English text)
 ### Student record
 
 **Transcript**:
-A student's record of the courses they have taken, with grade, credits and term for each.
+A student's record of the courses they have taken, with credits, term and result (a grade, in progress, exempt, pass or fail) for each.
 _Avoid_: grade report, results, bảng điểm
 
 **Transcript import**:
@@ -117,7 +121,7 @@ _Avoid_: validator, checker, solver
 ### People
 
 **User**:
-A person with an OmniCourse account; student, program administrator, catalog maintainer, access manager and advisor are the roles a user plays.
+A person with an OmniCourse account; student, program administrator, catalog maintainer and access manager are the roles a user plays.
 _Avoid_: member, account holder
 
 **Student**:
@@ -137,7 +141,7 @@ A user who creates programs and grants or revokes the program administrator and 
 _Avoid_: superuser, permission admin
 
 **Advisor**:
-A lecturer or academic advisor who reads a student's shared plan.
+A lecturer or academic advisor who reads a student's shared plan; needs no OmniCourse account.
 _Avoid_: mentor, counsellor, reviewer
 
 **Shared plan**:
