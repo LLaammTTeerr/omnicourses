@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thời khóa biểu · OmniCourse</title>
+  <meta name="description" content="Bản mẫu thời khóa biểu tuần 7, HK1 2026–2027, sinh viên APCS HCMUS.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Bỏ qua điều hướng</a>
+
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="i-overview" viewBox="0 0 24 24">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+    </symbol>
+    <symbol id="i-route" viewBox="0 0 24 24">
+      <circle cx="6" cy="6" r="2.2"></circle>
+      <circle cx="18" cy="18" r="2.2"></circle>
+      <path d="M8.2 6h4.3a4 4 0 0 1 0 8H11a4 4 0 0 0 0 8h4.8"></path>
+    </symbol>
+    <symbol id="i-link" viewBox="0 0 24 24">
+      <path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.5 1.5"></path>
+      <path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.5-1.5"></path>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect>
+      <path d="M3.5 9.5h17"></path>
+      <path d="M8 3.5v3"></path>
+      <path d="M16 3.5v3"></path>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.74v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-arrow-out" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-arrow-in" viewBox="0 0 24 24">
+      <path d="M19 12H5"></path>
+      <path d="m11 18-6-6 6-6"></path>
+    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24">
+      <path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3Z"></path>
+    </symbol>
+  </svg>
+
+  <aside class="site-header" aria-label="Điều hướng">
+    <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Thu gọn hoặc mở rộng thanh điều hướng">
+    <div class="header-inner">
+      <div class="sidebar-top">
+        <a class="brand" href="index.html" aria-label="OmniCourse, trang chủ bản mẫu">
+          <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4.8 16.4c3.5 0 3.5-8.8 7.2-8.8s3.7 8.8 7.2 8.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            <circle cx="4.8" cy="16.4" r="1.3" fill="currentColor"></circle>
+            <circle cx="19.2" cy="16.4" r="1.3" fill="currentColor"></circle>
+          </svg>
+          <span>OmniCourse</span>
+        </a>
+        <label class="nav-collapse" for="nav-toggle" title="Thu gọn thanh điều hướng">
+          <svg class="icon" aria-hidden="true"><use href="#i-arrow-in"></use></svg>
+        </label>
+      </div>
+
+      <label class="nav-expand" for="nav-toggle" title="Mở rộng thanh điều hướng">
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow-out"></use></svg>
+      </label>
+
+      <span class="term-chip">
+        <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+        HK1 2026–2027
+      </span>
+
+      <nav class="nav" aria-label="Điều hướng chính">
+        <a href="dashboard.html" title="Tổng quan" data-tooltip="Tổng quan (⌘1)">
+          <svg class="icon" aria-hidden="true"><use href="#i-overview"></use></svg>
+          <span>Tổng quan</span>
+        </a>
+        <a href="schedule.html" aria-current="page" title="Thời khóa biểu" data-tooltip="Thời khóa biểu">
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          <span>Lịch</span>
+        </a>
+        <a href="planner.html" title="Lộ trình" data-tooltip="Lộ trình (⌘2)">
+          <svg class="icon" aria-hidden="true"><use href="#i-route"></use></svg>
+          <span>Lộ trình</span>
+        </a>
+        <a href="links.html" title="Liên kết" data-tooltip="Liên kết (⌘3)">
+          <svg class="icon" aria-hidden="true"><use href="#i-link"></use></svg>
+          <span>Liên kết</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="sidebar-settings" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+          <span>Cài đặt</span>
+        </button>
+        <span class="avatar" aria-label="Tài khoản của Minh Anh">MA</span>
+      </div>
+    </div>
+  </aside>
+
+  <main id="main" class="page cal-page">
+    <div class="container">
+      <div class="cal-toolbar">
+        <h1>Tháng 10 2026</h1>
+        <div class="cal-nav">
+          <button type="button" id="cal-prev" aria-label="Tuần trước">
+            <svg class="icon" aria-hidden="true" style="transform:rotate(180deg)"><use href="#i-arrow"></use></svg>
+          </button>
+          <button type="button" id="cal-next" aria-label="Tuần sau">
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
+          </button>
+        </div>
+        <button type="button" class="cal-today" id="cal-today">Hôm nay</button>
+        <span class="cal-weeklabel">Tuần 7 / 16 · 19–25 thg 10 · HK1 2026–2027</span>
+        <div class="cal-views" role="tablist" aria-label="Kiểu xem">
+          <button type="button" role="tab" id="view-week" aria-selected="true">Tuần</button>
+          <button type="button" role="tab" id="view-agenda" aria-selected="false">Lịch biểu</button>
+        </div>
+      </div>
+
+      <!-- Top Strip: Tháng 10 2026 và Lịch của tôi kéo lên phía trên -->
+      <div class="cal-top-strip">
+        <div class="cal-mini" aria-label="Tháng 10 2026">
+          <div class="cal-mini-head">Tháng 10 2026</div>
+          <div class="cal-mini-grid">
+            <span class="dow">T2</span><span class="dow">T3</span><span class="dow">T4</span><span class="dow">T5</span><span class="dow">T6</span><span class="dow">T7</span><span class="dow">CN</span>
+            <span></span><span></span><span></span><span>1</span><span>2</span><span>3</span><span>4</span>
+            <span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span>
+            <span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span><span>18</span>
+            <span class="in-week">19</span><span class="in-week today">20</span><span class="in-week">21</span><span class="in-week">22</span><span class="in-week">23</span><span class="in-week">24</span><span class="in-week">25</span>
+            <span>26</span><span>27</span><span>28</span><span>29</span><span>30</span><span>31</span><span></span>
+          </div>
+        </div>
+
+        <div class="cal-cals">
+          <div class="cal-cals-head">
+            <h2>Lịch của tôi (5 môn · 18 tín chỉ)</h2>
+            <span style="font-size:12px; color:var(--text-3); font-family:var(--font-mono);">HK1 2026–2027</span>
+          </div>
+          <div class="cal-cals-items">
+            <div class="cal-cal"><i class="cal-dot blue"></i><span class="cal-cal-text"><b>CS300</b> CN Phần mềm <span class="nowrap-tc">(4 TC)</span></span></div>
+            <div class="cal-cal"><i class="cal-dot violet"></i><span class="cal-cal-text"><b>CS420</b> Trí tuệ nhân tạo <span class="nowrap-tc">(4 TC)</span></span></div>
+            <div class="cal-cal"><i class="cal-dot green"></i><span class="cal-cal-text"><b>MTH251</b> Giải tích 1 <span class="nowrap-tc">(4 TC)</span></span></div>
+            <div class="cal-cal"><i class="cal-dot amber"></i><span class="cal-cal-text"><b>MTH346</b> Lý thuyết số <span class="nowrap-tc">(4 TC)</span></span></div>
+            <div class="cal-cal"><i class="cal-dot slate"></i><span class="cal-cal-text"><b>BAACM02</b> KTCT Mác - Lênin <span class="nowrap-tc">(2 TC)</span></span></div>
+            <div class="cal-cal"><i class="cal-dot rose"></i><span class="cal-cal-text"><b>Hạn nộp</b> / Deadline</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Khung calendar chính chiếm trọn màn hình -->
+      <section class="cal-board" aria-label="Lưới tuần">
+        <div class="cal-days" id="cal-days"></div>
+        <div class="cal-allday" id="cal-allday"></div>
+        <div class="cal-slots" id="cal-slots"></div>
+        <div class="cal-agenda" id="cal-agenda"></div>
+      </section>
+
+      <!-- Phía dưới: Danh sách các môn học, lịch LT/TH và giảng viên theo timetable.jfif -->
+      <section class="cal-courses-section" aria-labelledby="reg-courses-title">
+        <div class="cal-courses-head">
+          <div>
+            <h2 id="reg-courses-title">Các môn đã đăng ký (HK1 2026–2027)</h2>
+            <p class="sub">Sinh viên: <b>MINH ANH</b> · Chương trình Tiên tiến Khoa học Máy tính (APCS K23)</p>
+          </div>
+          <span class="status-line ok" style="font-size:12px;">
+            <span class="status-dot" aria-hidden="true"></span>
+            Đã đăng ký 5 môn · 18 TC
+          </span>
+        </div>
+
+        <div class="cal-table-wrap">
+          <table class="cal-timetable" aria-label="Danh sách học phần đã đăng ký">
+            <thead>
+              <tr>
+                <th class="col-stt">STT</th>
+                <th>Mã MH</th>
+                <th>Tên môn học</th>
+                <th style="text-align:center;">TC</th>
+                <th>Lớp HP</th>
+                <th>Học kỳ</th>
+                <th>Lịch Lý thuyết</th>
+                <th>Lịch Thực hành</th>
+                <th>GV-LT</th>
+                <th>GV-TH</th>
+                <th>GV-TG</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-stt">1</td>
+                <td class="col-code">BAACM02</td>
+                <td class="col-name">Marxist-Leninist Political Economics<br><small style="color:var(--text-3); font-weight:400;">Kinh tế chính trị Mác - Lênin</small></td>
+                <td class="col-tc">2</td>
+                <td class="col-class">24A</td>
+                <td class="col-term">1/26-27</td>
+                <td class="col-sched"><b>T7</b> (Tiết 1–4)<span class="room-tag">E.403</span></td>
+                <td class="col-sched"><span style="color:var(--text-3);">—</span></td>
+                <td class="col-teacher"><b>NAKhoa</b><br><small>TS. Nguyễn Anh Khoa</small></td>
+                <td class="col-teacher"><span style="color:var(--text-3);">—</span></td>
+                <td class="col-teacher"><span style="color:var(--text-3);">—</span></td>
+              </tr>
+              <tr>
+                <td class="col-stt">2</td>
+                <td class="col-code">CS300</td>
+                <td class="col-name">Elements of Software Engineering<br><small style="color:var(--text-3); font-weight:400;">Nhập môn Công nghệ phần mềm</small></td>
+                <td class="col-tc">4</td>
+                <td class="col-class">2401</td>
+                <td class="col-term">1/26-27</td>
+                <td class="col-sched"><b>T6</b> (Tiết 7–10)<span class="room-tag">1.11B</span></td>
+                <td class="col-sched"><b>T2</b> (Tiết 1–4)<span class="room-tag">1.92</span></td>
+                <td class="col-teacher"><b>NVVũ</b><br><small>TS. Nguyễn Văn Vũ</small></td>
+                <td class="col-teacher"><span style="color:var(--text-3);">—</span></td>
+                <td class="col-teacher"><b>NNDKhoa</b><br><small>ThS. Nguyễn Ngô Duy Khoa</small></td>
+              </tr>
+              <tr>
+                <td class="col-stt">3</td>
+                <td class="col-code">CS420</td>
+                <td class="col-name">Artificial Intelligence<br><small style="color:var(--text-3); font-weight:400;">Trí tuệ nhân tạo</small></td>
+                <td class="col-tc">4</td>
+                <td class="col-class">2401</td>
+                <td class="col-term">1/26-27</td>
+                <td class="col-sched"><b>T3</b> (Tiết 1–4)<span class="room-tag">B.41</span></td>
+                <td class="col-sched"><span style="color:var(--text-3);">— (BTL)</span></td>
+                <td class="col-teacher"><b>NNThảo</b><br><small>ThS. Nguyễn Ngọc Thảo</small></td>
+                <td class="col-teacher"><span style="color:var(--text-3);">—</span></td>
+                <td class="col-teacher"><b>NHDũng</b><br><small>ThS. Nguyễn Hải Dũng</small></td>
+              </tr>
+              <tr>
+                <td class="col-stt">4</td>
+                <td class="col-code">MTH251</td>
+                <td class="col-name">Calculus I<br><small style="color:var(--text-3); font-weight:400;">Giải tích 1</small></td>
+                <td class="col-tc">4</td>
+                <td class="col-class">26A02</td>
+                <td class="col-term">1/26-27</td>
+                <td class="col-sched"><b>T6</b> (Tiết 1–4)<span class="room-tag">1.11B</span></td>
+                <td class="col-sched"><b>T4</b> (Tiết 7–10)<span class="room-tag">C.24</span></td>
+                <td class="col-teacher"><b>NDKhoa</b><br><small>TS. Nguyễn Duy Khoa</small></td>
+                <td class="col-teacher"><b>LVChính</b><br><small>ThS. Lê Văn Chính</small></td>
+                <td class="col-teacher"><span style="color:var(--text-3);">—</span></td>
+              </tr>
+              <tr>
+                <td class="col-stt">5</td>
+                <td class="col-code">MTH346</td>
+                <td class="col-name">Number Theory<br><small style="color:var(--text-3); font-weight:400;">Lý thuyết số</small></td>
+                <td class="col-tc">4</td>
+                <td class="col-class">24A</td>
+                <td class="col-term">1/26-27</td>
+                <td class="col-sched"><b>T4</b> (Tiết 1–4)<span class="room-tag">1.11B</span></td>
+                <td class="col-sched"><b>T6</b> (Tiết 7–10)<span class="room-tag">1.11E</span></td>
+                <td class="col-teacher"><b>TNDũng</b><br><small>PGS.TS. Trần Nam Dũng</small></td>
+                <td class="col-teacher"><b>LVKhôi</b><br><small>ThS. Lê Văn Khôi</small></td>
+                <td class="col-teacher"><span style="color:var(--text-3);">—</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="cal-pop" id="cal-pop" hidden role="dialog" aria-modal="true" aria-labelledby="cal-pop-title">
+    <h3 id="cal-pop-title"></h3>
+    <p id="cal-pop-when"></p>
+    <p id="cal-pop-where"></p>
+    <p id="cal-pop-note"></p>
+    <div class="cal-pop-actions">
+      <a class="text-link" id="cal-pop-link" href="planner.html#hk1">Mở lộ trình</a>
+      <button type="button" class="text-link" id="cal-pop-close">Đóng</button>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>Dữ liệu minh họa · APCS K23 · Trường ĐH Khoa học Tự nhiên, ĐHQG-HCM</span>
+      <span class="footer-links">
+        <a href="index.html">Ba trang mẫu</a>
+        <a href="docs/RESEARCH.md">Ghi chú thiết kế</a>
+        <a href="docs/VERIFY.md">Kiểm chứng</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    const HOUR_START = 7;
+    const HOUR_END = 18;
+    const HOUR_H = 36;
+    const DAYS = [
+      { key: 0, label: "T2", date: 19 },
+      { key: 1, label: "T3", date: 20, today: true },
+      { key: 2, label: "T4", date: 21 },
+      { key: 3, label: "T5", date: 22 },
+      { key: 4, label: "T6", date: 23 },
+      { key: 5, label: "T7", date: 24 },
+      { key: 6, label: "CN", date: 25 }
+    ];
+    const EVENTS = [
+      { id: "cs300-th", day: 0, start: "07:30", end: "11:00", title: "CS300 (TH)", when: "07:30–11:00 · Thứ Hai 19/10", where: "Phòng máy 1.92 · Lớp 2401", note: "Thực hành CNPM · GV-TG: ThS. Nguyễn Ngô Duy Khoa", color: "blue", href: "planner.html" },
+      { id: "cs420-lt", day: 1, start: "07:30", end: "11:00", title: "CS420 (LT)", when: "07:30–11:00 · Thứ Ba 20/10", where: "Phòng B.41 · Lớp 2401", note: "Trí tuệ nhân tạo · GV-LT: ThS. Nguyễn Ngọc Thảo", color: "violet", href: "planner.html" },
+      { id: "mth346-lt", day: 2, start: "07:30", end: "11:00", title: "MTH346 (LT)", when: "07:30–11:00 · Thứ Tư 21/10", where: "Phòng 1.11B · Lớp 24A", note: "Lý thuyết số · GV-LT: PGS.TS. Trần Nam Dũng", color: "amber", href: "planner.html" },
+      { id: "mth251-th", day: 2, start: "13:30", end: "16:40", title: "MTH251 (TH)", when: "13:30–16:40 · Thứ Tư 21/10", where: "Phòng C.24 · Lớp 26A02", note: "Thực hành Giải tích 1 · GV-TH: ThS. Lê Văn Chính", color: "green", href: "planner.html" },
+      { id: "lab-mth", day: 2, allDay: true, title: "Hạn Bài tập MTH346", when: "21/10 · 23:59", where: "Moodle HCMUS", note: "Bài tập Lý thuyết số Tuần 7", color: "rose", href: "links.html" },
+      { id: "mth251-lt", day: 4, start: "07:30", end: "11:00", title: "MTH251 (LT)", when: "07:30–11:00 · Thứ Sáu 23/10", where: "Phòng 1.11B · Lớp 26A02", note: "Lý thuyết Giải tích 1 · GV-LT: TS. Nguyễn Duy Khoa", color: "green", href: "planner.html" },
+      { id: "cs300-lt", day: 4, start: "13:30", end: "16:40", title: "CS300 (LT)", when: "13:30–16:40 · Thứ Sáu 23/10", where: "Phòng 1.11B · Lớp 2401", note: "Lý thuyết CNPM · GV-LT: TS. Nguyễn Văn Vũ", color: "blue", href: "planner.html" },
+      { id: "baacm02-lt", day: 5, start: "07:30", end: "11:00", title: "BAACM02 (LT)", when: "07:30–11:00 · Thứ Bảy 24/10", where: "Phòng E.403 · Lớp 24A", note: "Kinh tế chính trị Mác - Lênin · GV-LT: TS. Nguyễn Anh Khoa", color: "slate", href: "planner.html" },
+      { id: "ms1", day: 5, allDay: true, title: "Hạn Milestone 1", when: "24/10 · 17:00", where: "Moodle · CS300", note: "Đồ án nhóm CNPM (4 SV)", color: "rose", href: "links.html" }
+    ];
+
+    function minutes(hhmm) {
+      const [h, m] = hhmm.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function eventById(id) {
+      return EVENTS.find((e) => e.id === id);
+    }
+
+    function openPop(id, anchor) {
+      const ev = eventById(id);
+      if (!ev) return;
+      const pop = document.getElementById("cal-pop");
+      document.getElementById("cal-pop-title").textContent = ev.title;
+      document.getElementById("cal-pop-when").textContent = ev.when;
+      document.getElementById("cal-pop-where").textContent = ev.where;
+      document.getElementById("cal-pop-note").textContent = ev.note;
+      document.getElementById("cal-pop-link").href = ev.href;
+      pop.hidden = false;
+      if (anchor) {
+        const r = anchor.getBoundingClientRect();
+        const left = Math.min(r.right + 8, window.innerWidth - 336);
+        const top = Math.min(r.top, window.innerHeight - 180);
+        pop.style.left = Math.max(12, left) + "px";
+        pop.style.top = Math.max(12, top) + "px";
+      }
+    }
+
+    function closePop() {
+      document.getElementById("cal-pop").hidden = true;
+    }
+
+    function bindEvent(el, id) {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openPop(id, el);
+      });
+    }
+
+    function renderDays() {
+      const row = document.getElementById("cal-days");
+      row.innerHTML = "<div></div>";
+      DAYS.forEach((d) => {
+        const cell = document.createElement("div");
+        cell.className = "cal-dayh" + (d.today ? " is-today" : "");
+        cell.innerHTML = "<small>" + d.label + "</small><b>" + d.date + "</b>";
+        row.appendChild(cell);
+      });
+    }
+
+    function renderAllDay() {
+      const row = document.getElementById("cal-allday");
+      row.innerHTML = "";
+      const gutter = document.createElement("div");
+      gutter.className = "gutter";
+      gutter.textContent = "Cả ngày";
+      row.appendChild(gutter);
+      DAYS.forEach((d) => {
+        const lane = document.createElement("div");
+        lane.className = "lane";
+        EVENTS.filter((e) => e.allDay && e.day === d.key).forEach((e) => {
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "cal-chip " + e.color;
+          chip.textContent = e.title + " · " + (e.where.split("·")[0].trim());
+          bindEvent(chip, e.id);
+          lane.appendChild(chip);
+        });
+        row.appendChild(lane);
+      });
+    }
+
+    function renderGrid() {
+      const slots = document.getElementById("cal-slots");
+      slots.innerHTML = "";
+      slots.className = "cal-slots";
+      slots.style.setProperty("--cal-hour", HOUR_H + "px");
+
+      const gutter = document.createElement("div");
+      gutter.className = "gutter";
+      gutter.style.height = ((HOUR_END - HOUR_START) * HOUR_H) + "px";
+      for (let h = HOUR_START; h < HOUR_END; h++) {
+        const label = document.createElement("div");
+        label.className = "cal-hour";
+        label.textContent = String(h).padStart(2, "0") + ":00";
+        gutter.appendChild(label);
+      }
+      slots.appendChild(gutter);
+
+      DAYS.forEach((d) => {
+        const col = document.createElement("div");
+        col.className = "col" + (d.today ? " is-today" : "");
+        col.style.height = ((HOUR_END - HOUR_START) * HOUR_H) + "px";
+        for (let h = HOUR_START; h <= HOUR_END; h++) {
+          const line = document.createElement("div");
+          line.className = "cal-line";
+          line.style.top = ((h - HOUR_START) * HOUR_H) + "px";
+          col.appendChild(line);
+        }
+        EVENTS.filter((e) => !e.allDay && e.day === d.key).forEach((e) => {
+          const top = ((minutes(e.start) - HOUR_START * 60) / 60) * HOUR_H;
+          const height = ((minutes(e.end) - minutes(e.start)) / 60) * HOUR_H;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cal-event " + e.color;
+          btn.style.top = top + "px";
+          btn.style.height = (height - 3) + "px";
+          btn.innerHTML = "<b>" + e.title + "</b><small>" + e.start + "–" + e.end + "</small>";
+          bindEvent(btn, e.id);
+          col.appendChild(btn);
+        });
+        if (d.today) {
+          const now = document.createElement("div");
+          now.className = "cal-now";
+          now.style.top = (((10 * 60 + 20) - HOUR_START * 60) / 60) * HOUR_H + "px";
+          now.setAttribute("aria-hidden", "true");
+          col.appendChild(now);
+        }
+        slots.appendChild(col);
+      });
+    }
+
+    function renderAgenda() {
+      const box = document.getElementById("cal-agenda");
+      box.innerHTML = "";
+      DAYS.forEach((d) => {
+        const items = EVENTS.filter((e) => e.day === d.key);
+        const wrap = document.createElement("div");
+        wrap.className = "cal-agenda-day";
+        wrap.innerHTML = "<h3>" + d.label + " · " + d.date + "/10" + (d.today ? " · Hôm nay" : "") + "</h3>";
+        if (!items.length) {
+          const empty = document.createElement("p");
+          empty.className = "sub";
+          empty.textContent = "Trống";
+          wrap.appendChild(empty);
+        }
+        items.forEach((e) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cal-ag-item " + e.color;
+          btn.innerHTML = "<time>" + (e.allDay ? "Cả ngày" : e.start + "–" + e.end) + "</time><span><b>" + e.title + "</b> · " + e.where + "</span>";
+          bindEvent(btn, e.id);
+          wrap.appendChild(btn);
+        });
+        box.appendChild(wrap);
+      });
+    }
+
+    function setView(name) {
+      const week = name === "week";
+      document.body.classList.toggle("cal-agenda-on", !week);
+      document.getElementById("view-week").setAttribute("aria-selected", week ? "true" : "false");
+      document.getElementById("view-agenda").setAttribute("aria-selected", week ? "false" : "true");
+      closePop();
+    }
+
+    renderDays();
+    renderAllDay();
+    renderGrid();
+    renderAgenda();
+
+    document.getElementById("view-week").addEventListener("click", () => setView("week"));
+    document.getElementById("view-agenda").addEventListener("click", () => setView("agenda"));
+    document.getElementById("cal-today").addEventListener("click", () => {
+      setView("week");
+      document.querySelector(".cal-dayh.is-today")?.scrollIntoView({ block: "nearest", inline: "center" });
+    });
+    document.getElementById("cal-pop-close").addEventListener("click", closePop);
+    document.addEventListener("click", (e) => {
+      const pop = document.getElementById("cal-pop");
+      if (!pop.hidden && !pop.contains(e.target)) closePop();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closePop();
+    });
+  </script>
+</body>
+</html>

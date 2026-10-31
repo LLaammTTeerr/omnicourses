@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tổng quan · OmniCourse</title>
+  <meta name="description" content="Bản mẫu dashboard kiểm tra tiến độ tốt nghiệp cho sinh viên APCS, HCMUS.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Bỏ qua điều hướng</a>
+
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="i-overview" viewBox="0 0 24 24">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+    </symbol>
+    <symbol id="i-route" viewBox="0 0 24 24">
+      <circle cx="6" cy="6" r="2.2"></circle>
+      <circle cx="18" cy="18" r="2.2"></circle>
+      <path d="M8.2 6h4.3a4 4 0 0 1 0 8H11a4 4 0 0 0 0 8h4.8"></path>
+    </symbol>
+    <symbol id="i-link" viewBox="0 0 24 24">
+      <path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.5 1.5"></path>
+      <path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.5-1.5"></path>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6.3"></circle>
+      <path d="m15.5 15.5 4.2 4.2"></path>
+    </symbol>
+    <symbol id="i-external" viewBox="0 0 24 24">
+      <path d="M14 4.5h5.5V10"></path>
+      <path d="m19.5 4.5-7.2 7.2"></path>
+      <path d="M18.5 14.5v4a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5h4"></path>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24">
+      <path d="M12 4.5 21 20H3l9-15.5Z"></path>
+      <path d="M12 9.5v4.5"></path>
+      <path d="M12 17.2v.1"></path>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m4.5 12.5 4.7 4.7L19.5 6.8"></path>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.74v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <path d="M12 7.5V12l3.3 2"></path>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect>
+      <path d="M3.5 9.5h17"></path>
+      <path d="M8 3.5v3"></path>
+      <path d="M16 3.5v3"></path>
+    </symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24">
+      <path d="M6.5 10.5a5.5 5.5 0 0 1 11 0c0 4 1.5 5.5 1.5 5.5H5s1.5-1.5 1.5-5.5Z"></path>
+      <path d="M10 19a2.2 2.2 0 0 0 4 0"></path>
+    </symbol>
+    <symbol id="i-book" viewBox="0 0 24 24">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"></path>
+      <path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"></path>
+    </symbol>
+    <symbol id="i-cap" viewBox="0 0 24 24">
+      <path d="m3 9 9-4 9 4-9 4-9-4Z"></path>
+      <path d="M7 11.2V15c0 1.7 2.2 3 5 3s5-1.3 5-3v-3.8"></path>
+      <path d="M21 9v5"></path>
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <circle cx="12" cy="12" r="4.5"></circle>
+      <circle cx="12" cy="12" r="1.2"></circle>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24">
+      <path d="M12 3.5 19 6.2v6.1c0 4.4-3 7.2-7 8.7-4-1.5-7-4.3-7-8.7V6.2L12 3.5Z"></path>
+      <path d="m8.8 12.1 2.2 2.2 4.3-4.4"></path>
+    </symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24">
+      <rect x="3.5" y="6" width="17" height="13" rx="2.2"></rect>
+      <path d="M3.5 9.5h17"></path>
+      <path d="M16 14.5h1.5"></path>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 24 24">
+      <path d="M6 3.5h7.5L19 9v11.5H6V3.5Z"></path>
+      <path d="M13.5 3.5V9H19"></path>
+      <path d="M9 13h6"></path>
+      <path d="M9 16.5h6"></path>
+    </symbol>
+    <symbol id="i-help" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <path d="M9.7 9.3a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.8-1.1 1.7"></path>
+      <path d="M12 16.7v.1"></path>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <path d="M12 5v14"></path>
+      <path d="M5 12h14"></path>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <path d="M12 11v5.5"></path>
+      <path d="M12 7.7v.1"></path>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+      <path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10"></path>
+    </symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24">
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect>
+      <path d="m4.5 7 7.5 6 7.5-6"></path>
+    </symbol>
+    <symbol id="i-arrow-out" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-arrow-in" viewBox="0 0 24 24">
+      <path d="M19 12H5"></path>
+      <path d="m11 18-6-6 6-6"></path>
+    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24">
+      <path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3Z"></path>
+    </symbol>
+  </svg>
+
+  <aside class="site-header" aria-label="Điều hướng">
+    <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Thu gọn hoặc mở rộng thanh điều hướng">
+    <div class="header-inner">
+      <div class="sidebar-top">
+        <a class="brand" href="index.html" aria-label="OmniCourse, trang chủ bản mẫu">
+          <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4.8 16.4c3.5 0 3.5-8.8 7.2-8.8s3.7 8.8 7.2 8.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            <circle cx="4.8" cy="16.4" r="1.3" fill="currentColor"></circle>
+            <circle cx="19.2" cy="16.4" r="1.3" fill="currentColor"></circle>
+          </svg>
+          <span>OmniCourse</span>
+        </a>
+        <label class="nav-collapse" for="nav-toggle" title="Thu gọn thanh điều hướng">
+          <svg class="icon" aria-hidden="true"><use href="#i-arrow-in"></use></svg>
+        </label>
+      </div>
+
+      <label class="nav-expand" for="nav-toggle" title="Mở rộng thanh điều hướng">
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow-out"></use></svg>
+      </label>
+
+      <span class="term-chip">
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          HK1 2026–2027
+        </span>
+
+      <nav class="nav" aria-label="Điều hướng chính">
+        <a href="dashboard.html" aria-current="page" title="Tổng quan" data-tooltip="Tổng quan (⌘1)">
+          <svg class="icon" aria-hidden="true"><use href="#i-overview"></use></svg>
+          <span>Tổng quan</span>
+        </a>
+        <a href="schedule.html" title="Thời khóa biểu" data-tooltip="Thời khóa biểu">
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          <span>Lịch</span>
+        </a>
+        <a href="planner.html" title="Lộ trình" data-tooltip="Lộ trình (⌘2)">
+          <svg class="icon" aria-hidden="true"><use href="#i-route"></use></svg>
+          <span>Lộ trình</span>
+        </a>
+        <a href="links.html" title="Liên kết" data-tooltip="Liên kết (⌘3)">
+          <svg class="icon" aria-hidden="true"><use href="#i-link"></use></svg>
+          <span>Liên kết</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="sidebar-settings" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+          <span>Cài đặt</span>
+        </button>
+        <span class="avatar" aria-label="Tài khoản của Minh Anh">MA</span>
+      </div>
+    </div>
+  </aside>
+
+  <main id="main" class="page">
+    <div class="container">
+      <section class="student-row" aria-label="Sinh viên">
+        <div class="student-id-badge">
+          <div class="student-avatar" aria-hidden="true">MA</div>
+          <div class="student-info">
+            <h3>Minh Anh</h3>
+            <p>APCS K23 · HCMUS</p>
+          </div>
+        </div>
+        <div class="student-horizon" aria-label="Tiến độ học vụ tổng thể">
+          <div class="student-horizon-meta">
+            <span><b>Học kỳ 5 / 8</b> (Năm 3)</span>
+            <span><b>125 / 167 TC</b> (75%)</span>
+          </div>
+          <div class="student-horizon-bar" aria-hidden="true">
+            <i style="width: 74.9%"></i>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="status-line ok">
+            <span class="status-dot" aria-hidden="true"></span>
+            Đúng tiến độ
+            <span class="status-meta">08/2027</span>
+          </span>
+          <a class="btn btn-secondary btn-small" href="planner.html" style="font-size:12.5px; padding:6px 14px; border-radius:999px;">Lộ trình HK2 ↗</a>
+        </div>
+      </section>
+
+      <section class="kpi-stats" aria-label="Tóm tắt học vụ cốt lõi">
+        <article class="kpi-card kpi-apcs">
+          <div class="kpi-top">
+            <p class="kpi-k">Tích lũy APCS</p>
+            <span class="kpi-icon" aria-hidden="true">
+              <svg class="icon"><use href="#i-cap"></use></svg>
+            </span>
+          </div>
+          <p class="kpi-v hint" tabindex="0" data-note="125 TC đã hoàn thành trên tổng 167 TC của chương trình APCS. Còn 24 TC nữa để hoàn tất sau HK1.">125<small>/167</small></p>
+          <p class="kpi-note">Còn 24 tín chỉ</p>
+        </article>
+        <article class="kpi-card kpi-gpa">
+          <div class="kpi-top">
+            <p class="kpi-k">GPA tích lũy</p>
+            <span class="kpi-icon" aria-hidden="true">
+              <svg class="icon"><use href="#i-target"></use></svg>
+            </span>
+          </div>
+          <p class="kpi-v hint" tabindex="0" data-note="GPA hệ 4, tính trên các môn thuộc CTĐT. Điểm rèn luyện và GDTC/GDQP không tính GPA.">3.42<small>/4.00</small></p>
+          <p class="kpi-note">Hạng Giỏi · HK trước 3.58</p>
+        </article>
+        <article class="kpi-card kpi-term">
+          <div class="kpi-top">
+            <p class="kpi-k">Học kỳ này</p>
+            <span class="kpi-icon" aria-hidden="true">
+              <svg class="icon"><use href="#i-calendar"></use></svg>
+            </span>
+          </div>
+          <p class="kpi-v hint" tabindex="0" data-note="18 TC đang học trong HK1 2026–2027, gồm 5 môn theo TKB. Trần học kỳ là 22 TC.">18<small> TC</small></p>
+          <p class="kpi-note">HK1 · 5 học phần</p>
+        </article>
+        <article class="kpi-card kpi-drl">
+          <div class="kpi-top">
+            <p class="kpi-k">Điểm rèn luyện</p>
+            <span class="kpi-icon" aria-hidden="true">
+              <svg class="icon"><use href="#i-shield"></use></svg>
+            </span>
+          </div>
+          <p class="kpi-v hint" tabindex="0" data-note="Điểm rèn luyện học kỳ trước đạt 88/100, xếp loại Tốt.">88<small>/100</small></p>
+          <p class="kpi-note">Xếp loại Tốt</p>
+        </article>
+      </section>
+
+      <aside class="todo-notice" aria-label="Việc cần làm">
+        <span class="todo-notice-icon" aria-hidden="true">
+          <svg class="icon"><use href="#i-bell"></use></svg>
+        </span>
+        <div class="todo-notice-copy">
+          <p>Còn hạn nộp và việc cần xử lý</p>
+          <p>2 deadline trong 48h · sửa lộ trình HK2 trước 30/10</p>
+        </div>
+        <button class="todo-toggle" type="button" id="todo-toggle" aria-expanded="false" aria-controls="todo-panel">
+          Xem việc cần làm
+        </button>
+      </aside>
+
+      <div class="todo-panel" id="todo-panel" hidden>
+        <div class="todo-panel-grid">
+          <section aria-labelledby="bento-next-title">
+            <h3 id="bento-next-title">Việc cần xử lý</h3>
+            <article class="todo-task">
+              <div class="todo-task-top">
+                <span>Lộ trình HK2</span>
+                <span class="status-line warn">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Còn 12 ngày
+                  <span class="status-meta">30/10</span>
+                </span>
+              </div>
+              <p class="todo-task-title">Sửa lộ trình HK2 trước 30/10</p>
+              <p>CS494 không mở trong HK2. HK3 dự kiến vượt trần 2 TC.</p>
+              <p class="todo-task-fix">Đổi CS494 sang CS433 (4 TC) và chuyển CS428 sang HK2.</p>
+              <div class="todo-task-actions">
+                <a class="btn btn-primary btn-small" href="planner.html#hk2">Áp dụng phương án sửa</a>
+                <a class="text-link" href="planner.html">Mở lộ trình</a>
+              </div>
+            </article>
+            <article class="todo-task">
+              <p class="todo-task-title">CS333 chưa đạt tiên quyết CS202</p>
+              <p>Cần nộp đơn xin học song hành hoặc cứu xét trước 25/10.</p>
+              <a class="text-link" href="planner.html#hk1">Xem phương án cứu xét</a>
+            </article>
+            <article class="todo-task">
+              <p class="todo-task-title">Thiếu chứng chỉ Anh văn B2</p>
+              <p>Hạn nộp 30/06/2027 để kịp xét tốt nghiệp đợt tháng 8.</p>
+              <a class="text-link" href="links.html#ngoai-ngu">Xem quy trình nộp</a>
+            </article>
+            <article class="todo-task">
+              <p class="todo-task-title">Định hướng Học máy còn thiếu 16 TC</p>
+              <p>Chưa đăng ký môn nào thuộc chuyên ban Trí tuệ nhân tạo &amp; Học máy.</p>
+              <a class="text-link" href="planner.html#pool">Xem 6 môn gợi ý từ Khoa</a>
+            </article>
+          </section>
+          <section id="lich-hoc" aria-labelledby="deadline-title">
+            <h3 id="deadline-title">Deadline 48h</h3>
+            <div class="deadline-item">
+              <span class="deadline-dot urgent"></span>
+              <div class="deadline-content">
+                <h5>Lab 2: CPU Scheduling (CS333)</h5>
+                <div class="deadline-meta">Hạn: <span>23:59 ngày mai (21/10)</span> · Moodle</div>
+              </div>
+            </div>
+            <div class="deadline-item">
+              <span class="deadline-dot"></span>
+              <div class="deadline-content">
+                <h5>Milestone 1: ERD Design (CS486)</h5>
+                <div class="deadline-meta">Hạn: 17:00 Thứ Sáu (24/10) · Nhóm 4 SV</div>
+              </div>
+            </div>
+            <h3>Lịch hôm nay</h3>
+            <p class="sub">Thứ Ba, 20/10/2026 · Tuần 7 / 16</p>
+            <div class="class-item">
+              <span class="class-time">09:30 – 11:30</span>
+              <div class="class-detail">
+                <div class="class-name">CS333 · Hệ điều hành (Lý thuyết)</div>
+                <div class="class-loc">Giảng đường <b>C.32</b> · Ca 2</div>
+              </div>
+            </div>
+            <div class="class-item">
+              <span class="class-time">13:30 – 16:30</span>
+              <div class="class-detail">
+                <div class="class-name">CS486 · Thực hành Hệ CSDL (Lab)</div>
+                <div class="class-loc">Phòng máy <b>I.44</b></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <section class="panel dash-progress" id="tien-do" aria-labelledby="progress-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="progress-title">Tiến độ chương trình</h2>
+            <p class="sub">APCS · khóa 2023 · 167 TC</p>
+          </div>
+          <div class="prog-toolbar">
+            <div class="prog-tabs" role="tablist" aria-label="Xem tiến độ hoặc môn học">
+              <button type="button" class="prog-tab" role="tab" id="tab-tien-do" aria-selected="true" aria-controls="panel-tien-do" data-tab="tien-do">Tiến độ</button>
+              <button type="button" class="prog-tab" role="tab" id="tab-dang-hoc" aria-selected="false" aria-controls="panel-dang-hoc" data-tab="dang-hoc">Đang học</button>
+              <button type="button" class="prog-tab" role="tab" id="tab-da-hoc" aria-selected="false" aria-controls="panel-da-hoc" data-tab="da-hoc">Đã học</button>
+            </div>
+            <a class="text-link" href="https://www.ctda.hcmus.edu.vn/vi/educational-program/chuong-trinh-tien-tien/" target="_blank" rel="noopener">
+              CTĐT APCS
+              <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+            </a>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="panel-dang-hoc" role="tabpanel" aria-labelledby="tab-dang-hoc" hidden>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line);">
+              <div>
+                <span style="font-size:15px; font-weight:600; color:var(--text);">HK1 2026–2027</span>
+                <span class="sub" style="margin-left:8px; font-size:13.5px;">5 học phần · 18 tín chỉ</span>
+              </div>
+              <span class="status-line ok" style="font-size:12px;">
+                <span class="status-dot" aria-hidden="true"></span>
+                Đã đăng ký chính thức
+              </span>
+            </div>
+
+            <div class="curr-cards-grid">
+              <!-- CS300 -->
+              <article class="curr-card">
+                <div class="curr-card-head">
+                  <div class="curr-card-tags">
+                    <span class="curr-code">CS300</span>
+                    <span class="curr-class">Lớp 2401</span>
+                    <span style="font-size:12px; color:var(--text-3); font-weight:500;">Bắt buộc ngành</span>
+                  </div>
+                  <span class="curr-credit">4 TC</span>
+                </div>
+                <h4 class="curr-name">Elements of Software Engineering (Nhập môn Công nghệ phần mềm)</h4>
+                <div class="curr-schedule-grid">
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Lý thuyết: <b>Thứ Sáu · 13:30–16:40</b> (Phòng <b>1.11B</b>)</span>
+                  </div>
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Thực hành: <b>Thứ Hai · 07:30–11:00</b> (Phòng <b>1.92</b>)</span>
+                  </div>
+                </div>
+                <div class="curr-card-foot">
+                  <div class="curr-teachers">
+                    <span>Giảng viên:</span>
+                    <b>TS. Nguyễn Văn Vũ</b> (LT) · <b>ThS. Nguyễn Ngô Duy Khoa</b> (TG)
+                  </div>
+                  <span style="color:#15803D; font-weight:600; font-size:12px;">Tuần 7/16 · Đồ án nhóm</span>
+                </div>
+              </article>
+
+              <!-- CS420 -->
+              <article class="curr-card">
+                <div class="curr-card-head">
+                  <div class="curr-card-tags">
+                    <span class="curr-code">CS420</span>
+                    <span class="curr-class">Lớp 2401</span>
+                    <span style="font-size:12px; color:var(--text-3); font-weight:500;">Bắt buộc ngành</span>
+                  </div>
+                  <span class="curr-credit">4 TC</span>
+                </div>
+                <h4 class="curr-name">Artificial Intelligence (Trí tuệ nhân tạo)</h4>
+                <div class="curr-schedule-grid">
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Lý thuyết: <b>Thứ Ba · 07:30–11:00</b> (Phòng <b>B.41</b>)</span>
+                  </div>
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg>
+                    <span>Hình thức: <b>Lý thuyết + Bài tập lớn</b></span>
+                  </div>
+                </div>
+                <div class="curr-card-foot">
+                  <div class="curr-teachers">
+                    <span>Giảng viên:</span>
+                    <b>ThS. Nguyễn Ngọc Thảo</b> (LT) · <b>ThS. Nguyễn Hải Dũng</b> (TG)
+                  </div>
+                  <span style="color:#2563EB; font-weight:600; font-size:12px;">Giữa kỳ Tuần 9</span>
+                </div>
+              </article>
+
+              <!-- MTH251 -->
+              <article class="curr-card">
+                <div class="curr-card-head">
+                  <div class="curr-card-tags">
+                    <span class="curr-code">MTH251</span>
+                    <span class="curr-class">Lớp 26A02</span>
+                    <span style="font-size:12px; color:var(--text-3); font-weight:500;">Toán cơ sở</span>
+                  </div>
+                  <span class="curr-credit">4 TC</span>
+                </div>
+                <h4 class="curr-name">Calculus I (Giải tích 1)</h4>
+                <div class="curr-schedule-grid">
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Lý thuyết: <b>Thứ Sáu · 07:30–11:00</b> (Phòng <b>1.11B</b>)</span>
+                  </div>
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Thực hành: <b>Thứ Tư · 13:30–16:40</b> (Phòng <b>C.24</b>)</span>
+                  </div>
+                </div>
+                <div class="curr-card-foot">
+                  <div class="curr-teachers">
+                    <span>Giảng viên:</span>
+                    <b>TS. Nguyễn Duy Khoa</b> (LT) · <b>ThS. Lê Văn Chính</b> (TH)
+                  </div>
+                  <span style="color:#15803D; font-weight:600; font-size:12px;">Đang học tốt</span>
+                </div>
+              </article>
+
+              <!-- MTH346 -->
+              <article class="curr-card">
+                <div class="curr-card-head">
+                  <div class="curr-card-tags">
+                    <span class="curr-code">MTH346</span>
+                    <span class="curr-class">Lớp 24A</span>
+                    <span style="font-size:12px; color:var(--text-3); font-weight:500;">Toán chuyên đề</span>
+                  </div>
+                  <span class="curr-credit">4 TC</span>
+                </div>
+                <h4 class="curr-name">Number Theory (Lý thuyết số)</h4>
+                <div class="curr-schedule-grid">
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Lý thuyết: <b>Thứ Tư · 07:30–11:00</b> (Phòng <b>1.11B</b>)</span>
+                  </div>
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Thực hành: <b>Thứ Sáu · 13:30–16:40</b> (Phòng <b>1.11E</b>)</span>
+                  </div>
+                </div>
+                <div class="curr-card-foot">
+                  <div class="curr-teachers">
+                    <span>Giảng viên:</span>
+                    <b>PGS.TS. Trần Nam Dũng</b> (LT) · <b>ThS. Lê Văn Khôi</b> (TH)
+                  </div>
+                  <span style="color:#15803D; font-weight:600; font-size:12px;">Tuần 7/16</span>
+                </div>
+              </article>
+
+              <!-- BAACM02 -->
+              <article class="curr-card">
+                <div class="curr-card-head">
+                  <div class="curr-card-tags">
+                    <span class="curr-code">BAACM02</span>
+                    <span class="curr-class">Lớp 24A</span>
+                    <span style="font-size:12px; color:var(--text-3); font-weight:500;">Đại cương</span>
+                  </div>
+                  <span class="curr-credit">2 TC</span>
+                </div>
+                <h4 class="curr-name">Marxist-Leninist Political Economics (Kinh tế chính trị Mác - Lênin)</h4>
+                <div class="curr-schedule-grid">
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Lý thuyết: <b>Thứ Bảy · 07:30–11:00</b> (Phòng <b>E.403</b>)</span>
+                  </div>
+                  <div class="curr-sched-item">
+                    <svg class="icon" aria-hidden="true"><use href="#i-book"></use></svg>
+                    <span>Hình thức: <b>Lý thuyết tập trung</b></span>
+                  </div>
+                </div>
+                <div class="curr-card-foot">
+                  <div class="curr-teachers">
+                    <span>Giảng viên:</span>
+                    <b>TS. Nguyễn Anh Khoa</b> (LT)
+                  </div>
+                  <span style="color:#15803D; font-weight:600; font-size:12px;">Đã nộp bài tập cá nhân</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="tuition-card">
+              <div class="tuition-info">
+                <div class="tuition-icon" aria-hidden="true">
+                  <svg class="icon" style="width:18px;height:18px;"><use href="#i-wallet"></use></svg>
+                </div>
+                <div class="tuition-text">
+                  <h5>Học phí HK1 2026–2027: 28.500.000 VNĐ</h5>
+                  <p>Đã thanh toán qua Cổng VNPAY · Biên lai điện tử #839210 · 18 tín chỉ</p>
+                </div>
+              </div>
+              <span class="tuition-badge">Đã nộp</span>
+            </div>
+          </div>
+
+          <div id="panel-tien-do" role="tabpanel" aria-labelledby="tab-tien-do">
+              <div class="integrated-donut-row">
+                <div class="donut-wrap" role="img" aria-label="Biểu đồ tiến độ: 75% đã đạt, 10% đang học và 15% còn lại">
+                  <svg class="chart-svg" viewBox="0 0 100 100" id="main-donut-svg">
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="var(--surface-3)" stroke-width="14"></circle>
+                    <g transform="rotate(-90 50 50)">
+                      <circle id="seg-done" cx="50" cy="50" r="38" fill="none" stroke="var(--chart-core)" stroke-width="14" stroke-dasharray="178.71 238.76" stroke-dashoffset="0"><title>Đã đạt: 125 TC</title></circle>
+                      <circle id="seg-curr" cx="50" cy="50" r="38" fill="none" stroke="var(--chart-sand)" stroke-width="14" stroke-dasharray="22.87 238.76" stroke-dashoffset="-178.71"><title>Đang học: 16 TC</title></circle>
+                      <circle id="seg-left" cx="50" cy="50" r="38" fill="none" stroke="var(--chart-track)" stroke-width="14" stroke-dasharray="37.18 238.76" stroke-dashoffset="-201.58"><title>Còn lại: 26 TC</title></circle>
+                    </g>
+                  </svg>
+                  <span class="donut-center" id="donut-center-metric"><b>75%</b><small>125 / 167</small></span>
+                </div>
+                <ul class="audit-donut-legend" id="donut-legend">
+                  <li data-seg="done">
+                    <span><i class="key-blue" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--chart-core);margin-right:6px;"></i>Đã đạt</span>
+                    <b>125 TC</b>
+                  </li>
+                  <li data-seg="curr">
+                    <span><i class="key-sand" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--chart-sand);margin-right:6px;"></i>Đang học</span>
+                    <b>16 TC</b>
+                  </li>
+                  <li data-seg="left">
+                    <span><i class="key-line" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--chart-track);margin-right:6px;"></i>Còn lại</span>
+                    <b>26 TC</b>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="req-list" style="margin-top:0; border-top:none;">
+                <div class="req">
+                  <div class="req-name">
+                    <b>Tin học cốt lõi (A)</b>
+                  </div>
+                  <div class="req-bar" aria-hidden="true"><i style="width:86.7%"></i></div>
+                  <div class="req-num hint" tabindex="0" data-note="52 TC đã đạt trên 60 TC Tin học cốt lõi; 8 TC còn lại đang học trong HK1."><b>52</b> / 60</div>
+                  <div class="req-state current">Đang học</div>
+                </div>
+
+                <div class="req">
+                  <div class="req-name">
+                    <b>Ngoài Tin học</b>
+                  </div>
+                  <div class="req-bar" aria-hidden="true"><i style="width:100%"></i></div>
+                  <div class="req-num"><b>26</b> / 26</div>
+                  <div class="req-state done">Đạt</div>
+                </div>
+
+                <div class="req">
+                  <div class="req-name">
+                    <b>Toán học</b>
+                  </div>
+                  <div class="req-bar" aria-hidden="true"><i style="width:100%"></i></div>
+                  <div class="req-num"><b>16</b> / 16</div>
+                  <div class="req-state done">Đạt</div>
+                </div>
+
+                <div class="req">
+                  <div class="req-name">
+                    <b>Vật lý</b>
+                  </div>
+                  <div class="req-bar" aria-hidden="true"><i style="width:100%"></i></div>
+                  <div class="req-num"><b>12</b> / 12</div>
+                  <div class="req-state done">Đạt</div>
+                </div>
+
+                <div class="req">
+                  <div class="req-name">
+                    <b>Tự chọn (B + C)</b>
+                  </div>
+                  <div class="req-bar warn" aria-hidden="true"><i style="width:44.2%"></i></div>
+                  <div class="req-num hint" tabindex="0" data-note="19 TC đã đạt trên 43 TC tự chọn B + C; sau HK1 còn thiếu 16 TC."><b>19</b> / 43</div>
+                  <div class="req-state warn">Còn 16 TC</div>
+                </div>
+
+                <div class="req">
+                  <div class="req-name">
+                    <b>Khóa luận / Đồ án</b>
+                  </div>
+                  <div class="req-bar planned" aria-hidden="true"><i style="width:2%"></i></div>
+                  <div class="req-num hint" tabindex="0" data-note="10 TC khóa luận hoặc đồ án tốt nghiệp, dự kiến thực hiện trong HK3 2026–2027."><b>0</b> / 10</div>
+                  <div class="req-state planned">HK3</div>
+                </div>
+              </div>
+              <a class="prog-note" href="https://www.ctda.hcmus.edu.vn/vi/educational-program/chuong-trinh-tien-tien/" target="_blank" rel="noopener">
+                <span class="prog-note-icon" aria-hidden="true">
+                  <svg class="icon"><use href="#i-shield"></use></svg>
+                </span>
+                <span>
+                  <b>125 tín chỉ đã được ghi nhận.</b>
+                  Theo CTĐT APCS khóa 2023.
+                </span>
+                <svg class="icon prog-note-arrow" aria-hidden="true"><use href="#i-arrow"></use></svg>
+              </a>
+          </div>
+
+          <div id="panel-da-hoc" role="tabpanel" aria-labelledby="tab-da-hoc" hidden>
+            <p class="sub" style="margin-bottom:12px;">125 TC đã ghi nhận theo khối. Bản mẫu chưa có bảng điểm từng môn.</p>
+            <div class="course-list">
+              <div class="course-row">
+                <div>
+                  <p class="code">Ngoài Tin học</p>
+                  <p class="name">Khối đã hoàn tất</p>
+                </div>
+                <span class="course-credit">26 / 26 TC</span>
+              </div>
+              <div class="course-row">
+                <div>
+                  <p class="code">Toán học</p>
+                  <p class="name">Khối đã hoàn tất</p>
+                </div>
+                <span class="course-credit">16 / 16 TC</span>
+              </div>
+              <div class="course-row">
+                <div>
+                  <p class="code">Vật lý</p>
+                  <p class="name">Khối đã hoàn tất</p>
+                </div>
+                <span class="course-credit">12 / 12 TC</span>
+              </div>
+              <div class="course-row">
+                <div>
+                  <p class="code">Tin học cốt lõi (A)</p>
+                  <p class="name">52 TC đã ghi nhận · 8 TC đang học</p>
+                </div>
+                <span class="course-credit">52 / 60 TC</span>
+              </div>
+              <div class="course-row">
+                <div>
+                  <p class="code">Tự chọn (B + C)</p>
+                  <p class="name">19 TC đã ghi nhận</p>
+                </div>
+                <span class="course-credit">19 / 43 TC</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+          <section class="panel dash-exit" aria-labelledby="exit-title">
+            <div class="panel-head">
+              <div>
+                <h2 id="exit-title">Chuẩn đầu ra</h2>
+                <p class="sub">Ngoài tín chỉ · 3 / 4 đạt</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="exit-list">
+                <div class="exit-row">
+                  <span>Ngoại ngữ B2</span>
+                  <span class="exit-val">IELTS ≥ 6.0 · hạn 30/06/2027</span>
+                  <span class="exit-tag warn">Chưa nộp</span>
+                </div>
+                <div class="exit-row">
+                  <span>Giáo dục QP-AN</span>
+                  <span class="exit-val">Chứng chỉ #QP-23091</span>
+                  <span class="exit-tag done">Đạt</span>
+                </div>
+                <div class="exit-row">
+                  <span>Giáo dục thể chất</span>
+                  <span class="exit-val">3 học phần GDTC</span>
+                  <span class="exit-tag done">Đạt</span>
+                </div>
+                <div class="exit-row">
+                  <span>Ngày CTXH</span>
+                  <span class="exit-val">Còn thiếu 3 ngày</span>
+                  <span class="exit-tag warn">12 / 15</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+      <div class="bento-bridges" aria-label="Liên kết nhanh tới cổng trường">
+        <span class="bridge-title">Cổng dịch vụ</span>
+        <a class="bridge-chip active-portal" href="https://portal.hcmus.edu.vn" target="_blank" rel="noopener" title="Mở cổng đăng ký học phần HCMUS (bạn tự đăng ký trên cổng)">
+          Cổng ĐKHP HCMUS
+        </a>
+        <a class="bridge-chip" href="https://hocphi.hcmus.edu.vn" target="_blank" rel="noopener" title="Tra cứu và thanh toán học phí trực tuyến">
+          Học phí · đã nộp
+        </a>
+        <a class="bridge-chip" href="links.html#ngoai-ngu" title="Nộp chứng chỉ Ngoại ngữ B2">
+          Nộp B2
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>Dữ liệu minh họa · APCS K23 · Trường ĐH Khoa học Tự nhiên, ĐHQG-HCM</span>
+      <span class="footer-links">
+        <a href="index.html">Ba trang mẫu</a>
+        <a href="docs/RESEARCH.md">Ghi chú thiết kế</a>
+        <a href="docs/VERIFY.md">Kiểm chứng</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    (function() {
+      const metric = document.getElementById('donut-center-metric');
+      const defaultMetricHTML = '<b>75%</b><small>125 / 167</small>';
+      const segDone = document.getElementById('seg-done');
+      const segCurr = document.getElementById('seg-curr');
+      const segLeft = document.getElementById('seg-left');
+
+      const dataMap = {
+        done: { elem: segDone, pct: '125 TC', sub: '74.9% đã đạt', color: '#4368E0' },
+        curr: { elem: segCurr, pct: '16 TC', sub: '9.6% đang học', color: '#DE9726' },
+        left: { elem: segLeft, pct: '26 TC', sub: '15.5% còn lại', color: '#5F6068' }
+      };
+
+      function highlightSeg(key) {
+        Object.keys(dataMap).forEach(k => {
+          if (dataMap[k].elem) {
+            if (k === key) {
+              dataMap[k].elem.setAttribute('stroke-width', '17');
+              dataMap[k].elem.style.opacity = '1';
+            } else {
+              dataMap[k].elem.setAttribute('stroke-width', '13');
+              dataMap[k].elem.style.opacity = '0.45';
+            }
+          }
+        });
+        if (metric && dataMap[key]) {
+          metric.innerHTML = `<b style="color:${dataMap[key].color}">${dataMap[key].pct}</b><small>${dataMap[key].sub}</small>`;
+        }
+      }
+
+      function resetSegs() {
+        Object.keys(dataMap).forEach(k => {
+          if (dataMap[k].elem) {
+            dataMap[k].elem.setAttribute('stroke-width', '14');
+            dataMap[k].elem.style.opacity = '1';
+          }
+        });
+        if (metric) metric.innerHTML = defaultMetricHTML;
+      }
+
+      document.querySelectorAll('#donut-legend li').forEach(li => {
+        const seg = li.getAttribute('data-seg');
+        li.addEventListener('mouseenter', () => highlightSeg(seg));
+        li.addEventListener('mouseleave', resetSegs);
+      });
+
+      if (segDone) {
+        segDone.addEventListener('mouseenter', () => highlightSeg('done'));
+        segDone.addEventListener('mouseleave', resetSegs);
+      }
+      if (segCurr) {
+        segCurr.addEventListener('mouseenter', () => highlightSeg('curr'));
+        segCurr.addEventListener('mouseleave', resetSegs);
+      }
+      if (segLeft) {
+        segLeft.addEventListener('mouseenter', () => highlightSeg('left'));
+        segLeft.addEventListener('mouseleave', resetSegs);
+      }
+    })();
+
+    (function () {
+      const toggle = document.getElementById('todo-toggle');
+      const panel = document.getElementById('todo-panel');
+      if (toggle && panel) {
+        function openTodo() {
+          panel.hidden = false;
+          toggle.setAttribute('aria-expanded', 'true');
+          toggle.textContent = 'Đóng';
+        }
+        function closeTodo() {
+          panel.hidden = true;
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.textContent = 'Xem việc cần làm';
+        }
+        toggle.addEventListener('click', function () {
+          if (panel.hidden) openTodo();
+          else closeTodo();
+        });
+        document.querySelectorAll('a[href="#todo-toggle"]').forEach(function (link) {
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+            openTodo();
+            panel.scrollIntoView({ block: 'nearest' });
+          });
+        });
+      }
+
+      const tabs = document.querySelectorAll('.prog-tab');
+      const panels = {
+        'tien-do': document.getElementById('panel-tien-do'),
+        'dang-hoc': document.getElementById('panel-dang-hoc'),
+        'da-hoc': document.getElementById('panel-da-hoc')
+      };
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          const key = tab.getAttribute('data-tab');
+          tabs.forEach(function (t) {
+            t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+          });
+          Object.keys(panels).forEach(function (id) {
+            if (panels[id]) panels[id].hidden = id !== key;
+          });
+        });
+      });
+
+      if (window.location.hash) {
+        const hash = window.location.hash.replace('#', '');
+        const targetTab = document.querySelector('.prog-tab[data-tab="' + hash + '"]');
+        if (targetTab) targetTab.click();
+      }
+    })();
+  </script>
+</body>
+</html>

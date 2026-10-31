@@ -1,9 +1,20 @@
+# Build and test artifacts
 node_modules/
 dist/
 coverage/
 .vitest/
 test-artifacts/
 *.log
+
+# Reports: LaTeX artifacts, built PDFs and course handouts, and the real team metadata
+report/**/*.aux
+report/**/*.toc
+report/**/*.out
+report/**/*.synctex.gz
+report/**/*.bbl
+report/**/*.blg
+report/**/*.pdf
+report/shared/meta.tex
 .env
 .env.*
 !.env.example

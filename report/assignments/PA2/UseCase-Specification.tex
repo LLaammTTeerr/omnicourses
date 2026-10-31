@@ -1,0 +1,126 @@
+\documentclass{article}
+\usepackage{../../shared/omnicourse}
+\input{../../shared/meta.tex}
+
+\renewcommand{\docshortname}{Use-Case Specification}
+\hypersetup{pdftitle={OmniCourse -- Use-Case Specification v1.0}}
+
+\begin{document}
+
+\makecover{Use-Case Specification}{1.0}{1 November 2026}{ESE-PA2-UCS-1.0}{Project Assignment 2 (PA2)}
+
+\pagenumbering{roman}
+\thispagestyle{empty}
+
+\section*{Revision history}
+\vspace{-0.3em}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.6cm}p{1.8cm}Yp{4.2cm}@{}}
+\hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
+\endhead
+1/11/2026 & 1.0 & Initial use-case model, diagrams, and key use-case specifications for PA2 & Lê Hữu Hoà, Nguyễn Anh Dũng, Nguyễn Hữu Quốc Thắng\\
+\end{xltabular}}
+
+\vspace{1.5em}
+\tableofcontents
+\newpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section{Introduction}
+
+\subsection{Purpose}
+This document specifies the use cases for OmniCourse, detailing actor interactions, preconditions, main and alternative flows, and postconditions for the system's core capabilities in academic planning and degree auditing.
+
+\subsection{Scope}
+The use-case model covers student degree audit verification, interactive semester roadmap planning, rule compliance validation, and curriculum navigation for the Advanced Program in Computer Science (APCS) at HCMUS.
+
+\subsection{References}
+\begin{itemize}
+  \item OmniCourse Vision Document v2.0 (ESE-PA2-Vision-2.0).
+  \item OmniCourse Software Development Plan v2.0 (ESE-PA2-SDP-2.0).
+  \item Academic Regulations and Curriculum Handbook, Faculty of Information Technology, HCMUS.
+\end{itemize}
+
+\section{Use-Case Model Overview}
+
+\subsection{Actor Descriptions}
+\begin{itemize}
+  \item \textbf{Student (Primary Actor):} An enrolled student at HCMUS who checks degree progress, simulates future semester plans, and resolves registration requirements.
+  \item \textbf{Academic Advisor (Secondary Actor):} Faculty or staff member reviewing student degree progress and advising on course selections.
+  \item \textbf{School Portal / External Systems (Supporting Actor):} Upstream academic services providing curriculum definitions and transcript exports.
+\end{itemize}
+
+\subsection{Use-Case Diagram}
+\begin{ocplain}{System Boundary -- OmniCourse Core Use Cases}
+\textbf{Key Use Cases for PA2:}
+\begin{enumerate}
+  \item \textbf{UC-01:} Authenticate \& Load Student Academic Profile.
+  \item \textbf{UC-02:} Audit Degree Progress (Passed, In-Progress, Missing Requirements).
+  \item \textbf{UC-03:} Plan Semester Schedule with Live Prerequisite Validation.
+  \item \textbf{UC-04:} Search \& Explore Curriculum Requirements and Course Offerings.
+  \item \textbf{UC-05:} Export Validated Course Plan to PDF / Official Portal Checklist.
+\end{enumerate}
+\end{ocplain}
+
+\section{Detailed Use-Case Specifications}
+
+\subsection{UC-01: Authenticate \& Load Student Academic Profile}
+\textbf{Actors:} Student.\\
+\textbf{Preconditions:} Student has access to HCMUS student credentials or demo account.\\
+\textbf{Postconditions:} Student academic profile, cohort curriculum, and transcript records are loaded into session.
+
+\textbf{Basic Flow:}
+\begin{enumerate}
+  \item Student navigates to the OmniCourse landing page.
+  \item System presents sign-in options.
+  \item Student inputs authentication details.
+  \item System verifies identity and retrieves student cohort data (e.g., APCS 2024).
+  \item System displays the primary Dashboard with graduation progress overview.
+\end{enumerate}
+
+\textbf{Alternative Flows:}
+\begin{itemize}
+  \item \textit{3a. Authentication Failure:} System notifies user of invalid credentials and offers retry.
+  \item \textit{4a. First-time User (No Transcript):} System guides student to select cohort year and import/input coursework.
+\end{itemize}
+
+\subsection{UC-02: Audit Degree Progress}
+\textbf{Actors:} Student, Academic Advisor.\\
+\textbf{Preconditions:} Student profile and completed course history are loaded.\\
+\textbf{Postconditions:} Current degree completion percentage, GPA summary, and outstanding requirements are displayed.
+
+\textbf{Basic Flow:}
+\begin{enumerate}
+  \item Student selects the Degree Audit tab.
+  \item System evaluates student's course credits against APCS graduation rules (General Education, Foundation, Major Core, Major Electives, Graduation Thesis).
+  \item System renders categorized progress bars, earned credits vs.\ required credits, and remaining prerequisites.
+  \item Student reviews passed courses and identified credit gaps.
+\end{enumerate}
+
+\subsection{UC-03: Plan Semester Schedule with Live Prerequisite Validation}
+\textbf{Actors:} Student.\\
+\textbf{Preconditions:} Degree audit completed; target semester selected.\\
+\textbf{Postconditions:} Planned semester schedule saved; rule engine validates zero credit-cap or prerequisite violations.
+
+\textbf{Basic Flow:}
+\begin{enumerate}
+  \item Student opens the Semester Roadmap Planner.
+  \item Student selects a future term (e.g., Spring 2027) and drags candidate courses into the term slot.
+  \item System rule engine performs instantaneous validation:
+  \begin{itemize}
+    \item Verifies all course prerequisites have passing grades or are scheduled in preceding terms.
+    \item Checks maximum credit ceiling (e.g., maximum 24 credits per semester).
+    \item Highlights any scheduling conflicts or missing corequisites.
+  \end{itemize}
+  \item System marks the planned schedule as valid and updates projected graduation timeline.
+\end{enumerate}
+
+\textbf{Alternative Flows:}
+\begin{itemize}
+  \item \textit{3a. Prerequisite Missing:} System displays an error tooltip indicating which prerequisite course is required and suggests placing it in an earlier term.
+  \item \textit{3b. Credit Cap Exceeded:} System displays warning badge and blocks addition until an existing course is removed.
+\end{itemize}
+
+\end{document}

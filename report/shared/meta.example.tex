@@ -1,0 +1,45 @@
+%% meta.example.tex -- template for report/shared/meta.tex (git-ignored)
+%% Copy this file to meta.tex and put the real names, student IDs and group ID there.
+%% Never commit meta.tex: student IDs are personal data (AGENTS.md hard rule 3).
+\newcommand{\OmniCourseName}{OmniCourse}
+\newcommand{\OmniCourseVersion}{1.0}
+\newcommand{\OmniCourseDate}{18 October 2026}
+\newcommand{\OmniCourseCourse}{Elements of Software Engineering}
+\newcommand{\OmniCourseClass}{HCMUS \textbullet{} Class 24A01}
+\newcommand{\OmniCourseGroup}{PA1-GroupXX}
+\newcommand{\OmniCourseAssignment}{Project Assignment 1 (PA1)}
+\newcommand{\OmniCourseTeamLine}{%
+  Nguyễn Văn An \textbullet{} Trần Thị Bình \textbullet{} Lê Văn Cường
+  \textbullet{} Phạm Thị Dung \textbullet{} Hoàng Văn Em}
+
+%% compact team block for the cover page
+\newcommand{\OmniCourseTeamTable}{%
+  {\footnotesize\sffamily\color{ocBody}%
+  \hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{5.4cm}p{2.2cm}Y@{}}
+    \arrayrulecolor{ocRule}%
+    \rowcolor{ocHdrBg}%
+    \textcolor{ocNavy}{\headingfont Member} & \textcolor{ocNavy}{\headingfont Student ID} & \textcolor{ocNavy}{\headingfont Role}\\
+    Nguyễn Văn An & 24120001 & Project Lead, Developer\\
+    Trần Thị Bình & 24120002 & Frontend Lead, Developer\\
+    Lê Văn Cường & 24120003 & Backend Lead, Developer\\
+    Phạm Thị Dung & 24120004 & Developer, Tester\\
+    Hoàng Văn Em & 24120005 & Developer, Tester\\
+  \end{tabularx}}}
+
+\newcommand{\OmniCourseTeamShort}{%
+  {\footnotesize\sffamily\color{ocSubtle}
+  24120001 Nguyễn Văn An (Project Lead) \textbullet{} 24120002 Trần Thị Bình (Frontend Lead)
+  \textbullet{} 24120003 Lê Văn Cường (Backend Lead) \textbullet{} 24120004 Phạm Thị Dung (Dev, Tester)
+  \textbullet{} 24120005 Hoàng Văn Em (Dev, Tester)\par}}
+
+%% team table used inside the documents, with the light header
+\newcommand{\teamtable}{%
+  {\small
+  \begin{tabularx}{\textwidth}{@{}p{5.2cm}p{2.2cm}Y@{}}
+    \hcell{Member} & \hcell{Student ID} & \hcell{Role}\\\hdrline
+    Nguyễn Văn An & 24120001 & Project Lead, Developer\\
+    Trần Thị Bình & 24120002 & Frontend Lead, Developer\\
+    Lê Văn Cường & 24120003 & Backend Lead, Developer\\
+    Phạm Thị Dung & 24120004 & Developer, Tester\\
+    Hoàng Văn Em & 24120005 & Developer, Tester\\
+  \end{tabularx}}}
