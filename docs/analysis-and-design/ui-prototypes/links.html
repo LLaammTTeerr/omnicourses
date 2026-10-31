@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Liên kết & hướng dẫn · OmniCourse</title>
+  <meta name="description" content="Bản mẫu link board và hướng dẫn cho các việc sinh viên APCS, HCMUS phải làm trên cổng trường.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Bỏ qua điều hướng</a>
+
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="i-overview" viewBox="0 0 24 24">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+    </symbol>
+    <symbol id="i-route" viewBox="0 0 24 24">
+      <circle cx="6" cy="6" r="2.2"></circle>
+      <circle cx="18" cy="18" r="2.2"></circle>
+      <path d="M8.2 6h4.3a4 4 0 0 1 0 8H11a4 4 0 0 0 0 8h4.8"></path>
+    </symbol>
+    <symbol id="i-link" viewBox="0 0 24 24">
+      <path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.5 1.5"></path>
+      <path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.5-1.5"></path>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6.3"></circle>
+      <path d="m15.5 15.5 4.2 4.2"></path>
+    </symbol>
+    <symbol id="i-external" viewBox="0 0 24 24">
+      <path d="M14 4.5h5.5V10"></path>
+      <path d="m19.5 4.5-7.2 7.2"></path>
+      <path d="M18.5 14.5v4a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18.5V7a1.5 1.5 0 0 1 1.5-1.5h4"></path>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24">
+      <path d="M12 4.5 21 20H3l9-15.5Z"></path>
+      <path d="M12 9.5v4.5"></path>
+      <path d="M12 17.2v.1"></path>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m4.5 12.5 4.7 4.7L19.5 6.8"></path>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.74v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <path d="M12 7.5V12l3.3 2"></path>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect>
+      <path d="M3.5 9.5h17"></path>
+      <path d="M8 3.5v3"></path>
+      <path d="M16 3.5v3"></path>
+    </symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24">
+      <path d="M6.5 10.5a5.5 5.5 0 0 1 11 0c0 4 1.5 5.5 1.5 5.5H5s1.5-1.5 1.5-5.5Z"></path>
+      <path d="M10 19a2.2 2.2 0 0 0 4 0"></path>
+    </symbol>
+    <symbol id="i-book" viewBox="0 0 24 24">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16Z"></path>
+      <path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"></path>
+    </symbol>
+    <symbol id="i-cap" viewBox="0 0 24 24">
+      <path d="m3 9 9-4 9 4-9 4-9-4Z"></path>
+      <path d="M7 11.2V15c0 1.7 2.2 3 5 3s5-1.3 5-3v-3.8"></path>
+      <path d="M21 9v5"></path>
+    </symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24">
+      <rect x="3.5" y="6" width="17" height="13" rx="2.2"></rect>
+      <path d="M3.5 9.5h17"></path>
+      <path d="M16 14.5h1.5"></path>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 24 24">
+      <path d="M6 3.5h7.5L19 9v11.5H6V3.5Z"></path>
+      <path d="M13.5 3.5V9H19"></path>
+      <path d="M9 13h6"></path>
+      <path d="M9 16.5h6"></path>
+    </symbol>
+    <symbol id="i-help" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <path d="M9.7 9.3a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.8-1.1 1.7"></path>
+      <path d="M12 16.7v.1"></path>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <path d="M12 11v5.5"></path>
+      <path d="M12 7.7v.1"></path>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+      <path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10"></path>
+    </symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24">
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect>
+      <path d="m4.5 7 7.5 6 7.5-6"></path>
+    </symbol>
+    <symbol id="i-arrow-out" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-arrow-in" viewBox="0 0 24 24">
+      <path d="M19 12H5"></path>
+      <path d="m11 18-6-6 6-6"></path>
+    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24">
+      <path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3Z"></path>
+    </symbol>
+  </svg>
+
+  <aside class="site-header" aria-label="Điều hướng">
+    <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Thu gọn hoặc mở rộng thanh điều hướng">
+    <div class="header-inner">
+      <div class="sidebar-top">
+        <a class="brand" href="index.html" aria-label="OmniCourse, trang chủ bản mẫu">
+          <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4.8 16.4c3.5 0 3.5-8.8 7.2-8.8s3.7 8.8 7.2 8.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            <circle cx="4.8" cy="16.4" r="1.3" fill="currentColor"></circle>
+            <circle cx="19.2" cy="16.4" r="1.3" fill="currentColor"></circle>
+          </svg>
+          <span>OmniCourse</span>
+        </a>
+        <label class="nav-collapse" for="nav-toggle" title="Thu gọn thanh điều hướng">
+          <svg class="icon" aria-hidden="true"><use href="#i-arrow-in"></use></svg>
+        </label>
+      </div>
+
+      <label class="nav-expand" for="nav-toggle" title="Mở rộng thanh điều hướng">
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow-out"></use></svg>
+      </label>
+
+      <span class="term-chip">
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          HK1 2026–2027
+        </span>
+
+      <nav class="nav" aria-label="Điều hướng chính">
+        <a href="dashboard.html" title="Tổng quan" data-tooltip="Tổng quan (⌘1)">
+          <svg class="icon" aria-hidden="true"><use href="#i-overview"></use></svg>
+          <span>Tổng quan</span>
+        </a>
+        <a href="schedule.html" title="Thời khóa biểu" data-tooltip="Thời khóa biểu">
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          <span>Lịch</span>
+        </a>
+        <a href="planner.html" title="Lộ trình" data-tooltip="Lộ trình (⌘2)">
+          <svg class="icon" aria-hidden="true"><use href="#i-route"></use></svg>
+          <span>Lộ trình</span>
+        </a>
+        <a href="links.html" aria-current="page" title="Liên kết" data-tooltip="Liên kết (⌘3)">
+          <svg class="icon" aria-hidden="true"><use href="#i-link"></use></svg>
+          <span>Liên kết</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="sidebar-settings" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+          <span>Cài đặt</span>
+        </button>
+        <span class="avatar" aria-label="Tài khoản của Minh Anh">MA</span>
+      </div>
+    </div>
+  </aside>
+
+  <main id="main" class="page">
+    <div class="container">
+      <section class="links-header">
+        <div>
+          <h1 style="font-size:28px; font-weight:700; margin:0 0 6px;">Cổng liên kết &amp; Thủ tục học vụ</h1>
+          <p class="lede" style="font-size:14px; margin:0 0 14px; color:var(--text-2);">
+            15 dịch vụ hành chính chính thức, quy trình từng bước và hạn chót cho sinh viên APCS HCMUS.
+          </p>
+          <div class="hero-meta">
+            <span class="chip chip-accent">
+              <svg class="icon" aria-hidden="true"><use href="#i-link"></use></svg>
+              15 dịch vụ trực tuyến
+            </span>
+            <span class="chip">
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              Tài khoản OmniCourse riêng
+            </span>
+            <span class="chip" style="background:#ECFDF5; color:#059669; border-color:#A7F3D0;">
+              <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+              Liên kết cập nhật HK1
+            </span>
+          </div>
+
+          <label class="hero-search">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+            <input type="search" placeholder="Tìm thủ tục: học phí, bảng điểm, chứng chỉ B2, khóa luận, đơn từ..." aria-label="Tìm việc cần làm">
+          </label>
+
+          <div style="display:flex; align-items:center; gap:8px; margin: 12px 0 16px; flex-wrap:wrap;">
+            <span style="font-size:12px; color:var(--text-3); font-weight:500;">Từ khóa phổ biến:</span>
+            <a href="#ngoai-ngu" class="chip chip-accent" style="text-decoration:none;">Chứng chỉ Anh văn B2</a>
+            <a href="#dang-ky" class="chip" style="text-decoration:none;">Đăng ký HK2</a>
+            <a href="#hoc-phi" class="chip" style="text-decoration:none;">Cổng học phí</a>
+            <a href="#ho-so" class="chip" style="text-decoration:none;">Bảng điểm điện tử</a>
+          </div>
+
+          <div class="filters" aria-label="Nhảy đến nhóm việc">
+            <a class="filter is-active" href="#dang-ky">Đăng ký &amp; học vụ</a>
+            <a class="filter" href="#hoc-phi">Học phí &amp; học bổng</a>
+            <a class="filter" href="#ho-so">Hồ sơ &amp; giấy tờ</a>
+            <a class="filter" href="#tot-nghiep">Tốt nghiệp</a>
+            <a class="filter" href="#ho-tro">Hỗ trợ sinh viên</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Unified Priority & Registration Suite (Liquid Glass) -->
+      <section class="links-priority-hub" aria-labelledby="featured-title">
+        <div class="priority-main">
+          <span class="chip chip-accent" style="margin-bottom:8px;">
+            <svg class="icon" aria-hidden="true" style="width:13px;height:13px;"><use href="#i-route"></use></svg>
+            Trọng tâm học vụ HK2
+          </span>
+          <h2 id="featured-title">Đăng ký học phần HK2 (2026–2027)</h2>
+          <p>
+            Cổng ĐKHP sẽ mở chính thức vào lúc <b>08:00 ngày 02/11/2026</b>. Sinh viên nên lập sẵn lộ trình trên OmniCourse để nhập mã môn nhanh chóng, tránh tình trạng hết chỗ hoặc trùng lịch học.
+          </p>
+          <div class="featured-meta" style="margin-bottom:20px;">
+            <span class="chip">
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              MSSV + Mật khẩu portal
+            </span>
+            <span class="chip">
+              <svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg>
+              Mở lúc: 02/11 · 08:00
+            </span>
+            <span class="chip">
+              <svg class="icon" aria-hidden="true"><use href="#i-warning"></use></svg>
+              Trần tín chỉ: 22 TC
+            </span>
+            <span class="chip" style="background:rgba(37,99,235,0.08);color:#2563EB;border:1px solid rgba(37,99,235,0.2);">
+              📍 Trực tuyến portal.hcmus.edu.vn
+            </span>
+          </div>
+          <div class="featured-actions">
+            <a class="btn btn-primary" href="https://portal.hcmus.edu.vn/" target="_blank" rel="noopener">
+              Mở Cổng đăng ký HCMUS
+              <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+            </a>
+            <a class="text-link" href="planner.html">Rà soát lộ trình môn học</a>
+          </div>
+        </div>
+
+        <div class="priority-side">
+          <aside class="priority-subcard" aria-labelledby="this-week-title">
+            <h3 id="this-week-title">
+              <span>Hạn chót sắp tới</span>
+              <span class="count" style="font-size:11px; font-weight:600; background:#EFF6FF; color:#2563EB; padding:2px 8px; border-radius:999px;">HK2</span>
+            </h3>
+            <div class="course-list">
+              <div class="course-row" style="padding:6px 0;">
+                <div>
+                  <p class="code" style="color:#DC2626; font-size:12px;">30/10/2026</p>
+                  <p class="name" style="font-size:13px;">Chốt danh sách môn tự chọn &amp; sửa lộ trình</p>
+                </div>
+                <span class="chip chip-warn" style="font-size:11px;">Còn 12 ngày</span>
+              </div>
+              <div class="course-row" style="padding:6px 0;">
+                <div>
+                  <p class="code" style="color:#2563EB; font-size:12px;">02/11/2026 · 08:00</p>
+                  <p class="name" style="font-size:13px;">Mở cổng ĐKHP HK2 chính thức</p>
+                </div>
+                <span class="chip" style="font-size:11px;">Portal</span>
+              </div>
+              <div class="course-row" style="padding:6px 0;">
+                <div>
+                  <p class="code" style="font-size:12px;">15/12/2026 · 17:00</p>
+                  <p class="name" style="font-size:13px;">Hạn đóng học phí HK2</p>
+                </div>
+                <span class="chip" style="font-size:11px;">Học phí</span>
+              </div>
+            </div>
+          </aside>
+
+          <aside class="priority-subcard">
+            <h3>Quy trình 4 bước chuẩn</h3>
+            <ol class="steps">
+              <li>Đăng nhập Portal HCMUS bằng tài khoản sinh viên.</li>
+              <li>Vào mục Đăng ký học phần và chọn HK2 2026–2027.</li>
+              <li>Nhập các mã môn từ OmniCourse (kiểm tra tổng TC ≤ 22).</li>
+              <li>Nhấn Xác nhận đăng ký và chụp lưu biên nhận điện tử.</li>
+            </ol>
+          </aside>
+        </div>
+      </section>
+
+      
+      <div class="link-groups">
+        <section class="group" id="dang-ky" aria-labelledby="dang-ky-title">
+          <div class="group-head">
+            <div class="group-title">
+              <span class="group-icon" aria-hidden="true">
+                <svg class="icon"><use href="#i-route"></use></svg>
+              </span>
+              <div>
+                <h2 id="dang-ky-title">Đăng ký & học vụ</h2>
+                <p>Thời khóa biểu, khóa luận, kết quả học tập</p>
+              </div>
+            </div>
+            <span class="count">4 việc</span>
+          </div>
+          <div class="group-body">
+            <article class="guide">
+              <div>
+                <h3>Xem thời khóa biểu và lịch thi</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                    MSSV + portal
+                  </span>
+                  <span class="chip">24 giờ sau đăng ký</span>
+                </div>
+                <a class="guide-link" href="https://portal.hcmus.edu.vn/" target="_blank" rel="noopener">
+                  portal.hcmus.edu.vn
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Đăng nhập portal, mở mục Học vụ.</li>
+                  <li>Chọn Thời khóa biểu, đổi sang tuần hoặc học kỳ cần xem.</li>
+                  <li>Kiểm tra lại phòng thi 48 giờ trước mỗi kỳ thi.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Lịch thi công bố trước 4 tuần.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Đăng ký khóa luận hoặc đồ án tốt nghiệp</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-cap"></use></svg>
+                    120 TC + B2
+                  </span>
+                  <span class="chip chip-warn">Hạn 15/12/2026</span>
+                </div>
+                <a class="guide-link" href="https://www.ctda.hcmus.edu.vn/vi/bieu-mau/" target="_blank" rel="noopener">
+                  ctda.hcmus.edu.vn · biểu mẫu
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Tải mẫu đăng ký đề tài ở trang biểu mẫu của CTĐA.</li>
+                  <li>Điền tên đề tài, giảng viên hướng dẫn và ký xác nhận.</li>
+                  <li>Nộp bản giấy tại phòng I.53 trước 15/12/2026.</li>
+                  <li>Kiểm tra tên đề tài trong danh sách chính thức sau 5 ngày.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-warning"></use></svg>
+                  Thiếu B2: không nhận hồ sơ.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Xem kết quả học tập và điểm phúc khảo</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                    MSSV + portal
+                  </span>
+                  <span class="chip">Sau 10 ngày</span>
+                </div>
+                <a class="guide-link" href="https://portal.hcmus.edu.vn/" target="_blank" rel="noopener">
+                  portal.hcmus.edu.vn
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Mở Học vụ → Kết quả học tập.</li>
+                  <li>Đối chiếu số tín chỉ và điểm với bảng điểm OmniCourse.</li>
+                  <li>Nếu sai, nộp đơn phúc khảo trong 10 ngày làm việc.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Phúc khảo: 10 ngày làm việc.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Đăng ký học phần</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                    MSSV + portal
+                  </span>
+                  <span class="chip chip-accent">Đã ghim</span>
+                </div>
+                <a class="guide-link" href="https://portal.hcmus.edu.vn/" target="_blank" rel="noopener">
+                  portal.hcmus.edu.vn
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Chốt danh sách môn trong lộ trình trước 30/10.</li>
+                  <li>Đăng nhập đúng 08:00 ngày 02/11 để giữ chỗ lớp đông.</li>
+                  <li>Lưu biên nhận và kiểm tra lại sau 24 giờ.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-warning"></use></svg>
+                  Lớp đầy: chờ 24 giờ. Không đăng ký lớp ngoài CTĐT.
+                </p>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section class="group" id="hoc-phi" aria-labelledby="hoc-phi-title">
+          <div class="group-head">
+            <div class="group-title">
+              <span class="group-icon" aria-hidden="true">
+                <svg class="icon"><use href="#i-wallet"></use></svg>
+              </span>
+              <div>
+                <h2 id="hoc-phi-title">Học phí & học bổng</h2>
+                <p>Thanh toán, miễn giảm, học bổng khuyến khích</p>
+              </div>
+            </div>
+            <span class="count">3 việc</span>
+          </div>
+          <div class="group-body">
+            <article class="guide">
+              <div>
+                <h3>Thanh toán học phí</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                    MSSV + portal
+                  </span>
+                  <span class="chip chip-warn">Hạn 15/12 · 17:00</span>
+                </div>
+                <a class="guide-link" href="https://hocphi.hcmus.edu.vn/dang-nhap" target="_blank" rel="noopener">
+                  hocphi.hcmus.edu.vn
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Đăng nhập cổng học phí bằng tài khoản portal.</li>
+                  <li>Chọn học kỳ HK2 2026–2027 và kiểm tra số tín chỉ.</li>
+                  <li>Thanh toán bằng mã QR hoặc chuyển khoản theo đúng nội dung.</li>
+                  <li>Lưu biên nhận; đối chiếu trạng thái sau 1 ngày làm việc.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-warning"></use></svg>
+                  Sai nội dung chuyển khoản: đối soát thủ công.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Học bổng khuyến khích học kỳ</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>
+                    MSSV + minh chứng
+                  </span>
+                  <span class="chip chip-warn">Hạn 30/10/2026</span>
+                </div>
+                <a class="guide-link" href="https://hcmus.edu.vn/thong-tin-danh-cho-nguoi-hoc/" target="_blank" rel="noopener">
+                  hcmus.edu.vn · thông báo
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Đọc thông báo học bổng của học kỳ trên trang trường.</li>
+                  <li>Chuẩn bị bảng điểm và giấy xác nhận không có môn nợ.</li>
+                  <li>Nộp hồ sơ theo mẫu trước 30/10/2026.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  GPA từ 3.2, không môn nợ.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Miễn giảm học phí</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>
+                    Hồ sơ giấy
+                  </span>
+                  <span class="chip">Trước 30/09</span>
+                </div>
+                <a class="guide-link" href="https://hcmus.edu.vn/quytrinh-bieumau/" target="_blank" rel="noopener">
+                  hcmus.edu.vn · quy trình – biểu mẫu
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Tải mẫu đơn miễn giảm ở mục Quy trình – Biểu mẫu.</li>
+                  <li>Chuẩn bị giấy tờ chứng minh và bản sao công chứng.</li>
+                  <li>Nộp tại Phòng Công tác Sinh viên trước 30/09.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Nộp muộn: chuyển kỳ sau. Không hoàn tiền.
+                </p>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section class="group" id="ho-so" aria-labelledby="ho-so-title">
+          <div class="group-head">
+            <div class="group-title">
+              <span class="group-icon" aria-hidden="true">
+                <svg class="icon"><use href="#i-file"></use></svg>
+              </span>
+              <div>
+                <h2 id="ho-so-title">Hồ sơ & giấy tờ</h2>
+                <p>Bảng điểm, xác nhận sinh viên, chuẩn ngoại ngữ</p>
+              </div>
+            </div>
+            <span class="count">3 việc</span>
+          </div>
+          <div class="group-body">
+            <article class="guide">
+              <div>
+                <h3>Xin bảng điểm</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>
+                    MSSV + biểu mẫu
+                  </span>
+                  <span class="chip">3 ngày · 20.000đ/bản</span>
+                </div>
+                <a class="guide-link" href="https://hcmus.edu.vn/quytrinh-bieumau/" target="_blank" rel="noopener">
+                  hcmus.edu.vn · quy trình – biểu mẫu
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Điền mẫu yêu cầu cấp bảng điểm, ghi rõ ngôn ngữ.</li>
+                  <li>Nộp tại Phòng Đào tạo kèm thẻ sinh viên.</li>
+                  <li>Nhận sau 3 ngày làm việc; kiểm tra con dấu và điểm tích lũy.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Bản tiếng Anh: +1 ngày. HK đang học chưa có trong bảng điểm.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Giấy xác nhận sinh viên</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>
+                    MSSV + biểu mẫu
+                  </span>
+                  <span class="chip">1 ngày</span>
+                </div>
+                <a class="guide-link" href="https://hcmus.edu.vn/quytrinh-bieumau/" target="_blank" rel="noopener">
+                  hcmus.edu.vn · quy trình – biểu mẫu
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Tải mẫu giấy xác nhận sinh viên.</li>
+                  <li>Điền thông tin và ghi rõ mục đích sử dụng.</li>
+                  <li>Nộp tại Phòng Công tác Sinh viên, nhận sau 1 ngày.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Hiệu lực 30 ngày.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide" id="ngoai-ngu">
+              <div>
+                <h3>Nộp chứng chỉ ngoại ngữ B2</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>
+                    Bản gốc + bản sao
+                  </span>
+                  <span class="chip chip-warn">Hạn 30/06/2027</span>
+                </div>
+                <a class="guide-link" href="https://www.ctda.hcmus.edu.vn/vi/chuong-trinh-tien-tien/" target="_blank" rel="noopener">
+                  ctda.hcmus.edu.vn · chuẩn đầu ra
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Kiểm tra chứng chỉ đang có thuộc danh sách được chấp nhận.</li>
+                  <li>Nộp bản gốc và bản sao tại văn phòng CTĐA (I.53).</li>
+                  <li>Xác nhận đã cập nhật trên hệ thống sau 3 ngày làm việc.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-warning"></use></svg>
+                  Thiếu B2: không đăng ký được khóa luận.
+                </p>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section class="group" id="tot-nghiep" aria-labelledby="tot-nghiep-title">
+          <div class="group-head">
+            <div class="group-title">
+              <span class="group-icon" aria-hidden="true">
+                <svg class="icon"><use href="#i-cap"></use></svg>
+              </span>
+              <div>
+                <h2 id="tot-nghiep-title">Tốt nghiệp</h2>
+                <p>Hồ sơ xét tốt nghiệp và tra cứu văn bằng</p>
+              </div>
+            </div>
+            <span class="count">2 việc</span>
+          </div>
+          <div class="group-body">
+            <article class="guide">
+              <div>
+                <h3>Nộp hồ sơ xét tốt nghiệp</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>
+                    Hồ sơ giấy
+                  </span>
+                  <span class="chip">3 đợt/năm</span>
+                </div>
+                <a class="guide-link" href="https://hcmus.edu.vn/quytrinh-bieumau/" target="_blank" rel="noopener">
+                  hcmus.edu.vn · quy trình – biểu mẫu
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Kiểm tra danh sách đợt xét tốt nghiệp trên trang Phòng Đào tạo.</li>
+                  <li>Chuẩn bị đơn, bảng điểm, chứng chỉ B2 và xác nhận hoàn tất khóa luận.</li>
+                  <li>Nộp hồ sơ đúng đợt; theo dõi danh sách công bố sau 3 tuần.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-warning"></use></svg>
+                  Nộp trễ: dời sang đợt sau.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Tra cứu văn bằng</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+                    Không cần đăng nhập
+                  </span>
+                  <span class="chip">Sau 30 ngày</span>
+                </div>
+                <a class="guide-link" href="https://pdt.hcmus.edu.vn/dstn" target="_blank" rel="noopener">
+                  pdt.hcmus.edu.vn/dstn
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Mở trang tra cứu văn bằng của Phòng Đào tạo.</li>
+                  <li>Nhập họ tên và ngày sinh đúng như hồ sơ.</li>
+                  <li>Đối chiếu số hiệu văn bằng và ngành đào tạo.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Sai thông tin: báo Phòng Đào tạo trong 30 ngày.
+                </p>
+              </details>
+            </article>
+          </div>
+        </section>
+
+        <section class="group" id="ho-tro" aria-labelledby="ho-tro-title">
+          <div class="group-head">
+            <div class="group-title">
+              <span class="group-icon" aria-hidden="true">
+                <svg class="icon"><use href="#i-help"></use></svg>
+              </span>
+              <div>
+                <h2 id="ho-tro-title">Hỗ trợ học tập</h2>
+                <p>Lớp học, thư viện, văn phòng chương trình</p>
+              </div>
+            </div>
+            <span class="count">3 việc</span>
+          </div>
+          <div class="group-body">
+            <article class="guide">
+              <div>
+                <h3>HCMUS Moodle</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                    MSSV + Microsoft 365
+                  </span>
+                  <span class="chip">Theo môn</span>
+                </div>
+                <a class="guide-link" href="https://courses.hcmus.edu.vn/" target="_blank" rel="noopener">
+                  courses.hcmus.edu.vn
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Chọn đăng nhập bằng Microsoft 365 hoặc tài khoản Moodle.</li>
+                  <li>Mở môn đang học; kiểm tra mục Thông báo mỗi tuần.</li>
+                  <li>Tải tài liệu trước buổi học để tránh quá tải lúc thi.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Môn chưa hiện sau 1 tuần: hỏi giảng viên hoặc CTĐA.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Thư viện</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+                    Thẻ sinh viên
+                  </span>
+                  <span class="chip">Trong ngày</span>
+                </div>
+                <a class="guide-link" href="https://glib.hcmus.edu.vn/" target="_blank" rel="noopener">
+                  glib.hcmus.edu.vn
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Tra cứu sách hoặc tạp chí trên cổng thư viện.</li>
+                  <li>Đặt trước nếu sách đang được mượn.</li>
+                  <li>Nhận tại quầy bằng thẻ sinh viên trong 2 ngày.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Phòng nhóm: tối đa 2 giờ. Hủy trước 1 giờ.
+                </p>
+              </details>
+            </article>
+
+            <article class="guide">
+              <div>
+                <h3>Văn phòng CTĐA</h3>
+                <div class="guide-meta">
+                  <span class="chip">
+                    <svg class="icon" aria-hidden="true"><use href="#i-mail"></use></svg>
+                    Không cần đăng nhập
+                  </span>
+                  <span class="chip">I.53 · 227 Nguyễn Văn Cừ</span>
+                </div>
+                <a class="guide-link" href="https://www.ctda.hcmus.edu.vn/vi/contact/" target="_blank" rel="noopener">
+                  ctda.hcmus.edu.vn · liên hệ
+                  <svg class="icon" aria-hidden="true"><use href="#i-external"></use></svg>
+                </a>
+              </div>
+              <details class="guide-body"><summary>Hướng dẫn</summary>
+                <ol class="steps">
+                  <li>Gửi email ctdb@hcmus.edu.vn với MSSV trong tiêu đề.</li>
+                  <li>Mang bản giấy đến phòng I.53 nếu cần xác nhận gấp.</li>
+                  <li>Nhận trả lời trong 1 ngày làm việc.</li>
+                </ol>
+                <p class="note">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+                  Giờ tiếp sinh viên: 08:00–11:00 và 13:30–16:30, thứ Hai đến thứ Sáu.
+                </p>
+              </details>
+            </article>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>Dữ liệu minh họa · cập nhật 16/10/2026</span>
+      <span class="footer-links">
+        <a href="index.html">Ba trang mẫu</a>
+        <a href="docs/RESEARCH.md">Ghi chú thiết kế</a>
+        <a href="docs/VERIFY.md">Kiểm chứng</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>

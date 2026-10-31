@@ -1,0 +1,287 @@
+\documentclass{article}
+\usepackage{../../shared/omnicourse}
+\input{../../shared/meta.tex}
+
+\renewcommand{\docshortname}{Software Development Plan}
+\hypersetup{pdftitle={OmniCourse -- Software Development Plan v2.0}}
+
+\begin{document}
+
+\makecover{Software Development Plan}{2.0}{1 November 2026}{ESE-PA2-SDP-2.0}{Project Assignment 2 (PA2)}
+
+\pagenumbering{roman}
+\thispagestyle{empty}
+
+\section*{Revision history}
+\vspace{-0.3em}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.6cm}p{1.8cm}Yp{4.2cm}@{}}
+\hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
+\endhead
+18/Oct/2026 & 1.0 & Initial version submitted for PA1 & Lê Hữu Hoà\\
+1/Nov/2026 & 2.0 & Second submission for PA2: updated schedule, expanded resource allocation and monitoring sections. Revisions highlighted in blue. & Phan Bình Nguyên Lâm, Lê Hữu Hoà\\
+\end{xltabular}}
+\par\vspace{1.0cm}
+
+{\hypersetup{linkcolor=ocNavy}\tableofcontents}
+
+\clearpage
+\pagenumbering{arabic}
+
+\section{Introduction}
+This Software Development Plan describes how the OmniCourse team of five students organises, schedules and controls the
+development of the product in the course project. The project runs for twelve weeks, from 5 October to 13 December 2026,
+organised as five two-week sprints inside three RUP phases. The document defines the purpose and scope, the team
+organisation and roles, the phase and iteration plan, the planned releases, the schedule, the resourcing, and the
+reporting and configuration management processes. It is a first draft written in the Inception phase. The project
+estimates and the risk register are left empty and are completed in the next assignment, as PA1 requires.
+
+\section{Project Overview}
+\subsection{Project Purpose, Scope, and Objectives}
+OmniCourse is a public web application that gives a HCMUS student one page for everything school related: degree audit,
+curriculum explorer, semester roadmap planner, an AI planner and advisor, and the exact links and steps for the school
+tasks the application does not perform itself. The first release covers the Advanced Program in Computer Science (APCS);
+the model is program-agnostic, so other HCMUS majors and later other Vietnamese universities are added as configuration.
+
+The objectives of the project are:
+
+\begin{enumerate}
+  \item a deployed, working web application that covers the APCS curriculum;
+  \item a deterministic rule engine that enforces prerequisites, offering terms, requirement coverage and the credit caps
+        of the program, so that no academic rule is decided by a language model;
+  \item an AI plan generator that turns a plain-language goal into a roadmap validated by that engine and explains every
+        placement;
+  \item a curriculum data model that can be reused for another program or another school without changing the engine.
+\end{enumerate}
+
+Out of scope for this course: native mobile applications, automation of the school registration portal, storage of portal
+credentials, and the optional modules (tuition, conduct score, paperwork, community).
+
+\subsection{Assumptions and Constraints}
+The plan rests on the following assumptions and constraints:
+
+\begin{itemize}
+  \item Fixed schedule: five sprints of two weeks, 5/10/2026 to 13/12/2026, aligned with the course plan agreed in PA0.
+        No extension is possible.
+  \item Team of five students, no member added or removed during the project.
+  \item Zero budget. Only free tiers are used: hosting, CI minutes and the model API.
+  \item Expected effort is at least 10 hours per member per week, about 50 hours per week for the team.
+  \item All five members are full-time students, so lecture and examination weeks reduce capacity.
+  \item The process is fixed by the course: three RUP phases, five Scrum sprints, and the tools approved in PA0
+        (Moodle, Discord, GitHub).
+  \item No official API exists for the HCMUS curriculum or the student record, so curriculum data is entered and verified
+        by the team, and the transcript is a file the student uploads.
+  \item The academic rules follow Thông tư 08/2021/TT-BGDĐT and the published HCMUS credit caps (14 to 25 credits in a
+        main term, 12 in summer). Personal data follows Luật 91/2025/QH15.
+  \item The application never stores a portal password and never automates a registration on the student's behalf.
+\end{itemize}
+
+\subsection{Project Deliverables}
+The artifacts below are produced during the project. Documents are stored in the GitHub repository under \texttt{/docs}
+and submitted in \texttt{/report}, as PA0 requires.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}Yp{2.5cm}p{2.2cm}@{}}
+\hcell{Artifact} & \hcell{Target date} & \hcell{Assignment}\\\hdrline
+\endhead
+Project plan v1.0 & 18/10/2026 & PA1\\
+Vision document v1.0 & 18/10/2026 & PA1\\
+UI sketches of the main screens (3 to 6) & 18/10/2026 & PA1\\
+Weekly reports, Sprint 1 (2 reports) & 18/10/2026 & PA1\\
+Project plan v2.0 with TA feedback applied & 1/11/2026 & PA2\\
+Use-case model and use-case specifications & 1/11/2026 & PA2\\
+Vision document v2.0 & 1/11/2026 & PA2\\
+Software architecture document, initial & 1/11/2026 & PA2\\
+Detailed design: class and sequence models & 15/11/2026 & PA3\\
+Test plan and test cases & 15/11/2026 & PA3\\
+Build B1 deployed on staging & 15/11/2026 & PA3\\
+Build B2, working software & 29/11/2026 & PA4\\
+Build B3 release candidate and test report & 13/12/2026 & PA5\\
+\end{xltabular}}
+
+\section{Project Organization}
+\subsection{Organizational Structure}
+The team has a flat structure of five members. The project lead coordinates the plan, the schedule and the sharing of work,
+and is the single contact with the instructor and the TAs, who review and grade each assignment and may request changes to
+the scope. Two technical leads own the frontend and the backend workstreams and review the pull requests of their side; the
+two remaining members carry the testing duties. The structure is deliberately small: the stack, the data model and the
+scope of each sprint are decided together in the weekly meeting, and the project lead breaks a tie.
+
+\begin{itemize}
+  \item Project Lead, the contact with the instructor and the TAs.
+  \item Frontend Lead and Backend Lead, one workstream each and the review of its pull requests.
+  \item Two members responsible for testing in each sprint, in addition to their development work.
+\end{itemize}
+
+\subsection{Roles and Responsibilities}
+All five members write code, so every member is a Developer. The three leads carry coordination duties on top of that, and
+the two remaining members own the testing of each sprint. Roles are assigned per sprint, not fixed for the whole project,
+so each member rotates through analysis, implementation and testing across the five sprints. The table gives the standing
+assignment and the duty that belongs to the role.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.9cm}p{3.7cm}Y@{}}
+\hcell{Member} & \hcell{Role} & \hcell{Main responsibilities in this project}\\\hdrline
+\endhead
+\textbf{Phan Bình Nguyên Lâm} & Project Lead, Developer &
+Owns the plan and the schedule, chairs the weekly meeting, keeps the workload balanced, tracks progress and reports to the
+instructor and the TAs. Implements backend features.\\
+\textbf{Lê Hữu Hoà} & Frontend Lead, Developer &
+Owns the Vue application: components, routing, state and consistency with the UI sketches. Reviews frontend pull requests.
+Implements frontend features.\\
+\textbf{Võ Nguyễn Minh Triết} & Backend Lead, Developer &
+Owns the NestJS API, the PostgreSQL schema and the rule engine. Reviews backend pull requests. Implements backend
+features.\\
+\textbf{Nguyễn Anh Dũng} & Developer, Tester &
+Implements features. Owns the test plan and the test cases of the sprint and runs the regression suite on every build.\\
+\textbf{Nguyễn Hữu Quốc Thắng} & Developer, Tester &
+Implements features. Maintains the automated test suite (Vitest) and checks each deployed build against the acceptance
+criteria of the sprint.\\
+\end{xltabular}}
+
+\section{Management Process}
+\subsection{Project Estimates}
+\begin{ocplain}{Not part of this version}
+The estimates of cost and schedule are not required in PA1. The section is completed in PA2, once the requirements
+baseline is approved and the size of the remaining work is known.
+\end{ocplain}
+
+\subsection{Project Plan}
+This section contains the schedule and the resources of the project: the phases and iterations, the planned releases, the
+schedule of each sprint with the tasks and their owners, and the resourcing.
+
+\subsubsection{Phase and Iteration Plan}
+The project has three RUP phases and five two-week iterations. The boundaries follow the overall plan agreed in PA0, so
+the plan, the vision document and the schedule of the assignment stay consistent.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.2cm}p{1.4cm}p{1.7cm}p{1.7cm}Y@{}}
+\hcell{Phase} & \hcell{Iteration} & \hcell{Start} & \hcell{End} & \hcell{Overall objectives}\\\hdrline
+\endhead
+Inception & Sprint 1 & 5/10/2026 & 18/10/2026 &
+Project proposal, group and tools set up, first versions of the project plan and the vision document, UI sketches.\\
+Elaboration & Sprint 2 & 19/10/2026 & 1/11/2026 &
+Requirements baseline, use cases, initial architecture and database schema, running skeleton (build B0).\\
+Elaboration & Sprint 3 & 2/11/2026 & 15/11/2026 &
+Detailed design, test plan and test cases, curriculum data model, degree audit and curriculum explorer (build B1).\\
+Construction & Sprint 4 & 16/11/2026 & 29/11/2026 &
+Roadmap planner with rule validation, transcript import, notifications (build B2).\\
+Construction & Sprint 5 & 30/11/2026 & 13/12/2026 &
+AI plan generator and advisor, quicklinks, performance and security pass, regression, release candidate (build B3).\\
+\end{xltabular}}
+
+Milestones: M1 documents of PA1 approved, 18/10; M2 requirements baseline, 1/11; M3 architecture, design and test plan
+approved, 15/11; M4 core planning features working, 29/11; M5 release candidate and final report, 13/12.
+
+\subsubsection{Releases}
+Four builds are produced for testing. Each build is deployed to the staging environment from the main branch through the
+continuous integration pipeline. On every build the testers run the regression suite plus the acceptance criteria of the
+sprint. Only build B3 is a release.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.1cm}p{4.2cm}p{3.2cm}Y@{}}
+\hcell{Build} & \hcell{Date} & \hcell{Type} & \hcell{Content}\\\hdrline
+\endhead
+B0 & 1/11/2026, end of Sprint 2 & Demo, walking skeleton &
+Deployment pipeline, database schema, sign-in, one working screen.\\
+B1 & 15/11/2026, end of Sprint 3 & Demo, beta &
+Degree audit dashboard and curriculum explorer on the APCS curriculum.\\
+B2 & 29/11/2026, end of Sprint 4 & Beta &
+Semester roadmap planner with live rule validation, transcript import, notifications.\\
+B3 & 13/12/2026, end of Sprint 5 & Release candidate &
+AI plan generator and advisor, quicklinks and guides, full regression.\\
+\end{xltabular}}
+
+\subsubsection{Project Schedule}
+The schedule below is the one the team works to. Tasks are kept in the project Discord server, one message per task, moved
+by its owner through the states Pending, Doing and Done. This table is copied from that list at the end of each sprint, so
+progress can be checked against the dates. The schedule may change after the review of PA1.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.4cm}p{2.0cm}Yp{3.0cm}@{}}
+\hcell{Sprint} & \hcell{Dates} & \hcell{Key tasks} & \hcell{Owner}\\\hdrline
+\endhead
+Sprint 1 & 5/10 -- 18/10 &
+Project proposal and 5 user interviews; group registration; tools setup; stack decision; project plan; vision document;
+UI sketches; 2 weekly reports. & All, coordinated by Lâm\\
+Sprint 2 & 19/10 -- 1/11 &
+Use-case model and specifications; requirements baseline; initial architecture and database schema; continuous
+integration; build B0 deployed. & Lâm, Triết, Thắng\\
+Sprint 3 & 2/11 -- 15/11 &
+Detailed design; test plan and test cases; curriculum data model for APCS; degree audit; curriculum explorer; build B1.
+& Hòa, Triết, Dũng\\
+Sprint 4 & 16/11 -- 29/11 &
+Roadmap planner with validation; transcript import; notifications; build B2; regression. & All\\
+Sprint 5 & 30/11 -- 13/12 &
+AI plan generator and advisor; quicklinks and guides; performance and security pass; full regression; release candidate
+B3; final report. & All\\
+\end{xltabular}}
+
+\subsubsection{Project Resourcing}
+Five members, each committing at least 10 hours per week, about 50 hours per week and roughly 600 hours over the twelve
+weeks. The work is spread so that no sprint depends on a single person: every task has an owner and a reviewer.
+
+\begin{itemize}
+  \item Source control and review: GitHub, one repository, protected main branch.
+  \item Communication and task tracking: one Discord server, one channel per concern, one message per task.
+  \item Development: NestJS and Vue run locally; PostgreSQL 18 locally with seeded curriculum data.
+  \item Continuous integration and hosting: GitHub Actions and a free-tier cloud host for staging.
+  \item Documents: Markdown in \texttt{/docs}, exported to \texttt{.pdf} for submission.
+  \item No paid licence is needed, which keeps the project inside the zero-budget constraint.
+\end{itemize}
+
+\subsection{Project Monitoring and Control}
+\subsubsection{Reporting}
+Status is reported in three ways. First, a weekly report every Sunday, written on the course template and stored in
+\texttt{/docs/management}: it lists what was completed, what slipped, the issues and the goals of the following week.
+Second, a weekly meeting of about thirty minutes at the start of each week, where the report is closed, the priorities of
+the sprint are confirmed and any blocker is assigned to a person. Third, continuous status in the project Discord server:
+every task is a message in the channel and its owner moves it through the states Pending, Doing and Done on the day it
+changes, so the state of the sprint can be read without asking anyone. Two weekly reports are produced during Sprint 1
+and submitted with PA1.
+
+\begin{itemize}
+  \item Weekly report to the TAs: what was planned, what was done, the percentage of each task, the issues and the goals of
+        the next week.
+  \item Weekly meeting: thirty minutes, decisions recorded in the channel right after the meeting.
+  \item Daily updates in Discord: task state, blockers, and the pull request number once the work is opened for review.
+\end{itemize}
+
+\subsubsection{Risk Management}
+\begin{ocplain}{Not part of this version}
+The risk register is left empty in PA1, as the assignment instructs. The table of risks, probabilities and mitigation
+strategies is completed in PA2, where the technical risks of the rule engine and of the curriculum data become measurable.
+\end{ocplain}
+
+\subsubsection{Configuration Management}
+Source code and documents live in one GitHub repository owned by the team, with the folder layout required by PA0:
+\texttt{/src} for the code, \texttt{/docs/management} for plans and reports, \texttt{/docs/requirements} for the vision
+document and the use cases, \texttt{/docs/analysis and design} for the architecture, the models and the UI design,
+\texttt{/docs/test} for the test plan, the test cases and the test reports, and \texttt{/report} for the submissions.
+Documents are written in Markdown, versioned with the code, and exported to \texttt{.pdf} only for submission.
+
+\begin{itemize}
+  \item No one pushes to main. Every change arrives as a pull request.
+  \item A pull request merges only when the continuous integration pipeline passes, every commit is signed, and at least
+        one other member has reviewed and approved it.
+  \item After approval the author merges the pull request and performs the deployment.
+  \item Review duty follows the workstream: the frontend lead reviews frontend work, the backend lead reviews backend work,
+        and the project lead reviews changes to the data model and the rules.
+  \item Builds B0 to B3 are tagged in the repository, so the version that was tested is always identifiable.
+\end{itemize}
+
+The technology stack of the project, all at the current stable release:
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.0cm}Yp{4.0cm}@{}}
+\hcell{Layer} & \hcell{Technology} & \hcell{Version}\\\hdrline
+\endhead
+Database & PostgreSQL & 18.6\\
+Backend & NestJS, with the Nest CLI and Swagger & 12.1.3 / 12.0.8 / 12.0.2\\
+Frontend & Vue & 3.5.44\\
+API & REST, described by OpenAPI & 3.2.0\\
+Tests & Vitest & 5.0.4\\
+Build & Vite & 8.3.4\\
+\end{xltabular}}
+
+\end{document}

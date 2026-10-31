@@ -28,7 +28,7 @@ docs/management/            Project plan, weekly reports, meeting notes
 docs/requirements/          Vision document, use-case model and specifications
 docs/analysis-and-design/   Architecture, models, UI design, ADRs
 docs/test/                  Test plan, test cases, test reports
-pa/                         Assignment submissions (PA0 … PA5)
+report/                     Academic reports & assignment submissions (PA1 … PA5, weekly)
 ```
 
 Documents are written in Markdown and exported to .docx only for submission.

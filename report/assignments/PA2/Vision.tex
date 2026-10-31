@@ -1,0 +1,291 @@
+\documentclass{article}
+\usepackage{../../shared/omnicourse}
+\input{../../shared/meta.tex}
+
+\renewcommand{\docshortname}{Vision Document}
+\hypersetup{pdftitle={OmniCourse -- Vision Document v2.0}}
+
+\begin{document}
+
+\makecover{Vision Document}{2.0}{1 November 2026}{ESE-PA2-Vision-2.0}{Project Assignment 2 (PA2)}
+
+\pagenumbering{roman}
+\thispagestyle{empty}
+
+\section*{Revision history}
+\vspace{-0.3em}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.6cm}p{1.8cm}Yp{4.2cm}@{}}
+\hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
+\endhead
+18/Oct/2026 & 1.0 & Initial version submitted for PA1 & Lê Hữu Hoà\\
+1/Nov/2026 & 2.0 & Second submission for PA2: expanded product features, alternatives, competitor analysis, and non-functional requirements; F2, F6, F8 and F12 restated per ADR 0003 (a language model only in the F6 goal box and F8 advisor, never deciding an academic rule). Revisions highlighted in blue. & Lê Hữu Hoà\\
+\end{xltabular}}
+\par\vspace{1.0cm}
+
+{\hypersetup{linkcolor=ocNavy}\tableofcontents}
+
+\clearpage
+\pagenumbering{arabic}
+
+\section{Introduction}
+OmniCourse is a public web application for HCMUS students that puts the degree audit, the curriculum, the semester plan, an
+AI planner and the links to the school services on one page. This document defines the high-level needs and the features of
+the system: the problem it solves, the stakeholders and the users it serves, the position it takes among the tools that
+exist today, the product features and the non-functional requirements. It is written in the Inception phase from the
+team's own experience as students, five user interviews and the official curriculum and regulation documents. How each need
+is fulfilled in detail belongs to the use-case model and the supplementary specification.
+
+\subsection{References}
+\begin{itemize}
+  \item Curriculum of the Advanced Program in Computer Science, HCMUS, cohort 2024.
+  \item Thông tư 08/2021/TT-BGDĐT of the Ministry of Education and Training on undergraduate training by credits.
+  \item Luật 91/2025/QH15 on Personal Data Protection, with Nghị định 356/2025/NĐ-CP.
+  \item Course material of Elements of Software Engineering: PA0 project plan, RUP templates, lecture notes on project
+        assignments.
+  \item Public projects used as prior work: \texttt{LLaammTTeerr/HCMUS\_Courses}, Coursicle, Stellic, Ellucian Degree
+        Works, \texttt{nu-map}, \texttt{coursemap}, \texttt{uwpathr}, \texttt{grad-tree}.
+\end{itemize}
+
+\section{Positioning}
+\subsection{Problem Statement}
+The statement below summarises the problem this project solves.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}>{\RaggedRight\arraybackslash}p{4.0cm}Y@{}}
+\dlabel{The problem of} & academic information that is scattered and unverified. The curriculum, the
+requirement groups, the credit limits and the registration steps sit in separate PDF files, separate portals and separate
+sets of advice, and each cohort has its own version of them.\\
+\dlabel{affects} & HCMUS undergraduates planning their own semesters, in particular the students of a
+specialised program such as APCS, and the program office staff who cannot review every student's plan each term.\\
+\dlabel{the impact of which is} & a missed compulsory course or an unfilled elective group discovered in
+the final year, which delays graduation by a semester, adds tuition and delays a job start; and hours spent each term
+re-planning by hand with spreadsheets, screenshots and advice from seniors that nobody has verified.\\
+\dlabel{a successful solution would be} & one page that states exactly which requirements are met and
+which remain, a roadmap to graduation validated against prerequisites, offering terms and credit caps, the ability to see
+the consequence of a choice before making it, and a plain-language explanation of every rule applied.\\
+\end{xltabular}}
+
+\subsection{Product Position Statement}
+The position statement below summarises the place the product intends to take.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}>{\RaggedRight\arraybackslash}p{4.0cm}Y@{}}
+\dlabel{For} & HCMUS undergraduates on the credit system, starting with the students of the APCS
+program\\
+\dlabel{Who} & need to know their real graduation status and plan the semesters ahead without making an
+expensive mistake\\
+\dlabel{The OmniCourse} & is a web-based academic roadmap and course planner\\
+\dlabel{That} & produces a validated plan to graduation and explains every rule it applies, in one
+workspace instead of a set of portals, PDF files and spreadsheets\\
+\dlabel{Unlike} & hcmus-courses.lamter.cc, the single-purpose registration tools, Coursicle, and the
+institutional platforms such as Stellic and Degree Works\\
+\dlabel{Our product} & covers the whole cycle in one data model (audit, roadmap, what-if, advisor,
+links), keeps every academic rule in our own deterministic engine instead of a language model, and stores curriculum data
+in a model that moves between programs and schools.\\
+\end{xltabular}}
+
+\section{Stakeholder and User Descriptions}
+This section profiles the stakeholders and the users of OmniCourse and the needs they bring to it. Specific requests and
+requirements belong to the use-case model and the supplementary specification; this section gives the background and the
+justification for them.
+
+\subsection{Stakeholder Summary}
+The stakeholders below are not end users of the system, except the development team, which is both.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.9cm}Y Y@{}}
+\hcell{Name} & \hcell{Description} & \hcell{Responsibilities}\\\hdrline
+\endhead
+Instructor and teaching assistants & The staff of the Elements of Software Engineering course &
+Review and grade each assignment, approve the project scope, check that the process and the documents follow the course
+requirements.\\
+Program office and academic affairs staff & The HCMUS staff who own the official curriculum and the academic regulations &
+Provide the curriculum and the regulation documents; confirm that the rules applied per cohort are the official ones.\\
+Personal data protection officer & The institutional role responsible for student records under Luật 91/2025/QH15 &
+Check consent, retention and deletion of personal data, and the notification duty in case of a breach.\\
+Development team & Five students of the APCS program, the authors of the system &
+Build, test and maintain the product. Also its first users: they plan their own semesters with it and report what does
+not work.\\
+Students of other universities (later) & Users of the product after this course, not represented in this release &
+No responsibility in this project; the data model is designed so that their programs can be added later.\\
+\end{xltabular}}
+
+\subsection{User Summary}
+Three user groups are identified for this release.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.0cm}Y Y p{3.0cm}@{}}
+\hcell{Name} & \hcell{Description} & \hcell{Responsibilities} & \hcell{Stakeholder}\\\hdrline
+\endhead
+Student (primary) & A HCMUS undergraduate, APCS in the first release, from first year to final year. Plans on a laptop,
+checks on a phone. &
+Owns their transcript and their plan: imports the transcript, sets the goals, reads the audit, builds a roadmap or asks the
+AI planner for one, asks questions in the chat. &
+Represented by the development team, who are students of the same program.\\
+Program administrator & A member of the program office, or the team during this project, maintaining the curriculum data. &
+Adds and edits programs, cohorts, courses, prerequisites, requirement groups and the regulation documents; reviews the data
+imported from a curriculum file. &
+Represented by the program office stakeholder.\\
+Advisor (secondary) & An academic advisor or a lecturer who reviews a student's plan. &
+Opens a shared read-only plan and checks it against the curriculum and the regulations of the program. &
+Represented by the instructor stakeholder.\\
+\end{xltabular}}
+
+\subsection{User Environment}
+A student plans on a laptop, in a browser, usually at home in the evening; a quick check happens on a phone between
+classes. A planning session runs from ten minutes for a single question to about an hour for a full roadmap to graduation,
+and repeats at the start of each term and again around the registration window. One student works alone; a group of friends
+may compare plans, which the read-only share covers. The product is a web application, responsive from 360 px to 1920 px,
+with a Vietnamese and an English interface, and it needs an internet connection because the AI features call a model API.
+It runs in any current browser on Windows, macOS, Android and iOS, with nothing to install.
+
+\begin{itemize}
+  \item Systems in use today: the HCMUS portals for registration, grades and tuition, the curriculum PDF, the course
+        description files, spreadsheets, and Facebook and Zalo groups.
+  \item Integration: none programmatic. OmniCourse links to the portals and never handles a student's password, so nothing
+        breaks when the school changes its portal.
+  \item Administrators work on a desktop, importing and correcting curriculum data a few times a year, one program at a
+        time.
+\end{itemize}
+
+\subsection{Summary of Key Stakeholder or User Needs}
+The needs below are the ones the product has to satisfy. Priority is set by the cost of getting the need wrong, not by the
+ease of building it.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}Yp{3.0cm}p{4.0cm}p{1.2cm}@{}}
+\hcell{Need} & \hcell{Affects} & \hcell{How it is met today} & \hcell{Priority}\\\hdrline
+\endhead
+Know the exact graduation status: what is met, what remains, per requirement group & Student &
+Reading the transcript by hand, a senior's spreadsheet & High\\
+Build a valid plan that respects prerequisites, offering terms and the credit caps & Student &
+Spreadsheets, trial and error, asking friends & High\\
+Get an answer grounded in the official curriculum and the regulations & Student &
+Asking seniors, asking a chatbot with a PDF attached & High\\
+Know where and how each school task is performed, and with which account & Student &
+Memory, scattered posts in Facebook groups & High\\
+See the cost of a choice before making it: fail a course, change specialization, add a summer term & Student &
+Advice from peers, guesswork & Medium\\
+Maintain curriculum data per program and cohort & Program administrator &
+Editing documents, no dedicated tool & Medium\\
+Review a student's plan quickly & Advisor & Screenshots and exported spreadsheets & Low\\
+\end{xltabular}}
+
+\subsection{Alternatives and Competition}
+Students have alternatives today, and most of them are already in use. They are the benchmark this product has to beat.
+
+\begin{itemize}
+  \item \textbf{hcmus-courses.lamter.cc} (\texttt{LLaammTTeerr/HCMUS\_Courses}): the closest existing product. Degree plan,
+        graduation requirement check and semester planning for HCMUS. \emph{Strength:} it knows the school.
+        \emph{Weakness:} it covers one slice of the job and its data model is tied to HCMUS.
+  \item \textbf{Automated registration tools} (Auto Course Registration Tool, HCMUS-CTDA-DKHP): they get a student into a
+        section faster. \emph{Weakness:} they need the student's portal account, a risk the student carries, and they
+        answer none of the planning questions.
+  \item \textbf{Coursicle}: schedule building, seat tracking, reviews. \emph{Strength:} polished and proven.
+        \emph{Weakness:} one university at a time, no degree audit against a curriculum, no AI planning.
+  \item \textbf{Stellic and Ellucian Degree Works}: degree audit and planning platforms. \emph{Strength:} mature audit
+        logic. \emph{Weakness:} sold to institutions, not reachable by a student at HCMUS, and closed.
+  \item \textbf{Open-source single-school planners} (\texttt{nu-map}, \texttt{coursemap}, \texttt{uwpathr},
+        \texttt{grad-tree}): good ideas about roadmap visualisation. \emph{Weakness:} each is one school, no shared data
+        model, no AI layer.
+  \item \textbf{The status quo}: Excel, screenshots, Facebook and Zalo groups, advice from seniors. \emph{Strength:} free
+        and familiar. \emph{Weakness:} unverified, stale, and wrong for the student's own cohort.
+\end{itemize}
+
+\section{Product Overview}
+\subsection{Product Perspective}
+OmniCourse is a new, standalone product, not a module of an existing information system. It is a cloud-hosted web
+application: a Vue frontend, a NestJS REST API, a PostgreSQL database, and one language model behind a single interface. It
+sits beside the official portals rather than inside them. Integration with the school is by link and by the data the
+student provides, which is an uploaded transcript and a chosen program; there is no scraping and no automated transaction
+with a student account. The architecture is modular: audit and planning are one module in this release, while tuition,
+conduct score, paperwork and community features are independent modules that can be switched on per school later without
+changing the engine.
+
+\subsection{Assumptions and Dependencies}
+\begin{itemize}
+  \item The curriculum and the regulation documents of HCMUS are public and stable within a cohort.
+  \item The APCS curriculum can be modelled exactly by the team, who study it.
+  \item The credit caps of the program are the published ones: 14 to 25 credits in a main term, 12 in summer.
+  \item A student can produce a transcript as \textcolor{blue}{the PDF exported from the student portal}, and consents to upload it.
+  \item A hosted model API stays available on a free or low-cost tier for the duration of the course.
+  \item Students have a browser and an internet connection; no installation is possible.
+  \item No official API for the curriculum or the student record appears during the project.
+  \item Accuracy of the curriculum data depends on editorial maintenance by the team after each cohort change.
+\end{itemize}
+
+\section{Product Features}
+Twelve feature groups deliver the needs above. F1 to F11 serve the student; F12 serves the program administrator. Priority
+is set for this course: \emph{High} features must work in the release candidate, \emph{Medium} features are completed if the
+earlier sprints hold, \emph{Low} features may be reduced without breaking the product.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.9cm}p{3.9cm}Yp{1.4cm}@{}}
+\hcell{No.} & \hcell{Feature} & \hcell{Description} & \hcell{Priority}\\\hdrline
+\endhead
+F1 & Account and onboarding &
+Sign up with email, Google, or a verified student email; choose faculty, program and cohort; set the target graduation
+term, the maximum credits per term and a planned internship. & High\\
+F2 & \textcolor{blue}{Transcript import} &
+\textcolor{blue}{Upload the transcript PDF exported from the student portal; a deterministic parser reads codes, credits,
+grades and terms, with no language model involved; a review screen shows every row; manual entry always possible.} & High\\
+F3 & Degree audit dashboard &
+Progress per requirement group, credits earned and remaining, cumulative GPA, estimated graduation term, and warnings for
+an empty elective group, a missing language certificate or a prerequisite not taken. & High\\
+F4 & Curriculum explorer &
+Every course of the program by requirement group, with credits, prerequisites and what it unlocks, plus a prerequisite
+graph. & High\\
+F5 & Semester roadmap planner &
+Drag courses into terms from now to graduation; every change is validated live against prerequisites, credit caps,
+offering terms and requirement coverage; several plans kept and compared. & High\\
+F6 & AI plan generator \textcolor{blue}{(goal box)} &
+\textcolor{blue}{A deterministic planner builds the roadmap over the rule engine. A language model is used only in the goal
+box: it turns a plain-language goal into the planning form (target term, credits per term, internship, courses to take or
+avoid), which the student reviews before planning. The model may call the rule engine and explain its results; it never
+decides a prerequisite, an offering term, a credit cap or a requirement.} & High\\
+F7 & What-if simulator &
+Failing a course, changing specialization, adding a summer term or raising the load: the roadmap is recomputed and the
+effect on the graduation term is shown. & Medium\\
+F8 & AI academic advisor chat &
+Questions answered from the official curriculum and regulations, with the document and the clause cited and the student's
+own record available. \textcolor{blue}{The advisor may call the rule engine and explain its results, never override them.}
+& Medium\\
+F9 & Plan export and sharing & Export a plan as a PDF or share a read-only link with an advisor. & Low\\
+F10 & Notifications &
+Reminders for the registration window, a check-in at the start of each term and a warning when the transcript changes. &
+Low\\
+F11 & Quicklinks and step-by-step guides &
+Every school task the app does not perform comes with its direct link, the steps, the required account and the notes that
+matter at that moment; each guide is versioned. & Medium\\
+F12 & Curriculum administration &
+Create and edit programs, cohorts, courses, prerequisites and requirement groups\textcolor{blue}{; curriculum data is entered and reviewed by people against the official
+program document, never extracted by a model}. & Medium\\
+\end{xltabular}}
+
+\section{Other Product Requirements}
+\subsection{Non-Functional Requirements}
+The requirements below apply to the whole product. They are written as targets that can be checked at the end of a sprint,
+not as intentions.
+
+\begin{itemize}
+  \item \textbf{Security:} passwords hashed with a modern algorithm, optional two-factor authentication, sessions that
+        rotate, expire and can be revoked, and administrator rights scoped per school and per program.
+  \item \textbf{Privacy:} consent at sign-up, a stated retention period, export and deletion of a whole account, no portal
+        credential stored, prompts not used to train third-party models. Basis: Luật 91/2025/QH15 and Nghị định
+        356/2025/NĐ-CP.
+  \item \textbf{Performance:} the audit and the dashboard load in under 2 seconds for a 40-course transcript on a normal
+        connection; a planner edit is validated in under 300 milliseconds; \textcolor{blue}{the goal box fills the planning form in under
+        30 seconds} with visible progress.
+  \item \textbf{Robustness:} the application stays usable for manual planning when the model provider is unreachable, and
+        the database is backed up nightly. Availability target for the course is 99\% monthly on the free tier.
+  \item \textbf{Usability:} responsive from 360 px to 1920 px, keyboard operable, Vietnamese and English, colour contrast
+        at WCAG 2.1 AA, and every AI answer links to the document and clause it relies on.
+  \item \textbf{Testability and maintainability:} at least 80\% statement coverage of the rule engine, automated tests in
+        the pipeline on every pull request, and the API contract published as OpenAPI 3.2.0.
+  \item \textbf{Data:} curriculum data versioned per cohort, so a new cohort is a new record and old plans keep working.
+  \item \textbf{Standards:} national credit regulation Thông tư 08/2021/TT-BGDĐT, the published HCMUS credit caps, and
+        Luật 91/2025/QH15 for personal data.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,67 @@
+\documentclass{article}
+\usepackage{../shared/omnicourse}
+\input{../shared/meta.tex}
+
+\renewcommand{\docshortname}{Weekly Report -- Week 3}
+\hypersetup{pdftitle={OmniCourse -- Weekly Report Week 3}}
+
+\begin{document}
+
+\weeklycover{Weekly Report \textbullet{} Week 3}{19 October -- 25 October 2026 \textbullet{} Sprint 2, Elaboration}
+             {Phan Bình Nguyên Lâm (Project Lead)}{ESE-PA1-WR-03}
+
+\pagestyle{fancy}
+\ocompact
+
+{\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 2 \textbullet{} ELABORATION \textbullet{} WEEK 1 OF 2}\par\vspace{4pt}
+
+\noindent\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}XXXX@{}}
+  \kpi{6}{tasks planned} & \kpi{4}{tasks finished} & \kpi{66\%}{average completion} & \kpi{3}{open items}
+\end{tabularx}
+\par\vspace{0.45cm}
+
+\section{Team}
+The five members of the group, as registered in PA0. Sprint 2 rotates the analysis role: Hoà leads the use cases, Triết
+takes the architecture, Dũng and Thắng split the specifications.
+
+\par\vspace{5pt}
+{\color{ocRule}\rule{\textwidth}{0.4pt}}\par\vspace{4pt}
+\OmniCourseTeamShort
+
+\section{Achievements since last week}
+
+{\small
+\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.7cm}p{7.4cm}p{1.9cm}p{2.7cm}p{1.4cm}@{}}
+\hcell{No.} & \hcell{Task} & \hcell{Due date} & \hcell{Responsibility} & \hcell{Complete}\\\hdrline
+1 & PA1 submitted: plan, vision, sketches, two reports & 18/10/2026 & Lâm & 100\%\\
+2 & TA feedback on PA1 turned into a change list & 25/10/2026 & Hoà & 100\%\\
+3 & Use-case model draft: actors and 14 use cases & 25/10/2026 & Hoà & 80\%\\
+4 & Use-case specifications, first 6 of 14 & 25/10/2026 & Dũng, Thắng & 60\%\\
+5 & Database schema v1: curriculum, transcript, plan & 25/10/2026 & Triết & 70\%\\
+6 & Pipeline green; sign-in end to end on staging & 25/10/2026 & Triết, Lâm & 75\%\\
+\end{tabularx}}
+
+\section{Issues and impacts}
+\begin{ocnote}{Issues of the week}
+\begin{itemize}
+  \item Mid-term examination week cut capacity from 50 planned hours to about 38.
+  \item The use-case specifications take longer than estimated: the elective groups with credit minimums need cases the
+        team had not documented.
+  \item Build B0 on 1/11 is at risk if sign-in is not finished by 29/10. Fallback: B0 ships without the transcript upload
+        stub, which moves to B1.
+\end{itemize}
+\end{ocnote}
+
+\section{Next week's goals}
+
+{\small
+\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.7cm}p{8.2cm}p{2.1cm}p{3.5cm}@{}}
+\hcell{No.} & \hcell{Goal} & \hcell{Due date} & \hcell{Responsibility}\\\hdrline
+1 & Use-case specifications, remaining 8 of 14 & 1/11/2026 & All, led by Hoà\\
+2 & Architecture document v1 & 1/11/2026 & Triết\\
+3 & Build B0 on staging: sign-in and one screen & 1/11/2026 & Lâm, Dũng\\
+4 & Test plan of the Elaboration phase & 1/11/2026 & Thắng\\
+5 & Vision document v2.0 with the TA feedback & 1/11/2026 & Hoà\\
+\end{tabularx}}
+
+\end{document}

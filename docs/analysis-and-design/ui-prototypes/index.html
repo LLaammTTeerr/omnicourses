@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ba trang mẫu · OmniCourse</title>
+  <meta name="description" content="Bộ ba prototype tĩnh cho OmniCourse: dashboard, lộ trình học kỳ và link board.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Bỏ qua điều hướng</a>
+
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <symbol id="i-overview" viewBox="0 0 24 24">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.6"></rect>
+    </symbol>
+    <symbol id="i-route" viewBox="0 0 24 24">
+      <circle cx="6" cy="6" r="2.2"></circle>
+      <circle cx="18" cy="18" r="2.2"></circle>
+      <path d="M8.2 6h4.3a4 4 0 0 1 0 8H11a4 4 0 0 0 0 8h4.8"></path>
+    </symbol>
+    <symbol id="i-link" viewBox="0 0 24 24">
+      <path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.5 1.5"></path>
+      <path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.5-1.5"></path>
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2"></rect>
+      <path d="M3.5 9.5h17"></path>
+      <path d="M8 3.5v3"></path>
+      <path d="M16 3.5v3"></path>
+    </symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24">
+      <path d="M6.5 10.5a5.5 5.5 0 0 1 11 0c0 4 1.5 5.5 1.5 5.5H5s1.5-1.5 1.5-5.5Z"></path>
+      <path d="M10 19a2.2 2.2 0 0 0 4 0"></path>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.74v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"></circle>
+      <path d="M12 7.5V12l3.3 2"></path>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m4.5 12.5 4.7 4.7L19.5 6.8"></path>
+    </symbol>
+    <symbol id="i-arrow-out" viewBox="0 0 24 24">
+      <path d="M5 12h14"></path>
+      <path d="m13 6 6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-arrow-in" viewBox="0 0 24 24">
+      <path d="M19 12H5"></path>
+      <path d="m11 18-6-6 6-6"></path>
+    </symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24">
+      <path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5L12 3Z"></path>
+    </symbol>
+  </svg>
+
+  <aside class="site-header" aria-label="Điều hướng">
+    <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Thu gọn hoặc mở rộng thanh điều hướng">
+    <div class="header-inner">
+      <div class="sidebar-top">
+        <a class="brand" href="index.html" aria-label="OmniCourse, trang chủ bản mẫu">
+          <svg class="brand-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4.8 16.4c3.5 0 3.5-8.8 7.2-8.8s3.7 8.8 7.2 8.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+            <circle cx="4.8" cy="16.4" r="1.3" fill="currentColor"></circle>
+            <circle cx="19.2" cy="16.4" r="1.3" fill="currentColor"></circle>
+          </svg>
+          <span>OmniCourse</span>
+        </a>
+        <label class="nav-collapse" for="nav-toggle" title="Thu gọn thanh điều hướng">
+          <svg class="icon" aria-hidden="true"><use href="#i-arrow-in"></use></svg>
+        </label>
+      </div>
+
+      <label class="nav-expand" for="nav-toggle" title="Mở rộng thanh điều hướng">
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow-out"></use></svg>
+      </label>
+
+      <span class="term-chip">
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          HK1 2026–2027
+        </span>
+
+      <nav class="nav" aria-label="Điều hướng chính">
+        <a href="dashboard.html" title="Tổng quan" data-tooltip="Tổng quan (⌘1)">
+          <svg class="icon" aria-hidden="true"><use href="#i-overview"></use></svg>
+          <span>Tổng quan</span>
+        </a>
+        <a href="schedule.html" title="Thời khóa biểu" data-tooltip="Thời khóa biểu">
+          <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          <span>Lịch</span>
+        </a>
+        <a href="planner.html" title="Lộ trình" data-tooltip="Lộ trình (⌘2)">
+          <svg class="icon" aria-hidden="true"><use href="#i-route"></use></svg>
+          <span>Lộ trình</span>
+        </a>
+        <a href="links.html" title="Liên kết" data-tooltip="Liên kết (⌘3)">
+          <svg class="icon" aria-hidden="true"><use href="#i-link"></use></svg>
+          <span>Liên kết</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="sidebar-settings" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+          <span>Cài đặt</span>
+        </button>
+        <span class="avatar" aria-label="Tài khoản của Minh Anh">MA</span>
+      </div>
+    </div>
+  </aside>
+
+  <main id="main" class="page">
+    <div class="container">
+      <section class="index-hero">
+        <div>
+          <h1>Ba trang mẫu</h1>
+          <p class="lede">APCS K2023, dữ liệu minh họa.</p>
+        </div>
+
+        <aside class="index-card" aria-labelledby="persona-title">
+          <p class="label" id="persona-title">Dữ liệu mẫu</p>
+          <p><b>Minh Anh</b> · APCS K23<br>Đại học Khoa học Tự nhiên, ĐHQG-HCM</p>
+          <div class="meta">
+            <span class="chip">125 / 167 TC</span>
+            <span class="chip">GPA 3.42</span>
+            <span class="chip">Tốt nghiệp 08/2027</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="index-list" aria-label="Danh sách ba trang mẫu">
+        <a class="index-item" href="dashboard.html">
+          <span class="index-num">01</span>
+          <div>
+            <h2 class="index-title">Tổng quan</h2>
+            <p class="index-desc">
+              Lịch học hôm nay, hạn nộp bài tập, cảnh báo học vụ và tiến độ 167 TC.
+            </p>
+          </div>
+          <span class="index-arrow" aria-hidden="true">
+            <svg class="icon"><use href="#i-arrow"></use></svg>
+          </span>
+        </a>
+
+        <a class="index-item" href="schedule.html">
+          <span class="index-num">02</span>
+          <div>
+            <h2 class="index-title">Thời khóa biểu</h2>
+            <p class="index-desc">
+              Tuần 7, lưới giờ kiểu lịch, 4 môn HK1.
+            </p>
+          </div>
+          <span class="index-arrow" aria-hidden="true">
+            <svg class="icon"><use href="#i-arrow"></use></svg>
+          </span>
+        </a>
+
+        <a class="index-item" href="planner.html">
+          <span class="index-num">03</span>
+          <div>
+            <h2 class="index-title">Lộ trình</h2>
+            <p class="index-desc">
+              HK1 đến HK3, trần tín chỉ và 2 lỗi.
+            </p>
+          </div>
+          <span class="index-arrow" aria-hidden="true">
+            <svg class="icon"><use href="#i-arrow"></use></svg>
+          </span>
+        </a>
+
+        <a class="index-item" href="links.html">
+          <span class="index-num">04</span>
+          <div>
+            <h2 class="index-title">Liên kết & hướng dẫn</h2>
+            <p class="index-desc">
+              15 việc trường, link và hạn nộp.
+            </p>
+          </div>
+          <span class="index-arrow" aria-hidden="true">
+            <svg class="icon"><use href="#i-arrow"></use></svg>
+          </span>
+        </a>
+      </section>
+
+      <div class="index-foot">
+        <span>
+          <svg class="icon icon-sm" aria-hidden="true" style="display: inline; vertical-align: -2px; margin-right: 4px;"><use href="#i-clock"></use></svg>
+          Bản mẫu tĩnh: chỉ HTML và CSS, không JavaScript, không CDN.
+        </span>
+        <span class="footer-links">
+          <a href="docs/RESEARCH.md">Ghi chú thiết kế</a>
+          <a href="docs/VERIFY.md">Kiểm chứng</a>
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>OmniCourse · APCS K2023</span>
+      <span class="footer-links">
+        <a href="dashboard.html">Tổng quan</a>
+        <a href="schedule.html">Lịch</a>
+        <a href="planner.html">Lộ trình</a>
+        <a href="links.html">Liên kết</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>
