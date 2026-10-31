@@ -29,7 +29,8 @@ export class CreateCurriculumCourseSchema1792912952302 implements MigrationInter
         "total_credits_min" integer,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT "uq_curriculums_program_cohort" UNIQUE ("program_id", "cohort_year")
+        CONSTRAINT "uq_curriculums_program_cohort" UNIQUE ("program_id", "cohort_year"),
+        CONSTRAINT "ck_curriculums_cohort_year_positive" CHECK ("cohort_year" > 0)
       )
     `);
     await q.query(`CREATE INDEX "ix_curriculums_program_id" ON "curriculums" ("program_id")`);
@@ -45,8 +46,7 @@ export class CreateCurriculumCourseSchema1792912952302 implements MigrationInter
         "credits_total_min" integer,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT "ck_requirement_groups_kind" CHECK ("kind" IN ('compulsory', 'elective')),
-        CONSTRAINT "uq_requirement_groups_curriculum_name" UNIQUE ("curriculum_id", "name")
+        CONSTRAINT "ck_requirement_groups_kind" CHECK ("kind" IN ('compulsory', 'elective'))
       )
     `);
     await q.query(`CREATE INDEX "ix_requirement_groups_curriculum_id" ON "requirement_groups" ("curriculum_id")`);
@@ -57,19 +57,19 @@ export class CreateCurriculumCourseSchema1792912952302 implements MigrationInter
         "name_vi" varchar(255) NOT NULL,
         "name_en" varchar(255),
         "credits" integer NOT NULL,
-        "theory_time" integer DEFAULT 0,
-        "lab_work_time" integer DEFAULT 0,
-        "exercise_time" integer DEFAULT 0,
-        "project_time" integer DEFAULT 0,
+        "theory_hours" integer DEFAULT 0,
+        "lab_hours" integer DEFAULT 0,
+        "exercise_hours" integer DEFAULT 0,
+        "project_hours" integer DEFAULT 0,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT "ck_courses_code" CHECK ("code" ~ '^[A-Z0-9]{2,20}$'),
+        CONSTRAINT "ck_courses_code_format" CHECK ("code" ~ '^[A-Z0-9]{2,20}$'),
         CONSTRAINT "ck_courses_credits_positive" CHECK ("credits" > 0),
-        CONSTRAINT "ck_courses_times_non_negative" CHECK (
-          COALESCE("theory_time", 0) >= 0 AND
-          COALESCE("lab_work_time", 0) >= 0 AND
-          COALESCE("exercise_time", 0) >= 0 AND
-          COALESCE("project_time", 0) >= 0
+        CONSTRAINT "ck_courses_hours_non_negative" CHECK (
+          COALESCE("theory_hours", 0) >= 0 AND
+          COALESCE("lab_hours", 0) >= 0 AND
+          COALESCE("exercise_hours", 0) >= 0 AND
+          COALESCE("project_hours", 0) >= 0
         )
       )
     `);
@@ -80,7 +80,8 @@ export class CreateCurriculumCourseSchema1792912952302 implements MigrationInter
         "course_code" varchar(20) NOT NULL REFERENCES "courses" ("code") ON DELETE RESTRICT,
         "compulsory" boolean NOT NULL DEFAULT false,
         "created_at" timestamptz NOT NULL DEFAULT now(),
-        PRIMARY KEY ("requirement_group_id", "course_code")
+        PRIMARY KEY ("requirement_group_id", "course_code"),
+        CONSTRAINT "ck_requirement_group_courses_code_format" CHECK ("course_code" ~ '^[A-Z0-9]{2,20}$')
       )
     `);
     await q.query(`CREATE INDEX "ix_requirement_group_courses_course_code" ON "requirement_group_courses" ("course_code")`);
