@@ -5,6 +5,7 @@ import { TranscriptRow } from '../transcript/transcript-row.entity.js';
 import { User } from '../users/user.entity.js';
 import { CreateUsersAndSessions1761696000000 } from './migrations/1761696000000-create-users-and-sessions.js';
 import { CreateAiUsage1792800000000 } from './migrations/1792800000000-create-ai-usage.js';
+import { CreateCurriculumCourseSchema1792912952302 } from './migrations/1792912952302-create-curriculum-course-schema.js';
 import { AddUsersDeletionRequestedAt1792886400000 } from './migrations/1792886400000-add-users-deletion-requested-at.js';
 import { CreateTranscriptRows1793159431000 } from './migrations/1793159431000-create-transcript-rows.js';
 
@@ -17,6 +18,7 @@ export const dataSourceOptions = {
   migrations: [
     CreateUsersAndSessions1761696000000,
     CreateAiUsage1792800000000,
+    CreateCurriculumCourseSchema1792912952302,
     AddUsersDeletionRequestedAt1792886400000,
     CreateTranscriptRows1793159431000,
   ],
