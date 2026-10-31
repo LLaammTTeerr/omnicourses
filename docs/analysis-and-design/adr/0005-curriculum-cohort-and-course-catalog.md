@@ -1,7 +1,7 @@
 # ADR 0005: Curriculum cohorting and course catalog
 
 ## Status
-Accepted
+Proposed
 
 ## Context
 The glossary defines Curriculum as the courses and requirement groups a cohort of a program must satisfy to graduate. ADR 0001 notes curriculum data is versioned per cohort. The initial schema treated `curriculums.code` as globally unique and attached courses directly to requirement groups (owned by courses), preventing sharing courses across cohorts and making it impossible to have the same course code appear in different groups/curriculums.
