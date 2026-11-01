@@ -8,5 +8,15 @@ export default defineConfig({
   test: {
     include: ['src/**/*.spec.ts'],
     environment: 'node',
+    /* Remove the comment after the folder name is finalized.
+    coverage: {
+      include: [
+        'src/rules/**'
+      ],
+      thresholds: {
+        statements: 80,
+      }
+    }
+    */
   },
 });
