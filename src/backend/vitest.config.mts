@@ -14,9 +14,10 @@ export default defineConfig({
       ],
       exclude: [
         'src/**/*.spec.ts',
-        'src/**/testing/**', 
+        'src/**/testing/**',
         'src/database/migrations/**',
-        'src/main.ts'
+        'src/main.ts',
+        'src/**/*.live-spec.ts'
       ],
       thresholds: {
         'src/rules/**': {
