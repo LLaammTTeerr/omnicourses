@@ -8,5 +8,22 @@ export default defineConfig({
   test: {
     include: ['src/**/*.spec.ts'],
     environment: 'node',
+    coverage: {
+      include: [
+        'src/**/*.ts',
+      ],
+      exclude: [
+        'src/**/*.spec.ts',
+        'src/**/testing/**',
+        'src/database/migrations/**',
+        'src/main.ts',
+        'src/**/*.live-spec.ts'
+      ],
+      thresholds: {
+        'src/rules/**': {
+          statements: 80,
+        }
+      }
+    }
   },
 });
