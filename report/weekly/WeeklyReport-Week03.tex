@@ -8,7 +8,7 @@
 \begin{document}
 
 \weeklycover{Weekly Report \textbullet{} Week 3}{19 October -- 25 October 2026 \textbullet{} Sprint 2, Elaboration}
-             {Phan Bình Nguyên Lâm (Project Lead)}{ESE-PA1-WR-03}
+             {Phan Bình Nguyên Lâm (Project Lead)}{ESE-PA2-WR-03}
 
 \pagestyle{fancy}
 \ocompact
@@ -16,52 +16,85 @@
 {\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 2 \textbullet{} ELABORATION \textbullet{} WEEK 1 OF 2}\par\vspace{4pt}
 
 \noindent\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}XXXX@{}}
-  \kpi{6}{tasks planned} & \kpi{4}{tasks finished} & \kpi{66\%}{average completion} & \kpi{3}{open items}
+  \kpi{17}{tasks worked on} & \kpi{6}{tasks finished} & \kpi{10}{pull requests merged} & \kpi{4}{open issues}
 \end{tabularx}
 \par\vspace{0.45cm}
 
 \section{Team}
-The five members of the group, as registered in PA0. Sprint 2 rotates the analysis role: Hoà leads the use cases, Triết
-takes the architecture, Dũng and Thắng split the specifications.
+The five members of the group, as registered in PA0. From Sprint 2 each member owns whole features from use case to test
+(project plan v2.0, §3.2): Lâm F1, F2 and F6; Hoà F5 and F7; Triết F3 and F4; Dũng F8 to F11; Thắng F12.
 
 \par\vspace{5pt}
 {\color{ocRule}\rule{\textwidth}{0.4pt}}\par\vspace{4pt}
 \OmniCourseTeamShort
 
 \section{Achievements since last week}
+Rows with a pull request number are taken from GitHub. The percentage is the state on Sunday 25 October.
 
 {\small
-\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.7cm}p{7.4cm}p{1.9cm}p{2.7cm}p{1.4cm}@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.5cm}p{2.0cm}p{1.3cm}@{}}
 \hcell{No.} & \hcell{Task} & \hcell{Due date} & \hcell{Responsibility} & \hcell{Complete}\\\hdrline
-1 & PA1 submitted: plan, vision, sketches, two reports & 18/10/2026 & Lâm & 100\%\\
-2 & TA feedback on PA1 turned into a change list & 25/10/2026 & Hoà & 100\%\\
-3 & Use-case model draft: actors and 14 use cases & 25/10/2026 & Hoà & 80\%\\
-4 & Use-case specifications, first 6 of 14 & 25/10/2026 & Dũng, Thắng & 60\%\\
-5 & Database schema v1: curriculum, transcript, plan & 25/10/2026 & Triết & 70\%\\
-6 & Pipeline green; sign-in end to end on staging & 25/10/2026 & Triết, Lâm & 75\%\\
-\end{tabularx}}
+\endhead
+1 & Repository rules: AGENTS.md, Changesets and semantic versioning, signed-commit and Conventional Commit checks in CI
+(PRs \#1 to \#4, merged 20/10) & 20/10/2026 & Lâm & 100\%\\
+2 & Node pinned to 22.22.1 (\#7); agent skills configured (\#10) & 24/10/2026 & Lâm & 100\%\\
+3 & Work Breakdown: one slice per member, end to end, with ten dated handoffs & 23/10/2026 & Lâm & 100\%\\
+4 & Users, sessions and bearer-token sign-in, with \texttt{AuthGuard} and \texttt{@CurrentUser()} for every module (ADR
+0002, \#8, merged 24/10). Handoff was due 29/10. & 29/10/2026 & Lâm & 100\%\\
+5 & Decision on where a language model is used: F6 goal box and F8 advisor only (ADR 0003, \#11, merged 24/10) & 24/10/2026
+& Lâm & 100\%\\
+6 & AI gateway with OpenRouter, a per-user daily cap and a fake for tests (\#12, in review) & 8/11/2026 & Lâm & 90\%\\
+7 & Export and delete a whole account (ADR 0004, \#14, in review) & 15/11/2026 & Lâm & 90\%\\
+8 & Use-case specifications UC-01, UC-02, UC-07 (\#16); project plan v2.0 draft (\#20); week 3 report draft (\#18) &
+28/10/2026 & Lâm & 80\%\\
+9 & Curriculum schema prototype: programs, cohorts, courses, requirement groups (\#23, opened 25/10) & 28/10/2026 & Triết &
+60\%\\
+10 & Personal dev environment settings ignored by git (\#6, merged 23/10) & 23/10/2026 & Thắng & 100\%\\
+11 & Elaboration test plan and use case UC-11, first draft & 1/11/2026 & Thắng & 50\%\\
+12 & Guide content model and the list of school tasks to cover & 1/11/2026 & Dũng & 40\%\\
+13 & Use-case specifications UC-08, UC-09, UC-10, first draft & 28/10/2026 & Dũng & 40\%\\
+14 & Report template in LaTeX and one build script for every course deliverable (PA1 rebuilt with it) & 25/10/2026 & Hoà &
+80\%\\
+15 & Change list for Vision v2.0 from the team's review of v1.0; ADR 0003 restatement of F2, F6, F8 and F12 & 25/10/2026 & Hoà
+& 70\%\\
+16 & First HTML prototypes of the main screens, built from the PA1 sketches & 1/11/2026 & Hoà & 40\%\\
+17 & Use-case specifications UC-05, UC-06, first draft & 28/10/2026 & Hoà & 40\%\\
+\end{xltabular}}
 
 \section{Issues and impacts}
 \begin{ocnote}{Issues of the week}
 \begin{itemize}
-  \item Mid-term examination week cut capacity from 50 planned hours to about 38.
-  \item The use-case specifications take longer than estimated: the elective groups with credit minimums need cases the
-        team had not documented.
-  \item Build B0 on 1/11 is at risk if sign-in is not finished by 29/10. Fallback: B0 ships without the transcript upload
-        stub, which moves to B1.
+  \item \textbf{No staging host is chosen yet.} The deploy workflow builds but pushes nowhere, so build B0 cannot be
+        deployed on 1/11 until Lâm picks a free-tier host. The nightly backup waits on the same choice (risk R2).
+  \item \textbf{The language-model scope changed} (ADR 0003). F2 becomes a deterministic transcript parser, the curriculum
+        PDF import of F12 is dropped and F6's planner is deterministic, with the model only filling the planning form.
+        Vision v2.0 (Hoà) and the Work Breakdown restate F2, F6 and F12, and the old UC-12 needs a new meaning.
+  \item \textbf{Hoà's GitHub invitation is still pending}, so issue \#13 (sign-in screen, the ``one working screen'' of
+        B0) cannot be assigned to Hoà.
+  \item \textbf{Two pull requests wait for review} (\#12, \#14). They change some of the same files, so the second to
+        merge needs a rebase.
+  \item \textbf{The AI provider account needs two settings} before the gateway goes live: the training opt-out and a
+        monthly credit limit on the OpenRouter key.
+  \item No written TA feedback on PA1 has arrived yet.
 \end{itemize}
 \end{ocnote}
 
 \section{Next week's goals}
 
 {\small
-\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.7cm}p{8.2cm}p{2.1cm}p{3.5cm}@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.8cm}p{3.0cm}@{}}
 \hcell{No.} & \hcell{Goal} & \hcell{Due date} & \hcell{Responsibility}\\\hdrline
-1 & Use-case specifications, remaining 8 of 14 & 1/11/2026 & All, led by Hoà\\
-2 & Architecture document v1 & 1/11/2026 & Triết\\
-3 & Build B0 on staging: sign-in and one screen & 1/11/2026 & Lâm, Dũng\\
-4 & Test plan of the Elaboration phase & 1/11/2026 & Thắng\\
-5 & Vision document v2.0 with the TA feedback & 1/11/2026 & Hoà\\
-\end{tabularx}}
+\endhead
+1 & Curriculum schema merged; every module references it & 28/10/2026 & Triết\\
+2 & All use-case specifications handed to Hoà & 28/10/2026 & All\\
+3 & Use-case model diagrams from the specifications & 1/11/2026 & Hoà\\
+4 & Vision v2.0 and UI prototypes for the key use cases & 1/11/2026 & Hoà\\
+5 & \texttt{RulesService} interface published (types only); initial architecture & 1/11/2026 & Triết\\
+6 & Sign-in screen on the auth API (issue \#13) & 1/11/2026 & Hoà\\
+7 & Staging host chosen; build B0 deployed and tagged & 1/11/2026 & Lâm\\
+8 & Project plan v2.0: estimates, risk register & 1/11/2026 & Lâm\\
+9 & Test cases for B0 and regression checklist v1; regression run on B0 & 1/11/2026 & Dũng\\
+10 & Browser end-to-end harness with one test on the sign-in screen & 1/11/2026 & Thắng\\
+\end{xltabular}}
 
 \end{document}

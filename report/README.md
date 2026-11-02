@@ -44,7 +44,7 @@ Both build scripts stop with this instruction when `meta.tex` is missing.
 | One week | `.\build.ps1 -Target week3` | `./build.sh week3` | Weekly report for week 3 |
 | All weeks | `.\build.ps1 -Target weekly` | `./build.sh weekly` | Every weekly report |
 | PA1 | `.\build.ps1 -Target pa1` | `./build.sh pa1` | ProjectPlan and Vision v1.0 |
-| PA2 | `.\build.ps1 -Target pa2` | `./build.sh pa2` | ProjectPlan, Vision v2.0 and Use-Case Specification |
+| PA2 | `.\build.ps1 -Target pa2` | `./build.sh pa2` | ProjectPlan, Vision v2.0, Use-Case Specification and UI Prototypes |
 | Clean | `.\build.ps1 -Clean` | `./build.sh clean` | Deletes `.aux`, `.log`, `.toc`, `.out` |
 
 ### Container build (Docker or Podman)
@@ -66,7 +66,9 @@ Without a local TeX installation, run the same build in the pinned TeX Live imag
 The brief asks for a folder `PAn-Group[GroupId]` with the PDFs, zipped as `PAn-Group[GroupId].zip`.
 
 - PA1: `ProjectPlan.pdf`, `Vision.pdf`, `WeeklyReport-Week01.pdf`, `WeeklyReport-Week02.pdf`.
-- PA2: `ProjectPlan.pdf` (v2.0), `Vision.pdf` (v2.0), `UseCase-Specification.pdf`, `WeeklyReport-Week03.pdf`, `WeeklyReport-Week04.pdf`.
+- PA2: `ProjectPlan.pdf` (v2.0), `Vision.pdf` (v2.0), `UseCase-Specification.pdf`, `UI-Prototypes.pdf`, `WeeklyReport-Week03.pdf`, `WeeklyReport-Week04.pdf`, and the clickable `ui-prototypes/` folder. The ZIP contains the enclosing `PA2-Group[GroupId]/` directory.
+
+`UI-Prototypes.tex` reads the committed screenshots in `assignments/PA2/shots/`. Recapture those images when the HTML changes; the build scripts compile the PDF but do not capture screenshots.
 
 ```powershell
 .\build.ps1 -Package pa2

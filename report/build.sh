@@ -143,6 +143,7 @@ if [ "$TARGET" = "package-pa2" ] || [ "$TARGET" = "pa2-package" ]; then
   compile_tex "$SCRIPT_DIR/assignments/PA2/ProjectPlan.tex"
   compile_tex "$SCRIPT_DIR/assignments/PA2/Vision.tex"
   compile_tex "$SCRIPT_DIR/assignments/PA2/UseCase-Specification.tex"
+  compile_tex "$SCRIPT_DIR/assignments/PA2/UI-Prototypes.tex"
   compile_tex "$SCRIPT_DIR/weekly/WeeklyReport-Week03.tex"
   compile_tex "$SCRIPT_DIR/weekly/WeeklyReport-Week04.tex"
 
@@ -153,8 +154,11 @@ if [ "$TARGET" = "package-pa2" ] || [ "$TARGET" = "pa2-package" ]; then
   cp "$SCRIPT_DIR/assignments/PA2/ProjectPlan.pdf" "$DIST_DIR/"
   cp "$SCRIPT_DIR/assignments/PA2/Vision.pdf" "$DIST_DIR/"
   cp "$SCRIPT_DIR/assignments/PA2/UseCase-Specification.pdf" "$DIST_DIR/"
+  cp "$SCRIPT_DIR/assignments/PA2/UI-Prototypes.pdf" "$DIST_DIR/"
   cp "$SCRIPT_DIR/weekly/WeeklyReport-Week03.pdf" "$DIST_DIR/"
   cp "$SCRIPT_DIR/weekly/WeeklyReport-Week04.pdf" "$DIST_DIR/"
+  # The clickable prototypes: static HTML, open ui-prototypes/index.html
+  cp -r "$SCRIPT_DIR/../docs/analysis-and-design/ui-prototypes" "$DIST_DIR/ui-prototypes"
 
   create_zip "$GROUP_ID.zip" "$GROUP_ID"
   clean_aux
@@ -166,7 +170,7 @@ fi
 FILES=()
 case "$TARGET" in
   all)
-    while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments" "$SCRIPT_DIR/weekly" -name "*.tex")
+    while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments" "$SCRIPT_DIR/weekly" -name "*.tex" ! -name "uc-*" ! -name "_*")
     ;;
   weekly)
     while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/weekly" -name "*.tex")
@@ -175,7 +179,8 @@ case "$TARGET" in
     while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments/PA1" -name "*.tex")
     ;;
   pa2)
-    while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments/PA2" -name "*.tex")
+    # Top-level documents only; uc-specs.tex and diagrams/ are \input fragments
+    while IFS= read -r f; do FILES+=("$f"); done < <(find "$SCRIPT_DIR/assignments/PA2" -maxdepth 1 -name "*.tex" ! -name "uc-*" ! -name "_*")
     ;;
   week[0-9]|week[0-9][0-9]|week-[0-9]|week-[0-9][0-9])
     NUM=$(echo "$TARGET" | grep -o '[0-9]\+')

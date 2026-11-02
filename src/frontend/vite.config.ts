@@ -6,7 +6,7 @@ export default defineConfig({
   server: { port: 5173 },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.spec.ts'],
+    include: ['src/**/*.spec.ts', '../../docs/analysis-and-design/ui-prototypes/*.spec.ts'],
     exclude: [...configDefaults.exclude, 'src/**/*.browser.spec.ts'],
   },
 });

@@ -9,6 +9,14 @@
     set(k, v) { try { localStorage.setItem('oc2-' + k, JSON.stringify(v)); } catch (e) { /* private mode: keep going */ } },
     del(k) { try { localStorage.removeItem('oc2-' + k); } catch (e) { /* ignore */ } },
   };
+  // Plans saved before the demo data changed miss newer courses (a failed course to retake, say): give them their default term.
+  (function () {
+    const S = store.get('plans', null), init = D.initialPlan();
+    if (!S || !S.list) return;
+    let changed = false;
+    S.list.forEach((x) => Object.keys(init).forEach((k) => { if (!(k in x.plan)) { x.plan[k] = init[k]; changed = true; } }));
+    if (changed) store.set('plans', S);
+  })();
 
   const P = {
     home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
@@ -61,6 +69,9 @@
     target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r=".6"/>',
     menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
     flag: '<path d="M5 21V4h11l-2 4 2 4H5"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    layers: '<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/>',
+    repeat: '<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
     apps: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
     globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z"/>',
     panel: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9.5 4v16"/>',
@@ -81,9 +92,9 @@
   const readSet = new Set(store.get('read', []));
   const unread = D.notes.filter((n) => n.unread && !readSet.has(n.id)).length;
   const NAV = [
-    ['dashboard', 'dashboard.html', 'home', 'Dashboard', 'g-core'],
-    ['inbox', 'inbox.html', 'bell', 'Thông báo', 'g-pol', unread],
-    ['audit', 'audit.html', 'audit', 'Xét tốt nghiệp', 'g-gen'],
+    ['dashboard', 'dashboard.html', 'home', 'Tổng quan', 'g-core'],
+    ['calendar', 'calendar.html', 'calendar', 'Lịch', 'g-pol'],
+    ['audit', 'audit.html', 'audit', 'Điểm số', 'g-gen'],
     ['explorer', 'explorer.html', 'graph', 'Chương trình', 'g-phys'],
     ['planner', 'planner.html', 'columns', 'Lộ trình', 'g-elec'],
     ['advisor', 'advisor.html', 'sparkle', 'Trợ lý AI', 'g-eng'],
@@ -93,6 +104,8 @@
     ['settings', 'settings.html', 'sliders', 'Cài đặt', 'g-thesis'],
     ['admin', 'admin.html', 'db', 'Quản trị CTĐT', 'g-thesis'],
   ];
+  // Notifications open as a popover from the sidebar foot; the mobile tab bar still links the inbox page.
+  const INBOX = ['inbox', 'inbox.html', 'bell', 'Thông báo', 'g-pol', unread];
   const TABS = ['dashboard', 'planner', 'advisor', 'inbox', 'guides'];
 
   const GOD = [
@@ -110,9 +123,10 @@
       ['import.html#review', 'Duyệt bảng điểm', 'Xem lại từng dòng trước khi lưu', 'F2', 'g-math'],
     ]],
     ['Học vụ', [
-      ['dashboard.html', 'Dashboard', 'Tiến độ, GPA, học kỳ này, việc cần chú ý', 'F3', 'g-core'],
+      ['dashboard.html', 'Tổng quan', 'Tiến độ, GPA, học kỳ này, việc cần chú ý', 'F3', 'g-core'],
+      ['calendar.html', 'Lịch', 'Tuần, tháng, hạn nộp, ghi chú buổi học', '', 'g-core'],
       ['inbox.html', 'Thông báo', 'Việc cần xử lý, nhắc đăng ký, bảng điểm đổi', 'F10', 'g-core'],
-      ['audit.html', 'Xét tốt nghiệp theo nhóm', 'Từng nhóm tín chỉ, từng học phần', 'F3', 'g-core'],
+      ['audit.html', 'Điểm số', 'Điểm từng học kỳ, từng nhóm, từng học phần', 'F3', 'g-core'],
       ['explorer.html', 'Chương trình đào tạo', 'Mọi học phần, tiên quyết, mở khóa', 'F4', 'g-core'],
       ['explorer.html#graph', 'Sơ đồ tiên quyết', 'Đồ thị tiên quyết, bấm để làm nổi', 'F4', 'g-core'],
     ]],
@@ -156,7 +170,11 @@
     side.innerHTML = brand('dashboard.html') +
       '<nav class="nav" aria-label="Chính">' + NAV.map(navLink).join('') +
       '<span class="nav-label"><span class="tx">Tài khoản</span></span>' + NAV2.map(navLink).join('') + '</nav>' +
-      '<div class="side-foot"><button class="side-toggle" type="button" data-lang-set="' + other + '" data-tip="' + otherName + '" lang="' + other + '">' +
+      '<div class="side-foot"><button class="side-toggle notif-btn" type="button" id="notif-btn" aria-expanded="false" aria-controls="notif-pop" data-tip="Thông báo"' +
+      (page === 'inbox' ? ' aria-current="page"' : '') + '><span class="ico">' + icon('bell') + '</span><span class="tx">Thông báo</span>' +
+      (unread ? '<span class="badge" aria-label="' + unread + ' chưa đọc">' + unread + '</span>' : '') + '</button>' +
+      '<button class="side-toggle theme-toggle" type="button" data-theme-toggle><span class="ico"></span><span class="tx"></span></button>' +
+      '<button class="side-toggle" type="button" data-lang-set="' + other + '" data-tip="' + otherName + '" lang="' + other + '">' +
       '<span class="ico">' + icon('globe') + '</span><span class="tx">' + otherName + '</span></button>' +
       '<button class="side-toggle" type="button" id="side-toggle" aria-pressed="false" data-tip="Mở rộng">' +
       '<span class="ico">' + icon('panel') + '</span><span class="tx">Thu gọn</span><kbd class="tx">[</kbd></button>' +
@@ -194,10 +212,50 @@
       const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
       if (e.key === '[' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) setMini(!root.classList.contains('side-mini'));
     });
+    // ---------- Notification popover: what needs attention, then a link to the full inbox ----------
+    const KIND = { plan: ['columns', 'elec'], term: ['calendar', 'core'], record: ['file', 'gen'], audit: ['cap', 'pol'], system: ['info', 'thesis'] };
+    const nBtn = document.getElementById('notif-btn');
+    body.insertAdjacentHTML('beforeend', '<section class="notif-pop" id="notif-pop" role="dialog" aria-label="Thông báo"></section>');
+    const pop = document.getElementById('notif-pop');
+    const isUnread = (n) => n.unread && !readSet.has(n.id);
+    const renderPop = () => {
+      const list = D.notes.filter((n) => isUnread(n) || n.act).sort((a, b) => isUnread(b) - isUnread(a)).slice(0, 5);
+      const un = D.notes.filter(isUnread).length;
+      pop.innerHTML = '<header><b>Thông báo</b>' + (un ? '<button type="button" class="link" id="notif-read">Đánh dấu đã đọc</button>' : '<span class="xs t3">Đã đọc hết</span>') + '</header>' +
+        '<div class="notif-list">' + (list.length ? list.map((n) => '<a class="' + (isUnread(n) ? 'unread' : '') + '" href="' + n.href + '" data-id="' + n.id + '">' +
+          '<span class="glyph g-' + KIND[n.kind][1] + '">' + icon(KIND[n.kind][0], 'sm') + '</span><span class="tt"><b>' + n.title + '</b><small>' + n.when + ' · ' + n.cta + '</small></span></a>').join('')
+          : '<p class="empty small">Không có gì cần chú ý.</p>') + '</div>' +
+        '<a class="notif-all" href="inbox.html">Xem tất cả thông báo' + icon('right', 'sm') + '</a>';
+      if (window.I18N) I18N.flush();
+    };
+    const placePop = () => {
+      const r = nBtn.getBoundingClientRect();
+      pop.style.left = (r.right + 10) + 'px';
+      pop.style.bottom = Math.max(12, innerHeight - r.bottom) + 'px';
+    };
+    const setPop = (open) => {
+      if (open) { renderPop(); placePop(); }
+      pop.classList.toggle('open', open);
+      nBtn.setAttribute('aria-expanded', open);
+      if (open) sideTip.classList.remove('show');
+    };
+    nBtn.addEventListener('click', (e) => { e.stopPropagation(); setPop(!pop.classList.contains('open')); });
+    pop.addEventListener('click', (e) => {
+      if (e.target.closest('#notif-read')) {
+        D.notes.forEach((n) => readSet.add(n.id)); store.set('read', [...readSet]);
+        document.querySelectorAll('.side .badge, .tabbar .badge').forEach((b) => b.remove());
+        renderPop(); return;
+      }
+      const a = e.target.closest('[data-id]');
+      if (a) { readSet.add(a.dataset.id); store.set('read', [...readSet]); }
+    });
+    document.addEventListener('click', (e) => { if (pop.classList.contains('open') && !pop.contains(e.target)) setPop(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pop.classList.contains('open')) { setPop(false); nBtn.focus(); } });
+    addEventListener('resize', () => { if (pop.classList.contains('open')) placePop(); });
     const main = document.getElementById('main');
-    main.insertAdjacentHTML('beforebegin', '<header class="mobile-top">' + brand('dashboard.html') + '<span class="end">' + langBtn +
+    main.insertAdjacentHTML('beforebegin', '<header class="mobile-top">' + brand('dashboard.html') + '<span class="end"><button class="btn sm ghost icon-only theme-toggle" type="button" data-theme-toggle><span class="ico"></span></button>' + langBtn +
       '<a class="avatar" href="settings.html" aria-label="Tài khoản">' + D.student.initials + '</a></span></header>');
-    const all = NAV.concat(NAV2);
+    const all = NAV.concat(NAV2, [INBOX]);
     body.insertAdjacentHTML('beforeend', '<nav class="tabbar" aria-label="Điều hướng nhanh">' + TABS.map((id) => {
       const n = all.find((x) => x[0] === id);
       return '<a class="' + n[4] + '" href="' + n[1] + '"' + (id === page ? ' aria-current="page"' : '') + '>' + icon(n[2]) +
@@ -270,8 +328,11 @@
   document.addEventListener('click', (e) => {
     if (panel.classList.contains('open') && !panel.contains(e.target) && !god.contains(e.target)) setGod(false);
   });
-  document.getElementById('god-reset').addEventListener('click', () => {
-    ['plans', 'read', 'consent', 'onboard', 'shared', 'theme', 'goal'].forEach(store.del);
+  document.getElementById('god-reset').addEventListener('click', async () => {
+    setGod(false);
+    const ok = await UI.confirm({ title: 'Đặt lại dữ liệu demo?', body: 'Mọi kế hoạch, ghi chú lịch, thông báo đã đọc và lựa chọn giao diện trên máy này sẽ bị xóa.', ok: 'Đặt lại' });
+    if (!ok) return;
+    ['plans', 'read', 'consent', 'onboard', 'shared', 'theme', 'goal', 'cal-notes'].forEach(store.del);
     location.reload();
   });
 
@@ -279,11 +340,27 @@
   function applyTheme(t) {
     document.documentElement.dataset.theme = t;
     document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.themeSet === t));
+    // The toggle names the theme it switches to.
+    const next = t === 'dark' ? 'Giao diện sáng' : 'Giao diện tối';
+    document.querySelectorAll('[data-theme-toggle]').forEach((b) => {
+      b.querySelector('.ico').innerHTML = icon(t === 'dark' ? 'sun' : 'moon');
+      const tx = b.querySelector('.tx'); if (tx) tx.textContent = next;
+      b.dataset.tip = next; b.setAttribute('aria-label', next);
+    });
+    if (window.I18N) I18N.flush();
     store.set('theme', t);
+  }
+  // Switching theme cross-fades one snapshot into the other, so no element lags behind on its own transition.
+  function switchTheme(t) {
+    const root = document.documentElement;
+    const go = () => { root.classList.add('no-anim'); applyTheme(t); void root.offsetWidth; root.classList.remove('no-anim'); };
+    if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(go);
+    else go();
   }
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-theme-set]');
-    if (b) applyTheme(b.dataset.themeSet);
+    if (b) switchTheme(b.dataset.themeSet);
+    if (e.target.closest('[data-theme-toggle]')) switchTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
   });
   applyTheme(document.documentElement.dataset.theme || 'light');
   document.addEventListener('click', (e) => {
@@ -295,7 +372,7 @@
 
   // ---------- Overlays ----------
   const scrim = document.getElementById('scrim');
-  let lastFocus = null;
+  let lastFocus = null, pending = null;
   const UI = {
     store,
     open(id) {
@@ -309,7 +386,31 @@
     close() {
       document.querySelectorAll('.drawer.open, .modal.open').forEach((x) => x.classList.remove('open'));
       scrim.classList.remove('open');
+      if (pending) { const r = pending; pending = null; r(false); }
       if (lastFocus && lastFocus.focus) lastFocus.focus();
+    },
+    // Every destructive action asks first. Resolves true only when the student presses the red button.
+    // o: title, body, ok (button label), icon
+    confirm(o) {
+      let el = document.getElementById('confirm');
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'modal confirm'; el.id = 'confirm';
+        el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-labelledby', 'confirm-title'); el.setAttribute('aria-describedby', 'confirm-body');
+        document.body.appendChild(el);
+        el.addEventListener('click', (e) => {
+          if (!e.target.closest('#confirm-ok')) return;
+          const r = pending; pending = null; UI.close(); if (r) r(true);
+        });
+      }
+      el.innerHTML = '<span class="ic">' + icon(o.icon || 'trash') + '</span>' +
+        '<h2 id="confirm-title">' + o.title + '</h2><p id="confirm-body">' + o.body + '</p>' +
+        '<div class="acts"><button class="btn" type="button" data-close autofocus>Hủy</button>' +
+        '<button class="btn danger" type="button" id="confirm-ok">' + (o.ok || 'Xóa') + '</button></div>';
+      if (window.I18N) I18N.flush();
+      if (pending) { const r = pending; pending = null; r(false); }
+      UI.open('confirm');
+      return new Promise((res) => { pending = res; });
     },
     toast(msg, ic) {
       const t = document.getElementById('toast');
@@ -333,7 +434,9 @@
       return '<div class="' + cls + '" ' + (o.attrs || '') + ' data-code="' + x.code + '">' +
         (o.flag ? '<span class="flag" aria-label="Có vi phạm">!</span>' : '') +
         '<span class="top"><span class="k">' + (x.slot ? 'CHƯA CHỌN' : x.code) + '</span><span class="cr">' + x.credits + ' TC</span></span>' +
-        '<span class="nm">' + x.name + '</span>' + (o.sub ? '<span class="sub">' + o.sub + '</span>' : '') + '</div>';
+        '<span class="nm">' + x.name + '</span>' + (o.sub ? '<span class="sub">' + o.sub + '</span>' : '') +
+        // A course failed before and not passed since: the tile says it is a retake.
+        (x.fails && st !== 'done' ? '<span class="rt">' + icon('refresh', 'sm') + 'Học lại · lần trước ' + x.fails[x.fails.length - 1][1].toFixed(1) + '</span>' : '') + '</div>';
     },
   };
   window.UI = UI;
@@ -355,4 +458,38 @@
     }
     if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); setGod(!panel.classList.contains('open')); }
   });
+
+  // ---------- Numbers in running text ----------
+  // A figure in normal-weight text ("10 tín chỉ", "5%", "ĐTB 8.72") gets a .num span: a step heavier, tabular.
+  // Runs after i18n (its observer was created first), so translation always sees whole strings.
+  // Not inside codes, dates, times or names like HK1 and K24, and not where the text is already bold.
+  const NUM = /(?<![\p{L}\p{N}_.\/:#])[+−-]?\d+(?:\.\d+)?%?(?![\p{L}\p{N}\/:]|\.\d)/gu;
+  const NO_NUM = 'script,style,textarea,select,option,code,kbd,pre,svg,title,.code,.num,[data-nonum]';
+  function nums(t) {
+    const el = t.parentElement;
+    if (!el || !/\d/.test(t.nodeValue) || el.closest(NO_NUM) || el.isContentEditable) return;
+    NUM.lastIndex = 0;
+    if (!NUM.test(t.nodeValue) || parseInt(getComputedStyle(el).fontWeight, 10) >= 600) return;
+    const f = document.createDocumentFragment();
+    let at = 0;
+    t.nodeValue.replace(NUM, (m, i) => {
+      if (i > at) f.appendChild(document.createTextNode(t.nodeValue.slice(at, i)));
+      const s = document.createElement('span'); s.className = 'num'; s.textContent = m; f.appendChild(s);
+      at = i + m.length;
+    });
+    if (at < t.nodeValue.length) f.appendChild(document.createTextNode(t.nodeValue.slice(at)));
+    t.replaceWith(f);
+  }
+  function numsIn(root) {
+    if (root.nodeType === 3) { nums(root); return; }
+    if (root.nodeType !== 1 || root.closest(NO_NUM)) return;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = [];
+    let n; while ((n = w.nextNode())) list.push(n);
+    list.forEach(nums);
+  }
+  new MutationObserver((ms) => ms.forEach((m) => {
+    if (m.type === 'characterData') { if (m.target.isConnected) nums(m.target); }
+    else m.addedNodes.forEach((n) => { if (n.isConnected) numsIn(n); });
+  })).observe(body, { subtree: true, childList: true, characterData: true });
+  numsIn(body);
 })();

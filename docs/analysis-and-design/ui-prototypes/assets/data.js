@@ -62,13 +62,13 @@ window.OC = (function () {
     C('core', 'CS370', 'An toàn thông tin', 'Information Security', 4, '2026-3', { prereq: ['CS340'], offered: [3] }),
 
     C('math', 'MTH251', 'Giải tích 1', 'Calculus I', 4, '2024-1', { grade: 8.0 }),
-    C('math', 'MTH252', 'Giải tích 2', 'Calculus II', 4, '2024-2', { grade: 7.0, prereq: ['MTH251'] }),
+    C('math', 'MTH252', 'Giải tích 2', 'Calculus II', 4, '2025-1', { grade: 7.0, prereq: ['MTH251'], fails: [['2024-2', 4.3]] }),
     C('math', 'MTH207', 'Toán rời rạc', 'Discrete Mathematics', 4, '2024-3', { grade: 8.5 }),
     C('math', 'MTH261', 'Đại số tuyến tính', 'Linear Algebra', 4, '2025-1', { grade: 7.5 }),
 
     C('phys', 'PHY101', 'Vật lý đại cương 1', 'General Physics 1', 4, '2024-1', { grade: 7.0 }),
     C('phys', 'PHY102', 'Vật lý đại cương 2', 'General Physics 2', 4, '2024-2', { grade: 6.5, prereq: ['PHY101'] }),
-    C('phys', 'PHY103', 'Vật lý hiện đại', 'Modern Physics', 4, '2025-1', { grade: 7.5, prereq: ['PHY102'] }),
+    C('phys', 'PHY103', 'Vật lý hiện đại', 'Modern Physics', 4, NOW, { prereq: ['PHY102'], fails: [['2025-1', 4.6]] }),
 
     C('eng', 'ENG201', 'Tiếng Anh học thuật 1', 'Academic English 1', 4, '2024-2', { grade: 8.5 }),
     C('eng', 'ENG202', 'Tiếng Anh học thuật 2', 'Academic English 2', 4, '2024-3', { grade: 8.0, prereq: ['ENG201'] }),
@@ -81,7 +81,7 @@ window.OC = (function () {
     C('pol', 'BAA00106', 'Lịch sử Đảng Cộng sản Việt Nam', 'History of the CPV', 2, '2026-3'),
 
     C('gen', 'BAA00007', 'Kỹ năng mềm', 'Soft Skills', 2, '2025-2', { grade: 9.0 }),
-    C('gen', 'ECO101', 'Kinh tế học đại cương', 'Principles of Economics', 2, '2025-2', { grade: 7.5 }),
+    C('gen', 'ECO101', 'Kinh tế học đại cương', 'Principles of Economics', 2, '2026-2', { fails: [['2025-2', 3.5]] }),
 
     C('elec', 'CS311', 'Đồ họa máy tính', 'Computer Graphics', 4, '2025-3', { grade: 8.6, prereq: ['MTH261'] }),
     C('elec', 'CS312', 'Phát triển ứng dụng di động', 'Mobile Development', 4, '2025-3', { grade: 8.9, prereq: ['CS211'] }),
@@ -111,6 +111,12 @@ window.OC = (function () {
     x.status = isPast(x.term) ? (x.grade >= 5 ? 'done' : 'failed') : x.term === NOW ? 'current' : x.term ? 'planned' : 'pool';
     if (x.slot) x.status = x.term ? 'planned' : 'pool';
   });
+  // Every graded sitting, failed ones included: what a transcript lists term by term.
+  const attempts = [];
+  courses.forEach((x) => {
+    (x.fails || []).forEach(([t, g]) => attempts.push({ c: x, term: t, grade: g, failed: true }));
+    if (x.grade != null && isPast(x.term)) attempts.push({ c: x, term: x.term, grade: x.grade, failed: x.grade < 5 });
+  });
   const unlocks = (code) => courses.filter((x) => x.prereq.includes(code)).map((x) => x.code);
 
   // Grades: the 10-point scale is official; letter and 4-point grades are reference only (Điều 11.1–11.2).
@@ -128,9 +134,11 @@ window.OC = (function () {
 
   const DRL = [82, 85, 85, 87, 90, 88];
   const history = past.map((t, i) => {
-    const inTerm = courses.filter((x) => x.term === t.id && x.grade != null);
+    // The term average counts every sitting, failed ones too. The cumulative one counts each passed course once (Điều 15.1).
+    const inTerm = attempts.filter((a) => a.term === t.id).map((a) => ({ credits: a.c.credits, grade: a.grade }));
     const upTo = courses.filter((x) => isPast(x.term) && tIdx(x.term) <= i && x.grade >= 5);
-    return { term: t, credits: sum(inTerm), avg: avg(inTerm), cum: avg(upTo), cum4: avg(upTo, four), passed: sum(upTo), drl: DRL[i] };
+    const failed = attempts.filter((a) => a.term === t.id && a.failed);
+    return { term: t, credits: sum(inTerm), avg: avg(inTerm), cum: avg(upTo), cum4: avg(upTo, four), passed: sum(upTo), drl: DRL[i], failed: sum(failed.map((a) => a.c)), failedCodes: failed.map((a) => a.c.code) };
   });
   const last = history[history.length - 1];
   const doneList = courses.filter((x) => x.status === 'done');
@@ -265,29 +273,36 @@ window.OC = (function () {
   // ---------- Notifications (F10) ----------
   const notes = [
     { id: 'n1', kind: 'plan', unread: true, act: true, when: '2 giờ trước', title: 'Lộ trình có 2 vi phạm', text: 'CS494 không mở trong HK2, CS416 đang xếp cùng kỳ với tiên quyết CS414. Rule engine đã gợi ý cách sửa.', href: 'planner.html', cta: 'Mở lộ trình' },
-    { id: 'n2', kind: 'term', unread: true, act: true, when: 'Hôm qua', title: 'Đăng ký học phần HK2 2026–2027 sắp mở', text: 'Lịch cụ thể theo thông báo của Phòng Đào tạo. Lộ trình đang xếp 14 TC cho kỳ này.', href: 'guides.html#register-courses', cta: 'Xem hướng dẫn đăng ký' },
+    { id: 'n2', kind: 'term', unread: true, act: true, when: 'Hôm qua', title: 'Đăng ký học phần HK2 2026–2027 sắp mở', text: 'Lịch cụ thể theo thông báo của Phòng Đào tạo. Lộ trình đang xếp 16 TC cho kỳ này.', href: 'guides.html#register-courses', cta: 'Xem hướng dẫn đăng ký' },
     { id: 'n3', kind: 'record', unread: true, act: true, when: '28/10', title: 'Bảng điểm vừa thay đổi', text: 'Bạn nhập lại bảng điểm ngày 28/10. 1 môn đổi kết quả (MTH252: 6.5 → 7.0). ĐTB tích lũy đã tính lại.', href: 'import.html#review', cta: 'Xem bảng điểm' },
     { id: 'n4', kind: 'audit', unread: false, act: true, when: '20/10', title: 'Chưa có chứng chỉ ngoại ngữ đầu ra', text: 'Chuẩn ngoại ngữ là điều kiện xét tốt nghiệp (Điều 17.3d), không phải điều kiện đăng ký khóa luận.', href: 'audit.html#eng', cta: 'Xem nhóm Tiếng Anh' },
     { id: 'n5', kind: 'plan', unread: false, act: false, when: '12/10', title: '3 TC tự chọn chưa chọn môn', text: 'HK1 2027–2028 đang giữ chỗ 3 TC. Có 6 học phần tự chọn trong kho môn.', href: 'planner.html', cta: 'Chọn môn' },
-    { id: 'n6', kind: 'term', unread: false, act: false, when: '05/09', title: 'Check-in đầu HK1 2026–2027', text: 'Bạn đã xác nhận 5 học phần đang học, tổng 18 TC.', href: 'dashboard.html', cta: 'Xem tổng quan' },
+    { id: 'n6', kind: 'term', unread: false, act: false, when: '05/09', title: 'Check-in đầu HK1 2026–2027', text: 'Bạn đã xác nhận 6 học phần đang học, tổng 22 TC, trong đó PHY103 học lại.', href: 'dashboard.html', cta: 'Xem tổng quan' },
     { id: 'n7', kind: 'system', unread: false, act: false, when: '01/09', title: 'CTĐT K24 có phiên bản 3', text: 'Ban chương trình cập nhật danh sách tự chọn. Lộ trình của bạn được kiểm tra lại với phiên bản mới.', href: 'explorer.html', cta: 'Xem chương trình' },
   ];
 
-  // ---------- Guides (F11), illustrative content not yet checked against the portals ----------
-  const guideGroups = ['Tài khoản và cổng thông tin', 'Đăng ký học phần', 'Thời khóa biểu và thi', 'Học phí', 'Hồ sơ và giấy tờ', 'Học bổng', 'Thực tập và khóa luận', 'Tốt nghiệp'];
+  // ---------- School portals. Links checked 02/11/2026; what each is for is a summary, the portal is the authority ----------
+  const portals = [
+    { id: 'portal', name: 'Cổng thông tin sinh viên', url: 'https://portal.hcmus.edu.vn', for: 'Đăng ký học phần, thời khóa biểu, lịch thi, xem điểm', login: true },
+    { id: 'fee', name: 'Thu học phí online', url: 'https://hocphi.hcmus.edu.vn', for: 'Xem số tiền và đóng học phí', login: true },
+    { id: 'moodle-fit', name: 'Moodle khoa CNTT', url: 'https://courses.fit.hcmus.edu.vn', for: 'Bài giảng, nộp bài, điểm thành phần các môn của khoa', login: true },
+    { id: 'moodle-ctda', name: 'Moodle Chương trình đề án', url: 'https://courses.ctda.hcmus.edu.vn', for: 'Lớp của chương trình Tiên tiến và Chất lượng cao', login: true },
+    { id: 'ctda', name: 'Chương trình đề án khoa CNTT', url: 'https://www.ctda.hcmus.edu.vn', for: 'Thông báo, CTĐT và quy chế của chương trình Tiên tiến' },
+    { id: 'fit', name: 'Khoa Công nghệ Thông tin', url: 'https://www.fit.hcmus.edu.vn', for: 'Thông báo khoa, lịch cố vấn học tập' },
+    { id: 'pdt', name: 'Phòng Đào tạo', url: 'https://pdt.hcmus.edu.vn', for: 'Thông báo đăng ký học phần, lịch thi, biểu mẫu' },
+    { id: 'ctsv', name: 'Phòng Công tác Sinh viên', url: 'https://ctsv.hcmus.edu.vn', for: 'Học bổng, giấy xác nhận sinh viên, điểm rèn luyện' },
+    { id: 'lib', name: 'Thư viện', url: 'https://glib.hcmus.edu.vn', for: 'Tra cứu và mượn tài liệu' },
+    { id: 'home', name: 'Trang chủ trường', url: 'https://hcmus.edu.vn', for: 'Tin tức, lịch năm học, văn bản của trường' },
+  ];
+  const portal = (id) => portals.find((x) => x.id === id);
+
+  // ---------- Guides (F11). Only the ones written so far; the steps are illustrative ----------
+  const guideGroups = ['Tài khoản và cổng thông tin', 'Đăng ký học phần', 'Học phí', 'Kết quả học tập'];
   const guides = [
-    { id: 'accounts', no: 'G01', group: 0, title: 'Tài khoản và cổng thông tin', en: 'School accounts and portals', ready: true, kw: 'tai khoan portal email moodle', portal: 'Nhiều cổng', account: 'Tài khoản sinh viên do trường cấp', ver: 2, checked: '12/10/2026', checker: 'Dũng' },
-    { id: 'register-courses', no: 'G02', group: 1, title: 'Đăng ký học phần', en: 'Register for courses', ready: true, kw: 'dang ky hoc phan dkhp register', portal: 'Cổng đăng ký học phần', account: 'Tài khoản sinh viên', ver: 3, checked: '20/10/2026', checker: 'Dũng' },
-    { id: 'change-registration', no: 'G03', group: 1, title: 'Điều chỉnh, hủy đăng ký học phần', en: 'Change a registration', ready: false, kw: 'huy rut dieu chinh' },
-    { id: 'retake', no: 'G04', group: 1, title: 'Học lại, học cải thiện', en: 'Retake or improve', ready: false, kw: 'hoc lai cai thien' },
-    { id: 'timetable', no: 'G05', group: 2, title: 'Thời khóa biểu, lịch thi', en: 'Timetable and exams', ready: false, kw: 'tkb lich thi' },
-    { id: 'pay-tuition', no: 'G06', group: 3, title: 'Đóng học phí', en: 'Pay tuition', ready: true, kw: 'hoc phi dong tien tuition', portal: 'Cổng học phí', account: 'Tài khoản sinh viên', ver: 1, checked: '02/04/2026', checker: 'Lâm' },
-    { id: 'grades', no: 'G07', group: 4, title: 'Xem điểm, tải bảng điểm PDF', en: 'Grades and transcript PDF', ready: true, kw: 'xem diem bang diem transcript pdf', portal: 'Cổng thông tin sinh viên', account: 'Tài khoản sinh viên', ver: 2, checked: '28/10/2026', checker: 'Lâm' },
-    { id: 'official-transcript', no: 'G08', group: 4, title: 'Xin bảng điểm có xác nhận', en: 'Official transcript', ready: false, kw: 'bang diem xac nhan' },
-    { id: 'certificate', no: 'G09', group: 4, title: 'Xin giấy xác nhận sinh viên', en: 'Student certificate', ready: false, kw: 'giay xac nhan' },
-    { id: 'scholarship', no: 'G10', group: 5, title: 'Đăng ký học bổng', en: 'Apply for a scholarship', ready: false, kw: 'hoc bong scholarship' },
-    { id: 'internship', no: 'G11', group: 6, title: 'Đăng ký thực tập', en: 'Register an internship', ready: false, kw: 'thuc tap internship' },
-    { id: 'thesis', no: 'G12', group: 6, title: 'Đăng ký khóa luận tốt nghiệp', en: 'Register your thesis', ready: false, kw: 'khoa luan thesis' },
+    { id: 'accounts', no: 'G01', group: 0, title: 'Tài khoản và cổng thông tin', en: 'School accounts and portals', kw: 'tai khoan portal email moodle cong thu vien', portal: null, account: 'Tài khoản sinh viên do trường cấp', ver: 2, checked: '12/10/2026', checker: 'Dũng' },
+    { id: 'register-courses', no: 'G02', group: 1, title: 'Đăng ký học phần', en: 'Register for courses', kw: 'dang ky hoc phan dkhp register', portal: 'portal', account: 'Tài khoản sinh viên', ver: 3, checked: '20/10/2026', checker: 'Dũng' },
+    { id: 'pay-tuition', no: 'G06', group: 2, title: 'Đóng học phí', en: 'Pay tuition', kw: 'hoc phi dong tien tuition', portal: 'fee', account: 'Tài khoản sinh viên', ver: 1, checked: '02/04/2026', checker: 'Lâm' },
+    { id: 'grades', no: 'G07', group: 3, title: 'Xem điểm, tải bảng điểm PDF', en: 'Grades and transcript PDF', kw: 'xem diem bang diem transcript pdf', portal: 'portal', account: 'Tài khoản sinh viên', ver: 2, checked: '28/10/2026', checker: 'Lâm' },
   ];
 
   // Regulation clauses the pages cite. Summaries, not quotations: the PDF is the authority.
@@ -312,6 +327,6 @@ window.OC = (function () {
     REG, REG_URL, student, today, groups, group, terms, term, tIdx, NOW, past, future, courses, course, unlocks,
     letter, four, rank, nextRank, drlRank, yearLevel, avg, sum, history, last, done, gpa, totalRequired, need,
     CAP, initialPlan, termOf, load, check, fits, firstFit, pack, simulateFail, prereqProblem, offeredOk,
-    notes, guides, guideGroups, clauses, STATUS,
+    notes, guides, guideGroups, portals, portal, clauses, STATUS, attempts,
   };
 })();

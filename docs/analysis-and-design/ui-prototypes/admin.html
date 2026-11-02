@@ -8,7 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="admin" data-layout="app">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -21,8 +25,8 @@
           <span class="chip ink"><i data-icon="key"></i>Quản trị chương trình · APCS</span>
         </header>
         <div class="admin-banner">
-          <label class="field"><span>Chương trình</span><select class="select" style="min-height:40px;border-color:#14161e;background:#fff;color:#14161e"><option>APCS · Tiên tiến KHMT</option></select></label>
-          <label class="field"><span>Khóa</span><select class="select" id="cohort" style="min-height:40px;border-color:#14161e;background:#fff;color:#14161e"><option>K22</option><option>K23</option><option selected>K24</option><option>K25</option></select></label>
+          <label class="field"><span>Chương trình</span><select class="select" style="min-height:40px"><option>APCS · Tiên tiến KHMT</option></select></label>
+          <label class="field"><span>Khóa</span><select class="select" id="cohort" style="min-height:40px"><option>K22</option><option>K23</option><option selected>K24</option><option>K25</option></select></label>
           <div class="grow small"><b>CTĐT APCS K24 · phiên bản 3</b><br>Sửa lần cuối 01/09/2026 bởi Thắng. Khóa trước không bị ảnh hưởng khi sửa khóa này.</div>
           <button class="btn sm" type="button" data-toast="Đã tạo khóa K26, chưa có học phần nào"><i data-icon="plus"></i>Thêm khóa</button>
         </div>
@@ -54,13 +58,13 @@
         $('tabs').querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', b.dataset.t === tab));
         if (tab === 'groups') {
           $('view').innerHTML = '<div class="card-head"><h2>8 nhóm yêu cầu · ' + D.totalRequired + ' TC</h2><button class="btn sm" type="button" data-toast="Đã thêm nhóm nháp">' + icon('plus', 'sm') + 'Thêm nhóm</button></div>' +
-            '<div class="table-wrap" style="padding:8px 8px 4px"><table class="table"><thead><tr><th>Nhóm</th><th class="r">TC yêu cầu</th><th>Quy tắc</th><th class="r">Học phần</th><th></th></tr></thead><tbody>' +
+            '<div class="table-wrap" style="padding:8px 8px 12px"><table class="table"><thead><tr><th>Nhóm</th><th class="r">TC yêu cầu</th><th>Quy tắc</th><th class="r">Học phần</th><th></th></tr></thead><tbody>' +
             D.groups.map((g) => '<tr class="g-' + g.id + '"><td><span style="display:flex;gap:10px;align-items:center">' + UI.glyph(g.id, 'sm') + '<b>' + g.name + '</b></span></td><td class="r num b">' + g.required + '</td><td class="small t2">' + g.rule + '</td>' +
               '<td class="r">' + all.filter((x) => x.group === g.id).length + '</td><td class="r"><button class="btn sm" type="button" data-open-g="' + g.id + '" aria-expanded="' + (open === g.id) + '">' + (open === g.id ? 'Đang mở' : 'Mở') + '</button></td></tr>').join('') +
             '</tbody></table></div>' +
             '<div class="g-' + open + '" style="border-top:2px solid var(--edge);padding:18px 22px 22px;display:grid;gap:12px;background:var(--c-soft);border-radius:0 0 18px 18px">' +
             '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h3>' + D.group(open).name + '</h3><button class="btn sm" type="button" data-new>' + icon('plus', 'sm') + 'Thêm học phần vào nhóm</button></div>' +
-            '<div class="ex-grid">' + all.filter((x) => x.group === open).map((x) => UI.tile(x, { status: 'done', attrs: 'role="button" tabindex="0"', sub: (x.prereq.length ? 'Tiên quyết ' + x.prereq.join(', ') : 'Không tiên quyết') + (x.offered ? ' · HK' + x.offered.join(', ') : '') })).join('') + '</div></div>';
+            '<div class="ex-grid">' + all.filter((x) => x.group === open).map((x) => UI.tile(x, { status: 'planned', attrs: 'role="button" tabindex="0"', sub: (x.prereq.length ? 'Tiên quyết ' + x.prereq.join(', ') : 'Không tiên quyết') + (x.offered ? ' · HK' + x.offered.join(', ') : '') })).join('') + '</div></div>';
         } else {
           $('view').innerHTML = '<div class="card-head"><h2>Danh mục học phần dùng chung</h2><span class="meta">Sửa ở đây áp dụng cho mọi CTĐT có học phần đó</span></div>' +
             '<div class="table-wrap" style="padding:8px 8px 12px"><table class="table"><thead><tr><th>Mã</th><th>Tên</th><th class="r">TC</th><th>Dùng trong</th><th></th></tr></thead><tbody>' +
@@ -118,7 +122,11 @@
         if (e.target.closest('#e-remove')) {
           const deps = D.unlocks(editing.code);
           if (deps.length) $('e-err').innerHTML = '<div class="callout bad small"><span>' + icon('alert') + '</span><div><b>Không bỏ được</b><p>' + deps.join(', ') + ' vẫn cần ' + editing.code + ' làm tiên quyết. Sửa các học phần đó trước.</p></div></div>';
-          else { UI.close(); UI.toast('Đã bỏ ' + editing.code + ' khỏi nhóm. Học phần vẫn còn trong danh mục.', 'trash'); }
+          else {
+            const code = editing.code;
+            UI.confirm({ title: 'Bỏ ' + code + ' khỏi nhóm này?', body: 'Sinh viên sẽ không còn thấy ' + code + ' trong nhóm khi phiên bản CTĐT này được công bố. Học phần vẫn còn trong danh mục.', ok: 'Bỏ khỏi nhóm' })
+              .then((ok) => { if (ok) UI.toast('Đã bỏ ' + code + ' khỏi nhóm. Học phần vẫn còn trong danh mục.', 'trash'); else UI.open('edit'); });
+          }
         }
         const tt = e.target.closest('[data-toast]'); if (tt) UI.toast(tt.dataset.toast);
       });
@@ -126,5 +134,6 @@
       render();
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

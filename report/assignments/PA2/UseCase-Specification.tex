@@ -1,13 +1,31 @@
 \documentclass{article}
 \usepackage{../../shared/omnicourse}
+\usepackage{../../shared/usecase}
 \input{../../shared/meta.tex}
 
 \renewcommand{\docshortname}{Use-Case Specification}
-\hypersetup{pdftitle={OmniCourse -- Use-Case Specification v1.0}}
+\hypersetup{pdftitle={OmniCourse -- Use-Case Model and Specification v1.0}}
+
+%% ---- helpers for the specifications
+% \ucspec{ID}{Name}{Feature}{Module}{Primary actor}{Secondary actors}{Priority}{Build}{Owner}
+\newcommand{\ucspec}[9]{%
+  \needspace{12\baselineskip}%
+  \subsection{#1: #2}\label{#1}%
+  {\small\renewcommand{\arraystretch}{1.3}%
+  \begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.6cm}Yp{2.2cm}Y@{}}
+    \dlabel{Feature} & #3 & \dlabel{Module} & #4\\
+    \dlabel{Primary actor} & #5 & \dlabel{Secondary} & #6\\
+    \dlabel{Priority} & #7 & \dlabel{Build} & #8\\
+    \dlabel{Owner} & #9 & & \\
+  \end{tabularx}}\par}
+\newcommand{\ucpart}[1]{\par\needspace{3\baselineskip}\vspace{2pt}{\headingfont\small\color{ocNavy}#1}\par\vspace{-2pt}}
+\newenvironment{altflows}{\begin{description}[leftmargin=0pt,labelsep=0.4em,itemsep=0.35em,topsep=0.2em,
+  font=\headingfont\small\color{ocAccent!80!ocNavy}]}{\end{description}}
+\newcommand{\st}[1]{\textbf{#1}}% a label on screen
 
 \begin{document}
 
-\makecover{Use-Case Specification}{1.0}{1 November 2026}{ESE-PA2-UCS-1.0}{Project Assignment 2 (PA2)}
+\makecover{Use-Case Model and Specification}{1.0}{1 November 2026}{ESE-PA2-UCS-1.0}{Project Assignment 2 (PA2)}
 
 \pagenumbering{roman}
 \thispagestyle{empty}
@@ -15,112 +33,283 @@
 \section*{Revision history}
 \vspace{-0.3em}
 {\small
-\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.6cm}p{1.8cm}Yp{4.2cm}@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.3cm}p{1.4cm}Yp{4.4cm}@{}}
 \hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
 \endhead
-1/11/2026 & 1.0 & Initial use-case model, diagrams, and key use-case specifications for PA2 & Lê Hữu Hoà, Nguyễn Anh Dũng, Nguyễn Hữu Quốc Thắng\\
+25/10/2026 & 0.1 & Specifications UC-01, UC-02 and UC-07 drafted from Vision F1, F2 and F6. & Phan Bình Nguyên Lâm\\
+29/10/2026 & 0.2 & UC-11 drafted for F12; the curriculum PDF import is dropped under ADR 0003. & Nguyễn Hữu Quốc Thắng\\
+30/10/2026 & 0.3 & UC-08, UC-09 and UC-10 drafted for F8, F9 and F11. & Nguyễn Anh Dũng\\
+1/11/2026 & 1.0 & Use-case model: actors, an overview and five module diagrams. UC-03 to UC-06, UC-12 to UC-16 and UC-17 to UC-19 written so that every use case in the diagrams is specified. All nineteen specifications put in one template and checked against the Vision v2.0 features and the UI prototypes. & Lê Hữu Hoà\\
 \end{xltabular}}
 
 \vspace{1.5em}
-\tableofcontents
-\newpage
+{\hypersetup{linkcolor=ocNavy}\tableofcontents}
+\clearpage
 
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
+%% =====================================================================
 \section{Introduction}
 
 \subsection{Purpose}
-This document specifies the use cases for OmniCourse, detailing actor interactions, preconditions, main and alternative flows, and postconditions for the system's core capabilities in academic planning and degree auditing.
+This document holds the use-case model of OmniCourse and the specification of each use case in it. The model shows who
+uses the system and for what. Each specification says, step by step, what the actor does and how the system answers, what
+must be true before the use case starts, what is true after it ends, and what happens when something goes differently.
+The team builds, tests and demonstrates the product from these specifications, and the UI prototypes (PA2 item e)
+follow their steps.
 
 \subsection{Scope}
-The use-case model covers student degree audit verification, interactive semester roadmap planning, rule compliance validation, and curriculum navigation for the Advanced Program in Computer Science (APCS) at HCMUS.
+The model covers the twelve feature groups of the Vision document v2.0 (F1 to F12) for the first release: the Advanced
+Program in Computer Science (APCS) at HCMUS. It has 19 use cases in five modules:
+
+\begin{itemize}
+  \item \textbf{A. Account and access} (F1): sign up, sign in, and the student's control over their own account.
+  \item \textbf{B. Academic record} (F2 to F4): transcript import, degree audit, grades and the curriculum explorer.
+  \item \textbf{C. Planning} (F5, F6, F7, F9): the plan to graduation, the plan generator, what-if scenarios and sharing.
+  \item \textbf{D. Help and reminders} (F8, F10, F11): the advisor chat, notifications and the school-task guides.
+  \item \textbf{E. Curriculum administration} (F12): the curriculum, the shared course catalog and administration rights.
+\end{itemize}
+
+Out of scope: anything that acts on a school portal for the student (registration, payment), reading a portal password,
+and importing a curriculum PDF with a language model. The last one was a use case in an early draft and was dropped
+under ADR 0003; curriculum data is entered by people (UC-11).
+
+\subsection{Definitions}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.6cm}Y@{}}
+\hcell{Term} & \hcell{Meaning in this document}\\\hdrline
+\endhead
+Program, cohort & A program of study (for example APCS) and the students who entered it in the same year. Each cohort
+has its own curriculum.\\
+Requirement group & A part of a curriculum with a credit minimum, such as core computer science, mathematics or electives.
+A course can count toward one group.\\
+Transcript & The student's rows of course, credits, grade and term, imported from the portal PDF or typed in (UC-02).\\
+Plan & An ordered list of terms from now to graduation, with the courses placed in each. A student may keep several plans.\\
+Credit cap & The minimum and maximum number of credits allowed in one term by the program's regulation.\\
+Rule engine & The deterministic part of OmniCourse that decides every academic rule: prerequisites, offering terms, credit
+caps, requirement coverage, pass marks and graduation status (UC-19). It is ordinary tested code, never a language
+model.\\
+Violation & A rule the rule engine finds broken in a plan, with the rule and the regulation clause it comes from.\\
+Goal box & The text box of UC-07 where a student writes a planning goal in their own words; a model turns it into the
+fields of the planning-goal form.\\
+Advisor chat & The F8 chat that answers questions from the regulations, with citations (UC-08).\\
+Advisor & A lecturer or academic advisor who reads a student's shared plan (UC-16). Not the advisor chat.\\
+Shared plan & A read-only view of one plan, opened by an unguessable link, with no account needed.\\
+Guide & A versioned page that explains one school task done on a portal, with its direct link (UC-10).\\
+\end{xltabular}}
 
 \subsection{References}
 \begin{itemize}
-  \item OmniCourse Vision Document v2.0 (ESE-PA2-Vision-2.0).
-  \item OmniCourse Software Development Plan v2.0 (ESE-PA2-SDP-2.0).
-  \item Academic Regulations and Curriculum Handbook, Faculty of Information Technology, HCMUS.
+  \item OmniCourse Vision Document v2.0 (ESE-PA2-Vision-2.0) and Software Development Plan v2.0 (ESE-PA2-SDP-2.0).
+  \item OmniCourse UI Prototypes for PA2 (\texttt{UI-Prototypes.pdf} and the \texttt{ui-prototypes} folder in this package).
+  \item Architecture decision records in the repository, \texttt{docs/analysis-and-design/adr}: ADR 0002 authentication
+        and sessions, ADR 0003 language-model scope, ADR 0004 account export and deletion, ADR 0007 transcript, ADR 0010
+        public guides and shared plans.
+  \item Quyết định 1175/QĐ-KHTN on undergraduate training at HCMUS; Thông tư 08/2021/TT-BGDĐT; Luật 91/2025/QH15 on
+        personal data protection.
+  \item RUP use-case specification template, Elements of Software Engineering, Moodle.
 \end{itemize}
 
-\section{Use-Case Model Overview}
+\subsection{How to read a specification}
+Every specification in section \ref{sec:specs} uses the course template: a header with the feature, actors, priority and
+the build that delivers it; a brief description; preconditions; the basic flow; alternative flows; postconditions; special
+requirements; and relationships to other use cases. Alternative flows are numbered A1, A2, and so on, and say at which step
+of the basic flow they start and where they return. Words in \st{bold} are labels the user sees on screen. The three hard
+rules of the project apply to every use case and are not repeated in each one:
 
-\subsection{Actor Descriptions}
-\begin{itemize}
-  \item \textbf{Student (Primary Actor):} An enrolled student at HCMUS who checks degree progress, simulates future semester plans, and resolves registration requirements.
-  \item \textbf{Academic Advisor (Secondary Actor):} Faculty or staff member reviewing student degree progress and advising on course selections.
-  \item \textbf{School Portal / External Systems (Supporting Actor):} Upstream academic services providing curriculum definitions and transcript exports.
-\end{itemize}
-
-\subsection{Use-Case Diagram}
-\begin{ocplain}{System Boundary -- OmniCourse Core Use Cases}
-\textbf{Key Use Cases for PA2:}
+\begin{ocnote}{Rules every use case follows}
 \begin{enumerate}
-  \item \textbf{UC-01:} Authenticate \& Load Student Academic Profile.
-  \item \textbf{UC-02:} Audit Degree Progress (Passed, In-Progress, Missing Requirements).
-  \item \textbf{UC-03:} Plan Semester Schedule with Live Prerequisite Validation.
-  \item \textbf{UC-04:} Search \& Explore Curriculum Requirements and Course Offerings.
-  \item \textbf{UC-05:} Export Validated Course Plan to PDF / Official Portal Checklist.
+  \item A language model never decides an academic rule. Only the rule engine does (UC-19). A model is used in two places
+        only, the goal box of UC-07 and the advisor chat of UC-08, and it may only explain the rule engine's results.
+  \item OmniCourse never asks for a school-portal password and never registers, pays or acts on a portal for the student.
+        It links to the portal.
+  \item No personal data goes into prompts, logs or test data. Tests use synthetic students only.
 \end{enumerate}
-\end{ocplain}
+\end{ocnote}
 
-\section{Detailed Use-Case Specifications}
+%% =====================================================================
+\section{Use-Case Model}
 
-\subsection{UC-01: Authenticate \& Load Student Academic Profile}
-\textbf{Actors:} Student.\\
-\textbf{Preconditions:} Student has access to HCMUS student credentials or demo account.\\
-\textbf{Postconditions:} Student academic profile, cohort curriculum, and transcript records are loaded into session.
+\subsection{Actors}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.9cm}p{1.9cm}Yp{2.6cm}@{}}
+\hcell{Actor} & \hcell{Kind} & \hcell{Description} & \hcell{Use cases}\\\hdrline
+\endhead
+Visitor & Primary, human & Anyone who opens OmniCourse without signing in. Can sign up, sign in and read the guides. &
+UC-01, UC-10, UC-13\\
+Student & Primary, human & An HCMUS undergraduate with an account, APCS in the first release. A student is a visitor
+who has signed in, so a student can do everything a visitor can (generalization). Plans on a laptop, checks on a phone. &
+UC-02 to UC-09, UC-12, UC-14, UC-15\\
+Advisor & Primary, human & A lecturer or academic advisor who reviews a student's plan through a shared link. Needs no
+account. & UC-16\\
+Program administrator & Primary, human & A staff member allowed to maintain the curriculum of one named program. &
+UC-11\\
+Catalog maintainer & Primary, human & A staff member allowed to create and correct the shared course records used by every
+program. & UC-17\\
+Access manager & Primary, human & A staff member allowed to create programs and to grant or revoke administration rights.
+& UC-18\\
+Time & Secondary, trigger & The clock that starts scheduled reminders: the registration window and the start of a term. &
+UC-12\\
+Google identity & Secondary, system & Confirms a student's Google account when they choose \st{Continue with Google}. &
+UC-01, UC-13\\
+Model provider & Secondary, system & A language model reached only through OmniCourse's AI gateway. Receives no name,
+email or student ID. & UC-07, UC-08\\
+HCMUS portal & Secondary, system & The school website where a task is done. OmniCourse only links to it and exchanges no
+data with it. & UC-10\\
+\end{xltabular}}
 
-\textbf{Basic Flow:}
-\begin{enumerate}
-  \item Student navigates to the OmniCourse landing page.
-  \item System presents sign-in options.
-  \item Student inputs authentication details.
-  \item System verifies identity and retrieves student cohort data (e.g., APCS 2024).
-  \item System displays the primary Dashboard with graduation progress overview.
-\end{enumerate}
+The rule engine is not an actor. It is part of OmniCourse, and its behaviour is the included use case UC-19.
 
-\textbf{Alternative Flows:}
-\begin{itemize}
-  \item \textit{3a. Authentication Failure:} System notifies user of invalid credentials and offers retry.
-  \item \textit{4a. First-time User (No Transcript):} System guides student to select cohort year and import/input coursework.
-\end{itemize}
+\subsection{Use cases}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.3cm}Yp{1.0cm}p{0.9cm}p{2.3cm}p{1.5cm}p{0.9cm}@{}}
+\hcell{ID} & \hcell{Use case} & \hcell{Mod.} & \hcell{Feat.} & \hcell{Primary actor} & \hcell{Priority} & \hcell{Build}\\\hdrline
+\endhead
+UC-01 & Sign up and onboard & A & F1 & Visitor & High & B0, B1\\
+UC-13 & Sign in & A & F1 & Visitor & High & B0\\
+UC-14 & Manage account and privacy & A & F1 & Student & High & B1\\
+UC-02 & Import transcript & B & F2 & Student & High & B2\\
+UC-03 & View degree audit & B & F3 & Student & High & B1\\
+UC-15 & View grades and what each course still needs & B & F3 & Student & High & B1\\
+UC-04 & Explore curriculum & B & F4 & Student & High & B1\\
+UC-05 & Build and edit a plan & C & F5 & Student & High & B2\\
+UC-06 & Simulate a what-if scenario & C & F7 & Student & Medium & B3\\
+UC-07 & Generate a plan & C & F6 & Student & High & B3\\
+UC-09 & Share or export a plan & C & F9 & Student & Low & B2\\
+UC-16 & View a shared plan & C & F9 & Advisor & Low & B2\\
+UC-08 & Ask the advisor chat & D & F8 & Student & Medium & B3\\
+UC-10 & Follow a school-task guide & D & F11 & Visitor & Medium & B1, B3\\
+UC-12 & Receive notifications & D & F10 & Student & Low & B2\\
+UC-11 & Maintain curriculum & E & F12 & Program administrator & Medium & B2\\
+UC-17 & Maintain the course catalog & E & F12 & Catalog maintainer & Medium & B2\\
+UC-18 & Manage administration access & E & F12 & Access manager & Medium & B2\\
+UC-19 & Evaluate academic rules (included) & all & F3--F7 & none, included & High & B1, B2\\
+\end{xltabular}}
 
-\subsection{UC-02: Audit Degree Progress}
-\textbf{Actors:} Student, Academic Advisor.\\
-\textbf{Preconditions:} Student profile and completed course history are loaded.\\
-\textbf{Postconditions:} Current degree completion percentage, GPA summary, and outstanding requirements are displayed.
+In the drafts before version 1.0, UC-12 was the curriculum PDF import. ADR 0003 removed it, and the number now names the notifications use case.
 
-\textbf{Basic Flow:}
-\begin{enumerate}
-  \item Student selects the Degree Audit tab.
-  \item System evaluates student's course credits against APCS graduation rules (General Education, Foundation, Major Core, Major Electives, Graduation Thesis).
-  \item System renders categorized progress bars, earned credits vs.\ required credits, and remaining prerequisites.
-  \item Student reviews passed courses and identified credit gaps.
-\end{enumerate}
+\subsection{Use-case diagrams}
+The model is drawn as one overview and one diagram per module. The overview shows every actor and the module each one
+uses. The module diagrams show the associations, the \guillemotleft include\guillemotright{} and
+\guillemotleft extend\guillemotright{} relationships and the generalization between actors. In a module diagram, a use case
+of that module has a heavy outline; one from another module is drawn light, so the reader can see where the module
+connects to the rest of the system.
 
-\subsection{UC-03: Plan Semester Schedule with Live Prerequisite Validation}
-\textbf{Actors:} Student.\\
-\textbf{Preconditions:} Degree audit completed; target semester selected.\\
-\textbf{Postconditions:} Planned semester schedule saved; rule engine validates zero credit-cap or prerequisite violations.
+\begin{figure}[H]
+  \centering
+  \input{diagrams/uc-overview.tex}
+  \caption{Use-case model overview: the actors and the five modules.}
+  \label{fig:overview}
+\end{figure}
 
-\textbf{Basic Flow:}
-\begin{enumerate}
-  \item Student opens the Semester Roadmap Planner.
-  \item Student selects a future term (e.g., Spring 2027) and drags candidate courses into the term slot.
-  \item System rule engine performs instantaneous validation:
-  \begin{itemize}
-    \item Verifies all course prerequisites have passing grades or are scheduled in preceding terms.
-    \item Checks maximum credit ceiling (e.g., maximum 24 credits per semester).
-    \item Highlights any scheduling conflicts or missing corequisites.
-  \end{itemize}
-  \item System marks the planned schedule as valid and updates projected graduation timeline.
-\end{enumerate}
+\clearpage
+\subsubsection{A. Account and access}
+A visitor signs up or signs in, by email and password or with Google. Once signed in, the visitor is a student and manages
+their own account: sessions, consent, export and deletion. Importing a transcript extends sign-up, because onboarding offers
+it as its last, optional question.
 
-\textbf{Alternative Flows:}
-\begin{itemize}
-  \item \textit{3a. Prerequisite Missing:} System displays an error tooltip indicating which prerequisite course is required and suggests placing it in an earlier term.
-  \item \textit{3b. Credit Cap Exceeded:} System displays warning badge and blocks addition until an existing course is removed.
-\end{itemize}
+\begin{figure}[H]
+  \centering
+  \input{diagrams/uc-account.tex}\par\vspace{6pt}\uclegend
+  \caption{Module A, account and access (F1).}
+  \label{fig:account}
+\end{figure}
+
+\subsubsection{B. Academic record}
+The student brings in a transcript and reads where they stand: the degree audit per requirement group, the grades of each
+term with what an unfinished course still needs, and the curriculum with each course's prerequisites. The degree audit,
+the grades and the explorer all include UC-19, so the same rule engine decides requirement coverage, pass marks and which
+courses are available or locked.
+
+\begin{figure}[H]
+  \centering
+  \input{diagrams/uc-record.tex}\par\vspace{6pt}\uclegend
+  \caption{Module B, academic record (F2, F3, F4).}
+  \label{fig:record}
+\end{figure}
+
+\clearpage
+\subsubsection{C. Planning}
+The student builds a plan by hand (UC-05) or has one generated from a planning goal (UC-07). A what-if scenario (UC-06)
+extends the planner: it starts from an open plan and works on a copy. Every placement is checked by UC-19. The student can
+share a plan (UC-09); the advisor opens the link and reads the plan, with the same violations the student sees (UC-16).
+The model provider takes part only in UC-07, and only to turn a sentence into the fields of the planning-goal form.
+
+\begin{figure}[H]
+  \centering
+  \input{diagrams/uc-planning.tex}\par\vspace{6pt}\uclegend
+  \caption{Module C, planning (F5, F6, F7, F9).}
+  \label{fig:planning}
+\end{figure}
+
+\subsubsection{D. Help and reminders}
+Any visitor can read a guide and open the portal link it gives (UC-10). A signed-in student can ask the advisor chat
+(UC-08), which uses the model provider to write the answer but asks UC-19 for anything about the student's own record.
+Notifications (UC-12) are started by time, or by a change in the student's data, and use UC-19 to find what needs
+attention.
+
+\begin{figure}[H]
+  \centering
+  \input{diagrams/uc-help.tex}\par\vspace{6pt}\uclegend
+  \caption{Module D, help and reminders (F8, F10, F11).}
+  \label{fig:help}
+\end{figure}
+
+\clearpage
+\subsubsection{E. Curriculum administration}
+Three separate permissions keep curriculum data safe. A program administrator edits one program's cohorts and requirement
+groups (UC-11) and has the rule engine check what they enter. A change to a shared course record goes through the catalog
+maintainer (UC-17), which extends UC-11 when the administrator needs a course that is not in the catalog yet. Only an access
+manager creates programs and hands out these rights (UC-18).
+
+\begin{figure}[H]
+  \centering
+  \input{diagrams/uc-admin.tex}\par\vspace{6pt}\uclegend
+  \caption{Module E, curriculum administration (F12).}
+  \label{fig:admin}
+\end{figure}
+
+\subsection{Relationships}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.6cm}p{2.3cm}Y@{}}
+\hcell{Relationship} & \hcell{Kind} & \hcell{Why}\\\hdrline
+\endhead
+Student $\rightarrow$ Visitor & generalization & A student is a visitor who has signed in, so guides, sign-up and sign-in stay
+available to them.\\
+UC-02 $\rightarrow$ UC-01 & extend & Onboarding offers the transcript import as its last, optional step (UC-01 step 10).\\
+UC-15 $\rightarrow$ UC-03 & extend & From a requirement group or a term in the audit, the student opens the grades of
+those courses.\\
+UC-06 $\rightarrow$ UC-05 & extend & A what-if scenario starts from the plan open in the planner and works on a copy.\\
+UC-17 $\rightarrow$ UC-11 & extend & While editing a group, an administrator who also holds catalog permission creates or
+corrects the shared course record.\\
+UC-03, UC-04, UC-05, UC-06, UC-07, UC-08, UC-11, UC-12, UC-15, UC-16 $\rightarrow$ UC-19 & include & Every academic
+rule is decided in one place, the rule engine, so the audit, the planner, the shared plan and the advisor chat can never
+disagree.\\
+\end{xltabular}}
+
+\subsection{Traceability to the Vision features}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.9cm}p{4.6cm}Yp{2.6cm}@{}}
+\hcell{No.} & \hcell{Feature (Vision v2.0)} & \hcell{Use cases} & \hcell{UI prototype}\\\hdrline
+\endhead
+F1 & Account and onboarding & UC-01, UC-13, UC-14 & sign-up, sign-in, onboarding, settings\\
+F2 & Transcript import & UC-02 & import\\
+F3 & Degree audit dashboard & UC-03, UC-15, UC-19 & dashboard, audit\\
+F4 & Curriculum explorer & UC-04 & explorer\\
+F5 & Semester roadmap planner & UC-05, UC-19 & planner\\
+F6 & AI plan generator (goal box) & UC-07 & planner (goal box)\\
+F7 & What-if simulator & UC-06 & planner (what-if)\\
+F8 & AI academic advisor chat & UC-08 & advisor\\
+F9 & Plan export and sharing & UC-09, UC-16 & planner (share), shared\\
+F10 & Notifications & UC-12 & inbox, bell popover\\
+F11 & Quicklinks and step-by-step guides & UC-10 & guides\\
+F12 & Curriculum administration & UC-11, UC-17, UC-18 & admin\\
+\end{xltabular}}
+
+%% =====================================================================
+\clearpage
+\section{Use-Case Specifications}\label{sec:specs}
+\input{uc-specs.tex}
 
 \end{document}

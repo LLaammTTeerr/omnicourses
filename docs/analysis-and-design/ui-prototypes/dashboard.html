@@ -3,12 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard · OmniCourse</title>
+  <title>Tổng quan · OmniCourse</title>
   <meta name="description" content="Bản mẫu: tiến độ chương trình theo nhóm tín chỉ, GPA, dự kiến tốt nghiệp, học kỳ này và việc cần chú ý.">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="dashboard" data-layout="app">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -17,8 +21,21 @@
     <main class="main" id="main">
       <div class="page">
         <header class="db-head">
-          <h1>Dashboard</h1>
-          <p class="db-who" id="who"></p>
+          <div>
+            <h1>Tổng quan</h1>
+            <p class="db-who" id="who"></p>
+          </div>
+          <div class="db-scrub-wrap">
+            <button class="btn sm ghost" type="button" id="scrub-now" hidden><i data-icon="undo"></i>Về học kỳ hiện tại</button>
+            <div class="db-scrub" role="group" aria-label="Xem học kỳ">
+              <button type="button" id="prev" aria-label="Học kỳ trước"><i data-icon="left"></i></button>
+              <span class="db-tpick-wrap">
+                <button type="button" class="lb" id="scrub-lb" aria-haspopup="listbox" aria-expanded="false" aria-controls="tpick" aria-live="polite"></button>
+                <span class="db-tpick" id="tpick" role="listbox" aria-label="Chọn học kỳ"></span>
+              </span>
+              <button type="button" id="next" aria-label="Học kỳ sau"><i data-icon="right"></i></button>
+            </div>
+          </div>
         </header>
 
         <section class="card db-top" aria-label="Tiến độ chương trình">
@@ -79,49 +96,63 @@
       const res = D.check(plan);
       const req = D.totalRequired;
       const sumOf = (list) => list.reduce((s, x) => s + x.credits, 0);
+      const H = D.history, NOWI = H.length;
+      const shortTerm = (t) => (t.n === 3 ? 'Hè ' : 'HK' + t.n + ' ') + String(t.year).slice(2) + '–' + String(t.year + 1).slice(2);
 
       $('who').innerHTML = [S.full, S.className, S.id].map((t) => '<span>' + t + '</span>').join('<span class="sep" aria-hidden="true">·</span>');
 
-      // Per group: done, in progress, and what is left to reach the required credits.
-      const G = D.groups.map((g) => {
-        const list = D.courses.filter((x) => x.group === g.id);
-        const done = list.filter((x) => x.status === 'done');
-        const cur = list.filter((x) => x.status === 'current');
-        const todo = list.filter((x) => x.status === 'planned');
-        const d = sumOf(done), c = sumOf(cur);
-        return { g, done, cur, todo, d, c, left: Math.max(0, g.required - d - c) };
-      });
-      const curTotal = G.reduce((s, x) => s + x.c, 0);
-
-      // ---------- Donut: every group's passed credits, then in progress, then still to take ----------
-      // Passed fills the whole band, in progress only its outer half, still to take is air (shown on hover).
-      const R = 104, r = 74, MID = (R + r) / 2, CX = 100, CY = 100, GAP = 0.6;
-      const pt = (rad, deg) => { const a = (deg - 90) * Math.PI / 180; return [CX + rad * Math.cos(a), CY + rad * Math.sin(a)]; };
-      const sector = (a0, a1, ro, ri) => {
-        if (a1 - a0 <= 0.01) return '';
-        ro = ro || R; ri = ri || r;
-        const big = a1 - a0 > 180 ? 1 : 0, [x0, y0] = pt(ro, a0), [x1, y1] = pt(ro, a1), [x2, y2] = pt(ri, a1), [x3, y3] = pt(ri, a0);
-        return 'M' + x0 + ' ' + y0 + 'A' + ro + ' ' + ro + ' 0 ' + big + ' 1 ' + x1 + ' ' + y1 + 'L' + x2 + ' ' + y2 + 'A' + ri + ' ' + ri + ' 0 ' + big + ' 0 ' + x3 + ' ' + y3 + 'Z';
+      // ---------- The page as it stood at the end of a past term, or today ----------
+      // i indexes D.history; NOWI is the term in progress.
+      const snap = (i) => {
+        const live = i === NOWI;
+        const T = live ? D.term(D.NOW) : H[i].term, ti = D.tIdx(T.id);
+        // A course failed by then and not yet passed counts as failed, even when it is retaken later.
+        const failedBy = (c) => (c.fails || []).some(([t]) => D.tIdx(t) <= ti);
+        const st = (c) => live ? c.status : c.term && D.tIdx(c.term) <= ti ? (c.grade >= 5 ? 'done' : 'failed') : failedBy(c) ? 'failed' : c.status === 'pool' ? 'pool' : 'planned';
+        const G = D.groups.map((g) => {
+          const list = D.courses.filter((x) => x.group === g.id);
+          const done = list.filter((x) => st(x) === 'done'), cur = list.filter((x) => st(x) === 'current'), todo = list.filter((x) => st(x) === 'planned');
+          const fail = list.filter((x) => st(x) === 'failed').map((x) => Object.assign({}, x, { grade: x.fails.filter(([t]) => D.tIdx(t) <= ti).pop()[1] }));
+          const d = sumOf(done), c = sumOf(cur);
+          return { g, done, cur, todo, fail, d, c, left: Math.max(0, g.required - d - c) };
+        });
+        // A past term lists every sitting, failed ones included.
+        const inTerm = live ? D.courses.filter((c) => c.term === T.id && !c.slot) : D.attempts.filter((a) => a.term === T.id).map((a) => Object.assign({}, a.c, { grade: a.grade }));
+        return { i, live, T, G, h: live ? D.last : H[i], passed: live ? D.done : H[i].passed, inTerm };
       };
-      const segs = [];
-      ['d', 'c', 'left'].forEach((k) =>
-        G.forEach((x) => { const n = k === 'd' ? Math.min(x.d, x.g.required) : x[k]; if (n > 0) segs.push({ x, n, k }); }));
-      const ring = segs.reduce((s, x) => s + x.n, 0);
-      let svg = '<svg viewBox="0 0 200 200" role="img" aria-label="' + D.done + ' trên ' + req + ' tín chỉ đã tích lũy. ' +
-        G.map((x) => x.g.name + ' ' + x.d + ' trên ' + x.g.required).join(', ') + '">';
-      let at = 0;
-      segs.forEach((s) => {
-        const span = s.n / ring * 360, a0 = at + GAP / 2, a1 = at + span - GAP / 2;
-        const fill = s.k === 'd' ? '<path class="solid" d="' + sector(a0, a1) + '"/>'
-          : s.k === 'c' ? '<path class="air" d="' + sector(a0, a1, MID, r) + '"/><path class="solid" d="' + sector(a0, a1, R, MID) + '"/>'
-          : '<path class="air" d="' + sector(a0, a1) + '"/>';
-        svg += '<g class="arc g-' + s.x.g.id + '" data-g="' + s.x.g.id + '">' + fill + '<path class="hit" d="' + sector(at, at + span) + '"/></g>';
-        at += span;
-      });
-      $('donut').innerHTML = svg + '</svg><div class="db-center" id="center"></div>';
+      let sel = NOWI, view = null, s = null;
+
+      // ---------- Donut: every group's passed credits, then in progress (hatched), then still to take ----------
+      const R = 104, r = 74, CX = 100, CY = 100, GAP = 0.6;
+      const pt = (rad, deg) => { const a = (deg - 90) * Math.PI / 180; return [CX + rad * Math.cos(a), CY + rad * Math.sin(a)]; };
+      const sector = (a0, a1) => {
+        if (a1 - a0 <= 0.01) return '';
+        const big = a1 - a0 > 180 ? 1 : 0, [x0, y0] = pt(R, a0), [x1, y1] = pt(R, a1), [x2, y2] = pt(r, a1), [x3, y3] = pt(r, a0);
+        return 'M' + x0 + ' ' + y0 + 'A' + R + ' ' + R + ' 0 ' + big + ' 1 ' + x1 + ' ' + y1 + 'L' + x2 + ' ' + y2 + 'A' + r + ' ' + r + ' 0 ' + big + ' 0 ' + x3 + ' ' + y3 + 'Z';
+      };
+      const hatches = '<defs>' + D.groups.map((g) => '<pattern id="hatch-' + g.id + '" class="g-' + g.id + '" patternUnits="userSpaceOnUse" width="9.35" height="9.35" patternTransform="rotate(45)">' +
+        '<rect class="pa" width="9.35" height="9.35"/><rect class="pb" width="4.25" height="9.35"/></pattern>').join('') + '</defs>';
+      const donut = $('donut');
+      function renderDonut() {
+        const segs = [];
+        ['d', 'c', 'left'].forEach((k) => s.G.forEach((x) => { const n = k === 'd' ? Math.min(x.d, x.g.required) : x[k]; if (n > 0) segs.push({ x, n, k }); }));
+        const ring = segs.reduce((t, x) => t + x.n, 0);
+        let svg = '<svg viewBox="0 0 200 200" role="img" aria-label="' + s.passed + ' trên ' + req + ' tín chỉ đã tích lũy. ' +
+          s.G.map((x) => x.g.name + ' ' + x.d + ' trên ' + x.g.required).join(', ') + '">' + hatches;
+        svg += '<mask id="sweep"><circle class="sweep" cx="100" cy="100" r="89" pathLength="100" transform="rotate(-90 100 100)"/></mask><g mask="url(#sweep)">';
+        let at = 0;
+        segs.forEach((g) => {
+          const span = g.n / ring * 360, d = sector(at + GAP / 2, at + span - GAP / 2);
+          const fill = g.k === 'd' ? '<path class="solid" d="' + d + '"/>' : g.k === 'c' ? '<path d="' + d + '" style="fill:url(#hatch-' + g.x.g.id + ')"/>' : '<path class="air" d="' + d + '"/>';
+          svg += '<g class="arc g-' + g.x.g.id + '" data-g="' + g.x.g.id + '">' + fill + '<path class="hit" d="' + sector(at, at + span) + '"/></g>';
+          at += span;
+        });
+        donut.innerHTML = svg + '</g></svg><div class="db-center" id="center"></div>';
+        $('center').innerHTML = centerHtml(null); centerFor = null;
+      }
       const centerHtml = (x) => x
         ? '<small>' + x.g.short + '</small><b>' + x.d + '</b><span>/ ' + x.g.required + ' tín chỉ</span>'
-        : '<b>' + D.done + '</b><span>/ ' + req + ' tín chỉ</span>';
+        : '<b>' + s.passed + '</b><span>/ ' + req + ' tín chỉ</span>';
       let centerFor;
       const center = (x) => {
         if (centerFor === x) return;
@@ -129,20 +160,22 @@
         const el = $('center');
         el.classList.add('swap');
         clearTimeout(center.t);
-        center.t = setTimeout(() => { el.innerHTML = centerHtml(x); el.classList.remove('swap'); }, 110);
+        center.t = setTimeout(() => { el.innerHTML = centerHtml(x); el.classList.remove('swap'); I18N.flush(); }, 110);
       };
-      $('center').innerHTML = centerHtml(null); centerFor = null;
 
       // Tooltip follows the cursor and flips near the viewport edge.
-      const tip = $('tip'), donut = $('donut');
+      const tip = $('tip');
       const tipFor = (x) => '<div class="g-' + x.g.id + '"><b><i></i>' + x.g.name + '</b>' +
         '<p><span>Đã đạt</span><span>' + x.d + ' TC</span></p><p><span>Đang học</span><span>' + x.c + ' TC</span></p>' +
         '<p><span>Còn lại</span><span>' + x.left + ' TC</span></p><p><span>Yêu cầu</span><span>' + x.g.required + ' TC</span></p></div>';
+      // One group lights up in the donut, the key and the requirement list together.
       const focusGroup = (id) => {
         donut.classList.toggle('focus', !!id);
         donut.querySelectorAll('.arc').forEach((a) => a.classList.toggle('on', a.dataset.g === id));
         $('key').querySelectorAll('a').forEach((a) => a.classList.toggle('on', a.dataset.g === id));
-        center(id ? G.find((x) => x.g.id === id) : null);
+        $('groups').classList.toggle('focus', !!id);
+        $('groups').querySelectorAll('.db-g').forEach((a) => a.classList.toggle('on', a.dataset.g === id));
+        center(id ? s.G.find((x) => x.g.id === id) : null);
       };
       const place = (e) => {
         const w = tip.offsetWidth, h = tip.offsetHeight;
@@ -158,108 +191,229 @@
         const a = e.target.closest('.arc');
         if (!a) { if (shown) clear(); return; }
         clearTimeout(leave);
-        if (shown !== a.dataset.g) { shown = a.dataset.g; tip.innerHTML = tipFor(G.find((x) => x.g.id === shown)); I18N.flush(); focusGroup(shown); }
+        if (shown !== a.dataset.g) { shown = a.dataset.g; tip.innerHTML = tipFor(s.G.find((x) => x.g.id === shown)); I18N.flush(); focusGroup(shown); }
         place(e);
         tip.classList.add('show');
       });
       donut.addEventListener('pointerleave', clear);
       donut.addEventListener('click', (e) => { const a = e.target.closest('.arc'); if (a) location.href = 'audit.html#' + a.dataset.g; });
 
-      $('key').innerHTML = G.map((x) => '<a class="g-' + x.g.id + '" data-g="' + x.g.id + '" href="audit.html#' + x.g.id + '"><i></i><span>' + x.g.short + '</span></a>').join('');
+      $('key').innerHTML = D.groups.map((g) => '<a class="g-' + g.id + '" data-g="' + g.id + '" href="audit.html#' + g.id + '"><i></i><span>' + g.short + '</span></a>').join('');
       $('key').querySelectorAll('a').forEach((a) => {
         a.addEventListener('mouseenter', () => focusGroup(a.dataset.g));
         a.addEventListener('focus', () => focusGroup(a.dataset.g));
         a.addEventListener('mouseleave', () => focusGroup(null));
         a.addEventListener('blur', () => focusGroup(null));
       });
+      $('groups').addEventListener('mouseover', (e) => { const g = e.target.closest('.db-g'); if (g && g.dataset.g !== shown) { shown = g.dataset.g; focusGroup(shown); } });
+      $('groups').addEventListener('mouseleave', () => { shown = null; focusGroup(null); });
 
-      // ---------- Four slim stats ----------
-      const H = D.history, last = D.last, prev = H[H.length - 2];
-      const pct = (last.cum - prev.cum) / prev.cum * 100;
-      const spark = (vals, lo, hi) => {
-        const w = 84, h = 30, step = w / (vals.length - 1), y = (v) => h - 3 - (v - lo) / (hi - lo) * (h - 6);
+      // ---------- Four slim stats. Each past term is a dot or a bar you can hover or click ----------
+      const spark = (vals, lo, hi, on) => {
+        const w = 104, h = 34, step = w / (vals.length - 1), y = (v) => h - 5 - (v - lo) / (hi - lo) * (h - 10);
         const pts = vals.map((v, i) => [i * step, y(v)]);
-        return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true"><polyline points="' + pts.map((p) => p.join(',')).join(' ') +
-          '" fill="none" style="stroke:var(--info)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><circle cx="' + pts[pts.length - 1][0] + '" cy="' + pts[pts.length - 1][1] + '" r="2.8" style="fill:var(--info)"/></svg>';
+        return '<svg class="db-spark" width="' + (w + 12) + '" height="' + h + '" viewBox="-6 0 ' + (w + 12) + ' ' + h + '" aria-hidden="true"><polyline points="' + pts.map((p) => p.join(',')).join(' ') +
+          '" fill="none" style="stroke:var(--info)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>' +
+          pts.map((p, i) => '<g data-hi="' + i + '"' + (i === on ? ' class="on"' : '') + '><circle class="hit" cx="' + p[0] + '" cy="' + p[1] + '" r="8"/><circle class="dot" cx="' + p[0] + '" cy="' + p[1] + '" r="' + (i === on ? 4 : 2.6) + '"/></g>').join('') + '</svg>';
       };
-      const bars = (vals, lo, hi) => '<svg width="72" height="30" viewBox="0 0 72 30" aria-hidden="true">' + vals.map((v, i) => {
-        const h = 4 + (v - lo) / (hi - lo) * 24;
-        return '<rect x="' + i * 12.4 + '" y="' + (30 - h) + '" width="8" height="' + h + '" rx="2" style="fill:' + (i === vals.length - 1 ? 'var(--ok)' : 'var(--surface-3)') + '"/>';
+      const bars = (vals, lo, hi, on) => '<svg class="db-bars" width="76" height="34" viewBox="0 0 76 34" aria-hidden="true">' + vals.map((v, i) => {
+        const h = 4 + (v - lo) / (hi - lo) * 26;
+        return '<g data-hi="' + i + '"' + (i === on ? ' class="on"' : '') + '><rect class="hit" x="' + (i * 13 - 2) + '" y="0" width="13" height="34"/><rect class="dbar" x="' + i * 13 + '" y="' + (34 - h) + '" width="9" height="' + h + '" rx="2"/></g>';
       }).join('') + '</svg>';
-      const est = res.est || res.lastUsed;
-      const estEnd = (est.when || '').split('–').pop().trim().slice(3);
       const stat = (k, v, end, wide, title) => '<div class="db-stat' + (wide ? ' wide' : '') + '"' + (title ? ' title="' + title + '"' : '') + '><div><div class="v">' + v + '</div><div class="k">' + k + '</div></div>' + (end ? '<div class="end">' + end + '</div>' : '') + '</div>';
-      $('row1').innerHTML =
-        stat('GPA tích lũy', last.cum.toFixed(2) + '<small>/10</small>',
-          '<span class="delta ' + (pct >= 0 ? 'up' : 'down') + '" title="So với cuối ' + prev.term.label + '">' + (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(1) + '%</span>' + spark(H.map((h) => h.cum), 7, 9), true) +
-        stat('Dự kiến tốt nghiệp', 'HK' + est.n + ' ' + est.year + '–' + String(est.year + 1).slice(2), estEnd ? '<span class="small t3">' + estEnd + '</span>' : '', false, est.label);
-      $('row2').innerHTML =
-        stat('Cần để tốt nghiệp', (req - D.done) + '<small>TC</small>', '<span class="small t3">' + curTotal + ' TC đang học</span>') +
-        stat('Điểm rèn luyện', last.drl + '<small>/100</small>', '<span class="chip ok">' + D.drlRank(last.drl) + '</span>' + bars(H.map((h) => h.drl), 70, 100), true);
+      function renderStats() {
+        const h = s.h, hi = s.live ? NOWI - 1 : s.i, prev = H[hi - 1];
+        const pct = prev ? (h.cum - prev.cum) / prev.cum * 100 : null;
+        const delta = pct == null ? '' : '<span class="delta ' + (pct >= 0 ? 'up' : 'down') + '" title="So với cuối ' + prev.term.label + '">' + (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(1) + '%</span>';
+        let second;
+        if (s.live) {
+          const est = res.est || res.lastUsed;
+          const estEnd = (est.when || '').split('–').pop().trim().slice(3);
+          second = stat('Dự kiến tốt nghiệp', 'HK' + est.n + ' ' + est.year + '–' + String(est.year + 1).slice(2), estEnd ? '<span class="small t3">' + estEnd + '</span>' : '', false, est.label);
+        } else second = stat('ĐTB học kỳ', h.avg.toFixed(2) + '<small>/10</small>', '<span class="chip">' + D.rank(h.avg) + '</span>');
+        const curTotal = s.G.reduce((t, x) => t + x.c, 0);
+        $('row1').innerHTML = stat('GPA tích lũy', h.cum.toFixed(2) + '<small>/10</small>', delta + spark(H.map((x) => x.cum), 7, 9, hi), true) + second;
+        $('row2').innerHTML =
+          stat('Cần để tốt nghiệp', (req - s.passed) + '<small>TC</small>', '<span class="small t3">' + (s.live ? curTotal + ' TC đang học' : h.credits + ' TC trong kỳ') + '</span>') +
+          stat('Điểm rèn luyện', h.drl + '<small>/100</small>', '<span class="chip ok">' + D.drlRank(h.drl) + '</span>' + bars(H.map((x) => x.drl), 70, 100, hi), true);
+      }
 
       // ---------- Group progress bars with a spoiler of courses ----------
       const pc = (n, of) => (n / of * 100) + '%';
-      const item = (x, sq, right) => '<div class="db-item"><span class="sq ' + sq + '"></span><span class="n">' + x.name + '</span><span class="cd">' + x.code + '</span><span class="r">' + right + '</span></div>';
+      const item = (x, sq, right) => '<div class="db-item"><span class="sq ' + sq + '"></span><span class="n">' + x.name + (x.fails && sq !== 'fail' ? ' <span class="chip bad">Học lại</span>' : '') + '</span><span class="cd">' + x.code + '</span><span class="r">' + right + '</span></div>';
       const sec = (title, total, rows) => '<div class="db-sec"><h4><span>' + title + '</span><span>' + total + ' tín chỉ</span></h4>' + rows + '</div>';
-      $('groups').innerHTML = G.map((x) => {
-        const g = x.g;
-        // Still to take, grouped by the term the plan puts it in.
-        const byTerm = {};
-        x.todo.forEach((c) => { (byTerm[c.term] = byTerm[c.term] || []).push(c); });
-        const placed = sumOf(x.todo);
-        let todo = Object.keys(byTerm).sort((a, b) => D.tIdx(a) - D.tIdx(b)).map((t) => {
-          const term = D.term(t);
-          return sec('Học kỳ ' + term.n + ', ' + term.year + '–' + String(term.year + 1).slice(2), sumOf(byTerm[t]),
-            byTerm[t].map((c) => c.slot
-              ? '<div class="db-item"><span class="sq todo"></span><span class="n t3">Tự chọn chưa chọn môn</span><span class="cd">—</span><span class="r">' + c.credits + ' TC</span></div>'
-              : item(c, 'todo', c.credits + ' TC')).join(''));
+      function renderGroups() {
+        const open = new Set([...$('groups').querySelectorAll('.db-g[open]')].map((d) => d.dataset.g));
+        $('groups').innerHTML = s.G.map((x) => {
+          const g = x.g;
+          // Still to take, grouped by the term the plan puts it in.
+          const byTerm = {};
+          x.todo.forEach((c) => { (byTerm[c.term] = byTerm[c.term] || []).push(c); });
+          const placed = sumOf(x.todo);
+          let todo = Object.keys(byTerm).sort((a, b) => D.tIdx(a) - D.tIdx(b)).map((t) => {
+            const term = D.term(t);
+            return sec('Học kỳ ' + term.n + ', ' + term.year + '–' + String(term.year + 1).slice(2), sumOf(byTerm[t]),
+              byTerm[t].map((c) => c.slot
+                ? '<div class="db-item"><span class="sq todo"></span><span class="n t3">Tự chọn chưa chọn môn</span><span class="cd">—</span><span class="r">' + c.credits + ' TC</span></div>'
+                : item(c, 'todo', c.credits + ' TC')).join(''));
+          }).join('');
+          if (x.left > placed) todo += sec('Chưa xếp vào lộ trình', x.left - placed, '<p class="db-none">Kéo thêm học phần ' + g.short.toLowerCase() + ' vào lộ trình để đủ ' + g.required + ' tín chỉ.</p>');
+          return '<details class="db-g g-' + g.id + '" data-g="' + g.id + '"' + (open.has(g.id) ? ' open' : '') + '><summary>' +
+            '<span class="nm">' + g.name + '</span>' +
+            '<span class="cnt"><b>' + x.d + '</b>/' + g.required + '</span>' +
+            '<span class="db-bar" role="img" aria-label="Đã đạt ' + x.d + ', đang học ' + x.c + ', còn lại ' + x.left + ' trên ' + g.required + ' tín chỉ">' +
+            '<i class="d" style="width:' + pc(Math.min(x.d, g.required), g.required) + '"></i>' + (x.c ? '<i class="c" style="width:' + pc(x.c, g.required) + '"></i>' : '') + '</span>' +
+            icon('down', 'sm chev') + '</summary>' +
+            '<div class="db-spoil">' +
+            (x.cur.length ? sec('Đang học', x.c, x.cur.map((c) => item(c, 'cur', c.credits + ' TC')).join('')) : '') +
+            (x.fail.length ? sec('Chưa đạt', sumOf(x.fail), x.fail.map((c) => item(c, 'fail', 'Điểm ' + c.grade.toFixed(1))).join('')) : '') +
+            todo +
+            (x.done.length ? sec('Đã đạt', x.d, x.done.map((c) => item(c, '', 'Điểm ' + c.grade.toFixed(1).replace('.0', ''))).join('')) : '') +
+            '</div></details>';
         }).join('');
-        if (x.left > placed) todo += sec('Chưa xếp vào lộ trình', x.left - placed, '<p class="db-none">Kéo thêm học phần ' + g.short.toLowerCase() + ' vào lộ trình để đủ ' + g.required + ' tín chỉ.</p>');
-        return '<details class="db-g g-' + g.id + '"><summary>' +
-          '<span class="nm">' + g.name + '</span>' +
-          '<span class="cnt"><b>' + x.d + '</b>/' + g.required + '</span>' +
-          '<span class="db-bar" role="img" aria-label="Đã đạt ' + x.d + ', đang học ' + x.c + ', còn lại ' + x.left + ' trên ' + g.required + ' tín chỉ">' +
-          '<i class="d" style="width:' + pc(Math.min(x.d, g.required), g.required) + '"></i>' + (x.c ? '<i class="c" style="width:' + pc(x.c, g.required) + '"></i>' : '') + '</span>' +
-          icon('down', 'sm chev') + '</summary>' +
-          '<div class="db-spoil">' +
-          (x.cur.length ? sec('Đang học', x.c, x.cur.map((c) => item(c, 'cur', c.credits + ' TC')).join('')) : '') +
-          todo +
-          (x.done.length ? sec('Đã đạt', x.d, x.done.map((c) => item(c, '', 'Điểm ' + c.grade.toFixed(1).replace('.0', ''))).join('')) : '') +
-          '</div></details>';
-      }).join('');
+      }
 
-      // ---------- This term ----------
-      const now = D.term(D.NOW);
-      const nowList = D.courses.filter((x) => x.status === 'current');
-      $('term-title').textContent = 'Học kỳ ' + now.n + ', năm ' + (now.year - 2024 + 1) + ' (' + now.year + '–' + (now.year + 1) + ')';
-      $('term-tc').textContent = sumOf(nowList) + ' tín chỉ';
-      $('cur').innerHTML = nowList.map((x) =>
-        '<a class="row g-' + x.group + '" href="audit.html#' + x.group + '"><span class="sq"></span><span>' + x.name + '</span><span class="cd">' + x.code + '</span></a>').join('');
+      // ---------- The term card: this term today, or what a past term looked like ----------
+      function renderTerm() {
+        const t = s.T;
+        $('term-title').textContent = 'Học kỳ ' + t.n + ', năm ' + (t.year - 2024 + 1) + ' (' + t.year + '–' + (t.year + 1) + ')';
+        if (s.live) {
+          $('term-tc').textContent = sumOf(s.inTerm) + ' tín chỉ';
+          $('cur').innerHTML = s.inTerm.map((x) =>
+            '<a class="row g-' + x.group + '" href="audit.html#' + x.group + '"><span class="sq cur"></span><span>' + x.name + '</span><span class="cd">' + x.code + '</span></a>').join('');
+          return;
+        }
+        $('term-tc').textContent = 'ĐTB ' + s.h.avg.toFixed(2) + ' · ' + s.h.credits + ' tín chỉ';
+        $('cur').innerHTML = s.inTerm.map((x) =>
+          '<a class="row g4 g-' + x.group + '" href="audit.html#' + x.group + '"><span class="sq' + (x.grade < 5 ? ' fail' : '') + '"></span><span>' + x.name + '</span><span class="cd">' + x.code + '</span><b class="gr">' + x.grade.toFixed(1) + '</b></a>').join('');
+      }
 
-      // ---------- Needs attention: each card opens the page that fixes it ----------
+      // ---------- Needs attention today; a term summary when looking back ----------
       const read = new Set(UI.store.get('read', []));
-      const attn = [];
-      const bad = res.violations.filter((v) => v.kind !== 'cover');
-      if (bad.length) attn.push(['bad', '<span>' + bad.length + '</span>', bad.length + ' vi phạm trong lộ trình', 'Sửa trong lộ trình', 'planner.html']);
-      attn.push(['warn', icon('flag', 'sm'), 'Chưa có chứng chỉ ngoại ngữ', 'Xem điều kiện', 'audit.html#eng']);
-      if (res.slots.length) attn.push(['warn', icon('plus', 'sm'), '3 TC tự chọn chưa chọn môn', 'Chọn môn', 'planner.html']);
-      D.notes.filter((n) => n.unread && n.act && n.kind !== 'plan' && !read.has(n.id))
-        .forEach((n) => attn.push(['info', icon(n.kind === 'term' ? 'calendar' : 'file', 'sm'), n.title, n.cta, n.href]));
-      $('attn').innerHTML = attn.map(([t, tl, title, cta, href]) =>
-        '<a class="' + t + '" href="' + href + '"><span class="tl">' + tl + '</span><span style="min-width:0"><b>' + title + '</b><small>' + cta + '</small></span>' + icon('chev', 'sm chev') + '</a>').join('');
+      function renderAttn() {
+        if (!s.live) {
+          const h = s.h;
+          $('attn-title').textContent = 'Tổng kết học kỳ';
+          $('attn').innerHTML = '<dl class="db-sum">' +
+            '<dt>ĐTB học kỳ</dt><dd>' + h.avg.toFixed(2) + '</dd>' +
+            '<dt>ĐTB tích lũy</dt><dd>' + h.cum.toFixed(2) + ' <span class="t3">· ' + D.rank(h.cum) + '</span></dd>' +
+            '<dt>Tín chỉ tích lũy</dt><dd>' + h.passed + ' / ' + req + '</dd>' +
+            '<dt>Trình độ</dt><dd>Năm thứ ' + D.yearLevel(h.passed) + '</dd>' +
+            '<dt>Điểm rèn luyện</dt><dd>' + h.drl + ' <span class="t3">· ' + D.drlRank(h.drl) + '</span></dd></dl>' +
+            '<button class="btn sm" type="button" data-go="' + NOWI + '">' + icon('undo', 'sm') + 'Về học kỳ hiện tại</button>';
+          return;
+        }
+        $('attn-title').textContent = 'Cần chú ý';
+        const attn = [];
+        const bad = res.violations.filter((v) => v.kind !== 'cover');
+        if (bad.length) attn.push(['bad', '<span>' + bad.length + '</span>', bad.length + ' vi phạm trong lộ trình', 'Sửa trong lộ trình', 'planner.html']);
+        attn.push(['warn', icon('flag', 'sm'), 'Chưa có chứng chỉ ngoại ngữ', 'Xem điều kiện', 'audit.html#eng']);
+        if (res.slots.length) attn.push(['warn', icon('plus', 'sm'), '3 TC tự chọn chưa chọn môn', 'Chọn môn', 'planner.html']);
+        D.notes.filter((n) => n.unread && n.act && n.kind !== 'plan' && !read.has(n.id))
+          .forEach((n) => attn.push(['info', icon(n.kind === 'term' ? 'calendar' : 'file', 'sm'), n.title, n.cta, n.href]));
+        $('attn').innerHTML = attn.map(([t, tl, title, cta, href]) =>
+          '<a class="' + t + '" href="' + href + '"><span class="tl">' + tl + '</span><span style="min-width:0"><b>' + title + '</b><small>' + cta + '</small></span>' + icon('chev', 'sm chev') + '</a>').join('');
+      }
+
       // ---------- By term: one square per credit, in the group's colour ----------
       const cell = (c, st) => Array.from({ length: c.credits }, () => '<i class="g-' + c.group + (st ? ' ' + st : '') + '" title="' + c.code + ' · ' + c.name + ' · ' + c.credits + ' TC"></i>').join('');
       const used = D.terms.filter((t) => D.courses.some((c) => c.status !== 'failed' && (D.tIdx(t.id) <= D.tIdx(D.NOW) ? c.term === t.id : D.termOf(plan, c.code) === t.id)));
       $('terms').innerHTML = used.map((t) => {
         const isNow = t.id === D.NOW, past = D.tIdx(t.id) < D.tIdx(D.NOW);
-        const list = D.courses.filter((c) => c.status !== 'failed' && (past || isNow ? c.term === t.id : D.termOf(plan, c.code) === t.id));
-        const label = (t.n === 3 ? 'Hè ' : 'HK' + t.n + ' ') + String(t.year).slice(2) + '–' + String(t.year + 1).slice(2) + (isNow ? ' · nay' : '');
-        return '<a class="db-term' + (isNow ? ' now' : '') + '" href="planner.html" aria-label="' + t.label + ', ' + sumOf(list) + ' tín chỉ"><span class="cells">' +
-          list.map((c) => cell(c, past ? '' : isNow ? 'cur' : 'todo')).join('') + '</span><span class="lb">' + label + '</span></a>';
+        const hi = past ? H.findIndex((h) => h.term.id === t.id) : isNow ? NOWI : -1;
+        const list = past ? D.attempts.filter((a) => a.term === t.id).map((a) => Object.assign({}, a.c, { failed: a.failed }))
+          : D.courses.filter((c) => c.status !== 'failed' && (isNow ? c.term === t.id : D.termOf(plan, c.code) === t.id));
+        return '<a class="db-term' + (isNow ? ' now' : '') + '" href="planner.html"' + (hi >= 0 ? ' data-hi="' + hi + '"' : '') + ' aria-label="' + t.label + ', ' + sumOf(list) + ' tín chỉ"><span class="cells">' +
+          list.map((c) => cell(c, past ? (c.failed ? 'fail' : '') : isNow ? 'cur' : 'todo')).join('') + '</span><span class="lb">' + shortTerm(t) + (isNow ? ' · nay' : '') + '</span></a>';
       }).join('') + '<a class="db-term grad" href="audit.html"><span class="cells">' + icon('flag') + '</span><span class="lb">Tốt nghiệp</span></a>';
       $('terms-key').innerHTML = D.groups.map((g) => '<span class="g-' + g.id + '"><i></i>' + g.short + '</span>').join('') +
-        '<span class="gap"></span><span><i></i>Đã đạt</span><span><i class="cur"></i>Đang học</span><span><i class="todo"></i>Dự kiến</span>';
+        '<span class="gap"></span><span><i></i>Đã đạt</span><span><i class="fail"></i>Chưa đạt</span><span><i class="cur"></i>Đang học</span><span><i class="todo"></i>Dự kiến</span>';
+
+      // ---------- Term scrubber: hover previews a term, a click or the arrows pick it ----------
+      const termAt = (i) => i === NOWI ? D.term(D.NOW) : H[i].term;
+      function show(i) {
+        if (view === i) return;
+        view = i; s = snap(i);
+        renderDonut(); renderStats(); renderGroups(); renderTerm(); renderAttn();
+        document.body.classList.toggle('db-past', !s.live);
+        $('terms').querySelectorAll('[data-hi]').forEach((a) => a.classList.toggle('sel', +a.dataset.hi === i));
+        $('scrub-lb').innerHTML = shortTerm(termAt(i)) + (s.live ? ' · nay' : '') + (i !== sel ? ' <small>xem trước</small>' : '');
+        $('prev').disabled = sel === 0; $('next').disabled = sel === NOWI;
+        $('scrub-now').hidden = sel === NOWI;
+        I18N.flush();
+      }
+      const pick = (i) => { sel = Math.max(0, Math.min(NOWI, i)); view = null; show(sel); };
+
+      // The picker lists every term with its GPA. Hovering a row previews it like the dots do.
+      const tp = $('tpick'), tb = $('scrub-lb');
+      const pickOpen = (on) => {
+        tp.classList.toggle('open', on); tb.setAttribute('aria-expanded', on);
+        if (!on) return;
+        tp.innerHTML = H.map((h, i) => [i, h]).concat([[NOWI, null]]).reverse().map(([i, h]) =>
+          '<button type="button" role="option" data-pick="' + i + '" aria-selected="' + (i === sel) + '"><b>' + shortTerm(termAt(i)) + '</b>' +
+          '<span>' + (h ? 'ĐTB ' + h.avg.toFixed(2) : 'Đang học') + '</span>' + (i === NOWI ? '<em>Hiện tại</em>' : '<span class="t3">' + h.passed + ' TC</span>') + '</button>').join('');
+        I18N.flush();
+        const cur = tp.querySelector('[aria-selected="true"]'); if (cur) cur.focus();
+      };
+      tb.addEventListener('click', () => pickOpen(!tp.classList.contains('open')));
+      tp.addEventListener('click', (e) => { const b = e.target.closest('[data-pick]'); if (b) { pickOpen(false); pick(+b.dataset.pick); tb.focus(); } });
+      tp.addEventListener('mouseover', (e) => { const b = e.target.closest('[data-pick]'); if (b) show(+b.dataset.pick); });
+      tp.addEventListener('mouseleave', () => show(sel));
+      tp.addEventListener('keydown', (e) => {
+        const list = [...tp.querySelectorAll('[data-pick]')], k = list.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); const n = list[Math.max(0, Math.min(list.length - 1, k + (e.key === 'ArrowDown' ? 1 : -1)))]; n.focus(); show(+n.dataset.pick); }
+        if (e.key === 'Escape') { e.stopPropagation(); pickOpen(false); show(sel); tb.focus(); }
+      });
+      document.addEventListener('click', (e) => { if (tp.classList.contains('open') && !e.target.closest('.db-tpick-wrap')) { pickOpen(false); show(sel); } });
+      $('prev').addEventListener('click', () => pick(sel - 1));
+      $('next').addEventListener('click', () => pick(sel + 1));
+      $('scrub-now').addEventListener('click', () => pick(NOWI));
+      document.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) pick(+b.dataset.go); });
+      document.addEventListener('keydown', (e) => {
+        const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+        if (typing || e.ctrlKey || e.metaKey || e.altKey || tp.classList.contains('open')) return;
+        if (e.key === 'ArrowLeft') pick(sel - 1);
+        if (e.key === 'ArrowRight') pick(sel + 1);
+      });
+      // Moving between two dots crosses empty space, so wait a beat before going back.
+      let back = 0;
+      ['row1', 'row2', 'terms'].forEach((id) => {
+        const el = $(id);
+        el.addEventListener('mouseover', (e) => {
+          const a = e.target.closest('[data-hi]');
+          clearTimeout(back);
+          if (a) show(+a.dataset.hi); else back = setTimeout(() => show(sel), 120);
+        });
+        el.addEventListener('mouseleave', () => { clearTimeout(back); back = setTimeout(() => show(sel), 120); });
+        el.addEventListener('click', (e) => { const a = e.target.closest('[data-hi]'); if (a) { e.preventDefault(); pick(+a.dataset.hi); } });
+      });
+      show(NOWI);
+
+      function intro() {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        // Once per browser session: coming back to the dashboard should not replay it.
+        try { if (sessionStorage.getItem('oc2-intro')) return; sessionStorage.setItem('oc2-intro', '1'); } catch (e) { /* private mode: play it */ }
+        document.body.classList.add('db-intro');
+        setTimeout(() => document.body.classList.remove('db-intro'), 700);
+        const ease = (t) => 1 - Math.pow(1 - t, 3);
+        const nums = [...document.querySelectorAll('.db-stat .v, #center b, .db-g .cnt b')].map((el) => {
+          const n = [...el.childNodes].find((c) => c.nodeType === 3 && /\d/.test(c.nodeValue));
+          if (!n) return null;
+          const m = n.nodeValue.match(/^(\D*)(\d+(?:\.\d+)?)(.*)$/s);
+          return m && !m[1].trim() && { n, pre: m[1], to: +m[2], dec: (m[2].split('.')[1] || '').length, post: m[3] };
+        }).filter(Boolean);
+        nums.forEach((x) => { x.n.nodeValue = x.pre + (0).toFixed(x.dec) + x.post; });
+        const t0 = performance.now();
+        const step = (now) => {
+          const k = ease(Math.min(1, (now - t0) / 500));
+          nums.forEach((x) => { x.n.nodeValue = x.pre + (x.to * k).toFixed(x.dec) + x.post; });
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+      intro();
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

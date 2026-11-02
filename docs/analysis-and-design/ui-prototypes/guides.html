@@ -8,7 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="guides" data-layout="app" data-guest="ok">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -33,14 +37,18 @@
       const guest = document.body.classList.contains('guest');
       const q = guest ? '?guest' : '';
       const plan = UI.plan();
-      const COLORS = ['core', 'elec', 'phys', 'math', 'gen', 'eng', 'pol', 'thesis'];
+      const COLORS = ['core', 'elec', 'phys', 'math'];
+      const host = (u) => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      // One school portal: name, address and what it is for. Opens in a new tab.
+      const portalCard = (x) => '<a class="portal" href="' + x.url + '" target="_blank" rel="noopener"><span class="ic">' + icon(x.login ? 'lock' : 'globe') + '</span>' +
+        '<span class="tx"><b>' + x.name + '</b><span class="mono">' + host(x.url) + '</span><small>' + x.for + '</small></span>' + icon('external', 'sm ext') + '</a>';
       // Illustrative content: the steps are not yet checked against the real portals.
       const BODY = {
         accounts: {
           summary: 'Mỗi thủ tục dùng một cổng khác nhau. Trang này liệt kê từng cổng, tài khoản cần dùng và việc làm ở đó.',
           when: 'Ngay khi nhập học, và mỗi khi đổi mật khẩu.',
           prepare: ['Email và mật khẩu sinh viên do trường cấp lúc nhập học'],
-          steps: ['Mở cổng thông tin sinh viên bằng link bên phải.', 'Đăng nhập bằng tài khoản sinh viên.', 'Đổi mật khẩu lần đầu nếu cổng yêu cầu.'],
+          steps: ['Mở cổng thông tin sinh viên trong danh sách cổng bên dưới.', 'Đăng nhập bằng tài khoản sinh viên.', 'Đổi mật khẩu lần đầu nếu cổng yêu cầu.', 'Đăng nhập Moodle của khoa hoặc của chương trình để vào các lớp đang học.'],
           notes: [['Quên mật khẩu: dùng chức năng khôi phục của cổng, không nhờ người khác đăng nhập hộ.', 'Kinh nghiệm của nhóm']],
         },
         'register-courses': {
@@ -48,7 +56,7 @@
           when: 'Mỗi học kỳ, theo lịch trong thông báo của Phòng Đào tạo.',
           prepare: ['Danh sách mã môn của học kỳ tới, lấy từ lộ trình', 'Kiểm tra đã đóng học phí kỳ trước'],
           steps: ['Mở cổng đăng ký học phần trong thời gian mở cổng.', 'Đăng nhập bằng tài khoản sinh viên.', 'Tìm từng mã môn và chọn lớp.', 'Kiểm tra tổng tín chỉ trước khi xác nhận.', 'Xác nhận và lưu lại kết quả đăng ký.'],
-          notes: [['Tổng tín chỉ phải nằm trong giới hạn của chương trình.', 'Điều 7.2'], ['Lớp đầy thì xem hướng dẫn điều chỉnh đăng ký (G03).', 'Kinh nghiệm của nhóm']],
+          notes: [['Tổng tín chỉ phải nằm trong giới hạn của chương trình.', 'Điều 7.2'], ['Lớp đầy thì theo dõi đợt điều chỉnh đăng ký trong thông báo của Phòng Đào tạo.', 'Kinh nghiệm của nhóm']],
           rule: true, plan: true,
         },
         'pay-tuition': {
@@ -73,20 +81,18 @@
       function list() {
         $('page').innerHTML =
           '<header class="page-head"><div><h1>Hướng dẫn thủ tục</h1><p>Những việc OmniCourse không làm thay bạn: link thẳng tới cổng, các bước, tài khoản cần dùng. Đọc được khi chưa đăng nhập.</p></div></header>' +
-          '<div class="guide-search"><label class="b" for="gq">Bạn cần làm gì?</label><input class="input" id="gq" type="search" placeholder="Thử: hoc phi, đăng ký, bảng điểm…" autocomplete="off"><span class="small">Tìm có dấu hoặc không dấu, tiếng Việt hoặc tiếng Anh.</span></div>' +
-          '<div id="glist" class="stack"></div>';
+          '<div class="guide-search"><label class="b" for="gq">Bạn cần làm gì?</label><input class="input" id="gq" type="search" placeholder="Thử: hoc phi, đăng ký, bảng điểm…" autocomplete="off"><span class="small t3">Tìm có dấu hoặc không dấu, tiếng Việt hoặc tiếng Anh.</span></div>' +
+          '<div id="glist" class="stack"></div>' +
+          '<section class="stack" style="gap:12px" aria-labelledby="portals-title"><div class="ex-group-head"><h2 id="portals-title" style="font-size:18px">Cổng thông tin của trường</h2><span class="small t3">Kiểm tra link 02/11/2026 · mở ở tab mới</span></div>' +
+          '<div class="portals">' + D.portals.map(portalCard).join('') + '</div></section>';
         const draw = () => {
           const t = fold($('gq').value.trim());
           const hit = (g) => !t || fold(g.title + ' ' + g.en + ' ' + g.kw).includes(t);
-          const html = D.guideGroups.map((name, gi) => {
-            const items = D.guides.filter((g) => g.group === gi && hit(g));
-            if (!items.length) return '';
-            return '<section class="stack g-' + COLORS[gi] + '" style="gap:12px"><div class="ex-group-head"><span class="glyph sm">' + (gi + 1) + '</span><h2 style="font-size:18px">' + name + '</h2></div><div class="ggrid">' +
-              items.map((g) => g.ready
-                ? '<a class="gitem" href="' + q + '#' + g.id + '"><span class="row"><span class="code c">' + g.no + '</span>' + (months(g.checked) > 6 ? '<span class="chip warn">Có thể đã cũ</span>' : '<span class="chip ok">Kiểm tra ' + g.checked + '</span>') + '</span><b>' + g.title + '</b><span class="small t3">' + g.portal + ' · ' + g.account + '</span></a>'
-                : '<div class="gitem soon"><span class="row"><span class="code">' + g.no + '</span><span class="chip">Sắp có</span></span><b class="t2">' + g.title + '</b><span class="small t3">' + g.en + '</span></div>').join('') + '</div></section>';
-          }).join('');
-          $('glist').innerHTML = html || '<div class="card empty"><b>Chưa có hướng dẫn cho việc này</b><p class="small">Xem các nhóm thủ tục, hoặc <a class="link" href="advisor.html">hỏi trợ lý</a>.</p><button class="btn sm" type="button" id="suggest">Đề xuất hướng dẫn mới</button></div>';
+          // Four guides so far: one grid, each card naming its group.
+          const items = D.guides.filter(hit);
+          const html = items.length ? '<div class="ggrid">' + items.map((g) => '<a class="gitem g-' + COLORS[g.group] + '" href="' + q + '#' + g.id + '"><span class="row"><span class="code c">' + g.no + '</span>' + (months(g.checked) > 6 ? '<span class="chip warn">Có thể đã cũ</span>' : '<span class="chip ok">Kiểm tra ' + g.checked + '</span>') + '</span>' +
+            '<span class="small t3">' + D.guideGroups[g.group] + '</span><b>' + g.title + '</b><span class="small t3">' + (g.portal ? D.portal(g.portal).name : 'Mọi cổng của trường') + ' · ' + g.account + '</span></a>').join('') + '</div>' : '';
+          $('glist').innerHTML = html || '<div class="card empty"><b>Chưa có hướng dẫn cho việc này</b><p class="small">Xem các cổng bên dưới, hoặc <a class="link" href="advisor.html">hỏi trợ lý</a>.</p><button class="btn sm" type="button" id="suggest">Đề xuất hướng dẫn mới</button></div>';
         };
         $('gq').addEventListener('input', draw);
         draw();
@@ -97,11 +103,13 @@
         const stale = months(g.checked) > 6;
         const next = D.future[0];
         const nextCourses = D.courses.filter((x) => plan[x.code] === next.id && !x.slot);
+        const P = g.portal && D.portal(g.portal);
         $('page').innerHTML =
           '<header class="page-head"><div><p class="crumbs"><a href="guides.html' + q + '">Hướng dẫn</a> / ' + D.guideGroups[g.group] + '</p><h1>' + g.title + '</h1><p>' + b.summary + '</p></div></header>' +
           (stale ? '<div class="callout warn"><i data-icon="alert"></i><div><b>Hướng dẫn có thể đã cũ</b><p>Kiểm tra lần cuối ' + g.checked + ', hơn 6 tháng trước. Cổng có thể đã đổi giao diện.</p></div></div>' : '') +
           '<div class="guide-layout"><div class="stack">' +
           '<section class="card pad stack" style="gap:14px"><h2>Các bước</h2><ol class="steps">' + b.steps.map((s) => '<li><p style="padding-top:6px">' + s + '</p></li>').join('') + '</ol></section>' +
+          (g.id === 'accounts' ? '<section class="card pad stack" style="gap:12px"><div class="card-head" style="padding:0"><h2>Các cổng của trường</h2><span class="meta">Kiểm tra link 02/11/2026</span></div><div class="portals">' + D.portals.map(portalCard).join('') + '</div></section>' : '') +
           (b.rule ? '<section class="card pad stack g-core" style="gap:10px"><h2>Giới hạn tín chỉ của bạn</h2>' + (guest
             ? '<p class="t2">Giới hạn phụ thuộc chương trình của bạn. <a class="link" href="sign-in.html">Đăng nhập</a> để xem con số rule engine tính cho chương trình của bạn. ' + UI.ref('Điều 7.2') + '</p>'
             : '<p><span class="num" style="font-size:30px;font-weight:800">' + D.CAP.min + '–' + D.CAP.max + ' TC</span> <span class="t2">mỗi học kỳ chính, chương trình ' + D.student.program + ' · tính bởi rule engine</span> ' + UI.ref('Điều 7.2') + '</p>') + '</section>' : '') +
@@ -113,9 +121,9 @@
           '<section class="card pad stack" style="gap:10px"><h2>Lưu ý</h2>' + b.notes.map(([n, src]) => '<div class="box small"><p>' + n + '</p><p class="xs t3" style="margin-top:4px">Nguồn: ' + (src.startsWith('Điều') ? UI.ref(src) : src) + '</p></div>').join('') +
           (b.down ? '<div class="box small"><b>Nếu cổng không vào được</b><p>' + b.down + '</p></div>' : '') + '</section>' +
           '</div><aside class="stack">' +
-          '<section class="card pad stack g-' + COLORS[g.group] + '" style="gap:12px;background:var(--c-soft)"><span class="code c" style="justify-self:start">' + g.no + '</span>' +
-          '<div><span class="label">Làm ở đâu</span><p class="b">' + g.portal + '</p></div><div><span class="label">Tài khoản</span><p>' + g.account + '</p></div>' +
-          '<a class="btn primary block" href="#" target="_blank" rel="noopener">' + icon('external', 'sm') + 'Mở ' + g.portal.toLowerCase() + '</a><span class="xs t3">Link minh họa trong bản mẫu. Mở ở tab mới.</span></section>' +
+          (P ? '<section class="card pad stack g-' + COLORS[g.group] + '" style="gap:12px"><span class="code c" style="justify-self:start">' + g.no + '</span>' +
+            '<div><span class="label">Làm ở đâu</span><p class="b">' + P.name + '</p><p class="mono small t3">' + host(P.url) + '</p></div><div><span class="label">Tài khoản</span><p>' + g.account + '</p></div>' +
+            '<a class="btn primary block" href="' + P.url + '" target="_blank" rel="noopener">' + icon('external', 'sm') + 'Mở ' + P.name.toLowerCase() + '</a><span class="xs t3">Mở trang thật của trường ở tab mới.</span></section>' : '') +
           '<section class="card pad stack" style="gap:8px"><div><span class="label">Khi nào</span><p class="small">' + b.when + '</p></div>' +
           (b.prepare.length ? '<div><span class="label">Chuẩn bị</span><ul class="small" style="margin:4px 0 0;padding-left:18px">' + b.prepare.map((p) => '<li>' + p + '</li>').join('') + '</ul></div>' : '') +
           (b.into ? '<a class="btn sm" href="' + b.into[0] + '">' + b.into[1] + ' ' + icon('chev', 'sm') + '</a>' : '') + '</section>' +
@@ -139,7 +147,7 @@
       });
 
       function route() {
-        const g = D.guides.find((x) => x.id === location.hash.slice(1) && x.ready);
+        const g = D.guides.find((x) => x.id === location.hash.slice(1));
         if (g) detail(g); else list();
         window.scrollTo(0, 0);
       }
@@ -147,5 +155,6 @@
       route();
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

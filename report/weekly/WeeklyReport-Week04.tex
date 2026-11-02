@@ -13,50 +13,109 @@
 \pagestyle{fancy}
 \ocompact
 
-{\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 2 \textbullet{} ELABORATION \textbullet{} WEEK 2 OF 2 (PA2 SUBMISSION)}\par\vspace{4pt}
+{\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 2 \textbullet{} ELABORATION \textbullet{} WEEK 2 OF 2 (PA2
+SUBMISSION)}\par\vspace{4pt}
 
 \noindent\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}XXXX@{}}
-  \kpi{5}{tasks planned} & \kpi{5}{tasks completed} & \kpi{100\%}{average completion} & \kpi{0}{open blockers}
+  \kpi{29}{tasks worked on} & \kpi{23}{tasks finished} & \kpi{13}{pull requests merged} & \kpi{2}{late handoffs}
 \end{tabularx}
 \par\vspace{0.45cm}
 
 \section{Team}
-The five members of the group, as registered in PA0. Elaboration Sprint 2 concludes with the delivery of the use-case model, specifications, prototype refinements, and Build B0.
+The five members of the group, as registered in PA0. Sprint 2 closes with the PA2 documents and the B0 tests; the
+curriculum schema and the staging host slipped into Sprint 3.
 
 \par\vspace{5pt}
 {\color{ocRule}\rule{\textwidth}{0.4pt}}\par\vspace{4pt}
 \OmniCourseTeamShort
 
 \section{Achievements since last week}
+Rows with a pull request number are taken from GitHub. The percentage is the state on Sunday 1 November; two pull requests
+opened that week were merged on 2 November and are marked so.
 
 {\small
-\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.7cm}p{7.4cm}p{1.9cm}p{2.7cm}p{1.4cm}@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.5cm}p{2.0cm}p{1.3cm}@{}}
 \hcell{No.} & \hcell{Task} & \hcell{Due date} & \hcell{Responsibility} & \hcell{Complete}\\\hdrline
-1 & Use-case specifications (14 use cases with main and alternative flows) & 1/11/2026 & Hoà, Dũng, Thắng & 100\%\\
-2 & Architecture document v1 and finalized database schema & 1/11/2026 & Triết & 100\%\\
-3 & Build B0 deployed on staging (walking skeleton, sign-in flow) & 1/11/2026 & Lâm, Dũng & 100\%\\
-4 & Revised Project Plan and Vision Document v2.0 (with blue text changes) & 1/11/2026 & Lâm, Hoà & 100\%\\
-5 & PA2 submission package prepared and submitted & 1/11/2026 & Lâm & 100\%\\
-\end{tabularx}}
+\endhead
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Phan Bình Nguyên Lâm}\\
+1 & AI gateway for the goal box and the advisor (\#12, merged 29/10 after Dũng's review). Handoff was due 8/11. & 8/11/2026
+& Lâm & 100\%\\
+2 & Export and delete a whole account (ADR 0004, \#14, merged 30/10) & 15/11/2026 & Lâm & 100\%\\
+3 & Transcript storage for the student record (ADR 0007, \#29, merged 30/10 after two review rounds). Sprint 4 work done
+early. & 22/11/2026 & Lâm & 100\%\\
+4 & Use cases UC-01, UC-02, UC-07 (\#16) and UC-01 sequence diagrams (\#22), in review & 28/10/2026 & Lâm & 90\%\\
+5 & Project plan v2.0 draft: estimates and risk register (\#20), merged into the PA2 plan & 1/11/2026 & Lâm & 100\%\\
+6 & Decision on how the plan generator builds a plan (ADR 0006, \#27, proposed) & Sprint 4 & Lâm & 90\%\\
+7 & B0 exceptions: what B0 cannot test without a server (\#38, merged 30/10) & 1/11/2026 & Lâm & 100\%\\
+8 & APCS and CLC seed data (\#36), approved by Thắng, waits on the schema \#23 & 8/11/2026 & Lâm & 90\%\\
+9 & Reviews of every pull request; weekly reports for weeks 3 and 4 (\#18, \#35) & 1/11/2026 & Lâm & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Võ Nguyễn Minh Triết}\\
+10 & Curriculum schema, migration and e2e test (ADR 0005, \#23). Review fixes pushed; waits for one approval. & 28/10/2026 &
+Triết & 90\%\\
+11 & Review of the auth module (\#8) & 24/10/2026 & Triết & 100\%\\
+12 & Initial software architecture document and the \texttt{RulesService} interface & 1/11/2026 & Triết & Moved to 15/11\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Hữu Quốc Thắng}\\
+13 & Use case UC-11 and the Elaboration test plan for B0 and B1 (\#30, merged 29/10) & 1/11/2026 & Thắng & 100\%\\
+14 & Chromium smoke-test harness in CI (ADR 0008, \#31, merged 29/10). The sign-in test waits for \#13. & 1/11/2026 & Thắng
+& 100\%\\
+15 & Coverage gate in CI, rule engine at 80\% or more (\#45, merged 1/11) & 1/11/2026 & Thắng & 100\%\\
+16 & Construction test plan, test plan v2 (\#46, merged 2/11); rename (\#47, open) & 1/11/2026 & Thắng & 100\%\\
+17 & Checked all 186 booklet pages against the seed data and approved \#36 & 1/11/2026 & Thắng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Anh Dũng}\\
+18 & Use cases UC-08, UC-09, UC-10 (\#39, merged 30/10) & 28/10/2026 & Dũng & 100\%\\
+19 & B0 test cases (\#40, merged 30/10) and the B0 test run, locally & 1/11/2026 & Dũng & 100\%\\
+20 & Guides plan and content model (\#41, \#43); ADR 0010, guides and shared plans open to signed-out readers (\#42) &
+1/11/2026 & Dũng & 100\%\\
+21 & Reviews of \#12, \#14 and \#29 & 30/10/2026 & Dũng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Lê Hữu Hoà}\\
+22 & Report LaTeX template, build and packaging scripts, PA reports, first HTML UI prototypes (\#44, merged 31/10) &
+1/11/2026 & Hoà & 100\%\\
+23 & Redesigned UI prototypes: 27 static screens in English and Vietnamese, light and dark (\#48, with Lâm; merged 2/11) &
+1/11/2026 & Hoà & 100\%\\
+24 & Vision v2.0: ADR 0003 restatement, six actors, feature comparison, checkable NFRs, traceability to use cases &
+1/11/2026 & Hoà & 100\%\\
+25 & Use-case model: one overview and five module diagrams with include, extend and generalization & 1/11/2026 & Hoà &
+100\%\\
+26 & Use-case specification v1.0: 19 use cases in one document. Wrote UC-05, UC-06; merged the members' drafts; drafted
+UC-03, UC-04, UC-15, UC-19 for Triết's review & 1/11/2026 & Hoà & 100\%\\
+27 & UI prototypes document: 24 screenshots mapped step by step to the use-case flows & 1/11/2026 & Hoà & 100\%\\
+28 & PA2 package \texttt{PA2-Group08.zip} built and checked & 1/11/2026 & Hoà & 100\%\\
+29 & Sign-in screen on the auth API (\#13) & 1/11/2026 & Hoà & 0\%\\
+\end{xltabular}}
 
 \section{Issues and impacts}
 \begin{ocnote}{Issues of the week}
 \begin{itemize}
-  \item High workload combining midterm exams with the PA2 use-case specifications; team met over weekend to finalize flows.
-  \item Staging deployment configuration required fine-tuning CORS headers for the frontend skeleton. Resolved in time for B0 release.
+  \item \textbf{Two handoffs due 28/10 slipped.} The curriculum schema (\#23) is not merged, so the APCS seed (\#36) and the
+        rule engine wait on it (risk R1). The use cases of \#16 are still in review; the PA2 specification uses their
+        content.
+  \item \textbf{No staging host} (risk R2, issue \#24). B0 was not deployed. Its test cases ran locally, and the cases that
+        need a server are recorded as exceptions (\#38).
+  \item \textbf{The initial architecture document moved to 15/11}, together with the detailed design. Triết's time went to
+        the schema review.
+  \item \textbf{Sign-in screen \#13 is not done.} Hoà's time went to the PA2 documents and prototypes, and Hoà still cannot
+        be assigned GitHub issues. Thắng's sign-in browser test waits for it.
+  \item \textbf{The AI provider settings} (training opt-out, monthly credit limit) are still open in issue \#24 before
+        staging uses the gateway.
+  \item No written TA feedback on PA1 has arrived. The PA2 plan and vision say so in their revision history.
 \end{itemize}
 \end{ocnote}
 
 \section{Next week's goals}
 
 {\small
-\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.7cm}p{8.2cm}p{2.1cm}p{3.5cm}@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.8cm}p{3.0cm}@{}}
 \hcell{No.} & \hcell{Goal} & \hcell{Due date} & \hcell{Responsibility}\\\hdrline
-1 & Start Sprint 3 (Elaboration 2): Detailed component design for degree audit & 8/11/2026 & Triết, Hoà\\
-2 & Curriculum data ingestion: complete APCS course catalogue rules & 8/11/2026 & Dũng\\
-3 & Implement degree audit visual progress bar and rule evaluation engine & 8/11/2026 & Hoà, Triết\\
-4 & Draft Sprint 3 test cases and automated regression suite & 8/11/2026 & Thắng\\
-5 & Weekly Report Week 5 & 8/11/2026 & Dũng\\
-\end{tabularx}}
+\endhead
+1 & Curriculum schema (\#23) merged, then the APCS and CLC seed (\#36) & 4/11/2026 & Triết, Lâm\\
+2 & Staging host chosen; build B0 deployed and tagged & 4/11/2026 & Lâm\\
+3 & \texttt{plans} module and its API & 8/11/2026 & Hoà\\
+4 & App shell, design tokens and i18n from the prototypes; sign-in screen \#13 & 8/11/2026 & Hoà\\
+5 & Rule engine and degree audit on the merged schema & 15/11/2026 & Triết\\
+6 & Initial architecture document and detailed design: class and sequence models & 15/11/2026 & All, led by Triết\\
+7 & Onboarding; use cases \#16 and sequence diagrams \#22 merged & 15/11/2026 & Lâm\\
+8 & Regression run on B0 once deployed; test cases for B1; guides (F11) & 15/11/2026 & Dũng\\
+9 & Browser test on the sign-in screen, once \#13 lands & 15/11/2026 & Thắng\\
+\end{xltabular}}
 
 \end{document}

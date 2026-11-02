@@ -1,0 +1,84 @@
+%% Overview: actors and the five modules of the use-case model
+\begin{tikzpicture}[
+    pitem/.style={uc=2.15cm, minimum height=0.95cm, font=\sffamily\scriptsize\color{ocDark}},
+  ]
+  % ---- module packages, in one column so every actor line reaches its package without crossing another
+  \def\px{7.0}
+  % A
+  \node[pitem] (a1) at (\px-1.85,11.4) {\textbf{UC-01} Sign up and onboard};
+  \node[pitem] (a2) at (\px+1.85,11.4) {\textbf{UC-13} Sign in};
+  \node[pitem] (a3) at (\px,10.35) {\textbf{UC-14} Manage account and privacy};
+  % B
+  \node[pitem] (b1) at (\px-1.85,8.35) {\textbf{UC-02} Import transcript};
+  \node[pitem] (b2) at (\px+1.85,8.35) {\textbf{UC-03} View degree audit};
+  \node[pitem] (b3) at (\px-1.85,7.3) {\textbf{UC-15} View grades};
+  \node[pitem] (b4) at (\px+1.85,7.3) {\textbf{UC-04} Explore curriculum};
+  % C
+  \node[pitem] (c1) at (\px-1.85,5.3) {\textbf{UC-05} Build and edit a plan};
+  \node[pitem] (c2) at (\px+1.85,5.3) {\textbf{UC-07} Generate a plan};
+  \node[pitem] (c3) at (\px-1.85,4.25) {\textbf{UC-06} Simulate a what-if};
+  \node[pitem] (c4) at (\px+1.85,4.25) {\textbf{UC-09} Share or export a plan};
+  \node[pitem] (c5) at (\px,3.2) {\textbf{UC-16} View a shared plan};
+  % D
+  \node[pitem] (d1) at (\px-1.85,1.2) {\textbf{UC-08} Ask the advisor chat};
+  \node[pitem] (d2) at (\px+1.85,1.2) {\textbf{UC-10} Follow a school-task guide};
+  \node[pitem] (d3) at (\px,0.15) {\textbf{UC-12} Receive notifications};
+  % E
+  \node[pitem] (e1) at (\px-1.85,-1.85) {\textbf{UC-11} Maintain curriculum};
+  \node[pitem] (e2) at (\px+1.85,-1.85) {\textbf{UC-17} Maintain the course catalog};
+  \node[pitem] (e3) at (\px,-2.9) {\textbf{UC-18} Manage administration access};
+
+  \begin{scope}[on background layer]
+    \node[pkg, fit=(a1)(a2)(a3)] (pA) {};
+    \node[pkg, fit=(b1)(b2)(b3)(b4)] (pB) {};
+    \node[pkg, fit=(c1)(c2)(c3)(c4)(c5)] (pC) {};
+    \node[pkg, fit=(d1)(d2)(d3)] (pD) {};
+    \node[pkg, fit=(e1)(e2)(e3)] (pE) {};
+  \end{scope}
+  \node[ptitle] at (pA.north west) {A. Account and access \textmd{(F1)}};
+  \node[ptitle] at (pB.north west) {B. Academic record \textmd{(F2--F4)}};
+  \node[ptitle] at (pC.north west) {C. Planning \textmd{(F5--F7, F9)}};
+  \node[ptitle] at (pD.north west) {D. Help and reminders \textmd{(F8, F10, F11)}};
+  \node[ptitle] at (pE.north west) {E. Curriculum administration \textmd{(F12)}};
+
+  % ---- system boundary
+  \begin{pgfonlayer}{ucback}
+    \node[boundary, fit=(pA)(pE), inner xsep=16pt, inner ysep=26pt] (sys) {};
+  \end{pgfonlayer}
+  \node[btitle] at (sys.north west) {OmniCourse};
+
+  % ---- actors, left: people who use the product
+  \ucactor{visitor}{0,9.9}{Visitor}
+  \ucactor{student}{0,5.3}{Student}
+  \ucactor{padmin}{0,0.4}{Program\\administrator}
+  \ucactor{catalog}{0,-2.4}{Catalog\\maintainer}
+  % ---- actors, right: the advisor and the systems OmniCourse talks to
+  \ucsystem{google}{14.6,11.0}{Google\\identity}
+  \ucactor{advisor}{14.6,7.4}{Advisor}
+  \ucsystem{model}{14.6,4.4}{Model\\provider}
+  \ucsystem{portal}{14.6,1.8}{HCMUS\\portal}
+  \ucactor{time}{14.6,-0.6}{Time}
+  \ucactor{access}{14.6,-3.0}{Access\\manager}
+
+  \draw[gen] (student.north) -- ($(visitor-l.south)+(0,-0.06)$);
+
+  % associations to the packages
+  \draw[assoc] (visitor) -- (pA.west |- a1);
+  \draw[assoc] (visitor) -- (pD.west |- d2);
+  \draw[assoc] (student) -- (pA.west |- a3);
+  \draw[assoc] (student) -- (pB.west);
+  \draw[assoc] (student) -- (pC.west);
+  \draw[assoc] (student) -- (pD.west |- d1);
+  \draw[assoc] (padmin) -- (pE.west |- e1);
+  \draw[assoc] (catalog) -- (pE.west |- e3);
+  \draw[assoc] (google) -- (pA.east |- a2);
+  \draw[assoc] (advisor) -- (pC.east |- c2);
+  \draw[assoc] (model) -- (pC.east |- c4);
+  \draw[assoc] (model) -- (pD.east |- d2);
+  \draw[assoc] (portal) -- (pD.east |- d2);
+  \draw[assoc] (time) -- (pD.east |- d3);
+  \draw[assoc] (access) -- (pE.east |- e3);
+
+  \node[lbl, anchor=north, align=center, text width=12.5cm] at ($(sys.south)+(0,-0.12)$)
+    {A student is a visitor who has signed in (generalization). The advisor needs no account.      UC-19 \emph{Evaluate academic rules} is shared: UC-03, UC-04, UC-05, UC-06, UC-07, UC-08, UC-11, UC-12, UC-15 and UC-16 include it.};
+\end{tikzpicture}

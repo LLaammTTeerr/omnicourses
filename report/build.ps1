@@ -172,6 +172,7 @@ if ($Package) {
         $null = Compile-TexFile -TexPath (Join-Path $ScriptDir "assignments\PA2\ProjectPlan.tex")
         $null = Compile-TexFile -TexPath (Join-Path $ScriptDir "assignments\PA2\Vision.tex")
         $null = Compile-TexFile -TexPath (Join-Path $ScriptDir "assignments\PA2\UseCase-Specification.tex")
+        $null = Compile-TexFile -TexPath (Join-Path $ScriptDir "assignments\PA2\UI-Prototypes.tex")
         $null = Compile-TexFile -TexPath (Join-Path $ScriptDir "weekly\WeeklyReport-Week03.tex")
         $null = Compile-TexFile -TexPath (Join-Path $ScriptDir "weekly\WeeklyReport-Week04.tex")
 
@@ -184,11 +185,14 @@ if ($Package) {
         Copy-Item (Join-Path $ScriptDir "assignments\PA2\UseCase-Specification.pdf") (Join-Path $outDir "UseCase-Specification.pdf")
         Copy-Item (Join-Path $ScriptDir "weekly\WeeklyReport-Week03.pdf") (Join-Path $outDir "WeeklyReport-Week03.pdf")
         Copy-Item (Join-Path $ScriptDir "weekly\WeeklyReport-Week04.pdf") (Join-Path $outDir "WeeklyReport-Week04.pdf")
+        Copy-Item (Join-Path $ScriptDir "assignments\PA2\UI-Prototypes.pdf") (Join-Path $outDir "UI-Prototypes.pdf")
+        # The clickable prototypes: static HTML, open ui-prototypes\index.html
+        Copy-Item -Recurse (Join-Path $ScriptDir "..\docs\analysis-and-design\ui-prototypes") (Join-Path $outDir "ui-prototypes")
 
-        # Zip
+        # Zip the folder itself, as PA2 asks for a PA2-Group<id> directory inside the archive
         $zipFile = Join-Path $distDir "$pa2GroupId.zip"
         if (Test-Path $zipFile) { Remove-Item -Force $zipFile }
-        Compress-Archive -Path "$outDir\*" -DestinationPath $zipFile
+        Compress-Archive -Path $outDir -DestinationPath $zipFile
 
         Clean-AuxFiles -Dir $ScriptDir
         Write-Host "PA2 submission packaged successfully:" -ForegroundColor Green
@@ -206,7 +210,8 @@ $t = $Target.ToLower()
 $targets = @()
 
 if ($t -eq "all") {
-    $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments") -Filter "*.tex" -Recurse
+    $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments") -Filter "*.tex" -Recurse |
+        Where-Object { $_.Name -notlike "uc-*" -and $_.Name -notlike "_*" }
     $targets += Get-ChildItem -Path (Join-Path $ScriptDir "weekly") -Filter "*.tex" -Recurse
 }
 elseif ($t -eq "weekly") {
@@ -216,7 +221,9 @@ elseif ($t -eq "pa1") {
     $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments\PA1") -Filter "*.tex"
 }
 elseif ($t -eq "pa2") {
-    $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments\PA2") -Filter "*.tex"
+    # Top-level documents only; uc-specs.tex and diagrams\ are \input fragments
+    $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments\PA2") -Filter "*.tex" |
+        Where-Object { $_.Name -notlike "uc-*" -and $_.Name -notlike "_*" }
 }
 elseif ($t -match "^week-?0?(\d+)$") {
     $wNum = [int]$matches[1]

@@ -8,7 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="settings" data-layout="app">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -90,7 +94,12 @@
 
       document.addEventListener('click', (e) => {
         const t = e.target.closest('[data-toast]'); if (t) UI.toast(t.dataset.toast, 'check');
-        const r = e.target.closest('[data-revoke]'); if (r) { r.closest('tr').remove(); UI.toast('Đã thu hồi phiên', 'lock'); }
+        const r = e.target.closest('[data-revoke]');
+        if (r) {
+          const tr = r.closest('tr');
+          UI.confirm({ title: 'Thu hồi phiên này?', body: 'Thiết bị đó bị đăng xuất ngay và phải đăng nhập lại.', ok: 'Thu hồi', icon: 'lock' })
+            .then((ok) => { if (ok) { tr.remove(); UI.toast('Đã thu hồi phiên', 'lock'); } });
+        }
         if (e.target.closest('#del-open')) UI.open('delete');
         const seg = e.target.closest('.seg button:not([data-theme-set])'); if (seg) seg.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b === seg));
       });
@@ -103,5 +112,6 @@
       if (location.hash) { const el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

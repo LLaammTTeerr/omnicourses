@@ -8,7 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="explorer" data-layout="app">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -34,7 +38,7 @@
 
         <section id="v-list" class="stack"></section>
         <section id="v-graph" class="card" hidden>
-          <div class="card-head"><h2>Sơ đồ tiên quyết</h2><span class="meta">Mũi tên đi từ môn tiên quyết sang môn nó mở khóa. Bấm một môn để làm nổi chuỗi của nó.</span></div>
+          <div class="card-head"><h2>Sơ đồ tiên quyết</h2><span class="meta">Mũi tên đi từ môn tiên quyết sang môn nó mở khóa. Bấm một môn để làm nổi chuỗi của nó, bấm lần nữa để xem chi tiết.</span></div>
           <div class="graph-wrap" id="graph"></div>
         </section>
       </div>
@@ -74,15 +78,27 @@
         return (!gsel || x.group === gsel) && (!t || fold(x.code + ' ' + x.name + ' ' + x.en).includes(t));
       };
 
+      // List order: what you are taking, what you can take now, what is still locked, what you passed.
+      const missing = (x) => x.prereq.filter((p) => D.course(p).status !== 'done');
+      const avail = (x) => x.status === 'current' ? 'cur' : x.status === 'done' ? 'done' : missing(x).length ? 'lock' : 'open';
+      const RANK = { cur: 0, open: 1, lock: 2, done: 3 };
+      const AV = { cur: 'Đang học', open: 'Có thể học', lock: 'Chưa mở khóa', done: 'Đã đạt' };
+      const subOf = (x, a) => a === 'done' ? 'Đã đạt · ' + x.grade.toFixed(1)
+        : a === 'lock' ? icon('lock', 'sm') + 'Cần ' + missing(x).join(', ')
+        : a === 'open' ? 'Có thể học' + (plan[x.code] ? ' · ' + D.term(plan[x.code]).short : '')
+        : 'Đang học';
+
       function renderList() {
         const html = D.groups.filter((g) => !gsel || g.id === gsel).map((g) => {
-          const list = all.filter((x) => x.group === g.id && match(x));
+          const list = all.filter((x) => x.group === g.id && match(x))
+            .map((x) => [x, avail(x)]).sort((a, b) => RANK[a[1]] - RANK[b[1]]);
           if (!list.length) return '';
-          return '<div class="ex-group g-' + g.id + '"><div class="ex-group-head">' + UI.glyph(g.id) + '<div><h2>' + g.name + '</h2><p class="small t3">' + g.required + ' TC · ' + g.rule + '</p></div></div>' +
-            '<div class="ex-grid">' + list.map((x) => {
-              const st = stOf(x);
-              return UI.tile(x, { status: st, cls: st, attrs: 'role="button" tabindex="0" aria-label="' + x.code + ' ' + x.name + ', ' + LABEL[st] + '"', sub: LABEL[st] + (x.grade != null ? ' · ' + x.grade.toFixed(1) : '') + (x.prereq.length ? ' · cần ' + x.prereq.length + ' môn' : '') });
-            }).join('') + '</div></div>';
+          const count = (k) => list.filter((y) => y[1] === k).length;
+          return '<div class="ex-group g-' + g.id + '"><div class="ex-group-head">' + UI.glyph(g.id) + '<div><h2>' + g.name + '</h2><p class="small t3">' + g.required + ' TC · ' + g.rule + '</p></div>' +
+            '<p class="ex-count">' + ['cur', 'open', 'lock', 'done'].filter(count).map((k) => '<span class="' + k + '">' + count(k) + ' ' + AV[k].toLowerCase() + '</span>').join('') + '</p></div>' +
+            '<div class="ex-grid">' + list.map(([x, a]) =>
+              UI.tile(x, { status: a === 'cur' ? 'current' : 'done', cls: 'av-' + a, attrs: 'role="button" tabindex="0" aria-label="' + x.code + ' ' + x.name + ', ' + AV[a] + '"', sub: subOf(x, a) })
+            ).join('') + '</div></div>';
         }).join('');
         $('v-list').innerHTML = html || '<div class="card empty"><b>Không có học phần nào khớp</b><p class="small">Thử mã môn như CS414 hoặc bỏ lọc nhóm.</p></div>';
       }
@@ -96,7 +112,7 @@
         const cols = {};
         const order = D.groups.map((g) => g.id);
         nodes.slice().sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || a.code.localeCompare(b.code)).forEach((x) => { (cols[depth[x.code]] = cols[depth[x.code]] || []).push(x); });
-        const W = 158, H = 42, GX = 70, GY = 16, pos = {};
+        const W = 140, H = 52, GX = 56, GY = 14, pos = {};
         Object.keys(cols).forEach((d) => cols[d].forEach((x, i) => { pos[x.code] = [10 + d * (W + GX), 10 + i * (H + GY)]; }));
         const maxRows = Math.max(1, ...Object.values(cols).map((c) => c.length));
         const width = 20 + (Object.keys(cols).length) * (W + GX) - GX, height = 20 + maxRows * (H + GY);
@@ -106,18 +122,18 @@
           const a = [x1 + W, y1 + H / 2], b = [x2, y2 + H / 2], m = (a[0] + b[0]) / 2;
           edges += '<path class="gedge" data-from="' + p + '" data-to="' + x.code + '" d="M' + a + ' C' + m + ',' + a[1] + ' ' + m + ',' + b[1] + ' ' + b + '" marker-end="url(#arr)"/>';
         }));
+        // Each node: code on top, name below, a light tint of the group colour. In progress gets an outline,
+        // anything not taken yet a dashed edge. HTML inside the SVG so long names end in an ellipsis.
         nodes.forEach((x) => {
           const [px, py] = pos[x.code], st = stOf(x);
-          const fill = st === 'done' || st === 'current' ? 'var(--c)' : 'var(--c-soft)';
-          const ink = st === 'done' || st === 'current' ? 'var(--on)' : 'var(--ink)';
-          boxes += '<g class="gnode g-' + x.group + '" data-code="' + x.code + '" tabindex="0" role="button" aria-label="' + x.code + ' ' + x.name + '">' +
-            '<rect x="' + px + '" y="' + py + '" width="' + W + '" height="' + H + '" rx="11" style="fill:' + fill + (st === 'pool' ? ';stroke-dasharray:5 4' : '') + '"/>' +
-            '<text x="' + (px + 12) + '" y="' + (py + 26) + '" style="fill:' + ink + '">' + x.code + '</text>' +
-            '<text x="' + (px + W - 12) + '" y="' + (py + 26) + '" text-anchor="end" style="fill:' + ink + ';font-family:var(--font);font-size:11px">' + (st === 'done' ? '✓ ' + x.grade.toFixed(1) : LABEL[st]) + '</text></g>';
+          boxes += '<g class="gnode g-' + x.group + '" data-code="' + x.code + '" tabindex="0" role="button" aria-label="' + x.code + ' ' + x.name + ', ' + LABEL[st] + '">' +
+            '<foreignObject x="' + px + '" y="' + py + '" width="' + W + '" height="' + H + '"><div class="gn ' + st + '" title="' + x.name + '">' +
+            '<span class="t"><b>' + x.code + '</b><em>' + (st === 'done' ? x.grade.toFixed(1) : st === 'current' ? 'Đang học' : '') + '</em></span>' +
+            '<span class="n">' + x.name + '</span></div></foreignObject></g>';
         });
         $('graph').innerHTML = nodes.length ? '<svg width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Sơ đồ tiên quyết">' +
           '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" style="fill:var(--ink-3)"/></marker></defs>' + edges + boxes + '</svg>' +
-          '<div class="legend" style="margin-top:12px"><span><i></i>Đã đạt hoặc đang học</span><span><i class="planned"></i>Trong lộ trình hoặc chưa xếp (viền đứt)</span></div>'
+          '<div class="legend graph-key"><span><i class="done"></i>Đã đạt</span><span><i class="current"></i>Đang học</span><span><i class="todo"></i>Trong lộ trình hoặc chưa xếp</span><span class="t3">Kéo hoặc cuộn để xem hết sơ đồ</span></div>'
           : '<p class="empty">Không có học phần nào khớp.</p>';
       }
 
@@ -129,6 +145,30 @@
         goUp(code); goDown(code);
         return new Set([...up, ...down]);
       }
+      let pan = null, panned = false;
+      const wrap = $('graph');
+      wrap.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        pan = { x: e.clientX, y: e.clientY, l: wrap.scrollLeft, t: wrap.scrollTop, id: e.pointerId };
+        panned = false;
+      });
+      wrap.addEventListener('pointermove', (e) => {
+        if (!pan) return;
+        const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+        if (!panned && Math.hypot(dx, dy) < 5) return;
+        if (!panned) { panned = true; try { wrap.setPointerCapture(pan.id); } catch (_) { /* pointer already gone */ } wrap.classList.add('panning'); }
+        wrap.scrollLeft = pan.l - dx; wrap.scrollTop = pan.t - dy;
+      });
+      const stop = () => { pan = null; wrap.classList.remove('panning'); };
+      wrap.addEventListener('pointerup', stop);
+      wrap.addEventListener('pointercancel', stop);
+      wrap.addEventListener('click', (e) => { if (panned) { e.stopPropagation(); e.preventDefault(); panned = false; } }, true);
+      wrap.addEventListener('wheel', (e) => {
+        if (wrap.scrollWidth <= wrap.clientWidth || e.ctrlKey) return;
+        e.preventDefault();
+        wrap.scrollLeft += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      }, { passive: false });
+
       let hot = null;
       $('graph').addEventListener('click', (e) => {
         const n = e.target.closest('.gnode');
@@ -181,5 +221,6 @@
       renderList(); renderGraph(); view();
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>
