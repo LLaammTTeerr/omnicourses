@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trợ lý AI · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: trợ lý trả lời từ CTĐT và quy chế, có trích điều khoản, việc về hồ sơ do rule engine kiểm tra.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="advisor" data-layout="app">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main" style="padding-bottom:28px">
+      <div class="page" style="max-width:1320px">
+        <h1 class="sr">Trợ lý AI</h1>
+        <div class="chat-app">
+          <aside class="card threads" aria-label="Cuộc trò chuyện">
+            <div class="card-head" style="padding-bottom:12px"><h2 style="font-size:18px">Trò chuyện</h2><button class="btn sm icon-only" type="button" id="new" aria-label="Cuộc trò chuyện mới"><i data-icon="plus"></i></button></div>
+            <div class="list" id="threads"></div>
+          </aside>
+          <section class="card chat" aria-label="Trợ lý AI">
+            <header class="chat-head">
+              <div class="mode"><span class="bot"><span>AI</span></span><div><b style="font-family:var(--display);font-size:17px">Trợ lý học vụ</b><div class="xs t3" id="mode"></div></div></div>
+              <div class="head-actions"><span class="chip" id="quota"></span><a class="btn sm ghost" href="settings.html#privacy"><i data-icon="shield"></i>Quyền riêng tư</a></div>
+            </header>
+            <div class="msgs" id="msgs" aria-live="polite"></div>
+            <div class="composer">
+              <div id="banner"></div>
+              <form id="form">
+                <label class="sr" for="q">Câu hỏi</label>
+                <textarea class="textarea" id="q" rows="1" placeholder="Hỏi về quy chế, CTĐT hoặc lộ trình của bạn…"></textarea>
+                <button class="btn primary icon-only" type="submit" id="send" aria-label="Gửi"><i data-icon="send"></i></button>
+              </form>
+              <p class="xs t3">Câu trả lời có thể sai. Điều khoản được trích mới là căn cứ. Đừng nhập tên, MSSV hay mật khẩu.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal" id="consent" role="dialog" aria-labelledby="consent-title">
+    <div class="drawer-body" style="gap:16px">
+      <span class="bot" style="width:56px;height:56px;border-radius:18px"><span style="width:28px;height:28px">AI</span></span>
+      <h2 id="consent-title" style="font-size:26px">Trước khi hỏi: trợ lý được xem gì?</h2>
+      <div class="grid-2 even" style="gap:12px">
+        <div class="box"><b class="small">Được gửi cho nhà cung cấp AI</b><ul class="small t2" style="margin:6px 0 0;padding-left:18px"><li>Chương trình, khóa</li><li>Mã môn, điểm, học kỳ</li></ul></div>
+        <div class="box"><b class="small">Không bao giờ gửi</b><ul class="small t2" style="margin:6px 0 0;padding-left:18px"><li>Tên, email</li><li>MSSV, mật khẩu</li></ul></div>
+      </div>
+      <p class="small t2">Nhà cung cấp không dùng dữ liệu để huấn luyện. Nội dung cuộc trò chuyện không được ghi log. Bạn rút lại đồng ý trong Cài đặt bất cứ lúc nào.</p>
+      <div class="head-actions"><button class="btn primary" type="button" id="agree">Tôi đồng ý</button><button class="btn" type="button" id="later">Để sau, chỉ hỏi về quy chế</button></div>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const plan = UI.plan(), res = D.check(plan);
+      const f2 = (n) => n.toFixed(2);
+      const h = location.hash.slice(1);
+      let consent = h === 'general' ? false : h === 'consent' ? null : UI.store.get('consent', null);
+      if ((h === 'unavailable' || h === 'limit') && consent === null) consent = true;
+      let used = h === 'limit' ? 20 : 3;
+      const LIMIT = 20;
+      const down = h === 'unavailable';
+      let running = null;
+
+      const prereqV = res.violations.find((v) => v.kind === 'prereq' && v.code === 'CS416');
+      const nr = D.nextRank(D.gpa);
+      // Scripted answers. In the product the model writes the text; every rule result comes from the rule engine.
+      const SCRIPTS = [
+        { re: /tín chỉ|tin chi|bao nhiêu tc|tối đa|credit/i, q: 'Học kỳ sau mình đăng ký tối đa bao nhiêu tín chỉ?', record: true,
+          steps: ['Tìm trong quy chế: khối lượng đăng ký mỗi học kỳ', 'Đọc hồ sơ: chương trình APCS, khóa K24', 'Rule engine: giới hạn tín chỉ HK2 2026–2027'],
+          engine: ['credit_cap · APCS K24 · HK2 2026–2027', 'Tối thiểu <b>' + D.CAP.min + ' TC</b>, tối đa <b>' + D.CAP.max + ' TC</b>', 'Lộ trình đang xếp <b>' + D.load(plan, '2026-2') + ' TC</b> cho kỳ này · hợp lệ'],
+          text: ['Bạn học chương trình Tiên tiến nên mỗi học kỳ chính được đăng ký từ ' + D.CAP.min + ' đến ' + D.CAP.max + ' tín chỉ. Lộ trình của bạn đang xếp ' + D.load(plan, '2026-2') + ' TC cho HK2 2026–2027, nằm trong giới hạn.',
+            'Chương trình Tiên tiến có 3 học kỳ chính mỗi năm, nên HK3 cũng dùng giới hạn này, không phải giới hạn học kỳ hè.'],
+          general: ['Theo quy chế, mỗi học kỳ chính chương trình Tiên tiến đăng ký từ 10 đến 22 TC, chương trình Đại trà từ 14 đến 25 TC. Học kỳ hè tối đa 12 TC.', 'Mình chưa xem chương trình của bạn nên không khẳng định con số nào áp dụng cho bạn.'],
+          cites: ['Điều 7.2', 'Điều 6.4b'] },
+        { re: /cs416|học sâu|hoc sau|deep/i, q: 'Mình học Học sâu (CS416) cùng kỳ với Học máy được không?', record: true,
+          steps: ['Tra CTĐT: tiên quyết của CS416', 'Đọc lộ trình đang mở', 'Rule engine: kiểm tra tiên quyết CS416'],
+          engine: ['prerequisite · CS416 Học sâu', 'Tiên quyết: <b>CS414 Học máy</b>', prereqV ? 'Lộ trình xếp cả hai ở <b>' + D.term(prereqV.term).label + '</b> · <span class="chip bad">vi phạm</span>' : 'Lộ trình xếp CS416 sau CS414 · <span class="chip ok">hợp lệ</span>'],
+          text: prereqV ? ['Không được. CS414 Học máy là học phần tiên quyết của CS416 Học sâu, nên bạn phải học xong CS414 ở một học kỳ trước đó.', 'Rule engine gợi ý chuyển CS416 sang ' + (prereqV.fix ? D.term(prereqV.fix.to).label : 'học kỳ sau') + ', kỳ đó còn đủ chỗ trong giới hạn tín chỉ.']
+            : ['Lộ trình hiện tại của bạn đã xếp CS416 sau CS414, đúng thứ tự tiên quyết.'],
+          link: ['planner.html', prereqV ? 'Mở lộ trình để sửa' : 'Mở lộ trình'], cites: ['CTĐT APCS K24 v3'] },
+        { re: /giỏi|gioi|xếp loại|xuat sac|xuất sắc|loại/i, q: 'Muốn tốt nghiệp loại Giỏi thì các môn còn lại cần bao nhiêu điểm?', record: true,
+          steps: ['Tìm trong quy chế: xếp loại học lực', 'Đọc hồ sơ: ' + D.done + ' TC đã tích lũy', 'Rule engine: ĐTB cần cho phần còn lại'],
+          engine: ['gpa_needed · mục tiêu ' + (nr ? nr[1] + ' (từ ' + nr[0] + '.0)' : ''), 'ĐTB tích lũy hiện tại <b>' + f2(D.gpa) + '</b> trên ' + D.done + ' TC', 'Cần ĐTB từ <b>' + (nr ? f2(D.need(nr[0])) : '—') + '</b> cho ' + (D.totalRequired - D.done) + ' TC còn lại'],
+          text: ['ĐTB tích lũy của bạn là ' + f2(D.gpa) + ', xếp loại ' + D.rank(D.gpa) + '. Loại Giỏi bắt đầu từ ĐTB 8.0 theo thang 10.',
+            'Để toàn khóa đạt 8.0, các học phần còn lại cần trung bình từ ' + (nr ? f2(D.need(nr[0])) : '—') + ' trở lên, tính theo tín chỉ. Điểm hệ 4 chỉ để tham khảo, không dùng để xếp loại.'],
+          general: ['Theo quy chế, xếp loại học lực dựa trên ĐTB thang 10: từ 9 Xuất sắc, từ 8 Giỏi, từ 7 Khá, từ 5 Trung bình.', 'Muốn biết bạn cần bao nhiêu điểm, mình cần xem điểm của bạn.'],
+          cites: ['Điều 15.2b', 'Điều 15.1', 'Điều 11.2'] },
+        { re: /học phí|hoc phi|tuition|đóng tiền/i, q: 'Đóng học phí ở đâu?', record: false,
+          steps: ['Tìm hướng dẫn: đóng học phí'],
+          engine: null,
+          text: ['Mình không tự viết các bước vì cổng của trường có thể đổi. Hướng dẫn "Đóng học phí" có link thẳng tới cổng, các bước và những lỗi hay gặp.', 'Hướng dẫn này kiểm tra lần cuối ngày 02/04/2026, hơn 6 tháng trước, nên có thể đã cũ. Nếu thấy khác, bấm "Báo lỗi" trong hướng dẫn.'],
+          link: ['guides.html#pay-tuition', 'Mở hướng dẫn G06'], cites: [] },
+        { re: /đăng ký giúp|đăng ký hộ|dang ky giup|register for me/i, q: 'Đăng ký môn giúp mình được không?', record: false,
+          steps: ['Tìm hướng dẫn: đăng ký học phần'], engine: null,
+          text: ['Mình không đăng ký thay bạn được, và OmniCourse không bao giờ đăng nhập cổng trường.', 'Bạn có thể mở lộ trình để lấy danh sách mã môn của HK2, rồi làm theo hướng dẫn đăng ký học phần trên cổng.'],
+          link: ['guides.html#register-courses', 'Hướng dẫn đăng ký học phần'], cites: [] },
+      ];
+      const EXAMPLES = SCRIPTS.slice(0, 4);
+
+      function mode() {
+        $('mode').innerHTML = consent ? '<span class="st done">Dùng hồ sơ ẩn danh của bạn</span>' : '<span class="st warn">Chế độ chung · chỉ quy chế</span>';
+        $('quota').textContent = 'Còn ' + (LIMIT - used) + '/' + LIMIT + ' lượt hôm nay';
+        $('quota').className = 'chip ' + (used >= LIMIT ? 'bad' : '');
+        const lim = used >= LIMIT;
+        $('q').disabled = lim; $('send').disabled = lim;
+        $('banner').innerHTML = lim ? '<div class="callout warn small" style="margin-bottom:6px"><i data-icon="clock"></i><div><b>Đã dùng hết ' + LIMIT + ' lượt AI hôm nay</b><p>Trợ lý và hộp mục tiêu dùng chung số lượt. Lượt cũ hết hạn dần trong 24 giờ. Lộ trình và các trang khác vẫn dùng bình thường.</p></div></div>'
+          : !consent ? '<div class="callout yellow small" style="margin-bottom:6px"><i data-icon="shield"></i><div><b>Bạn chưa đồng ý chia sẻ hồ sơ</b><p>Trợ lý chỉ trả lời về quy chế, không xem điểm hay lộ trình. <button class="link" type="button" style="border:0;background:none;padding:0;cursor:pointer" data-consent>Đồng ý chia sẻ</button></p></div></div>' : '';
+        $('banner').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+      }
+
+      $('threads').innerHTML = [['Giới hạn tín chỉ HK2', 'Hôm nay'], ['Thực tập vào HK3 được không', '28/10'], ['Môn tương đương CTĐT cũ', '15/10'], ['Học cải thiện có tính học bổng', '02/10']]
+        .map(([t, d], i) => '<button class="thread" type="button"' + (i === 0 ? ' aria-current="true"' : '') + '><b>' + t + '</b><small>' + d + '</small></button>').join('');
+
+      function starter() {
+        $('msgs').innerHTML = '<div class="starter"><span class="bot"><span>AI</span></span><h2 style="font-size:28px">Hỏi gì về việc học cũng được.</h2>' +
+          '<p class="t2">Trả lời từ CTĐT và quy chế, có trích điều khoản. Việc liên quan hồ sơ của bạn do rule engine kiểm tra.</p>' +
+          '<div class="examples">' + EXAMPLES.map((s, i) => '<button type="button" data-ex="' + i + '">' + s.q + '<small>' + (s.cites.length ? s.cites.join(' · ') : 'Hướng dẫn thủ tục') + '</small></button>').join('') + '</div></div>';
+      }
+
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      async function ask(text) {
+        if (running) return;
+        const st = $('msgs').querySelector('.starter'); if (st) st.remove();
+        $('msgs').insertAdjacentHTML('beforeend', '<div class="msg user"><div class="bubble">' + text.replace(/</g, '&lt;') + '</div></div>');
+        if (down) {
+          $('msgs').insertAdjacentHTML('beforeend', '<div class="msg bot-msg"><span class="bot"><span>AI</span></span><div class="bubble"><div class="callout bad"><i data-icon="alert"></i><div><b>Trợ lý tạm thời không dùng được</b><p>Dịch vụ AI không phản hồi (ai_unavailable). Câu hỏi vẫn ở trong ô để bạn gửi lại sau. Trong lúc chờ, xem <a class="link" href="guides.html">hướng dẫn thủ tục</a> hoặc <a class="link" href="explorer.html">chương trình đào tạo</a>.</p></div></div></div></div>');
+          $('msgs').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+          $('q').value = text; scroll(); return;
+        }
+        $('q').value = '';
+        used++; mode();
+        const s = SCRIPTS.find((x) => x.re.test(text));
+        const id = 'm' + Date.now();
+        $('msgs').insertAdjacentHTML('beforeend', '<div class="msg bot-msg"><span class="bot"><span>AI</span></span><div class="bubble" id="' + id + '"><div class="tools"></div></div></div>');
+        const b = $(id), tools = b.querySelector('.tools');
+        running = { stop: false };
+        setSend(true);
+        const steps = !s ? ['Tìm trong quy chế', 'Tìm trong CTĐT', 'Tìm hướng dẫn'] : !consent && s.record ? s.steps.slice(0, 1) : s.steps;
+        for (const label of steps) {
+          tools.insertAdjacentHTML('beforeend', '<div class="toolstep run">' + icon('refresh') + '<span>' + label + '…</span></div>');
+          scroll(); await wait(520);
+          if (running.stop) return finish(b, 'Đã dừng');
+          const last = tools.lastElementChild; last.className = 'toolstep'; last.innerHTML = icon('check') + '<span>' + label + '</span>';
+        }
+        let paras, cites = [], link = null;
+        if (!s) {
+          paras = ['Mình không tìm thấy văn bản nào trả lời câu này, nên không đoán. Bạn có thể hỏi Phòng Đào tạo, hoặc xem các hướng dẫn thủ tục.'];
+          link = ['guides.html', 'Xem hướng dẫn thủ tục'];
+        } else if (!consent && s.record) {
+          paras = s.general || ['Câu này cần xem hồ sơ của bạn. Bạn chưa đồng ý chia sẻ nên mình chỉ trả lời chung.'];
+          cites = s.cites.filter((c) => c.startsWith('Điều'));
+          b.insertAdjacentHTML('beforeend', '<div class="callout yellow small"><i data-icon="shield"></i><div><b>Phần này cần hồ sơ của bạn</b><p><button class="btn sm" type="button" data-consent>Đồng ý chia sẻ hồ sơ ẩn danh</button></p></div></div>');
+        } else {
+          paras = s.text; cites = s.cites; link = s.link;
+          if (s.engine) b.insertAdjacentHTML('beforeend', '<div class="engine"><div class="engine-head"><span>Kết quả rule engine</span><span class="mono">' + s.engine[0] + '</span></div><div class="engine-body">' + s.engine.slice(1).map((r) => '<div>' + r + '</div>').join('') + '</div></div>');
+        }
+        b.querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+        for (const p of paras) {
+          const el = document.createElement('p'); b.appendChild(el);
+          const words = I18N.tr(p).split(' ');
+          for (let i = 0; i < words.length; i++) {
+            if (running.stop) { el.textContent = words.slice(0, i).join(' '); return finish(b, 'Đã dừng'); }
+            el.innerHTML = words.slice(0, i + 1).join(' ') + '<span class="caret"></span>';
+            if (i % 3 === 0) scroll();
+            await wait(28);
+          }
+          el.textContent = p;
+        }
+        if (cites.length || link) {
+          b.insertAdjacentHTML('beforeend', '<div class="cites">' + (cites.length ? '<span>Nguồn:</span>' + cites.map((c) => c.startsWith('Điều') ? UI.ref(c) : '<span class="chip line">' + c + '</span>').join('') : '') +
+            (link ? '<a class="btn sm" href="' + link[0] + '">' + link[1] + ' ' + icon('chev', 'sm') + '</a>' : '') + '</div>');
+        }
+        finish(b);
+      }
+      function finish(b, mark) {
+        if (mark) b.insertAdjacentHTML('beforeend', '<span class="marked">' + mark + ' · vẫn tính 1 lượt</span>');
+        running = null; setSend(false); scroll();
+      }
+      function setSend(busy) {
+        $('send').innerHTML = icon(busy ? 'stop' : 'send');
+        $('send').setAttribute('aria-label', busy ? 'Dừng' : 'Gửi');
+        $('send').type = busy ? 'button' : 'submit';
+      }
+      const scroll = () => { $('msgs').scrollTop = $('msgs').scrollHeight; };
+
+      $('send').addEventListener('click', () => { if (running) running.stop = true; });
+      $('form').addEventListener('submit', (e) => { e.preventDefault(); const t = $('q').value.trim(); if (t) ask(t); });
+      $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('form').requestSubmit(); } });
+      $('q').addEventListener('input', () => { const q = $('q'); q.style.height = 'auto'; q.style.height = Math.min(160, q.scrollHeight) + 'px'; });
+      document.addEventListener('click', (e) => {
+        const ex = e.target.closest('[data-ex]'); if (ex) ask(EXAMPLES[+ex.dataset.ex].q);
+        if (e.target.closest('[data-consent]')) UI.open('consent');
+      });
+      $('new').addEventListener('click', () => { starter(); });
+      $('agree').addEventListener('click', () => { consent = true; UI.store.set('consent', new Date().toISOString()); UI.close(); mode(); UI.toast('Đã ghi nhận đồng ý lúc ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }), 'shield'); });
+      $('later').addEventListener('click', () => { consent = false; UI.close(); mode(); });
+      starter(); mode();
+      if (consent === null) UI.open('consent');
+    })();
+  </script>
+</body>
+</html>

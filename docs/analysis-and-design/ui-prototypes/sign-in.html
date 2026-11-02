@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: đăng nhập bằng email, Google hoặc email sinh viên.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="sign-in" data-layout="bare">
+  <div class="auth">
+    <main class="auth-form" id="main">
+      <div class="inner">
+        <span data-brand="index.html"></span>
+        <div>
+          <h1>Chào mừng trở lại.</h1>
+          <p class="t2" style="margin-top:8px">Lộ trình của bạn vẫn ở nguyên chỗ cũ.</p>
+        </div>
+        <div class="oauth">
+          <button class="btn block" type="button" data-go><span id="g-logo"></span>Tiếp tục với Google</button>
+          <button class="btn block" type="button" data-go><i data-icon="cap"></i>Email sinh viên HCMUS</button>
+        </div>
+        <div class="or">hoặc bằng email</div>
+        <form id="form" class="stack" style="gap:14px" novalidate>
+          <label class="field"><span>Email</span><input class="input" id="email" type="email" autocomplete="email" placeholder="ban@example.com" required></label>
+          <label class="field"><span style="display:flex;justify-content:space-between">Mật khẩu <a class="link small" href="#" id="forgot">Quên mật khẩu?</a></span>
+            <input class="input" id="pw" type="password" autocomplete="current-password" required></label>
+          <p class="callout bad small" id="err" hidden><i data-icon="alert"></i><span>Email hoặc mật khẩu không đúng. Sau 5 lần sai, tài khoản tạm khóa 15 phút.</span></p>
+          <button class="btn primary block" type="submit" style="min-height:50px">Đăng nhập <i data-icon="right"></i></button>
+        </form>
+        <p class="small t2">Chưa có tài khoản? <a class="link" href="sign-up.html">Tạo tài khoản</a></p>
+        <p class="xs t3">OmniCourse không bao giờ hỏi mật khẩu cổng thông tin của trường.</p>
+      </div>
+    </main>
+    <aside class="auth-art" aria-hidden="true" id="art">
+      <div class="quote">
+        <span class="chip" style="background:#fff;color:#14161e;justify-self:start">Mẹo</span>
+        <b>Kéo một môn vào học kỳ, rule engine báo ngay nếu thiếu tiên quyết.</b>
+        <p style="opacity:.85">Không còn phát hiện thiếu môn bắt buộc ở năm cuối.</p>
+      </div>
+    </aside>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      $('g-logo').innerHTML = UI.google;
+      const art = $('art');
+      [['CS414', '8%', '10%', '-6deg'], ['MTH261', '62%', '8%', '5deg'], ['PHY101', '70%', '72%', '-4deg'], ['ENG202', '6%', '74%', '7deg']].forEach(([c, l, t, r], i) => {
+        art.insertAdjacentHTML('beforeend', '<div class="floaty" style="left:' + l + ';top:' + t + '">' + UI.tile(D.course(c), { status: 'done' }) + '</div>');
+      });
+      document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { location.href = 'dashboard.html'; }));
+      $('forgot').addEventListener('click', (e) => { e.preventDefault(); UI.toast('Đã gửi link đặt lại mật khẩu nếu email có tài khoản', 'mail'); });
+      $('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const ok = /\S+@\S+\.\S+/.test($('email').value) && $('pw').value.length >= 8;
+        $('err').hidden = ok;
+        $('email').classList.toggle('err', !ok); $('pw').classList.toggle('err', !ok);
+        if (ok) location.href = 'dashboard.html';
+      });
+    })();
+  </script>
+</body>
+</html>

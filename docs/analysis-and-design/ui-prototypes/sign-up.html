@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tạo tài khoản · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: tạo tài khoản, đồng ý xử lý dữ liệu cá nhân.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="sign-up" data-layout="bare">
+  <div class="auth">
+    <main class="auth-form" id="main">
+      <div class="inner">
+        <span data-brand="index.html"></span>
+        <div>
+          <h1>Tạo tài khoản.</h1>
+          <p class="t2" style="margin-top:8px">Miễn phí. Mất khoảng một phút, rồi trả lời vài câu hỏi.</p>
+        </div>
+        <div class="oauth">
+          <button class="btn block" type="button" data-go><span id="g-logo"></span>Đăng ký với Google</button>
+        </div>
+        <div class="or">hoặc bằng email</div>
+        <form id="form" class="stack" style="gap:14px" novalidate>
+          <label class="field"><span>Tên hiển thị</span><input class="input" id="name" autocomplete="nickname" placeholder="Tên bạn muốn thấy trên màn hình"><small class="hint">Không cần tên thật. Không bao giờ gửi cho AI.</small></label>
+          <label class="field"><span>Email</span><input class="input" id="email" type="email" autocomplete="email" placeholder="ban@example.com"></label>
+          <label class="field"><span>Mật khẩu</span><input class="input" id="pw" type="password" autocomplete="new-password" placeholder="Ít nhất 8 ký tự">
+            <span class="bar" style="height:8px"><i id="pw-bar" style="width:0;background:var(--bad)"></i></span><small class="hint" id="pw-hint">Dùng một mật khẩu riêng, khác mật khẩu cổng trường.</small></label>
+          <div class="box stack" style="gap:12px">
+            <label class="check"><input type="checkbox" id="c1"><span><b>Tôi đồng ý cho OmniCourse xử lý dữ liệu học tập của tôi</b><br><span class="small t2">Bảng điểm, lộ trình, mục tiêu. Lưu đến khi bạn xóa tài khoản. Xuất hoặc xóa bất cứ lúc nào. Căn cứ Luật 91/2025/QH15.</span></span></label>
+            <label class="check"><input type="checkbox" id="c2" checked><span class="small">Nhắc tôi khi sắp tới kỳ đăng ký học phần (không bắt buộc)</span></label>
+          </div>
+          <p class="callout bad small" id="err" hidden><i data-icon="alert"></i><span id="err-text"></span></p>
+          <button class="btn primary block" type="submit" style="min-height:50px">Tạo tài khoản <i data-icon="right"></i></button>
+        </form>
+        <p class="small t2">Đã có tài khoản? <a class="link" href="sign-in.html">Đăng nhập</a></p>
+      </div>
+    </main>
+    <aside class="auth-art" aria-hidden="true" id="art" style="background:var(--phys)">
+      <div class="quote" style="color:#06221f">
+        <span class="chip" style="background:#fff;color:#14161e;justify-self:start">167 TC · 8 nhóm</span>
+        <b>Mỗi nhóm tín chỉ một màu. Nhìn là biết còn thiếu nhóm nào.</b>
+        <p>Toán cam, Vật lý xanh ngọc, Tin học cốt lõi xanh dương, Tự chọn tím.</p>
+      </div>
+    </aside>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      $('g-logo').innerHTML = UI.google;
+      const art = $('art');
+      [['CS161', '6%', '8%', '-5deg'], ['MTH207', '60%', '6%', '6deg'], ['BAA00101', '64%', '74%', '-4deg'], ['CS311', '4%', '76%', '5deg']].forEach(([c, l, t, r], i) => {
+        art.insertAdjacentHTML('beforeend', '<div class="floaty" style="left:' + l + ';top:' + t + '">' + UI.tile(D.course(c), { status: 'done' }) + '</div>');
+      });
+      document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { location.href = 'onboarding.html'; }));
+      $('pw').addEventListener('input', () => {
+        const v = $('pw').value, s = (v.length >= 8) + (v.length >= 12) + /\d/.test(v) + /[^A-Za-z0-9]/.test(v);
+        const bar = $('pw-bar');
+        bar.style.width = (s / 4 * 100) + '%';
+        bar.style.background = s < 2 ? 'var(--bad)' : s < 3 ? 'var(--warn)' : 'var(--ok)';
+        $('pw-hint').textContent = v.length < 8 ? 'Còn thiếu ' + (8 - v.length) + ' ký tự.' : ['Yếu', 'Yếu', 'Tạm được', 'Mạnh', 'Rất mạnh'][s];
+      });
+      $('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const errs = [];
+        if (!/\S+@\S+\.\S+/.test($('email').value)) errs.push('Email chưa đúng định dạng.');
+        if ($('pw').value.length < 8) errs.push('Mật khẩu cần ít nhất 8 ký tự.');
+        if (!$('c1').checked) errs.push('Cần đồng ý xử lý dữ liệu để tính tiến độ và lộ trình.');
+        $('err').hidden = !errs.length;
+        $('err-text').textContent = errs.join(' ');
+        if (!errs.length) location.href = 'onboarding.html';
+      });
+    })();
+  </script>
+</body>
+</html>

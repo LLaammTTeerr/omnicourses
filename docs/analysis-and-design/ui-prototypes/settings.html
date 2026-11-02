@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cài đặt · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: hồ sơ, mục tiêu, quyền riêng tư và AI, thông báo, bảo mật, giao diện, xuất và xóa dữ liệu.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="settings" data-layout="app">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="page" style="max-width:1080px">
+        <header class="page-head"><div><h1>Cài đặt</h1><p id="sub"></p></div></header>
+        <div class="settings">
+          <nav class="card snav" aria-label="Mục cài đặt">
+            <a href="#profile">Hồ sơ</a><a href="#goals">Chương trình và mục tiêu</a><a href="#privacy">Quyền riêng tư và AI</a>
+            <a href="#notify">Thông báo</a><a href="#security">Bảo mật</a><a href="#look">Giao diện</a><a href="#data">Dữ liệu của bạn</a>
+          </nav>
+          <div class="stack" id="sections"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal" id="delete" role="dialog" aria-labelledby="del-title">
+    <div class="drawer-body" style="gap:14px">
+      <span class="glyph xl" style="background:var(--bad);color:#fff">!</span>
+      <h2 id="del-title" style="font-size:26px">Xóa tài khoản?</h2>
+      <p class="t2">Mọi phiên đăng nhập bị thu hồi ngay và mọi link chia sẻ ngừng hoạt động. Dữ liệu bị xóa vĩnh viễn sau <b>30 ngày</b>. Đăng nhập lại trước hạn đó sẽ hủy việc xóa.</p>
+      <label class="field"><span>Gõ XÓA để xác nhận</span><input class="input" id="del-confirm" autocomplete="off"></label>
+      <div class="head-actions"><button class="btn danger" type="button" id="del-go" disabled>Xóa tài khoản</button><button class="btn" type="button" data-close>Giữ lại</button></div>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const S = D.student;
+      const ob = Object.assign({ grad: '2027-2', max: 18, intern: '' }, UI.store.get('onboard', {}));
+      const consent = UI.store.get('consent', null);
+      const theme = document.documentElement.dataset.theme;
+      $('sub').textContent = S.email + ' · ' + S.program + ' ' + S.cohort;
+      const sw = (id, on, label) => '<label class="switch"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + ' aria-label="' + label + '"><span></span></label>';
+      const row = (b, p, ctl) => '<div class="srow"><div class="txt"><b>' + b + '</b>' + (p ? '<p>' + p + '</p>' : '') + '</div>' + ctl + '</div>';
+      const card = (id, title, body, cls) => '<section class="card' + (cls ? ' ' + cls : '') + '" id="' + id + '" style="scroll-margin-top:20px"><div class="card-head" style="padding-bottom:6px"><h2>' + title + '</h2></div>' + body + '</section>';
+      const opts = (list, val) => list.map(([v, l]) => '<option value="' + v + '"' + (v === val ? ' selected' : '') + '>' + l + '</option>').join('');
+
+      $('sections').innerHTML =
+        card('profile', 'Hồ sơ',
+          row('Tên hiển thị', 'Không cần tên thật. Không bao giờ gửi cho AI.', '<input class="input" style="max-width:260px" value="' + S.name + '" aria-label="Tên hiển thị">') +
+          row('Email', S.email, '<button class="btn sm" type="button" data-toast="Đã gửi email xác nhận địa chỉ mới">Đổi email</button>') +
+          row('Ngôn ngữ', 'Tiếng Việt hoặc English.', '<div class="seg"><button type="button" data-lang-set="vi" aria-pressed="' + (I18N.lang === 'vi') + '">Tiếng Việt</button><button type="button" data-lang-set="en" aria-pressed="' + (I18N.lang === 'en') + '">English</button></div>')) +
+        card('goals', 'Chương trình và mục tiêu',
+          row(S.programName, S.faculty + ' · ' + S.cohort + ' · ' + S.curriculum, '<a class="btn sm" href="onboarding.html">Đổi chương trình</a>') +
+          row('Học kỳ muốn tốt nghiệp', 'Mục tiêu của bạn. Học kỳ dự kiến do rule engine tính.', '<select class="select" style="max-width:220px">' + opts(D.future.map((t) => [t.id, t.label]), ob.grad) + '</select>') +
+          row('TC tối đa mỗi kỳ', 'Trong giới hạn ' + D.CAP.min + '–' + D.CAP.max + ' TC của chương trình ' + UI.ref('Điều 7.2'), '<select class="select" style="max-width:120px">' + opts(Array.from({ length: 13 }, (_, i) => [D.CAP.min + i, (D.CAP.min + i) + ' TC']), +ob.max) + '</select>') +
+          row('Học kỳ thực tập', 'Không xếp môn vào kỳ này.', '<select class="select" style="max-width:220px">' + opts([['', 'Không']].concat(D.future.map((t) => [t.id, t.label])), ob.intern) + '</select>')) +
+        card('privacy', 'Quyền riêng tư và AI',
+          row('Cho trợ lý xem hồ sơ ẩn danh', consent ? 'Đồng ý lúc ' + new Date(consent).toLocaleString('vi-VN') + '. Chỉ gửi chương trình, khóa, mã môn, điểm, học kỳ.' : 'Chưa đồng ý. Trợ lý chỉ trả lời về quy chế.', sw('consent', !!consent, 'Cho trợ lý xem hồ sơ')) +
+          row('Lượt AI hôm nay', 'Trợ lý và hộp mục tiêu dùng chung 20 lượt mỗi 24 giờ. Không lưu nội dung câu hỏi.', '<span class="chip">3 / 20</span>') +
+          row('Nhà cung cấp không huấn luyện trên dữ liệu của bạn', 'Tùy chọn từ chối huấn luyện được bật ở tài khoản của dự án.', '<span class="chip ok">' + icon('check', 'sm') + 'Đang bật</span>')) +
+        card('notify', 'Thông báo',
+          row('Nhắc kỳ đăng ký học phần', 'Trước khi cổng đăng ký mở, theo lịch của trường.', sw('n1', true, 'Nhắc kỳ đăng ký')) +
+          row('Check-in đầu học kỳ', 'Xác nhận các môn đang học.', sw('n2', true, 'Check-in đầu kỳ')) +
+          row('Khi bảng điểm thay đổi', 'Báo môn nào đổi kết quả sau khi bạn nhập lại.', sw('n3', true, 'Bảng điểm thay đổi')) +
+          row('Gửi cả qua email', S.email, sw('n4', false, 'Gửi qua email'))) +
+        card('security', 'Bảo mật',
+          row('Mật khẩu', 'Đổi lần cuối 12/09/2026.', '<button class="btn sm" type="button" data-toast="Đã gửi link đổi mật khẩu">Đổi mật khẩu</button>') +
+          row('Xác thực hai bước', 'Không bắt buộc. Thêm mã từ ứng dụng xác thực khi đăng nhập.', sw('2fa', false, 'Xác thực hai bước')) +
+          '<div class="srow" style="display:block"><b>Phiên đăng nhập</b><div class="table-wrap" style="margin-top:8px"><table class="table"><thead><tr><th>Thiết bị</th><th>Lần cuối</th><th></th></tr></thead><tbody>' +
+          [['Chrome · Windows', 'Đang dùng', true], ['Safari · iPhone', 'Hôm qua 22:10'], ['Firefox · Ubuntu', '18/10/2026']].map(([d, w, me]) =>
+            '<tr><td class="b">' + d + '</td><td>' + (me ? '<span class="chip ok">' + w + '</span>' : w) + '</td><td class="r">' + (me ? '' : '<button class="btn sm" type="button" data-revoke>Thu hồi</button>') + '</td></tr>').join('') +
+          '</tbody></table></div></div>') +
+        card('look', 'Giao diện',
+          row('Chủ đề', 'Phím G mở bảng chuyển trang ở mọi trang.', '<div class="seg" role="group" aria-label="Chủ đề"><button type="button" data-theme-set="light" aria-pressed="' + (theme !== 'dark') + '">' + icon('sun', 'sm') + ' Sáng</button><button type="button" data-theme-set="dark" aria-pressed="' + (theme === 'dark') + '">' + icon('moon', 'sm') + ' Tối</button></div>') +
+          row('Màu theo nhóm tín chỉ', 'Mỗi nhóm có màu và ký hiệu riêng, để không phải dựa vào màu.', '<div class="chips">' + D.groups.map((g) => '<span class="chip c g-' + g.id + '">' + g.glyph + ' ' + g.short + '</span>').join('') + '</div>')) +
+        card('data', 'Dữ liệu của bạn',
+          row('Xuất toàn bộ dữ liệu', 'Một file JSON gồm hồ sơ, bảng điểm, kế hoạch, mục tiêu và lịch sử đồng ý.', '<button class="btn sm" type="button" data-toast="Đang chuẩn bị file, tải về khi xong">' + icon('download', 'sm') + 'Xuất dữ liệu</button>') +
+          row('Xóa tài khoản', 'Thu hồi mọi phiên và link chia sẻ ngay. Xóa vĩnh viễn sau 30 ngày.', '<button class="btn sm danger" type="button" id="del-open">' + icon('trash', 'sm') + 'Xóa tài khoản</button>'), 'danger-zone') +
+        '<a class="btn" href="index.html" style="justify-self:start">' + icon('logout', 'sm') + 'Đăng xuất</a>';
+
+      document.addEventListener('click', (e) => {
+        const t = e.target.closest('[data-toast]'); if (t) UI.toast(t.dataset.toast, 'check');
+        const r = e.target.closest('[data-revoke]'); if (r) { r.closest('tr').remove(); UI.toast('Đã thu hồi phiên', 'lock'); }
+        if (e.target.closest('#del-open')) UI.open('delete');
+        const seg = e.target.closest('.seg button:not([data-theme-set])'); if (seg) seg.parentElement.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b === seg));
+      });
+      $('consent').addEventListener('change', (e) => {
+        if (e.target.checked) { UI.store.set('consent', new Date().toISOString()); UI.toast('Đã đồng ý. Trợ lý dùng hồ sơ ẩn danh.', 'shield'); }
+        else { UI.store.del('consent'); UI.toast('Đã rút lại đồng ý. Trợ lý chuyển sang chế độ chung ngay.', 'shield'); }
+      });
+      $('del-confirm').addEventListener('input', (e) => { $('del-go').disabled = e.target.value.trim().toUpperCase() !== 'XÓA'; });
+      $('del-go').addEventListener('click', () => { UI.close(); UI.toast('Đã lên lịch xóa sau 30 ngày. Đăng nhập lại để hủy.', 'trash'); setTimeout(() => { location.href = 'index.html'; }, 1600); });
+      if (location.hash) { const el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
+    })();
+  </script>
+</body>
+</html>

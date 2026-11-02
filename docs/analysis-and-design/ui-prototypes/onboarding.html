@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vài câu hỏi · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: onboarding từng câu hỏi, chương trình, khóa, mục tiêu tốt nghiệp, tải bảng điểm.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="onboarding" data-layout="bare">
+  <main class="wizard" id="main">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <span data-brand="index.html"></span>
+      <div class="dots" id="dots" aria-hidden="true"></div>
+      <a class="btn sm ghost" href="dashboard.html">Bỏ qua, làm sau</a>
+    </div>
+    <section id="step" aria-live="polite" class="stack" style="gap:22px"></section>
+    <div style="display:flex;justify-content:space-between;gap:12px">
+      <button class="btn" type="button" id="back"><i data-icon="left"></i>Quay lại</button>
+      <button class="btn primary" type="button" id="next" style="min-width:160px">Tiếp <i data-icon="right"></i></button>
+    </div>
+  </main>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const A = Object.assign({ program: 'APCS', cohort: 'K24', grad: '2027-2', max: 18, intern: '2027-3', tx: 'pdf' }, UI.store.get('onboard', {}));
+      let i = 0;
+      const opt = (key, val, title, sub, glyph, disabled) =>
+        '<button type="button" class="opt' + (glyph ? ' g-' + glyph[0] : '') + '" data-k="' + key + '" data-v="' + val + '" aria-pressed="' + (A[key] === val) + '"' + (disabled ? ' disabled' : '') + '>' +
+        (glyph ? '<span class="glyph">' + glyph[1] + '</span>' : '') + '<b>' + title + '</b><small>' + sub + '</small></button>';
+
+      const STEPS = [
+        () => '<p class="eyebrow">Câu 1 / 5 · Chương trình</p><h1 class="q">Bạn đang học chương trình nào?</h1>' +
+          '<div class="options">' + opt('program', 'APCS', 'Tiên tiến Khoa học Máy tính', 'APCS · Khoa CNTT', ['core', '&lt;/&gt;']) +
+          opt('program', 'CLC', 'Chất lượng cao CNTT', 'Sắp có dữ liệu chương trình', ['phys', 'Σ'], true) +
+          opt('program', 'DT', 'Đại trà CNTT', 'Sắp có dữ liệu chương trình', ['math', '∞'], true) + '</div>' +
+          '<p class="small t3">Mỗi chương trình có CTĐT và quy định tín chỉ riêng. Bản đầu chỉ có APCS.</p>',
+        () => '<p class="eyebrow">Câu 2 / 5 · Khóa</p><h1 class="q">Bạn vào trường năm nào?</h1>' +
+          '<div class="options">' + [['K22', 2022], ['K23', 2023], ['K24', 2024], ['K25', 2025], ['K26', 2026]].map(([k, y]) =>
+            opt('cohort', k, k + ' · nhập học ' + y, k === 'K24' ? 'CTĐT APCS K24 · phiên bản 3' : 'CTĐT riêng của khóa', null, k !== 'K24')).join('') + '</div>' +
+          '<p class="small t3">Mỗi khóa theo phiên bản CTĐT của khóa đó. Khóa sau đổi CTĐT không làm lộ trình của bạn sai.</p>',
+        () => '<p class="eyebrow">Câu 3 / 5 · Mục tiêu</p><h1 class="q">Bạn muốn tốt nghiệp vào học kỳ nào?</h1>' +
+          '<div class="options">' + ['2027-2', '2027-3', '2028-1'].map((id) => opt('grad', id, D.term(id).label, D.term(id).when, null)).join('') +
+          opt('grad', 'none', 'Chưa biết', 'Engine tự tính học kỳ sớm nhất', null) + '</div>' +
+          '<p class="small t3">Đây là mục tiêu của bạn. Học kỳ tốt nghiệp dự kiến do rule engine tính từ lộ trình.</p>',
+        () => '<p class="eyebrow">Câu 4 / 5 · Tải học</p><h1 class="q">Mỗi học kỳ bạn muốn học tối đa bao nhiêu tín chỉ?</h1>' +
+          '<div class="card pad range-wrap"><div style="display:flex;align-items:flex-end;gap:12px"><span class="bigval num" id="mv">' + A.max + '</span><span class="b t3" style="padding-bottom:8px">TC / học kỳ</span></div>' +
+          '<input type="range" id="max" min="' + D.CAP.min + '" max="' + D.CAP.max + '" value="' + A.max + '" aria-label="Tín chỉ tối đa mỗi học kỳ">' +
+          '<div class="load"><span>' + D.CAP.min + ' TC</span><span>' + D.CAP.max + ' TC</span></div>' +
+          '<p class="small t2">Chương trình Tiên tiến cho phép ' + D.CAP.min + '–' + D.CAP.max + ' TC mỗi học kỳ chính ' + UI.ref('Điều 7.2') + '. Bạn chỉ chọn trong khoảng này.</p></div>' +
+          '<label class="field"><span>Học kỳ đi thực tập (không xếp môn vào kỳ này)</span><select class="select" id="intern">' +
+          '<option value="">Không thực tập</option>' + D.future.slice(0, 5).map((t) => '<option value="' + t.id + '"' + (A.intern === t.id ? ' selected' : '') + '>' + t.label + '</option>').join('') + '</select></label>',
+        () => '<p class="eyebrow">Câu 5 / 5 · Bảng điểm</p><h1 class="q">Đưa bảng điểm vào bằng cách nào?</h1>' +
+          '<div class="options">' + opt('tx', 'pdf', 'Tải PDF từ cổng sinh viên', 'Bộ đọc cố định, không dùng AI. Bạn duyệt từng dòng.', ['gen', '↑']) +
+          opt('tx', 'manual', 'Tự nhập từng môn', 'Hợp với năm nhất, ít môn.', ['eng', '✎']) +
+          opt('tx', 'later', 'Để sau', 'Tiến độ hiện 0 TC cho tới khi có bảng điểm.', ['thesis', '…']) + '</div>' +
+          '<div class="callout info"><i data-icon="shield" class="lg"></i><div><b>File PDF không được lưu lại.</b><p>Chỉ những dòng bạn đã duyệt mới được lưu. Không ai khác xem được.</p></div></div>',
+      ];
+
+      function render() {
+        $('dots').innerHTML = STEPS.map((_, k) => '<i class="' + (k === i ? 'on' : k < i ? 'done' : '') + '"></i>').join('');
+        $('step').innerHTML = STEPS[i]();
+        $('step').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon, el.className); });
+        $('back').style.visibility = i ? 'visible' : 'hidden';
+        $('next').innerHTML = i === STEPS.length - 1 ? 'Xong, vào thôi ' + icon('right', 'sm') : 'Tiếp ' + icon('right', 'sm');
+        const r = $('max');
+        if (r) r.addEventListener('input', () => { A.max = +r.value; $('mv').textContent = r.value; });
+        const s = $('intern');
+        if (s) s.addEventListener('change', () => { A.intern = s.value; });
+        const h = $('step').querySelector('h1'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+      }
+      $('step').addEventListener('click', (e) => {
+        const b = e.target.closest('.opt');
+        if (!b || b.disabled) return;
+        A[b.dataset.k] = b.dataset.v;
+        $('step').querySelectorAll('.opt[data-k="' + b.dataset.k + '"]').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      });
+      $('back').addEventListener('click', () => { if (i) { i--; render(); } });
+      $('next').addEventListener('click', () => {
+        UI.store.set('onboard', A);
+        if (i < STEPS.length - 1) { i++; render(); return; }
+        location.href = A.tx === 'later' ? 'dashboard.html' : A.tx === 'manual' ? 'import.html#review' : 'import.html';
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

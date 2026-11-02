@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xét tốt nghiệp · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: xét tốt nghiệp theo từng nhóm tín chỉ, từng học phần, điểm và học kỳ.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="audit" data-layout="app">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="page">
+        <header class="page-head">
+          <div>
+            <p class="crumbs"><a href="dashboard.html">Tổng quan</a> / Xét tốt nghiệp</p>
+            <h1>Xét tốt nghiệp</h1>
+            <p id="sub"></p>
+          </div>
+        </header>
+        <nav class="gpick" id="pick" aria-label="Chọn nhóm tín chỉ"></nav>
+        <section class="card" id="group" aria-live="polite"></section>
+        <section class="card" id="extra" hidden></section>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const plan = UI.plan();
+      const res = D.check(plan);
+      $('sub').innerHTML = D.student.curriculum + ' · ' + D.done + '/' + D.totalRequired + ' TC đã đạt · do rule engine tính từ bảng điểm và lộ trình của bạn';
+
+      function render() {
+        const id = D.groups.some((g) => g.id === location.hash.slice(1)) ? location.hash.slice(1) : 'core';
+        const g = D.group(id), c = res.coverage[id];
+        $('pick').innerHTML = D.groups.map((x) => '<a class="g-' + x.id + '" href="#' + x.id + '"' + (x.id === id ? ' aria-current="true"' : '') + '>' + UI.glyph(x.id, 'sm') + x.short + ' <span class="t3" style="color:inherit;opacity:.75">' + res.coverage[x.id].done + '/' + x.required + '</span></a>').join('');
+        const list = D.courses.filter((x) => x.group === id && (x.status !== 'pool' || plan[x.code]))
+          .map((x) => Object.assign({}, x, { st: x.status === 'pool' || x.status === 'planned' ? (plan[x.code] ? 'planned' : 'left') : x.status, at: D.termOf(plan, x.code) }))
+          .sort((a, b) => ['done', 'current', 'planned', 'left'].indexOf(a.st) - ['done', 'current', 'planned', 'left'].indexOf(b.st) || D.tIdx(a.at) - D.tIdx(b.at));
+        const pct = Math.round(c.done / g.required * 100);
+        const left = Math.max(0, g.required - c.total);
+        $('group').className = 'card g-' + id;
+        $('group').innerHTML =
+          '<div class="ghero"><span class="glyph xl">' + g.glyph + '</span><div><h2 style="font-size:28px">' + g.name + '</h2><p>' + g.rule + '.</p></div>' +
+          '<div class="ring" style="--p:' + pct + '"><div><span><b>' + pct + '%</b><br><small>đã đạt</small></span></div></div></div>' +
+          '<div class="sum4">' + [['Đã đạt', c.done, 'done'], ['Đang học', c.current, 'current'], ['Trong lộ trình', c.planned, 'planned'], ['Chưa xếp', left, 'left']].map(([k, v, s]) =>
+            '<div class="box"><span class="st ' + s + '">' + k + '</span><div class="v">' + v + ' <span class="small t3">TC</span></div></div>').join('') + '</div>' +
+          '<div style="padding:0 22px 14px"><div class="bar" style="height:14px"><i class="done" style="width:' + (c.done / g.required * 100) + '%"></i><i class="current" style="width:' + (c.current / g.required * 100) + '%"></i><i class="planned" style="width:' + (Math.min(c.planned, g.required - c.done - c.current) / g.required * 100) + '%"></i></div></div>' +
+          list.map((x) => {
+            const status = x.st === 'done' ? '<span class="st done">Đạt</span>' : x.st === 'current' ? '<span class="st current">Đang học</span>' : x.st === 'planned' ? '<span class="st planned">Trong lộ trình</span>' : '<span class="st left">Chưa xếp</span>';
+            const notes = [];
+            if (x.prereq.length) notes.push('Tiên quyết: ' + x.prereq.join(', '));
+            if (x.offered) notes.push('Chỉ mở ' + x.offered.map((n) => 'HK' + n).join(', '));
+            if (x.note) notes.push(x.note);
+            return '<div class="course-row"><span>' + (x.slot ? '<span class="code">—</span>' : '<span class="code c">' + x.code + '</span>') + '</span>' +
+              '<span class="nm"><b>' + x.name + '</b><small>' + (x.slot ? 'Chọn một học phần tự chọn trong lộ trình' : x.en + (notes.length ? ' · ' + notes.join(' · ') : '')) + '</small></span>' +
+              '<span class="b">' + x.credits + ' TC</span><span>' + status + '</span>' +
+              '<span class="small t2">' + (x.grade != null ? '<span class="grade"><b>' + x.grade.toFixed(1) + '</b><span class="t3" title="Điểm chữ, chỉ để tham khảo (Điều 11.2)">' + D.letter(x.grade) + '</span></span> · ' : '') + (x.at ? D.term(x.at).short : '') + '</span></div>';
+          }).join('');
+
+        const pool = D.courses.filter((x) => x.group === id && x.status === 'pool' && !plan[x.code] && !x.slot);
+        $('extra').hidden = !pool.length;
+        $('extra').className = 'card g-' + id;
+        $('extra').innerHTML = pool.length ? '<div class="card-head"><h2>Còn ' + pool.length + ' lựa chọn chưa xếp</h2><a class="btn sm" href="planner.html">' + icon('columns', 'sm') + 'Kéo vào lộ trình</a></div>' +
+          '<div class="ex-grid" style="padding:16px 22px 22px">' + pool.map((x) => UI.tile(x, { status: 'pool', sub: x.prereq.length ? 'Cần ' + x.prereq.join(', ') : 'Không có tiên quyết' })).join('') + '</div>' : '';
+      }
+      window.addEventListener('hashchange', render);
+      render();
+    })();
+  </script>
+</body>
+</html>
