@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quản trị CTĐT · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: quản trị chương trình đào tạo, nhóm yêu cầu, học phần, tiên quyết, danh mục học phần dùng chung.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="admin" data-layout="app">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="page">
+        <header class="page-head">
+          <div><h1>Quản trị chương trình</h1><p>Nhập và sửa CTĐT theo văn bản chính thức của trường. Dữ liệu do người nhập và kiểm tra, không do AI trích xuất.</p></div>
+          <span class="chip ink"><i data-icon="key"></i>Quản trị chương trình · APCS</span>
+        </header>
+        <div class="admin-banner">
+          <label class="field"><span>Chương trình</span><select class="select" style="min-height:40px;border-color:#14161e;background:#fff;color:#14161e"><option>APCS · Tiên tiến KHMT</option></select></label>
+          <label class="field"><span>Khóa</span><select class="select" id="cohort" style="min-height:40px;border-color:#14161e;background:#fff;color:#14161e"><option>K22</option><option>K23</option><option selected>K24</option><option>K25</option></select></label>
+          <div class="grow small"><b>CTĐT APCS K24 · phiên bản 3</b><br>Sửa lần cuối 01/09/2026 bởi Thắng. Khóa trước không bị ảnh hưởng khi sửa khóa này.</div>
+          <button class="btn sm" type="button" data-toast="Đã tạo khóa K26, chưa có học phần nào"><i data-icon="plus"></i>Thêm khóa</button>
+        </div>
+        <div class="seg" role="tablist" aria-label="Mục quản trị" id="tabs">
+          <button type="button" role="tab" data-t="groups" aria-selected="true">Nhóm yêu cầu</button>
+          <button type="button" role="tab" data-t="catalog" aria-selected="false">Danh mục học phần</button>
+        </div>
+        <section class="card" id="view"></section>
+      </div>
+    </main>
+  </div>
+
+  <aside class="drawer" id="edit" aria-label="Sửa học phần">
+    <div class="drawer-head"><div><p class="eyebrow" id="e-eyebrow"></p><h2 id="e-title"></h2></div><button class="btn sm icon-only" type="button" data-close aria-label="Đóng"><i data-icon="x"></i></button></div>
+    <div class="drawer-body" id="e-body"></div>
+    <div class="drawer-foot"><button class="btn" type="button" data-close>Hủy</button><button class="btn primary" type="button" id="e-save"><i data-icon="check"></i>Lưu</button></div>
+  </aside>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      let tab = 'groups', open = 'core', editing = null;
+      const all = D.courses.filter((x) => !x.slot);
+
+      function render() {
+        $('tabs').querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', b.dataset.t === tab));
+        if (tab === 'groups') {
+          $('view').innerHTML = '<div class="card-head"><h2>8 nhóm yêu cầu · ' + D.totalRequired + ' TC</h2><button class="btn sm" type="button" data-toast="Đã thêm nhóm nháp">' + icon('plus', 'sm') + 'Thêm nhóm</button></div>' +
+            '<div class="table-wrap" style="padding:8px 8px 4px"><table class="table"><thead><tr><th>Nhóm</th><th class="r">TC yêu cầu</th><th>Quy tắc</th><th class="r">Học phần</th><th></th></tr></thead><tbody>' +
+            D.groups.map((g) => '<tr class="g-' + g.id + '"><td><span style="display:flex;gap:10px;align-items:center">' + UI.glyph(g.id, 'sm') + '<b>' + g.name + '</b></span></td><td class="r num b">' + g.required + '</td><td class="small t2">' + g.rule + '</td>' +
+              '<td class="r">' + all.filter((x) => x.group === g.id).length + '</td><td class="r"><button class="btn sm" type="button" data-open-g="' + g.id + '" aria-expanded="' + (open === g.id) + '">' + (open === g.id ? 'Đang mở' : 'Mở') + '</button></td></tr>').join('') +
+            '</tbody></table></div>' +
+            '<div class="g-' + open + '" style="border-top:2px solid var(--edge);padding:18px 22px 22px;display:grid;gap:12px;background:var(--c-soft);border-radius:0 0 18px 18px">' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><h3>' + D.group(open).name + '</h3><button class="btn sm" type="button" data-new>' + icon('plus', 'sm') + 'Thêm học phần vào nhóm</button></div>' +
+            '<div class="ex-grid">' + all.filter((x) => x.group === open).map((x) => UI.tile(x, { status: 'done', attrs: 'role="button" tabindex="0"', sub: (x.prereq.length ? 'Tiên quyết ' + x.prereq.join(', ') : 'Không tiên quyết') + (x.offered ? ' · HK' + x.offered.join(', ') : '') })).join('') + '</div></div>';
+        } else {
+          $('view').innerHTML = '<div class="card-head"><h2>Danh mục học phần dùng chung</h2><span class="meta">Sửa ở đây áp dụng cho mọi CTĐT có học phần đó</span></div>' +
+            '<div class="table-wrap" style="padding:8px 8px 12px"><table class="table"><thead><tr><th>Mã</th><th>Tên</th><th class="r">TC</th><th>Dùng trong</th><th></th></tr></thead><tbody>' +
+            all.map((x) => '<tr><td><span class="code c g-' + x.group + '">' + x.code + '</span></td><td><b>' + x.name + '</b><br><span class="xs t3">' + x.en + '</span></td><td class="r">' + x.credits + '</td><td class="small t2">' + uses(x) + '</td>' +
+              '<td class="r"><button class="btn sm" type="button" data-edit="' + x.code + '" data-catalog>' + icon('edit', 'sm') + 'Sửa</button></td></tr>').join('') + '</tbody></table></div>';
+        }
+      }
+      const uses = (x) => /^(CS1|MTH|PHY|BAA|ENG)/.test(x.code) ? 'APCS K22, K23, K24, K25' : 'APCS K24, K25';
+
+      function edit(code, catalog) {
+        const x = code ? D.course(code) : { code: '', name: '', en: '', credits: 4, prereq: [], group: open };
+        editing = { code, catalog };
+        $('e-eyebrow').innerHTML = catalog ? icon('db', 'sm') + 'Danh mục dùng chung' : icon('edit', 'sm') + 'CTĐT APCS K24 · ' + D.group(x.group).name;
+        $('e-title').textContent = code ? code + ' · ' + x.name : 'Học phần mới';
+        $('e-body').innerHTML =
+          (catalog && code ? '<div class="callout warn"><i data-icon="alert"></i><div><b>Sửa ở đây đổi mọi CTĐT dùng học phần này</b><p>' + uses(x) + '. Đối chiếu văn bản chính thức trước khi lưu. Đổi mã học phần cần một migration riêng.</p></div></div>' : '') +
+          '<label class="field"><span>Mã học phần</span><input class="input mono" id="e-code" value="' + x.code + '"' + (code ? ' readonly' : '') + '><small class="hint" id="e-code-hint">Chữ in hoa và số, 2 đến 20 ký tự. Ví dụ CS101.</small></label>' +
+          '<label class="field"><span>Tên tiếng Việt</span><input class="input" id="e-name" value="' + x.name + '"></label>' +
+          '<label class="field"><span>Tên tiếng Anh</span><input class="input" value="' + x.en + '"></label>' +
+          '<label class="field"><span>Tín chỉ</span><input class="input" id="e-cr" type="number" min="0" max="30" value="' + x.credits + '" style="max-width:120px"></label>' +
+          (catalog ? '' : '<label class="field"><span>Tiên quyết</span><input class="input mono" id="e-pre" value="' + x.prereq.join(', ') + '" placeholder="CS161, MTH251"><small class="hint">Rule engine kiểm tra mã tồn tại và không tạo vòng tiên quyết khi lưu.</small></label>' +
+            '<div class="field"><span>Kỳ mở môn</span><div class="chips">' + [1, 2, 3].map((n) => '<label class="check" style="margin-right:12px"><input type="checkbox"' + (!x.offered || x.offered.includes(n) ? ' checked' : '') + '>HK' + n + '</label>').join('') + '</div></div>') +
+          '<div id="e-err"></div>' +
+          (code && !catalog ? '<button class="btn sm danger" type="button" id="e-remove" style="justify-self:start">' + icon('trash', 'sm') + 'Bỏ khỏi nhóm này</button>' : '');
+        $('e-body').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+        const ci = $('e-code');
+        ci.addEventListener('input', () => {
+          const v = ci.value.trim().toUpperCase(), ok = /^[A-Z0-9]{2,20}$/.test(v);
+          ci.classList.toggle('err', !ok && v !== '');
+          $('e-code-hint').textContent = !v ? 'Chữ in hoa và số, 2 đến 20 ký tự. Ví dụ CS101.' : ok ? (D.course(v) ? 'Mã ' + v + ' đã có trong danh mục, sẽ liên kết vào nhóm.' : 'Sẽ lưu là ' + v) : 'Chỉ chữ A–Z và số 0–9, 2 đến 20 ký tự.';
+        });
+        UI.open('edit');
+      }
+
+      // Engine check on save: unknown prerequisite codes and cycles are refused (UC-11 A3).
+      $('e-save').addEventListener('click', () => {
+        const errs = [];
+        const code = ($('e-code').value || '').trim().toUpperCase();
+        if (!/^[A-Z0-9]{2,20}$/.test(code)) errs.push(['Mã học phần sai định dạng', 'Chỉ chữ in hoa và số, 2 đến 20 ký tự.']);
+        if (!$('e-name').value.trim()) errs.push(['Thiếu tên tiếng Việt', 'Trường bắt buộc.']);
+        const cr = +$('e-cr').value; if (!(cr >= 0 && cr <= 30)) errs.push(['Số tín chỉ không hợp lệ', 'Từ 0 đến 30.']);
+        const pre = $('e-pre') ? $('e-pre').value.split(/[,\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean) : [];
+        pre.filter((p) => !D.course(p)).forEach((p) => errs.push(['Rule engine: không tìm thấy ' + p, 'Học phần tiên quyết phải có trong danh mục.']));
+        const reach = (from, target, seen) => from === target || (D.course(from) && D.course(from).prereq.some((p) => !seen.has(p) && (seen.add(p), reach(p, target, seen))));
+        pre.filter((p) => D.course(p) && code && reach(p, code, new Set())).forEach((p) => errs.push(['Rule engine: vòng tiên quyết ' + code + ' ↔ ' + p, p + ' đã cần ' + code + ' (trực tiếp hoặc gián tiếp). Không lưu.']));
+        $('e-err').innerHTML = errs.map(([b, p]) => '<div class="callout bad small"><span>' + icon('alert') + '</span><div><b>' + b + '</b><p>' + p + '</p></div></div>').join('');
+        if (!errs.length) { UI.close(); UI.toast('Đã lưu ' + code + '. Toàn bộ thay đổi được lưu một lần.', 'check'); }
+      });
+      document.addEventListener('click', (e) => {
+        const og = e.target.closest('[data-open-g]'); if (og) { open = og.dataset.openG; render(); }
+        const t = e.target.closest('#tabs button'); if (t) { tab = t.dataset.t; render(); }
+        const ed = e.target.closest('[data-edit]'); if (ed) edit(ed.dataset.edit, ed.hasAttribute('data-catalog'));
+        const tile = e.target.closest('#view .tile'); if (tile) edit(tile.dataset.code, false);
+        if (e.target.closest('[data-new]')) edit(null, false);
+        if (e.target.closest('#e-remove')) {
+          const deps = D.unlocks(editing.code);
+          if (deps.length) $('e-err').innerHTML = '<div class="callout bad small"><span>' + icon('alert') + '</span><div><b>Không bỏ được</b><p>' + deps.join(', ') + ' vẫn cần ' + editing.code + ' làm tiên quyết. Sửa các học phần đó trước.</p></div></div>';
+          else { UI.close(); UI.toast('Đã bỏ ' + editing.code + ' khỏi nhóm. Học phần vẫn còn trong danh mục.', 'trash'); }
+        }
+        const tt = e.target.closest('[data-toast]'); if (tt) UI.toast(tt.dataset.toast);
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const tile = e.target.closest && e.target.closest('#view .tile'); if (tile) edit(tile.dataset.code, false); } });
+      render();
+    })();
+  </script>
+</body>
+</html>

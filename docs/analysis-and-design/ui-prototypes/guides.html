@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hướng dẫn thủ tục · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: hướng dẫn thủ tục của trường, đọc được khi chưa đăng nhập, link thẳng tới cổng.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="guides" data-layout="app" data-guest="ok">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="page" id="page"></div>
+    </main>
+  </div>
+
+  <div class="modal" id="report" role="dialog" aria-labelledby="report-title">
+    <div class="drawer-head"><h2 id="report-title">Báo lỗi hướng dẫn</h2><button class="btn sm icon-only" type="button" data-close aria-label="Đóng"><i data-icon="x"></i></button></div>
+    <div class="drawer-body" id="report-body"></div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const guest = document.body.classList.contains('guest');
+      const q = guest ? '?guest' : '';
+      const plan = UI.plan();
+      const COLORS = ['core', 'elec', 'phys', 'math', 'gen', 'eng', 'pol', 'thesis'];
+      // Illustrative content: the steps are not yet checked against the real portals.
+      const BODY = {
+        accounts: {
+          summary: 'Mỗi thủ tục dùng một cổng khác nhau. Trang này liệt kê từng cổng, tài khoản cần dùng và việc làm ở đó.',
+          when: 'Ngay khi nhập học, và mỗi khi đổi mật khẩu.',
+          prepare: ['Email và mật khẩu sinh viên do trường cấp lúc nhập học'],
+          steps: ['Mở cổng thông tin sinh viên bằng link bên phải.', 'Đăng nhập bằng tài khoản sinh viên.', 'Đổi mật khẩu lần đầu nếu cổng yêu cầu.'],
+          notes: [['Quên mật khẩu: dùng chức năng khôi phục của cổng, không nhờ người khác đăng nhập hộ.', 'Kinh nghiệm của nhóm']],
+        },
+        'register-courses': {
+          summary: 'Đăng ký các học phần cho học kỳ tới trong thời gian trường mở cổng. Mọi sinh viên, mọi học kỳ.',
+          when: 'Mỗi học kỳ, theo lịch trong thông báo của Phòng Đào tạo.',
+          prepare: ['Danh sách mã môn của học kỳ tới, lấy từ lộ trình', 'Kiểm tra đã đóng học phí kỳ trước'],
+          steps: ['Mở cổng đăng ký học phần trong thời gian mở cổng.', 'Đăng nhập bằng tài khoản sinh viên.', 'Tìm từng mã môn và chọn lớp.', 'Kiểm tra tổng tín chỉ trước khi xác nhận.', 'Xác nhận và lưu lại kết quả đăng ký.'],
+          notes: [['Tổng tín chỉ phải nằm trong giới hạn của chương trình.', 'Điều 7.2'], ['Lớp đầy thì xem hướng dẫn điều chỉnh đăng ký (G03).', 'Kinh nghiệm của nhóm']],
+          rule: true, plan: true,
+        },
+        'pay-tuition': {
+          summary: 'Đóng học phí của học kỳ hiện tại qua cổng học phí.',
+          when: 'Mỗi học kỳ, theo hạn trong thông báo học phí.',
+          prepare: ['Số tiền và hạn đóng trên cổng học phí'],
+          steps: ['Mở cổng học phí.', 'Đăng nhập bằng tài khoản sinh viên.', 'Xem số tiền của học kỳ.', 'Chọn cách thanh toán cổng hỗ trợ và làm theo hướng dẫn trên cổng.'],
+          notes: [['Giữ biên nhận cho tới khi cổng cập nhật trạng thái đã đóng.', 'Kinh nghiệm của nhóm']],
+          down: 'Phòng Kế hoạch – Tài chính nhận đóng trực tiếp trong giờ hành chính, theo thông báo của trường.',
+        },
+        grades: {
+          summary: 'Xem điểm từng học phần và tải bảng điểm PDF để nhập vào OmniCourse.',
+          when: 'Sau mỗi kỳ thi, hoặc khi cần cập nhật tiến độ.',
+          prepare: [],
+          steps: ['Mở cổng thông tin sinh viên.', 'Đăng nhập bằng tài khoản sinh viên.', 'Mở mục kết quả học tập.', 'Xuất bảng điểm dạng PDF.', 'Tải file lên trang Nhập bảng điểm của OmniCourse.'],
+          notes: [['Chỉ dùng file PDF xuất từ cổng. Ảnh chụp màn hình không đọc được.', 'Kinh nghiệm của nhóm']],
+          into: ['import.html', 'Nhập bảng điểm'],
+        },
+      };
+      const months = (d) => { const [dd, mm, yy] = d.split('/').map(Number); return (2026 - yy) * 12 + (11 - mm) + (1 - dd) / 30; };
+
+      function list() {
+        $('page').innerHTML =
+          '<header class="page-head"><div><h1>Hướng dẫn thủ tục</h1><p>Những việc OmniCourse không làm thay bạn: link thẳng tới cổng, các bước, tài khoản cần dùng. Đọc được khi chưa đăng nhập.</p></div></header>' +
+          '<div class="guide-search"><label class="b" for="gq">Bạn cần làm gì?</label><input class="input" id="gq" type="search" placeholder="Thử: hoc phi, đăng ký, bảng điểm…" autocomplete="off"><span class="small">Tìm có dấu hoặc không dấu, tiếng Việt hoặc tiếng Anh.</span></div>' +
+          '<div id="glist" class="stack"></div>';
+        const draw = () => {
+          const t = fold($('gq').value.trim());
+          const hit = (g) => !t || fold(g.title + ' ' + g.en + ' ' + g.kw).includes(t);
+          const html = D.guideGroups.map((name, gi) => {
+            const items = D.guides.filter((g) => g.group === gi && hit(g));
+            if (!items.length) return '';
+            return '<section class="stack g-' + COLORS[gi] + '" style="gap:12px"><div class="ex-group-head"><span class="glyph sm">' + (gi + 1) + '</span><h2 style="font-size:18px">' + name + '</h2></div><div class="ggrid">' +
+              items.map((g) => g.ready
+                ? '<a class="gitem" href="' + q + '#' + g.id + '"><span class="row"><span class="code c">' + g.no + '</span>' + (months(g.checked) > 6 ? '<span class="chip warn">Có thể đã cũ</span>' : '<span class="chip ok">Kiểm tra ' + g.checked + '</span>') + '</span><b>' + g.title + '</b><span class="small t3">' + g.portal + ' · ' + g.account + '</span></a>'
+                : '<div class="gitem soon"><span class="row"><span class="code">' + g.no + '</span><span class="chip">Sắp có</span></span><b class="t2">' + g.title + '</b><span class="small t3">' + g.en + '</span></div>').join('') + '</div></section>';
+          }).join('');
+          $('glist').innerHTML = html || '<div class="card empty"><b>Chưa có hướng dẫn cho việc này</b><p class="small">Xem các nhóm thủ tục, hoặc <a class="link" href="advisor.html">hỏi trợ lý</a>.</p><button class="btn sm" type="button" id="suggest">Đề xuất hướng dẫn mới</button></div>';
+        };
+        $('gq').addEventListener('input', draw);
+        draw();
+      }
+
+      function detail(g) {
+        const b = BODY[g.id];
+        const stale = months(g.checked) > 6;
+        const next = D.future[0];
+        const nextCourses = D.courses.filter((x) => plan[x.code] === next.id && !x.slot);
+        $('page').innerHTML =
+          '<header class="page-head"><div><p class="crumbs"><a href="guides.html' + q + '">Hướng dẫn</a> / ' + D.guideGroups[g.group] + '</p><h1>' + g.title + '</h1><p>' + b.summary + '</p></div></header>' +
+          (stale ? '<div class="callout warn"><i data-icon="alert"></i><div><b>Hướng dẫn có thể đã cũ</b><p>Kiểm tra lần cuối ' + g.checked + ', hơn 6 tháng trước. Cổng có thể đã đổi giao diện.</p></div></div>' : '') +
+          '<div class="guide-layout"><div class="stack">' +
+          '<section class="card pad stack" style="gap:14px"><h2>Các bước</h2><ol class="steps">' + b.steps.map((s) => '<li><p style="padding-top:6px">' + s + '</p></li>').join('') + '</ol></section>' +
+          (b.rule ? '<section class="card pad stack g-core" style="gap:10px"><h2>Giới hạn tín chỉ của bạn</h2>' + (guest
+            ? '<p class="t2">Giới hạn phụ thuộc chương trình của bạn. <a class="link" href="sign-in.html">Đăng nhập</a> để xem con số rule engine tính cho chương trình của bạn. ' + UI.ref('Điều 7.2') + '</p>'
+            : '<p><span class="num" style="font-size:30px;font-weight:800">' + D.CAP.min + '–' + D.CAP.max + ' TC</span> <span class="t2">mỗi học kỳ chính, chương trình ' + D.student.program + ' · tính bởi rule engine</span> ' + UI.ref('Điều 7.2') + '</p>') + '</section>' : '') +
+          (b.plan ? '<section class="card pad stack" style="gap:12px"><h2>Mã môn từ lộ trình</h2>' + (guest
+            ? '<p class="t2"><a class="link" href="sign-in.html">Đăng nhập</a> để lấy danh sách mã môn của học kỳ tới từ lộ trình.</p>'
+            : '<p class="small t2">' + next.label + ' trong "' + (UI.store.get('plans', null) ? UI.store.get('plans').list[UI.store.get('plans').active].name : 'Kế hoạch chính') + '" · ' + D.load(plan, next.id) + ' TC. OmniCourse không kiểm tra lớp hay thời khóa biểu và không đăng ký hộ.</p>' +
+              '<div class="chips">' + nextCourses.map((x) => '<button class="chip c g-' + x.group + '" type="button" data-copy="' + x.code + '">' + icon('copy', 'sm') + x.code + ' · ' + x.credits + ' TC</button>').join('') + '</div>' +
+              '<button class="btn sm" type="button" data-copy="' + nextCourses.map((x) => x.code).join(', ') + '" style="justify-self:start">' + icon('copy', 'sm') + 'Sao chép tất cả</button>') + '</section>' : '') +
+          '<section class="card pad stack" style="gap:10px"><h2>Lưu ý</h2>' + b.notes.map(([n, src]) => '<div class="box small"><p>' + n + '</p><p class="xs t3" style="margin-top:4px">Nguồn: ' + (src.startsWith('Điều') ? UI.ref(src) : src) + '</p></div>').join('') +
+          (b.down ? '<div class="box small"><b>Nếu cổng không vào được</b><p>' + b.down + '</p></div>' : '') + '</section>' +
+          '</div><aside class="stack">' +
+          '<section class="card pad stack g-' + COLORS[g.group] + '" style="gap:12px;background:var(--c-soft)"><span class="code c" style="justify-self:start">' + g.no + '</span>' +
+          '<div><span class="label">Làm ở đâu</span><p class="b">' + g.portal + '</p></div><div><span class="label">Tài khoản</span><p>' + g.account + '</p></div>' +
+          '<a class="btn primary block" href="#" target="_blank" rel="noopener">' + icon('external', 'sm') + 'Mở ' + g.portal.toLowerCase() + '</a><span class="xs t3">Link minh họa trong bản mẫu. Mở ở tab mới.</span></section>' +
+          '<section class="card pad stack" style="gap:8px"><div><span class="label">Khi nào</span><p class="small">' + b.when + '</p></div>' +
+          (b.prepare.length ? '<div><span class="label">Chuẩn bị</span><ul class="small" style="margin:4px 0 0;padding-left:18px">' + b.prepare.map((p) => '<li>' + p + '</li>').join('') + '</ul></div>' : '') +
+          (b.into ? '<a class="btn sm" href="' + b.into[0] + '">' + b.into[1] + ' ' + icon('chev', 'sm') + '</a>' : '') + '</section>' +
+          '<section class="box small stack" style="gap:6px"><span>Phiên bản ' + g.ver + ' · kiểm tra ' + g.checked + ' bởi ' + g.checker + '</span><span class="t3">Nội dung minh họa, chưa đối chiếu cổng thật.</span>' +
+          '<button class="btn sm" type="button" id="report-btn">' + icon('flag', 'sm') + 'Báo lỗi</button></section></aside></div>';
+        $('page').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+      }
+
+      document.addEventListener('click', (e) => {
+        const c = e.target.closest('[data-copy]');
+        if (c) { try { navigator.clipboard.writeText(c.dataset.copy); } catch (err) { /* ignore */ } UI.toast('Đã sao chép ' + c.dataset.copy, 'copy'); }
+        if (e.target.closest('#report-btn') || e.target.closest('#suggest')) {
+          $('report-body').innerHTML = guest
+            ? '<p>Cần đăng nhập để báo lỗi, để nhóm liên hệ lại khi đã sửa.</p><div class="head-actions"><a class="btn primary" href="sign-in.html">Đăng nhập</a></div>'
+            : '<div class="stack" style="gap:8px">' + ['Link hỏng', 'Các bước đã đổi', 'Thiếu hướng dẫn', 'Khác'].map((r, i) => '<label class="check"><input type="radio" name="why"' + (i ? '' : ' checked') + '>' + r + '</label>').join('') + '</div>' +
+              '<label class="field"><span>Ghi chú (không bắt buộc)</span><textarea class="textarea" placeholder="Bước nào khác, cổng hiện gì…"></textarea><small class="hint">Đừng ghi tên, MSSV hay mật khẩu.</small></label>' +
+              '<div class="head-actions"><button class="btn primary" type="button" id="send-report">Gửi báo lỗi</button></div>';
+          UI.open('report');
+        }
+        if (e.target.closest('#send-report')) { UI.close(); UI.toast('Cảm ơn bạn. Báo lỗi đã gửi cho nhóm.', 'flag'); }
+      });
+
+      function route() {
+        const g = D.guides.find((x) => x.id === location.hash.slice(1) && x.ready);
+        if (g) detail(g); else list();
+        window.scrollTo(0, 0);
+      }
+      window.addEventListener('hashchange', route);
+      route();
+    })();
+  </script>
+</body>
+</html>

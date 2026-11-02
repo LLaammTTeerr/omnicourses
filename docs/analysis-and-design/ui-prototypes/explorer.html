@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chương trình đào tạo · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: mọi học phần của CTĐT theo nhóm, tiên quyết, môn mở khóa và sơ đồ tiên quyết.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="explorer" data-layout="app">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="page">
+        <header class="page-head">
+          <div>
+            <h1>Chương trình đào tạo</h1>
+            <p id="sub"></p>
+          </div>
+          <div class="seg" role="tablist" aria-label="Cách xem">
+            <button type="button" role="tab" id="tab-list" aria-selected="true">Danh sách</button>
+            <button type="button" role="tab" id="tab-graph" aria-selected="false">Sơ đồ tiên quyết</button>
+          </div>
+        </header>
+
+        <div class="ex-tools">
+          <input class="input" type="search" id="q" placeholder="Tìm mã hoặc tên môn: CS414, học máy…" aria-label="Tìm học phần">
+          <div class="chips" id="gchips" role="group" aria-label="Lọc theo nhóm"></div>
+        </div>
+
+        <section id="v-list" class="stack"></section>
+        <section id="v-graph" class="card" hidden>
+          <div class="card-head"><h2>Sơ đồ tiên quyết</h2><span class="meta">Mũi tên đi từ môn tiên quyết sang môn nó mở khóa. Bấm một môn để làm nổi chuỗi của nó.</span></div>
+          <div class="graph-wrap" id="graph"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <aside class="drawer" id="course" aria-label="Chi tiết học phần">
+    <div class="drawer-head"><div style="display:flex;gap:14px;align-items:center" id="c-head"></div><button class="btn sm icon-only" type="button" data-close aria-label="Đóng"><i data-icon="x"></i></button></div>
+    <div class="drawer-body" id="c-body"></div>
+    <div class="drawer-foot" id="c-foot"></div>
+  </aside>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const plan = UI.plan();
+      const all = D.courses.filter((x) => !x.slot);
+      const stOf = (x) => x.status === 'done' || x.status === 'current' ? x.status : plan[x.code] ? 'planned' : 'pool';
+      const LABEL = { done: 'Đã đạt', current: 'Đang học', planned: 'Trong lộ trình', pool: 'Chưa xếp' };
+      let gsel = null;
+      $('sub').textContent = D.student.curriculum + ' · ' + all.length + ' học phần · ' + D.totalRequired + ' TC để tốt nghiệp';
+
+      $('gchips').innerHTML = '<button class="chip" type="button" data-g="" aria-pressed="true">Tất cả</button>' +
+        D.groups.map((g) => '<button class="chip soft g-' + g.id + '" type="button" data-g="' + g.id + '" aria-pressed="false">' + g.glyph + ' ' + g.short + '</button>').join('');
+      $('gchips').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-g]'); if (!b) return;
+        gsel = b.dataset.g || null;
+        $('gchips').querySelectorAll('[data-g]').forEach((x) => x.setAttribute('aria-pressed', x === b));
+        renderList(); renderGraph();
+      });
+      $('q').addEventListener('input', () => { renderList(); renderGraph(); });
+      const match = (x) => {
+        const t = fold($('q').value.trim());
+        return (!gsel || x.group === gsel) && (!t || fold(x.code + ' ' + x.name + ' ' + x.en).includes(t));
+      };
+
+      function renderList() {
+        const html = D.groups.filter((g) => !gsel || g.id === gsel).map((g) => {
+          const list = all.filter((x) => x.group === g.id && match(x));
+          if (!list.length) return '';
+          return '<div class="ex-group g-' + g.id + '"><div class="ex-group-head">' + UI.glyph(g.id) + '<div><h2>' + g.name + '</h2><p class="small t3">' + g.required + ' TC · ' + g.rule + '</p></div></div>' +
+            '<div class="ex-grid">' + list.map((x) => {
+              const st = stOf(x);
+              return UI.tile(x, { status: st, cls: st, attrs: 'role="button" tabindex="0" aria-label="' + x.code + ' ' + x.name + ', ' + LABEL[st] + '"', sub: LABEL[st] + (x.grade != null ? ' · ' + x.grade.toFixed(1) : '') + (x.prereq.length ? ' · cần ' + x.prereq.length + ' môn' : '') });
+            }).join('') + '</div></div>';
+        }).join('');
+        $('v-list').innerHTML = html || '<div class="card empty"><b>Không có học phần nào khớp</b><p class="small">Thử mã môn như CS414 hoặc bỏ lọc nhóm.</p></div>';
+      }
+
+      function renderGraph() {
+        const nodes = all.filter((x) => (x.prereq.length || D.unlocks(x.code).length) && match(x));
+        const ids = new Set(nodes.map((x) => x.code));
+        const depth = {};
+        const dep = (c) => depth[c] != null ? depth[c] : (depth[c] = D.course(c).prereq.length ? 1 + Math.max(...D.course(c).prereq.map(dep)) : 0);
+        nodes.forEach((x) => dep(x.code));
+        const cols = {};
+        const order = D.groups.map((g) => g.id);
+        nodes.slice().sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || a.code.localeCompare(b.code)).forEach((x) => { (cols[depth[x.code]] = cols[depth[x.code]] || []).push(x); });
+        const W = 158, H = 42, GX = 70, GY = 16, pos = {};
+        Object.keys(cols).forEach((d) => cols[d].forEach((x, i) => { pos[x.code] = [10 + d * (W + GX), 10 + i * (H + GY)]; }));
+        const maxRows = Math.max(1, ...Object.values(cols).map((c) => c.length));
+        const width = 20 + (Object.keys(cols).length) * (W + GX) - GX, height = 20 + maxRows * (H + GY);
+        let edges = '', boxes = '';
+        nodes.forEach((x) => x.prereq.filter((p) => ids.has(p)).forEach((p) => {
+          const [x1, y1] = pos[p], [x2, y2] = pos[x.code];
+          const a = [x1 + W, y1 + H / 2], b = [x2, y2 + H / 2], m = (a[0] + b[0]) / 2;
+          edges += '<path class="gedge" data-from="' + p + '" data-to="' + x.code + '" d="M' + a + ' C' + m + ',' + a[1] + ' ' + m + ',' + b[1] + ' ' + b + '" marker-end="url(#arr)"/>';
+        }));
+        nodes.forEach((x) => {
+          const [px, py] = pos[x.code], st = stOf(x);
+          const fill = st === 'done' || st === 'current' ? 'var(--c)' : 'var(--c-soft)';
+          const ink = st === 'done' || st === 'current' ? 'var(--on)' : 'var(--ink)';
+          boxes += '<g class="gnode g-' + x.group + '" data-code="' + x.code + '" tabindex="0" role="button" aria-label="' + x.code + ' ' + x.name + '">' +
+            '<rect x="' + px + '" y="' + py + '" width="' + W + '" height="' + H + '" rx="11" style="fill:' + fill + (st === 'pool' ? ';stroke-dasharray:5 4' : '') + '"/>' +
+            '<text x="' + (px + 12) + '" y="' + (py + 26) + '" style="fill:' + ink + '">' + x.code + '</text>' +
+            '<text x="' + (px + W - 12) + '" y="' + (py + 26) + '" text-anchor="end" style="fill:' + ink + ';font-family:var(--font);font-size:11px">' + (st === 'done' ? '✓ ' + x.grade.toFixed(1) : LABEL[st]) + '</text></g>';
+        });
+        $('graph').innerHTML = nodes.length ? '<svg width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Sơ đồ tiên quyết">' +
+          '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" style="fill:var(--ink-3)"/></marker></defs>' + edges + boxes + '</svg>' +
+          '<div class="legend" style="margin-top:12px"><span><i></i>Đã đạt hoặc đang học</span><span><i class="planned"></i>Trong lộ trình hoặc chưa xếp (viền đứt)</span></div>'
+          : '<p class="empty">Không có học phần nào khớp.</p>';
+      }
+
+      // Highlight a course's whole chain: everything it needs and everything it unlocks.
+      function chain(code) {
+        const up = new Set([code]), down = new Set([code]);
+        const goUp = (c) => D.course(c).prereq.forEach((p) => { if (!up.has(p)) { up.add(p); goUp(p); } });
+        const goDown = (c) => D.unlocks(c).forEach((u) => { if (!down.has(u)) { down.add(u); goDown(u); } });
+        goUp(code); goDown(code);
+        return new Set([...up, ...down]);
+      }
+      let hot = null;
+      $('graph').addEventListener('click', (e) => {
+        const n = e.target.closest('.gnode');
+        if (!n) { hot = null; } else if (hot === n.dataset.code) { openCourse(hot); return; } else hot = n.dataset.code;
+        const set = hot ? chain(hot) : null;
+        $('graph').querySelectorAll('.gnode').forEach((g) => g.classList.toggle('dim', !!set && !set.has(g.dataset.code)));
+        $('graph').querySelectorAll('.gedge').forEach((p) => {
+          const on = set && set.has(p.dataset.from) && set.has(p.dataset.to);
+          p.classList.toggle('hot', !!on); p.classList.toggle('dim', !!set && !on);
+        });
+        if (hot) UI.toast('Bấm lần nữa vào ' + hot + ' để xem chi tiết', 'graph');
+      });
+
+      function openCourse(code) {
+        const x = D.course(code), g = D.group(x.group), st = stOf(x);
+        $('c-head').innerHTML = UI.glyph(x.group, '') + '<div><p class="eyebrow">' + g.name + '</p><h2>' + x.name + '</h2><p class="small t3">' + x.en + '</p></div>';
+        const chips = (list) => list.length ? list.map((c) => '<button class="chip c g-' + D.course(c).group + '" type="button" data-open="' + c + '">' + c + ' · ' + D.course(c).name + '</button>').join(' ') : '<span class="t3">Không có</span>';
+        $('c-body').innerHTML = '<dl class="kv">' +
+          '<dt>Mã học phần</dt><dd><span class="code c g-' + x.group + '">' + x.code + '</span></dd>' +
+          '<dt>Tín chỉ</dt><dd class="b">' + x.credits + ' TC</dd>' +
+          '<dt>Trạng thái</dt><dd><span class="st ' + (st === 'pool' ? 'left' : st) + '">' + LABEL[st] + '</span>' + (D.termOf(plan, code) ? ' · ' + D.term(D.termOf(plan, code)).label : '') + '</dd>' +
+          (x.grade != null ? '<dt>Điểm</dt><dd><b class="num" style="font-size:20px">' + x.grade.toFixed(1) + '</b> <span class="t3">· ' + D.letter(x.grade) + ' (tham khảo)</span></dd>' : '') +
+          '<dt>Kỳ mở môn</dt><dd>' + (x.offered ? 'Chỉ ' + x.offered.map((n) => 'HK' + n).join(', ') : 'Mọi học kỳ chính') + '</dd>' +
+          '<dt>Tiên quyết</dt><dd style="display:flex;gap:6px;flex-wrap:wrap">' + chips(x.prereq) + '</dd>' +
+          '<dt>Mở khóa</dt><dd style="display:flex;gap:6px;flex-wrap:wrap">' + chips(D.unlocks(code)) + '</dd></dl>' +
+          (x.note ? '<div class="callout info small"><i data-icon="info"></i><p>' + x.note + '</p></div>' : '') +
+          '<p class="xs t3">Dữ liệu CTĐT do Ban chương trình nhập và duyệt theo văn bản gốc, không do AI trích xuất.</p>';
+        $('c-body').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+        $('c-foot').innerHTML = '<a class="btn" href="advisor.html">' + icon('sparkle', 'sm') + 'Hỏi trợ lý</a>' +
+          (st === 'done' || st === 'current' ? '' : '<a class="btn primary" href="planner.html">' + icon('columns', 'sm') + (st === 'planned' ? 'Xem trong lộ trình' : 'Thêm vào lộ trình') + '</a>');
+        UI.open('course');
+      }
+      document.addEventListener('click', (e) => {
+        const o = e.target.closest('[data-open]'); if (o) { openCourse(o.dataset.open); return; }
+        const t = e.target.closest('#v-list .tile'); if (t) openCourse(t.dataset.code);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const t = e.target.closest('#v-list .tile, .gnode'); if (t) { e.preventDefault(); openCourse(t.dataset.code); }
+      });
+
+      function view() {
+        const g = location.hash === '#graph';
+        $('v-list').hidden = g; $('v-graph').hidden = !g;
+        $('tab-list').setAttribute('aria-selected', !g); $('tab-graph').setAttribute('aria-selected', g);
+      }
+      $('tab-list').addEventListener('click', () => { history.replaceState(null, '', '#list'); view(); });
+      $('tab-graph').addEventListener('click', () => { history.replaceState(null, '', '#graph'); view(); });
+      window.addEventListener('hashchange', view);
+      renderList(); renderGraph(); view();
+    })();
+  </script>
+</body>
+</html>

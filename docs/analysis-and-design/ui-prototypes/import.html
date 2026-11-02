@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nhập bảng điểm · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: tải bảng điểm PDF, bộ đọc cố định, duyệt từng dòng trước khi lưu.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+</head>
+<body data-page="import" data-layout="app">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="page">
+        <header class="page-head">
+          <div>
+            <p class="crumbs"><a href="dashboard.html">Tổng quan</a> / Bảng điểm</p>
+            <h1>Nhập bảng điểm</h1>
+            <p>Tải file PDF xuất từ cổng thông tin sinh viên. Bộ đọc cố định đọc mã môn, tín chỉ, kết quả và học kỳ. Không dùng AI.</p>
+          </div>
+          <a class="btn" href="guides.html#grades"><i data-icon="book"></i>Cách tải PDF từ cổng</a>
+        </header>
+
+        <section id="s-upload" class="stack">
+          <label class="dropzone" id="dz" tabindex="0">
+            <span class="big-ic"><i data-icon="upload" class="lg"></i></span>
+            <h2>Thả file bảng điểm PDF vào đây</h2>
+            <span class="t2">hoặc bấm để chọn file · tối đa 300 dòng</span>
+            <input type="file" accept="application/pdf" id="file" class="sr">
+          </label>
+          <div class="card pad stack" id="parsing" hidden style="gap:12px">
+            <div style="display:flex;justify-content:space-between;gap:10px"><b id="p-label">Đang đọc bang-diem.pdf…</b><span class="t3 small" id="p-pct">0%</span></div>
+            <div class="progress"><i id="p-bar" style="width:0"></i></div>
+            <p class="small t2" id="p-step">Tìm bảng kết quả trong file</p>
+          </div>
+          <div class="grid-2 even">
+            <div class="callout info"><i data-icon="shield" class="lg"></i><div><b>File PDF không được lưu.</b><p>Chỉ những dòng bạn duyệt và bấm lưu mới vào hệ thống. Lưu lần sau sẽ thay toàn bộ lần trước.</p></div></div>
+            <div class="callout"><i data-icon="edit" class="lg"></i><div><b>Không có PDF?</b><p>Nhập tay từng môn. <a class="link" href="#review" id="manual">Mở bảng nhập tay</a></p></div></div>
+          </div>
+        </section>
+
+        <section id="s-review" class="stack" hidden>
+          <div class="card status-strip">
+            <div class="est"><span class="cap" id="r-ic"></span><div><b id="r-title"></b><small id="r-sub"></small></div></div>
+            <div class="cov" id="r-chips"></div>
+            <div class="head-actions"><button class="btn" type="button" id="add"><i data-icon="plus"></i>Thêm dòng</button><button class="btn primary" type="button" id="save"><i data-icon="check"></i>Lưu bảng điểm</button></div>
+          </div>
+          <section class="card" aria-labelledby="rv-title">
+            <div class="card-head"><h2 id="rv-title">Duyệt từng dòng</h2><span class="meta">Kết quả: có điểm, đang học, miễn, đạt, không đạt</span></div>
+            <div class="table-wrap" style="padding:8px 8px 12px">
+              <table class="table review">
+                <thead><tr><th>Học kỳ</th><th>Mã môn</th><th>Tên môn</th><th class="r">TC</th><th>Kết quả</th><th>Điểm (thang 10)</th><th><span class="sr">Xóa</span></th></tr></thead>
+                <tbody id="rows"></tbody>
+              </table>
+            </div>
+          </section>
+          <p class="small t3">Bảng điểm chỉ ghi lại kết quả. Môn nào được tính cho nhóm nào, lần học nào được tính, do rule engine quyết định khi xét tốt nghiệp.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const RESULTS = [['graded', 'Có điểm'], ['in_progress', 'Đang học'], ['exempt', 'Miễn'], ['pass', 'Đạt'], ['fail', 'Không đạt'], ['', 'Chưa đọc được']];
+      const rows = D.courses.filter((x) => x.status === 'done' || x.status === 'current').map((x) => ({
+        term: x.term, code: x.code, name: x.name, credits: x.credits, result: x.grade != null ? 'graded' : 'in_progress', grade: x.grade,
+      }));
+      rows.push({ term: '2024-1', code: 'PE001', name: 'Giáo dục thể chất 1', credits: 0, result: 'pass', grade: null });
+      rows.push({ term: '2024-1', code: 'ENG101', name: 'Tiếng Anh dự bị (ô kết quả ghi "M", bộ đọc chưa hiểu)', credits: 0, result: '', grade: null });
+      rows.sort((a, b) => D.tIdx(a.term) - D.tIdx(b.term) || a.code.localeCompare(b.code));
+
+      const bad = (r) => !r.code || !r.result || (r.result === 'graded' && (r.grade == null || r.grade === '' || r.grade < 0 || r.grade > 10));
+      function render() {
+        const nBad = rows.filter(bad).length;
+        $('r-ic').innerHTML = icon(nBad ? 'alert' : 'check');
+        $('r-ic').parentElement.classList.toggle('bad', !!nBad);
+        $('r-title').textContent = rows.length + ' dòng' + (nBad ? ' · ' + nBad + ' cần sửa' : ' · sẵn sàng lưu');
+        $('r-sub').textContent = nBad ? 'Dòng chưa đủ thông tin không lưu được' : 'Lưu sẽ thay toàn bộ bảng điểm trước đó';
+        $('save').disabled = !!nBad;
+        const cnt = (k) => rows.filter((r) => r.result === k).length;
+        $('r-chips').innerHTML = RESULTS.slice(0, 5).map(([k, l]) => '<span><b class="chip">' + cnt(k) + '</b>' + l + '</span>').join('');
+        $('rows').innerHTML = rows.map((r, i) => {
+          const x = D.course(r.code);
+          const g = x ? x.group : null;
+          return '<tr class="' + (bad(r) ? 'err' : '') + '" data-i="' + i + '">' +
+            '<td style="white-space:nowrap">' + (D.term(r.term) ? D.term(r.term).short : r.term) + '</td>' +
+            '<td>' + (g ? '<span class="code c g-' + g + '">' + r.code + '</span>' : '<input class="input mono" style="width:110px" data-f="code" value="' + r.code + '" aria-label="Mã môn">') + '</td>' +
+            '<td>' + r.name + '</td><td class="r">' + r.credits + '</td>' +
+            '<td><select class="select" data-f="result" aria-label="Kết quả ' + r.code + '">' + RESULTS.map(([k, l]) => '<option value="' + k + '"' + (r.result === k ? ' selected' : '') + (k === '' ? ' disabled' : '') + '>' + l + '</option>').join('') + '</select></td>' +
+            '<td>' + (r.result === 'graded' ? '<input class="input" style="width:84px" inputmode="decimal" data-f="grade" value="' + (r.grade == null ? '' : r.grade.toFixed(1)) + '" aria-label="Điểm ' + r.code + '">' : '<span class="t3">—</span>') + '</td>' +
+            '<td><button class="btn sm ghost icon-only" type="button" data-del aria-label="Xóa dòng ' + r.code + '">' + icon('trash', 'sm') + '</button></td></tr>';
+        }).join('');
+      }
+      $('rows').addEventListener('change', (e) => {
+        const tr = e.target.closest('tr'), r = rows[+tr.dataset.i], f = e.target.dataset.f;
+        if (f === 'grade') r.grade = e.target.value === '' ? null : Math.round(parseFloat(e.target.value.replace(',', '.')) * 10) / 10;
+        else r[f] = f === 'code' ? e.target.value.trim().toUpperCase() : e.target.value;
+        render();
+      });
+      $('rows').addEventListener('click', (e) => {
+        if (!e.target.closest('[data-del]')) return;
+        rows.splice(+e.target.closest('tr').dataset.i, 1); render();
+      });
+      $('add').addEventListener('click', () => { rows.push({ term: D.NOW, code: '', name: 'Môn mới', credits: 0, result: 'in_progress', grade: null }); render(); });
+      $('save').addEventListener('click', () => { UI.toast('Đã lưu ' + rows.length + ' dòng. Tiến độ đã tính lại.'); setTimeout(() => { location.href = 'dashboard.html'; }, 1200); });
+
+      function show(review) {
+        $('s-upload').hidden = review; $('s-review').hidden = !review;
+        if (review) render();
+      }
+      function parse(name) {
+        $('parsing').hidden = false; $('dz').hidden = true;
+        $('p-label').textContent = 'Đang đọc ' + name + '…';
+        const steps = ['Tìm bảng kết quả trong file', 'Đọc mã môn và tín chỉ', 'Đọc kết quả và học kỳ', 'Đối chiếu định dạng mã môn'];
+        let p = 0;
+        const t = setInterval(() => {
+          p += 9; $('p-bar').style.width = Math.min(p, 100) + '%'; $('p-pct').textContent = Math.min(p, 100) + '%';
+          $('p-step').textContent = steps[Math.min(3, Math.floor(p / 26))];
+          if (p >= 100) { clearInterval(t); location.hash = 'review'; }
+        }, 120);
+      }
+      $('file').addEventListener('change', (e) => { if (e.target.files[0]) parse(e.target.files[0].name); });
+      const dz = $('dz');
+      dz.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } });
+      ['dragenter', 'dragover'].forEach((t) => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add('over'); }));
+      ['dragleave', 'drop'].forEach((t) => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove('over'); }));
+      dz.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; parse(f ? f.name : 'bang-diem.pdf'); });
+      window.addEventListener('hashchange', () => show(location.hash === '#review'));
+      show(location.hash === '#review');
+    })();
+  </script>
+</body>
+</html>
