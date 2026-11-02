@@ -86,7 +86,7 @@ describe.skipIf(!databaseUrl)('curriculum schema migration', () => {
 
       await expect(
         dataSource.query(`INSERT INTO courses (code, name_vi, credits) VALUES ($1,$2,$3)`, [
-          `BAD${suffix.slice(0, 4)}`,
+          `BAD${suffix.slice(0, 4).toUpperCase()}`,
           'Bad',
           0,
         ]),
