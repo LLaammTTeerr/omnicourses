@@ -3,13 +3,13 @@
 - Owner: Dũng
 - Build: B0, 1 November 2026
 - Version: 0.1, 30 October 2026
-- Parent checks: [Elaboration test plan §5, B0 checks](elaboration-test-plan.md#b0-checks). Each case below has its parent's ID plus a letter, such as `TC-B0-AUTH-01a`.
+- Parent checks: [Test plan §5, B0 checks](test-plan.md#b0-checks). Each case below has its parent's ID plus a letter, such as `TC-B0-AUTH-01a`.
 
 Each case lists what to click or type and the result to expect. This file is not a test report: no case here has been run yet.
 
 ## 1. Before you start
 
-**Where to test.** For B0, on your own machine: no staging server is chosen yet (issue #24), and `deploy.yml` only builds the files. How cases that cannot run count toward B0 is set in [test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready). Set up the app like this:
+**Where to test.** For B0, on your own machine: no staging server is chosen yet (issue #24), and `deploy.yml` only builds the files. How cases that cannot run count toward B0 is set in [test plan §7](test-plan.md#7-when-a-build-is-ready). Set up the app like this:
 
 ```bash
 npm install
@@ -25,7 +25,7 @@ npm run dev:frontend       # app on http://localhost:5173
 2. To call a route that needs a signed-in user, copy the `token` from a sign-in or sign-up response. Press **Authorize** at the top, paste the token alone (without the word "Bearer"), press **Authorize**, then **Close**.
 3. To call as nobody, press **Authorize**, then **Logout**.
 
-**Screens.** Cases marked **Screen** need the sign-up and sign-in screens of issue #13, which are not merged on 30 October. If #13 is not merged by 1 November, mark these cases **not run: feature not merged**; [test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready) says how they count. The labels follow UC-01 (**Sign up**, **Sign in**, **Sign out**) and are updated when the screens land.
+**Screens.** Cases marked **Screen** need the sign-up and sign-in screens of issue #13, which are not merged on 30 October. If #13 is not merged by 1 November, mark these cases **not run: feature not merged**; [test plan §7](test-plan.md#7-when-a-build-is-ready) says how they count. The labels follow UC-01 (**Sign up**, **Sign in**, **Sign out**) and are updated when the screens land.
 
 **Test data.** Use made-up accounts only:
 - emails at `example.com`, such as `b0-01@example.com`, never a real or school address;
@@ -84,7 +84,7 @@ Already automated: `auth.e2e-spec.ts` covers a, c, e, f and j; `auth.service.spe
 
 ## 4. TC-B0-UI-01: Screens
 
-All **Screen**, through the real API. If #13 is not merged by 1 November: **not run: feature not merged** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). Use Chrome and record its version. Open DevTools with F12 where a case says so.
+All **Screen**, through the real API. If #13 is not merged by 1 November: **not run: feature not merged** ([test plan §7](test-plan.md#7-when-a-build-is-ready)). Use Chrome and record its version. Open DevTools with F12 where a case says so.
 
 | ID | Do this | Expect |
 | --- | --- | --- |
@@ -115,13 +115,13 @@ All **Screen**, through the real API. If #13 is not merged by 1 November: **not 
 | DB-01c | Stop the database container (`podman stop` or `docker stop`) and open `/api/health` again. Then open the app's home page. Start the database again and wait a minute. | With the database stopped: still **200**, with `"status":"degraded"`, `"database":"down"` and `"postgresVersion":null`, and the home page says "API degraded · database down". After the restart: `"status":"ok"` again without restarting the API. |
 | DB-01d | Open `<API>/api/docs`. Then open `<API>/api/docs-json`. | The docs page lists the `health`, `auth` and `users` groups and has an **Authorize** button. The JSON starts with `"openapi": "3.2.0"`. |
 | DB-01e | Without Authorize, call every route on the docs page except health, sign-up and sign-in. | Each answers **401**. No route is open by accident (ADR 0002, default deny). |
-| DB-01f | Curriculum constraints from PR #23: a duplicate cohort, a course code that breaks `^[A-Z0-9]{2,20}$`, and two requirement groups with the same name in one curriculum. | Each is refused by the database. The detailed steps are written when #23 lands. If #23 is not merged by 1 November: **not run: feature not merged** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). |
+| DB-01f | Curriculum constraints from PR #23: a duplicate cohort, a course code that breaks `^[A-Z0-9]{2,20}$`, and two requirement groups with the same name in one curriculum. | Each is refused by the database. The detailed steps are written when #23 lands. If #23 is not merged by 1 November: **not run: feature not merged** ([test plan §7](test-plan.md#7-when-a-build-is-ready)). |
 
 Already automated: `app.e2e-spec.ts` covers b and the OpenAPI version in d; `public-routes.e2e-spec.ts` covers e on every route, including routes left out of the OpenAPI document.
 
 ## 6. TC-B0-DEP-01: Deployed build
 
-No staging server exists yet: no host is chosen (issue #24), and `deploy.yml` only builds the files. For B0, all six cases are **blocked: no server yet** ([test plan §7](elaboration-test-plan.md#7-when-a-build-is-ready)). You may try DEP-01c and DEP-01d on your own machine, but record that as a note on the blocked case, never as a pass. All six run on staging once it exists.
+No staging server exists yet: no host is chosen (issue #24), and `deploy.yml` only builds the files. For B0, all six cases are **blocked: no server yet** ([test plan §7](test-plan.md#7-when-a-build-is-ready)). You may try DEP-01c and DEP-01d on your own machine, but record that as a note on the blocked case, never as a pass. All six run on staging once it exists.
 
 | ID | Do this | Expect |
 | --- | --- | --- |

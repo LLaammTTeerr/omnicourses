@@ -1,6 +1,6 @@
 # Vision v1.0: NFR source excerpts
 
-These excerpts make the Elaboration test plan's source clauses reviewable without publishing the personal reference folder. They are copied from **OmniCourse — Vision Document, version 1.0**, revision **18 October 2026**, supplied by Thắng on 29 October 2026 as `OmniCourse - Vision Document v1.0.docx`.
+These excerpts make the test plan's source clauses reviewable without publishing the personal reference folder. They are copied from **OmniCourse — Vision Document, version 1.0**, revision **18 October 2026**, supplied by Thắng on 29 October 2026 as `OmniCourse - Vision Document v1.0.docx`.
 
 Source location: **§6 Other Product Requirements → Non-Functional Requirements**, using the named bullets below. The document does not give those bullets separate requirement IDs.
 
