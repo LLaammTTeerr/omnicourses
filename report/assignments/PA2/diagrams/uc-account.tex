@@ -1,0 +1,36 @@
+%% Module A: account and access (F1)
+\begin{tikzpicture}
+  % actors
+  \ucactor{visitor}{0,1.45}{Visitor}
+  \ucactor{student}{0,-2.3}{Student}
+  \ucsystem{google}{13.7,0.3}{Google\\identity}
+
+  % use cases
+  \node[ucmain] (uc01) at (5.0,2.5) {\textbf{UC-01}\\Sign up and onboard};
+  \node[ucmain] (uc13) at (5.0,0.3) {\textbf{UC-13}\\Sign in};
+  \node[ucmain] (uc14) at (5.0,-2.3) {\textbf{UC-14}\\Manage account and privacy};
+  \node[uc]     (uc02) at (9.9,3.1) {\textbf{UC-02}\\Import transcript};
+
+  % system boundary
+  \begin{scope}[on background layer]
+    \node[boundary, fit=(uc01)(uc13)(uc14)(uc02), inner xsep=14pt, inner ysep=18pt] (sys) {};
+  \end{scope}
+  \node[btitle] at (sys.north west) {OmniCourse \textbullet{} A. Account and access (F1)};
+
+  % generalization: a student is a visitor who has signed in
+  \draw[gen] (student.north) -- ($(visitor-l.south)+(0,-0.06)$);
+
+  % associations
+  \draw[assoc] (visitor) -- (uc01);
+  \draw[assoc] (visitor) -- (uc13);
+  \draw[assoc] (student) -- (uc14);
+  \draw[assoc] (google) -- (uc01);
+  \draw[assoc] (google) -- (uc13);
+
+  % relationships and notes
+  \ucextend[above, sloped]{uc02}{uc01}
+  \node[lbl, align=left, anchor=west] at ($(uc14.east)+(0.35,0)$)
+    {sign out, sessions, AI consent,\\export the account, delete it\\with a 30-day grace period};
+  \node[lbl, align=left, anchor=north west] at ($(uc13.south east)+(-0.1,0.05)$)
+    {restores an account\\scheduled for deletion};
+\end{tikzpicture}

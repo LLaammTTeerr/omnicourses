@@ -9,7 +9,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="shared" data-layout="public">
   <main class="pub-main" id="main"><div class="page" id="page"></div></main>
@@ -30,26 +34,51 @@
         const name = S ? S.list[S.active].name : 'Kế hoạch chính';
         const plan = UI.plan(), res = D.check(plan);
         const sh = UI.store.get('shared', null);
-        const cols = [D.NOW].concat(D.future.map((t) => t.id)).filter((id) => D.load(plan, id) > 0);
+        const bad = new Set(res.violations.filter((v) => v.code).map((v) => v.code));
+        // The same rows, meters and rail as the planner, with nothing to drag or fix.
+        const SCALE = D.CAP.max + 6, pctOf = (n) => Math.max(0, Math.min(100, n / SCALE * 100));
+        const loadState = (l) => l > D.CAP.max ? 'over' : l > 0 && l < D.CAP.min ? 'under' : l ? 'ok' : '';
+        const meter = (l) => '<div class="cap ' + loadState(l) + '"><span class="track"><i class="fill" style="width:' + pctOf(l) + '%"></i></span>' +
+          '<span class="tick" style="left:' + pctOf(D.CAP.min) + '%"><em>' + D.CAP.min + '</em></span><span class="tick max" style="left:' + pctOf(D.CAP.max) + '%"><em>' + D.CAP.max + '</em></span></div>';
+        const row = (t, list, now) => {
+          const l = list.reduce((s, x) => s + x.credits, 0);
+          return '<section class="trow' + (now ? ' now' : '') + '" aria-label="' + t.label + ', ' + l + ' tín chỉ"><div class="trow-h"><div class="tname"><b>' + t.label + '</b>' +
+            (now ? '<span class="chip info">Đang học</span>' : '') + '<small>' + (t.when || '') + '</small></div>' +
+            '<div class="tload"><b>' + l + '</b> / ' + D.CAP.max + ' TC</div>' + meter(l) + '</div>' +
+            '<div class="drop">' + list.map((x) => UI.tile(x, { status: now ? 'current' : 'planned', flag: bad.has(x.code), cls: bad.has(x.code) ? 'has-issue' : '',
+              sub: D.group(x.group).short + (x.prereq.length ? ' · cần ' + x.prereq.join(', ') : '') })).join('') + '</div></section>';
+        };
+        const past = D.past;
+        let rows = '<section class="trow past" aria-label="Đã học"><div class="trow-h"><div class="tname"><b>Đã học</b><small>' + past.length + ' học kỳ · ' + past[0].short + ' → ' + past[past.length - 1].short + '</small></div>' +
+          '<div class="tload"><b>' + D.done + '</b> TC tích lũy</div></div>' +
+          '<div class="codes">' + D.courses.filter((x) => x.status === 'done').map((x) => '<span class="code c g-' + x.group + '" title="' + x.name + '">' + x.code + '</span>').join('') + '</div></section>';
+        rows += row(D.term(D.NOW), D.courses.filter((x) => D.termOf(plan, x.code) === D.NOW), true);
+        D.future.filter((t) => D.load(plan, t.id) > 0).forEach((t) => {
+          rows += row(t, D.courses.filter((x) => x.status !== 'done' && x.status !== 'current' && D.termOf(plan, x.code) === t.id), false);
+        });
+        const V = res.violations;
         $('page').innerHTML =
           '<div class="shared-banner">' + icon('eye') + '<b>Lộ trình được chia sẻ · chỉ đọc</b><span class="small" style="opacity:.8">Sửa lần cuối 30/10/2026 lúc 21:14</span></div>' +
           '<header class="page-head"><div><p class="eyebrow">' + (sh && sh.name ? D.student.name + ' chia sẻ' : 'Một sinh viên chia sẻ') + '</p><h1>' + name + '</h1>' +
           '<p>' + D.student.programName + ' · ' + D.student.cohort + ' · ' + D.student.curriculum + '</p></div>' +
-          '<div class="est' + (res.est ? '' : ' bad') + '"><span class="cap">' + icon(res.est ? 'cap' : 'alert') + '</span><div><small>' + (res.est ? 'Tốt nghiệp dự kiến (rule engine)' : 'Rule engine báo ' + res.violations.length + ' vi phạm') + '</small><b>' + (res.est || res.lastUsed).label + '</b></div></div></header>' +
-          (res.violations.length ? '<section class="card"><div class="card-head"><h2>Vi phạm rule engine đang báo</h2></div><div class="vlist">' +
-            res.violations.map((v) => '<div class="vrow' + (v.kind === 'cover' ? ' cover' : '') + '"><span class="ic">' + icon('alert', 'sm') + '</span><div><b>Vi phạm: ' + v.title + '</b><p>' + v.text + '</p></div><span></span></div>').join('') + '</div></section>' : '') +
-          '<div class="ro-board">' + cols.map((id) => {
-            const t = D.term(id), list = D.courses.filter((x) => D.termOf(plan, x.code) === id), l = D.load(plan, id);
-            return '<section class="col' + (id === D.NOW ? ' now' : '') + '"><div class="col-head"><div class="row"><b>' + t.label + '</b>' + (id === D.NOW ? '<span class="chip info">Đang học</span>' : '') + '</div>' +
-              '<div class="load"><span><b>' + l + '</b> TC</span><span>' + (t.when || '') + '</span></div></div>' +
-              '<div class="drop">' + list.map((x) => UI.tile(x, { status: id === D.NOW ? 'current' : 'planned', sub: D.group(x.group).short })).join('') + '</div></section>';
-          }).join('') + '</div>' +
-          '<div class="legend">' + D.groups.map((g) => '<span><i style="background:var(--' + g.id + ')"></i>' + g.name + '</span>').join('') + '</div>' +
+          '<div class="head-actions"><button class="btn" type="button" onclick="print()">' + icon('download') + 'Xuất PDF</button></div></header>' +
+          '<section class="card status-strip" aria-label="Tình trạng lộ trình"><div class="est' + (res.est ? '' : ' bad') + '"><span class="cap">' + icon(res.est ? 'cap' : 'alert') + '</span><div>' +
+            (res.est ? '<small>Tốt nghiệp dự kiến</small><b>' + res.est.label + '</b>' : '<small>Chưa hợp lệ · ' + V.length + ' vi phạm</small><b>' + res.lastUsed.label + '?</b>') + '</div></div>' +
+          '<div class="cov">' + D.groups.map((g) => { const c = res.coverage[g.id];
+            return '<span class="g-' + g.id + (c.total < g.required ? ' miss' : '') + '" title="' + g.name + ': ' + c.total + '/' + g.required + ' TC">' + UI.glyph(g.id, 'sm') + c.total + '/' + g.required + '</span>'; }).join('') + '</div>' +
+          '<span class="chip">' + icon('lock', 'sm') + 'Chỉ đọc</span></section>' +
+          '<div class="plan-layout"><div class="plan-main"><div class="rows" aria-label="Các học kỳ">' + rows + '</div></div>' +
+          '<aside class="card rail" aria-labelledby="v-title"><div class="rail-head"><h2 id="v-title">Vi phạm</h2><span class="rail-n' + (V.length ? '' : ' zero') + '">' + V.length + '</span></div>' +
+          '<div class="rail-body"><p class="rail-sub">Rule engine kiểm tra lúc mở trang.</p><div class="rail-list">' +
+          (V.map((v) => '<div class="vitem' + (v.kind === 'cover' ? ' cover' : '') + '"><span class="ic">' + icon(v.kind === 'cover' ? 'plus' : 'alert', 'sm') + '</span>' +
+            '<div><b>' + v.title + '</b><p>' + v.text + '</p><div class="vfoot">' + (v.ref.startsWith('Điều') ? UI.ref(v.ref) : '<span class="chip line" style="min-height:20px">' + v.ref + '</span>') + '</div></div></div>').join('') ||
+            '<div class="rail-empty">' + icon('check') + '<b>Không có vi phạm</b><span>Lộ trình hợp lệ với rule engine.</span></div>') + '</div></div></aside></div>' +
           '<p class="small t3">Trang này không hiện điểm, email, MSSV, bảng điểm hay các kế hoạch khác. Công cụ tìm kiếm không lập chỉ mục trang này.</p>';
       }
       window.addEventListener('hashchange', render);
       render();
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

@@ -1,0 +1,29 @@
+%% Module E: curriculum administration (F12)
+\begin{tikzpicture}
+  \ucactor{padmin}{0,2.4}{Program\\administrator}
+  \ucactor{catalog}{0,-0.6}{Catalog\\maintainer}
+  \ucactor{access}{0,-3.6}{Access\\manager}
+
+  \node[ucmain] (uc11) at (5.0,2.4)  {\textbf{UC-11}\\Maintain curriculum};
+  \node[ucmain] (uc18) at (5.0,-0.6) {\textbf{UC-17}\\Maintain the course catalog};
+  \node[ucmain] (uc19) at (5.0,-3.6) {\textbf{UC-18}\\Manage administration access};
+  \node[ucshared] (uc20) at (10.0,0.9) {\textbf{UC-19}\\Evaluate academic rules};
+
+  \begin{scope}[on background layer]
+    \node[boundary, fit=(uc11)(uc19)(uc20), inner xsep=14pt, inner ysep=18pt] (sys) {};
+  \end{scope}
+  \node[btitle] at (sys.north west) {OmniCourse \textbullet{} E. Curriculum administration (F12)};
+
+  \draw[assoc] (padmin) -- (uc11);
+  \draw[assoc] (catalog) -- (uc18);
+  \draw[assoc] (access) -- (uc19);
+
+  \ucextend[right]{uc18}{uc11}
+  \ucinclude[above, sloped]{uc11}{uc20}
+  \node[lbl, align=left, anchor=west] at ($(uc19.east)+(0.3,0)$)
+    {create a program, grant and revoke\\program, catalog and access rights};
+  \node[lbl, align=left, anchor=north] at ($(uc20.south)+(0,-0.1)$)
+    {checks entered prerequisites\\and requirement groups};
+  \node[lbl, align=center, anchor=north] at ($(uc18.south)+(0,-0.08)$)
+    {a change reaches every program and\\cohort that links the course};
+\end{tikzpicture}

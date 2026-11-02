@@ -1,0 +1,33 @@
+%% Module C: planning (F5, F6, F7, F9)
+\begin{tikzpicture}
+  \ucactor{student}{0,0.2}{Student}
+  \ucsystem{model}{13.4,3.3}{Model\\provider}
+  \ucactor{advisor}{13.4,-3.2}{Advisor}
+
+  \node[ucmain] (uc07) at (4.4,3.3)  {\textbf{UC-07}\\Generate a plan};
+  \node[ucmain] (uc05) at (4.4,1.0)  {\textbf{UC-05}\\Build and edit a plan};
+  \node[ucmain] (uc06) at (4.4,-1.2) {\textbf{UC-06}\\Simulate a what-if scenario};
+  \node[ucmain] (uc09) at (4.4,-3.5) {\textbf{UC-09}\\Share or export a plan};
+  \node[ucmain] (uc16) at (9.2,-3.2) {\textbf{UC-16}\\View a shared plan};
+  \node[ucshared] (uc20) at (9.2,0.4) {\textbf{UC-19}\\Evaluate academic rules};
+
+  \begin{scope}[on background layer]
+    \node[boundary, fit=(uc07)(uc09)(uc16)(uc20), inner xsep=14pt, inner ysep=18pt] (sys) {};
+  \end{scope}
+  \node[btitle] at (sys.north west) {OmniCourse \textbullet{} C. Planning (F5, F6, F7, F9)};
+
+  \draw[assoc] (student) -- (uc07);
+  \draw[assoc] (student) -- (uc05);
+  \draw[assoc] (student) -- (uc06);
+  \draw[assoc] (student) -- (uc09);
+  \draw[assoc] (model) -- (uc07);
+  \draw[assoc] (advisor) -- (uc16);
+
+  \ucextend[left]{uc06}{uc05}
+    \ucinclude[above, sloped]{uc05}{uc20}
+  \ucinclude[above, sloped]{uc07}{uc20}
+  \ucinclude[below, sloped, pos=0.55]{uc06}{uc20}
+  \ucinclude[right, pos=0.45]{uc16}{uc20}
+  \draw[assoc, dotted] (uc09) -- node[lbl, below, align=center] {link} (uc16);
+  \node[lbl, align=center, anchor=north] at ($(model.south)+(0,-0.08)$) {goal box only:\\words to form fields};
+\end{tikzpicture}

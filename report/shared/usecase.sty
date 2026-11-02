@@ -1,0 +1,86 @@
+%% usecase.sty -- UML use-case diagram helpers for the OmniCourse reports (TikZ)
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesFile{usecase.sty}[2026/11/02 v1.0 OmniCourse use-case diagrams]
+
+\RequirePackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc}
+% the system boundary sits behind the packages, which sit behind the use cases
+\pgfdeclarelayer{ucback}
+\pgfsetlayers{ucback,background,main}
+
+\definecolor{ucLine}{HTML}{4b5563}
+\definecolor{ucRel}{HTML}{4338ca}
+\definecolor{ucFill}{HTML}{f5f6fb}
+\definecolor{ucMainFill}{HTML}{e0e7ff}
+\definecolor{ucBorder}{HTML}{6366f1}
+\definecolor{ucBox}{HTML}{fbfcfe}
+
+\tikzset{
+  % a use case of another module: light ellipse
+  uc/.style={ellipse, draw=ucBorder!70, line width=0.7pt, fill=ucFill,
+    text width=#1, align=center, inner sep=1.2pt, minimum height=1.15cm,
+    font=\sffamily\footnotesize\color{ocDark},
+    execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  uc/.default={2.75cm},
+  % a use case of the module the diagram shows: heavier outline, tinted
+  ucmain/.style={uc=#1, draw=ucBorder, line width=1.1pt, fill=ucMainFill},
+  ucmain/.default={2.75cm},
+  % a use case included by several others
+  ucshared/.style={uc=#1, draw=ucBorder, fill=white, dash pattern=on 2.4pt off 1.4pt},
+  ucshared/.default={2.75cm},
+  % association between an actor and a use case
+  assoc/.style={draw=ucLine, line width=0.6pt},
+  % include and extend
+  incl/.style={draw=ucRel, line width=0.6pt, dash pattern=on 3pt off 2pt,
+    -{Stealth[length=2.4mm,width=1.8mm]}},
+  rellbl/.style={font=\sffamily\scriptsize\itshape\color{ucRel}, fill=ucBox, inner sep=1pt},
+  % generalization
+  gen/.style={draw=ucLine, line width=0.65pt, -{Triangle[open,length=3mm,width=2.8mm]}},
+  % system boundary
+  boundary/.style={draw=ocNavy!70, line width=0.9pt, rounded corners=3pt, fill=ucBox, inner sep=10pt},
+  btitle/.style={font=\sffamily\footnotesize\bfseries\color{ocNavy}, anchor=north west, inner sep=5pt},
+  % a package (module) in the overview diagram
+  pkg/.style={draw=ucBorder!80!ocNavy, line width=0.7pt, fill=white, rounded corners=1.5pt, inner sep=7pt},
+  ptitle/.style={font=\sffamily\footnotesize\bfseries\color{ocDark}, anchor=south west, inner sep=3pt,
+    draw=ucBorder!80!ocNavy, line width=0.7pt, fill=ucMainFill},
+  lbl/.style={font=\sffamily\scriptsize\color{ocGray}},
+}
+
+% \ucactor{node name}{position}{label}: stick figure; lines attach to its box
+\newcommand{\ucactor}[3]{%
+  \node[minimum width=0.8cm, minimum height=1.35cm, inner sep=0pt] (#1) at (#2) {};
+  \begin{scope}[draw=ocDark, line width=0.75pt, line cap=round]
+    \draw[fill=white] ($(#1.north)+(0,-0.17)$) circle (0.17);
+    \draw ($(#1.north)+(0,-0.34)$) -- ($(#1.center)+(0,-0.12)$);
+    \draw ($(#1.center)+(-0.3,0.2)$) -- ($(#1.center)+(0.3,0.2)$);
+    \draw ($(#1.center)+(0,-0.12)$) -- ($(#1.south)+(-0.24,0.02)$);
+    \draw ($(#1.center)+(0,-0.12)$) -- ($(#1.south)+(0.24,0.02)$);
+  \end{scope}
+  \node[below=1pt of #1, font=\sffamily\footnotesize\bfseries\color{ocDark}, align=center, inner sep=1pt] (#1-l) {#3};%
+}
+
+% \ucsystem{node name}{position}{label}: an external system as a box with the actor stereotype
+\newcommand{\ucsystem}[3]{%
+  \node[draw=ocDark, line width=0.75pt, fill=white, rounded corners=1pt, align=center,
+        font=\sffamily\footnotesize\bfseries\color{ocDark}, inner sep=4pt, minimum width=2.1cm] (#1) at (#2)
+        {{\scriptsize\mdseries\itshape\color{ocGray}\guillemotleft actor\guillemotright}\\#3};%
+}
+
+% \ucinclude[label options]{from}{to} and \ucextend[label options]{from}{to}
+\newcommand{\ucinclude}[3][]{\draw[incl] (#2) -- node[rellbl,#1] {\guillemotleft include\guillemotright} (#3);}
+\newcommand{\ucextend}[3][]{\draw[incl] (#2) -- node[rellbl,#1] {\guillemotleft extend\guillemotright} (#3);}
+
+% legend under every module diagram
+\newcommand{\uclegend}{%
+  \begin{tikzpicture}[baseline=-0.6ex, font=\sffamily\scriptsize\color{ocGray}]
+    \node[ucmain=0.45cm, minimum height=0.32cm, inner sep=0pt] (a) at (0,0) {};
+    \node[right=2pt of a] (at) {this module};
+    \node[uc=0.45cm, minimum height=0.32cm, inner sep=0pt, right=9pt of at] (b) {};
+    \node[right=2pt of b] (bt) {another module};
+    \node[ucshared=0.45cm, minimum height=0.32cm, inner sep=0pt, right=9pt of bt] (c) {};
+    \node[right=2pt of c] (ct) {shared, included};
+    \draw[incl] ($(ct.east)+(9pt,0)$) -- ++(0.75,0) node[right=2pt] (dt) {include, extend};
+    \draw[gen] ($(dt.east)+(9pt,0)$) -- ++(0.75,0) node[right=2pt] {generalization};
+  \end{tikzpicture}}
+
+\endinput

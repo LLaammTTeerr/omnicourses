@@ -19,9 +19,25 @@
 \hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
 \endhead
 18/Oct/2026 & 1.0 & Initial version submitted for PA1 & Lê Hữu Hoà\\
-1/Nov/2026 & 2.0 & Second submission for PA2: expanded product features, alternatives, competitor analysis, and non-functional requirements; F2, F6, F8 and F12 restated per ADR 0003 (a language model only in the F6 goal box and F8 advisor, never deciding an academic rule). Revisions highlighted in blue. & Lê Hữu Hoà\\
+\textcolor{blue}{1/Nov/2026} & \textcolor{blue}{2.0} & \textcolor{blue}{Second submission for PA2. Every change from
+1.0 is in blue; the list below names them.} & \textcolor{blue}{Lê Hữu Hoà}\\
 \end{xltabular}}
-\par\vspace{1.0cm}
+
+{\color{blue}
+\subsection*{What changed from version 1.0}
+\begin{itemize}
+  \item F2, F6, F8 and F12 restated by ADR 0003: a language model is used only in the F6 goal box and the F8 advisor chat,
+        and never decides an academic rule. Transcripts and curriculum data are read deterministically or entered by people.
+  \item The user summary names every actor of the use-case model: visitor, student, advisor, program administrator,
+        catalog maintainer and access manager.
+  \item A feature comparison with the alternatives (§3.5) and a map from each feature to its use cases (§6.2).
+  \item Non-functional requirements made checkable: AI call limits, a manual path on every AI screen, the API cap, the
+        recovery target and the supported browsers.
+  \item The budget assumption changes from a free model tier to a paid, capped one, because free tiers log or train on
+        prompts.
+  \item No written TA feedback on version 1.0 had arrived by 1 November; feedback that arrives later goes into version 2.1.
+\end{itemize}}
+\par\vspace{0.6cm}
 
 {\hypersetup{linkcolor=ocNavy}\tableofcontents}
 
@@ -43,6 +59,10 @@ is fulfilled in detail belongs to the use-case model and the supplementary speci
   \item Luật 91/2025/QH15 on Personal Data Protection, with Nghị định 356/2025/NĐ-CP.
   \item Course material of Elements of Software Engineering: PA0 project plan, RUP templates, lecture notes on project
         assignments.
+  \item \textcolor{blue}{OmniCourse Use-Case Model and Specification v1.0 (ESE-PA2-UCS-1.0) and UI Prototypes v2.0
+        (ESE-PA2-UI-2.0), submitted with this document.}
+  \item \textcolor{blue}{Architecture decision records 0001 to 0004 and 0010 in \texttt{docs/analysis-and-design/adr}:
+        technology stack, authentication, language-model scope, account export and deletion, signed-out readers.}
   \item Public projects used as prior work: \texttt{LLaammTTeerr/HCMUS\_Courses}, Coursicle, Stellic, Ellucian Degree
         Works, \texttt{nu-map}, \texttt{coursemap}, \texttt{uwpathr}, \texttt{grad-tree}.
 \end{itemize}
@@ -112,23 +132,33 @@ No responsibility in this project; the data model is designed so that their prog
 \end{xltabular}}
 
 \subsection{User Summary}
-Three user groups are identified for this release.
+\textcolor{blue}{Six user groups are identified for this release. Each is an actor of the use-case model.}
 
 {\small
 \begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.0cm}Y Y p{3.0cm}@{}}
 \hcell{Name} & \hcell{Description} & \hcell{Responsibilities} & \hcell{Stakeholder}\\\hdrline
 \endhead
+\textcolor{blue}{Visitor} & \textcolor{blue}{Anyone who opens OmniCourse without signing in.} &
+\textcolor{blue}{Reads the guides and quicklinks, opens a shared plan link, signs up or signs in.} &
+\textcolor{blue}{Represented by the development team.}\\
 Student (primary) & A HCMUS undergraduate, APCS in the first release, from first year to final year. Plans on a laptop,
 checks on a phone. &
 Owns their transcript and their plan: imports the transcript, sets the goals, reads the audit, builds a roadmap or asks the
 AI planner for one, asks questions in the chat. &
 Represented by the development team, who are students of the same program.\\
-Program administrator & A member of the program office, or the team during this project, maintaining the curriculum data. &
-Adds and edits programs, cohorts, courses, prerequisites, requirement groups and the regulation documents; reviews the data
-imported from a curriculum file. &
+Program administrator & A member of the program office, or the team during this project, maintaining the curriculum data
+\textcolor{blue}{of one named program}. &
+\textcolor{blue}{Edits the cohorts, requirement groups and course placements of that program, entered by hand against the
+official program document and published per cohort.} &
 Represented by the program office stakeholder.\\
+\textcolor{blue}{Catalog maintainer} & \textcolor{blue}{A staff member trusted with the course records shared by every
+program.} & \textcolor{blue}{Creates and corrects course codes, names, credits and prerequisites.} &
+\textcolor{blue}{Program office.}\\
+\textcolor{blue}{Access manager} & \textcolor{blue}{A staff member who controls who may administer what.} &
+\textcolor{blue}{Creates programs, grants and revokes administration rights.} & \textcolor{blue}{Program office.}\\
 Advisor (secondary) & An academic advisor or a lecturer who reviews a student's plan. &
-Opens a shared read-only plan and checks it against the curriculum and the regulations of the program. &
+Opens a shared read-only plan and checks it against the curriculum and the regulations of the program\textcolor{blue}{;
+needs no account}. &
 Represented by the instructor stakeholder.\\
 \end{xltabular}}
 
@@ -193,10 +223,30 @@ Students have alternatives today, and most of them are already in use. They are 
         and familiar. \emph{Weakness:} unverified, stale, and wrong for the student's own cohort.
 \end{itemize}
 
+{\color{blue}
+\textbf{Feature comparison.} ``yes'' means the alternative does the job for an HCMUS student; ``part'' means it does a
+piece of it; a dash means it does not.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}Yp{1.55cm}p{1.55cm}p{1.55cm}p{1.55cm}p{1.55cm}p{1.55cm}@{}}
+\hcell{Capability} & \hcell{OmniC.} & \hcell{lamter} & \hcell{Coursicle} & \hcell{Stellic} & \hcell{1-school OSS} &
+\hcell{Status quo}\\\hdrline
+\endhead
+Audit against the HCMUS curriculum & yes & yes & -- & -- & -- & part\\
+Plan validated by prerequisites, offering terms, caps & yes & part & -- & yes & part & --\\
+What-if before deciding & yes & -- & -- & yes & -- & --\\
+Answers that cite the regulation clause & yes & -- & -- & -- & -- & --\\
+Guides and links for school tasks & yes & -- & -- & -- & -- & part\\
+Reachable by a student, free & yes & yes & yes & -- & yes & yes\\
+No portal password needed & yes & yes & yes & yes & yes & yes\\
+Data model reusable for another school & yes & -- & yes & yes & -- & --\\
+\end{xltabular}}}
+
 \section{Product Overview}
 \subsection{Product Perspective}
 OmniCourse is a new, standalone product, not a module of an existing information system. It is a cloud-hosted web
-application: a Vue frontend, a NestJS REST API, a PostgreSQL database, and one language model behind a single interface. It
+application: a Vue frontend, a NestJS REST API, a PostgreSQL database, and one language model behind a single interface
+\textcolor{blue}{(the AI gateway), reached only by the F6 goal box and the F8 advisor chat}. It
 sits beside the official portals rather than inside them. Integration with the school is by link and by the data the
 student provides, which is an uploaded transcript and a chosen program; there is no scraping and no automated transaction
 with a student account. The architecture is modular: audit and planning are one module in this release, while tuition,
@@ -209,7 +259,8 @@ changing the engine.
   \item The APCS curriculum can be modelled exactly by the team, who study it.
   \item The credit caps of the program are the published ones: 14 to 25 credits in a main term, 12 in summer.
   \item A student can produce a transcript as \textcolor{blue}{the PDF exported from the student portal}, and consents to upload it.
-  \item A hosted model API stays available on a free or low-cost tier for the duration of the course.
+  \item \textcolor{blue}{A hosted model API stays available at low cost for the duration of the course. It is a paid tier
+        with a monthly spending limit, because free tiers log or train on prompts.}
   \item Students have a browser and an internet connection; no installation is possible.
   \item No official API for the curriculum or the student record appears during the project.
   \item Accuracy of the curriculum data depends on editorial maintenance by the team after each cohort change.
@@ -286,6 +337,37 @@ not as intentions.
   \item \textbf{Data:} curriculum data versioned per cohort, so a new cohort is a new record and old plans keep working.
   \item \textbf{Standards:} national credit regulation Thông tư 08/2021/TT-BGDĐT, the published HCMUS credit caps, and
         Luật 91/2025/QH15 for personal data.
+  \item \textcolor{blue}{\textbf{AI limits:} each student has a daily cap on model calls (20 by default); when the model is
+        unreachable, slow or over the cap, the screen says so and offers the manual path (the planning form for F6, the
+        guides and the audit for F8). The model receives no name, email or student ID.}
+  \item \textcolor{blue}{\textbf{Compatibility:} the last two versions of Chrome, Edge, Firefox and Safari, desktop and
+        mobile.}
+  \item \textcolor{blue}{\textbf{Recovery:} a nightly backup kept for 7 days; a restore is rehearsed once before build
+        B3.}
 \end{itemize}
+
+{\color{blue}
+\subsection{Traceability to the Use-Case Model}
+Each feature is realised by the use cases below, specified in the Use-Case Model and Specification v1.0. UC-19, the
+evaluation of academic rules, is included by every use case that shows a requirement status or validates a plan.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.9cm}p{4.2cm}Yp{1.4cm}@{}}
+\hcell{No.} & \hcell{Feature} & \hcell{Use cases} & \hcell{Priority}\\\hdrline
+\endhead
+F1 & Account and onboarding & UC-01 Sign up and onboard, UC-13 Sign in, UC-14 Manage account and privacy & High\\
+F2 & Transcript import & UC-02 Import transcript & High\\
+F3 & Degree audit dashboard & UC-03 View degree audit, UC-15 View grades and what each course still needs & High\\
+F4 & Curriculum explorer & UC-04 Explore curriculum & High\\
+F5 & Semester roadmap planner & UC-05 Build and edit a plan & High\\
+F6 & AI plan generator & UC-07 Generate a plan & High\\
+F7 & What-if simulator & UC-06 Simulate a what-if scenario & Medium\\
+F8 & AI academic advisor chat & UC-08 Ask the advisor chat & Medium\\
+F9 & Plan export and sharing & UC-09 Share or export a plan, UC-16 View a shared plan & Low\\
+F10 & Notifications & UC-12 Receive notifications & Low\\
+F11 & Quicklinks and guides & UC-10 Follow a school-task guide & Medium\\
+F12 & Curriculum administration & UC-11 Maintain curriculum, UC-17 Maintain the course catalog, UC-18 Manage
+administration access & Medium\\
+\end{xltabular}}}
 
 \end{document}

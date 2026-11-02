@@ -3,12 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Xét tốt nghiệp · OmniCourse</title>
-  <meta name="description" content="Bản mẫu: xét tốt nghiệp theo từng nhóm tín chỉ, từng học phần, điểm và học kỳ.">
+  <title>Điểm số · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: điểm qua từng học kỳ, từng học phần, kể cả môn chưa đạt và học lại.">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="audit" data-layout="app">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -16,19 +20,29 @@
     <aside class="side" id="side"></aside>
     <main class="main" id="main">
       <div class="page">
-        <header class="page-head">
-          <div>
-            <p class="crumbs"><a href="dashboard.html">Tổng quan</a> / Xét tốt nghiệp</p>
-            <h1>Xét tốt nghiệp</h1>
-            <p id="sub"></p>
-          </div>
+        <header class="gr-head">
+          <h1>Điểm số</h1>
+          <a class="btn" href="import.html"><i data-icon="upload"></i>Cập nhật bảng điểm</a>
         </header>
-        <nav class="gpick" id="pick" aria-label="Chọn nhóm tín chỉ"></nav>
-        <section class="card" id="group" aria-live="polite"></section>
-        <section class="card" id="extra" hidden></section>
+
+        <section class="gr-top" aria-label="Tổng kết">
+          <div class="gr-figs" id="figs"></div>
+          <div class="card gr-chart">
+            <h2>Điểm theo học kỳ</h2>
+            <div id="chart"></div>
+          </div>
+        </section>
+
+        <div class="gr-tools" role="search">
+          <label class="srch"><i data-icon="search"></i><input class="input" type="search" id="q" placeholder="Tìm tên hoặc mã môn" aria-label="Tìm học phần" autocomplete="off"></label>
+          <div class="chips" id="gchips" role="group" aria-label="Lọc theo nhóm"></div>
+        </div>
+        <div class="stack" id="terms" style="gap:34px"></div>
+        <p class="gr-empty" id="none" hidden>Không có môn nào khớp.</p>
       </div>
     </main>
   </div>
+  <div class="db-tip" id="tip" role="tooltip" aria-hidden="true"></div>
 
   <script src="assets/data.js"></script>
   <script src="assets/i18n.js"></script>
@@ -36,47 +50,186 @@
   <script>
     (function () {
       const D = window.OC, $ = (id) => document.getElementById(id);
-      const plan = UI.plan();
-      const res = D.check(plan);
-      $('sub').innerHTML = D.student.curriculum + ' · ' + D.done + '/' + D.totalRequired + ' TC đã đạt · do rule engine tính từ bảng điểm và lộ trình của bạn';
+      const H = D.history, last = D.last, NOW = D.term(D.NOW);
+      const fmt = (v) => v.toFixed(1);
+      const shortTerm = (t) => (t.n === 3 ? 'Hè ' : 'HK' + t.n + ' ') + String(t.year).slice(2) + '–' + String(t.year + 1).slice(2);
+      const termName = (t) => (t.n === 3 ? 'Học kỳ hè' : 'Học kỳ ' + t.n) + ', ' + t.year + '–' + String(t.year + 1).slice(2);
 
-      function render() {
-        const id = D.groups.some((g) => g.id === location.hash.slice(1)) ? location.hash.slice(1) : 'core';
-        const g = D.group(id), c = res.coverage[id];
-        $('pick').innerHTML = D.groups.map((x) => '<a class="g-' + x.id + '" href="#' + x.id + '"' + (x.id === id ? ' aria-current="true"' : '') + '>' + UI.glyph(x.id, 'sm') + x.short + ' <span class="t3" style="color:inherit;opacity:.75">' + res.coverage[x.id].done + '/' + x.required + '</span></a>').join('');
-        const list = D.courses.filter((x) => x.group === id && (x.status !== 'pool' || plan[x.code]))
-          .map((x) => Object.assign({}, x, { st: x.status === 'pool' || x.status === 'planned' ? (plan[x.code] ? 'planned' : 'left') : x.status, at: D.termOf(plan, x.code) }))
-          .sort((a, b) => ['done', 'current', 'planned', 'left'].indexOf(a.st) - ['done', 'current', 'planned', 'left'].indexOf(b.st) || D.tIdx(a.at) - D.tIdx(b.at));
-        const pct = Math.round(c.done / g.required * 100);
-        const left = Math.max(0, g.required - c.total);
-        $('group').className = 'card g-' + id;
-        $('group').innerHTML =
-          '<div class="ghero"><span class="glyph xl">' + g.glyph + '</span><div><h2 style="font-size:28px">' + g.name + '</h2><p>' + g.rule + '.</p></div>' +
-          '<div class="ring" style="--p:' + pct + '"><div><span><b>' + pct + '%</b><br><small>đã đạt</small></span></div></div></div>' +
-          '<div class="sum4">' + [['Đã đạt', c.done, 'done'], ['Đang học', c.current, 'current'], ['Trong lộ trình', c.planned, 'planned'], ['Chưa xếp', left, 'left']].map(([k, v, s]) =>
-            '<div class="box"><span class="st ' + s + '">' + k + '</span><div class="v">' + v + ' <span class="small t3">TC</span></div></div>').join('') + '</div>' +
-          '<div style="padding:0 22px 14px"><div class="bar" style="height:14px"><i class="done" style="width:' + (c.done / g.required * 100) + '%"></i><i class="current" style="width:' + (c.current / g.required * 100) + '%"></i><i class="planned" style="width:' + (Math.min(c.planned, g.required - c.done - c.current) / g.required * 100) + '%"></i></div></div>' +
-          list.map((x) => {
-            const status = x.st === 'done' ? '<span class="st done">Đạt</span>' : x.st === 'current' ? '<span class="st current">Đang học</span>' : x.st === 'planned' ? '<span class="st planned">Trong lộ trình</span>' : '<span class="st left">Chưa xếp</span>';
-            const notes = [];
-            if (x.prereq.length) notes.push('Tiên quyết: ' + x.prereq.join(', '));
-            if (x.offered) notes.push('Chỉ mở ' + x.offered.map((n) => 'HK' + n).join(', '));
-            if (x.note) notes.push(x.note);
-            return '<div class="course-row"><span>' + (x.slot ? '<span class="code">—</span>' : '<span class="code c">' + x.code + '</span>') + '</span>' +
-              '<span class="nm"><b>' + x.name + '</b><small>' + (x.slot ? 'Chọn một học phần tự chọn trong lộ trình' : x.en + (notes.length ? ' · ' + notes.join(' · ') : '')) + '</small></span>' +
-              '<span class="b">' + x.credits + ' TC</span><span>' + status + '</span>' +
-              '<span class="small t2">' + (x.grade != null ? '<span class="grade"><b>' + x.grade.toFixed(1) + '</b><span class="t3" title="Điểm chữ, chỉ để tham khảo (Điều 11.2)">' + D.letter(x.grade) + '</span></span> · ' : '') + (x.at ? D.term(x.at).short : '') + '</span></div>';
-          }).join('');
-
-        const pool = D.courses.filter((x) => x.group === id && x.status === 'pool' && !plan[x.code] && !x.slot);
-        $('extra').hidden = !pool.length;
-        $('extra').className = 'card g-' + id;
-        $('extra').innerHTML = pool.length ? '<div class="card-head"><h2>Còn ' + pool.length + ' lựa chọn chưa xếp</h2><a class="btn sm" href="planner.html">' + icon('columns', 'sm') + 'Kéo vào lộ trình</a></div>' +
-          '<div class="ex-grid" style="padding:16px 22px 22px">' + pool.map((x) => UI.tile(x, { status: 'pool', sub: x.prereq.length ? 'Cần ' + x.prereq.join(', ') : 'Không có tiên quyết' })).join('') + '</div>' : '';
+      // ---------- Grade parts. Illustrative: the weights follow each course's syllabus, the scores come from the transcript ----------
+      // A finished sitting's parts add up to its grade. A course in progress has its final exam still to come.
+      const WEIGHTS = {
+        core: [['Thực hành', 30], ['Giữa kỳ', 20], ['Cuối kỳ', 50]],
+        elec: [['Thực hành', 30], ['Giữa kỳ', 20], ['Cuối kỳ', 50]],
+        math: [['Bài tập', 20], ['Giữa kỳ', 30], ['Cuối kỳ', 50]],
+        phys: [['Bài tập', 20], ['Giữa kỳ', 30], ['Cuối kỳ', 50]],
+        eng: [['Quá trình', 30], ['Giữa kỳ', 20], ['Cuối kỳ', 50]],
+        pol: [['Quá trình', 30], ['Cuối kỳ', 70]],
+        gen: [['Quá trình', 40], ['Cuối kỳ', 60]],
+        thesis: [['Hướng dẫn', 40], ['Hội đồng', 60]],
+      };
+      const seed = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 7);
+      const r1 = (v) => Math.round(Math.max(0, Math.min(10, v)) * 10) / 10;
+      function parts(group, key, grade, planned) {
+        const W = WEIGHTS[group], h = seed(key);
+        if (planned) return W.map(([n, w]) => ({ n, w, s: null }));
+        if (grade != null) {
+          const ps = W.map(([n, w], i) => ({ n, w, s: i < W.length - 1 ? r1(grade + ((h >> i) % 7 - 3) * 0.35) : null }));
+          const rest = ps.slice(0, -1).reduce((t, p) => t + p.w * p.s, 0);
+          ps[ps.length - 1].s = r1((grade * 100 - rest) / ps[ps.length - 1].w);
+          return ps;
+        }
+        // In progress, week 9 of 16: everything but the final exam is graded.
+        return W.map(([n, w], i) => ({ n, w, s: i < W.length - 1 ? r1(7.2 + ((h >> i) % 9) * 0.25) : null }));
       }
-      window.addEventListener('hashchange', render);
-      render();
+      const pts = (p) => p.s == null ? 0 : p.w * p.s / 100;
+      const CUTS = '<span class="cut fail" style="left:50%"><em>5</em></span><span class="cut good" style="left:80%"><em>8</em></span>';
+
+      // What the parts still to grade must average to reach 5 (pass) and 8 (excellent).
+      function need(ps) {
+        const left = ps.filter((p) => p.s == null);
+        if (!left.length) return '';
+        const have = ps.reduce((t, p) => t + pts(p), 0), w = left.reduce((t, p) => t + p.w, 0);
+        const at = (cut) => (cut - have) * 100 / w;
+        const who = left.length === ps.length ? 'Cần trung bình' : left.length === 1 ? left[0].n + ' cần' : 'Phần còn lại cần';
+        const pass = at(5), good = at(8);
+        const a = pass <= 0 ? 'Đã chắc đạt' : pass > 10 ? 'Không thể đạt' : who + ' ' + fmt(pass) + ' để đạt';
+        const b = good > 10 ? 'không thể đạt giỏi' : (pass <= 0 ? who + ' ' : '') + fmt(Math.max(0, good)) + ' để giỏi';
+        return a + ' · ' + b;
+      }
+
+      // The breakdown: one stacked bar of what each part contributes, each part on its own 0–10 track,
+      // then every sitting of the course when it was failed before.
+      function split(x, grade, ps) {
+        const total = ps.reduce((t, p) => t + pts(p), 0), done = grade != null;
+        const tries = (x.fails || []).map(([term, g]) => ({ term, g })).concat(x.term && D.tIdx(x.term) <= D.tIdx(D.NOW) ? [{ term: x.term, g: x.grade == null ? null : x.grade }] : []);
+        const T = tries.length > 1 ? '<div class="gtries"><span class="label">Các lần học</span><ol>' + tries.map((a) =>
+          '<li class="' + (a.g == null ? 'cur' : a.g < 5 ? 'fail' : 'ok') + '"><b>' + shortTerm(D.term(a.term)) + '</b><span>' + (a.g == null ? 'Đang học lại' : fmt(a.g) + ' · ' + (a.g < 5 ? 'Không đạt' : 'Đạt')) + '</span></li>').join('') + '</ol>' +
+          '<p class="xs t3">ĐTB học kỳ tính mọi lần học. ĐTB tích lũy chỉ tính lần đạt. ' + UI.ref('Điều 15.1') + '</p></div>' : '';
+        return '<div class="gsplit">' +
+          '<div class="gtot"><div class="gtot-h"><span>' + (done ? 'Điểm tổng kết' : 'Điểm đã có') + '</span><b>' + fmt(done ? grade : total) + '<small> / 10</small></b></div>' +
+          '<div class="gstack">' + ps.map((p, i) => p.s == null
+            ? '<i class="pend" data-p="' + i + '" style="width:' + p.w + '%" data-tip="' + p.n + ' ' + p.w + '% · chưa có điểm"></i>'
+            : '<i class="s' + i + '" data-p="' + i + '" style="width:' + pts(p) * 10 + '%" data-tip="' + p.n + ' ' + p.w + '% · ' + fmt(pts(p)) + ' điểm"></i>').join('') + CUTS + '</div>' +
+          '<div class="gkey"><span><i class="cut-k fail"></i>Dưới 5: không đạt</span><span><i class="cut-k good"></i>Từ 8: giỏi</span></div></div>' +
+          '<div class="gparts">' + ps.map((p, i) =>
+            '<div class="gpart" data-p="' + i + '"><span class="sw s' + i + (p.s == null ? ' pend' : '') + '"></span><span class="pn"><b>' + p.n + '</b><small>' + p.w + '%</small></span>' +
+            '<span class="gmini' + (p.s != null && p.s < 5 ? ' fail' : '') + '"><span class="tr">' + (p.s == null ? '' : '<i class="s' + i + '" style="width:' + p.s * 10 + '%"></i>') + CUTS + '</span><b>' + (p.s == null ? '—' : fmt(p.s)) + '</b></span>' +
+            '<span class="pc">' + (p.s == null ? 'Chưa thi' : '+' + fmt(pts(p)) + ' điểm') + '</span></div>').join('') + '</div>' +
+          (done ? '' : '<p class="gneed">' + need(ps) + '</p>') + T + '</div>';
+      }
+
+      // ---------- Three figures ----------
+      const best = H.reduce((b, h) => h.avg > b.avg ? h : b, H[0]);
+      $('figs').innerHTML =
+        '<div class="card gr-fig"><span>ĐTB tích lũy</span><b class="gpa">' + last.cum.toFixed(2) + '<small>/10</small></b><em>' + D.rank(last.cum) + ' · thang 4: ' + last.cum4.toFixed(2) + '</em></div>' +
+        '<div class="card gr-fig"><span>Tín chỉ đã đạt</span><b>' + D.done + '<small>/' + D.totalRequired + '</small></b><em>Năm thứ ' + D.yearLevel(D.done) + '</em></div>' +
+        '<div class="card gr-fig"><span>Học kỳ cao nhất</span><b class="t">' + termName(best.term) + '</b><em>ĐTB ' + best.avg.toFixed(2) + '</em></div>';
+
+      // ---------- Term averages as a line. A term with a failed course gets a red dot ----------
+      const CW = 720, CH = 190, PL = 30, PR = 16, PT = 12, PB = 34;
+      const lo = Math.max(0, Math.floor(Math.min(...H.map((h) => h.avg))) - 1), hi = 10;
+      const cy = (v) => PT + (hi - v) / (hi - lo) * (CH - PT - PB);
+      const cx = (k) => PL + (CW - PL - PR) * (k + .5) / H.length;
+      let svg = '<svg class="gr-svg" viewBox="0 0 ' + CW + ' ' + CH + '" role="img" aria-label="' + H.map((h) => h.term.label + ' ' + h.avg.toFixed(2)).join(', ') + '">';
+      for (let v = lo; v <= hi; v++) {
+        svg += '<line class="grid' + (v === 5 ? ' cut fail' : v === 8 ? ' cut good' : '') + '" x1="' + PL + '" x2="' + (CW - PR) + '" y1="' + cy(v) + '" y2="' + cy(v) + '"/><text class="ax" x="' + (PL - 10) + '" y="' + (cy(v) + 4) + '">' + v + '</text>';
+      }
+      svg += '<polyline class="line" points="' + H.map((h, k) => cx(k) + ',' + cy(h.avg)).join(' ') + '"/>';
+      svg += H.map((h, k) => '<g class="pt' + (h.failed ? ' fail' : '') + '" data-k="' + k + '"><rect class="hit" x="' + (cx(k) - 30) + '" y="0" width="60" height="' + CH + '"/><circle class="dot" cx="' + cx(k) + '" cy="' + cy(h.avg) + '" r="6"/>' +
+        '<text class="tl" x="' + cx(k) + '" y="' + (CH - 8) + '">' + shortTerm(h.term) + '</text></g>').join('');
+      $('chart').innerHTML = svg + '</svg>';
+
+      // Hover a term for its figures, click it to jump to its courses.
+      const tip = $('tip');
+      $('chart').addEventListener('pointermove', (e) => {
+        const g = e.target.closest('.pt');
+        if (!g) { tip.classList.remove('show'); return; }
+        const h = H[+g.dataset.k];
+        tip.innerHTML = '<div><b>' + h.term.label + '</b><p><span>ĐTB học kỳ</span><span>' + h.avg.toFixed(2) + '</span></p><p><span>ĐTB tích lũy</span><span>' + h.cum.toFixed(2) + '</span></p>' +
+          '<p><span>Tín chỉ đã học</span><span>' + h.credits + ' TC</span></p>' + (h.failed ? '<p><span>Chưa đạt</span><span>' + h.failedCodes.join(', ') + '</span></p>' : '') + '</div>';
+        I18N.flush();
+        const w = tip.offsetWidth, hh = tip.offsetHeight;
+        let x = e.clientX + 16, y = e.clientY + 16;
+        if (x + w > innerWidth - 8) x = e.clientX - w - 16;
+        if (y + hh > innerHeight - 8) y = e.clientY - hh - 16;
+        tip.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+        tip.classList.add('show');
+      });
+      $('chart').addEventListener('pointerleave', () => tip.classList.remove('show'));
+      $('chart').addEventListener('click', (e) => { const g = e.target.closest('.pt'); if (g) $('term-' + H[+g.dataset.k].term.id).scrollIntoView({ behavior: 'smooth' }); });
+
+      // ---------- Courses term by term: this term, the planned terms, then past terms newest first ----------
+      // Each row: name and code, what each graded part adds to the grade stacked on a 0–10 bar with thin
+      // cutoffs at 5 and 8, the grade, the status. A course not finished also says what it still needs.
+      function row(x, grade, term, planned) {
+        const cur = grade == null && !planned, fail = grade != null && grade < 5;
+        const ps = parts(x.group, x.code + term, grade, planned);
+        const bar = '<span class="rbar' + (fail ? ' fail' : '') + '" aria-hidden="true">' + ps.map((p, i) =>
+          p.s == null ? (cur ? '<i class="pend" style="width:' + p.w + '%"></i>' : '') : '<i class="s' + i + '" style="width:' + pts(p) * 10 + '%"></i>').join('') +
+          '<b class="ct" style="left:50%"></b><b class="ct g" style="left:80%"></b></span>';
+        const retake = (x.fails || []).some(([t]) => D.tIdx(t) < D.tIdx(term));
+        return '<details class="gr-row g-' + x.group + '" data-g="' + x.group + '"><summary>' +
+          '<span class="nm"><b>' + x.name + '</b><small><i></i><span class="code">' + x.code + '</span>· ' + x.credits + ' tín chỉ' + (retake ? ' · <span class="rt">Học lại</span>' : '') + '</small></span>' +
+          '<span class="rcell">' + bar + (grade == null ? '<span class="need">' + need(ps) + '</span>' : '') + '</span>' +
+          '<b class="sc' + (fail ? ' fail' : '') + '">' + (grade == null ? '–' : fmt(grade)) + '</b>' +
+          '<span class="pill ' + (planned ? 'plan' : cur ? 'cur' : fail ? 'bad' : 'ok') + '">' + (planned ? 'Dự kiến' : cur ? 'Đang học' : fail ? 'Chưa đạt' : 'Đạt') + '</span>' + icon('down', 'sm chev') +
+          '</summary>' + split(x, grade, ps) + '</details>';
+      }
+      const credits = (list) => list.reduce((s, c) => s + c.credits, 0);
+      const now = D.courses.filter((c) => c.status === 'current');
+      const plan = UI.plan();
+      const upcoming = D.future.map((t) => ({ t, list: D.courses.filter((c) => !c.slot && c.status !== 'done' && c.status !== 'current' && D.termOf(plan, c.code) === t.id) })).filter((x) => x.list.length);
+      const sections = [{ t: NOW, rows: now.map((c) => [c, null]), right: credits(now) + ' tín chỉ' }]
+        .concat(upcoming.map(({ t, list }) => ({ t, planned: true, rows: list.map((c) => [c, null]), right: credits(list) + ' tín chỉ' })))
+        .concat(H.slice().reverse().map((h) => {
+          // Failed sittings first: they are what needs a decision.
+          const rows = D.attempts.filter((a) => a.term === h.term.id).sort((a, b) => b.failed - a.failed || a.c.code.localeCompare(b.c.code)).map((a) => [a.c, a.grade]);
+          return { t: h.term, rows, right: 'ĐTB ' + h.avg.toFixed(2) + ' · ' + h.credits + ' tín chỉ' };
+        }));
+      $('terms').innerHTML = sections.map((s) => '<section class="gr-term"><h2 id="term-' + s.t.id + '"><b>' + termName(s.t) + (s.planned ? '<span class="chip line">Dự kiến</span>' : '') + '</b><span>' + s.right + '</span></h2>' +
+        s.rows.map(([c, g]) => row(c, g, s.t.id, s.planned)).join('') + '</section>').join('');
+
+      // ---------- Filter by group and search by name or code ----------
+      const used = new Set(sections.flatMap((s) => s.rows.map(([c]) => c.group)));
+      $('gchips').innerHTML = '<button class="chip" type="button" data-g="" aria-pressed="true">Tất cả</button>' +
+        D.groups.filter((g) => used.has(g.id)).map((g) => '<button class="chip g-' + g.id + '" type="button" data-g="' + g.id + '" aria-pressed="false"><i></i>' + g.short + '</button>').join('');
+      let group = '';
+      const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
+      function filter() {
+        const q = fold($('q').value.trim());
+        let any = false;
+        $('terms').querySelectorAll('.gr-term').forEach((sec) => {
+          let n = 0;
+          sec.querySelectorAll('.gr-row').forEach((r) => {
+            const ok = (!group || r.dataset.g === group) && (!q || fold(r.querySelector('.nm').textContent).includes(q));
+            r.hidden = !ok; n += ok;
+          });
+          sec.hidden = !n; any = any || n > 0;
+        });
+        $('none').hidden = any;
+      }
+      $('gchips').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-g]'); if (!b) return;
+        group = b.dataset.g;
+        $('gchips').querySelectorAll('[data-g]').forEach((x) => x.setAttribute('aria-pressed', x === b));
+        filter();
+      });
+      $('q').addEventListener('input', filter);
+
+      // Hovering a part lights its share of the stacked bar, and the other way round.
+      const hot = (box, i) => {
+        box.classList.toggle('hot', i != null);
+        box.querySelectorAll('[data-p]').forEach((el) => el.classList.toggle('on', el.dataset.p === i));
+      };
+      $('terms').addEventListener('mouseover', (e) => {
+        const box = e.target.closest('.gsplit'); if (!box) return;
+        const p = e.target.closest('[data-p]'); hot(box, p ? p.dataset.p : null);
+      });
+      $('terms').addEventListener('mouseout', (e) => {
+        const box = e.target.closest('.gsplit'); if (box && !box.contains(e.relatedTarget)) hot(box, null);
+      });
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

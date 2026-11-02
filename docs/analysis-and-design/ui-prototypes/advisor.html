@@ -8,7 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="advisor" data-layout="app">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -119,38 +123,59 @@
         $('banner').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
       }
 
-      $('threads').innerHTML = [['Giới hạn tín chỉ HK2', 'Hôm nay'], ['Thực tập vào HK3 được không', '28/10'], ['Môn tương đương CTĐT cũ', '15/10'], ['Học cải thiện có tính học bổng', '02/10']]
-        .map(([t, d], i) => '<button class="thread" type="button"' + (i === 0 ? ' aria-current="true"' : '') + '><b>' + t + '</b><small>' + d + '</small></button>').join('');
+      // Conversations. Each keeps its own pane, so an answer still streaming carries on while you read another one.
+      // Earlier conversations replay a scripted question; nothing is stored on a server in the prototype.
+      let seq = 0;
+      const mk = (title, when, seed) => ({ id: 't' + (seq++), title, when, seed, pane: null });
+      const threads = [mk('Cuộc trò chuyện mới', 'Vừa xong', null), mk('Giới hạn tín chỉ HK2', 'Hôm qua', 0), mk('Học sâu cùng kỳ Học máy', '28/10', 1), mk('Điểm cần cho loại Giỏi', '15/10', 2), mk('Đóng học phí ở đâu', '02/10', 3)];
+      let cur = threads[0];
+      function renderThreads() {
+        $('threads').innerHTML = threads.map((t) => '<button class="thread" type="button" data-t="' + t.id + '"' + (t === cur ? ' aria-current="true"' : '') + '><b>' + t.title + '</b><small>' + t.when + '</small></button>').join('');
+        I18N.flush();
+      }
+      function openThread(t) {
+        cur = t;
+        $('msgs').querySelectorAll('.pane').forEach((x) => { x.hidden = true; });
+        if (!t.pane) {
+          t.pane = document.createElement('div'); t.pane.className = 'pane'; $('msgs').appendChild(t.pane);
+          if (t.seed == null) starter(t.pane); else ask(SCRIPTS[t.seed].q, true);
+        }
+        t.pane.hidden = false;
+        renderThreads(); scroll();
+      }
+      $('threads').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (b) openThread(threads.find((t) => t.id === b.dataset.t)); });
 
-      function starter() {
-        $('msgs').innerHTML = '<div class="starter"><span class="bot"><span>AI</span></span><h2 style="font-size:28px">Hỏi gì về việc học cũng được.</h2>' +
+      function starter(pane) {
+        pane.innerHTML = '<div class="starter"><span class="bot"><span>AI</span></span><h2 style="font-size:28px">Hỏi gì về việc học cũng được.</h2>' +
           '<p class="t2">Trả lời từ CTĐT và quy chế, có trích điều khoản. Việc liên quan hồ sơ của bạn do rule engine kiểm tra.</p>' +
           '<div class="examples">' + EXAMPLES.map((s, i) => '<button type="button" data-ex="' + i + '">' + s.q + '<small>' + (s.cites.length ? s.cites.join(' · ') : 'Hướng dẫn thủ tục') + '</small></button>').join('') + '</div></div>';
       }
 
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-      async function ask(text) {
-        if (running) return;
-        const st = $('msgs').querySelector('.starter'); if (st) st.remove();
-        $('msgs').insertAdjacentHTML('beforeend', '<div class="msg user"><div class="bubble">' + text.replace(/</g, '&lt;') + '</div></div>');
-        if (down) {
-          $('msgs').insertAdjacentHTML('beforeend', '<div class="msg bot-msg"><span class="bot"><span>AI</span></span><div class="bubble"><div class="callout bad"><i data-icon="alert"></i><div><b>Trợ lý tạm thời không dùng được</b><p>Dịch vụ AI không phản hồi (ai_unavailable). Câu hỏi vẫn ở trong ô để bạn gửi lại sau. Trong lúc chờ, xem <a class="link" href="guides.html">hướng dẫn thủ tục</a> hoặc <a class="link" href="explorer.html">chương trình đào tạo</a>.</p></div></div></div></div>');
-          $('msgs').querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+      // replay: an earlier conversation shown at once, without spending a call.
+      async function ask(text, replay) {
+        if (running && !replay) return;
+        const pane = cur.pane, thread = cur;
+        const st = pane.querySelector('.starter'); if (st) st.remove();
+        if (!replay && thread.title === 'Cuộc trò chuyện mới') { thread.title = text.length > 42 ? text.slice(0, 40) + '…' : text; thread.when = 'Vừa xong'; renderThreads(); }
+        pane.insertAdjacentHTML('beforeend', '<div class="msg user"><div class="bubble">' + text.replace(/</g, '&lt;') + '</div></div>');
+        if (down && !replay) {
+          pane.insertAdjacentHTML('beforeend', '<div class="msg bot-msg"><span class="bot"><span>AI</span></span><div class="bubble"><div class="callout bad"><i data-icon="alert"></i><div><b>Trợ lý tạm thời không dùng được</b><p>Dịch vụ AI không phản hồi (ai_unavailable). Câu hỏi vẫn ở trong ô để bạn gửi lại sau. Trong lúc chờ, xem <a class="link" href="guides.html">hướng dẫn thủ tục</a> hoặc <a class="link" href="explorer.html">chương trình đào tạo</a>.</p></div></div></div></div>');
+          pane.querySelectorAll('i[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
           $('q').value = text; scroll(); return;
         }
-        $('q').value = '';
-        used++; mode();
+        const pause = replay ? () => Promise.resolve() : wait;
+        if (!replay) { $('q').value = ''; used++; mode(); }
         const s = SCRIPTS.find((x) => x.re.test(text));
-        const id = 'm' + Date.now();
-        $('msgs').insertAdjacentHTML('beforeend', '<div class="msg bot-msg"><span class="bot"><span>AI</span></span><div class="bubble" id="' + id + '"><div class="tools"></div></div></div>');
-        const b = $(id), tools = b.querySelector('.tools');
-        running = { stop: false };
-        setSend(true);
+        pane.insertAdjacentHTML('beforeend', '<div class="msg bot-msg"><span class="bot"><span>AI</span></span><div class="bubble"><div class="tools"></div></div></div>');
+        const b = pane.lastElementChild.querySelector('.bubble'), tools = b.querySelector('.tools');
+        const run = { stop: false };
+        if (!replay) { running = run; setSend(true); }
         const steps = !s ? ['Tìm trong quy chế', 'Tìm trong CTĐT', 'Tìm hướng dẫn'] : !consent && s.record ? s.steps.slice(0, 1) : s.steps;
         for (const label of steps) {
           tools.insertAdjacentHTML('beforeend', '<div class="toolstep run">' + icon('refresh') + '<span>' + label + '…</span></div>');
-          scroll(); await wait(520);
-          if (running.stop) return finish(b, 'Đã dừng');
+          scroll(); await pause(520);
+          if (run.stop) return finish(b, 'Đã dừng', replay);
           const last = tools.lastElementChild; last.className = 'toolstep'; last.innerHTML = icon('check') + '<span>' + label + '</span>';
         }
         let paras, cites = [], link = null;
@@ -170,10 +195,11 @@
           const el = document.createElement('p'); b.appendChild(el);
           const words = I18N.tr(p).split(' ');
           for (let i = 0; i < words.length; i++) {
-            if (running.stop) { el.textContent = words.slice(0, i).join(' '); return finish(b, 'Đã dừng'); }
+            if (run.stop) { el.textContent = words.slice(0, i).join(' '); return finish(b, 'Đã dừng', replay); }
+            if (replay) break;
             el.innerHTML = words.slice(0, i + 1).join(' ') + '<span class="caret"></span>';
             if (i % 3 === 0) scroll();
-            await wait(28);
+            await pause(28);
           }
           el.textContent = p;
         }
@@ -181,10 +207,12 @@
           b.insertAdjacentHTML('beforeend', '<div class="cites">' + (cites.length ? '<span>Nguồn:</span>' + cites.map((c) => c.startsWith('Điều') ? UI.ref(c) : '<span class="chip line">' + c + '</span>').join('') : '') +
             (link ? '<a class="btn sm" href="' + link[0] + '">' + link[1] + ' ' + icon('chev', 'sm') + '</a>' : '') + '</div>');
         }
-        finish(b);
+        finish(b, null, replay);
       }
-      function finish(b, mark) {
+      function finish(b, mark, replay) {
         if (mark) b.insertAdjacentHTML('beforeend', '<span class="marked">' + mark + ' · vẫn tính 1 lượt</span>');
+        I18N.flush();
+        if (replay) return;
         running = null; setSend(false); scroll();
       }
       function setSend(busy) {
@@ -202,12 +230,19 @@
         const ex = e.target.closest('[data-ex]'); if (ex) ask(EXAMPLES[+ex.dataset.ex].q);
         if (e.target.closest('[data-consent]')) UI.open('consent');
       });
-      $('new').addEventListener('click', () => { starter(); });
+      // A new conversation goes on top. An empty one is reused rather than stacking blanks.
+      $('new').addEventListener('click', () => {
+        let t = threads.find((x) => x.seed == null && (!x.pane || !x.pane.querySelector('.msg')));
+        if (!t) { t = mk('Cuộc trò chuyện mới', 'Vừa xong', null); threads.unshift(t); }
+        openThread(t);
+        $('q').focus();
+      });
       $('agree').addEventListener('click', () => { consent = true; UI.store.set('consent', new Date().toISOString()); UI.close(); mode(); UI.toast('Đã ghi nhận đồng ý lúc ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }), 'shield'); });
       $('later').addEventListener('click', () => { consent = false; UI.close(); mode(); });
-      starter(); mode();
+      openThread(cur); mode();
       if (consent === null) UI.open('consent');
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

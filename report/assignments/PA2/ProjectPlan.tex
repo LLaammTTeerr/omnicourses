@@ -5,6 +5,11 @@
 \renewcommand{\docshortname}{Software Development Plan}
 \hypersetup{pdftitle={OmniCourse -- Software Development Plan v2.0}}
 
+% Changes since v1.0 are blue, as PA2 requires.
+\definecolor{chg}{HTML}{1d4ed8}
+\newcommand{\chg}[1]{\textcolor{chg}{#1}}
+\newenvironment{changed}{\par\color{chg}}{\par}
+
 \begin{document}
 
 \makecover{Software Development Plan}{2.0}{1 November 2026}{ESE-PA2-SDP-2.0}{Project Assignment 2 (PA2)}
@@ -15,145 +20,237 @@
 \section*{Revision history}
 \vspace{-0.3em}
 {\small
-\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.6cm}p{1.8cm}Yp{4.2cm}@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.2cm}p{1.3cm}Yp{3.4cm}@{}}
 \hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
 \endhead
-18/Oct/2026 & 1.0 & Initial version submitted for PA1 & Lê Hữu Hoà\\
-1/Nov/2026 & 2.0 & Second submission for PA2: updated schedule, expanded resource allocation and monitoring sections. Revisions highlighted in blue. & Phan Bình Nguyên Lâm, Lê Hữu Hoà\\
+18/10/2026 & 1.0 & Initial version submitted for PA1. & Lê Hữu Hoà\\
+25/10/2026 & 2.0 draft & Estimates and risk register completed; ownership, scope and process updated to the Work Breakdown
+and ADRs 0001 to 0003. & Phan Bình Nguyên Lâm\\
+\chg{1/11/2026} & \chg{2.0} & \chg{Second submission for PA2. Every change from v1.0 is in blue. See the list below.} &
+\chg{Phan Bình Nguyên Lâm, Lê Hữu Hoà}\\
 \end{xltabular}}
-\par\vspace{1.0cm}
 
+\begin{changed}
+\subsection*{What changed from version 1.0}
+\begin{itemize}
+  \item \textbf{§4.1 Project estimates} is written: three-point estimates for every member's work, team capacity, the load
+        per member and the budget. v1.0 left it empty, as PA1 required.
+  \item \textbf{§4.3.2 Risk register} is written: 14 risks scored by probability and impact, each with an owner and a
+        mitigation. v1.0 left it empty.
+  \item \textbf{§4.2.3 Schedule} names the owner and handoff date of each key task, and \textbf{§4.2.4 Sprint 2 status}
+        compares the plan with what was done by 1 November.
+  \item \textbf{§3.2 Roles}: each member now owns whole features from use case to test for the whole project, instead of
+        rotating roles each sprint.
+  \item \textbf{Scope of the language model} (ADR 0003): a model is used only by the F6 goal box and the F8 advisor chat.
+        Objective 3, out-of-scope items and Sprints 4 and 5 are restated.
+  \item \textbf{Budget}: zero budget becomes a small, capped budget for the model API, because free models log or train on
+        prompts, which the privacy requirement forbids.
+  \item \textbf{Builds}: authentication moves into Sprint 2; B1 gains onboarding and account export and deletion; the
+        content of B2 and B3 is restated (§4.2.2).
+  \item \textbf{Process}: each task has a GitHub issue; CI enforces signed commits, Conventional Commits and a changeset in
+        every pull request; weekly reports are written in LaTeX in \texttt{/report/weekly} (§4.3).
+  \item \textbf{TA feedback}: no written feedback on v1.0 had reached the team by 1 November. The changes above complete
+        the sections PA1 left open and answer the team's own review of v1.0. Feedback that arrives later is applied in the
+        next version.
+\end{itemize}
+\end{changed}
+
+\par\vspace{0.6cm}
 {\hypersetup{linkcolor=ocNavy}\tableofcontents}
 
 \clearpage
 \pagenumbering{arabic}
 
+%% =====================================================================
 \section{Introduction}
 This Software Development Plan describes how the OmniCourse team of five students organises, schedules and controls the
 development of the product in the course project. The project runs for twelve weeks, from 5 October to 13 December 2026,
 organised as five two-week sprints inside three RUP phases. The document defines the purpose and scope, the team
-organisation and roles, the phase and iteration plan, the planned releases, the schedule, the resourcing, and the
-reporting and configuration management processes. It is a first draft written in the Inception phase. The project
-estimates and the risk register are left empty and are completed in the next assignment, as PA1 requires.
+organisation and roles, \chg{the effort estimates,} the phase and iteration plan, the planned releases, the schedule, the
+resourcing, and the reporting, \chg{risk management} and configuration management processes. \chg{Version 2.0 is written at
+the end of Sprint 2, the first Elaboration sprint, with the requirements baseline in hand.}
 
+%% =====================================================================
 \section{Project Overview}
 \subsection{Project Purpose, Scope, and Objectives}
-OmniCourse is a public web application that gives a HCMUS student one page for everything school related: degree audit,
-curriculum explorer, semester roadmap planner, an AI planner and advisor, and the exact links and steps for the school
-tasks the application does not perform itself. The first release covers the Advanced Program in Computer Science (APCS);
-the model is program-agnostic, so other HCMUS majors and later other Vietnamese universities are added as configuration.
+OmniCourse is a public web application that gives an HCMUS student one page for everything school related: degree audit,
+curriculum explorer, semester roadmap planner, an AI-assisted planner and advisor, and the exact links and steps for the
+school tasks the application does not perform itself. The first release covers the Advanced Program in Computer Science
+(APCS); the model is program-agnostic, so other HCMUS majors and later other Vietnamese universities are added as
+configuration.
 
 The objectives of the project are:
-
 \begin{enumerate}
   \item a deployed, working web application that covers the APCS curriculum;
   \item a deterministic rule engine that enforces prerequisites, offering terms, requirement coverage and the credit caps
         of the program, so that no academic rule is decided by a language model;
-  \item an AI plan generator that turns a plain-language goal into a roadmap validated by that engine and explains every
-        placement;
+  \item \chg{a plan generator that turns a planning goal, given in a form or in the student's own words, into a plan built by
+        a deterministic planner over that engine, and explains every placement. A model only turns the student's words into
+        the form's fields (ADR 0003);}
   \item a curriculum data model that can be reused for another program or another school without changing the engine.
 \end{enumerate}
 
 Out of scope for this course: native mobile applications, automation of the school registration portal, storage of portal
-credentials, and the optional modules (tuition, conduct score, paperwork, community).
+credentials, \chg{reading transcripts or curriculum documents with a language model,} and the optional modules (tuition,
+conduct score, paperwork, community).
 
 \subsection{Assumptions and Constraints}
-The plan rests on the following assumptions and constraints:
-
 \begin{itemize}
   \item Fixed schedule: five sprints of two weeks, 5/10/2026 to 13/12/2026, aligned with the course plan agreed in PA0.
         No extension is possible.
   \item Team of five students, no member added or removed during the project.
-  \item Zero budget. Only free tiers are used: hosting, CI minutes and the model API.
+  \item \chg{Budget: free tiers for hosting and CI. The model API is paid, for privacy, and capped by a monthly spending
+        limit (§4.1).}
   \item Expected effort is at least 10 hours per member per week, about 50 hours per week for the team.
   \item All five members are full-time students, so lecture and examination weeks reduce capacity.
-  \item The process is fixed by the course: three RUP phases, five Scrum sprints, and the tools approved in PA0
-        (Moodle, Discord, GitHub).
+  \item The process is fixed by the course: three RUP phases, five Scrum sprints, and the tools approved in PA0 (Moodle,
+        Discord, GitHub).
   \item No official API exists for the HCMUS curriculum or the student record, so curriculum data is entered and verified
         by the team, and the transcript is a file the student uploads.
-  \item The academic rules follow Thông tư 08/2021/TT-BGDĐT and the published HCMUS credit caps (14 to 25 credits in a
-        main term, 12 in summer). Personal data follows Luật 91/2025/QH15.
+  \item The academic rules follow Thông tư 08/2021/TT-BGDĐT and the published HCMUS credit caps. Personal data follows
+        Luật 91/2025/QH15.
   \item The application never stores a portal password and never automates a registration on the student's behalf.
 \end{itemize}
 
 \subsection{Project Deliverables}
-The artifacts below are produced during the project. Documents are stored in the GitHub repository under \texttt{/docs}
-and submitted in \texttt{/report}, as PA0 requires.
+Documents are stored in the GitHub repository under \texttt{/docs} and submitted from \chg{\texttt{/report}}, as PA0
+requires.
 
 {\small
-\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}Yp{2.5cm}p{2.2cm}@{}}
-\hcell{Artifact} & \hcell{Target date} & \hcell{Assignment}\\\hdrline
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}Yp{2.3cm}p{1.6cm}p{2.4cm}@{}}
+\hcell{Artifact} & \hcell{Target date} & \hcell{Assignment} & \hcell{\chg{Status, 1/11}}\\\hdrline
 \endhead
-Project plan v1.0 & 18/10/2026 & PA1\\
-Vision document v1.0 & 18/10/2026 & PA1\\
-UI sketches of the main screens (3 to 6) & 18/10/2026 & PA1\\
-Weekly reports, Sprint 1 (2 reports) & 18/10/2026 & PA1\\
-Project plan v2.0 with TA feedback applied & 1/11/2026 & PA2\\
-Use-case model and use-case specifications & 1/11/2026 & PA2\\
-Vision document v2.0 & 1/11/2026 & PA2\\
-Software architecture document, initial & 1/11/2026 & PA2\\
-Detailed design: class and sequence models & 15/11/2026 & PA3\\
-Test plan and test cases & 15/11/2026 & PA3\\
-Build B1 deployed on staging & 15/11/2026 & PA3\\
-Build B2, working software & 29/11/2026 & PA4\\
-Build B3 release candidate and test report & 13/12/2026 & PA5\\
+Project plan v1.0 & 18/10/2026 & PA1 & \chg{Submitted}\\
+Vision document v1.0 & 18/10/2026 & PA1 & \chg{Submitted}\\
+UI sketches of the main screens (3 to 6) & 18/10/2026 & PA1 & \chg{Submitted}\\
+Weekly reports, Sprint 1 (2 reports) & 18/10/2026 & PA1 & \chg{Submitted}\\
+Project plan v2.0 & 1/11/2026 & PA2 & \chg{This document}\\
+Use-case model and use-case specifications & 1/11/2026 & PA2 & \chg{Done, 19 use cases}\\
+Vision document v2.0 & 1/11/2026 & PA2 & \chg{Done}\\
+\chg{UI prototypes for the key use cases} & \chg{1/11/2026} & \chg{PA2} & \chg{Done, 27 screens}\\
+Software architecture document, initial & 1/11/2026 & PA2 & \chg{Moved to 15/11 (§4.2.4)}\\
+Detailed design: class and sequence models & 15/11/2026 & PA3 & \chg{UC-01 sequences in review}\\
+Test plan and test cases & 15/11/2026 & PA3 & \chg{Test plan and B0 cases done}\\
+Build B1 deployed on staging & 15/11/2026 & PA3 & \chg{Planned}\\
+Build B2, working software & 29/11/2026 & PA4 & \chg{Planned}\\
+Build B3 release candidate and test report & 13/12/2026 & PA5 & \chg{Planned}\\
 \end{xltabular}}
 
+%% =====================================================================
 \section{Project Organization}
 \subsection{Organizational Structure}
 The team has a flat structure of five members. The project lead coordinates the plan, the schedule and the sharing of work,
 and is the single contact with the instructor and the TAs, who review and grade each assignment and may request changes to
 the scope. Two technical leads own the frontend and the backend workstreams and review the pull requests of their side; the
-two remaining members carry the testing duties. The structure is deliberately small: the stack, the data model and the
-scope of each sprint are decided together in the weekly meeting, and the project lead breaks a tie.
-
-\begin{itemize}
-  \item Project Lead, the contact with the instructor and the TAs.
-  \item Frontend Lead and Backend Lead, one workstream each and the review of its pull requests.
-  \item Two members responsible for testing in each sprint, in addition to their development work.
-\end{itemize}
+two remaining members carry the testing duties. The stack, the data model and the scope of each sprint are decided together
+in the weekly meeting, and the project lead breaks a tie.
 
 \subsection{Roles and Responsibilities}
-All five members write code, so every member is a Developer. The three leads carry coordination duties on top of that, and
-the two remaining members own the testing of each sprint. Roles are assigned per sprint, not fixed for the whole project,
-so each member rotates through analysis, implementation and testing across the five sprints. The table gives the standing
-assignment and the duty that belongs to the role.
+All five members write code, so every member is a Developer. \chg{Each member owns a slice of the product end to end (use
+case, design, backend module, frontend pages, tests and the sprint demo) and keeps it for the whole project, so no feature
+changes hands mid-build. Every code folder, database table and document has exactly one owner, and modules call each
+other only through agreed contracts.}
 
 {\small
-\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.9cm}p{3.7cm}Y@{}}
-\hcell{Member} & \hcell{Role} & \hcell{Main responsibilities in this project}\\\hdrline
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.3cm}p{2.5cm}p{3.6cm}Y@{}}
+\hcell{Member} & \hcell{Role} & \hcell{\chg{Features owned}} & \hcell{\chg{Also owns}}\\\hdrline
 \endhead
-\textbf{Phan Bình Nguyên Lâm} & Project Lead, Developer &
-Owns the plan and the schedule, chairs the weekly meeting, keeps the workload balanced, tracks progress and reports to the
-instructor and the TAs. Implements backend features.\\
-\textbf{Lê Hữu Hoà} & Frontend Lead, Developer &
-Owns the Vue application: components, routing, state and consistency with the UI sketches. Reviews frontend pull requests.
-Implements frontend features.\\
-\textbf{Võ Nguyễn Minh Triết} & Backend Lead, Developer &
-Owns the NestJS API, the PostgreSQL schema and the rule engine. Reviews backend pull requests. Implements backend
-features.\\
-\textbf{Nguyễn Anh Dũng} & Developer, Tester &
-Implements features. Owns the test plan and the test cases of the sprint and runs the regression suite on every build.\\
-\textbf{Nguyễn Hữu Quốc Thắng} & Developer, Tester &
-Implements features. Maintains the automated test suite (Vitest) and checks each deployed build against the acceptance
-criteria of the sprint.\\
+\textbf{Phan Bình Nguyên Lâm} & Project Lead, Developer & \chg{F1 account and onboarding, F2 transcript import, F6 plan
+generator} & \chg{Plan, schedule and weekly reports; the AI gateway; CI, staging deploy, backups and build tags; privacy and
+security}\\
+\textbf{Lê Hữu Hoà} & Frontend Lead, Developer & \chg{F5 planner, F7 what-if scenarios} & \chg{App shell, i18n, Vision
+v2.0, the use-case model, UI prototypes and the UI design document; report templates and packaging}\\
+\textbf{Võ Nguyễn Minh Triết} & Backend Lead, Developer & \chg{F3 degree audit, F4 curriculum explorer} & \chg{Database
+schema, the rule engine, the software architecture document, migration review}\\
+\textbf{Nguyễn Anh Dũng} & Developer, Tester & \chg{F8 advisor chat, F9 export and sharing, F10 notifications, F11 guides}
+& \chg{Test cases, regression on every build, test reports}\\
+\textbf{Nguyễn Hữu Quốc Thắng} & Developer, Tester & \chg{F12 curriculum administration, APCS curriculum data} & \chg{Test
+plan, automated test suite, coverage gate, acceptance check of each build}\\
 \end{xltabular}}
 
+%% =====================================================================
 \section{Management Process}
 \subsection{Project Estimates}
-\begin{ocplain}{Not part of this version}
-The estimates of cost and schedule are not required in PA1. The section is completed in PA2, once the requirements
-baseline is approved and the size of the remaining work is known.
-\end{ocplain}
+\begin{changed}
+\textbf{Method.} Three-point estimates by expert judgement, in hours, for the work remaining from Sprint 2 to Sprint 5
+(19/10 to 13/12, eight weeks). For each item O is optimistic, M most likely and P pessimistic; the expected effort is
+$E = (O + 4M + P)/6$ (PERT). The Project Lead made the first estimates from the Work Breakdown; each owner re-estimated their
+rows at the weekly meeting of 27/10, and the table is updated at the end of each sprint against the hours actually spent.
+
+\textbf{Capacity.} Each member gives at least 10 hours a week: 80 hours each over the eight remaining weeks, 400 hours for
+the team.
+\end{changed}
+
+{\small\color{chg}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}Yp{3.2cm}p{2.6cm}p{2cm}@{}}
+\hcell{Member} & \hcell{Expected effort (h)} & \hcell{Capacity (h)} & \hcell{Load}\\\hdrline
+\endhead
+Phan Bình Nguyên Lâm & 139 & 80 & 174\%\\
+Võ Nguyễn Minh Triết & 94 & 80 & 118\%\\
+Lê Hữu Hoà & 94 & 80 & 118\%\\
+Nguyễn Hữu Quốc Thắng & 79 & 80 & 99\%\\
+Nguyễn Anh Dũng & 74 & 80 & 93\%\\
+\textbf{Team} & \textbf{480} & \textbf{400} & \textbf{120\%}\\
+\end{xltabular}}
+
+\begin{changed}
+\textbf{Reading the totals.} The plan needs about 20\% more than the stated minimum effort, so the construction sprints
+depend on members working above 10 hours (risk R5). The Project Lead is the overloaded member: the auth module, the AI
+gateway and account export and deletion are done in Sprint 2, ahead of their handoff dates, and F6's planner moves to
+Dũng if Sprint 4 slips (risk R4). Triết and Hoà sit on the critical path, because the schema, the rule engine and the
+\texttt{plans} API are what the others wait on.
+\end{changed}
+
+{\small\color{chg}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.2cm}Yp{0.7cm}p{0.7cm}p{0.7cm}p{0.7cm}@{}}
+\hcell{Owner} & \hcell{Work item} & \hcell{O} & \hcell{M} & \hcell{P} & \hcell{E}\\\hdrline
+\endhead
+Lâm & F1 sign-up, sign-in, sessions & 8 & 12 & 20 & 13\\
+ & F1 onboarding; sign-in with Google & 7 & 11 & 20 & 12\\
+ & Privacy: consent, export and delete an account & 5 & 8 & 12 & 8\\
+ & AI gateway for the goal box and the advisor & 8 & 12 & 20 & 13\\
+ & F2 transcript parser, manual entry, review screen & 14 & 20 & 34 & 21\\
+ & F6 deterministic planner and goal box & 20 & 30 & 50 & 32\\
+ & CI, staging deploy, nightly backup, build tags; security pass & 10 & 16 & 28 & 17\\
+ & Use cases UC-01, UC-02, UC-07, sequence diagrams & 4 & 6 & 9 & 6\\
+ & Project management: plan, weekly reports, final report & 12 & 16 & 24 & 17\\
+Triết & ERD, curriculum schema and migrations & 8 & 12 & 18 & 12\\
+ & Software Architecture Document, initial and final & 6 & 10 & 14 & 10\\
+ & Rule engine, at least 80\% statement coverage & 18 & 26 & 40 & 27\\
+ & F3 degree audit: API and dashboard & 10 & 14 & 22 & 15\\
+ & F4 curriculum explorer and prerequisite graph & 8 & 12 & 20 & 13\\
+ & Planner validation endpoint and planner functions & 7 & 11 & 18 & 11\\
+ & Use cases UC-03, UC-04; migration review & 4 & 6 & 10 & 6\\
+Hoà & Vision v2.0 and requirements baseline & 4 & 6 & 10 & 6\\
+ & Use-case model; use cases UC-05, UC-06 & 4 & 6 & 9 & 6\\
+ & UI prototypes; UI design document & 5 & 8 & 12 & 8\\
+ & App shell, design tokens, i18n, responsive layout & 10 & 14 & 22 & 15\\
+ & Sign-in and sign-up screens & 3 & 5 & 8 & 5\\
+ & \texttt{plans} module and its API & 6 & 10 & 16 & 10\\
+ & F5 planner: drag, live validation, compare & 16 & 24 & 36 & 25\\
+ & F7 what-if scenarios & 8 & 12 & 20 & 13\\
+ & Accessibility audit and UI polish & 4 & 6 & 10 & 6\\
+Dũng & Use cases UC-08, UC-09, UC-10 & 4 & 6 & 9 & 6\\
+ & F11 guides; F10 notifications & 12 & 20 & 32 & 20\\
+ & F9 plan export and sharing & 6 & 10 & 16 & 10\\
+ & F8 advisor chat with cited clauses & 14 & 20 & 32 & 21\\
+ & Test cases, regression on B0 to B3, test reports & 12 & 16 & 24 & 17\\
+Thắng & Test plan, Elaboration and Construction & 5 & 8 & 12 & 8\\
+ & APCS curriculum seed data, verified & 10 & 14 & 22 & 15\\
+ & Browser end-to-end harness; CI coverage gate & 9 & 14 & 22 & 14\\
+ & F12 curriculum administration API and UI & 16 & 24 & 40 & 26\\
+ & Second program through the administration UI & 3 & 5 & 8 & 5\\
+ & Performance tests; acceptance checks of B1 to B3 & 7 & 11 & 18 & 11\\
+\end{xltabular}}
+
+\begin{changed}
+\textbf{Budget.} The model API is the only paid item. The monthly spending limit on the OpenRouter key is the hard cap, and
+the per-user daily call limit (20 by default) stops one user from spending it. The Project Lead sets the limit in the
+OpenRouter dashboard and reports any change in the weekly report.
+\end{changed}
 
 \subsection{Project Plan}
-This section contains the schedule and the resources of the project: the phases and iterations, the planned releases, the
-schedule of each sprint with the tasks and their owners, and the resourcing.
-
 \subsubsection{Phase and Iteration Plan}
-The project has three RUP phases and five two-week iterations. The boundaries follow the overall plan agreed in PA0, so
-the plan, the vision document and the schedule of the assignment stay consistent.
-
 {\small
 \begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.2cm}p{1.4cm}p{1.7cm}p{1.7cm}Y@{}}
 \hcell{Phase} & \hcell{Iteration} & \hcell{Start} & \hcell{End} & \hcell{Overall objectives}\\\hdrline
@@ -161,13 +258,16 @@ the plan, the vision document and the schedule of the assignment stay consistent
 Inception & Sprint 1 & 5/10/2026 & 18/10/2026 &
 Project proposal, group and tools set up, first versions of the project plan and the vision document, UI sketches.\\
 Elaboration & Sprint 2 & 19/10/2026 & 1/11/2026 &
-Requirements baseline, use cases, initial architecture and database schema, running skeleton (build B0).\\
+Requirements baseline, use cases, initial architecture and database schema, \chg{authentication,} running skeleton (build
+B0).\\
 Elaboration & Sprint 3 & 2/11/2026 & 15/11/2026 &
-Detailed design, test plan and test cases, curriculum data model, degree audit and curriculum explorer (build B1).\\
+Detailed design, test plan and test cases, \chg{APCS curriculum data,} degree audit and curriculum explorer, \chg{AI
+gateway} (build B1).\\
 Construction & Sprint 4 & 16/11/2026 & 29/11/2026 &
-Roadmap planner with rule validation, transcript import, notifications (build B2).\\
+Roadmap planner with rule validation, transcript import, notifications, \chg{curriculum administration} (build B2).\\
 Construction & Sprint 5 & 30/11/2026 & 13/12/2026 &
-AI plan generator and advisor, quicklinks, performance and security pass, regression, release candidate (build B3).\\
+\chg{Plan generator and advisor chat, what-if scenarios,} guides, performance and security pass, regression, release
+candidate (build B3).\\
 \end{xltabular}}
 
 Milestones: M1 documents of PA1 approved, 18/10; M2 requirements baseline, 1/11; M3 architecture, design and test plan
@@ -175,102 +275,166 @@ approved, 15/11; M4 core planning features working, 29/11; M5 release candidate 
 
 \subsubsection{Releases}
 Four builds are produced for testing. Each build is deployed to the staging environment from the main branch through the
-continuous integration pipeline. On every build the testers run the regression suite plus the acceptance criteria of the
-sprint. Only build B3 is a release.
+\chg{deploy workflow and tagged B0 to B3}. On every build the testers run the regression suite plus the acceptance criteria
+of the sprint. Only build B3 is a release.
 
 {\small
-\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.1cm}p{4.2cm}p{3.2cm}Y@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.1cm}p{3.6cm}p{2.8cm}Y@{}}
 \hcell{Build} & \hcell{Date} & \hcell{Type} & \hcell{Content}\\\hdrline
 \endhead
 B0 & 1/11/2026, end of Sprint 2 & Demo, walking skeleton &
-Deployment pipeline, database schema, sign-in, one working screen.\\
+Deployment pipeline, database schema, \chg{sign-up and} sign-in, one working screen.\\
 B1 & 15/11/2026, end of Sprint 3 & Demo, beta &
-Degree audit dashboard and curriculum explorer on the APCS curriculum.\\
+Degree audit and curriculum explorer on the APCS curriculum\chg{; onboarding; account export and deletion; guides}.\\
 B2 & 29/11/2026, end of Sprint 4 & Beta &
-Semester roadmap planner with live rule validation, transcript import, notifications.\\
+Planner with live rule validation, transcript import, notifications\chg{, curriculum administration, sharing}.\\
 B3 & 13/12/2026, end of Sprint 5 & Release candidate &
-AI plan generator and advisor, quicklinks and guides, full regression.\\
+\chg{Plan generator with goal box, advisor chat, what-if scenarios,} guides, full regression.\\
 \end{xltabular}}
 
 \subsubsection{Project Schedule}
-The schedule below is the one the team works to. Tasks are kept in the project Discord server, one message per task, moved
-by its owner through the states Pending, Doing and Done. This table is copied from that list at the end of each sprint, so
-progress can be checked against the dates. The schedule may change after the review of PA1.
+Tasks are kept in the Discord \chg{Sprint tab, each linked to a GitHub issue}, and moved by their owner through the states
+\chg{Bucket, Doing and Done}. This table lists each sprint's key tasks \chg{with the owner and the handoff date that other
+members wait on}.
 
 {\small
-\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.4cm}p{2.0cm}Yp{3.0cm}@{}}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{1.4cm}p{1.9cm}Yp{1.9cm}@{}}
 \hcell{Sprint} & \hcell{Dates} & \hcell{Key tasks} & \hcell{Owner}\\\hdrline
 \endhead
 Sprint 1 & 5/10 -- 18/10 &
-Project proposal and 5 user interviews; group registration; tools setup; stack decision; project plan; vision document;
-UI sketches; 2 weekly reports. & All, coordinated by Lâm\\
+Project proposal and five user interviews; group registration; tools setup; stack decision; project plan; vision
+document; UI sketches; two weekly reports. & All, led by Lâm\\
 Sprint 2 & 19/10 -- 1/11 &
-Use-case model and specifications; requirements baseline; initial architecture and database schema; continuous
-integration; build B0 deployed. & Lâm, Triết, Thắng\\
+\chg{Curriculum schema (Triết, 28/10); authentication handoff (Lâm, 29/10); use-case specifications (all, 28/10) and the
+use-case model (Hoà); Vision v2.0 and UI prototypes (Hoà); initial architecture and the \texttt{RulesService} interface
+(Triết); test plan (Thắng); B0 test cases (Dũng); staging deploy and B0 (Lâm).} & All\\
 Sprint 3 & 2/11 -- 15/11 &
-Detailed design; test plan and test cases; curriculum data model for APCS; degree audit; curriculum explorer; build B1.
-& Hòa, Triết, Dũng\\
+\chg{Rule engine and degree audit (Triết); curriculum explorer (Triết); APCS seed data (Thắng, 8/11); \texttt{plans} API and
+app shell (Hoà, 8/11); onboarding, account export and deletion (Lâm); guides (Dũng); architecture document; detailed design;
+build B1.} & All\\
 Sprint 4 & 16/11 -- 29/11 &
-Roadmap planner with validation; transcript import; notifications; build B2; regression. & All\\
+\chg{Planner with live validation (Hoà; Triết's endpoint 16/11); transcript import (Lâm, 22/11); notifications, export and
+sharing (Dũng); curriculum administration (Thắng); nightly backup (Lâm); build B2; regression.} & All\\
 Sprint 5 & 30/11 -- 13/12 &
-AI plan generator and advisor; quicklinks and guides; performance and security pass; full regression; release candidate
-B3; final report. & All\\
+\chg{Plan generator (Lâm; engine functions from Triết 29/11); advisor chat (Dũng); what-if scenarios (Hoà); second program
+through the administration UI (Thắng);} performance and security pass; full regression; release candidate B3; final
+report. & All\\
 \end{xltabular}}
+
+\begin{changed}
+\subsubsection{Sprint 2 Status Against the Plan}
+State on 1 November 2026, taken from the merged and open pull requests on GitHub.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}Yp{1.8cm}p{1.5cm}p{4.6cm}@{}}
+\hcell{Task} & \hcell{Owner} & \hcell{State} & \hcell{Note}\\\hdrline
+\endhead
+Repository, CI rules, Changesets & Lâm & Done & PRs \#1 to \#4, \#7, \#10\\
+Authentication and sessions & Lâm & Done & PR \#8, ahead of the 29/10 handoff\\
+AI gateway & Lâm & Done & PR \#12, Sprint 3 work done early\\
+Account export and deletion & Lâm & Done & PR \#14\\
+Transcript storage & Lâm & Done & PR \#29, Sprint 4 work done early\\
+Use cases UC-01, UC-02, UC-07 & Lâm & In review & PR \#16, content used in the PA2 specification\\
+Curriculum schema & Triết & In review & PR \#23, due 28/10, waits for one approval\\
+Use cases UC-08 to UC-10 and B0 test cases & Dũng & Done & PRs \#39, \#40\\
+Guides plan and ADR 0010 & Dũng & Done & PRs \#41 to \#43\\
+UC-11 and the Elaboration test plan & Thắng & Done & PR \#30\\
+Browser test harness, coverage gate & Thắng & Done & PRs \#31, \#45\\
+Construction test plan & Thắng & Done & PR \#46\\
+Use-case model, Vision v2.0, UI prototypes & Hoà & Done & PRs \#44, \#48 and this submission\\
+Initial architecture document & Triết & Late & Moved to 15/11, with the detailed design\\
+Staging host and B0 deployment & Lâm & Late & No host chosen (risk R2); B0 tested locally, PR \#38\\
+\end{xltabular}}
+
+Two handoffs slipped: the curriculum schema and the staging host. Both are High risks (R1, R2) and are the first items of
+Sprint 3. Four items of later sprints were finished early, so the expected effort left for Lâm falls.
+\end{changed}
 
 \subsubsection{Project Resourcing}
 Five members, each committing at least 10 hours per week, about 50 hours per week and roughly 600 hours over the twelve
-weeks. The work is spread so that no sprint depends on a single person: every task has an owner and a reviewer.
-
+weeks. Every task has an owner and a reviewer, so no task depends on a single person.
 \begin{itemize}
   \item Source control and review: GitHub, one repository, protected main branch.
-  \item Communication and task tracking: one Discord server, one channel per concern, one message per task.
-  \item Development: NestJS and Vue run locally; PostgreSQL 18 locally with seeded curriculum data.
+  \item Communication and task tracking: one Discord server, one channel per concern\chg{; a GitHub issue for each task's
+        specification}.
+  \item Development: NestJS and Vue run locally; PostgreSQL \chg{18.6 in a container} with seeded curriculum data.
   \item Continuous integration and hosting: GitHub Actions and a free-tier cloud host for staging.
-  \item Documents: Markdown in \texttt{/docs}, exported to \texttt{.pdf} for submission.
-  \item No paid licence is needed, which keeps the project inside the zero-budget constraint.
+  \item \chg{Model API: OpenRouter behind the AI gateway, with a monthly spending limit.}
+  \item Documents: Markdown in \texttt{/docs}; \chg{course deliverables in LaTeX in \texttt{/report}, built to PDF by one
+        script.}
 \end{itemize}
 
 \subsection{Project Monitoring and Control}
 \subsubsection{Reporting}
-Status is reported in three ways. First, a weekly report every Sunday, written on the course template and stored in
-\texttt{/docs/management}: it lists what was completed, what slipped, the issues and the goals of the following week.
-Second, a weekly meeting of about thirty minutes at the start of each week, where the report is closed, the priorities of
-the sprint are confirmed and any blocker is assigned to a person. Third, continuous status in the project Discord server:
-every task is a message in the channel and its owner moves it through the states Pending, Doing and Done on the day it
-changes, so the state of the sprint can be read without asking anyone. Two weekly reports are produced during Sprint 1
-and submitted with PA1.
-
-\begin{itemize}
-  \item Weekly report to the TAs: what was planned, what was done, the percentage of each task, the issues and the goals of
-        the next week.
-  \item Weekly meeting: thirty minutes, decisions recorded in the channel right after the meeting.
-  \item Daily updates in Discord: task state, blockers, and the pull request number once the work is opened for review.
-\end{itemize}
+Status is reported in three ways. First, a weekly report every Sunday, written on the course template \chg{and stored in
+\texttt{/report/weekly}}: it lists what was completed, what slipped, the issues and the goals of the following week. Second,
+a weekly meeting of about thirty minutes at the start of each week, where the report is closed, the priorities of the sprint
+are confirmed and any blocker is assigned to a person. Third, continuous status in the project Discord server: every task's
+owner moves it through \chg{Bucket, Doing and Done} on the day it changes and adds the pull request number. \chg{A decision
+that outlives one pull request is recorded as an ADR in \texttt{/docs/analysis-and-design/adr}; ten are recorded so far. A
+handoff that slips is reported in the weekly report of the week it slips.}
 
 \subsubsection{Risk Management}
-\begin{ocplain}{Not part of this version}
-The risk register is left empty in PA1, as the assignment instructs. The table of risks, probabilities and mitigation
-strategies is completed in PA2, where the technical risks of the rule engine and of the curriculum data become measurable.
-\end{ocplain}
+\begin{changed}
+Probability (P) and impact (I) are scored from 1 to 5; exposure is P $\times$ I. Priority is High for 12 and above, Medium
+for 6 to 11 and Low below 6. The register is reviewed at each weekly meeting, and each owner reports changes in the weekly
+report.
+\end{changed}
+
+{\small\color{chg}
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{0.35cm}p{0.35cm}p{0.5cm}p{1.1cm}Y@{}}
+\hcell{ID} & \hcell{Risk} & \hcell{P} & \hcell{I} & \hcell{Exp.} & \hcell{Owner} & \hcell{Mitigation or contingency}\\\hdrline
+\endhead
+R1 & The curriculum schema is late; every module's tables reference it. & 3 & 5 & 15 & Triết & Schema before the
+architecture document; others build against interfaces and fakes until it lands; a slip is posted the same day.\\
+R2 & No staging host, or the free tier sleeps or disappears, so a build cannot be deployed. & 4 & 4 & 16 & Lâm & Keep the
+deploy workflow host-agnostic; pick a host with managed PostgreSQL 18; a second host's setup is written down.\\
+R3 & Errors in the APCS curriculum data give a wrong graduation status. & 3 & 5 & 15 & Thắng & Seed data checked line by
+line against the official PDF (186 pages checked for PR \#36); tests per group with known transcripts; data versioned per
+cohort.\\
+R4 & The Project Lead is overloaded (174\% of capacity). & 4 & 4 & 16 & Lâm & Platform work done in Sprint 2; F6 planner
+moves to Dũng if Sprint 4 slips; two-factor authentication is dropped first.\\
+R5 & Lecture and exam weeks cut capacity; the plan already needs 120\%. & 4 & 3 & 12 & Lâm & Critical path in Sprints 2
+and 3; Low features (F9, F10) reduced first.\\
+R6 & The planner cannot find a valid plan within 30 seconds. & 3 & 3 & 9 & Lâm & Planner ADR (PR \#27) and a prototype on
+the seed data in Sprint 4; bounded search with a greedy fallback the engine still checks.\\
+R7 & The portal transcript PDF has no text layer or its layout changes. & 3 & 3 & 9 & Lâm & Check one real transcript
+locally before Sprint 4; manual entry works in every case.\\
+R8 & Personal data leaks into an AI tool, a log, a fixture or the public repository. & 2 & 5 & 10 & Lâm & AGENTS.md hard
+rule 3; synthetic test data; uploaded files deleted after reading; no prompt content logged.\\
+R9 & A contract between slices changes late (\texttt{plans} API, \texttt{RulesService}, student record). & 3 & 3 & 9 &
+Triết & Contracts are merged before anyone builds on them; a breaking change needs the receiver's approval; e2e tests in
+CI.\\
+R10 & Pull requests wait for review. & 3 & 2 & 6 & Lâm & Review within one working day; the Project Lead may merge with
+the admin override and says why.\\
+R11 & The model provider is down, slow or out of budget. & 2 & 3 & 6 & Lâm & Only the goal box and advisor chat use a
+model; both fail to a clear state; manual planning keeps working.\\
+R12 & TA feedback changes the scope. & 3 & 3 & 9 & Lâm & Priorities are set in the Vision; Low features are dropped first;
+changes go in the revision history.\\
+R13 & A member cannot work for a period. & 2 & 4 & 8 & Lâm & Every contract has a named reviewer who can take it over.\\
+R14 & AI-generated code is merged that its author cannot explain. & 3 & 2 & 6 & Triết & Every PR's ``Why this design''
+defends each choice with evidence; reviewers send back what the author cannot explain.\\
+\end{xltabular}}
 
 \subsubsection{Configuration Management}
-Source code and documents live in one GitHub repository owned by the team, with the folder layout required by PA0:
-\texttt{/src} for the code, \texttt{/docs/management} for plans and reports, \texttt{/docs/requirements} for the vision
-document and the use cases, \texttt{/docs/analysis and design} for the architecture, the models and the UI design,
-\texttt{/docs/test} for the test plan, the test cases and the test reports, and \texttt{/report} for the submissions.
-Documents are written in Markdown, versioned with the code, and exported to \texttt{.pdf} only for submission.
+Source code and documents live in one GitHub repository owned by the team: \texttt{/src} for the code,
+\texttt{/docs/management} for plans, \texttt{/docs/requirements} for the vision and the use cases,
+\texttt{/docs/analysis-and-design} for the architecture, the models, the UI prototypes \chg{and the ADRs},
+\texttt{/docs/test} for the test plan and cases, and \texttt{/report} for the submissions.
 
 \begin{itemize}
-  \item No one pushes to main. Every change arrives as a pull request.
-  \item A pull request merges only when the continuous integration pipeline passes, every commit is signed, and at least
-        one other member has reviewed and approved it.
-  \item After approval the author merges the pull request and performs the deployment.
-  \item Review duty follows the workstream: the frontend lead reviews frontend work, the backend lead reviews backend work,
-        and the project lead reviews changes to the data model and the rules.
-  \item Builds B0 to B3 are tagged in the repository, so the version that was tested is always identifiable.
+  \item No one pushes to main. Every change arrives as a pull request \chg{from a branch named
+        \texttt{<type>/<short-name>}}.
+  \item \chg{CI enforces the rules: typecheck, tests and build of both sides, backend e2e tests against PostgreSQL, every
+        commit signed, Conventional Commit messages and PR titles, and a changeset in every pull request.} A pull request
+        merges only when CI passes and at least one other member has approved it.
+  \item \chg{The Project Lead may use the admin override for urgent fixes or tie-breaks, and says why in the PR.}
+  \item After approval the author merges \chg{(squash merge)} and deploys.
+  \item Review duty follows the workstream: the frontend lead reviews frontend work, the backend lead backend work, and the
+        project lead the data model and the rules.
+  \item \chg{Changesets build a release pull request that bumps the version and writes the changelog; it is merged at the
+        end of each sprint, and the build is tagged B0 to B3.}
 \end{itemize}
-
-The technology stack of the project, all at the current stable release:
 
 {\small
 \begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.0cm}Yp{4.0cm}@{}}
@@ -282,6 +446,7 @@ Frontend & Vue & 3.5.44\\
 API & REST, described by OpenAPI & 3.2.0\\
 Tests & Vitest & 5.0.4\\
 Build & Vite & 8.3.4\\
+\chg{Runtime} & \chg{Node.js, npm} & \chg{22.22.1, 11.21.1}\\
 \end{xltabular}}
 
 \end{document}

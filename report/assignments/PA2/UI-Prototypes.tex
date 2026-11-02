@@ -1,0 +1,291 @@
+\documentclass{article}
+\usepackage{../../shared/omnicourse}
+\usepackage{graphicx}
+\input{../../shared/meta.tex}
+
+\renewcommand{\docshortname}{UI Prototypes}
+\hypersetup{pdftitle={OmniCourse -- UI Prototypes v2.0}}
+
+% Screenshots are captured separately from docs/analysis-and-design/ui-prototypes (English, light theme).
+\providecommand{\shotdir}{shots}
+\graphicspath{{\shotdir/}}
+% \shot[max height]{file}{caption}
+\newcommand{\shot}[3][0.62\textheight]{%
+  \begin{figure}[H]\centering
+    {\setlength{\fboxsep}{0pt}\color{ocRule}\fbox{\includegraphics[width=\textwidth,height=#1,keepaspectratio]{#2}}}
+    \caption{#3}
+  \end{figure}}
+% step-to-screen table
+\newcommand{\stepmap}[1]{\par{\small\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.4cm}Y@{}}
+  \hcell{Step} & \hcell{Where it is on the screen}\\\hdrline\endhead #1\end{xltabular}}\par}
+
+\begin{document}
+
+\makecover{UI Prototypes}{2.0}{1 November 2026}{ESE-PA2-UI-2.0}{Project Assignment 2 (PA2)}
+
+\pagenumbering{roman}
+\thispagestyle{empty}
+
+\section*{Revision history}
+\vspace{-0.3em}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{2.3cm}p{1.4cm}Yp{3.6cm}@{}}
+\hcell{Date} & \hcell{Version} & \hcell{Description} & \hcell{Author}\\\hdrline
+\endhead
+18/10/2026 & 1.0 & UI sketches of the main screens for PA1. & Lê Hữu Hoà\\
+31/10/2026 & 1.5 & First clickable HTML prototypes of every screen (PR \#44). & Lê Hữu Hoà\\
+1/11/2026 & 2.0 & Redesigned prototype set: 16 pages and 27 screens and states, English and Vietnamese, light and dark theme,
+collapsible sidebar, planner with one row per term and live rule checks, grades with per-part bars (PR \#48). Every screen
+mapped to the steps of its use case. & Lê Hữu Hoà\\
+\end{xltabular}}
+
+\vspace{1.2em}
+{\hypersetup{linkcolor=ocNavy}\tableofcontents}
+\clearpage
+\pagenumbering{arabic}
+
+%% =====================================================================
+\section{Introduction}
+The PA2 brief asks for the UI of at least three key use cases, matching the use-case specifications. This document
+covers twelve of the nineteen use cases. For each one it shows the screens and a table that ties each step of the basic
+flow, and the main alternative flows, to what the student sees. Step numbers refer to the Use-Case Model and
+Specification v1.0 (ESE-PA2-UCS-1.0).
+
+\subsection{How to open the prototype}
+The prototype is a set of static HTML pages, included in this package in the folder \texttt{ui-prototypes}. Open
+\texttt{index.html} in a browser; nothing needs installing. The pages share synthetic data: the student
+\emph{Nguyễn Minh Phương}, class APCS 24A01, student ID 24125369, all made up. Press \textbf{G} on any page to jump to
+any screen or state. The globe button switches between Vietnamese and English; the screenshots here are in English.
+
+\subsection{Design direction}
+\begin{itemize}
+  \item \textbf{One colour and one glyph per requirement group.} Core computing is blue \texttt{</>}, mathematics orange
+        $\Sigma$, physics teal, English yellow, political theory rose, general education green, electives violet and the
+        thesis graphite. The glyph keeps the meaning when colour is not seen.
+  \item \textbf{Course tiles.} A solid tile is passed, a tile with an inner ring is in progress, a white tile with a side
+        bar is planned, and a dashed tile is an empty slot.
+  \item \textbf{Calm screens.} A light grey page, white cards, colour kept for groups and for status. Figures read heavier
+        than the text around them, and units are written in full (\emph{22 credits}, never \emph{22 cr}).
+  \item \textbf{The rule engine is visible.} Wherever a rule decides something, the screen says which rule and cites
+        the regulation clause, so the student can check it.
+\end{itemize}
+
+\subsection{Screens and use cases}
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{3.6cm}Yp{2.6cm}@{}}
+\hcell{Page} & \hcell{What it shows} & \hcell{Use cases}\\\hdrline
+\endhead
+\texttt{index.html} & Landing page for visitors & UC-01, UC-13\\
+\texttt{sign-up.html}, \texttt{sign-in.html} & Account creation with consent; sign-in & UC-01, UC-13\\
+\texttt{onboarding.html} & Program, cohort, target term, credits per term, transcript & UC-01\\
+\texttt{import.html} & Upload and review of the transcript & UC-02\\
+\texttt{dashboard.html} & Degree audit & UC-03\\
+\texttt{audit.html} & Grades and what each course still needs & UC-15\\
+\texttt{explorer.html} & Curriculum list and prerequisite graph & UC-04\\
+\texttt{planner.html} & Plan, goal box, what-if, share & UC-05, UC-06, UC-07, UC-09\\
+\texttt{shared.html} & Read-only shared plan; dead link page & UC-16\\
+\texttt{advisor.html} & Advisor chat & UC-08\\
+\texttt{guides.html} & School-task guides & UC-10\\
+\texttt{inbox.html} & Notifications & UC-12\\
+\texttt{settings.html} & Account, privacy, sessions, consent & UC-14\\
+\texttt{admin.html} & Curriculum administration & UC-11, UC-17\\
+\end{xltabular}}
+
+%% =====================================================================
+\section{UC-01 Sign up and onboard}
+\shot[0.38\textheight]{sign-up}{Sign-up: email, password with strength meter, display name, consent with a link to the
+privacy notice.}
+\shot[0.38\textheight]{onboarding}{Onboarding, first of five questions: the program, from the programs in the curriculum
+data.}
+\stepmap{
+Steps 1--3 & \textbf{Create account} form on \texttt{sign-up.html}; \textbf{Continue with Google} above it (A4).\\
+Step 4, A2 & Each field shows its error under it, in words; the password strength meter updates while typing.\\
+Steps 6--9 & \texttt{onboarding.html}: program, cohort, target graduation term, credits per term; \textbf{Next} on each,
+\textbf{Skip for now} keeps onboarding resumable (A7).\\
+Step 10, A5 & The last question offers to import the transcript or do it later.\\
+Step 11 & \textbf{Finish} opens the dashboard.\\
+}
+
+%% =====================================================================
+\section{UC-02 Import transcript}
+\shot[0.3\textheight]{import}{Upload: the drop zone, the note that the PDF is read on the server and deleted, and the link
+to manual entry.}
+\shot[0.55\textheight]{import-review}{Review: every row with its code, credits, grade and term. One row could not be read
+and blocks the save until it is fixed.}
+\stepmap{
+Steps 1--3 & Drop zone on \texttt{import.html}, with \textbf{How to get the PDF from the portal} and the privacy note.\\
+Steps 4--6 & Review table: rows in progress are marked \textbf{In progress} (A3); a row not in the curriculum is marked
+in words; each row can be edited or removed, \textbf{Add row} adds one (A4).\\
+A2 & The unreadable row is highlighted, and the header says \emph{1 row to fix}; \textbf{Save transcript} stays disabled.\\
+Steps 7--9 & \textbf{Save transcript}, then the dashboard opens.\\
+}
+
+%% =====================================================================
+\section{UC-03 View degree audit}
+\shot{dashboard}{Dashboard: credits by requirement group, GPA with its change, expected graduation, credits left, one bar
+per group, this term's courses, \emph{Needs attention} and the by-term strip.}
+\stepmap{
+Step 3 & Top row: cumulative GPA with the change from last term, credits passed of 167, credits left, expected graduation
+term.\\
+Step 4 & Donut chart of credits: each group's passed credits, then in progress (hatched), then still to take in light grey.
+Hovering a group lights it in the donut and in the list.\\
+Steps 5, 7, 8 & \emph{Requirement groups}: one bar per group; clicking a bar lists passed, in-progress and still-needed
+courses.\\
+Step 6 & \emph{Needs attention}: plan issues, a missing language certificate, an empty elective group, the registration
+window, each with a link to act.\\
+A2 & Hovering a GPA point or a past term previews the page as it stood at the end of that term; the arrows and the term
+picker in the header keep it there.\\
+}
+
+%% =====================================================================
+\section{UC-15 View grades and what each course still needs}
+\shot[0.7\textheight]{audit}{Grades: three figures, the term averages with the pass (5) and excellent (8) lines, then each
+course with its graded parts stacked on a 0--10 bar.}
+\stepmap{
+Step 2 & Cumulative GPA, credits passed, best term; the line chart with lines at 5 and 8; a failed course makes a red
+point.\\
+Step 3 & Current term, planned terms, then past terms; each course has a stacked bar, thin cutoffs at 5 and 8, the grade
+and a status pill (\textbf{In progress}, \textbf{Planned}, \textbf{Passed}, \textbf{Failed}).\\
+Step 4, A4, A5 & Under an unfinished course: \emph{Final exam needs 1.4 to pass, 7.4 for excellent}, or \emph{Average 5.0
+to pass, 8.0 for excellent} when no part is graded.\\
+Steps 5--6 & Clicking a course opens each graded part with its weight and, for a retake, every sitting.\\
+A1, A2 & Group chips and the search box above the list; \emph{No course matches} when the filter is empty.\\
+}
+
+%% =====================================================================
+\section{UC-04 Explore curriculum}
+\shot[0.5\textheight]{explorer}{Curriculum list: in each group, courses in progress, then available, then locked with the
+missing prerequisites, then passed.}
+\shot[0.4\textheight]{graph}{Prerequisite graph (A1): clicking a node lights its whole chain.}
+\stepmap{
+Steps 1--3 & Group sections with the order in progress, available, locked (padlock and \emph{needs \ldots}), passed.\\
+Steps 4--5 & Search box; typing without diacritics matches Vietnamese names.\\
+Steps 6--7 & Clicking a course opens the drawer with credits, prerequisites, what it unlocks and the terms offered.\\
+A1 & \textbf{Prerequisite graph} tab; drag or scroll to pan.\\
+}
+
+%% =====================================================================
+\section{UC-05 Build and edit a plan}
+\shot[0.7\textheight]{planner}{Planner: the status strip, one row per term with a credit meter, the course pool, and the
+Issues panel.}
+\stepmap{
+Step 2 & Status strip: estimated graduation (or \emph{Not valid} with the count) and the coverage of each group. Rows:
+\emph{Completed} (one row of codes), the current term, then each future term with its load and a meter marking the
+program's minimum and cap. \emph{Issues} panel on the right.\\
+Steps 3--4 & While a course is dragged, terms that cannot take it fade and refuse the drop, the target row previews its new
+load, every row turns green or red with the reason, and the panel previews new and resolved issues.\\
+Steps 5--6 & The drop updates meters, coverage, the estimated graduation term and the panel.\\
+A1 & Space lifts a tile, up and down arrows move it and skip refused terms, Enter drops.\\
+A2 & Each issue has its clause and, when one exists, \textbf{Apply} for the fix; \textbf{Apply every suggestion} at the
+bottom.\\
+A3, A6 & \textbf{Undo} in the header; the plan menu creates, duplicates and deletes plans (delete asks first).\\
+}
+
+%% =====================================================================
+\section{UC-07 Generate a plan}
+\shot[0.45\textheight]{planner-goal}{Goal box: a sentence fills the planning-goal form; the changed fields are marked
+before the student presses Plan.}
+\stepmap{
+Step 2 & The form under the goal box: target term, maximum credits, internship term, courses to avoid; a note says the
+text is sent to an AI provider.\\
+Steps 3--5 & \textbf{Fill the form} fills the fields and marks each one that changed, in words and colour.\\
+Step 6 & \textbf{Re-plan from the form}; the rule engine checks the result, which shows in the rows and the Issues panel.\\
+A1, A2 & The form works without the goal box; when AI is unavailable the box says so and the form stays usable.\\
+}
+
+%% =====================================================================
+\section{UC-06 Simulate a what-if scenario}
+\shot[0.45\textheight]{planner-whatif}{What-if: the scenario runs on a copy; the panel shows the graduation term before and
+after and the courses that move.}
+\stepmap{
+Steps 1--3 & \textbf{What if} in the planner header opens the panel with \textbf{Fail a course}, the course picker and
+the other scenarios.\\
+Steps 4--5 & \emph{Current} and \emph{After the change} graduation terms side by side, with the list of terms and courses
+that move.\\
+Steps 6--7, A5 & \textbf{Save as a new plan} keeps the original; \textbf{Close} discards the copy.\\
+}
+
+%% =====================================================================
+\section{UC-09 Share or export a plan and UC-16 View a shared plan}
+\shot[0.45\textheight]{planner-share}{Share dialog: what the advisor will and will not see, the option to show the
+student's name, the warning, Create link and Download PDF.}
+\shot[0.6\textheight]{shared}{The advisor's read-only view: the same rows, meters and violations as the planner, with nothing
+to drag or fix.}
+\stepmap{
+UC-09 steps 1--2 & \textbf{Share} in the planner; the dialog lists what a reader sees and what stays private (grades,
+email, student ID, transcript, other plans) and \textbf{Show my name}.\\
+UC-09 steps 3--4 & \textbf{Create link}, then \textbf{Copy}; \textbf{Stop sharing} once a link exists (A2, A3).\\
+UC-09 A1 & \textbf{Download PDF} in the same dialog.\\
+UC-16 step 3 & \texttt{shared.html}: banner \emph{Shared plan, read-only, last changed \ldots}, status strip, term rows,
+\emph{Violations} panel with \emph{The rule engine checked this when the page opened}.\\
+UC-16 A1 & \texttt{shared.html\#dead}: \emph{This plan is not shared}, the same page for every dead or wrong link.\\
+UC-16 A2 & \textbf{Export PDF} prints the view.\\
+}
+
+%% =====================================================================
+\section{UC-08 Ask the advisor chat}
+\shot[0.42\textheight]{advisor-consent}{First use: what is sent to the AI provider and what never is, with I agree and Not
+now.}
+\shot[0.5\textheight]{advisor}{An answer: the steps the chat took, the rule engine result for this student, the text, and
+the cited clauses.}
+\stepmap{
+Step 2, A1 & Consent dialog: sent (program, cohort, course codes, grades, terms), never sent (name, email, student ID);
+\textbf{I agree} or \textbf{Only regulations}.\\
+Step 3 & Empty conversation with example questions; the note that the cited clause is the authority.\\
+Steps 4--7 & The question, then the steps (\emph{Search the regulations}, \emph{Read the record}, \emph{Rule engine:
+\ldots}), then the answer as it is written.\\
+Step 8 & The rule engine card with the result for this student, and clause chips such as \emph{Article 7.2} that open the
+clause text.\\
+A2, A4 & \texttt{advisor.html\#unavailable} and \texttt{\#limit}: the chat says why it is unavailable and keeps the
+question.\\
+}
+
+%% =====================================================================
+\section{UC-10 Follow a school-task guide}
+\shot[0.45\textheight]{guides}{Guides: search, the next deadlines, and the official portals with direct links.}
+\shot[0.6\textheight]{guide}{One guide: steps quoting the portal's buttons, what to prepare, the credit limit from the rule
+engine, the course codes from the student's plan, and the date the guide was checked.}
+\stepmap{
+Steps 1--3 & Search box (\emph{What do you need to do?}) and the task cards; the portal list below with direct links.\\
+Steps 4--5 & Guide page: numbered steps, \emph{When}, \emph{Account}, notes, version and last-checked date.\\
+Step 6 & \textbf{Open the student portal} opens the deep link in a new tab.\\
+A3 & \emph{Your credit limit: 10--22 credits per term, computed by the rule engine}, with its clause.\\
+A4 & \emph{Course codes from your plan}, ready to copy; OmniCourse never registers.\\
+A6 & \textbf{Report an error} at the bottom of the guide.\\
+}
+
+%% =====================================================================
+\section{UC-12 Receive notifications}
+\shot[0.42\textheight]{inbox}{Notifications: plan issues, the registration window, a transcript change, each with its
+action; filters on the right.}
+\stepmap{
+Steps 4--5 & The bell in the sidebar shows the unread count and opens a short popover.\\
+Steps 6--7 & \texttt{inbox.html}: newest first, each with a button to act (open the plan, see the guide).\\
+A1, A2 & \emph{Transcript changed} and \emph{Plan has 2 issues} entries.\\
+A3, A4 & \textbf{Mark all read}; filters by kind on the right.\\
+}
+
+%% =====================================================================
+\section{UC-14 Manage account and privacy}
+\shot[0.6\textheight]{settings}{Settings: profile and planning goal, privacy and AI consent, notifications, sessions, export
+and deletion.}
+\stepmap{
+A2 & \emph{Program and goals}: program, target term, credits per term, internship.\\
+A3 & \emph{Privacy and AI}: the advisor-chat consent switch and the calls used today.\\
+Steps 3--6 & \emph{Sessions}: each device with \textbf{Sign out}.\\
+A4, A5 & \textbf{Export my data}; \textbf{Delete account} with the 30-day grace period and a confirmation.\\
+A6 & Language and theme.\\
+}
+
+%% =====================================================================
+\section{UC-11 Maintain curriculum and UC-17 Maintain the course catalog}
+\shot[0.5\textheight]{admin}{Curriculum administration: program and cohort, the requirement groups with their credits, and
+the courses of a group.}
+\stepmap{
+UC-11 steps 1--2 & Program and cohort pickers; the groups with required credits; \textbf{Add cohort} (A1).\\
+UC-11 steps 3--6 & Editing a group or adding a course to it; code format and prerequisite-cycle checks show under the
+field (A2, A3).\\
+UC-17 & The \emph{Course catalog} tab; changing a shared course shows every curriculum it reaches before saving.\\
+}
+
+\end{document}

@@ -196,9 +196,9 @@
 \newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
 
 % Table header cell - light tint with bold dark text
-\newcommand{\hcell}[1]{\cellcolor{ocHdrBg}{\headingfont\color{ocNavy}#1}}
+\newcommand{\hcell}[1]{\cellcolor{ocHdrBg}\textcolor{ocNavy}{\headingfont #1}}
 \newcommand{\hdrline}{\noalign{\vspace{1.2pt}}}
-\newcommand{\dlabel}[1]{\cellcolor{ocLight}{\headingfont\color{ocNavy}#1}}
+\newcommand{\dlabel}[1]{\cellcolor{ocLight}\textcolor{ocNavy}{\headingfont #1}}
 
 % Compact layout for weekly reports
 \newcommand{\ocompact}{%
@@ -323,10 +323,10 @@
     \vspace{0.5cm}
     {\small\sffamily\color{ocBody}%
       \begin{tabularx}{\textwidth}{@{}p{4.3cm}X@{}}
-        {\color{ocSubtle}Version} & #2\\
-        {\color{ocSubtle}Date} & #3\\
-        {\color{ocSubtle}Document identifier} & #4\\
-        {\color{ocSubtle}Assignment} & #5\\
+        \textcolor{ocSubtle}{Version} & #2\\
+        \textcolor{ocSubtle}{Date} & #3\\
+        \textcolor{ocSubtle}{Document identifier} & #4\\
+        \textcolor{ocSubtle}{Assignment} & #5\\
       \end{tabularx}\par}
     \vspace{1.2cm}
     {\labelfont\fontsize{7.5}{9}\selectfont\color{ocSubtle}\MakeUppercase{Team}}\par
@@ -381,10 +381,10 @@
   \begin{flushleft}
     {\small\sffamily\color{ocBody}%
       \begin{tabularx}{\textwidth}{@{}p{4.3cm}X@{}}
-        {\color{ocSubtle}Group} & \OmniCourseGroup\\
-        {\color{ocSubtle}Prepared by} & #3\\
-        {\color{ocSubtle}Project} & OmniCourse (development name)\\
-        {\color{ocSubtle}Document identifier} & #4\\
+        \textcolor{ocSubtle}{Group} & \OmniCourseGroup\\
+        \textcolor{ocSubtle}{Prepared by} & #3\\
+        \textcolor{ocSubtle}{Project} & OmniCourse (development name)\\
+        \textcolor{ocSubtle}{Document identifier} & #4\\
       \end{tabularx}}
   \end{flushleft}
   \vfill

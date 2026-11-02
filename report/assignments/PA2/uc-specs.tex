@@ -1,0 +1,1066 @@
+%% Use-case specifications, one per use case, in ID order. Included by UseCase-Specification.tex.
+
+%% ------------------------------------------------------------------ UC-01
+\ucspec{UC-01}{Sign up and onboard}{F1 Account and onboarding}{A. Account and access}{Visitor}{Google identity
+(A4)}{High}{B0 sign-up; B1 onboarding}{Phan Bình Nguyên Lâm}
+
+\ucpart{Brief description}
+A visitor creates an account, accepts the privacy terms and tells OmniCourse which program and cohort they follow and
+what they want from a plan. Every other student use case starts after this one: the degree audit needs the program and
+cohort, and the planner starts from the planning goal.
+
+\ucpart{Preconditions}
+\begin{itemize}
+  \item The visitor is not signed in.
+  \item At least one program and cohort exist in the curriculum data (UC-11).
+\end{itemize}
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The visitor opens OmniCourse and chooses \st{Sign up}.
+  \item The system asks for an email, a password, a display name, and consent to the terms and the privacy notice. The
+        notice states what is stored, for how long, and how to export or delete the account.
+  \item The visitor fills in the form, ticks consent and presses \st{Create account}.
+  \item The system checks the input: a valid email, a password of 10 to 128 characters, a display name of 1 to 100
+        characters, and consent given. It shows the password strength as the visitor types.
+  \item The system creates the account, stores the password only as an argon2id hash, records the time of consent and
+        signs the visitor in on this device. The visitor is now a student.
+  \item The system starts onboarding and asks for the \st{program} and \st{cohort}, offering only those that exist in the
+        curriculum data.
+  \item The student chooses them.
+  \item The system asks for the default planning goal: target graduation term, credits per term and internship term.
+        Every field is optional and can be changed later.
+  \item The student fills in what they know and presses \st{Next}.
+  \item The system offers to import a transcript now (UC-02) or later. The student chooses \st{Later}.
+  \item The system saves the answers and opens the dashboard with the degree audit (UC-03).
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Email already registered.] At step 5 the email belongs to an existing account. The system says so and offers
+        \st{Sign in} (UC-13). No account is created.
+  \item[A2. Invalid input.] At step 4 a field fails its check. The system marks each failing field and says what is wrong,
+        in words as well as by colour. Nothing is stored. The flow returns to step 3.
+  \item[A3. Too many attempts.] At step 3, if one network address sends more than 10 sign-up requests in a minute, the
+        system refuses further attempts for the rest of the minute and says so.
+  \item[A4. Sign up with Google] (after B0). At step 1 the visitor chooses \st{Continue with Google}. Google confirms the
+        identity and a verified email. The system asks for consent as in step 2, creates the account with no password and
+        continues at step 6.
+  \item[A5. Import the transcript now.] At step 10 the student chooses \st{Import transcript}. UC-02 runs; when it ends,
+        the flow continues at step 11.
+  \item[A6. Program not offered yet.] At step 7 the student's program or cohort is not listed. The system explains that only
+        the listed programs are supported in this release. The student may leave onboarding unfinished; guides (UC-10)
+        still work, while the audit and the planner wait until a program is chosen.
+  \item[A7. Onboarding interrupted.] The student closes the page between steps 6 and 10. The answers already given are
+        kept, and onboarding resumes at the first unanswered question on the next sign-in.
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Success:} an account exists with a consent time; the student is signed in on this device; program, cohort
+        and the default planning goal are stored.
+  \item \textbf{Failure:} no account is created (A1 to A3), or the account exists with onboarding unfinished (A6, A7).
+\end{itemize}
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Security: argon2id password hashes; sessions rotate, expire after 7 days and can be revoked (UC-14).
+  \item Privacy: consent is required and its time stored (Luật 91/2025/QH15). No school-portal password is ever asked for.
+  \item Academic rules: onboarding stores the credits per term the student asks for and does not apply the credit cap; the
+        rule engine applies it when a plan is built (UC-19).
+  \item Usability: works from 360 px wide, by keyboard, in Vietnamese and English.
+\end{itemize}
+
+\ucpart{Relationships}
+Extended by UC-02 at step 10. Followed by UC-03.
+
+%% ------------------------------------------------------------------ UC-02
+\ucspec{UC-02}{Import transcript}{F2 Transcript import}{B. Academic record}{Student}{none}{High}{B2}{Phan Bình Nguyên Lâm}
+
+\ucpart{Brief description}
+A student brings their transcript into OmniCourse by uploading the transcript PDF exported from the HCMUS portal, or by
+typing the rows in. The student reviews every row before it counts. The saved transcript is what the degree audit, the
+grades view and the planner read. A deterministic parser reads the file; no language model is involved (ADR 0003).
+
+\ucpart{Preconditions}
+The student is signed in and has chosen a program and cohort (UC-01).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens \st{Transcript} and chooses \st{Import from portal PDF}.
+  \item The system says which file to download from the portal and how, and that the file is read on the OmniCourse
+        server, never sent to an AI or any other service, and deleted as soon as it has been read.
+  \item The student drops or chooses the PDF.
+  \item The system reads the file and finds one row per course taken: code, name, credits, grade and term.
+  \item The system shows a review table with every row. A row whose code is not in the student's curriculum is marked
+        \st{Not in your curriculum} and kept, since it may be an extra course.
+  \item The student checks the rows and corrects, removes or adds rows (A4).
+  \item The student presses \st{Save transcript}.
+  \item The system saves the rows as the student's transcript and deletes the uploaded file.
+  \item The system opens the degree audit (UC-03), recomputed from the new transcript.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. The file cannot be read.] At step 4 the file is not a portal transcript, has no text layer, or has a layout the
+        parser does not know. The system says why and offers manual entry (A4). Nothing is stored; the file is deleted.
+  \item[A2. A row is incomplete.] At step 4 one field of a row cannot be read. The system shows the row with that field
+        marked. At step 7 the system refuses to save until the row is completed or removed.
+  \item[A3. Course in progress.] At step 4 a row of the current term has no grade yet. The system marks it
+        \st{In progress} and keeps it.
+  \item[A4. Manual entry.] At step 1, or from A1, the student chooses \st{Enter manually}; at step 6 they choose
+        \st{Add a row}. The system offers the courses of the curriculum to pick from and accepts a code that is not in it.
+        Credits come from the curriculum when the course is in it. The flow returns to step 6.
+  \item[A5. Re-import over a saved transcript.] At step 5 the student already has a transcript. The system shows the rows
+        added, changed and removed. At step 8 the new rows replace the old ones, and UC-12 may tell the student what changed
+        in their audit.
+  \item[A6. The same course twice.] A course was failed and retaken. The system keeps both rows. Which attempt counts is
+        decided by the rule engine (UC-19), not by the import.
+  \item[A7. Wrong file type or size.] At step 3 the file is not a PDF or is larger than 5 MB. The system refuses it and
+        says what it accepts.
+  \item[A8. Cancel.] Before step 7 the student leaves. Nothing is stored and the file is deleted. A transcript saved earlier
+        is unchanged.
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Success:} the student's transcript is the reviewed set of rows, and the uploaded file no longer exists.
+  \item \textbf{Failure or cancel:} the earlier transcript, if any, is unchanged; no uploaded file remains.
+\end{itemize}
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Determinism: the same file always gives the same rows; the parser is unit-tested on synthetic transcripts only.
+  \item Privacy: the file is processed in memory or a temporary file, never logged, never sent to a third party.
+  \item Usability: each problem (not in curriculum, incomplete, in progress) is marked in words, not by colour alone.
+\end{itemize}
+
+\ucpart{Relationships}
+Extends UC-01 at its step 10. Feeds UC-03, UC-15, UC-05 and UC-08.
+
+%% ------------------------------------------------------------------ UC-03
+\ucspec{UC-03}{View degree audit}{F3 Degree audit dashboard}{B. Academic record}{Student}{none}{High}{B1}{Võ Nguyễn
+Minh Triết}
+
+\ucpart{Brief description}
+The student sees exactly where they stand: credits passed, in progress and still needed in each requirement group, the
+cumulative GPA, the estimated graduation term and a short list of what needs attention. Every figure comes from the rule
+engine, applied to the student's transcript and their cohort's curriculum.
+
+\ucpart{Preconditions}
+The student is signed in and has chosen a program and cohort (UC-01). A transcript is optional (A1).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens the \st{Dashboard}.
+  \item The system asks the rule engine (UC-19) to evaluate the transcript against the curriculum of the student's
+        cohort.
+  \item The system shows the summary: cumulative GPA with its change from the last term, credits passed out of the
+        total required, credits left and the estimated graduation term.
+  \item The system shows a chart of credits by requirement group, each group in its own colour and glyph: passed, then in
+        progress, then still to take.
+  \item The system lists the groups with a bar each: credits passed, in progress and required.
+  \item The system shows \st{Needs attention}: for example an elective group that is still empty, a failed course not yet
+        retaken, a prerequisite missing for next term, or a language requirement not met. Each item names the rule and
+        links to the place to act (planner, guide or transcript).
+  \item The student opens one group.
+  \item The system lists that group's courses in three parts: passed, in progress and still needed, with the credits of
+        each.
+  \item The student reads the result and leaves, or opens a course's grades (UC-15).
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. No transcript yet.] At step 2 the student has no transcript. The system shows every requirement as still
+        needed, says the audit assumes no course has been passed, and offers \st{Import transcript} (UC-02).
+  \item[A2. Look at a past term.] At step 3 the student picks an earlier term from the term picker or hovers a past term.
+        The system shows the whole dashboard as it stood at the end of that term. The arrows or \st{Now} return to the
+        present.
+  \item[A3. Course outside the curriculum.] At step 2 a passed course belongs to no requirement group. The rule engine
+        reports it as not counted, and the system lists it under the summary as \st{Not counted toward graduation}.
+  \item[A4. Graduation status reached.] At step 6 every requirement is met. The system says the student meets the
+        graduation requirements of the curriculum, cites the regulation, and links the graduation guide (UC-10).
+\end{altflows}
+
+\ucpart{Postconditions}
+Nothing is changed. The student has seen their status as the rule engine computes it today.
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Performance: the dashboard loads in under 2 seconds for a 40-course transcript.
+  \item Accuracy: the audit uses the curriculum version of the student's own cohort; tests check each group against
+        synthetic transcripts with known results.
+  \item Usability: colour is never the only signal; each group has a glyph and every figure has a text label.
+\end{itemize}
+
+\ucpart{Relationships}
+Includes UC-19. Extended by UC-15.
+
+%% ------------------------------------------------------------------ UC-04
+\ucspec{UC-04}{Explore curriculum}{F4 Curriculum explorer}{B. Academic record}{Student}{none}{High}{B1}{Võ Nguyễn
+Minh Triết}
+
+\ucpart{Brief description}
+The student browses every course of their curriculum by requirement group, with its credits, prerequisites, what it
+unlocks and when it is offered, and sees which courses they can take now. A prerequisite graph shows the chains.
+
+\ucpart{Preconditions}
+The student is signed in and has chosen a program and cohort (UC-01).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens \st{Curriculum}.
+  \item The system asks the rule engine (UC-19) for the state of each course for this student.
+  \item The system lists the courses group by group. In each group it shows, in order: in progress, available now,
+        locked, and passed. A locked course shows a padlock and the prerequisites still missing.
+  \item The student types in the search box, for example \texttt{cau truc du lieu}.
+  \item The system narrows the list as they type, matching codes and names with or without Vietnamese diacritics.
+  \item The student opens a course.
+  \item The system shows the course drawer: code, name, credits, group, prerequisites with their state, the courses it
+        unlocks, the terms it is offered, and a link to place it in a plan (UC-05).
+  \item The student closes the drawer and continues browsing, or leaves.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Prerequisite graph.] At step 3 the student switches to \st{Graph}. The system draws the courses as nodes and
+        the prerequisites as arrows. Clicking a node lights its whole chain, before and after; dragging or scrolling pans
+        the graph.
+  \item[A2. Nothing matches.] At step 5 no course matches. The system says so and keeps the filter visible so the student
+        can clear it.
+  \item[A3. Offering unknown.] At step 7 the curriculum data does not give the offering terms of the course. The system
+        says the terms are not known yet, instead of guessing.
+\end{altflows}
+
+\ucpart{Postconditions}
+Nothing is changed.
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Search finds a course from a code, a name or a name typed without diacritics, in Vietnamese or English.
+  \item The graph and the list are keyboard operable; the graph has a list alternative for screen readers.
+\end{itemize}
+
+\ucpart{Relationships}
+Includes UC-19. Links to UC-05.
+
+%% ------------------------------------------------------------------ UC-05
+\ucspec{UC-05}{Build and edit a plan}{F5 Semester roadmap planner}{C. Planning}{Student}{none}{High}{B2}{Lê Hữu
+Hoà}
+
+\ucpart{Brief description}
+The student builds a plan to graduation by placing courses into terms, one row per term. Every change is checked at once
+by the rule engine against prerequisites, offering terms, the credit cap and requirement coverage, and the result shows
+before the change is made. The student can keep several plans.
+
+\ucpart{Preconditions}
+\begin{itemize}
+  \item The student is signed in and has chosen a program and cohort (UC-01).
+  \item The curriculum of the cohort is available (UC-11).
+\end{itemize}
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens \st{Planner}.
+  \item The system shows the active plan: the terms already passed (summarised in one row), the current term, and one row
+        per future term up to the target graduation term. Each row shows its courses as tiles, its credit load and a
+        meter with the program's credit minimum and cap. A strip at the top shows the estimated graduation term and the
+        coverage of every requirement group. The \st{Issues} panel on the right lists the violations.
+  \item The student picks a course, from the list of courses still needed or from another term, and starts to drag it.
+  \item While the course is dragged, the system asks the rule engine (UC-19) about each term and shows the answer:
+        terms that cannot take the course (not offered, or before a prerequisite) fade out and refuse the drop; the
+        target row previews its new credit load; every row turns green or red with the reason; the \st{Issues} panel
+        previews which issues would appear and which would be resolved.
+  \item The student drops the course on a term.
+  \item The system places the course, re-evaluates the plan, updates the meters, the coverage strip, the estimated
+        graduation term and the \st{Issues} panel, and saves the plan.
+  \item The student repeats steps 3 to 6 until the plan suits them, then leaves. The plan stays saved.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Keyboard.] At step 3 the student focuses a tile and presses Space to lift it. The arrow keys move it between
+        terms, skipping terms that refuse it, and Enter drops it. Escape cancels.
+  \item[A2. Fix suggestion.] At step 6 the plan has a violation. The student opens it in the \st{Issues} panel. The
+        system shows the rule, the regulation clause and, when the rule engine finds one, a fix, such as moving a
+        course to a later term. The student presses \st{Apply}; the system applies it and returns to step 6.
+  \item[A3. Undo.] After step 6 the student presses \st{Undo}. The system restores the plan as it was before the last
+        change.
+  \item[A4. Remove a course.] At step 3 the student drags a placed course back to the list of courses still needed. The
+        system removes it from the term and returns to step 6.
+  \item[A5. Over the cap.] At step 5 the drop takes the term above the credit cap. The drop is allowed, the row turns red
+        with the reason, and the issue is listed until the student fixes it.
+  \item[A6. Several plans.] At step 2 the student opens the plan menu to create, rename, duplicate or switch plans. Deleting
+        a plan asks for confirmation first, because it cannot be undone.
+  \item[A7. Plan that already breaks a rule.] At step 2 a saved plan breaks a rule, for example after the curriculum was
+        corrected (UC-11). The plan still loads and the issue is listed; nothing is moved for the student.
+  \item[A8. Start from a goal.] At step 2 the student has no plan yet. The system offers an empty plan or
+        \st{Generate a plan} (UC-07).
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Success:} the plan is saved with every change; its violations, coverage and estimated graduation term are
+        those the rule engine computed for the final state.
+  \item The transcript and the other plans are unchanged.
+\end{itemize}
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Performance: a change is validated in under 300 ms, so the preview in step 4 follows the pointer.
+  \item Academic rules: the planner never decides a rule; terms fade, rows turn red and issues appear only because the rule
+        engine said so (UC-19).
+  \item Usability: drag and drop has a full keyboard path (A1); every red or green state has a text reason.
+\end{itemize}
+
+\ucpart{Relationships}
+Includes UC-19. Extended by UC-06. Starts UC-09 from the plan menu. Opened by UC-07 after a plan is generated.
+
+%% ------------------------------------------------------------------ UC-06
+\ucspec{UC-06}{Simulate a what-if scenario}{F7 What-if simulator}{C. Planning}{Student}{none}{Medium}{B3}{Lê Hữu Hoà}
+
+\ucpart{Brief description}
+Before making a choice, the student sees what it would cost: failing a course, changing specialization, adding a summer
+term or taking a heavier load. The scenario runs on a copy of the plan, and the system shows the new violations and how the
+estimated graduation term moves.
+
+\ucpart{Preconditions}
+The student is signed in and has a saved plan open in the planner (UC-05).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item In the planner, the student presses \st{What if}.
+  \item The system makes a copy of the plan and offers the scenarios: \st{Fail a course}, \st{Change specialization},
+        \st{Add a summer term} and \st{Take more credits}.
+  \item The student chooses \st{Fail a course} and picks a course of the current term.
+  \item The system asks the rule engine (UC-19) to evaluate the copy with that course failed: the course must be retaken,
+        and every course that needs it moves out of the terms it can no longer be in.
+  \item The system shows the copy beside the original: the courses that moved, the new violations, and the estimated
+        graduation term before and after, for example \emph{Summer 2028 instead of Spring 2028}.
+  \item The student presses \st{Save as a new plan} and gives it a name.
+  \item The system saves the copy as a new plan. The original plan is unchanged.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Change specialization.] At step 3 the student picks another specialization. The rule engine re-evaluates
+        coverage against that specialization's groups; the system shows the courses that no longer count and those now
+        needed.
+  \item[A2. Add a summer term.] At step 3 the student adds a summer term. The rule engine checks the summer credit cap and
+        which courses are offered in summer; the system shows how much earlier the student could graduate.
+  \item[A3. Take more credits.] At step 3 the student raises the credits per term. The rule engine keeps every term within
+        the program's cap; the system shows the earliest graduation term the new load allows.
+  \item[A4. Combine scenarios.] At step 5 the student adds another scenario to the same copy. The flow returns to step 4.
+  \item[A5. Discard.] At step 6 the student presses \st{Discard}. The copy is deleted; nothing is saved.
+  \item[A6. Data missing.] At step 4 a scenario needs data the curriculum does not have, such as a specialization that is
+        not entered yet. The system says what is missing and does not invent it.
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Saved:} a new plan exists; the original plan and the transcript are unchanged.
+  \item \textbf{Discarded:} nothing is stored.
+\end{itemize}
+
+\ucpart{Special requirements}
+The scenario never changes the transcript or the original plan. All consequences come from the rule engine.
+
+\ucpart{Relationships}
+Extends UC-05. Includes UC-19.
+
+%% ------------------------------------------------------------------ UC-07
+\ucspec{UC-07}{Generate a plan}{F6 AI plan generator (goal box)}{C. Planning}{Student}{Model provider (steps 3 to 5
+only)}{High}{B3}{Phan Bình Nguyên Lâm}
+
+\ucpart{Brief description}
+The student states a planning goal in a form, or in their own words in the goal box, which a language model turns into the
+form's fields. A deterministic planner then builds a complete plan to graduation that breaks no academic rule and explains
+why each course is where it is. The model never places a course.
+
+\ucpart{Preconditions}
+\begin{itemize}
+  \item The student is signed in and has chosen a program and cohort (UC-01).
+  \item The curriculum and the rule engine are available.
+\end{itemize}
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens \st{Generate a plan}.
+  \item The system shows the planning-goal form, filled from the student's default goal: target graduation term, credits
+        per term, internship term, courses to take and courses to avoid. Above it, the goal box invites a goal in the
+        student's own words; a note says the text goes to an AI provider, so names and student IDs should be left out.
+  \item The student types, for example, \emph{graduate by summer 2028, at most 20 credits a term, no networking courses},
+        and presses \st{Fill the form}.
+  \item The system sends the sentence and the course codes and names of the curriculum to the model through the AI
+        gateway, and asks for the form's fields as structured data.
+  \item The system checks the reply against the form's schema, fills the form and highlights every field that changed.
+  \item The student reviews the form, corrects any field and presses \st{Plan}.
+  \item The deterministic planner builds a plan from the next term to the target term, asking the rule engine (UC-19) to
+        check every placement. The system shows progress.
+  \item The system shows the plan term by term with each term's credits. Each course carries the planner's reason, such as
+        \emph{prerequisite CS162 is passed the term before} or \emph{offered in main terms only}. The plan shows its
+        estimated graduation term.
+  \item The student presses \st{Save plan} and names it.
+  \item The system saves it next to the student's other plans and opens it in the planner (UC-05).
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Without the goal box.] At step 3 the student edits the form directly. The flow continues at step 6; no model is
+        involved.
+  \item[A2. AI unavailable.] At step 4 the gateway answers \texttt{ai\_unavailable}: no provider, a timeout, a reply that
+        still does not fit the schema after one retry, or the monthly budget spent. The system says the goal box is
+        unavailable, keeps the form as it was and continues as A1. Planning never depends on the model.
+  \item[A3. Daily AI limit reached.] At step 4 the student has used their daily AI calls. The system says when the goal box
+        works again and continues as A1.
+  \item[A4. A field the rules forbid.] At step 6 a field asks for more than the rules allow, such as credits above the
+        cap. The form keeps the value; at step 7 the planner stays within the cap, and at step 8 the system says which part
+        of the goal it could not meet, citing the rule. The model never changes a value to fit a rule.
+  \item[A5. Goal cannot be met.] At step 7 no plan reaches the target term. The planner returns the plan with the earliest
+        graduation term it can reach, and the system names the rules that make the target impossible, such as a
+        prerequisite chain that is too long.
+  \item[A6. A course to avoid is compulsory.] At step 7 the planner places it anyway and explains at step 8 that every
+        student of the cohort must pass it.
+  \item[A7. Planning takes too long.] At step 7 the planner has not finished within 30 seconds. The student can cancel at
+        any time while progress shows.
+  \item[A8. Discard.] At step 9 the student leaves without saving. No plan is stored.
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Success:} a new plan is saved, and it broke no academic rule when it was generated.
+  \item \textbf{Discard or failure:} no plan is stored; the other plans are unchanged.
+  \item Each call that reached the model leaves one usage record (user, feature, model, tokens, time) with no text.
+\end{itemize}
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Academic rules: every placement and reason comes from the planner and the rule engine. The model fills form fields
+        only, and the student sees them before they have any effect.
+  \item Privacy: only the sentence and the curriculum's codes and names go to the model; no name, email, student ID or
+        transcript. Prompt and reply content is never logged.
+  \item Performance: a plan returns within 30 seconds, with visible progress.
+\end{itemize}
+
+\ucpart{Relationships}
+Includes UC-19. Hands the saved plan to UC-05.
+
+%% ------------------------------------------------------------------ UC-08
+\ucspec{UC-08}{Ask the advisor chat}{F8 AI academic advisor chat}{D. Help and reminders}{Student}{Model
+provider}{Medium}{B3}{Nguyễn Anh Dũng}
+
+\ucpart{Brief description}
+The student asks a question about their studies in their own words, such as \emph{Can I take Machine Learning before
+Probability and Statistics?} The advisor chat answers from the official curriculum and regulations and cites the document
+and clause. Anything about the student's own record is checked by the rule engine, and the answer shows that result.
+
+\ucpart{Preconditions}
+\begin{itemize}
+  \item The student is signed in.
+  \item The regulation documents the chat answers from are loaded.
+\end{itemize}
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens \st{Advisor chat}.
+  \item On first use only, the system explains what is sent to the AI provider (program, cohort, course codes, grades and
+        terms; never name, email or student ID), that the provider does not train on it, and that the content is not
+        logged. The student presses \st{I agree}, and the system records the time of consent.
+  \item The system shows an empty conversation with example questions and a note that answers can be wrong and the cited
+        clause is the authority.
+  \item The student types a question and presses \st{Send}.
+  \item The system sends the question, the earlier messages and the chat's tools to the model through the gateway.
+  \item The model calls the tools it needs, within 5 model turns: search the regulations, look up a course, read the
+        student's record, ask the rule engine to check a rule (UC-19), or find a guide. The system shows what is happening,
+        for example \emph{Checking prerequisites\ldots}
+  \item The system shows the answer as it is written.
+  \item When the answer is complete, the system shows each cited clause as a link and, for a statement about the student,
+        the rule engine result it came from.
+  \item The student asks a follow-up question (step 4) or leaves.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Consent declined.] At step 2 the student presses \st{Not now}. The chat answers general questions about the
+        regulations only; the student's record is never sent. A question about their own record gets a reply that it needs
+        consent, with a button to give it.
+  \item[A2. AI unavailable.] At step 5 the gateway answers \texttt{ai\_unavailable}. The system says the chat is
+        unavailable now, keeps the question in the box, and points to the guides (UC-10) and the explorer (UC-04).
+  \item[A3. Failure mid-answer.] At step 7 the provider fails. The system keeps the text received, marks it
+        \st{Incomplete} and offers \st{Ask again}.
+  \item[A4. Daily limit reached.] At step 5 the student has used their daily AI calls (20 by default, shared with UC-07).
+        The system says when the chat works again.
+  \item[A5. Stop.] At step 7 the student presses \st{Stop}. The answer is marked \st{Stopped}; the call still counts.
+  \item[A6. No source found.] At step 6 nothing answers the question. The chat says it found no document and does not
+        guess; it suggests the academic office or a matching guide.
+  \item[A7. The rule engine cannot decide.] At step 6 the rule or data is not encoded. The chat says it cannot confirm the
+        answer for this student, shows the clause if found, and suggests confirming with the academic office.
+  \item[A8. A task on a portal.] The question is how to do something on a portal. The chat links the guide (UC-10) instead
+        of writing its own steps.
+  \item[A9. A request to act.] The student asks the chat to change a plan or register for a course. The chat has no tool
+        that changes anything; it explains what the student can do and links the planner (UC-05) or the registration
+        guide (UC-10).
+  \item[A10. Outside studies.] The question is not about studies. The chat says what it can help with and does not
+        answer.
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Success:} the student has an answer with its sources. Nothing in the transcript, plans or account changed.
+  \item Each call that reached the model leaves one usage record without content. Conversations are not stored on the
+        server; reloading the page starts a new one.
+\end{itemize}
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Citations: every rule stated is cited; links are built only from clauses the search actually returned.
+  \item Performance: the first words appear in about one second; each provider request times out after 30 seconds.
+  \item Robustness: when the model is down, only the chat and the goal box are unavailable.
+\end{itemize}
+
+\ucpart{Relationships}
+Includes UC-19. Links to UC-10, UC-05 and UC-02.
+
+%% ------------------------------------------------------------------ UC-09
+\ucspec{UC-09}{Share or export a plan}{F9 Plan export and sharing}{C. Planning}{Student}{none}{Low}{B2}{Nguyễn Anh Dũng}
+
+\ucpart{Brief description}
+The student gives one of their plans to someone else, usually an advisor: as a PDF file, or as a read-only link that
+anyone holding it can open without an account. The student can stop sharing at any time.
+
+\ucpart{Preconditions}
+The student is signed in and has at least one saved plan (UC-05 or UC-07).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens a plan and presses \st{Share}.
+  \item The system shows what a reader will see: the plan's name, program, cohort and curriculum version; each term with
+        its courses and credits; the estimated graduation term and the violations; when the plan was last changed. It also
+        says what a reader will not see: grades, email, transcript, student ID and other plans. The display name is hidden
+        unless the student ticks \st{Show my name}. A warning says anyone with the link can open it.
+  \item The student presses \st{Create link}.
+  \item The system creates an unguessable link for this plan and shows it with \st{Copy}.
+  \item The student copies the link and sends it through any channel. OmniCourse sends nothing itself.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Download as PDF.] At step 1 the student presses \st{Download PDF}. The system makes an A4 PDF with the content
+        of step 2 and the date it was made. No link is created and nothing is kept on the server.
+  \item[A2. Stop sharing.] The student opens \st{Share} and presses \st{Stop sharing}. The link stops working at once.
+  \item[A3. Already shared.] At step 1 the plan has a live link. The system shows it with \st{Copy} and \st{Stop sharing}
+        instead of making a second one. A plan has at most one live link.
+  \item[A4. Share again.] After A2 the student presses \st{Create link}. A new link is made; the old one stays dead.
+  \item[A5. Plan deleted or account deletion requested.] Every link of that plan, or of that student, stops working.
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Shared:} a live link exists until the student stops sharing or deletes the plan or account.
+  \item \textbf{Downloaded:} a PDF is on the student's device; nothing new is stored.
+\end{itemize}
+
+\ucpart{Special requirements}
+The link holds 32 random bytes, as strong as a session token. The shared page is not indexed by search engines. The PDF is
+readable in black and white: violations are marked in words.
+
+\ucpart{Relationships}
+Started from the plan menu of UC-05. The advisor's side is UC-16.
+
+%% ------------------------------------------------------------------ UC-10
+\ucspec{UC-10}{Follow a school-task guide}{F11 Quicklinks and step-by-step guides}{D. Help and reminders}{Visitor (or
+Student)}{HCMUS portal}{Medium}{B1 reading; B3 personal parts}{Nguyễn Anh Dũng}
+
+\ucpart{Brief description}
+A visitor or student needs to do a school task that OmniCourse does not perform, such as registering for courses or paying
+tuition. They find the guide for it, read when to do it and what to prepare, and follow the steps on the official portal
+through the guide's direct link. OmniCourse never signs in to a portal.
+
+\ucpart{Preconditions}
+At least one guide is published. No sign-in is needed (ADR 0010).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The visitor opens \st{Guides}.
+  \item The system lists the guides by task group (Registration, Tuition and fees, Records and certificates, Graduation).
+        Each entry shows the task, the portal, the account it needs and the direct link.
+  \item The visitor types a few words, such as \texttt{hoc phi}. The system narrows the list as they type, in Vietnamese or
+        English, with or without diacritics.
+  \item The visitor opens a guide.
+  \item The system shows what the task is for, when to do it, what to prepare, the portal and account, numbered steps
+        quoting the portal's buttons, common mistakes, and the guide's version and the date it was last checked.
+  \item The visitor presses \st{Open} with the portal's name. The system opens the deepest portal page the school allows
+        in a new tab.
+  \item The visitor signs in on the portal with their school account and completes the task there. OmniCourse sees none of
+        it.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Straight to the link.] At step 2 the visitor presses the direct link in the list. The flow continues at step 7.
+  \item[A2. No guide matches.] At step 3 nothing matches. The system says so and shows the task groups to browse.
+  \item[A3. A value that depends on the program.] At step 5 a note depends on the program, such as the credit cap. A
+        signed-in student with a program sees the value from the rule engine (UC-19) with its clause; a visitor is told the
+        value depends on the program and is offered to sign in.
+  \item[A4. Registration from a plan.] At step 5 of the registration guide, a signed-in student picks a plan. The system
+        lists the courses the plan places next term, with codes ready to copy. It never registers for the student.
+  \item[A5. Possibly out of date.] At step 5 the guide was last checked more than 6 months ago. The system warns that the
+        portal may have changed; the guide stays readable.
+  \item[A6. Report a problem.] At any step a signed-in student presses \st{Report a problem}, picks a reason and may add a
+        note. The form warns not to include a name, student ID or password. The report is stored against the guide and its
+        version.
+\end{altflows}
+
+\ucpart{Postconditions}
+OmniCourse stores nothing about the task, not even whether it was done. A report made in A6 is stored against the guide.
+
+\ucpart{Special requirements}
+No portal access: no portal password asked, no portal form filled, no portal page read. Guides are versioned; every
+published change has a new version, a change note and a new last-checked date.
+
+\ucpart{Relationships}
+Linked from UC-03 (A4), UC-08 (A2, A8, A9) and UC-12.
+
+%% ------------------------------------------------------------------ UC-11
+\ucspec{UC-11}{Maintain curriculum}{F12 Curriculum administration}{E. Curriculum administration}{Program
+administrator}{none}{Medium}{B2}{Nguyễn Hữu Quốc Thắng}
+
+\ucpart{Brief description}
+A program administrator adds and updates the curriculum of a program they are allowed to maintain, from the official
+documents: cohorts, requirement groups with their credit minimums, the courses linked to each group, prerequisites and
+offering terms. Each cohort has its own curriculum. No AI model reads or decides the data.
+
+\ucpart{Preconditions}
+\begin{itemize}
+  \item The administrator is signed in and holds program-administrator permission for the program (UC-18).
+  \item They have the official curriculum document for the program and cohort.
+\end{itemize}
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The administrator opens \st{Curriculum administration} and selects a program and cohort. The system offers only
+        programs they may maintain.
+  \item The system shows the curriculum: groups with their required credits and the courses linked to each.
+  \item The administrator chooses an item to add or edit, such as a requirement group, and enters the values from the
+        official document. Courses are picked from the shared catalog.
+  \item The administrator checks the entries against the document and presses \st{Save}.
+  \item The system checks permission, required fields, the course-code format (\texttt{\^{}[A-Z0-9]\{2,20\}\$} after
+        trimming and upper-casing) and links to other items, and asks the rule engine (UC-19) for the academic checks, such
+        as a prerequisite cycle.
+  \item The system saves the whole change at once and shows the saved values, program and cohort.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Add a cohort.] At step 1 the cohort does not exist. The administrator presses \st{Add cohort} and enters it.
+        The system rejects a duplicate cohort; earlier cohorts are unchanged.
+  \item[A2. Invalid or missing values.] At step 5 a field is empty, a code is duplicated or malformed, or a linked item does
+        not exist. The system marks the fields, refuses to save and keeps the saved curriculum unchanged.
+  \item[A3. Prerequisite cycle.] At step 5 the rule engine finds that the new prerequisite closes a cycle. The system shows
+        the cycle and refuses to save.
+  \item[A4. No permission or expired sign-in.] The system refuses the request, says which permission is missing or asks
+        the user to sign in again. The backend checks every request, not only the screen.
+  \item[A5. Remove an item.] At step 3 the administrator removes a course from a group. The system shows what will be
+        removed and asks for confirmation. The course itself and its other links stay. A deletion that other data still
+        needs is refused with the list of what depends on it.
+  \item[A6. Cancel.] Before step 4 the administrator cancels. The edit is discarded.
+  \item[A7. Save fails or the result is unknown.] At step 6 the server fails, or the connection drops. A failed save leaves
+        no partial change; if the result is unknown, the administrator reloads the item before trying again.
+  \item[A8. The course is not in the catalog.] At step 3 the course does not exist yet. An administrator who also holds
+        catalog permission creates it (UC-17) and returns to step 3; otherwise they ask a catalog maintainer.
+\end{altflows}
+
+\ucpart{Postconditions}
+\begin{itemize}
+  \item \textbf{Saved:} the change belongs to the chosen program and cohort and is read by the audit and planner from then
+        on. Stored transcripts and saved plans are not rewritten; a plan that now breaks a rule shows the issue (UC-05 A7).
+  \item \textbf{Rejected or cancelled:} nothing is saved.
+\end{itemize}
+
+\ucpart{Special requirements}
+Every write checks permission on the server. Tests use made-up curricula. A second program or cohort entered through this
+screen must not change the first (B3 check).
+
+\ucpart{Relationships}
+Includes UC-19. Extended by UC-17. Depends on rights given in UC-18.
+
+%% ------------------------------------------------------------------ UC-12
+\ucspec{UC-12}{Receive notifications}{F10 Notifications}{D. Help and reminders}{Student}{Time}{Low}{B2}{Nguyễn Anh Dũng}
+
+\ucpart{Brief description}
+OmniCourse tells the student, inside the app, about what needs their attention: the registration window opening, a
+check-in at the start of each term, a change in their transcript, or a plan that now breaks a rule. The student reads them
+in the inbox or the bell popover.
+
+\ucpart{Preconditions}
+The student is signed in and has finished onboarding (UC-01).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item Time reaches a scheduled moment, for example seven days before a registration window opens.
+  \item The system asks the rule engine (UC-19) what applies to this student: the courses their active plan places in the
+        coming term and any violation it has.
+  \item The system creates a notification: \emph{Registration for Spring 2027 opens on 9 December. Your plan places 5
+        courses, 19 credits}, with links to the plan and to the registration guide (UC-10).
+  \item The student signs in. The bell in the sidebar shows the number of unread notifications.
+  \item The student opens the bell. The system shows a short popover of what needs attention and a link to the inbox.
+  \item The student opens the inbox. The system lists every notification, newest first, with filters on the right.
+  \item The student opens a notification and follows its link. The system marks it read.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Transcript changed.] Instead of step 1, the student saves a new transcript (UC-02 A5). The system creates a
+        notification that lists what changed in the audit.
+  \item[A2. Plan now breaks a rule.] Instead of step 1, a curriculum change (UC-11) makes the student's active plan break a
+        rule. The system creates a notification that names the rule and links the plan.
+  \item[A3. Mark all read.] At step 6 the student presses \st{Mark all as read}.
+  \item[A4. Filter.] At step 6 the student picks a filter (unread, registration, transcript, plan). The list narrows.
+  \item[A5. Turn a kind off.] In settings (UC-14), the student turns off a kind of notification. No new notification of
+        that kind is created for them.
+  \item[A6. Nothing applies.] At step 2 the student has no plan. The notification still announces the date and links the
+        planner instead of listing courses.
+\end{altflows}
+
+\ucpart{Postconditions}
+The notification is stored for the student; reading it marks it read. Nothing else changes.
+
+\ucpart{Special requirements}
+Notifications are in-app only in this release: there is no mail sender before B3. Dates come from the published school
+calendar entered by the team. A notification never states a rule's value on its own; it shows the rule engine's result.
+
+\ucpart{Relationships}
+Includes UC-19. Links to UC-05 and UC-10.
+
+%% ------------------------------------------------------------------ UC-13
+\ucspec{UC-13}{Sign in}{F1 Account and onboarding}{A. Account and access}{Visitor}{Google identity (A2)}{High}{B0}{Phan
+Bình Nguyên Lâm}
+
+\ucpart{Brief description}
+A visitor with an account signs in on a device and becomes a signed-in student. Signing in also cancels a pending account
+deletion.
+
+\ucpart{Preconditions}
+The visitor has an account and is not signed in on this device.
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The visitor chooses \st{Sign in}.
+  \item The system asks for email and password.
+  \item The visitor enters them and presses \st{Sign in}.
+  \item The system checks them against the stored hash, creates a session for this device and signs the visitor in.
+  \item If onboarding is finished, the system opens the dashboard (UC-03); otherwise it resumes onboarding (UC-01 step 6).
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Wrong email or password.] At step 4 the email is unknown or the password is wrong. The system says only that
+        the email or password is invalid, without saying which, and answers in the same time in both cases.
+  \item[A2. Sign in with Google] (after B0). At step 1 the visitor chooses \st{Continue with Google}. Google confirms the
+        identity and the flow continues at step 5.
+  \item[A3. Too many attempts.] At step 3 one address sends more than 10 sign-in requests in a minute. The system refuses
+        more attempts until the minute has passed and says so.
+  \item[A4. Account scheduled for deletion.] At step 4 the account was scheduled for deletion less than 30 days ago. The
+        system cancels the deletion, signs the student in, and says the account has been restored. Shared links stay
+        stopped (UC-09 A5).
+\end{altflows}
+
+\ucpart{Postconditions}
+\textbf{Success:} a session exists for this device, valid for 7 days, rotated as it is used. \textbf{Failure:} no
+session.
+
+\ucpart{Special requirements}
+Rate limiting per address. No hint of which field was wrong. Sign-in pages work signed out and by keyboard.
+
+\ucpart{Relationships}
+Leads to UC-03 or back into UC-01.
+
+%% ------------------------------------------------------------------ UC-14
+\ucspec{UC-14}{Manage account and privacy}{F1 Account and onboarding; privacy NFR}{A. Account and access}{Student}{none}%
+{High}{B1}{Phan Bình Nguyên Lâm}
+
+\ucpart{Brief description}
+The signed-in student controls their own account: they sign out, see and revoke the devices signed in, change their
+onboarding answers and preferences, withdraw AI consent, export everything OmniCourse holds about them, or delete the
+account, with 30 days to change their mind.
+
+\ucpart{Preconditions}
+The student is signed in.
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens \st{Settings}.
+  \item The system shows the sections: profile and planning goal, sessions, AI consent, appearance and language, export,
+        and delete account.
+  \item The student opens \st{Sessions}.
+  \item The system lists every device signed in, with the browser, the place it was last used and the time.
+  \item The student presses \st{Sign out} beside a device they do not recognise.
+  \item The system revokes that session at once; that device must sign in again.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Sign out here.] The student presses \st{Sign out} in the sidebar. The system ends this device's session and
+        opens the landing page.
+  \item[A2. Change program, cohort or goal.] At step 3 the student edits the profile and planning goal. The system saves
+        them; existing plans keep the curriculum version they were made with, and the audit follows the new choice.
+  \item[A3. Withdraw AI consent.] At step 3 the student turns off AI consent. The system stops sending their record at
+        once; the advisor chat continues in general mode (UC-08 A1).
+  \item[A4. Export the account.] At step 3 the student presses \st{Export my data}. The system builds one file with every
+        row that belongs to them (account, transcript, plans, notifications, consent times) and no credential column, and
+        the browser saves it.
+  \item[A5. Delete the account.] At step 3 the student presses \st{Delete account}. The system explains the 30-day grace
+        period and asks for the password again. On confirmation it signs out every device, stops every shared link and
+        schedules the purge for 30 days later. Signing in during that time cancels it (UC-13 A4).
+  \item[A6. Theme and language.] At step 3 the student switches light or dark theme, or Vietnamese or English. The change
+        applies at once and is remembered on this device.
+\end{altflows}
+
+\ucpart{Postconditions}
+The change asked for is applied; nothing else changes. After a completed deletion, every row with the student's id is
+gone.
+
+\ucpart{Special requirements}
+Export and deletion cover every table that references the user (ADR 0004); a test fails on any table that would escape
+them. The deletion needs the password again.
+
+\ucpart{Relationships}
+Changes what UC-08 may send; deletion affects UC-09 and UC-16.
+
+%% ------------------------------------------------------------------ UC-15
+\ucspec{UC-15}{View grades and what each course still needs}{F3 Degree audit dashboard}{B. Academic record}{Student}{none}%
+{High}{B1}{Võ Nguyễn Minh Triết}
+
+\ucpart{Brief description}
+The student reads their grades term by term, with what each graded part of a course contributes, and, for a course not
+finished yet, the minimum still needed to pass and to reach excellent. They can filter by requirement group and search.
+
+\ucpart{Preconditions}
+The student is signed in and has a transcript (UC-02).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The student opens \st{Grades}.
+  \item The system shows three figures (cumulative GPA, credits passed and best term) beside a line chart of the term
+        averages, with the pass mark (5) and the excellent mark (8) drawn as lines. A term with a failed course has a red
+        point.
+  \item Below, the system lists the current term, then the planned terms, then the past terms, newest first. Each course
+        shows a bar from 0 to 10 with what each graded part adds stacked on it, thin marks at 5 and 8, the grade and a
+        status: in progress, planned, passed or failed.
+  \item For a course in progress, the system asks the rule engine (UC-19) what the parts still to be graded need, and shows,
+        for example, \emph{Final exam needs 1.4 to pass, 7.4 for excellent}.
+  \item The student opens a course.
+  \item The system shows each graded part with its weight and score and, for a retaken course, every sitting.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Filter by group.] At step 3 the student picks one or more requirement groups. The list keeps only those courses
+        and hides empty terms.
+  \item[A2. Search.] At step 3 the student types a code or a name. The list narrows as they type; if nothing matches, the
+        system says so.
+  \item[A3. Jump to a term.] At step 2 the student clicks a point of the chart. The page scrolls to that term.
+  \item[A4. Already passed, or out of reach.] At step 4 the parts already graded secure a pass, or no score on the
+        remaining parts can reach it. The system says \emph{Already sure to pass} or \emph{Cannot pass this sitting}
+        instead of a minimum.
+  \item[A5. Part scores unknown.] At step 4 the student has entered no part scores. The system shows the average still
+        needed over the whole course: 5.0 to pass and 8.0 for excellent.
+\end{altflows}
+
+\ucpart{Postconditions}
+Nothing is changed.
+
+\ucpart{Special requirements}
+Figures are in tabular numerals and read heavier than the text around them; units are written in full (\emph{16 credits},
+not \emph{16 cr}). The minimum needed is computed by the rule engine from the course's assessment weights.
+
+\ucpart{Relationships}
+Extends UC-03. Includes UC-19.
+
+%% ------------------------------------------------------------------ UC-16
+\ucspec{UC-16}{View a shared plan}{F9 Plan export and sharing}{C. Planning}{Advisor}{none}{Low}{B2}{Nguyễn Anh Dũng}
+
+\ucpart{Brief description}
+An advisor opens the link a student sent and reads the plan, read-only, in the same layout the student uses, with the
+violations the rule engine finds. No account is needed.
+
+\ucpart{Preconditions}
+The student has created a live link for the plan (UC-09).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The advisor opens the link.
+  \item The system finds the live plan for the link and asks the rule engine (UC-19) to evaluate it against the curriculum
+        version it was made with.
+  \item The system shows a banner, \emph{Shared plan, read-only, last changed 30/10/2026 at 21:14}, then the plan: name,
+        program, cohort and curriculum version; a status strip with the estimated graduation term or the number of
+        violations, and the coverage of every requirement group; one row per term with its courses and credit meter; and
+        a \st{Violations} panel.
+  \item The advisor reviews the plan and replies to the student outside OmniCourse.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Dead or unknown link.] At step 2 the link does not match a live shared plan: it was stopped, the plan or
+        account was deleted, or it was mistyped. The system shows \emph{This plan is not shared}, the same page in every
+        case, so it reveals nothing about whether a plan existed.
+  \item[A2. Print.] At step 4 the advisor presses \st{Export PDF}. The browser prints the read-only view.
+  \item[A3. Plan has violations.] At step 3 the plan breaks rules. The status strip says \emph{Not valid} with the count,
+        and each violation shows its rule and clause.
+\end{altflows}
+
+\ucpart{Postconditions}
+Nothing is changed. The page shows no grades, email, student ID, transcript or other plans.
+
+\ucpart{Special requirements}
+Public route under ADR 0010: read only, rate-limited (120 requests a minute per address), \texttt{noindex}. The view
+follows the plan as it is now, not a copy made when the link was created.
+
+\ucpart{Relationships}
+Includes UC-19. Reached from UC-09.
+
+%% ------------------------------------------------------------------ UC-17
+\ucspec{UC-17}{Maintain the course catalog}{F12 Curriculum administration}{E. Curriculum administration}{Catalog
+maintainer}{none}{Medium}{B2}{Nguyễn Hữu Quốc Thắng}
+
+\ucpart{Brief description}
+A catalog maintainer creates shared course records and corrects their name, credits or time breakdown. A course record is
+shared by every program and cohort that links it, so a correction is shown with its full impact before it is saved.
+
+\ucpart{Preconditions}
+The user is signed in and holds catalog-maintainer permission (UC-18).
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The catalog maintainer opens \st{Course catalog}. No program needs to be selected.
+  \item The system lists the courses with code, name and credits, and a search box.
+  \item The maintainer opens an existing course and corrects, for example, its credits.
+  \item The system shows the old and new values and every program and cohort that links the course, and explains that all
+        of them will read the new values.
+  \item The maintainer checks the official source and presses \st{Confirm and save}.
+  \item The system checks the permission, re-checks the list of linked curricula, and saves.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Create a course.] At step 3 the maintainer presses \st{New course} and enters a code, name and credits. The
+        system checks the code format and rejects a duplicate code.
+  \item[A2. Impact changed during review.] At step 6 another curriculum linked the course since step 4. The system shows
+        the new impact and asks for confirmation again.
+  \item[A3. Value differs by cohort.] At step 3 the correction applies to some cohorts only. The shared record cannot
+        hold that; the system refuses and says a course version is needed (a design still open).
+  \item[A4. Delete.] At step 3 the maintainer deletes a course. Only an unlinked course may be deleted; a linked one is
+        refused with the list of links.
+  \item[A5. Program permission only.] A program administrator without catalog permission tries to save. The server
+        refuses (UC-11 A4).
+\end{altflows}
+
+\ucpart{Postconditions}
+Every linked program and cohort reads the new values; the audit and planner may give different results from then on.
+Stored transcripts and plans are not rewritten.
+
+\ucpart{Special requirements}
+The impact list is computed on the server at save time, not trusted from the screen.
+
+\ucpart{Relationships}
+Extends UC-11 at its step 3 (A8).
+
+%% ------------------------------------------------------------------ UC-18
+\ucspec{UC-18}{Manage administration access}{F12 Curriculum administration}{E. Curriculum administration}{Access
+manager}{none}{Medium}{B2}{Nguyễn Hữu Quốc Thắng}
+
+\ucpart{Brief description}
+An access manager creates programs and grants or revokes the three administration permissions: program administrator for
+a named program, catalog maintainer, and access manager. Permissions are separate and denied by default.
+
+\ucpart{Preconditions}
+The user is signed in and holds access-manager permission. The first access manager is set up by the Project Lead through a
+controlled setup step.
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The access manager opens \st{Administration access}.
+  \item The system lists the users who hold a permission, with the permission and, for program administrators, the
+        program.
+  \item The access manager presses \st{Grant}, finds an existing user by email, and picks a permission and, if needed, a
+        program.
+  \item The system checks that the user exists and that the grant is new, saves it and shows it in the list.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Revoke.] At step 3 the access manager presses \st{Revoke} on a grant and confirms. The system removes it; the
+        next write by that user is refused.
+  \item[A2. Add a program.] At step 3 the access manager presses \st{Add program} and enters its code and name. The system
+        rejects a duplicate code. Creating a program grants nobody the right to edit it.
+  \item[A3. Unknown user.] At step 4 no account has that email. The system says the person must sign up first; it never
+        creates an account here.
+  \item[A4. Revoke your own last access-manager grant.] The system refuses, so the system always keeps an access manager.
+\end{altflows}
+
+\ucpart{Postconditions}
+The grant or revocation applies to the next request the user sends. Sign-up and onboarding never grant a permission.
+
+\ucpart{Special requirements}
+Every write in UC-11 and UC-17 checks the current grants on the server, including just after a revocation.
+
+\ucpart{Relationships}
+Gives the rights that UC-11 and UC-17 require.
+
+%% ------------------------------------------------------------------ UC-19
+\ucspec{UC-19}{Evaluate academic rules}{F3, F4, F5, F6, F7 (shared)}{All modules (included)}{none: included by other use
+cases}{none}{High}{B1 audit; B2 plan checks}{Võ Nguyễn Minh Triết}
+
+\ucpart{Brief description}
+The rule engine decides every academic rule for a student: which transcript attempts count and pass, how credits fill each
+requirement group, whether a course's prerequisites are met in time, whether a term offers the course, whether a term's load
+is within the credit cap, what an unfinished course still needs, and when the student can graduate. It is included by every
+use case that shows or uses such a result, so all of them agree.
+
+\ucpart{Preconditions}
+The curriculum version of the student's cohort is available. A transcript and a plan are optional inputs.
+
+\ucpart{Basic flow}
+\begin{enumerate}
+  \item The including use case asks for an evaluation and passes the cohort's curriculum, the student's transcript rows
+        and, if any, a plan.
+  \item The rule engine picks, for each course, the attempt that counts under the regulation, and marks each attempt passed
+        or failed.
+  \item It assigns passed and in-progress credits to the requirement groups and computes, per group, passed, in progress
+        and still needed.
+  \item For each course placed in the plan, it checks that every prerequisite is passed or placed in an earlier term, and
+        that the term offers the course.
+  \item For each term, it compares the credit load with the program's minimum and cap for that kind of term.
+  \item It computes the cumulative GPA and the earliest term in which every requirement is met: the estimated graduation
+        term.
+  \item It returns the results and a list of violations. Each violation has a code, the courses or term involved, a
+        sentence, and the regulation clause it comes from.
+\end{enumerate}
+
+\ucpart{Alternative flows}
+\begin{altflows}
+  \item[A1. Check one change.] At step 1 the caller passes a plan and one proposed move (UC-05 step 4). The engine
+        evaluates the plan as it would be after the move and returns the differences: new and resolved violations, and the
+        new load of each affected term.
+  \item[A2. What a course still needs.] At step 1 the caller passes one course in progress with its graded parts (UC-15).
+        The engine returns the minimum score on the remaining parts for a pass and for excellent, or that the result is
+        already sure or out of reach.
+  \item[A3. Data missing.] At any step a rule needs data the curriculum does not have, such as offering terms. The engine
+        returns \emph{unknown} for that check, never a guess, and the caller says so.
+  \item[A4. Curriculum check.] At step 1 the caller is UC-11 and passes a changed curriculum. The engine checks it for a
+        prerequisite cycle and for groups whose required credits cannot be reached.
+\end{altflows}
+
+\ucpart{Postconditions}
+Nothing is stored. The same inputs always give the same results.
+
+\ucpart{Special requirements}
+\begin{itemize}
+  \item Deterministic code, no language model (hard rule 1). A model may call the engine and explain its results, never
+        override them.
+  \item At least 80\% statement coverage, enforced in CI; tests per requirement group with synthetic transcripts.
+  \item A plan change is evaluated in under 300 ms.
+\end{itemize}
+
+\ucpart{Relationships}
+Included by UC-03, UC-04, UC-05, UC-06, UC-07, UC-08, UC-11, UC-12, UC-15 and UC-16.

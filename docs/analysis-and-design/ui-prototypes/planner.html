@@ -8,7 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
   <link rel="stylesheet" href="assets/style.css">
-  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}</script>
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
 </head>
 <body data-page="planner" data-layout="app">
   <a class="skip" href="#main">Bỏ qua điều hướng</a>
@@ -147,6 +151,10 @@
         return { ok: true, why: 'Hợp lệ · ' + l + '/' + D.CAP.max + ' TC' };
       }
 
+      // A term the course is not taught in, or one before its prerequisites, takes no drop.
+      // Plans that already hold such a course still load and show the issue, so a timetable change never breaks them.
+      const blocked = (code, to) => to != null && (!D.offeredOk(code, to) || !!D.prereqProblem(moved(code, to), code, to));
+
       // ---------- Render ----------
       const SCALE = D.CAP.max + 6; // the meter runs a little past the cap so an overload still shows
       const pctOf = (n) => Math.max(0, Math.min(100, n / SCALE * 100));
@@ -157,7 +165,8 @@
         const res = D.check(plan);
         const bad = new Set(res.violations.filter((v) => v.code).map((v) => v.code));
 
-        $('tabs').innerHTML = S.list.map((p, i) => '<button type="button" role="tab" data-tab="' + i + '" aria-selected="' + (i === S.active) + '">' + p.name + '</button>').join('') +
+        $('tabs').innerHTML = S.list.map((p, i) => '<button type="button" role="tab" data-tab="' + i + '" aria-selected="' + (i === S.active) + '">' + p.name + '</button>' +
+          (i === S.active && S.list.length > 1 ? '<button type="button" class="del" data-del-plan title="Xóa kế hoạch" aria-label="Xóa kế hoạch ' + p.name + '">' + icon('trash', 'sm') + '</button>' : '')).join('') +
           '<button type="button" class="add" id="dup">' + icon('plus', 'sm') + ' Bản sao</button>';
 
         $('est').className = 'est' + (res.est ? '' : ' bad');
@@ -331,7 +340,7 @@
           const to = el.dataset.drop === 'pool' ? null : el.dataset.drop;
           if (to === from) { el.classList.add('home'); return; }
           const v = verdict(drag.code, to);
-          el.classList.add(v.ok ? 'ok-drop' : 'bad-drop');
+          el.classList.add(blocked(drag.code, to) ? 'no-drop' : v.ok ? 'ok-drop' : 'bad-drop');
           const reason = el.querySelector('.drop-reason'); if (reason) reason.innerHTML = icon(v.ok ? 'check' : 'x', 'sm') + '<span>' + v.why + '</span>';
         });
         move(x, y);
@@ -344,6 +353,7 @@
         let t = under && under.closest('[data-drop]');
         // Between two rows: keep the last target so the placeholder does not flicker.
         if (!t && under && under.closest('#board')) t = drag.over;
+        if (t && t.classList.contains('no-drop')) t = null;
         document.querySelectorAll('[data-drop].over').forEach((el) => { if (el !== t) el.classList.remove('over'); });
         if (t) t.classList.add('over');
         drag.over = t || null;
@@ -367,7 +377,7 @@
           const d = drag, ghost = d.ghost;
           document.body.style.userSelect = '';
           document.body.classList.remove('dragging');
-          targets().forEach((el) => el.classList.remove('ok-drop', 'bad-drop', 'over', 'home'));
+          targets().forEach((el) => el.classList.remove('ok-drop', 'bad-drop', 'no-drop', 'over', 'home'));
           const to = d.over ? (d.over.dataset.drop === 'pool' ? null : d.over.dataset.drop) : undefined;
           previewFor = undefined;
           if (!cancel && to !== undefined && to !== (plan[d.code] || null)) {
@@ -426,7 +436,10 @@
           $('live').textContent = 'Đã nhấc ' + code + '. Mũi tên lên xuống để chuyển học kỳ, Enter để thả, Esc để hủy.';
         } else if (picked && step) {
           e.preventDefault();
-          const i = order.indexOf(plan[code] || null), j = Math.max(0, Math.min(order.length - 1, i + step));
+          const i = order.indexOf(plan[code] || null);
+          let j = i + step;
+          while (j >= 0 && j < order.length && blocked(code, order[j])) j += step;
+          if (j < 0 || j >= order.length) { $('live').textContent = 'Không còn học kỳ nào nhận ' + code + ' theo hướng này.'; return; }
           const base = S.list[S.active].plan;
           animated(() => { plan = moved(code, order[j]); render(); });
           // The rail compares against the saved plan while the course is lifted.
@@ -482,10 +495,20 @@
         const tb = e.target.closest('[data-tab]');
         if (tb) { S.active = +tb.dataset.tab; plan = S.list[S.active].plan; hist.length = 0; save(); render(); return; }
         if (e.target.closest('#dup')) { S.list.push({ name: 'Bản sao ' + S.list.length, plan: Object.assign({}, plan) }); S.active = S.list.length - 1; save(); render(); UI.toast('Đã tạo bản sao để thử'); return; }
+        if (e.target.closest('[data-del-plan]')) { delPlan(); return; }
         if (e.target.closest('#add-term')) { showExtra = true; render(); return; }
         const pg = e.target.closest('[data-pg]');
         if (pg) { poolGroup = pg.dataset.pg; render(); }
       });
+      // Deleting a plan cannot be undone, so it asks first. The last plan stays.
+      async function delPlan() {
+        const name = S.list[S.active].name;
+        const ok = await UI.confirm({ title: 'Xóa kế hoạch "' + name + '"?', body: 'Kế hoạch này và mọi link chia sẻ của nó sẽ bị xóa. Không hoàn tác được.', ok: 'Xóa kế hoạch' });
+        if (!ok || S.list.length < 2) return;
+        S.list.splice(S.active, 1);
+        S.active = Math.max(0, S.active - 1); plan = S.list[S.active].plan; hist.length = 0;
+        save(); render(); UI.toast('Đã xóa kế hoạch "' + name + '"', 'trash');
+      }
       $('fix-all').addEventListener('click', () => {
         let p = plan, n = 0;
         for (let k = 0; k < 10; k++) { const v = D.check(p).violations.find((x) => x.fix); if (!v) break; p = Object.assign({}, p, { [v.fix.code]: v.fix.to }); n++; }
@@ -607,5 +630,6 @@
       render(); route();
     })();
   </script>
+  <i id="ready" hidden></i>
 </body>
 </html>

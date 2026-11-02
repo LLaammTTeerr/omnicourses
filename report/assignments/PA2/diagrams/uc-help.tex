@@ -1,0 +1,32 @@
+%% Module D: help and reminders (F8, F10, F11)
+\begin{tikzpicture}
+  \ucactor{visitor}{0,2.7}{Visitor}
+  \ucactor{student}{0,-1.3}{Student}
+  \ucsystem{portal}{13.4,2.7}{HCMUS\\portal}
+  \ucsystem{model}{13.4,0.3}{Model\\provider}
+  \ucactor{time}{13.4,-2.6}{Time}
+
+  \node[ucmain] (uc10) at (4.6,2.7)  {\textbf{UC-10}\\Follow a school-task guide};
+  \node[ucmain] (uc08) at (4.6,0.3)  {\textbf{UC-08}\\Ask the advisor chat};
+  \node[ucmain] (uc12) at (4.6,-2.6) {\textbf{UC-12}\\Receive notifications};
+  \node[ucshared] (uc20) at (9.3,-1.1) {\textbf{UC-19}\\Evaluate academic rules};
+
+  \begin{scope}[on background layer]
+    \node[boundary, fit=(uc10)(uc12)(uc20), inner xsep=14pt, inner ysep=18pt] (sys) {};
+  \end{scope}
+  \node[btitle] at (sys.north west) {OmniCourse \textbullet{} D. Help and reminders (F8, F10, F11)};
+
+  \draw[gen] (student.north) -- ($(visitor-l.south)+(0,-0.06)$);
+
+  \draw[assoc] (visitor) -- (uc10);
+  \draw[assoc] (student) -- (uc08);
+  \draw[assoc] (student) -- (uc12);
+  \draw[assoc] (portal) -- (uc10);
+  \draw[assoc] (model) -- (uc08);
+  \draw[assoc] (time) -- (uc12);
+
+  \ucinclude[above, sloped]{uc08}{uc20}
+  \ucinclude[below, sloped]{uc12}{uc20}
+  \node[lbl, align=center, anchor=north] at ($(portal.south)+(0,-0.08)$) {link only,\\no data exchanged};
+  \node[lbl, align=center, anchor=north] at ($(time-l.south)+(0,-0.04)$) {registration window,\\start of each term};
+\end{tikzpicture}

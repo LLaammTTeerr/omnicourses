@@ -1,0 +1,27 @@
+%% Module B: academic record (F2, F3, F4)
+\begin{tikzpicture}
+  \ucactor{student}{0,0}{Student}
+
+  \node[ucmain] (uc02) at (5.0,3.3)  {\textbf{UC-02}\\Import transcript};
+  \node[ucmain] (uc03) at (5.0,1.1)  {\textbf{UC-03}\\View degree audit};
+  \node[ucmain] (uc15) at (5.0,-1.1) {\textbf{UC-15}\\View grades and what each course still needs};
+  \node[ucmain] (uc04) at (5.0,-3.3) {\textbf{UC-04}\\Explore curriculum};
+  \node[uc]       (uc01) at (10.4,3.3) {\textbf{UC-01}\\Sign up and onboard};
+  \node[ucshared] (uc20) at (10.4,-0.4) {\textbf{UC-19}\\Evaluate academic rules};
+
+  \begin{scope}[on background layer]
+    \node[boundary, fit=(uc02)(uc04)(uc01)(uc20), inner xsep=14pt, inner ysep=18pt] (sys) {};
+  \end{scope}
+  \node[btitle] at (sys.north west) {OmniCourse \textbullet{} B. Academic record (F2, F3, F4)};
+
+  \draw[assoc] (student) -- (uc02);
+  \draw[assoc] (student) -- (uc03);
+  \draw[assoc] (student) -- (uc15);
+  \draw[assoc] (student) -- (uc04);
+
+  \ucextend[above]{uc02}{uc01}
+  \ucextend[right]{uc15}{uc03}
+  \ucinclude[above, sloped]{uc03}{uc20}
+  \ucinclude[above, sloped, pos=0.45]{uc15}{uc20}
+  \ucinclude[below, sloped]{uc04}{uc20}
+\end{tikzpicture}

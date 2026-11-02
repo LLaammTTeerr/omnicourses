@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lịch · OmniCourse</title>
+  <meta name="description" content="Bản mẫu: thời khóa biểu theo tuần và tháng, hạn nộp, ghi chú cho từng buổi học và từng môn.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+  <!-- Hold the first paint until the scripts at the end of body have built and translated the page. -->
+  <link rel="expect" href="#ready" blocking="render">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem('oc2-theme'))||'light'}catch(e){}
+  // Keep the page hidden until its fonts are in (at most 1 s), so no page ever shows the fallback font.
+  (function(d){if(!document.fonts)return;d.classList.add('fonts-wait');var done=function(){d.classList.remove('fonts-wait')};Promise.all(['400','500','600','700'].map(function(w){return document.fonts.load(w+' 16px "Be Vietnam Pro"','Aạ')}).concat(document.fonts.load('500 14px "JetBrains Mono"','A1'))).then(done,done);setTimeout(done,1000)})(document.documentElement);</script>
+</head>
+<body data-page="calendar" data-layout="app">
+  <a class="skip" href="#main">Bỏ qua điều hướng</a>
+  <div class="app">
+    <aside class="side" id="side"></aside>
+    <main class="main" id="main">
+      <div class="page cal-page">
+        <header class="page-head">
+          <h1>Lịch</h1>
+          <div class="seg" role="tablist" aria-label="Kiểu xem">
+            <button type="button" role="tab" id="tab-week" aria-selected="true">Tuần</button>
+            <button type="button" role="tab" id="tab-month" aria-selected="false">Tháng</button>
+          </div>
+        </header>
+
+        <div class="cal-wrap" id="wrap">
+          <section class="cal-main" aria-label="Thời khóa biểu">
+            <div class="cal-bar">
+              <div class="cal-pick-wrap">
+                <button class="cal-pick" type="button" id="pick" aria-haspopup="listbox" aria-expanded="false" aria-controls="picker">
+                  <b id="range"></b><i data-icon="down"></i>
+                </button>
+                <p class="cal-subt" id="subt"></p>
+                <div class="cal-picker" id="picker" role="listbox" aria-label="Chọn tuần"></div>
+              </div>
+              <div class="cal-nav">
+                <button class="btn sm ghost" type="button" id="today">Hôm nay</button>
+                <button class="btn sm ghost icon-only" type="button" id="prev" aria-label="Trước"><i data-icon="left"></i></button>
+                <button class="btn sm ghost icon-only" type="button" id="next" aria-label="Sau"><i data-icon="right"></i></button>
+              </div>
+            </div>
+            <div class="cal-scroll"><div id="grid"></div></div>
+            <p class="cal-foot"><i data-icon="info"></i>Thời khóa biểu do bạn nhập từ kết quả đăng ký. OmniCourse không đọc cổng đăng ký của trường.</p>
+          </section>
+
+          <aside class="card cal-up" id="up-card" aria-label="Sắp tới và chi tiết">
+            <div class="cal-detail" id="detail" hidden></div>
+            <div id="up-list"><h2>Sắp tới</h2><div id="up"></div></div>
+          </aside>
+        </div>
+
+        <section class="card" aria-labelledby="reg-title">
+          <div class="card-head"><h2 id="reg-title">Học phần đang học</h2><span class="meta" id="reg-meta"></span></div>
+          <div class="table-wrap" style="padding:8px 8px 12px"><table class="table cal-reg" id="reg"></table></div>
+          <p class="cal-foot" style="padding:0 22px 18px"><i data-icon="info"></i>Buổi học cách tuần chỉ hiện trên lịch vào tuần có học. Tên giảng viên là dữ liệu minh họa.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/shell.js"></script>
+  <script>
+    (function () {
+      const D = window.OC, $ = (id) => document.getElementById(id);
+      const EN = I18N.lang === 'en';
+      const now = D.term(D.NOW);
+
+      // Illustrative timetable, as the student would enter it from the registration result.
+      // Each session: [day (0 = Monday), slot, kind, room, weeks ('odd' | 'even', every week when absent)].
+      const SLOT = [['1–3', '07:30', '10:00'], ['4–6', '10:10', '12:40'], ['7–9', '13:30', '16:00'], ['10–12', '16:10', '18:40']];
+      const SESS = {
+        CS300: { cls: '24CTT1', gv: 'TS. Phan Gia Khánh', s: [[0, 0, 'TH', 'I.92'], [4, 2, 'LT', '1.11B']] },
+        CS333: { cls: '24CTT2', gv: 'TS. Đoàn Thị Mai Hạ', s: [[1, 2, 'LT', 'E.304'], [3, 0, 'TH', 'I.71']] },
+        CS420: { cls: '24CTT1', gv: 'PGS. Lạc Văn Toàn', s: [[1, 1, 'LT', 'B.41'], [3, 2, 'TH', 'I.82', 'even']] },
+        MTH346: { cls: '24CTT3', gv: 'TS. Kha Minh Triết', s: [[2, 1, 'LT', '1.11B'], [4, 0, 'BT', 'C.24', 'odd']] },
+        BAACM02: { cls: '24CTT3', gv: 'ThS. Ông Ngọc Lan', s: [[2, 2, 'LT', 'E.403']] },
+        PHY103: { cls: '24VLH1', gv: 'TS. Doãn Thanh Bình', s: [[0, 2, 'LT', 'F.207'], [3, 3, 'BT', 'C.31']] },
+      };
+      // Deadlines and exams the student added. An exam takes a slot; a deadline has a time.
+      const DUE = [
+        ['2026-10-21', 'MTH346', 'Nộp bài tập tuần 7', '23:59'],
+        ['2026-10-28', 'MTH346', 'Nộp bài tập tuần 8', '23:59'],
+        ['2026-10-30', 'CS300', 'Milestone 2 đồ án nhóm', '17:00'],
+        ['2026-11-03', 'CS333', 'Kiểm tra giữa kỳ', 2],
+        ['2026-11-06', 'CS420', 'Nộp bài tập lớn 1', '23:59'],
+        ['2026-11-11', 'MTH346', 'Kiểm tra giữa kỳ', 1],
+        ['2026-11-13', 'CS300', 'Milestone 3 đồ án nhóm', '17:00'],
+        ['2026-11-20', 'CS333', 'Nộp báo cáo thực hành', '23:59'],
+        ['2026-11-30', null, 'Hạn đóng học phí (minh họa)', ''],
+        ['2026-12-14', null, 'Mở đăng ký học phần HK2 (minh họa)', ''],
+      ];
+      const KIND = { LT: 'Lý thuyết', TH: 'Thực hành', BT: 'Bài tập' };
+      const WK = { odd: 'Tuần lẻ', even: 'Tuần chẵn' };
+      const DOW = EN ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+      const DOWL = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ nhật'];
+      const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      // Week 1 starts on Monday 31/08/2026; the term runs 16 weeks.
+      const W1 = new Date(2026, 7, 31), WEEKS = 16, TODAY = new Date(2026, 10, 1);
+      const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+      const iso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const dm = (d) => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+      const day = (d) => EN ? d.getDate() + ' ' + MON[d.getMonth()] : d.getDate() + '/' + (d.getMonth() + 1);
+      const monthName = (d) => EN ? ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][d.getMonth()] + ' ' + d.getFullYear() : 'Tháng ' + (d.getMonth() + 1) + ', ' + d.getFullYear();
+      const same = (a, b) => iso(a) === iso(b);
+      const weekOf = (d) => Math.floor((d - W1) / 864e5 / 7) + 1;
+      const monOf = (w) => addDays(W1, (w - 1) * 7);
+      const dow = (d) => (d.getDay() + 6) % 7;
+      // On a weekend the calendar opens on the coming week.
+      const homeWeek = weekOf(TODAY) + (dow(TODAY) >= 5 ? 1 : 0);
+      let week = homeWeek, mode = 'week', month = new Date(2026, 10, 1), sel = null;
+
+      // ---------- Events ----------
+      const dues = DUE.map(([d, code, title, at], i) => ({ id: 'd' + i, due: true, date: new Date(d + 'T00:00'), c: code && D.course(code), title, slot: typeof at === 'number' ? at : null, at: typeof at === 'number' ? SLOT[at][1] + '–' + SLOT[at][2] : at }));
+      function sessionsOn(date) {
+        const out = [];
+        if (weekOf(date) < 1 || weekOf(date) > WEEKS) return out;
+        D.courses.filter((c) => c.status === 'current').forEach((c) => (SESS[c.code] ? SESS[c.code].s : []).forEach(([d, slot, k, room, wk]) => {
+          if (d !== dow(date)) return;
+          if (wk && (weekOf(date) % 2 === 1) !== (wk === 'odd')) return;
+          // An exam in the same slot replaces the class that day.
+          if (dues.some((e) => e.slot === slot && same(e.date, date) && e.c && e.c.code === c.code)) return;
+          out.push({ id: c.code + '|' + iso(date) + '|' + slot, c, date, slot, k, room, wk, cls: SESS[c.code].cls, gv: SESS[c.code].gv });
+        }));
+        return out;
+      }
+      const duesOn = (date) => dues.filter((e) => same(e.date, date));
+      const find = (id) => {
+        if (!id) return null;
+        if (id[0] === 'd' && !id.includes('|')) return dues.find((e) => e.id === id);
+        const [code, d, slot] = id.split('|');
+        return sessionsOn(new Date(d + 'T00:00')).find((e) => e.c.code === code && e.slot === +slot) || null;
+      };
+      const timeOf = (e) => e.slot != null ? SLOT[e.slot][1] + '–' + SLOT[e.slot][2] : e.at;
+
+      // ---------- Notes, per session and per course ----------
+      const notes = UI.store.get('cal-notes', {});
+      const noteKey = (e) => e.due ? 'due:' + e.id : 'sess:' + e.id;
+      const hasNote = (e) => !!(notes[noteKey(e)] || '').trim();
+
+      // ---------- Week ----------
+      function renderWeek() {
+        const mon = monOf(week);
+        const cell = (e) => {
+          const exam = e.due;
+          return '<button type="button" class="cal-ev g-' + e.c.group + (exam ? ' exam' : '') + (sel === e.id ? ' on' : '') + '" data-ev="' + e.id + '">' +
+            '<span class="code"><i></i>' + e.c.code + (exam ? '<em>Kiểm tra</em>' : '<em>' + e.k + '</em>') + '</span>' +
+            '<b>' + e.c.name + '</b><span class="room">' + (exam ? timeOf(e) : e.room) + (hasNote(e) ? icon('edit', 'sm') : '') + '</span></button>';
+        };
+        let html = '<div class="cal-week"><div></div>' + DOW.slice(0, 5).map((d, i) => {
+          const date = addDays(mon, i), n = duesOn(date).filter((e) => e.slot == null).length;
+          return '<div class="cal-dh' + (same(date, TODAY) ? ' today' : '') + '"><span>' + d + '</span><b>' + date.getDate() + '</b>' +
+            (n ? '<button type="button" class="cal-dot" data-ev="' + duesOn(date).find((e) => e.slot == null).id + '" title="' + n + ' hạn nộp">' + n + '</button>' : '') + '</div>';
+        }).join('');
+        SLOT.forEach(([p, a], s) => {
+          html += '<div class="cal-slot"><b>Tiết ' + p + '</b><span>' + a + '</span></div>';
+          for (let i = 0; i < 5; i++) {
+            const date = addDays(mon, i);
+            const ev = duesOn(date).filter((e) => e.slot === s && e.c).concat(sessionsOn(date).filter((e) => e.slot === s));
+            html += '<div class="cal-cell' + (same(date, TODAY) ? ' today' : '') + '">' + ev.map(cell).join('') + '</div>';
+          }
+        });
+        $('grid').innerHTML = html + '</div>';
+      }
+
+      // ---------- Month ----------
+      function renderMonth() {
+        const first = new Date(month.getFullYear(), month.getMonth(), 1);
+        const start = addDays(first, -dow(first));
+        let html = '<div class="cal-month">' + DOW.map((d) => '<div class="cal-mh">' + d + '</div>').join('');
+        for (let i = 0; i < 42; i++) {
+          const date = addDays(start, i), out = date.getMonth() !== month.getMonth();
+          if (i >= 35 && out) break;
+          const ev = duesOn(date).concat(sessionsOn(date));
+          html += '<div class="cal-md' + (out ? ' out' : '') + (same(date, TODAY) ? ' today' : '') + '"><button type="button" class="n" data-week="' + weekOf(date) + '">' + date.getDate() + '</button>' +
+            ev.slice(0, 3).map((e) => '<button type="button" class="cal-chip' + (e.due ? ' due' : '') + (e.c ? ' g-' + e.c.group : '') + '" data-ev="' + e.id + '"><i></i>' + (e.due ? e.title : e.c.code) + '</button>').join('') +
+            (ev.length > 3 ? '<span class="more">+' + (ev.length - 3) + '</span>' : '') + '</div>';
+        }
+        $('grid').innerHTML = html + '</div>';
+      }
+
+      // ---------- Week or month picker ----------
+      function renderPicker() {
+        if (mode === 'week') {
+          $('picker').innerHTML = Array.from({ length: WEEKS }, (_, i) => {
+            const w = i + 1, m = monOf(w);
+            return '<button type="button" role="option" data-week="' + w + '" aria-selected="' + (w === week) + '"><b>Tuần ' + w + '</b><span>' + day(m) + ' – ' + day(addDays(m, 4)) + '</span>' +
+              (w === weekOf(TODAY) ? '<em>nay</em>' : '') + '</button>';
+          }).join('');
+        } else {
+          $('picker').innerHTML = [8, 9, 10, 11].map((mm) => {
+            const d = new Date(2026, mm, 1);
+            return '<button type="button" role="option" data-month="' + mm + '" aria-selected="' + (mm === month.getMonth()) + '"><b>' + monthName(d) + '</b></button>';
+          }).join('');
+        }
+      }
+      const setPicker = (open) => {
+        if (open) { renderPicker(); I18N.flush(); }
+        $('picker').classList.toggle('open', open); $('pick').setAttribute('aria-expanded', open);
+        if (open) { const s = $('picker').querySelector('[aria-selected="true"]'); if (s) s.scrollIntoView({ block: 'center' }); }
+      };
+
+      // ---------- Coming up ----------
+      function renderUp() {
+        $('up').innerHTML = dues.filter((e) => e.date >= TODAY).map((e) =>
+          '<button type="button" class="cal-up-item' + (sel === e.id ? ' on' : '') + '" data-ev="' + e.id + '"><span class="d"><b>' + e.date.getDate() + '</b><small>' + (EN ? MON[e.date.getMonth()] : 'Th' + (e.date.getMonth() + 1)) + '</small></span>' +
+          '<span class="t"><b>' + e.title + '</b>' + (e.c || e.at ? '<small>' + [e.c && e.c.code, e.at].filter(Boolean).join(' · ') + '</small>' : '') + '</span></button>').join('');
+      }
+
+      // ---------- Detail, in the right-hand card in place of "Coming up" ----------
+      function nextOf(e) {
+        if (!e.c) return [];
+        const out = [];
+        for (let i = 0, d = e.date; i < 21 && out.length < 1; i++) {
+          d = addDays(e.date, i);
+          sessionsOn(d).filter((x) => x.c.code === e.c.code && (i > 0 || e.due || x.slot > e.slot)).forEach((x) => out.push(x));
+        }
+        const due = dues.find((x) => x.c && x.c.code === e.c.code && x.date > e.date && x.id !== e.id);
+        return out.slice(0, 1).concat(due ? [due] : []);
+      }
+      function renderDetail() {
+        const e = find(sel);
+        $('detail').hidden = !e; $('up-list').hidden = !!e; $('wrap').classList.toggle('with-detail', !!e);
+        if (!e) return;
+        const c = e.c, g = c && D.group(c.group);
+        const nx = nextOf(e);
+        // One fact per row: an icon tile, a label, the value and a detail line. Long values wrap.
+        const fact = (ic, label, value, sub) => '<div class="fact"><span class="fi">' + ic + '</span><div><span class="fl">' + label + '</span><b>' + value + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div></div>';
+        const day = DOW[dow(e.date)] + ', ' + dm(e.date);
+        $('detail').className = 'cal-detail' + (c ? ' g-' + c.group : '');
+        $('detail').innerHTML = '<div class="hd"><div><p class="eyebrow">' + (c ? c.code + ' · ' + (e.due ? (e.slot != null ? 'Kiểm tra' : 'Hạn nộp') : KIND[e.k]) : 'Mốc học kỳ') + '</p>' +
+          '<h2>' + (e.due ? e.title : c.name) + '</h2>' + (c ? '<p class="small t3">' + (e.due ? c.name : c.en) + '</p>' : '') + '</div>' +
+          '<button class="btn sm ghost icon-only" type="button" id="d-x" aria-label="Đóng">' + icon('x') + '</button></div>' +
+          '<div class="facts">' +
+          fact(icon('clock'), e.slot != null ? 'Tiết học' : 'Thời gian', e.slot != null ? day + ', tiết ' + SLOT[e.slot][0] : day, timeOf(e) || '') +
+          (e.room ? fact(icon('pin'), 'Phòng', e.room, 'Lớp ' + e.cls) + fact(icon('repeat'), 'Lặp lại', e.wk ? WK[e.wk] : 'Hằng tuần', KIND[e.k]) : '') +
+          (c && SESS[c.code] ? fact(icon('user'), 'Giảng viên', SESS[c.code].gv) : '') +
+          (c ? fact(icon('layers'), 'Tín chỉ', c.credits + ' tín chỉ', c.fails ? 'Học lại, lần trước chưa đạt' : '') +
+            '<div class="fact"><span class="fi gl">' + g.glyph + '</span><div><span class="fl">Nhóm</span><b>' + g.name + '</b></div></div>' : '') +
+          (nx.length ? fact(icon('flag'), 'Tiếp theo', nx.map((x) => '<button type="button" class="link" data-ev="' + x.id + '">' + (x.due ? x.title : KIND[x.k]) + '</button>').join('<br>'),
+            nx.map((x) => DOW[dow(x.date)] + ' ' + dm(x.date) + ' · ' + timeOf(x)).join('<br>')) : '') +
+          '</div>' +
+          '<label class="cal-note"><span>' + (e.due ? 'Ghi chú cho mốc này' : 'Ghi chú buổi học ' + dm(e.date)) + '</span><textarea class="textarea" rows="3" data-note="' + noteKey(e) + '" placeholder="Mang gì, chuẩn bị gì, hỏi gì…">' + (notes[noteKey(e)] || '') + '</textarea></label>' +
+          (c ? '<label class="cal-note"><span>Ghi chú môn ' + c.code + '</span><textarea class="textarea" rows="4" data-note="course:' + c.code + '" placeholder="Cách tính điểm, link nhóm, giờ gặp giảng viên…">' + (notes['course:' + c.code] || '') + '</textarea></label>' : '') +
+          '<p class="xs t3" id="d-saved">Ghi chú lưu trên máy này.</p>' +
+          (c ? '<div class="cal-dfoot"><a class="btn" href="audit.html#' + c.group + '">Xem điểm</a><a class="btn ghost" href="explorer.html">Mở trong Chương trình</a></div>' : '');
+      }
+      let saveT = 0;
+      $('detail').addEventListener('input', (ev) => {
+        const t = ev.target.closest('[data-note]'); if (!t) return;
+        notes[t.dataset.note] = t.value;
+        clearTimeout(saveT);
+        saveT = setTimeout(() => { UI.store.set('cal-notes', notes); $('d-saved').textContent = EN ? 'Saved on this device.' : 'Đã lưu trên máy này.'; draw(); }, 400);
+      });
+
+      // ---------- Courses this term ----------
+      function renderReg() {
+        const list = D.courses.filter((c) => c.status === 'current' && SESS[c.code]);
+        $('reg-meta').textContent = list.length + ' học phần · ' + list.reduce((t, c) => t + c.credits, 0) + ' tín chỉ';
+        $('reg').innerHTML = '<thead><tr><th>Mã</th><th>Học phần</th><th class="r">TC</th><th>Lớp</th><th>Lịch học</th><th>Phòng</th><th>Giảng viên</th></tr></thead><tbody>' +
+          list.map((c) => {
+            const x = SESS[c.code];
+            return '<tr class="g-' + c.group + '"><td><span class="code c">' + c.code + '</span></td><td><b>' + c.name + '</b>' + ((notes['course:' + c.code] || '').trim() ? ' ' + icon('edit', 'sm') : '') + '</td>' +
+              '<td class="r">' + c.credits + '</td><td>' + x.cls + '</td>' +
+              '<td><div class="cal-sess">' + x.s.map(([d, slot, k, , wk]) => '<span>' + DOWL[d] + ' · Tiết ' + SLOT[slot][0] + ' · ' + KIND[k] + (wk ? ' <em>' + WK[wk] + '</em>' : '') + '</span>').join('') + '</div></td>' +
+              '<td><div class="cal-sess">' + x.s.map((q) => '<span class="mono">' + q[3] + '</span>').join('') + '</div></td><td>' + x.gv + '</td></tr>';
+          }).join('') + '</tbody>';
+      }
+
+      // ---------- Frame ----------
+      function draw() {
+        if (mode === 'week') renderWeek(); else renderMonth();
+        renderUp(); renderReg();
+        I18N.flush();
+      }
+      function render() {
+        const mon = monOf(week);
+        if (mode === 'week') {
+          $('range').textContent = day(mon) + ' – ' + day(addDays(mon, 4));
+          $('subt').textContent = now.label + ' · Tuần ' + week;
+          $('prev').disabled = week <= 1; $('next').disabled = week >= WEEKS;
+          $('today').disabled = week === homeWeek;
+        } else {
+          $('range').textContent = monthName(month);
+          $('subt').textContent = now.label;
+          $('prev').disabled = month.getMonth() <= 8; $('next').disabled = month.getMonth() >= 11;
+          $('today').disabled = month.getMonth() === TODAY.getMonth();
+        }
+        $('tab-week').setAttribute('aria-selected', mode === 'week'); $('tab-month').setAttribute('aria-selected', mode === 'month');
+        $('wrap').dataset.mode = mode;
+        renderDetail();
+        draw();
+      }
+
+      const go = (n) => {
+        if (mode === 'week') week = Math.max(1, Math.min(WEEKS, week + n));
+        else month = new Date(2026, Math.max(8, Math.min(11, month.getMonth() + n)), 1);
+        render();
+      };
+      $('prev').addEventListener('click', () => go(-1));
+      $('next').addEventListener('click', () => go(1));
+      $('today').addEventListener('click', () => { week = homeWeek; month = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); render(); });
+      $('tab-week').addEventListener('click', () => { mode = 'week'; render(); });
+      $('tab-month').addEventListener('click', () => { mode = 'month'; month = new Date(monOf(week).getFullYear(), addDays(monOf(week), 3).getMonth(), 1); render(); });
+      $('pick').addEventListener('click', (e) => { e.stopPropagation(); setPicker(!$('picker').classList.contains('open')); });
+      $('picker').addEventListener('click', (e) => {
+        const w = e.target.closest('[data-week]'), m = e.target.closest('[data-month]');
+        if (w) week = +w.dataset.week;
+        if (m) month = new Date(2026, +m.dataset.month, 1);
+        setPicker(false); render();
+      });
+      document.addEventListener('click', (e) => {
+        if ($('picker').classList.contains('open') && !$('picker').contains(e.target)) setPicker(false);
+        const ev = e.target.closest('[data-ev]');
+        if (ev) {
+          sel = sel === ev.dataset.ev && !ev.closest('#detail') ? null : ev.dataset.ev;
+          const x = find(sel);
+          if (x && mode === 'week' && weekOf(x.date) !== week && weekOf(x.date) >= 1 && weekOf(x.date) <= WEEKS) week = weekOf(x.date);
+          render(); return;
+        }
+        if (e.target.closest('#d-x')) { sel = null; render(); return; }
+        const n = e.target.closest('.cal-md [data-week]');
+        if (n && +n.dataset.week >= 1 && +n.dataset.week <= WEEKS) { week = +n.dataset.week; mode = 'week'; render(); }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { if ($('picker').classList.contains('open')) setPicker(false); else if (sel) { sel = null; render(); } }
+      });
+      render();
+    })();
+  </script>
+  <i id="ready" hidden></i>
+</body>
+</html>
