@@ -130,7 +130,7 @@ Thắng owns this proposal and its implementation; Lâm reviews authentication i
 | --- | --- | --- |
 | Program administrator for a named program | Edit that program's details, cohorts, groups and course links; maintain its prerequisites/offering terms once their contract exists. | Shared catalog writes, another program's data, program creation or permission grants. |
 | Catalog maintainer, global | Create shared courses; correct their attributes after the A8 impact review; delete only unreferenced courses. | Editing curriculum membership or granting permissions. |
-| Access manager, global | Create programs and grant/revoke these permissions for existing users. | Automatic program-administrator or catalog-maintainer rights. |
+| Access manager, global | Create programs and grant/revoke all three permissions for existing users, including access-manager permission. | Automatic program-administrator or catalog-maintainer rights. |
 
 The Project Lead provisions the first access manager through a controlled setup step implemented by F12. After that, access managers grant/revoke permissions through F12; sign-up and onboarding never grant them. Every write checks the current grants, including after a revocation. The storage and bootstrap command belong in Thắng's F12 design.
 
@@ -141,6 +141,7 @@ The Project Lead provisions the first access manager through a controlled setup 
 | Does the proposed permission model fit deployment and the curriculum API? | Thắng implements the three permissions above and the controlled first-access-manager setup; review those boundaries before coding. | Thắng owns; Lâm and Triết review |
 | How do we represent course values that differ by cohort? | The current catalog cannot do this. Use A8 only for corrections intended for every linked curriculum; design course versions before allowing cohort-specific values. | Triết and Hoà |
 | Can we delete data that other records use? | Refuse deletions that break those links. Remove a course from a group separately from deleting the course. Decide whether old data should be archived. | Triết |
+| Must B2 retain who changed curriculum/catalog data? | Explicitly open in ADR 0011 before those writes: decide logging or B2 deferral, then define fields, retention and read access if logging. A retained shared log uses nullable `actor_id ... ON DELETE SET NULL`, not recipient-owned `user_id`. | Lâm and Triết; Thắng implements |
 
 Proposed [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md) now records the permission tables, bootstrap/recovery, write routes, deletion policy, CSV contract and explicit school-scoping amendment. It remains subject to Lâm/Triết review and Hoà's scope alignment. Code follows #23's merge; prerequisites/offering terms also wait for Triết's separate storage and rule-engine interfaces. Academic rules remain in those reviewed designs.
 
@@ -155,6 +156,7 @@ IDs follow `TC-<build>-<area>-<number>`. Dũng expands each example into cases w
 | TC-B2-ADM-03 | A program administrator adds a second cohort and links an existing course. | Both cohorts exist; the first cohort's membership stays intact; no duplicate catalog course appears. | F12; UC-11 A1; ADR 0005 (#23) |
 | TC-B2-ADM-04 | Remove one of a course's group links, then attempt to delete the still-linked course. | The other group link and course remain; catalog deletion is refused while referenced. | F12; UC-11 A5, A8; ADR 0005 (#23) |
 | TC-B2-ADM-05 | Submit invalid codes or links; cancel; fail a save or lose its response; change course links during impact review. | Validate canonical codes; save nothing on rejection/cancel; no partial save; check an unknown result; require renewed impact review. | F12; UC-11 A3, A6–A8; ADR 0007 (#29) |
+| TC-B2-ADM-06 | Bootstrap the first access manager, delegate each of the three roles, revoke access, and export/purge grant recipients and granters. | No sign-up privilege; last-active-manager protection and controlled recovery; current grants govern every write; owned grants export/purge while other users' grants and shared curriculum data survive. | F12; UC-11 §8; ADRs 0002, 0004 and proposed 0011 |
 | TC-B2-ADM-07 | Preview and confirm synthetic CSV courses/group links, including bad rows, changed impact, revoked access and repeated import. | Row-numbered errors block the whole file; confirmation rechecks current state and saves atomically; repeated data creates no duplicates. | F12; UC-11 A9; proposed ADR 0011; test-plan CSV handoff |
 
 ### Sources

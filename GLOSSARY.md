@@ -137,7 +137,7 @@ A user who maintains the shared course records that the curricula of every progr
 _Avoid_: course editor, catalog admin
 
 **Access manager**:
-A user who creates programs and grants or revokes the program administrator and catalog maintainer roles.
+A user who creates programs and grants or revokes the program administrator, catalog maintainer and access manager roles. The role does not itself grant program or catalog editing rights. Proposed [ADR 0011](docs/analysis-and-design/adr/0011-curriculum-administration.md) defines bootstrap and protection against revoking the last active access manager.
 _Avoid_: superuser, permission admin
 
 **Advisor**:
