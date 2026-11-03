@@ -36,7 +36,13 @@ export const apcs2024: CurriculumSeed = {
       name: 'Kiến thức bắt buộc',
       credits: 110,
       at_least: false,
-      groups: ['Kiến thức Computer Science (A)', 'Kiến thức Non Computer Science', 'Kiến thức Math', 'Kiến thức Physics'],
+      groups: [
+        'Kiến thức Computer Science (A): bắt buộc',
+        'Kiến thức Computer Science (A): tự chọn',
+        'Kiến thức Non Computer Science',
+        'Kiến thức Math',
+        'Kiến thức Physics',
+      ],
       page: 5,
     },
     {
@@ -48,19 +54,31 @@ export const apcs2024: CurriculumSeed = {
     },
     { name: 'Kiến thức tốt nghiệp', credits: 10, at_least: false, groups: ['Kiến thức tốt nghiệp'], page: 5 },
   ],
-  groups: [
+  subtotals: [
     {
       name: 'Kiến thức Computer Science (A)',
+      credits: 56,
+      groups: ['Kiến thức Computer Science (A): bắt buộc', 'Kiến thức Computer Science (A): tự chọn'],
+      page: 5,
+      note: 'Sinh viên chọn học 16 tín chỉ trong các học phần tự chọn (TC) của khối.',
+    },
+  ],
+  groups: [
+    // The printed group mixes BB and TC rows; it is seeded as two groups
+    // (Project Lead, 2026-11-03), held together by the subtotal above:
+    // 40 BB credits + 16 credits chosen among the TC rows = 56 as printed.
+    {
+      name: 'Kiến thức Computer Science (A): bắt buộc',
       kind: 'compulsory',
-      credits_total: 56,
+      credits_total: 40,
       credits_total_min: null,
       official_notes:
+        'Các học phần BB của khối Computer Science (A) (tổng khối (A): 56 tín chỉ). ' +
         'Sinh viên cần tích lũy tối thiểu 56 tín chỉ thuộc khối kiến thức Computer Science (A). ' +
         'Sinh viên có thể dùng số tín chỉ dư thuộc (A) cho (C). ' +
         'Sinh viên chọn học 16 tín chỉ trong các học phần tự chọn (TC) của khối.',
       page: 5,
       credits_pages: [5, 6],
-      choose_credits: { credits: 16, page: 5 },
       rows: [
         bb('CS160', 'Nhập môn Tin học', 4, 40, 30, 0, 0, 5),
         bb('CS163', 'Cấu trúc dữ liệu', 4, 40, 30, 0, 0, 5),
@@ -72,6 +90,21 @@ export const apcs2024: CurriculumSeed = {
         bb('CS333', 'Nhập môn Hệ điều hành', 4, 40, 30, 0, 0, 5),
         bb('CS486', 'Nhập môn các hệ cơ sở dữ liệu', 4, 40, 30, 0, 0, 5),
         bb('ECE341', 'Phần cứng máy tính', 4, 40, 30, 0, 0, 5),
+      ],
+    },
+    {
+      name: 'Kiến thức Computer Science (A): tự chọn',
+      kind: 'elective',
+      credits_total: null,
+      credits_total_min: 16,
+      official_notes:
+        'Các học phần TC của khối Computer Science (A) (tổng khối (A): 56 tín chỉ). ' +
+        'Sinh viên cần tích lũy tối thiểu 56 tín chỉ thuộc khối kiến thức Computer Science (A). ' +
+        'Sinh viên có thể dùng số tín chỉ dư thuộc (A) cho (C). ' +
+        'Sinh viên chọn học 16 tín chỉ trong các học phần tự chọn (TC) của khối.',
+      page: 5,
+      credits_pages: [5, 6],
+      rows: [
         tc('CS251', 'Cấu trúc logic', 4, 40, 30, 0, 0, 5),
         tc('CS252', 'Tư duy tính toán', 4, 40, 30, 0, 0, 5),
         tc('CS311', 'Cấu trúc tính toán', 4, 40, 30, 0, 0, 6),
@@ -212,7 +245,7 @@ export const apcs2024: CurriculumSeed = {
         { codes: ['CS468'], page: 8 },
         { codes: ['CS469', 'CS470'], page: 8 },
       ],
-      // This table prints LT, TH, ĐT and no BT column: exercise_time is 0.
+      // This table prints LT, TH, ĐT and no BT column: exercise_periods is 0.
       rows: [
         tc('CS468', 'Khóa luận tốt nghiệp', 10, 0, 0, 0, 300, 8),
         tc('CS469', 'Đồ án tốt nghiệp thực tế I', 5, 40, 0, 0, 60, 8),

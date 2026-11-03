@@ -17,18 +17,28 @@ const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
 
 /**
  * Credits a compulsory group requires: its BB rows that count towards the
- * cohort total (all BB rows for a group outside that total), plus credits
- * chosen among its TC rows.
+ * cohort total (all BB rows for a group outside that total).
  */
 function compulsoryCredits(group: PrintedGroup): number {
   const bb = group.rows.filter((r) => r.type === 'BB' && (r.counts_toward_total || group.outside_total));
-  return sum(bb.map((r) => r.credits)) + (group.choose_credits?.credits ?? 0);
+  return sum(bb.map((r) => r.credits));
 }
 
 /** Credits available in a group's TC rows. */
 function electivePool(group: PrintedGroup): number {
   return sum(group.rows.filter((r) => r.type === 'TC').map((r) => r.credits));
 }
+
+/**
+ * Printed groups that mix BB and TC rows, keyed by curriculum code and printed
+ * name, with the printed total. Each is seeded as "<name>: bắt buộc" and
+ * "<name>: tự chọn" (Project Lead, 2026-11-03). Typed here from the PDFs, not
+ * read from the seed, so a change to the data cannot move both sides at once.
+ */
+const SPLIT_GROUPS: Record<string, Record<string, number>> = {
+  APCS2024: { 'Kiến thức Computer Science (A)': 56 },
+  APCS2025: { 'Kiến thức Computer Science (A)': 56 },
+};
 
 const TEACHING_PLANS: TeachingPlan[] = [apcs2024TeachingPlan, apcs2025TeachingPlan];
 const EQUIVALENCE_LISTS: EquivalenceList[] = [apcsEquivalences, clcEquivalences];
@@ -48,7 +58,7 @@ describe.each(CURRICULUM_SEEDS.map((seed) => [label(seed), seed] as const))('%s 
       expect(row.code, row.code).toMatch(COURSE_CODE_PATTERN);
       expect(normalizeCourseCode(row.code_printed ?? row.code), row.code).toBe(row.code);
       expect(row.credits, row.code).toBeGreaterThan(0);
-      for (const time of [row.theory_time, row.lab_work_time, row.exercise_time, row.project_time]) {
+      for (const time of [row.theory_periods, row.lab_periods, row.exercise_periods, row.project_periods]) {
         if (time !== null) expect(time, row.code).toBeGreaterThanOrEqual(0);
       }
     }
@@ -64,7 +74,6 @@ describe.each(CURRICULUM_SEEDS.map((seed) => [label(seed), seed] as const))('%s 
       ...seed.groups.flatMap((g) => [
         g.page,
         ...g.credits_pages,
-        ...(g.choose_credits ? [g.choose_credits.page] : []),
         ...(g.options ?? []).map((o) => o.page),
       ]),
     ];
@@ -92,15 +101,32 @@ describe.each(CURRICULUM_SEEDS.map((seed) => [label(seed), seed] as const))('%s 
     }
   });
 
-  it('adds each compulsory group up to its printed total', () => {
+  it('adds each compulsory group up to its printed total, with BB rows only', () => {
     for (const group of seed.groups.filter((g) => g.kind === 'compulsory')) {
       expect(group.credits_total_min, group.name).toBeNull();
+      expect(group.rows.every((r) => r.type === 'BB'), group.name).toBe(true);
       expect(compulsoryCredits(group), group.name).toBe(group.credits_total);
-      if (group.choose_credits) {
-        expect(electivePool(group), group.name).toBeGreaterThanOrEqual(group.choose_credits.credits);
-      } else {
-        expect(group.rows.every((r) => r.type === 'BB'), group.name).toBe(true);
-      }
+    }
+  });
+
+  it('splits each printed group that mixes BB and TC rows, keeping its printed total', () => {
+    const printed = SPLIT_GROUPS[seed.curriculum.code] ?? {};
+    const split = seed.groups.filter((g) => g.name.endsWith(': tự chọn')).map((g) => g.name.slice(0, -': tự chọn'.length));
+    expect(split.sort()).toEqual(Object.keys(printed).sort());
+
+    for (const [name, total] of Object.entries(printed)) {
+      const bb = seed.groups.find((g) => g.name === `${name}: bắt buộc`);
+      const tc = seed.groups.find((g) => g.name === `${name}: tự chọn`);
+      expect(seed.groups.find((g) => g.name === name), name).toBeUndefined();
+      expect(bb?.kind, name).toBe('compulsory');
+      expect(tc?.kind, name).toBe('elective');
+      expect(compulsoryCredits(bb!) + tc!.credits_total_min!, name).toBe(total);
+      expect(tc!.credits_total_min, name).toBeLessThanOrEqual(electivePool(tc!));
+      expect([tc!.page, tc!.credits_pages], name).toEqual([bb!.page, bb!.credits_pages]);
+      for (const group of [bb!, tc!]) expect(group.official_notes, group.name).toContain(`${total} tín chỉ`);
+      const subtotal = seed.subtotals?.find((s) => s.name === name);
+      expect(subtotal?.credits, name).toBe(total);
+      expect(subtotal?.groups, name).toEqual([bb!.name, tc!.name]);
     }
   });
 

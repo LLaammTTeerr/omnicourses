@@ -22,15 +22,21 @@ export interface PrintedRow {
   name_vi: string;
   /** loaded: courses.credits ("Số TC"). */
   credits: number;
-  /** loaded: courses.theory_time ("LT", "Lý thuyết"). null where the cell is blank. */
-  theory_time: number | null;
-  /** loaded: courses.lab_work_time ("TH", "Thực hành"). */
-  lab_work_time: number | null;
-  /** loaded: courses.exercise_time ("BT", "Bài tập"). 0 where the table has no such column. */
-  exercise_time: number | null;
-  /** loaded: courses.project_time ("ĐT", "Thực hiện đề tài"). 0 where the table has no such column. */
-  project_time: number | null;
-  /** "Loại HP". loaded as requirement_group_courses.compulsory: BB = true, TC = false. */
+  /** loaded: courses.theory_periods ("LT", "Lý thuyết"). null where the cell is blank. */
+  theory_periods: number | null;
+  /** loaded: courses.lab_periods ("TH", "Thực hành"). */
+  lab_periods: number | null;
+  /** loaded: courses.exercise_periods ("BT", "Bài tập"). 0 where the table has no such column. */
+  exercise_periods: number | null;
+  /** loaded: courses.project_periods ("ĐT", "Thực hiện đề tài"). 0 where the table has no such column. */
+  project_periods: number | null;
+  /**
+   * "Loại HP". Not loaded: the schema says whether a course is required only
+   * through its group's kind. A compulsory group holds only BB rows and an
+   * elective group only TC rows; a printed table that mixes both is seeded as
+   * two groups ("<name>: bắt buộc" and "<name>: tự chọn", Project Lead,
+   * 2026-11-03).
+   */
   type: 'BB' | 'TC';
   /**
    * false when the PDF says the course must be passed but does not count
@@ -45,7 +51,11 @@ export interface PrintedRow {
 
 /** A requirement group: one "7.x.y" heading of the PDF and its table. */
 export interface PrintedGroup {
-  /** loaded: requirement_groups.name, the heading as printed. */
+  /**
+   * loaded: requirement_groups.name, the heading as printed. A printed group
+   * split by row type takes a ": bắt buộc" / ": tự chọn" suffix and is listed
+   * in a PrintedSubtotal under its printed name.
+   */
   name: string;
   /** loaded: requirement_groups.kind. */
   kind: 'compulsory' | 'elective';
@@ -59,12 +69,6 @@ export interface PrintedGroup {
   page: Page;
   /** Pages where the group's credit total is printed. */
   credits_pages: Page[];
-  /**
-   * A compulsory group that also asks the student to choose some credits
-   * among its TC rows ("Sinh viên chọn học 16 tín chỉ"): those credits.
-   * The BB rows plus this must equal credits_total.
-   */
-  choose_credits?: { credits: number; page: Page };
   /**
    * A group met by exactly one of several course sets (graduation: a thesis
    * or two capstone projects). Each set must add up to the group's credits.
@@ -143,7 +147,11 @@ export interface KnownDiscrepancy {
   resolution: string;
 }
 
-/** A printed subtotal over several groups, inside a block (CLC 7.1.3: 36). Not loaded. */
+/**
+ * A printed total over several groups, inside a block: a printed section the
+ * seed splits into several groups (CLC 7.1.3: 36; APCS "Kiến thức Computer
+ * Science (A)": 56, split into its BB and TC rows). Not loaded.
+ */
 export interface PrintedSubtotal {
   name: string;
   /** Required credits of the groups add up to this exactly. */
@@ -176,10 +184,10 @@ export interface CatalogCourse {
   name_vi: string;
   name_en: string | null;
   credits: number;
-  theory_time: number | null;
-  lab_work_time: number | null;
-  exercise_time: number | null;
-  project_time: number | null;
+  theory_periods: number | null;
+  lab_periods: number | null;
+  exercise_periods: number | null;
+  project_periods: number | null;
 }
 
 /**

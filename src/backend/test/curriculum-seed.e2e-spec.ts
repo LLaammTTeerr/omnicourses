@@ -81,13 +81,20 @@ describe.skipIf(!databaseUrl)('db:seed', () => {
     const [cm102] = await dataSource.query(`SELECT name_vi, credits FROM courses WHERE code = 'CM102'`);
     expect(cm102).toEqual({ name_vi: 'Tư duy phản biện', credits: 4 });
 
-    const [{ compulsory }] = await dataSource.query(
-      `SELECT count(*)::int AS compulsory FROM requirement_group_courses l
-       JOIN requirement_groups g ON g.id = l.requirement_group_id
+    // The printed (A) group mixes BB and TC rows, so it is seeded as two groups:
+    // 40 required credits over 10 BB courses, and 16 to choose among 6 TC courses.
+    const splitA = await dataSource.query(
+      `SELECT g.name, g.kind, g.credits_total, g.credits_total_min, count(l.course_code)::int AS courses
+       FROM requirement_groups g
        JOIN curriculums c ON c.id = g.curriculum_id
-       WHERE c.code = 'APCS2024' AND g.name = 'Kiến thức Computer Science (A)' AND l.compulsory`,
+       LEFT JOIN requirement_group_courses l ON l.requirement_group_id = g.id
+       WHERE c.code = 'APCS2024' AND g.name LIKE 'Kiến thức Computer Science (A)%'
+       GROUP BY g.id ORDER BY g.name`,
     );
-    expect(compulsory).toBe(10);
+    expect(splitA).toEqual([
+      { name: 'Kiến thức Computer Science (A): bắt buộc', kind: 'compulsory', credits_total: 40, credits_total_min: null, courses: 10 },
+      { name: 'Kiến thức Computer Science (A): tự chọn', kind: 'elective', credits_total: null, credits_total_min: 16, courses: 6 },
+    ]);
   });
 
   it('keeps an admin edit to a group, and aborts on a catalog course edited to a new name', async () => {

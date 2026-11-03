@@ -12,10 +12,10 @@ const CATALOG_FIELDS = [
   'name_vi',
   'name_en',
   'credits',
-  'theory_time',
-  'lab_work_time',
-  'exercise_time',
-  'project_time',
+  'theory_periods',
+  'lab_periods',
+  'exercise_periods',
+  'project_periods',
 ] as const satisfies readonly (keyof Omit<CatalogCourse, 'code'>)[];
 
 /** The catalog course one section 7 row describes, with name_en from the appendix. */
@@ -26,10 +26,10 @@ export function rowToCourse(seed: CurriculumSeed, row: PrintedRow): CatalogCours
     name_vi: row.name_vi,
     name_en: appendix?.name_en ?? null,
     credits: row.credits,
-    theory_time: row.theory_time,
-    lab_work_time: row.lab_work_time,
-    exercise_time: row.exercise_time,
-    project_time: row.project_time,
+    theory_periods: row.theory_periods,
+    lab_periods: row.lab_periods,
+    exercise_periods: row.exercise_periods,
+    project_periods: row.project_periods,
   };
 }
 

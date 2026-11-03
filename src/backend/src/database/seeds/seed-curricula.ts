@@ -41,7 +41,7 @@ export async function seedCurricula(
       count(
         'courses',
         await runner.query(
-          `INSERT INTO courses (code, name_vi, name_en, credits, theory_time, lab_work_time, exercise_time, project_time)
+          `INSERT INTO courses (code, name_vi, name_en, credits, theory_periods, lab_periods, exercise_periods, project_periods)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (code) DO NOTHING RETURNING code`,
           [
@@ -49,10 +49,10 @@ export async function seedCurricula(
             course.name_vi,
             course.name_en,
             course.credits,
-            course.theory_time,
-            course.lab_work_time,
-            course.exercise_time,
-            course.project_time,
+            course.theory_periods,
+            course.lab_periods,
+            course.exercise_periods,
+            course.project_periods,
           ],
         ),
       );
@@ -109,10 +109,10 @@ export async function seedCurricula(
           count(
             'links',
             await runner.query(
-              `INSERT INTO requirement_group_courses (requirement_group_id, course_code, compulsory)
-               VALUES ($1, $2, $3)
+              `INSERT INTO requirement_group_courses (requirement_group_id, course_code)
+               VALUES ($1, $2)
                ON CONFLICT (requirement_group_id, course_code) DO NOTHING RETURNING course_code`,
-              [groupId, row.code, row.type === 'BB'],
+              [groupId, row.code],
             ),
           );
         }
