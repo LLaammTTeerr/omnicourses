@@ -3,7 +3,7 @@
 - Feature: F12 Curriculum administration
 - Owner: Thắng
 - Status: draft for PA2; describes work still to be built
-- Scope: manual entry/editing and deterministic CSV bulk entry (Lâm, 1 November 2026; [test-plan handoff](../../test/elaboration-test-plan.md#b2-checks)). The CSV API/format is proposed in [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md). Curriculum PDF import is excluded by accepted [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md); any proposal to restore it needs a separate scope decision.
+- Scope: manual entry/editing and deterministic CSV bulk entry (Lâm, 1 November 2026; [test-plan handoff](../../test/test-plan.md#b2-checks)). The CSV API/format is proposed in [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md). Curriculum PDF import is excluded by accepted [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md); any proposal to restore it needs a separate scope decision.
 
 ## 1. Brief description
 
