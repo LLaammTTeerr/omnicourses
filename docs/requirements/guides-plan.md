@@ -35,7 +35,7 @@ A guide covers one school task that OmniCourse does not perform: the direct link
 | Last checked | The date a team member last followed the guide on the real portal, and who did. | Yes |
 | Status | Draft, published or withdrawn. Only published guides are shown. | Yes |
 
-Storage (ADR 0010): one content file per guide and language in the repository, reviewed in a pull request and loaded into the database by a seed. Git keeps every version. There is no admin screen.
+Storage (ADR 0010): one TypeScript content file per guide and language in `src/backend/src/guides/content/` (how to write one: the README there), reviewed in a pull request and loaded into the database by `npm run db:seed`. Git keeps every version. There is no admin screen.
 
 ## 3. Rules for writing a guide
 
