@@ -16,6 +16,7 @@ afterEach(() => {
   }
   router?.options.history.destroy();
   window.history.replaceState(originalHistoryState, '', originalUrl);
+  localStorage.removeItem('omnicourse.lang');
   vi.restoreAllMocks();
 });
 
@@ -35,8 +36,17 @@ it('boots the app entry and renders the home route inside the app shell', async 
   await router.push('/');
   await router.isReady();
 
-  await expect.element(page.getByRole('banner')).toHaveTextContent('OmniCourse');
+  const banner = page.getByRole('banner');
+  await expect.element(banner.getByRole('link', { name: 'OmniCourse', exact: true })).toHaveAttribute('href', '/');
+  await expect.element(banner.getByRole('link', { name: 'Hướng dẫn', exact: true })).toHaveAttribute('href', '/guides');
   const main = page.getByRole('main');
   await expect.element(main.getByRole('heading', { name: 'OmniCourse', exact: true })).toBeVisible();
   await expect.element(main.getByText('API ok · database up (PostgreSQL 18.6)')).toBeVisible();
+
+  // The header switches the screen language and <html lang> (Vision §6 Usability).
+  expect(document.documentElement.lang).toBe('vi');
+  await banner.getByRole('button', { name: 'English', exact: true }).click();
+  await expect.element(banner.getByRole('link', { name: 'Guides', exact: true })).toHaveAttribute('href', '/guides');
+  await expect.element(banner.getByRole('button', { name: 'Tiếng Việt', exact: true })).toBeVisible();
+  expect(document.documentElement.lang).toBe('en');
 });
