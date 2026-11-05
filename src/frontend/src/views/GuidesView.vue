@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watchEffect } from 'vue';
+import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watchEffect } from 'vue';
 import { RouterLink } from 'vue-router';
 import { fetchGuides, GUIDE_GROUPS, type GuideGroup, type GuideListItem } from '../guides-api.js';
 import { GUIDE_MESSAGES } from '../guides/messages.js';
@@ -52,8 +52,12 @@ async function browse(group: GuideGroup): Promise<void> {
   document.getElementById(`group-${group}`)?.focus();
 }
 
+// App.vue keeps this page alive while a guide is open: only set the title while on screen.
+const onScreen = ref(true);
+onActivated(() => (onScreen.value = true));
+onDeactivated(() => (onScreen.value = false));
 watchEffect(() => {
-  document.title = `${m.value.listTitle} · OmniCourse`;
+  if (onScreen.value) document.title = `${m.value.listTitle} · OmniCourse`;
 });
 </script>
 

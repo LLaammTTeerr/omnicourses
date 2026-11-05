@@ -20,7 +20,12 @@ const other = () => (locale.lang === 'vi' ? { lang: 'en' as const, label: 'Engli
     </nav>
     <button type="button" class="lang" :lang="other().lang" @click="locale.set(other().lang)">{{ other().label }}</button>
   </header>
-  <main id="main" tabindex="-1"><RouterView /></main>
+  <main id="main" tabindex="-1">
+    <!-- The guide list stays alive while a guide is open, so Back finds the same search and scroll position. -->
+    <RouterView v-slot="{ Component }">
+      <KeepAlive include="GuidesView"><component :is="Component" /></KeepAlive>
+    </RouterView>
+  </main>
 </template>
 
 <style>
