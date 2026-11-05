@@ -80,7 +80,8 @@ describe('validateGuideFile', () => {
   });
 
   it('accepts only https links and OmniCourse paths, drafts too', () => {
-    for (const url of ['http://example.com', 'javascript:alert(1)', '//evil.example.com', 'example.com']) {
+    // A browser reads `\` as `/`, so `/\evil.example.com` is `//evil.example.com`: another site.
+    for (const url of ['http://example.com', 'javascript:alert(1)', '//evil.example.com', '/\\evil.example.com', '/guides\\x', 'example.com']) {
       expect(validateGuideFile(skeleton({ related: [{ label: 'x', url }] }))).toEqual([
         'zz-sample.en: related[0].url must be an https address or an OmniCourse path starting with /',
       ]);
@@ -89,6 +90,19 @@ describe('validateGuideFile', () => {
     expect(validateGuideFile(skeleton({ portal: { name: '', url: '/guides', account: '' } }))).toEqual([
       'zz-sample.en: portal.url must be an https address',
     ]);
+  });
+
+  it('accepts only https links for the sources of notes and citations, drafts too', () => {
+    for (const url of ['/guides', 'http://example.com/qc.pdf', '//evil.example.com', 'https:// example.com']) {
+      const file = skeleton({
+        notes: [{ text: '', source: { kind: 'regulation', document: '', clause: '', url } }],
+        citations: [{ document: '', clause: '', url }],
+      });
+      expect(validateGuideFile(file)).toEqual([
+        'zz-sample.en: notes[0].source.url must be an https address',
+        'zz-sample.en: citations[0].url must be an https address',
+      ]);
+    }
   });
 
   it('refuses a typed credit number (AGENTS.md hard rule 1)', () => {

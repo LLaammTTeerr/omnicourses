@@ -10,7 +10,10 @@ const CREDIT_NUMBER = /\d\s*(?:tín chỉ|tc\b|credits?\b)/iu;
 // Guides plan §3 rule 4: a date that changes every term is linked, never typed ("15/11", "2026-11-15").
 const TYPED_DATE = /\b\d{1,2}\/\d{1,2}\b|\b\d{4}-\d{2}-\d{2}\b/u;
 
-const isSafeUrl = (url: string) => /^https:\/\/\S+$/.test(url) || /^\/(?!\/)\S*$/.test(url);
+const HTTPS_URL = /^https:\/\/\S+$/;
+// One leading `/` and no backslash: a browser reads `\` as `/`, so `/\host` and `//host` both leave OmniCourse.
+const APP_PATH = /^\/(?![/\\])[^\s\\]*$/;
+const isSafeUrl = (url: string) => HTTPS_URL.test(url) || APP_PATH.test(url);
 const isRealDate = (date: string) =>
   ISO_DATE.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().startsWith(date);
 
@@ -29,11 +32,11 @@ export function validateGuideFile(file: GuideFile): string[] {
   if (!GUIDE_STATUSES.includes(file.status)) problem('status must be draft, published or withdrawn');
   if (!GUIDE_GROUPS.includes(file.group)) problem(`group must be one of ${GUIDE_GROUPS.join(', ')}`);
   if (!Number.isInteger(file.version) || file.version < 1) problem('version must be a whole number from 1');
-  for (const [field, url] of urlsOf(file)) {
-    if (url && !isSafeUrl(url)) problem(`${field} must be an https address or an OmniCourse path starting with /`);
+  for (const [field, link] of linksOf(file)) {
+    if (link.url && !isSafeUrl(link.url)) problem(`${field}.url must be an https address or an OmniCourse path starting with /`);
   }
-  for (const [field, url] of [['portal.url', file.portal.url], ...(file.portals ?? []).map((p, i) => [`portals[${i}].url`, p.url])]) {
-    if (url && !url.startsWith('https://')) problem(`${field} must be an https address`);
+  for (const [field, url] of siteUrlsOf(file)) {
+    if (url && !HTTPS_URL.test(url)) problem(`${field} must be an https address`);
   }
 
   if (file.status !== 'published') return problems;
@@ -126,9 +129,11 @@ function linksOf(file: GuideFile): [string, GuideLink][] {
   return links.filter((entry): entry is [string, GuideLink] => entry[1] !== undefined);
 }
 
-function urlsOf(file: GuideFile): [string, string][] {
+// The addresses that are always on another site: a portal, and the document a regulation clause is in.
+function siteUrlsOf(file: GuideFile): [string, string][] {
   return [
-    ...linksOf(file).map(([field, link]): [string, string] => [`${field}.url`, link.url]),
+    ['portal.url', file.portal.url],
+    ...(file.portals ?? []).map((p, i): [string, string] => [`portals[${i}].url`, p.url]),
     ...(file.notes ?? []).flatMap((n, i): [string, string][] => (n.source.kind === 'regulation' ? [[`notes[${i}].source.url`, n.source.url]] : [])),
     ...(file.citations ?? []).map((c, i): [string, string] => [`citations[${i}].url`, c.url]),
   ];
