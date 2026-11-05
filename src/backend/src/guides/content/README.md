@@ -24,4 +24,4 @@ A file removed from this folder, or set to `status: 'withdrawn'`, is hidden but 
 
 ## Test-only guides
 
-`npm run db:seed -w src/backend -- --guide-fixtures` also loads the synthetic `zz-*` guides of TC-B1-GUIDE-01 from `../testing/guide-fixtures.ts`. Test databases only; a later `npm run db:seed` without the flag withdraws them again. Never put them in this folder.
+`npm run db:seed -w src/backend -- --guide-fixtures` also loads the synthetic `zz-*` guides of TC-B1-GUIDE-01 from `../testing/guide-fixtures.ts`. Test databases only; a later `npm run db:seed` without the flag withdraws them again. Never put them in this folder. The seed refuses the flag when `NODE_ENV` is `production`, so the staging and production servers must set it.
