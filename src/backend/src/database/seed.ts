@@ -1,11 +1,17 @@
 import { existsSync } from 'node:fs';
 import { DataSource } from 'typeorm';
+import { GUIDE_FILES } from '../guides/content/index.js';
+import { vietnamDate } from '../guides/out-of-date.js';
+import { seedGuides } from '../guides/seed-guides.js';
+import { guideFixtures } from '../guides/testing/guide-fixtures.js';
 import { dataSourceOptions } from './data-source.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './seeds/index.js';
 import { seedCurricula } from './seeds/seed-curricula.js';
 
-// `npm run db:seed -w src/backend`: loads the curriculum seed data, insert-only,
-// in one transaction. Run db:migrate first.
+// `npm run db:seed -w src/backend`: loads the curriculum seed data (insert-only) and the
+// guides (ADR 0010), each in one transaction. Run db:migrate first.
+// `npm run db:seed -w src/backend -- --guide-fixtures` also loads the synthetic zz-* guides
+// of TC-B1-GUIDE-01: test databases only. Seeding again without the flag withdraws them.
 async function main(): Promise<void> {
   for (const file of ['.env', '../../.env']) {
     if (existsSync(file) && !process.env.DATABASE_URL) process.loadEnvFile(file);
@@ -16,6 +22,9 @@ async function main(): Promise<void> {
     const report = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
     console.log(`Inserted: ${JSON.stringify(report.inserted)}`);
     console.log(`Already present, left untouched: ${JSON.stringify(report.skipped)}`);
+    const fixtures = process.argv.includes('--guide-fixtures');
+    const files = fixtures ? [...GUIDE_FILES, ...guideFixtures(vietnamDate(new Date()))] : GUIDE_FILES;
+    console.log(`Guides${fixtures ? ', with the test-only zz-* guides' : ''}: ${JSON.stringify(await seedGuides(dataSource, files))}`);
   } finally {
     await dataSource.destroy();
   }
