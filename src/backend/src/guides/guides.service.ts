@@ -33,7 +33,7 @@ export class GuidesService {
   /** One published guide in each language it is published in. An unknown, draft or withdrawn guide is the same 404. */
   async get(id: string): Promise<GuideDto> {
     const rows =
-      GUIDE_ID.test(id) && id.length <= GUIDE_ID_MAX
+      id.length <= GUIDE_ID_MAX && GUIDE_ID.test(id)
         ? await this.texts.find({ where: { guideId: id, status: 'published' }, relations: { guide: true }, order: { lang: 'ASC' } })
         : [];
     if (!rows.length) throw new NotFoundException('Guide not found');
