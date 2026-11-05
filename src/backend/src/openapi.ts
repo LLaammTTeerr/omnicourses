@@ -5,6 +5,7 @@ import { AccountModule } from './account/account.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { configureApp } from './bootstrap.js';
 import { dataSourceOptions } from './database/data-source.js';
+import { GuidesModule } from './guides/guides.module.js';
 import { HealthModule } from './health/health.module.js';
 import { TranscriptModule } from './transcript/transcript.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -21,6 +22,7 @@ async function main(): Promise<void> {
       AuthModule,
       AccountModule,
       TranscriptModule,
+      GuidesModule,
     ],
   }).compile();
   const document = configureApp(moduleRef.createNestApplication());

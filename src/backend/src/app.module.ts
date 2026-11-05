@@ -8,6 +8,7 @@ import { AiModule } from './ai/ai.module.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
 import { dataSourceOptions } from './database/data-source.js';
+import { GuidesModule } from './guides/guides.module.js';
 import { HealthModule } from './health/health.module.js';
 import { TranscriptModule } from './transcript/transcript.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module.js';
     AccountModule,
     AiModule,
     TranscriptModule,
+    GuidesModule,
   ],
   providers: [
     // Order matters: rate-limit first, then authenticate.

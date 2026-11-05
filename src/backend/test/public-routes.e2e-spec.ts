@@ -12,6 +12,9 @@ import { configureApp } from '../src/bootstrap.js';
 // change shows up in the pull request for reviewers.
 const PUBLIC_ROUTES = [
   'GET /api/health',
+  // Guides hold only what the school publishes, so anyone may read them (ADR 0010).
+  'GET /api/guides',
+  'GET /api/guides/{id}',
   // The only public writes: they must stay open, or nobody can get in.
   'POST /api/auth/sign-up',
   'POST /api/auth/sign-in',
