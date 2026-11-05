@@ -157,3 +157,11 @@ _Avoid_: school system, student portal account
 **Guide**:
 The direct link, steps, required account and notes for one school task OmniCourse does not perform; versioned.
 _Avoid_: quicklink, tutorial, how-to
+
+**Withdrawn guide**:
+A guide taken off the guide pages but kept, so problem reports about it stay valid ([ADR 0010](docs/analysis-and-design/adr/0010-public-pages-and-guide-content.md)).
+_Avoid_: deleted guide, archived guide
+
+**Out-of-date guide**:
+A published guide not checked on the portal for more than 6 months (UC-10 A5, rule still proposed); it stays readable, with a warning.
+_Avoid_: expired guide, stale guide

@@ -22,7 +22,7 @@ npm install
 cp .env.example .env
 npm run db:up
 npm run build -w src/backend && npm run db:migrate -w src/backend
-npm run db:seed            # APCS 2024 and 2025, CLC 2025 (#36); the guides once they ship
+npm run db:seed            # APCS 2024 and 2025, CLC 2025 (#36), and the published guides
 npm run dev:backend        # API on http://localhost:3000/api
 npm run dev:frontend       # app on http://localhost:5173
 ```
@@ -157,7 +157,7 @@ Sources: [UC-10](../requirements/use-cases/UC-10-follow-a-school-task-guide.md) 
 
 Run GUIDE-01a–h on a database seeded with the published guides only. Then load the test-only guides below and run GUIDE-01i–o.
 
-**Test-only guides.** Synthetic guides for cases the real batch cannot reach. They are loaded into the test database only, through the guide seed's fixture option, named when the guides PR lands. They never go into the published content folder. Each title contains its ID, so a search finds it. D is the test day in Vietnam time (UTC+7).
+**Test-only guides.** Synthetic guides for cases the real batch cannot reach. They are loaded into the test database only, with `npm run db:seed -w src/backend -- --guide-fixtures` (`src/backend/src/guides/testing/guide-fixtures.ts`); seeding again without the flag withdraws them. They never go into the published content folder. Each title contains its ID, so a search finds it. D is the test day in Vietnam time (UTC+7).
 
 | Test guide | Languages | Status | Last checked |
 | --- | --- | --- | --- |
@@ -221,7 +221,7 @@ Search queries for GUIDE-01c. The expected guides follow the keywords in the con
 | GUIDE-01n | **API.** Without a token, call every guide route in the OpenAPI document. Rerun DB-01e of B0 on the B1 candidate. Read `PUBLIC_ROUTES` in `src/backend/test/public-routes.e2e-spec.ts`, and the PR that added the guide routes. | Each guide route answers **200** (**404** for an unknown guide). All of them are `GET`: the document has no write route for guides. Every other route answers **401** except health, sign-up and sign-in. `PUBLIC_ROUTES` adds exactly the guide routes to those three, in the same PR as the routes, and the test passes in CI on the candidate. |
 | GUIDE-01o | Without a token, send 121 requests to the guide list within one minute. Wait a minute and send one more. On staging, while tester X's requests are being refused, tester Y on another network opens **Guides**. | Requests 1–120: **200**. Request 121: **429**. After the minute: **200**. Y sees the guides. If Y gets **429**, the limit counts staging's proxy instead of each reader ("trust proxy", ADR 0002 and ADR 0010): file a defect. |
 
-Already automated, to be added by the guides PR: unit tests for the search matching (`đ` and `d`, decomposed Unicode, letter case, spaces, and `%` and `_` treated as plain text) and for the out-of-date rule with a fixed clock, including a time between 00:00 and 07:00 in Vietnam, when the UTC date is still the day before. `public-routes.e2e-spec.ts` covers GUIDE-01n's 401 and allow-list checks.
+Already automated: `src/frontend/src/guides/search.spec.ts` runs every query of GUIDE-01c's table against synthetic guides (`đ` and `d`, decomposed Unicode, letter case, spaces, and `%`, `_`, `'` and `\` as plain text). `src/backend/src/guides/out-of-date.spec.ts` checks the out-of-date rule with fixed dates, including a time between 00:00 and 07:00 in Vietnam, when the UTC date is still the day before. `src/backend/test/guides.e2e-spec.ts` covers k (draft, withdrawn and unknown guides get the same 404) and l (the signed-in answer equals the signed-out one). `public-routes.e2e-spec.ts` covers GUIDE-01n's 401 and allow-list checks.
 
 ## 4. TC-B1-PERF-01: Dashboard and grades load time
 
