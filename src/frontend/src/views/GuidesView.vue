@@ -13,15 +13,17 @@ const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
 
 const guides = ref<GuideListItem[] | null>(null);
-const error = ref<string | null>(null);
+// A failed load shows a plain sentence; the details go to the console.
+const failed = ref(false);
 const query = ref('');
 
 async function load(): Promise<void> {
-  error.value = null;
+  failed.value = false;
   try {
     guides.value = await (props.load ?? fetchGuides)();
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
+    console.error('Loading the guides failed:', e);
+    failed.value = true;
   }
 }
 onMounted(load);
@@ -56,7 +58,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <section class="guides" :aria-busy="guides === null && error === null">
+  <section class="guides" :aria-busy="guides === null && !failed">
     <h1>{{ m.listTitle }}</h1>
     <p class="intro">{{ m.listIntro }}</p>
     <p class="note">{{ m.noPortalAccess }}</p>
@@ -76,8 +78,8 @@ watchEffect(() => {
     </div>
 
     <div id="guide-results">
-      <p v-if="error" role="alert">
-        {{ m.loadFailed(error) }} <button type="button" @click="load">{{ m.retry }}</button>
+      <p v-if="failed" role="alert">
+        {{ m.loadFailed }} <button type="button" @click="load">{{ m.retry }}</button>
       </p>
       <p v-else-if="guides === null">{{ m.loading }}</p>
       <p v-else-if="guides.length === 0">{{ m.noGuides }}</p>

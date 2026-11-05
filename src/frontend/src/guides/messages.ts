@@ -11,7 +11,7 @@ export interface GuideMessages {
   searchPlaceholder: string;
   searchHint: string;
   loading: string;
-  loadFailed: (reason: string) => string;
+  loadFailed: string;
   retry: string;
   noGuides: string;
   noMatch: string;
@@ -64,7 +64,7 @@ export const GUIDE_MESSAGES: Record<Lang, GuideMessages> = {
     searchPlaceholder: 'Thử: hoc phi, đăng ký, bảng điểm',
     searchHint: 'Tìm bằng tiếng Việt hoặc tiếng Anh, có dấu hoặc không dấu.',
     loading: 'Đang tải hướng dẫn…',
-    loadFailed: (reason) => `Không tải được hướng dẫn: ${reason}`,
+    loadFailed: 'Chưa tải được hướng dẫn. Hãy thử lại sau ít phút.',
     retry: 'Thử lại',
     noGuides: 'Chưa có hướng dẫn nào được đăng.',
     noMatch: 'Chưa có hướng dẫn cho việc này.',
@@ -116,7 +116,7 @@ export const GUIDE_MESSAGES: Record<Lang, GuideMessages> = {
     searchPlaceholder: 'Try: tuition, register, hoc phi',
     searchHint: 'Search in Vietnamese or English, with or without accents.',
     loading: 'Loading guides…',
-    loadFailed: (reason) => `Could not load the guides: ${reason}`,
+    loadFailed: 'Could not load the guides right now. Please try again in a moment.',
     retry: 'Try again',
     noGuides: 'No guides are published yet.',
     noMatch: 'No guide covers this yet.',

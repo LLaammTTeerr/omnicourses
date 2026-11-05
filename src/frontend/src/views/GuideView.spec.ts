@@ -1,6 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import { GuideNotFoundError, type Guide, type GuideText } from '../guides-api.js';
@@ -55,6 +55,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
+    vi.restoreAllMocks();
   });
 
   it('shows every part of UC-10 step 5', async () => {
@@ -124,6 +125,23 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     const notFound = w.get('[data-test="not-found"]');
     expect(notFound.get('h1').text()).toBe('Không tìm thấy hướng dẫn');
     expect(notFound.get('a').attributes('href')).toBe('/guides');
+  });
+
+  it('shows a load error in plain words with a way to try again, and keeps the details in the console', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new Error('GET /guides/zz-fresh failed: 500');
+    let calls = 0;
+    const w = await render(async () => {
+      calls++;
+      if (calls === 1) throw failure;
+      return GUIDE;
+    });
+    expect(w.get('[role="alert"]').text()).toContain('Could not load the guides right now. Please try again in a moment.');
+    expect(w.get('[role="alert"]').text()).not.toContain('500');
+    expect(consoleError).toHaveBeenCalledWith('Loading the guide failed:', failure);
+    await w.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+    expect(w.get('h1').text()).toBe('Test guide');
   });
 
   it('shows the portal board of G01', async () => {

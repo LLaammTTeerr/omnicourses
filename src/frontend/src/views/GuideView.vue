@@ -14,20 +14,24 @@ const m = useMessages(GUIDE_MESSAGES);
 
 const guide = ref<Guide | null>(null);
 const notFound = ref(false);
-const error = ref<string | null>(null);
+// A failed load shows a plain sentence; the details go to the console.
+const failed = ref(false);
 
 async function load(): Promise<void> {
   const id = props.id;
   guide.value = null;
   notFound.value = false;
-  error.value = null;
+  failed.value = false;
   try {
     const loaded = await (props.load ?? fetchGuide)(id);
     if (props.id === id) guide.value = loaded;
   } catch (e) {
     if (props.id !== id) return;
     if (e instanceof GuideNotFoundError) notFound.value = true;
-    else error.value = e instanceof Error ? e.message : String(e);
+    else {
+      console.error('Loading the guide failed:', e);
+      failed.value = true;
+    }
   }
 }
 watch(() => props.id, load, { immediate: true });
@@ -47,7 +51,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <section class="guide-page" :aria-busy="t === null && !missing && error === null">
+  <section class="guide-page" :aria-busy="t === null && !missing && !failed">
     <p class="crumbs">
       <RouterLink :to="{ name: 'guides' }">{{ m.guides }}</RouterLink>
       <template v-if="guide && t"> / {{ m.groups[guide.group] }}</template>
@@ -58,8 +62,8 @@ watchEffect(() => {
       <p>{{ m.notFoundText }}</p>
       <RouterLink :to="{ name: 'guides' }">{{ m.allGuides }}</RouterLink>
     </div>
-    <p v-else-if="error" role="alert">
-      {{ m.loadFailed(error) }} <button type="button" @click="load">{{ m.retry }}</button>
+    <p v-else-if="failed" role="alert">
+      {{ m.loadFailed }} <button type="button" @click="load">{{ m.retry }}</button>
     </p>
     <p v-else-if="t === null">{{ m.loading }}</p>
 

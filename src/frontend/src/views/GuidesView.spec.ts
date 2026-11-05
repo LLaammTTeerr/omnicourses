@@ -1,6 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import type { GuideListItem, GuideListText } from '../guides-api.js';
@@ -45,6 +45,7 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
+    vi.restoreAllMocks();
   });
 
   it('lists the guides under their task groups, in the order of the guides plan', async () => {
@@ -113,14 +114,18 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     expect(document.title).toBe('School task guides · OmniCourse');
   });
 
-  it('shows a load error with a way to try again', async () => {
+  it('shows a load error in plain words with a way to try again, and keeps the details in the console', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new Error('GET /guides failed: 503');
     let calls = 0;
     const w = await render(async () => {
       calls++;
-      if (calls === 1) throw new Error('GET /guides failed: 503');
+      if (calls === 1) throw failure;
       return LIST;
     });
-    expect(w.get('[role="alert"]').text()).toContain('Không tải được hướng dẫn: GET /guides failed: 503');
+    expect(w.get('[role="alert"]').text()).toContain('Chưa tải được hướng dẫn. Hãy thử lại sau ít phút.');
+    expect(w.get('[role="alert"]').text()).not.toContain('503');
+    expect(consoleError).toHaveBeenCalledWith('Loading the guides failed:', failure);
     await w.get('[role="alert"] button').trigger('click');
     await flushPromises();
     expect(titles(w)).toHaveLength(3);
