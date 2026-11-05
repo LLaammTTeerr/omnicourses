@@ -1,0 +1,111 @@
+07:25:22 AUTH-01a
+07:25:22   ok   201 -> 201
+07:25:22   ok   token present -> token length 43
+07:25:22   ok   expiresAt about 7 days ahead -> 2026-11-12T07:25:22.694Z
+07:25:22   ok   user email and display name -> {"id":"b4939a41-06d9-4479-9f24-6e2911e15b3f","email":"b0-01@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-05T07:25:22.680Z"}
+07:25:22   ok   accountRestored false -> false
+07:25:22   ok   no password field anywhere -> keys: token, expiresAt, user, accountRestored; user keys: id, email, displayName, emailVerifiedAt, createdAt
+07:25:22 AUTH-01b
+07:25:22   ok   201 -> 201
+07:25:22   ok   stored email lowercased and trimmed -> b0-02@example.com
+07:25:22   ok   sign-in 200 -> 200
+07:25:22 AUTH-01c
+07:25:22   ok   400 "acceptedTerms must be true" -> 400 "acceptedTerms must be true"
+07:25:22   ok   sign-in 401 -> 401 "Invalid email or password"
+07:25:22   ok   no account in users -> 0 rows
+07:25:22 AUTH-01d
+07:25:22   ok   400, password too short -> 400 "password must be longer than or equal to 10 characters"
+07:25:23   ok   no account in users -> 0 rows
+07:25:23 AUTH-01e
+07:25:23   ok   201 with 10 characters -> 201
+07:25:23 AUTH-01f
+07:25:23   ok   129 characters: 400 -> 400 "password must be shorter than or equal to 128 characters"
+07:25:23   ok   129: no account -> 0 rows
+07:25:23   ok   128 characters: 201 -> 201
+07:25:23 AUTH-01g
+07:25:23   ok   empty name: 400 -> 400 "displayName should not be empty"
+07:25:23   ok   spaces-only name: 400 -> 400 "displayName should not be empty"
+07:25:23   ok   no account for either -> 0 rows
+07:25:23 AUTH-01h
+07:25:23   ok   101 characters: 400 -> 400 "displayName must be shorter than or equal to 100 characters"
+07:25:23   (waiting 62 s for the sign-up limit)
+07:26:25   ok   100 characters: 201 -> 201
+07:26:25 AUTH-01i
+07:26:25   ok   400, email invalid -> 400 "email must be an email"
+07:26:25 AUTH-01j
+07:26:25   ok   409 "An account with this email already exists" -> 409 "An account with this email already exists"
+07:26:25   ok   still exactly one account -> 1 rows
+07:26:25 AUTH-01k
+07:26:26   ok   200 -> 200
+07:26:26   ok   new token -> differs from AUTH-01a token
+07:26:26   ok   accountRestored false -> false
+07:26:26 AUTH-01l
+07:26:26   ok   200 -> 200
+07:26:26 AUTH-01m
+07:26:26   ok   401 "Invalid email or password" -> 401 "Invalid email or password"
+07:26:26 AUTH-01n
+07:26:26   ok   401 -> 401 "Invalid email or password"
+07:26:26   ok   body identical to AUTH-01m -> {"message":"Invalid email or password","error":"Unauthorized","statusCode":401}
+07:26:26 AUTH-01o
+07:26:26   (waiting 63 s: "wait a minute" before the 11 sign-ins)
+07:27:29   ok   requests 1-10: 401 -> 401,401,401,401,401,401,401,401,401,401
+07:27:29   ok   request 11: 429 -> 429
+07:27:29   (waiting 63 s: "wait a minute" before the correct sign-in)
+07:28:32   ok   after the minute: 200 -> 200
+07:28:32 AUTH-01p
+07:28:32   (waiting 63 s: "wait a minute" before the 11 sign-ups)
+07:29:36   ok   requests 1-10 answered normally (201) -> 201,201,201,201,201,201,201,201,201,201
+07:29:36   ok   request 11: 429 -> 429
+07:29:36 setup: sign up S2 b0-04@example.com
+07:29:36   (waiting 63 s for the sign-up limit)
+07:30:39 SESS-01a
+07:30:39   ok   401 -> 401 "Unauthorized"
+07:30:39 SESS-01b
+07:30:39   ok   401 -> 401 "Unauthorized"
+07:30:39 SESS-01c
+07:30:39   ok   200 -> 200
+07:30:39   ok   S1's email and display name -> {"id":"b4939a41-06d9-4479-9f24-6e2911e15b3f","email":"b0-01@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-05T07:25:22.680Z"}
+07:30:39   ok   no password field -> keys: id, email, displayName, emailVerifiedAt, createdAt
+07:30:39 SESS-01d
+07:30:39   ok   200 -> 200
+07:30:39   ok   lists T1's and T2's sessions -> 6 sessions
+07:30:39   ok   exactly one current: true, T2's -> current count 1
+07:30:39   ok   each has a browser description and an expiry -> userAgent "B0 manual run (Node 22 fetch)"
+07:30:39 SESS-01e
+07:30:39   ok   refresh 200 -> 200
+07:30:39   ok   expiresAt about 7 days ahead -> 2026-11-12T07:30:39.220Z
+07:30:39   ok   old token T1: 401 -> 401 "Unauthorized"
+07:30:39   ok   new token T1b: 200 -> 200
+07:30:39   ok   same session id kept -> current id unchanged
+07:30:39 SESS-01f
+07:30:39   ok   delete 204 -> 204
+07:30:39   ok   T2: 401 -> 401 "Unauthorized"
+07:30:39   ok   T2's session gone from the list -> 5 sessions left
+07:30:39 SESS-01g
+07:30:39   ok   delete 404 "Session not found" -> 404 "Session not found"
+07:30:39   ok   same answer as an id that does not exist -> {"message":"Session not found","error":"Not Found","statusCode":404}
+07:30:39   ok   T3 still 200 -> 200
+07:30:39 SESS-01h
+07:30:39   ok   404, already revoked -> 404 "Session not found"
+07:30:39 SESS-01i
+07:30:39   ok   400, not a UUID -> 400 "Validation failed (uuid is expected)"
+07:30:39 SESS-01j
+07:30:39   ok   sign-out 204 -> 204
+07:30:39   ok   T1b: 401 -> 401 "Unauthorized"
+07:30:39   ok   T3 (S2): still 200 -> 200
+07:30:39 SESS-01k
+07:30:39   ok   200 without sign-in -> 200
+07:30:39 SESS-01l
+07:30:39   ok   SESS-01c sign-in: expiresAt about 7 days ahead -> 2026-11-12T07:30:39.151Z
+07:30:39   ok   SESS-01d sign-in: expiresAt about 7 days ahead -> 2026-11-12T07:30:39.194Z
+07:30:39   ok   SESS-01e refresh: expiresAt about 7 days ahead -> 2026-11-12T07:30:39.220Z
+07:30:39 DB-01b
+07:30:39   ok   body is {"status":"ok","database":"up","postgresVersion":"18.6"} -> {"status":"ok","database":"up","postgresVersion":"18.6"}
+07:30:39 DB-01d
+07:30:39   ok   docs page loads (200, HTML, Swagger UI) -> 200 text/html; charset=utf-8
+07:30:39   ok   groups health, auth and users listed -> health, users, auth
+07:30:39   ok   bearer scheme defined (Authorize button) -> {"bearer":{"scheme":"bearer","bearerFormat":"JWT","type":"http"}}
+07:30:39   ok   JSON starts with "openapi": "3.2.0" -> {"openapi":"3.2.0","pa
+07:30:39 DB-01e
+07:30:39   ok   every other documented route answers 401 (9 routes) -> GET /api/users/me 401 | DELETE /api/users/me 401 | POST /api/auth/refresh 401 | POST /api/auth/sign-out 401 | GET /api/auth/sessions 401 | DELETE /api/auth/sessions/{id} 401 | GET /api/users/me/export 401 | GET /api/users/me/transcript 401 | PUT /api/users/me/transcript 401
+07:30:39 SUMMARY AUTH-01a:passed AUTH-01b:passed AUTH-01c:passed AUTH-01d:passed AUTH-01e:passed AUTH-01f:passed AUTH-01g:passed AUTH-01h:passed AUTH-01i:passed AUTH-01j:passed AUTH-01k:passed AUTH-01l:passed AUTH-01m:passed AUTH-01n:passed AUTH-01o:passed AUTH-01p:passed SESS-01a:passed SESS-01b:passed SESS-01c:passed SESS-01d:passed SESS-01e:passed SESS-01f:passed SESS-01g:passed SESS-01h:passed SESS-01i:passed SESS-01j:passed SESS-01k:passed SESS-01l:passed DB-01b:passed DB-01d:passed DB-01e:passed

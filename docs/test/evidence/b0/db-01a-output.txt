@@ -1,0 +1,8 @@
+--- run 1
+
+Applied: CreateUsersAndSessions1761696000000, CreateAiUsage1792800000000, AddUsersDeletionRequestedAt1792886400000, CreateTranscriptRows1793159431000
+exit 0
+--- run 2
+
+Database is up to date.
+exit 0
