@@ -9,9 +9,10 @@ import { routes } from '../router.js';
 import GuidesView from './GuidesView.vue';
 import GuideView from './GuideView.vue';
 
-// Long words and addresses: the content most likely to push a narrow page sideways (A11Y-01c).
-const LONG = 'Đăng-ký-học-phần-trong-thời-gian-mở-cổng-theo-thông-báo-của-Phòng-Đào-tạo';
-const URL_LONG = 'https://portal.example.com/sinh-vien/dang-ky-hoc-phan/chon-lop-hoc-phan?hoc-ky=2&nam-hoc=2026-2027';
+// Long words and addresses with no break opportunity (no space, hyphen or slash inside):
+// the content most likely to push a narrow page sideways (A11Y-01c).
+const LONG = 'ĐăngkýhọcphầntrongthờigianmởcổngtheothôngbáocủaPhòngĐàotạo';
+const URL_LONG = `https://portal.example.com/${'DangKyHocPhan'.repeat(6)}`;
 
 const text: GuideText = {
   title: LONG,
