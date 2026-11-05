@@ -1,6 +1,8 @@
 // Runs the API cases of docs/test/test-cases-b0.md (AUTH-01, SESS-01, DB-01b/d/e)
 // against a running B0 API. Synthetic example.com accounts only.
-// Usage: node b0-cases.mjs <results.json>   env: API, PSQL, PGPORT
+// Usage: node b0-cases.mjs <results.json>   env: PSQL (required), PGPASSWORD, PGPORT, API
+// The B0 run used the version in commit baa4e30. This one differs only in comments,
+// SESS-01l's label and the SUMMARY line, after review of #52; every check is the same.
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -35,7 +37,7 @@ async function waitMinute(route) {
   for (const w of Object.values(windows)) Object.assign(w, { start: 0, count: 0 });
 }
 
-async function call(method, path, { body, token, raw = false, route } = {}) {
+async function call(method, path, { body, token, route } = {}) {
   if (route) await budget(route);
   const headers = { 'user-agent': UA };
   if (body !== undefined) headers['content-type'] = 'application/json';
@@ -64,7 +66,8 @@ const aboutDays = (iso, days = 7) => {
 const noPassword = (r) => !/password/i.test(r.text);
 
 let current;
-function begin(id) { current = { id, checks: [] }; results.push(current); log(id); }
+// inSummary: false keeps a block that is not a case run out of the SUMMARY line.
+function begin(id, { inSummary = true } = {}) { current = { id, inSummary, checks: [] }; results.push(current); log(id); }
 function check(what, ok, actual) {
   current.checks.push({ what, ok: !!ok, actual });
   log(`  ${ok ? 'ok  ' : 'FAIL'} ${what} -> ${actual}`);
@@ -258,7 +261,8 @@ begin('SESS-01k');
 const sk = await call('GET', '/health');
 check('200 without sign-in', sk.status === 200, st(sk));
 
-begin('SESS-01l');
+// SESS-01l is not run by hand (sessions last 7 days). This is only the expiry check in its place.
+begin('SESS-01l (check in its place)', { inSummary: false });
 for (const [where, iso] of expiries) check(`${where}: expiresAt about 7 days ahead`, aboutDays(iso), iso);
 
 // ---- TC-B0-DB-01 (b, d, e) ----
@@ -292,4 +296,4 @@ check(`every other documented route answers 401 (${answers.length} routes)`, ans
 
 for (const r of results) r.result = r.checks.every((x) => x.ok) ? 'passed' : 'failed';
 writeFileSync(out, JSON.stringify(results, null, 2));
-log('SUMMARY', results.map((r) => `${r.id}:${r.result}`).join(' '));
+log('SUMMARY', results.filter((r) => r.inSummary).map((r) => `${r.id}:${r.result}`).join(' '));
