@@ -30,7 +30,7 @@ describe.skipIf(!databaseUrl)('Guide seed against PostgreSQL (e2e)', () => {
   let db: DataSource;
   const texts = (): Promise<{ key: string; status: string; version: number; title: string; checked: string }[]> =>
     db.query(`SELECT guide_id || '.' || lang AS key, status, version, title, to_char(last_checked_on, 'YYYY-MM-DD') AS checked
-              FROM guide_texts ORDER BY key COLLATE "C"`);
+              FROM guide_texts ORDER BY (guide_id || '.' || lang) COLLATE "C"`);
   const text = async (key: string) => (await texts()).find((t) => t.key === key);
 
   beforeAll(async () => {
