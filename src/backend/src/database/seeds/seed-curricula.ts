@@ -131,7 +131,7 @@ export async function seedCurricula(
 }
 
 async function assertNoCatalogConflictsWithDatabase(em: EntityManager, catalog: Map<string, CatalogCourse>): Promise<void> {
-  const existing: { code: string; name_vi: string; credits: number }[] = await em.query(
+  const existing: Pick<CatalogCourse, 'code' | (typeof FIELDS_CHECKED_AGAINST_DATABASE)[number]>[] = await em.query(
     `SELECT code, ${FIELDS_CHECKED_AGAINST_DATABASE.join(', ')} FROM courses WHERE code = ANY($1)`,
     [[...catalog.keys()]],
   );
