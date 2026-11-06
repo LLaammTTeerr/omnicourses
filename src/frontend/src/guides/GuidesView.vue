@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
-import { fetchGuides, GUIDE_GROUPS, type GuideGroup, type GuideListItem } from '../guides-api.js';
-import { GUIDE_MESSAGES } from '../guides/messages.js';
-import { pickText } from '../guides/pick-text.js';
-import { matches } from '../guides/search.js';
 import { formatDate, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
+import { fetchGuides, GUIDE_GROUPS, type GuideGroup, type GuideListItem } from './api.js';
+import { GUIDE_MESSAGES } from './messages.js';
+import { pickText } from './pick-text.js';
+import { matches } from './search.js';
 
 // UC-10 steps 1–3, A1 and A2: browse and search the guides, signed in or not.
 const props = defineProps<{ load?: () => Promise<GuideListItem[]> }>();

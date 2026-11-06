@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
-import type { GuideLink } from '../guides-api.js';
 import { useMessages } from '../locale.js';
+import type { GuideLink } from './api.js';
 import { GUIDE_MESSAGES } from './messages.js';
 
 // A link inside a guide: an OmniCourse path stays in the app, anything else opens in a new tab.

@@ -4,7 +4,7 @@ import { page } from 'vitest/browser';
 import { createApp, type App as VueApp } from 'vue';
 import { createRouter, createWebHistory, type Router } from 'vue-router';
 import App from './App.vue';
-import type { Guide, GuideListItem, GuideListText } from './guides-api.js';
+import type { Guide, GuideListItem, GuideListText } from './guides/api.js';
 import { routes, scrollBehavior } from './router.js';
 
 const listText = (n: string): GuideListText => ({

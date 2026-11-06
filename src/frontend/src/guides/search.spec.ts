@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GuideListItem, GuideListText } from '../guides-api.js';
+import type { GuideListItem, GuideListText } from './api.js';
 import { fold, matches } from './search.js';
 
 type Words = { title: string; keywords: string[] };

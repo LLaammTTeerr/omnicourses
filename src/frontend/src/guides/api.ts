@@ -1,5 +1,5 @@
-import { API_URL } from './api.js';
-import type { Lang } from './locale.js';
+import { API_URL } from '../api.js';
+import type { Lang } from '../locale.js';
 
 // Guides plan §2, in the order the guides page lists them.
 export const GUIDE_GROUPS = [
