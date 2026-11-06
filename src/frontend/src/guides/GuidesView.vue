@@ -4,18 +4,17 @@ import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
 import { formatDate, LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
-import { fetchGuides, GUIDE_GROUPS, type GuideGroup, type GuideListItem } from './api.js';
+import { fetchGuides, GUIDE_GROUPS, type GuideGroup } from './api.js';
 import LoadFailed from './LoadFailed.vue';
 import { GUIDE_MESSAGES } from './messages.js';
 import { pickText } from './pick-text.js';
 import { matches } from './search.js';
 
 // UC-10 steps 1–3, A1 and A2: browse and search the guides, signed in or not.
-const props = defineProps<{ load?: () => Promise<GuideListItem[]> }>();
 const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
 
-const { status, data: guides, reload } = useAsyncLoad('the guides', () => (props.load ?? fetchGuides)());
+const { status, data: guides, reload } = useAsyncLoad('the guides', fetchGuides);
 const query = ref('');
 
 // The guides that match, under their task group in plan order, each in the screen language where written.

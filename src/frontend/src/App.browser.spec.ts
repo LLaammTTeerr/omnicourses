@@ -1,20 +1,18 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vue';
-import type { Router } from 'vue-router';
 import indexHtml from '../index.html?raw';
+import { HEALTHY } from './testing/health.js';
 
 const originalUrl = window.location.href;
 const originalHistoryState = window.history.state;
 let host: HTMLDivElement | null = null;
-let router: Router | undefined;
 
 afterEach(() => {
   if (host) {
     render(null, host);
     host.remove();
   }
-  router?.options.history.destroy();
   window.history.replaceState(originalHistoryState, '', originalUrl);
   localStorage.removeItem('omnicourse.lang');
   vi.restoreAllMocks();
@@ -27,14 +25,9 @@ it('boots the app entry and renders the home route inside the app shell', async 
   expect(host, 'index.html supplies the app mount point').not.toBeNull();
   document.body.append(host!);
   window.history.replaceState(null, '', '/');
-  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-    Response.json({ status: 'ok', database: 'up', postgresVersion: '18.6' }),
-  );
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(HEALTHY));
 
-  ({ router } = await import('./router.js'));
   await import('./main.js');
-  await router.push('/');
-  await router.isReady();
 
   const banner = page.getByRole('banner');
   await expect.element(banner.getByRole('link', { name: 'OmniCourse', exact: true })).toHaveAttribute('href', '/');

@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { fetchHealth, type Health } from '../api.js';
+import { fetchHealth } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 
-const props = defineProps<{ load?: () => Promise<Health> }>();
-const { status, data: health, error } = useAsyncLoad('the API status', () => (props.load ?? fetchHealth)());
+const { status, data: health, error } = useAsyncLoad('the API status', fetchHealth);
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 </script>
 

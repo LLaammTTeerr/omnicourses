@@ -1,46 +1,20 @@
-import { createPinia } from 'pinia';
 import { afterEach, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
-import { createApp, type App as VueApp } from 'vue';
-import { createRouter, createWebHistory, type Router } from 'vue-router';
-import App from './App.vue';
-import type { Guide, GuideListItem, GuideListText } from './guides/api.js';
-import { routes, scrollBehavior } from './router.js';
+import type { App as VueApp } from 'vue';
+import type { Router } from 'vue-router';
+import { createOmniCourseApp } from './app.js';
+import type { Guide, GuideListItem } from './guides/api.js';
+import { guideText, listText } from './guides/testing/guide-fixtures.js';
+import { createAppRouter } from './router.js';
+import { HEALTHY } from './testing/health.js';
 
-const listText = (n: string): GuideListText => ({
-  title: `Hướng dẫn thử ${n}`,
-  keywords: [],
-  portal: { name: 'Cổng thử', url: 'https://example.com/portal', account: 'Tài khoản thử' },
-  version: 1,
-  lastCheckedOn: '2026-11-01',
-  outOfDate: false,
-});
+const title = (n: string) => `Hướng dẫn thử ${n}`;
 // Enough guides that the list scrolls on a phone.
 const LIST: GuideListItem[] = Array.from({ length: 20 }, (_, i) => {
   const n = String(i + 1).padStart(2, '0');
-  return { id: `zz-guide-${n}`, group: 'registration', texts: { vi: listText(n) } };
+  return { id: `zz-guide-${n}`, group: 'registration', texts: { vi: listText({ title: title(n) }) } };
 });
-const guide = (id: string): Guide => ({
-  id,
-  group: 'registration',
-  texts: {
-    vi: {
-      ...listText(id.slice(-2)),
-      changeNote: 'Bản thử.',
-      lastCheckedBy: 'Test team',
-      summary: 'Hướng dẫn giả lập để kiểm thử.',
-      when: { text: 'Khi chạy kiểm thử.' },
-      appliesTo: 'Tài khoản kiểm thử',
-      prepare: [],
-      steps: [{ text: 'Mở cổng thử.' }],
-      notes: [],
-      citations: [],
-      ifPortalDown: null,
-      related: [],
-      portals: [],
-    },
-  },
-});
+const guide = (id: string): Guide => ({ id, group: 'registration', texts: { vi: guideText({ title: title(id.slice(-2)) }) } });
 
 const originalUrl = window.location.href;
 const originalHistoryState = window.history.state;
@@ -58,19 +32,26 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('goes back to the same place in the guide list after reading a guide', async () => {
-  await page.viewport(360, 500);
+async function openApp(path: string): Promise<Router> {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-    const id = String(input).match(/\/guides\/([^/]+)$/)?.[1];
-    return Response.json(id ? guide(decodeURIComponent(id)) : { guides: LIST });
+    const url = String(input);
+    const id = url.match(/\/guides\/([^/]+)$/)?.[1];
+    if (id) return Response.json(guide(decodeURIComponent(id)));
+    return Response.json(url.endsWith('/health') ? HEALTHY : { guides: LIST });
   });
-  window.history.replaceState(null, '', '/guides');
-  router = createRouter({ history: createWebHistory(), routes, scrollBehavior });
+  window.history.replaceState(null, '', path);
+  router = createAppRouter();
   host = document.createElement('div');
   document.body.append(host);
-  app = createApp(App).use(createPinia()).use(router);
+  app = createOmniCourseApp(router);
   app.mount(host);
   await router.isReady();
+  return router;
+}
+
+it('goes back to the same place in the guide list after reading a guide', async () => {
+  await page.viewport(360, 500);
+  await openApp('/guides');
 
   const last = page.getByRole('link', { name: 'Hướng dẫn thử 20', exact: true });
   await expect.element(last).toBeInTheDocument();
@@ -92,18 +73,22 @@ it('goes back to the same place in the guide list after reading a guide', async 
   expect(document.title).toBe('School task guides · OmniCourse');
 });
 
+it('moves to the main content from the skip link', async () => {
+  await page.viewport(360, 500);
+  const router = await openApp('/guides');
+  const last = page.getByRole('link', { name: 'Hướng dẫn thử 20', exact: true });
+  await expect.element(last).toBeInTheDocument();
+  last.element().scrollIntoView();
+  const main = document.getElementById('main')!;
+  expect(main.offsetTop, 'the header sits above the main content').toBeGreaterThan(0);
+  expect(window.scrollY).toBeGreaterThan(main.offsetTop);
+
+  await router.push({ hash: '#main' });
+  await expect.poll(() => window.scrollY).toBe(main.offsetTop);
+});
+
 it('names the tab after the home page when the reader goes home from a guide', async () => {
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-    const id = String(input).match(/\/guides\/([^/]+)$/)?.[1];
-    if (id) return Response.json(guide(decodeURIComponent(id)));
-    return Response.json(String(input).endsWith('/health') ? { status: 'ok', database: 'up', postgresVersion: '18.6' } : { guides: LIST });
-  });
-  window.history.replaceState(null, '', '/guides/zz-guide-07');
-  router = createRouter({ history: createWebHistory(), routes, scrollBehavior });
-  host = document.createElement('div');
-  document.body.append(host);
-  app = createApp(App).use(createPinia()).use(router);
-  app.mount(host);
+  await openApp('/guides/zz-guide-07');
   await expect.element(page.getByRole('heading', { level: 1, name: 'Hướng dẫn thử 07' })).toBeVisible();
   expect(document.title).toBe('Hướng dẫn thử 07 · OmniCourse');
 
