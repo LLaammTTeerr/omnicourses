@@ -1,0 +1,1213 @@
+{
+  "openapi": "3.2.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "operationId": "UsersController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "AccountController_delete",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Signed out everywhere; purged after the grace period unless the user signs in again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionScheduledDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "Wrong password"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/auth/sign-up": {
+      "post": {
+        "operationId": "AuthController_signUp",
+        "parameters": [
+          {
+            "name": "user-agent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResultDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already registered"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/sign-in": {
+      "post": {
+        "operationId": "AuthController_signIn",
+        "parameters": [
+          {
+            "name": "user-agent",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signing in during the deletion grace period cancels the deletion (`accountRestored: true`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "New token; the one used for this request stops working.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResultDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/sign-out": {
+      "post": {
+        "operationId": "AuthController_signOut",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "The current session is revoked."
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/sessions": {
+      "get": {
+        "operationId": "AuthController_sessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionDto"
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/sessions/{id}": {
+      "delete": {
+        "operationId": "AuthController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The session is revoked."
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/users/me/export": {
+      "get": {
+        "operationId": "AccountController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Everything OmniCourse holds about the signed-in user, as a JSON download.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountExportDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/users/me/transcript": {
+      "get": {
+        "operationId": "TranscriptController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The saved transcript, oldest term first; no rows if none is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "operationId": "TranscriptController_replace",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The reviewed rows replace the whole saved transcript.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A row is invalid or incomplete; nothing is saved"
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/guides": {
+      "get": {
+        "operationId": "GuidesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Every published guide, in each language it is published in. No sign-in needed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuideListDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "guides"
+        ]
+      }
+    },
+    "/api/guides/{id}": {
+      "get": {
+        "operationId": "GuidesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One published guide. No sign-in needed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuideDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No published guide has this id. Drafts and withdrawn guides get the same answer."
+          }
+        },
+        "tags": [
+          "guides"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "OmniCourse API",
+    "description": "REST API of OmniCourse: degree audit, curriculum and roadmap planning.",
+    "version": "0.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "HealthDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ]
+          },
+          "postgresVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "18.6"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "postgresVersion"
+        ]
+      },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "student@example.com"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Nguyễn Văn A"
+          },
+          "emailVerifiedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "emailVerifiedAt",
+          "createdAt"
+        ]
+      },
+      "SignUpDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "student@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128,
+            "example": "correct horse battery"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Nguyễn Văn A",
+            "maxLength": 100
+          },
+          "acceptedTerms": {
+            "type": "boolean",
+            "description": "Consent to the terms and the privacy notice. Must be true.",
+            "example": true
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "displayName",
+          "acceptedTerms"
+        ]
+      },
+      "AuthResultDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Bearer token. Send as `Authorization: Bearer <token>`."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          },
+          "accountRestored": {
+            "type": "boolean",
+            "description": "True when this sign-in cancelled a pending account deletion; tell the student."
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt",
+          "user",
+          "accountRestored"
+        ]
+      },
+      "SignInDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "student@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "correct horse battery"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "SessionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userAgent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current": {
+            "type": "boolean",
+            "description": "True for the session making this request."
+          }
+        },
+        "required": [
+          "id",
+          "userAgent",
+          "createdAt",
+          "expiresAt",
+          "current"
+        ]
+      },
+      "AccountExportDto": {
+        "type": "object",
+        "properties": {
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The users row, without credentials."
+          },
+          "tables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "description": "Every row this user owns (user_id), by table name, without credentials."
+          }
+        },
+        "required": [
+          "exportedAt",
+          "user",
+          "tables"
+        ]
+      },
+      "DeleteAccountDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "The current password, asked again before deleting."
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "DeletionScheduledDto": {
+        "type": "object",
+        "properties": {
+          "purgeAfter": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Signing in before this time cancels the deletion."
+          }
+        },
+        "required": [
+          "purgeAfter"
+        ]
+      },
+      "TermDto": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "number",
+            "example": 2026,
+            "description": "First calendar year of the academic year: 2026 means 2026–2027."
+          },
+          "number": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "description": "1 and 2 are main terms, 3 is the summer term."
+          }
+        },
+        "required": [
+          "year",
+          "number"
+        ]
+      },
+      "TranscriptRowDto": {
+        "type": "object",
+        "properties": {
+          "courseCode": {
+            "type": "string",
+            "example": "CSC10001"
+          },
+          "courseName": {
+            "type": "string",
+            "example": "Introduction to Programming"
+          },
+          "credits": {
+            "type": "number",
+            "example": 4,
+            "minimum": 0,
+            "maximum": 30
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "graded",
+              "in_progress",
+              "exempt",
+              "pass",
+              "fail"
+            ],
+            "example": "graded",
+            "description": "graded: the grade is set. in_progress (UC-02 A3), exempt, pass, fail: no grade."
+          },
+          "grade": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 8.5,
+            "description": "10-point scale, one decimal. Required when result is graded; null otherwise."
+          },
+          "term": {
+            "$ref": "#/components/schemas/TermDto"
+          }
+        },
+        "required": [
+          "courseCode",
+          "courseName",
+          "credits",
+          "result",
+          "term"
+        ]
+      },
+      "TranscriptDto": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "description": "The whole transcript, at most 300 rows. A retaken course has one row per attempt.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranscriptRowDto"
+            }
+          }
+        },
+        "required": [
+          "rows"
+        ]
+      },
+      "GuidePortalDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Cổng thông tin sinh viên"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://portal.hcmus.edu.vn",
+            "description": "The direct link: the deepest page the school allows"
+          },
+          "account": {
+            "type": "string",
+            "example": "Tài khoản sinh viên",
+            "description": "The account that signs in to the portal"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "account"
+        ]
+      },
+      "GuideListTextDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Đăng ký học phần"
+          },
+          "keywords": {
+            "description": "Words the search matches besides the title",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "portal": {
+            "$ref": "#/components/schemas/GuidePortalDto"
+          },
+          "version": {
+            "type": "number",
+            "example": 1
+          },
+          "lastCheckedOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-10",
+            "description": "The day a team member last followed the guide on the real portal"
+          },
+          "outOfDate": {
+            "type": "boolean",
+            "description": "Last checked more than 6 months ago, counted in Vietnam dates (UC-10 A5)"
+          }
+        },
+        "required": [
+          "title",
+          "keywords",
+          "portal",
+          "version",
+          "lastCheckedOn",
+          "outOfDate"
+        ]
+      },
+      "GuideListTextsDto": {
+        "type": "object",
+        "properties": {
+          "vi": {
+            "$ref": "#/components/schemas/GuideListTextDto"
+          },
+          "en": {
+            "$ref": "#/components/schemas/GuideListTextDto"
+          }
+        }
+      },
+      "GuideListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "register-courses"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "accounts-and-portals",
+              "registration",
+              "timetable-and-exams",
+              "tuition-and-fees",
+              "records-and-certificates",
+              "scholarships",
+              "internship-and-thesis",
+              "graduation"
+            ]
+          },
+          "texts": {
+            "description": "Only the languages the guide is published in (UC-10 A8)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GuideListTextsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "group",
+          "texts"
+        ]
+      },
+      "GuideListDto": {
+        "type": "object",
+        "properties": {
+          "guides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuideListItemDto"
+            }
+          }
+        },
+        "required": [
+          "guides"
+        ]
+      },
+      "GuideLinkDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "example": "Thông báo của Phòng Đào tạo"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://pdt.hcmus.edu.vn",
+            "description": "An https address, or an OmniCourse path starting with /"
+          }
+        },
+        "required": [
+          "label",
+          "url"
+        ]
+      },
+      "GuideWhenDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "announcement": {
+            "description": "The school's announcement with this term's dates",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GuideLinkDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "GuideItemDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "link": {
+            "$ref": "#/components/schemas/GuideLinkDto"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "GuideNoteSourceDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "regulation",
+              "team"
+            ],
+            "description": "regulation: a clause, with document, clause and url. team: the team's experience."
+          },
+          "document": {
+            "type": "string"
+          },
+          "clause": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "GuideNoteDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GuideNoteSourceDto"
+          }
+        },
+        "required": [
+          "text",
+          "source"
+        ]
+      },
+      "GuideCitationDto": {
+        "type": "object",
+        "properties": {
+          "document": {
+            "type": "string"
+          },
+          "clause": {
+            "type": "string",
+            "example": "Điều 7"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "clause",
+          "url"
+        ]
+      },
+      "GuideBoardPortalDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Cổng thông tin sinh viên"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://portal.hcmus.edu.vn",
+            "description": "The direct link: the deepest page the school allows"
+          },
+          "account": {
+            "type": "string",
+            "example": "Tài khoản sinh viên",
+            "description": "The account that signs in to the portal"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "What the student does on this site"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "account",
+          "purpose"
+        ]
+      },
+      "GuideTextDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Đăng ký học phần"
+          },
+          "keywords": {
+            "description": "Words the search matches besides the title",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "portal": {
+            "$ref": "#/components/schemas/GuidePortalDto"
+          },
+          "version": {
+            "type": "number",
+            "example": 1
+          },
+          "lastCheckedOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-10",
+            "description": "The day a team member last followed the guide on the real portal"
+          },
+          "outOfDate": {
+            "type": "boolean",
+            "description": "Last checked more than 6 months ago, counted in Vietnam dates (UC-10 A5)"
+          },
+          "changeNote": {
+            "type": "string"
+          },
+          "lastCheckedBy": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "when": {
+            "$ref": "#/components/schemas/GuideWhenDto"
+          },
+          "appliesTo": {
+            "type": "string"
+          },
+          "prepare": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuideItemDto"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuideItemDto"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuideNoteDto"
+            }
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuideCitationDto"
+            }
+          },
+          "ifPortalDown": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "related": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuideLinkDto"
+            }
+          },
+          "portals": {
+            "description": "G01 only: every portal the other guides use",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuideBoardPortalDto"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "keywords",
+          "portal",
+          "version",
+          "lastCheckedOn",
+          "outOfDate",
+          "changeNote",
+          "lastCheckedBy",
+          "summary",
+          "when",
+          "appliesTo",
+          "prepare",
+          "steps",
+          "notes",
+          "citations",
+          "ifPortalDown",
+          "related",
+          "portals"
+        ]
+      },
+      "GuideTextsDto": {
+        "type": "object",
+        "properties": {
+          "vi": {
+            "$ref": "#/components/schemas/GuideTextDto"
+          },
+          "en": {
+            "$ref": "#/components/schemas/GuideTextDto"
+          }
+        }
+      },
+      "GuideDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "register-courses"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "accounts-and-portals",
+              "registration",
+              "timetable-and-exams",
+              "tuition-and-fees",
+              "records-and-certificates",
+              "scholarships",
+              "internship-and-thesis",
+              "graduation"
+            ]
+          },
+          "texts": {
+            "description": "Only the languages the guide is published in (UC-10 A8)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GuideTextsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "group",
+          "texts"
+        ]
+      }
+    }
+  }
+}

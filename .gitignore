@@ -22,6 +22,5 @@ report/shared/meta.tex
 .vscode/*
 !.vscode/extensions.json
 .idea/
-src/backend/openapi.json
 
 mise.local.toml
