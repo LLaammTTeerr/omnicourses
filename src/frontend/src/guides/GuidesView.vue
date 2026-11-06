@@ -18,7 +18,6 @@ const m = useMessages(GUIDE_MESSAGES);
 const { status, data: guides, reload } = useAsyncLoad('the guides', fetchGuides);
 const query = ref('');
 
-// The guides that match, under their task group in plan order, each in the screen language where written.
 const sections = computed(() => {
   const entries = (guides.value ?? [])
     .filter((guide) => matches(guide, query.value))
@@ -35,7 +34,7 @@ const sections = computed(() => {
 
 const groupsWithGuides = computed(() => GUIDE_GROUPS.filter((group) => guides.value?.some((g) => g.group === group)));
 
-// A2: clear the search and move to the group's heading.
+// UC-10 A2.
 async function browse(group: GuideGroup): Promise<void> {
   query.value = '';
   await nextTick();
