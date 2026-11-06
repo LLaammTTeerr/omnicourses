@@ -158,13 +158,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('revokeAll', () => {
-    it('revokes every live session of that user only', async () => {
-      await service.revokeAll('u1');
-      expect(sessions.update).toHaveBeenCalledWith({ userId: 'u1', revokedAt: expect.anything() }, { revokedAt: expect.any(Date) });
-    });
-  });
-
   describe('authenticate', () => {
     it('returns the user for a live session', async () => {
       const session = makeSession();

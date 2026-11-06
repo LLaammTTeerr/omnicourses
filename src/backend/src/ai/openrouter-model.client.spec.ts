@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
 import { Logger } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AiUnavailableError } from './ai-unavailable.error.js';
 import { toAiUnavailable, toSdkMessages, toStreamParams } from './openrouter-model.client.js';
 
 const apiError = (status: number, body?: Record<string, unknown>) =>

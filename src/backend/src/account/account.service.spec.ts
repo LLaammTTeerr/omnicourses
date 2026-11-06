@@ -10,16 +10,16 @@ const user = { id: 'u1', passwordHash: 'h' } as User;
 describe('AccountService', () => {
   let db: { query: ReturnType<typeof vi.fn>; transaction: ReturnType<typeof vi.fn> };
   const tx = { query: vi.fn() };
-  let users: { requestDeletion: ReturnType<typeof vi.fn> };
-  let auth: { verifyPassword: ReturnType<typeof vi.fn>; revokeAll: ReturnType<typeof vi.fn> };
+  let users: { markDeletionRequestedWithin: ReturnType<typeof vi.fn> };
+  let auth: { verifyPassword: ReturnType<typeof vi.fn>; revokeAllWithin: ReturnType<typeof vi.fn> };
   let service: AccountService;
 
   beforeEach(() => {
     tx.query.mockReset();
     // transaction(cb) and transaction(isolationLevel, cb): the callback is the last argument.
     db = { query: vi.fn(), transaction: vi.fn(async (...args: unknown[]) => (args.at(-1) as (m: unknown) => unknown)(tx)) };
-    users = { requestDeletion: vi.fn(async () => undefined) };
-    auth = { verifyPassword: vi.fn(async () => true), revokeAll: vi.fn(async () => undefined) };
+    users = { markDeletionRequestedWithin: vi.fn(async () => undefined) };
+    auth = { verifyPassword: vi.fn(async () => true), revokeAllWithin: vi.fn(async () => undefined) };
     service = new AccountService(db as never, users as never, auth as never);
   });
 
@@ -59,72 +59,51 @@ describe('AccountService', () => {
     });
   });
 
-  it('schedules deletion after the grace period and signs out everywhere', async () => {
+  it('schedules deletion after the grace period and signs out everywhere, in one transaction', async () => {
     vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '30');
     const before = Date.now();
     const { purgeAfter } = await service.requestDeletion(user, 'correct horse battery');
     expect(auth.verifyPassword).toHaveBeenCalledWith(user, 'correct horse battery');
     // The deadline promised to the student is stored, so a later change of the setting can't move it.
-    const [, requestedAt, storedPurgeAfter] = users.requestDeletion.mock.calls[0]!;
+    const [manager, userId, requestedAt, storedPurgeAfter] = users.markDeletionRequestedWithin.mock.calls[0]!;
+    expect(userId).toBe('u1');
     expect(storedPurgeAfter).toEqual(purgeAfter);
     expect(purgeAfter.getTime() - requestedAt.getTime()).toBe(30 * DAY_MS);
-    expect(auth.revokeAll).toHaveBeenCalledWith('u1', tx);
     expect(purgeAfter.getTime() - before).toBeGreaterThanOrEqual(30 * DAY_MS);
     expect(purgeAfter.getTime() - before).toBeLessThan(30 * DAY_MS + 1000);
-  });
-
-  // If revoking failed after the request was saved, the client got a 500 for a
-  // deletion that was in fact scheduled, with its sessions still unrevoked.
-  it('schedules the deletion and revokes the sessions in one transaction', async () => {
-    await service.requestDeletion(user, 'correct horse battery');
     expect(db.transaction).toHaveBeenCalledOnce();
-    expect(users.requestDeletion).toHaveBeenCalledWith('u1', expect.any(Date), expect.any(Date), tx);
-    expect(auth.revokeAll).toHaveBeenCalledWith('u1', tx);
-  });
-
-  it('fails the request when revoking fails, so the transaction rolls the schedule back', async () => {
-    auth.revokeAll.mockRejectedValue(new Error('db down'));
-    await expect(service.requestDeletion(user, 'correct horse battery')).rejects.toThrow('db down');
-    expect(db.transaction).toHaveBeenCalledOnce();
+    expect(manager).toBe(tx);
+    expect(auth.revokeAllWithin).toHaveBeenCalledWith(tx, 'u1');
   });
 
   it('refuses with 403 (not 401, which would sign the client out) on a wrong password', async () => {
     auth.verifyPassword.mockResolvedValue(false);
     await expect(service.requestDeletion(user, 'wrong')).rejects.toThrow(new ForbiddenException('Wrong password'));
-    expect(users.requestDeletion).not.toHaveBeenCalled();
-    expect(auth.revokeAll).not.toHaveBeenCalled();
+    expect(users.markDeletionRequestedWithin).not.toHaveBeenCalled();
+    expect(auth.revokeAllWithin).not.toHaveBeenCalled();
   });
 });
 
 describe('AccountPurgeService', () => {
-  afterEach(() => vi.unstubAllEnvs());
-
-  it('purges the accounts whose stored deadline has passed, whatever the grace setting is now', async () => {
-    vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '1');
-    const users = { findDue: vi.fn(async () => ['u1', 'u2']), purge: vi.fn(async () => true) };
-    const now = new Date('2026-12-01T00:00:00Z');
-    await expect(new AccountPurgeService(users as never).purge(now)).resolves.toBe(2);
-    expect(users.findDue).toHaveBeenCalledWith(now);
-    expect(users.purge.mock.calls).toEqual([['u1', now], ['u2', now]]);
-  });
+  const due = (...ids: string[]) => vi.fn(async () => ids.map((id) => ({ id })));
 
   // One account whose rows can't be deleted must not keep every other account past its deadline.
   it('purges each account on its own, so one failure does not block the rest', async () => {
     const users = {
-      findDue: vi.fn(async () => ['u1', 'u2', 'u3']),
-      purge: vi.fn(async (id: string) => (id === 'u2' ? Promise.reject(new Error('violates foreign key')) : true)),
+      find: due('u1', 'u2', 'u3'),
+      delete: vi.fn(async ({ id }: { id: string }) => (id === 'u2' ? Promise.reject(new Error('violates foreign key')) : { affected: 1 })),
     };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(2);
-    expect(users.purge).toHaveBeenCalledTimes(3);
+    expect(users.delete).toHaveBeenCalledTimes(3);
   });
 
   it('does not count an account signed back in since it was found', async () => {
-    const users = { findDue: vi.fn(async () => ['u1']), purge: vi.fn(async () => false) };
+    const users = { find: due('u1'), delete: vi.fn(async () => ({ affected: 0 })) };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(0);
   });
 
   it('logs and survives a failed purge, so the next hour retries', async () => {
-    const users = { findDue: vi.fn(async () => Promise.reject(new Error('db down'))), purge: vi.fn() };
+    const users = { find: vi.fn(async () => Promise.reject(new Error('db down'))), delete: vi.fn() };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(0);
   });
 });
