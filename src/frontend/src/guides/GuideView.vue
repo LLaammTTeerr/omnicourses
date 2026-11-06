@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
+import ExternalLink from '../components/ExternalLink.vue';
 import { formatDate, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import ContentLink from './ContentLink.vue';
@@ -70,9 +71,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
             <h2>{{ m.board }}</h2>
             <ul class="board" :lang="textLang">
               <li v-for="portal in t.portals" :key="portal.url">
-                <a :href="portal.url" target="_blank" rel="noopener noreferrer"
-                  ><strong>{{ portal.name }}</strong><span class="sr-only">{{ m.newTab }}</span></a
-                >
+                <ExternalLink :href="portal.url"><strong>{{ portal.name }}</strong></ExternalLink>
                 <span class="host">{{ host(portal.url) }}</span>
                 <span>{{ portal.purpose }}</span>
                 <span>{{ m.account }} {{ portal.account }}</span>
@@ -86,8 +85,8 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
               <p :lang="textLang">{{ note.text }}</p>
               <p class="source">
                 {{ m.source }}
-                <a v-if="note.source.kind === 'regulation'" :href="note.source.url" target="_blank" rel="noopener noreferrer" :lang="textLang"
-                  >{{ note.source.document }}, {{ note.source.clause }}<span class="sr-only">{{ m.newTab }}</span></a
+                <ExternalLink v-if="note.source.kind === 'regulation'" :href="note.source.url" :lang="textLang"
+                  >{{ note.source.document }}, {{ note.source.clause }}</ExternalLink
                 >
                 <template v-else>{{ m.teamExperience }}</template>
               </p>
@@ -102,9 +101,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
             <h2>{{ m.citations }}</h2>
             <ul :lang="textLang">
               <li v-for="(citation, i) in t.citations" :key="i">
-                <a :href="citation.url" target="_blank" rel="noopener noreferrer"
-                  >{{ citation.document }}, {{ citation.clause }}<span class="sr-only">{{ m.newTab }}</span></a
-                >
+                <ExternalLink :href="citation.url">{{ citation.document }}, {{ citation.clause }}</ExternalLink>
               </li>
             </ul>
           </section>
@@ -116,9 +113,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
             <p :lang="textLang"><strong>{{ t.portal.name }}</strong></p>
             <p class="host">{{ host(t.portal.url) }}</p>
             <p>{{ m.account }} <span :lang="textLang">{{ t.portal.account }}</span></p>
-            <a class="button" :href="t.portal.url" target="_blank" rel="noopener noreferrer" data-test="open-portal"
-              >{{ m.openPortal(t.portal.name) }}<span class="sr-only">{{ m.newTab }}</span></a
-            >
+            <ExternalLink class="button" :href="t.portal.url" data-test="open-portal">{{ m.openPortal(t.portal.name) }}</ExternalLink>
           </section>
 
           <section class="card">

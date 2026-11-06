@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
+import ExternalLink from '../components/ExternalLink.vue';
 import { formatDate, LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import { fetchGuides, GUIDE_GROUPS, type GuideGroup } from './api.js';
@@ -94,9 +95,7 @@ usePageTitle(() => m.value.listTitle);
                 <span v-else class="chip">{{ m.checkedOn(formatDate(entry.text.lastCheckedOn, locale.lang)) }}</span>
                 <span v-if="entry.fallback" class="chip">{{ m.onlyOtherLanguage }}</span>
               </p>
-              <a class="portal" :href="entry.text.portal.url" target="_blank" rel="noopener noreferrer">
-                {{ m.openPortal(entry.text.portal.name) }}<span class="sr-only">{{ m.newTab }}</span>
-              </a>
+              <ExternalLink class="portal" :href="entry.text.portal.url">{{ m.openPortal(entry.text.portal.name) }}</ExternalLink>
             </li>
           </ul>
         </section>
