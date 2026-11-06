@@ -1,11 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { OpenAPIObject } from '@nestjs/swagger';
 import request from 'supertest';
-import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/bootstrap.js';
+import { bootApp } from './support/app.js';
 
 // Every route needs a signed-in user unless it is listed here (ADR 0002, ADR 0010).
 // A new public route fails this test until it is added to the list, so the
@@ -50,14 +47,8 @@ describe('Public routes (e2e)', () => {
   const call = (method: Method, path: string) => http()[method](path.replace(/\{[^}]+\}/g, PATH_PARAM));
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    // The document of the whole app, as served at /api/docs-json. openapi.json is
-    // built from a hand-written module list, so it could miss a route.
-    const document: OpenAPIObject = configureApp(app);
-    await app.get(DataSource).runMigrations({ transaction: 'each' });
-    await app.init();
-
+    app = await bootApp();
+    const document: OpenAPIObject = (await http().get('/api/docs-json').expect(200)).body;
     routes = Object.entries(document.paths).flatMap(([path, item]) =>
       METHODS.filter((method) => item[method]).map((method) => ({ method, path, key: `${method.toUpperCase()} ${path}` })),
     );

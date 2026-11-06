@@ -52,6 +52,7 @@ describe('TranscriptDto validation', () => {
     ['term year out of range', { term: { year: 1999, number: 1 } }, 'min'],
     ['course code with punctuation', { courseCode: 'CSC-100' }, 'matches'],
     ['empty course name', { courseName: '   ' }, 'minLength'],
+    ['a course name that is not text', { courseName: 5 }, 'isString'],
     ['fractional credits', { credits: 3.5 }, 'isInt'],
   ])('rejects %s', async (_label, overrides, constraint) => {
     expect((await errorsFor([row(overrides)])).some((e) => e.endsWith(`:${constraint}`))).toBe(true);

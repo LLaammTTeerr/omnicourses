@@ -4,7 +4,6 @@ import { DataSource, Repository } from 'typeorm';
 import { Term } from '../terms/term.js';
 import { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
-import { TranscriptDto, TranscriptRowDto } from './transcript.dto.js';
 
 // The student's transcript (GLOSSARY): what the degree audit and the advisor read.
 // It records what the student saved and decides nothing: which attempt counts and
@@ -24,16 +23,16 @@ export class TranscriptService {
   }
 
   /** Replaces the whole transcript with the reviewed rows (UC-02 step 7, A5), all or nothing. */
-  async replace(userId: string, dto: TranscriptDto): Promise<TranscriptDto> {
+  async replace(userId: string, rows: TranscriptEntry[]): Promise<TranscriptEntry[]> {
     await this.db.transaction(async (tx) => {
       // Locks the user so two saves at once run one after the other instead of merging.
       // NO KEY UPDATE conflicts with itself but not with the KEY SHARE lock of a foreign-key
       // check, so inserts that reference the user (a sign-in's session) don't wait.
       await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
       await tx.delete(TranscriptRow, { userId });
-      if (dto.rows.length) await tx.insert(TranscriptRow, dto.rows.map((r) => toEntity(userId, r)));
+      await tx.insert(TranscriptRow, rows.map((r) => toEntity(userId, r)));
     });
-    return { rows: await this.rowsFor(userId) };
+    return this.rowsFor(userId);
   }
 }
 
@@ -48,7 +47,7 @@ function toEntry(row: TranscriptRow): TranscriptEntry {
   };
 }
 
-function toEntity(userId: string, row: TranscriptRowDto): Partial<TranscriptRow> {
+function toEntity(userId: string, row: TranscriptEntry): Partial<TranscriptRow> {
   return {
     userId,
     courseCode: row.courseCode,

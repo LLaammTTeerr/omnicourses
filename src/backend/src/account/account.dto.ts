@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, MaxLength, MinLength } from 'class-validator';
+import { PASSWORD_MAX_LENGTH } from '../auth/auth.dto.js';
 
 export class DeleteAccountDto {
   @ApiProperty({ description: 'The current password, asked again before deleting.' })
   @IsString()
   @MinLength(1)
-  @MaxLength(128)
+  @MaxLength(PASSWORD_MAX_LENGTH)
   password!: string;
 }
 

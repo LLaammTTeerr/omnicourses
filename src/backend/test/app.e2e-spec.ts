@@ -1,18 +1,13 @@
 import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/bootstrap.js';
+import { bootApp } from './support/app.js';
 
 describe('API against PostgreSQL (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    configureApp(app);
-    await app.init();
+    app = await bootApp();
   });
 
   afterAll(async () => {
@@ -29,5 +24,6 @@ describe('API against PostgreSQL (e2e)', () => {
     const res = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
     expect(res.body.openapi).toBe('3.2.0');
     expect(res.body.paths).toHaveProperty('/api/health');
+    expect(res.body.components.securitySchemes).toHaveProperty('bearer');
   });
 });

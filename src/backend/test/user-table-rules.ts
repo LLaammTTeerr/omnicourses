@@ -1,4 +1,4 @@
-import { Queryable } from '../src/account/account-export.js';
+import { IS_USER_ID_KEY, Queryable } from '../src/account/account-export.js';
 
 // Schema rules that keep account export and purge complete (AGENTS.md, ADR 0004),
 // read from the catalog so they cover every foreign key, composite or not.
@@ -63,13 +63,7 @@ export async function purgeBlockers(db: Queryable): Promise<string[]> {
 export async function ownedButNotExported(db: Queryable): Promise<string[]> {
   const rows: { name: string }[] = await db.query(`${OWNED}
     SELECT ${name('o.relid')} AS name FROM owned o
-    WHERE NOT EXISTS (
-      SELECT 1 FROM pg_constraint c
-      JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
-      WHERE c.contype = 'f' AND c.conrelid = o.relid AND c.confrelid = 'users'::regclass
-        AND cardinality(c.conkey) = 1 AND a.attname = 'user_id'
-        AND c.confkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = 'users'::regclass AND attname = 'id')]
-    )
+    WHERE NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conrelid = o.relid AND ${IS_USER_ID_KEY('c')})
     ORDER BY 1`);
   return rows.map((r) => r.name);
 }

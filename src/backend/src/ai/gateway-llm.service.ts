@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
+import { aiConfig } from '../config/env.js';
 import { AiCostGuard } from './ai-cost-guard.service.js';
-import { aiConfig } from './ai-config.js';
 import { AiUnavailableError } from './ai-unavailable.error.js';
 import type { ChatEvent, ChatMessage, ChatRequest, ChatTool, StructuredRequest } from './llm.service.js';
 import { LlmService } from './llm.service.js';

@@ -17,7 +17,7 @@ npm install                         # npm 11
 npm run db:up                       # PostgreSQL 18.6 via podman/docker compose
 npm run typecheck && npm test && npm run build
 npm run test:e2e -w src/backend     # needs the database (DATABASE_URL)
-npm run openapi -w src/backend      # after build; writes openapi.json
+npm run openapi -w src/backend      # after build; rewrites the committed openapi.json
 ```
 
 Run typecheck, tests and build before every push. Run e2e when you touch the backend.
@@ -25,19 +25,20 @@ Run typecheck, tests and build before every push. Run e2e when you touch the bac
 ## Conventions
 
 - **English everywhere**: code, comments, commits, PR descriptions, docs.
-- Backend: one Nest module per feature folder (`src/backend/src/<feature>/`), DTOs with `@ApiProperty` so the OpenAPI contract stays complete, relative imports with `.js` suffix (NodeNext). Schema changes via TypeORM migrations; `synchronize` stays `false`.
+- Backend: one Nest module per feature folder (`src/backend/src/<feature>/`), listed in `src/features.ts` (the app and the OpenAPI contract both load that list). The module registers its own entities with `TypeOrmModule.forFeature`. DTOs with `@ApiProperty` so the OpenAPI contract stays complete, relative imports with `.js` suffix (NodeNext). Schema changes via TypeORM migrations, each added to `src/database/migrations/index.ts`; `synchronize` stays `false`. Read settings through the getters in `src/config/env.ts`, not `process.env`.
+- `src/backend/openapi.json` is committed: after an API change, run `npm run build && npm run openapi -w src/backend` and commit the result, or a unit test fails.
 - Frontend: `<script setup lang="ts">` SFCs, Pinia for shared state, API calls in `src/frontend/src/api.ts` (or a sibling module), not inside components.
-- Tests sit next to the code as `*.spec.ts`; backend e2e in `src/backend/test/*.e2e-spec.ts`.
+- Tests sit next to the code as `*.spec.ts`; backend e2e in `src/backend/test/*.e2e-spec.ts`, booting the app and users through `src/backend/test/support/`.
 
 ## Authentication (how to use it in your module)
 
 Every route requires a signed-in user by default (global `AuthGuard`, see [ADR 0002](docs/analysis-and-design/adr/0002-authentication-and-sessions.md)). Do not add your own guard.
 
 ```ts
-import { CurrentUser, Public } from '../auth/auth.decorators.js';
+import { Authenticated, CurrentUser, Public } from '../auth/auth.decorators.js';
 import { User } from '../users/user.entity.js';
 
-@ApiBearerAuth()
+@Authenticated()                             // documents the bearer token and the 401
 @Controller('plans')
 export class PlansController {
   @Get()
