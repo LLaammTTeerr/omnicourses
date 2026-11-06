@@ -29,14 +29,6 @@ const other = computed(() => LANGUAGES[locale.lang].other);
 </template>
 
 <style>
-:root {
-  font-family: system-ui, sans-serif;
-  color: #1a1a1a;
-  background: #fafafa;
-}
-body {
-  margin: 0;
-}
 .bar {
   display: flex;
   flex-wrap: wrap;
@@ -52,9 +44,7 @@ body {
   flex: 1;
 }
 .bar .lang {
-  font: inherit;
   padding: 4px 10px;
-  cursor: pointer;
 }
 main {
   padding: 16px;
@@ -62,31 +52,16 @@ main {
 main:focus {
   outline: none;
 }
-:focus-visible {
-  outline: 3px solid #0b4f9c;
-  outline-offset: 2px;
-}
 .skip {
   position: absolute;
   left: 8px;
   top: -48px;
   padding: 8px 12px;
   background: #fff;
-  border: 1px solid #0b4f9c;
+  border: 1px solid var(--accent);
   z-index: 10;
 }
 .skip:focus {
   top: 8px;
-}
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
 }
 </style>
