@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { corsOrigin } from './config/env.js';
 
-export const API_PREFIX = 'api';
+const API_PREFIX = 'api';
 export const OPENAPI_VERSION = '3.2.0';
 
 // Shared by main.ts and the e2e tests, so the app under test is configured
