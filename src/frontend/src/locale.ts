@@ -20,7 +20,8 @@ export const LANGUAGES: Record<Lang, Language> = {
   en: { tag: 'en-GB', name: 'English', other: 'vi', date: { day: 'numeric', month: 'short', year: 'numeric' } },
 };
 
-export const LANG_STORAGE_KEY = 'omnicourse.lang';
+// Kept in students' browsers: a new key forgets every saved choice.
+const LANG_STORAGE_KEY = 'omnicourse.lang';
 
 function isLang(value: string | null): value is Lang {
   return value !== null && Object.hasOwn(LANGUAGES, value);

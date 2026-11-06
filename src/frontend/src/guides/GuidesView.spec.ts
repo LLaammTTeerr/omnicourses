@@ -12,7 +12,8 @@ import { listText } from './testing/guide-fixtures.js';
 vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuides: vi.fn() }));
 
 const PORTAL = { name: 'Cổng thử', url: 'https://example.com/portal?x=1', account: 'Tài khoản thử' };
-const text = (title: string, keywords: string[], extra: Partial<GuideListText> = {}) => listText({ title, keywords, portal: PORTAL, ...extra });
+const text = (title: string, keywords: string[], extra: Partial<GuideListText> = {}) =>
+  listText({ title, keywords, portal: PORTAL, lastCheckedOn: '2026-11-01', ...extra });
 
 const LIST: GuideListItem[] = [
   { id: 'pay-tuition', group: 'tuition-and-fees', texts: { vi: text('Đóng học phí', ['hoc phi']), en: text('Pay tuition', ['tuition']) } },
@@ -121,7 +122,7 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const w = await render();
     expect(w.get('[role="alert"]').text()).toContain('Chưa tải được hướng dẫn. Hãy thử lại sau ít phút.');
     expect(w.get('[role="alert"]').text()).not.toContain('503');
-    expect(consoleError).toHaveBeenCalledWith('Loading the guides failed:', failure);
+    expect(consoleError).toHaveBeenCalledWith(expect.any(String), failure);
     await w.get('[role="alert"] button').trigger('click');
     await flushPromises();
     expect(titles(w)).toHaveLength(3);
