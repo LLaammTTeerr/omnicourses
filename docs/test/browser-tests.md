@@ -24,7 +24,7 @@ npm run test:browser -w src/frontend -- --browser.headless=false
 
 ## Scope and evidence
 
-`src/frontend/src/App.browser.spec.ts` checks the mount point and module entry declared in `index.html`, boots the actual `main.ts`, and navigates the real router to `/`. It asserts that `App.vue` supplies the header and main region containing the home heading and successful API status. Only the health request is mocked; the app, Pinia and router are real. Cleanup unmounts the root, removes the container, destroys the router's history listeners, restores the original browser URL/state and restores the fetch spy.
+`src/frontend/src/App.browser.spec.ts` checks the mount point and module entry declared in `index.html`, then boots the actual `main.ts` at `/`. It asserts that `App.vue` supplies the header and main region containing the home heading and successful API status. Only the health request is mocked; the app, Pinia and router are real. Cleanup unmounts the root, removes the container, restores the original browser URL/state, clears storage and restores the fetch spy.
 
 `src/frontend/src/views/HomeView.browser.spec.ts` mounts the current home view and exercises its real `ApiStatus` component and `api.ts` health call. Only `fetch` responses are replaced with synthetic data. It checks the visible heading, loading-to-success transition, degraded database response, HTTP 503 and network failure. Each test unmounts the view, removes its container and restores the fetch spy.
 

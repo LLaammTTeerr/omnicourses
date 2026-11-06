@@ -27,8 +27,13 @@ describe('locale store', () => {
     expect(useLocale().lang).toBe('en');
   });
 
-  it('ignores a stored value that is not a language', () => {
-    localStorage.setItem('omnicourse.lang', 'fr');
+  it('reads the choice students saved before this version', () => {
+    localStorage.setItem('omnicourse.lang', 'en');
+    expect(useLocale().lang).toBe('en');
+  });
+
+  it.each(['fr', 'toString'])('ignores the stored value %j, which is not a language', (value) => {
+    localStorage.setItem('omnicourse.lang', value);
     expect(useLocale().lang).toBe('vi');
   });
 
@@ -52,7 +57,13 @@ describe('formatDate', () => {
     expect(formatDate('2026-11-13', 'en')).toBe('13 Nov 2026');
   });
 
-  it('keeps the calendar date whatever the time zone', () => {
-    expect(formatDate('2026-01-01', 'en')).toBe('1 Jan 2026');
+  it('keeps the calendar date in a time zone behind UTC', () => {
+    vi.stubEnv('TZ', 'America/Los_Angeles');
+    try {
+      expect(new Date('2026-01-01T00:00:00Z').getDate()).toBe(31);
+      expect(formatDate('2026-01-01', 'en')).toBe('1 Jan 2026');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

@@ -1,23 +1,13 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { fetchHealth, type Health } from '../api.js';
+import { fetchHealth } from '../api.js';
+import { useAsyncLoad } from '../async-load.js';
 
-const props = defineProps<{ load?: () => Promise<Health> }>();
-
-const health = ref<Health | null>(null);
-const error = ref<string | null>(null);
-
-onMounted(async () => {
-  try {
-    health.value = await (props.load ?? fetchHealth)();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  }
-});
+const { status, data: health, error } = useAsyncLoad('the API status', fetchHealth);
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 </script>
 
 <template>
-  <p v-if="error" data-test="status">API unreachable: {{ error }}</p>
+  <p v-if="status === 'failed'" data-test="status">API unreachable: {{ message(error) }}</p>
   <p v-else-if="health" data-test="status">
     API {{ health.status }} · database {{ health.database }}
     <span v-if="health.postgresVersion">(PostgreSQL {{ health.postgresVersion }})</span>

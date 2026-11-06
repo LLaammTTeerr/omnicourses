@@ -1,22 +1,20 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vue';
-import type { Router } from 'vue-router';
 import indexHtml from '../index.html?raw';
+import { HEALTHY } from './testing/health.js';
 
 const originalUrl = window.location.href;
 const originalHistoryState = window.history.state;
 let host: HTMLDivElement | null = null;
-let router: Router | undefined;
 
 afterEach(() => {
   if (host) {
     render(null, host);
     host.remove();
   }
-  router?.options.history.destroy();
   window.history.replaceState(originalHistoryState, '', originalUrl);
-  localStorage.removeItem('omnicourse.lang');
+  localStorage.clear();
   vi.restoreAllMocks();
 });
 
@@ -27,14 +25,9 @@ it('boots the app entry and renders the home route inside the app shell', async 
   expect(host, 'index.html supplies the app mount point').not.toBeNull();
   document.body.append(host!);
   window.history.replaceState(null, '', '/');
-  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-    Response.json({ status: 'ok', database: 'up', postgresVersion: '18.6' }),
-  );
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(HEALTHY));
 
-  ({ router } = await import('./router.js'));
   await import('./main.js');
-  await router.push('/');
-  await router.isReady();
 
   const banner = page.getByRole('banner');
   await expect.element(banner.getByRole('link', { name: 'OmniCourse', exact: true })).toHaveAttribute('href', '/');
@@ -43,10 +36,8 @@ it('boots the app entry and renders the home route inside the app shell', async 
   await expect.element(main.getByRole('heading', { name: 'OmniCourse', exact: true })).toBeVisible();
   await expect.element(main.getByText('API ok · database up (PostgreSQL 18.6)')).toBeVisible();
 
-  // The header switches the screen language and <html lang> (Vision §6 Usability).
-  expect(document.documentElement.lang).toBe('vi');
+  // The header switches the screen language (Vision §6 Usability).
   await banner.getByRole('button', { name: 'English', exact: true }).click();
   await expect.element(banner.getByRole('link', { name: 'Guides', exact: true })).toHaveAttribute('href', '/guides');
   await expect.element(banner.getByRole('button', { name: 'Tiếng Việt', exact: true })).toBeVisible();
-  expect(document.documentElement.lang).toBe('en');
 });

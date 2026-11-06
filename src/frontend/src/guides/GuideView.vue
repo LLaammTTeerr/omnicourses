@@ -1,57 +1,36 @@
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from 'vue';
+import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
-import ContentLink from '../guides/ContentLink.vue';
-import { GUIDE_MESSAGES } from '../guides/messages.js';
-import { pickText } from '../guides/pick-text.js';
-import { fetchGuide, GuideNotFoundError, type Guide } from '../guides-api.js';
+import { useAsyncLoad } from '../async-load.js';
+import ExternalLink from '../components/ExternalLink.vue';
 import { formatDate, useLocale, useMessages } from '../locale.js';
+import { usePageTitle } from '../page-title.js';
+import ContentLink from './ContentLink.vue';
+import { fetchGuide } from './api.js';
+import LoadFailed from './LoadFailed.vue';
+import { GUIDE_MESSAGES } from './messages.js';
+import { pickText } from './pick-text.js';
 
 // UC-10 steps 4–6, A5 and A8: one guide, signed in or not. B1 guides have no personal parts.
-const props = defineProps<{ id: string; load?: (id: string) => Promise<Guide> }>();
+const props = defineProps<{ id: string }>();
 const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
 
-const guide = ref<Guide | null>(null);
-const notFound = ref(false);
-// A failed load shows a plain sentence; the details go to the console.
-const failed = ref(false);
-
-async function load(): Promise<void> {
-  const id = props.id;
-  guide.value = null;
-  notFound.value = false;
-  failed.value = false;
-  try {
-    const loaded = await (props.load ?? fetchGuide)(id);
-    if (props.id === id) guide.value = loaded;
-  } catch (e) {
-    if (props.id !== id) return;
-    if (e instanceof GuideNotFoundError) notFound.value = true;
-    else {
-      console.error('Loading the guide failed:', e);
-      failed.value = true;
-    }
-  }
-}
-watch(() => props.id, load, { immediate: true });
+const { status, data: guide, reload } = useAsyncLoad('the guide', () => fetchGuide(props.id), () => props.id);
 
 const picked = computed(() => (guide.value ? pickText(guide.value.texts, locale.lang) : null));
 const t = computed(() => picked.value?.text ?? null);
 // The guide's language on its text when it differs from the screen's (A8).
 const textLang = computed(() => (picked.value?.fallback ? picked.value.lang : undefined));
-const missing = computed(() => notFound.value || (guide.value !== null && picked.value === null));
+const missing = computed(() => status.value === 'loaded' && picked.value === null);
 const date = (iso: string) => formatDate(iso, locale.lang);
 const host = (url: string) => new URL(url).host;
 
-watchEffect(() => {
-  const title = t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.value.guides);
-  document.title = `${title} · OmniCourse`;
-});
+usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.value.guides));
 </script>
 
 <template>
-  <section class="guide-page" :aria-busy="t === null && !missing && !failed">
+  <section class="guide-page" :aria-busy="status === 'loading'">
     <p class="crumbs">
       <RouterLink :to="{ name: 'guides' }">{{ m.guides }}</RouterLink>
       <template v-if="guide && t"> / {{ m.groups[guide.group] }}</template>
@@ -62,9 +41,7 @@ watchEffect(() => {
       <p>{{ m.notFoundText }}</p>
       <RouterLink :to="{ name: 'guides' }">{{ m.allGuides }}</RouterLink>
     </div>
-    <p v-else-if="failed" role="alert">
-      {{ m.loadFailed }} <button type="button" @click="load">{{ m.retry }}</button>
-    </p>
+    <LoadFailed v-else-if="status === 'failed'" @retry="reload" />
     <p v-else-if="t === null">{{ m.loading }}</p>
 
     <article v-else class="guide">
@@ -82,7 +59,7 @@ watchEffect(() => {
         <div class="column">
           <section class="card">
             <h2>{{ m.steps }}</h2>
-            <ol class="steps" :lang="textLang">
+            <ol class="steps" :lang="textLang" data-test="steps">
               <li v-for="(step, i) in t.steps" :key="i">
                 {{ step.text }}
                 <ContentLink v-if="step.link" :link="step.link" />
@@ -92,11 +69,9 @@ watchEffect(() => {
 
           <section v-if="t.portals.length" class="card">
             <h2>{{ m.board }}</h2>
-            <ul class="board" :lang="textLang">
+            <ul class="board" :lang="textLang" data-test="board">
               <li v-for="portal in t.portals" :key="portal.url">
-                <a :href="portal.url" target="_blank" rel="noopener noreferrer"
-                  ><strong>{{ portal.name }}</strong><span class="sr-only">{{ m.newTab }}</span></a
-                >
+                <ExternalLink :href="portal.url"><strong>{{ portal.name }}</strong></ExternalLink>
                 <span class="host">{{ host(portal.url) }}</span>
                 <span>{{ portal.purpose }}</span>
                 <span>{{ m.account }} {{ portal.account }}</span>
@@ -110,8 +85,8 @@ watchEffect(() => {
               <p :lang="textLang">{{ note.text }}</p>
               <p class="source">
                 {{ m.source }}
-                <a v-if="note.source.kind === 'regulation'" :href="note.source.url" target="_blank" rel="noopener noreferrer" :lang="textLang"
-                  >{{ note.source.document }}, {{ note.source.clause }}<span class="sr-only">{{ m.newTab }}</span></a
+                <ExternalLink v-if="note.source.kind === 'regulation'" :href="note.source.url" :lang="textLang"
+                  >{{ note.source.document }}, {{ note.source.clause }}</ExternalLink
                 >
                 <template v-else>{{ m.teamExperience }}</template>
               </p>
@@ -126,9 +101,7 @@ watchEffect(() => {
             <h2>{{ m.citations }}</h2>
             <ul :lang="textLang">
               <li v-for="(citation, i) in t.citations" :key="i">
-                <a :href="citation.url" target="_blank" rel="noopener noreferrer"
-                  >{{ citation.document }}, {{ citation.clause }}<span class="sr-only">{{ m.newTab }}</span></a
-                >
+                <ExternalLink :href="citation.url">{{ citation.document }}, {{ citation.clause }}</ExternalLink>
               </li>
             </ul>
           </section>
@@ -140,9 +113,7 @@ watchEffect(() => {
             <p :lang="textLang"><strong>{{ t.portal.name }}</strong></p>
             <p class="host">{{ host(t.portal.url) }}</p>
             <p>{{ m.account }} <span :lang="textLang">{{ t.portal.account }}</span></p>
-            <a class="button" :href="t.portal.url" target="_blank" rel="noopener noreferrer" data-test="open-portal"
-              >{{ m.openPortal(t.portal.name) }}<span class="sr-only">{{ m.newTab }}</span></a
-            >
+            <ExternalLink class="button" :href="t.portal.url" data-test="open-portal">{{ m.openPortal(t.portal.name) }}</ExternalLink>
           </section>
 
           <section class="card">
@@ -224,12 +195,6 @@ h3 {
   gap: 16px;
   min-width: 0;
 }
-.card {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 12px 16px;
-}
 .card > p,
 .note p {
   margin: 0 0 8px;
@@ -283,7 +248,7 @@ h3 {
   display: inline-block;
   padding: 8px 14px;
   border-radius: 6px;
-  background: #0b4f9c;
+  background: var(--accent);
   color: #fff;
   text-decoration: none;
   font-weight: 600;
@@ -300,10 +265,5 @@ p,
 li,
 h1 {
   overflow-wrap: anywhere;
-}
-button {
-  font: inherit;
-  padding: 6px 12px;
-  cursor: pointer;
 }
 </style>

@@ -1,5 +1,6 @@
-import { API_URL } from './api.js';
-import type { Lang } from './locale.js';
+import { getJson, HttpError } from '../api.js';
+
+// The guide DTOs of the API, written by hand; api.spec.ts checks them against src/backend/openapi.json.
 
 // Guides plan §2, in the order the guides page lists them.
 export const GUIDE_GROUPS = [
@@ -13,6 +14,12 @@ export const GUIDE_GROUPS = [
   'graduation',
 ] as const;
 export type GuideGroup = (typeof GUIDE_GROUPS)[number];
+
+// The languages a guide can be published in, which are not the screen languages (locale.ts).
+export const GUIDE_LANGS = ['vi', 'en'] as const;
+export type GuideLang = (typeof GUIDE_LANGS)[number];
+/** Only the languages the guide is published in (UC-10 A8). */
+export type GuideTexts<T> = Partial<Record<GuideLang, T>>;
 
 export interface GuideLink {
   label: string;
@@ -38,7 +45,12 @@ export interface GuideListText {
 export interface GuideListItem {
   id: string;
   group: GuideGroup;
-  texts: Partial<Record<Lang, GuideListText>>;
+  texts: GuideTexts<GuideListText>;
+}
+
+export interface GuideItem {
+  text: string;
+  link?: GuideLink;
 }
 
 export type GuideNoteSource = { kind: 'regulation'; document: string; clause: string; url: string } | { kind: 'team' };
@@ -49,8 +61,8 @@ export interface GuideText extends GuideListText {
   summary: string;
   when: { text: string; announcement?: GuideLink };
   appliesTo: string;
-  prepare: { text: string; link?: GuideLink }[];
-  steps: { text: string; link?: GuideLink }[];
+  prepare: GuideItem[];
+  steps: GuideItem[];
   notes: { text: string; source: GuideNoteSource }[];
   citations: { document: string; clause: string; url: string }[];
   ifPortalDown: string | null;
@@ -61,26 +73,20 @@ export interface GuideText extends GuideListText {
 export interface Guide {
   id: string;
   group: GuideGroup;
-  texts: Partial<Record<Lang, GuideText>>;
-}
-
-export class GuideNotFoundError extends Error {
-  constructor(id: string) {
-    super(`No guide ${id}`);
-    this.name = 'GuideNotFoundError';
-  }
+  texts: GuideTexts<GuideText>;
 }
 
 /** Every published guide (ADR 0010: no sign-in, so no token is sent). */
 export async function fetchGuides(): Promise<GuideListItem[]> {
-  const res = await fetch(`${API_URL}/guides`);
-  if (!res.ok) throw new Error(`GET /guides failed: ${res.status}`);
-  return ((await res.json()) as { guides: GuideListItem[] }).guides;
+  return (await getJson<{ guides: GuideListItem[] }>('/guides')).guides;
 }
 
-export async function fetchGuide(id: string): Promise<Guide> {
-  const res = await fetch(`${API_URL}/guides/${encodeURIComponent(id)}`);
-  if (res.status === 404) throw new GuideNotFoundError(id);
-  if (!res.ok) throw new Error(`GET /guides/${id} failed: ${res.status}`);
-  return (await res.json()) as Guide;
+/** The published guide with this id, or null when there is none. */
+export async function fetchGuide(id: string): Promise<Guide | null> {
+  try {
+    return await getJson<Guide>(`/guides/${encodeURIComponent(id)}`);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 404) return null;
+    throw e;
+  }
 }

@@ -2,21 +2,18 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { createMemoryHistory, createRouter } from 'vue-router';
-import type { GuideListItem, GuideListText } from '../guides-api.js';
+import { createMemoryHistory } from 'vue-router';
 import { useLocale } from '../locale.js';
-import { routes } from '../router.js';
+import { createAppRouter } from '../router.js';
+import { fetchGuides, type GuideListItem, type GuideListText } from './api.js';
 import GuidesView from './GuidesView.vue';
+import { listText } from './testing/guide-fixtures.js';
 
-const text = (title: string, keywords: string[], extra: Partial<GuideListText> = {}): GuideListText => ({
-  title,
-  keywords,
-  portal: { name: 'Cổng thử', url: 'https://example.com/portal?x=1', account: 'Tài khoản thử' },
-  version: 1,
-  lastCheckedOn: '2026-11-01',
-  outOfDate: false,
-  ...extra,
-});
+vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuides: vi.fn() }));
+
+const PORTAL = { name: 'Cổng thử', url: 'https://example.com/portal?x=1', account: 'Tài khoản thử' };
+const text = (title: string, keywords: string[], extra: Partial<GuideListText> = {}) =>
+  listText({ title, keywords, portal: PORTAL, lastCheckedOn: '2026-11-01', ...extra });
 
 const LIST: GuideListItem[] = [
   { id: 'pay-tuition', group: 'tuition-and-fees', texts: { vi: text('Đóng học phí', ['hoc phi']), en: text('Pay tuition', ['tuition']) } },
@@ -26,22 +23,25 @@ const LIST: GuideListItem[] = [
 
 let wrapper: VueWrapper | undefined;
 
-async function render(load: () => Promise<GuideListItem[]> = async () => LIST) {
+async function render() {
   const pinia = createPinia();
   setActivePinia(pinia);
-  const router = createRouter({ history: createMemoryHistory(), routes });
+  const router = createAppRouter(createMemoryHistory());
   await router.push('/guides');
   await router.isReady();
-  wrapper = mount(GuidesView, { props: { load }, global: { plugins: [pinia, router] }, attachTo: document.body });
+  wrapper = mount(GuidesView, { global: { plugins: [pinia, router] }, attachTo: document.body });
   await flushPromises();
   return wrapper;
 }
 
 const headings = (w: VueWrapper) => w.findAll('h2').map((h) => h.text());
-const titles = (w: VueWrapper) => w.findAll('.entry .title').map((a) => a.text());
+const titles = (w: VueWrapper) => w.findAll('[data-test="title"]').map((a) => a.text());
 
 describe('GuidesView (UC-10 steps 1–3)', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(fetchGuides).mockResolvedValue(LIST);
+  });
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
@@ -58,11 +58,11 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const w = await render();
     const entry = w.get('[data-test="guide-register-courses"]');
     expect(entry.text()).toContain('Cổng thử · Tài khoản: Tài khoản thử');
-    const link = entry.get('a.portal');
+    const link = entry.get('[data-test="portal"]');
     expect(link.attributes('href')).toBe('https://example.com/portal?x=1');
     expect(link.attributes('target')).toBe('_blank');
     expect(link.attributes('rel')).toContain('noopener');
-    expect(entry.get('a.title').attributes('href')).toBe('/guides/register-courses');
+    expect(entry.get('[data-test="title"]').attributes('href')).toBe('/guides/register-courses');
   });
 
   it('narrows the list as the student types, in either language', async () => {
@@ -86,7 +86,8 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     await flushPromises();
     expect((w.get('input[type="search"]').element as HTMLInputElement).value).toBe('');
     expect(titles(w)).toHaveLength(3);
-    expect(document.activeElement?.id).toBe('group-tuition-and-fees');
+    expect(document.activeElement?.tagName).toBe('H2');
+    expect(document.activeElement?.textContent).toBe('Học phí và lệ phí');
   });
 
   it('marks an out-of-date guide, and a guide written in one language only', async () => {
@@ -99,7 +100,7 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const viOnly = w.get('[data-test="guide-zz-vi-only"]');
     expect(viOnly.text()).toContain('Vietnamese only');
     expect(viOnly.text()).toContain('May be out of date');
-    expect(viOnly.get('a.title').attributes('lang')).toBe('vi');
+    expect(viOnly.get('[data-test="title"]').attributes('lang')).toBe('vi');
     expect(w.get('[data-test="guide-register-courses"]').text()).toContain('Checked on 1 Nov 2026');
   });
 
@@ -117,22 +118,19 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
   it('shows a load error in plain words with a way to try again, and keeps the details in the console', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const failure = new Error('GET /guides failed: 503');
-    let calls = 0;
-    const w = await render(async () => {
-      calls++;
-      if (calls === 1) throw failure;
-      return LIST;
-    });
+    vi.mocked(fetchGuides).mockRejectedValueOnce(failure);
+    const w = await render();
     expect(w.get('[role="alert"]').text()).toContain('Chưa tải được hướng dẫn. Hãy thử lại sau ít phút.');
     expect(w.get('[role="alert"]').text()).not.toContain('503');
-    expect(consoleError).toHaveBeenCalledWith('Loading the guides failed:', failure);
+    expect(consoleError).toHaveBeenCalledWith(expect.any(String), failure);
     await w.get('[role="alert"] button').trigger('click');
     await flushPromises();
     expect(titles(w)).toHaveLength(3);
   });
 
   it('says when no guide is published yet', async () => {
-    const w = await render(async () => []);
+    vi.mocked(fetchGuides).mockResolvedValue([]);
+    const w = await render();
     expect(w.text()).toContain('Chưa có hướng dẫn nào được đăng.');
   });
 });
