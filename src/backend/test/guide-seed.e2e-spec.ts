@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DataSource } from 'typeorm';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
 import type { GuideFile } from '../src/guides/guide-file.js';
-import { GuideSeedError, seedGuides } from '../src/guides/seed-guides.js';
+import { GuideSeedError, seed, seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { privateSchema } from './support/schema.js';
 
@@ -101,6 +101,14 @@ describe('Guide seed against PostgreSQL (e2e)', () => {
     expect(error).toBeInstanceOf(GuideSeedError);
     expect((error as GuideSeedError).problems).toEqual(['zz-fresh.en: steps needs at least one step']);
     expect(await texts()).toEqual([]);
+  });
+
+  it('db:seed loads the zz-* test guides only with --guide-fixtures, and withdraws them without it', async () => {
+    const zz = async () => (await texts()).filter((t) => t.key.startsWith('zz-'));
+    await seed(db, { guideFixtures: true });
+    expect((await zz()).filter((t) => t.status === 'published').map((t) => t.key)).toEqual(PUBLISHED);
+    await seed(db, { guideFixtures: false });
+    expect((await zz()).every((t) => t.status === 'withdrawn')).toBe(true);
   });
 
   it('loads the content files of the repository', async () => {
