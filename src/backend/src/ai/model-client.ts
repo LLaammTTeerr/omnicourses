@@ -37,13 +37,6 @@ export interface StreamRequest {
 }
 
 export abstract class ModelClient {
-  /**
-   * Throws AiUnavailableError('AI is not configured') when no request can be
-   * sent at all (no key). The gateway calls it before reserving a call, so a
-   * call that never reaches the model does not count toward the cap.
-   */
-  abstract assertConfigured(): void;
-
   /** One completion constrained to a JSON Schema. Throws AiUnavailableError. */
   abstract complete(request: {
     model: string;
