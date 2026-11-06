@@ -1,4 +1,5 @@
-import type { PrintedRow } from './seed-types.js';
+import { isCourseCode, normalizePrintedCode } from '../../common/course-code.js';
+import type { EquivalenceCourse, PrintedRow } from './seed-types.js';
 
 type Periods = number | null;
 type Extra = Partial<Pick<PrintedRow, 'counts_toward_total' | 'needs_check' | 'code_printed'>>;
@@ -31,3 +32,9 @@ export const bb = (code: string, name_vi: string, credits: number, lt: Periods, 
 /** A "TC" (tự chọn, elective) row. */
 export const tc = (code: string, name_vi: string, credits: number, lt: Periods, th: Periods, bt: Periods, dt: Periods, page: number, extra?: Extra) =>
   row('TC', code, name_vi, credits, lt, th, bt, dt, page, extra);
+
+/** One course of an equivalence list. Its code is normalised, or null when the printed code cannot meet the CHECK. */
+export function equivalenceCourse(code_printed: string, name: string, credits: number | null): EquivalenceCourse {
+  const code = normalizePrintedCode(code_printed);
+  return { code: isCourseCode(code) ? code : null, code_printed, name, credits };
+}

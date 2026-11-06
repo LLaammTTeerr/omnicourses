@@ -3,7 +3,8 @@ import { apcs2024TeachingPlan } from './apcs-2024.teaching-plan.js';
 import { apcs2025TeachingPlan } from './apcs-2025.teaching-plan.js';
 import { apcsEquivalences } from './apcs-equivalences.js';
 import { clcEquivalences } from './clc-equivalences.js';
-import { buildCatalog, CatalogConflictError, COURSE_CODE_PATTERN, normalizeCourseCode, rowToCourse } from './catalog.js';
+import { COURSE_CODE_PATTERN, normalizePrintedCode } from '../../common/course-code.js';
+import { buildCatalog, CatalogConflictError, rowToCourse, seedLabel } from './catalog.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './index.js';
 import type { CurriculumSeed, EquivalenceList, PrintedGroup, TeachingPlan } from './seed-types.js';
 
@@ -12,7 +13,6 @@ import type { CurriculumSeed, EquivalenceList, PrintedGroup, TeachingPlan } from
 // does not add up; the fix is the data or a recorded discrepancy, never a
 // weaker check.
 
-const label = (seed: CurriculumSeed) => `${seed.program.code} ${seed.curriculum.cohort_year}`;
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
 
 /**
@@ -50,13 +50,13 @@ function allStrings(value: unknown): string[] {
   return [];
 }
 
-describe.each(CURRICULUM_SEEDS.map((seed) => [label(seed), seed] as const))('%s curriculum seed', (_, seed) => {
+describe.each(CURRICULUM_SEEDS.map((seed) => [seedLabel(seed), seed] as const))('%s curriculum seed', (_, seed) => {
   const rows = seed.groups.flatMap((g) => g.rows);
 
   it('has codes that meet the courses.code CHECK and positive credits', () => {
     for (const row of rows) {
       expect(row.code, row.code).toMatch(COURSE_CODE_PATTERN);
-      expect(normalizeCourseCode(row.code_printed ?? row.code), row.code).toBe(row.code);
+      expect(normalizePrintedCode(row.code_printed ?? row.code), row.code).toBe(row.code);
       expect(row.credits, row.code).toBeGreaterThan(0);
       for (const time of [row.theory_periods, row.lab_periods, row.exercise_periods, row.project_periods]) {
         if (time !== null) expect(time, row.code).toBeGreaterThanOrEqual(0);
@@ -244,7 +244,7 @@ describe('shared course catalog', () => {
   it('describes each program the same way in every seed that names it', () => {
     for (const seed of CURRICULUM_SEEDS) {
       const first = CURRICULUM_SEEDS.find((s) => s.program.code === seed.program.code)!;
-      expect({ ...seed.program, page: 0 }, label(seed)).toEqual({ ...first.program, page: 0 });
+      expect({ ...seed.program, page: 0 }, seedLabel(seed)).toEqual({ ...first.program, page: 0 });
     }
   });
 });
@@ -275,26 +275,26 @@ describe('CLC 2025 specialisations', () => {
         const g = seed.groups.find((x) => x.name === name)!;
         return { name, kind: g.kind, total: g.credits_total, min: g.credits_total_min, codes: g.rows.map((r) => r.code) };
       });
-    for (const seed of clc) expect(shape(seed), label(seed)).toEqual(shape(clc[0]));
+    for (const seed of clc) expect(shape(seed), seedLabel(seed)).toEqual(shape(clc[0]));
   });
 
   it('puts every course of a table PDF in exactly one group', () => {
     for (const seed of clc) {
       const codes = seed.groups.flatMap((g) => g.rows.map((r) => r.code));
-      expect(new Set(codes).size, label(seed)).toBe(codes.length);
+      expect(new Set(codes).size, seedLabel(seed)).toBe(codes.length);
     }
   });
 });
 
-describe('normalizeCourseCode', () => {
+describe('normalizePrintedCode', () => {
   it('trims, upper-cases and drops spaces and dashes', () => {
-    expect(normalizeCourseCode(' cs 160 ')).toBe('CS160');
-    expect(normalizeCourseCode('CS-160')).toBe('CS160');
-    expect(normalizeCourseCode('baa00030')).toBe('BAA00030');
+    expect(normalizePrintedCode(' cs 160 ')).toBe('CS160');
+    expect(normalizePrintedCode('CS-160')).toBe('CS160');
+    expect(normalizePrintedCode('baa00030')).toBe('BAA00030');
   });
 
   it('leaves a dotted code invalid for the CHECK rather than guessing', () => {
-    expect(normalizeCourseCode('CTH001.2')).not.toMatch(COURSE_CODE_PATTERN);
+    expect(normalizePrintedCode('CTH001.2')).not.toMatch(COURSE_CODE_PATTERN);
   });
 });
 
@@ -330,9 +330,9 @@ describe.each(EQUIVALENCE_LISTS.map((list) => [list.source.file, list] as const)
         else expect(course.credits, course.code_printed).toBeGreaterThan(0);
         if (course.code === null) {
           expect(row.needs_check, course.code_printed).toBeTruthy();
-          expect(normalizeCourseCode(course.code_printed)).not.toMatch(COURSE_CODE_PATTERN);
+          expect(normalizePrintedCode(course.code_printed)).not.toMatch(COURSE_CODE_PATTERN);
         } else {
-          expect(course.code).toBe(normalizeCourseCode(course.code_printed));
+          expect(course.code).toBe(normalizePrintedCode(course.code_printed));
           expect(course.code).toMatch(COURSE_CODE_PATTERN);
         }
       }

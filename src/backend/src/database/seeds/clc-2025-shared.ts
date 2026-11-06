@@ -12,7 +12,7 @@ import type { CurriculumSeed, KnownDiscrepancy, Page, PrintedGroup, PrintedRow }
 // 2025 curriculum. The general-education and cơ sở ngành groups repeat in each;
 // their courses are shared through the catalog.
 
-export const CLC_2025_BOOKLET = { file: 'TCTA_CTDT_2025_Khoa-2025-all.pdf', pages: 73 };
+const CLC_2025_BOOKLET = { file: 'TCTA_CTDT_2025_Khoa-2025-all.pdf', pages: 73 };
 
 /** The rows of one specialisation's table PDF, bucketed by requirement group. */
 export interface ClcRows {
@@ -44,7 +44,7 @@ export interface ClcRows {
   free: PrintedRow[];
 }
 
-export interface ClcSpecialisation {
+interface ClcSpecialisation {
   /** Short key, as in the table PDF's file name. */
   key: string;
   /** The specialisation's name as printed, without "Chuyên ngành". */
