@@ -1,3 +1,4 @@
+// api.spec.ts checks this against HealthDto in src/backend/openapi.json.
 export interface Health {
   status: 'ok' | 'degraded';
   database: 'up' | 'down';

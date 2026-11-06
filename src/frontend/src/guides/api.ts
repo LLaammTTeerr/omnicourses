@@ -1,5 +1,7 @@
 import { getJson, HttpError } from '../api.js';
 
+// The guide DTOs of the API, written by hand; api.spec.ts checks them against src/backend/openapi.json.
+
 // Guides plan §2, in the order the guides page lists them.
 export const GUIDE_GROUPS = [
   'accounts-and-portals',
@@ -13,7 +15,7 @@ export const GUIDE_GROUPS = [
 ] as const;
 export type GuideGroup = (typeof GUIDE_GROUPS)[number];
 
-// The languages a guide can be published in. The screen languages are locale.ts's.
+// The languages a guide can be published in, which are not the screen languages (locale.ts).
 export const GUIDE_LANGS = ['vi', 'en'] as const;
 export type GuideLang = (typeof GUIDE_LANGS)[number];
 /** Only the languages the guide is published in (UC-10 A8). */
@@ -46,6 +48,11 @@ export interface GuideListItem {
   texts: GuideTexts<GuideListText>;
 }
 
+export interface GuideItem {
+  text: string;
+  link?: GuideLink;
+}
+
 export type GuideNoteSource = { kind: 'regulation'; document: string; clause: string; url: string } | { kind: 'team' };
 
 export interface GuideText extends GuideListText {
@@ -54,8 +61,8 @@ export interface GuideText extends GuideListText {
   summary: string;
   when: { text: string; announcement?: GuideLink };
   appliesTo: string;
-  prepare: { text: string; link?: GuideLink }[];
-  steps: { text: string; link?: GuideLink }[];
+  prepare: GuideItem[];
+  steps: GuideItem[];
   notes: { text: string; source: GuideNoteSource }[];
   citations: { document: string; clause: string; url: string }[];
   ifPortalDown: string | null;
