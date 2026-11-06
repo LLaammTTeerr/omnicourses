@@ -193,7 +193,7 @@ describe('AuthService', () => {
       const result = await service.refresh(session);
       await expect(service.authenticate('token')).resolves.toBeNull();
       await expect(service.authenticate(result.token)).resolves.toMatchObject({ session: { id: session.id } });
-      expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * DAY_MS);
+      expect(session.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * DAY_MS);
     });
   });
 

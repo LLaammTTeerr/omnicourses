@@ -24,5 +24,6 @@ describe('API against PostgreSQL (e2e)', () => {
     const res = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
     expect(res.body.openapi).toBe('3.2.0');
     expect(res.body.paths).toHaveProperty('/api/health');
+    expect(res.body.components.securitySchemes).toHaveProperty('bearer');
   });
 });

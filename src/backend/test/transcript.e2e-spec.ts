@@ -64,7 +64,11 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     const userId = await storedUser(app);
     const transcript = app.get(TranscriptService);
     const saved = await transcript.replace(userId, [first[0], { ...first[0], grade: 6 }, first[1]]);
-    expect(await transcript.rowsFor(userId)).toEqual(saved);
+    // Stores the tied row that reads first again, same id, after the other one on disk.
+    await db.query(
+      'WITH moved AS (DELETE FROM transcript_rows WHERE user_id = $1 AND grade = $2 RETURNING *) INSERT INTO transcript_rows SELECT * FROM moved',
+      [userId, saved[0].grade],
+    );
     expect(await transcript.rowsFor(userId)).toEqual(saved);
   });
 

@@ -11,8 +11,13 @@ import { configureApp } from '../../src/bootstrap.js';
 export async function bootApp(override: (builder: TestingModuleBuilder) => TestingModuleBuilder = (builder) => builder): Promise<INestApplication> {
   const moduleRef = await override(Test.createTestingModule({ imports: [AppModule] })).compile();
   const app = moduleRef.createNestApplication();
-  configureApp(app);
-  await app.get(DataSource).runMigrations({ transaction: 'each' });
-  await app.init();
-  return app;
+  try {
+    configureApp(app);
+    await app.get(DataSource).runMigrations({ transaction: 'each' });
+    await app.init();
+    return app;
+  } catch (error) {
+    await app.close();
+    throw error;
+  }
 }
