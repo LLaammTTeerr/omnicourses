@@ -59,7 +59,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
         <div class="column">
           <section class="card">
             <h2>{{ m.steps }}</h2>
-            <ol class="steps" :lang="textLang">
+            <ol class="steps" :lang="textLang" data-test="steps">
               <li v-for="(step, i) in t.steps" :key="i">
                 {{ step.text }}
                 <ContentLink v-if="step.link" :link="step.link" />
@@ -69,7 +69,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
 
           <section v-if="t.portals.length" class="card">
             <h2>{{ m.board }}</h2>
-            <ul class="board" :lang="textLang">
+            <ul class="board" :lang="textLang" data-test="board">
               <li v-for="portal in t.portals" :key="portal.url">
                 <ExternalLink :href="portal.url"><strong>{{ portal.name }}</strong></ExternalLink>
                 <span class="host">{{ host(portal.url) }}</span>

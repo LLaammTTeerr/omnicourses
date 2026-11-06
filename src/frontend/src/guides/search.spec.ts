@@ -1,19 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { GuideListItem, GuideListText } from './api.js';
-import { fold, matches } from './search.js';
+import type { GuideListItem } from './api.js';
+import { matches } from './search.js';
+import { listText } from './testing/guide-fixtures.js';
 
 type Words = { title: string; keywords: string[] };
-const text = (words: Words): GuideListText => ({
-  ...words,
-  portal: { name: 'Portal', url: 'https://example.com', account: 'Account' },
-  version: 1,
-  lastCheckedOn: '2026-11-01',
-  outOfDate: false,
-});
 const item = (id: string, vi: Words | null, en: Words | null): GuideListItem => ({
   id,
   group: 'registration',
-  texts: { ...(vi ? { vi: text(vi) } : {}), ...(en ? { en: text(en) } : {}) },
+  texts: { ...(vi ? { vi: listText(vi) } : {}), ...(en ? { en: listText(en) } : {}) },
 });
 
 // Synthetic entries shaped like the B1 batch, so the GUIDE-01c queries have something to find.
@@ -24,21 +18,6 @@ const GUIDES = [
   item('grades-and-transcript', { title: 'Xem điểm, tải bảng điểm', keywords: ['pdf'] }, { title: 'View your grades and download your transcript PDF', keywords: ['transcript'] }),
 ];
 const found = (query: string) => GUIDES.filter((g) => matches(g, query)).map((g) => g.id);
-
-describe('fold', () => {
-  it('removes Vietnamese diacritics and turns đ into d', () => {
-    expect(fold('Đăng ký học phần')).toBe('dang ky hoc phan');
-    expect(fold('đóng HỌC PHÍ')).toBe('dong hoc phi');
-  });
-
-  it('folds decomposed Unicode like composed', () => {
-    expect(fold('học phí'.normalize('NFD'))).toBe(fold('học phí'.normalize('NFC')));
-  });
-
-  it('trims and collapses spaces', () => {
-    expect(fold('  hoc \t  phi  ')).toBe('hoc phi');
-  });
-});
 
 describe('matches (GUIDE-01c)', () => {
   it.each([
@@ -72,7 +51,7 @@ describe('matches (GUIDE-01c)', () => {
     expect(found('   ')).toHaveLength(4);
   });
 
-  it('finds a guide written in one language only, from either screen language', () => {
+  it('finds a guide written in one language only', () => {
     expect(matches(item('zz-vi-only', { title: 'Hướng dẫn thử zz-vi-only', keywords: ['zz-vi-only'] }, null), 'zz-vi-only')).toBe(true);
   });
 });

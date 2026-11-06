@@ -28,7 +28,7 @@ afterEach(() => {
   router?.options.history.destroy();
   window.history.replaceState(originalHistoryState, '', originalUrl);
   window.scrollTo(0, 0);
-  localStorage.removeItem('omnicourse.lang');
+  localStorage.clear();
   vi.restoreAllMocks();
 });
 
