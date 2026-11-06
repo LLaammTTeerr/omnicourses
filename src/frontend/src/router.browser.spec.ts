@@ -91,3 +91,23 @@ it('goes back to the same place in the guide list after reading a guide', async 
   await expect.poll(() => window.scrollY).toBe(before);
   expect(document.title).toBe('School task guides · OmniCourse');
 });
+
+it('names the tab after the home page when the reader goes home from a guide', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const id = String(input).match(/\/guides\/([^/]+)$/)?.[1];
+    if (id) return Response.json(guide(decodeURIComponent(id)));
+    return Response.json(String(input).endsWith('/health') ? { status: 'ok', database: 'up', postgresVersion: '18.6' } : { guides: LIST });
+  });
+  window.history.replaceState(null, '', '/guides/zz-guide-07');
+  router = createRouter({ history: createWebHistory(), routes, scrollBehavior });
+  host = document.createElement('div');
+  document.body.append(host);
+  app = createApp(App).use(createPinia()).use(router);
+  app.mount(host);
+  await expect.element(page.getByRole('heading', { level: 1, name: 'Hướng dẫn thử 07' })).toBeVisible();
+  expect(document.title).toBe('Hướng dẫn thử 07 · OmniCourse');
+
+  await page.getByRole('banner').getByRole('link', { name: 'OmniCourse', exact: true }).click();
+  await expect.element(page.getByRole('heading', { level: 1, name: 'OmniCourse', exact: true })).toBeVisible();
+  expect(document.title).toBe('OmniCourse');
+});

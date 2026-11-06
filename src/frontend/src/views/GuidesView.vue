@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onActivated, onDeactivated, onMounted, ref, watchEffect } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { fetchGuides, GUIDE_GROUPS, type GuideGroup, type GuideListItem } from '../guides-api.js';
 import { GUIDE_MESSAGES } from '../guides/messages.js';
 import { pickText } from '../guides/pick-text.js';
 import { matches } from '../guides/search.js';
 import { formatDate, useLocale, useMessages } from '../locale.js';
+import { usePageTitle } from '../page-title.js';
 
 // UC-10 steps 1–3, A1 and A2: browse and search the guides, signed in or not.
 const props = defineProps<{ load?: () => Promise<GuideListItem[]> }>();
@@ -52,13 +53,7 @@ async function browse(group: GuideGroup): Promise<void> {
   document.getElementById(`group-${group}`)?.focus();
 }
 
-// App.vue keeps this page alive while a guide is open: only set the title while on screen.
-const onScreen = ref(true);
-onActivated(() => (onScreen.value = true));
-onDeactivated(() => (onScreen.value = false));
-watchEffect(() => {
-  if (onScreen.value) document.title = `${m.value.listTitle} · OmniCourse`;
-});
+usePageTitle(() => m.value.listTitle);
 </script>
 
 <template>
