@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GuideFile } from './guide-file.js';
-import { portalsMissingFromBoard, validateGuideFile, validateGuideSet } from './validate-guide.js';
+import { parseGuideSet, portalsMissingFromBoard, validateGuideFile, validateGuideSet } from './validate-guide.js';
 
 function published(overrides: Partial<GuideFile> = {}): GuideFile {
   return {
@@ -152,6 +152,13 @@ describe('validateGuideSet', () => {
     expect(validateGuideSet([vi, published({ portal: { ...vi.portal, url: 'https://other.example.com' } })])).toEqual([
       'zz-sample: the vi and en files must link the same portal.url',
     ]);
+  });
+});
+
+describe('parseGuideSet', () => {
+  it('types the set for loading only when every check passes, so a published file always has lastChecked', () => {
+    expect(parseGuideSet([published()])).toEqual({ files: [published()] });
+    expect(parseGuideSet([published({ lastChecked: null })])).toEqual({ problems: [expect.stringContaining('lastChecked is required')] });
   });
 });
 

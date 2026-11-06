@@ -7,6 +7,7 @@ import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { privateSchema } from './support/schema.js';
 
 const FIXTURES = guideFixtures('2026-11-13');
+const DRAFTS = FIXTURES.filter((f) => f.status === 'draft').length;
 const PUBLISHED = FIXTURES.filter((f) => f.status === 'published')
   .map(textKey)
   .sort();
@@ -37,9 +38,9 @@ describe('Guide seed against PostgreSQL (e2e)', () => {
   });
 
   it('loads the published texts only, then nothing more when run again', async () => {
-    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: 8, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: 2 });
+    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: PUBLISHED.length, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: DRAFTS });
     expect((await texts()).map((t) => t.key)).toEqual(PUBLISHED);
-    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: 0, updated: 0, rechecked: 0, unchanged: 8, withdrawn: 0, drafts: 2 });
+    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: 0, updated: 0, rechecked: 0, unchanged: PUBLISHED.length, withdrawn: 0, drafts: DRAFTS });
   });
 
   it('replaces a text when its version goes up', async () => {
@@ -52,7 +53,7 @@ describe('Guide seed against PostgreSQL (e2e)', () => {
   it('takes a new last-checked date without a new version', async () => {
     await seedGuides(db, FIXTURES);
     const report = await seedGuides(db, changing('zz-fresh', 'en', { lastChecked: { on: '2026-11-20', by: 'Another tester' } }));
-    expect(report).toMatchObject({ rechecked: 1, unchanged: 7 });
+    expect(report).toMatchObject({ rechecked: 1, unchanged: PUBLISHED.length - 1 });
     expect(await text('zz-fresh.en')).toMatchObject({ version: 1, checked: '2026-11-20' });
   });
 
