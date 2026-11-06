@@ -52,6 +52,8 @@ async function openApp(path: string): Promise<Router> {
 it('goes back to the same place in the guide list after reading a guide', async () => {
   await page.viewport(360, 500);
   await openApp('/guides');
+  const search = page.getByRole('searchbox');
+  await search.fill('Hướng dẫn');
 
   const last = page.getByRole('link', { name: 'Hướng dẫn thử 20', exact: true });
   await expect.element(last).toBeInTheDocument();
@@ -70,10 +72,11 @@ it('goes back to the same place in the guide list after reading a guide', async 
   window.history.back();
   await expect.element(last).toBeInTheDocument();
   await expect.poll(() => window.scrollY).toBe(before);
+  await expect.element(search).toHaveValue('Hướng dẫn');
   expect(document.title).toBe('School task guides · OmniCourse');
 });
 
-it('moves to the main content from the skip link', async () => {
+it('scrolls to the element a #main address names, as the skip link uses', async () => {
   await page.viewport(360, 500);
   const router = await openApp('/guides');
   const last = page.getByRole('link', { name: 'Hướng dẫn thử 20', exact: true });

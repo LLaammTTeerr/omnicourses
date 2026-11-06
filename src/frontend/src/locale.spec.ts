@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { formatDate, LANG_STORAGE_KEY, useLocale } from './locale.js';
+import { formatDate, useLocale } from './locale.js';
 
 describe('locale store', () => {
   beforeEach(() => {
@@ -27,8 +27,13 @@ describe('locale store', () => {
     expect(useLocale().lang).toBe('en');
   });
 
-  it('ignores a stored value that is not a language', () => {
-    localStorage.setItem(LANG_STORAGE_KEY, 'fr');
+  it('reads the choice students saved before this version', () => {
+    localStorage.setItem('omnicourse.lang', 'en');
+    expect(useLocale().lang).toBe('en');
+  });
+
+  it.each(['fr', 'toString'])('ignores the stored value %j, which is not a language', (value) => {
+    localStorage.setItem('omnicourse.lang', value);
     expect(useLocale().lang).toBe('vi');
   });
 

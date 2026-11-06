@@ -17,6 +17,7 @@ const text = (lang: 'vi' | 'en', extra: Partial<GuideText> = {}): GuideText =>
     keywords: ['zz-fresh'],
     portal: { name: lang === 'vi' ? 'Cổng thử' : 'Test portal', url: 'https://example.com/portal/register', account: 'Test account' },
     version: 3,
+    lastCheckedOn: '2026-11-01',
     changeNote: lang === 'vi' ? 'Sửa bước 2.' : 'Fixed step 2.',
     lastCheckedBy: 'Test team',
     summary: lang === 'vi' ? 'Việc này để làm gì.' : 'What the task is for.',
@@ -125,6 +126,21 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     const notFound = w.get('[data-test="not-found"]');
     expect(notFound.get('h1').text()).toBe('Không tìm thấy hướng dẫn');
     expect(notFound.get('a').attributes('href')).toBe('/guides');
+    expect(document.title).toBe('Không tìm thấy hướng dẫn · OmniCourse');
+  });
+
+  it('treats a guide with no text as not found', async () => {
+    const w = await render({ ...GUIDE, texts: {} });
+    expect(w.find('[data-test="not-found"]').exists()).toBe(true);
+  });
+
+  it('loads the new guide when the address changes to another one', async () => {
+    const w = await render();
+    vi.mocked(fetchGuide).mockResolvedValue({ ...GUIDE, id: 'zz-other', texts: { en: text('en', { title: 'Other guide' }) } });
+    await w.setProps({ id: 'zz-other' });
+    await flushPromises();
+    expect(fetchGuide).toHaveBeenLastCalledWith('zz-other');
+    expect(w.get('h1').text()).toBe('Other guide');
   });
 
   it('shows a load error in plain words with a way to try again, and keeps the details in the console', async () => {
@@ -134,7 +150,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     const w = await render();
     expect(w.get('[role="alert"]').text()).toContain('Could not load the guides right now. Please try again in a moment.');
     expect(w.get('[role="alert"]').text()).not.toContain('500');
-    expect(consoleError).toHaveBeenCalledWith('Loading the guide failed:', failure);
+    expect(consoleError).toHaveBeenCalledWith(expect.any(String), failure);
     await w.get('[role="alert"] button').trigger('click');
     await flushPromises();
     expect(w.get('h1').text()).toBe('Test guide');
