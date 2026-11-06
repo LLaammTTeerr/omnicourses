@@ -26,7 +26,7 @@ src/backend/                NestJS REST API (+ Swagger UI at /api/docs)
 src/frontend/               Vue 3 + Vite single-page app
 docs/management/            Project plan, weekly reports, meeting notes
 docs/requirements/          Vision document, use-case model and specifications
-docs/analysis-and-design/   Architecture, models, UI design, ADRs
+docs/analysis-and-design/   Architecture (C4), models, UI design, ADRs
 docs/test/                  Test plan, test cases, test reports
 report/                     Academic reports & assignment submissions (PA1 … PA5, weekly)
 ```
