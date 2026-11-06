@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import ApiStatus from '../components/ApiStatus.vue';
+import { usePageTitle } from '../page-title.js';
+
+usePageTitle();
 </script>
 
 <template>

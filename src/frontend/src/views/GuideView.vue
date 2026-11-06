@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import ContentLink from '../guides/ContentLink.vue';
 import { GUIDE_MESSAGES } from '../guides/messages.js';
 import { pickText } from '../guides/pick-text.js';
 import { fetchGuide, GuideNotFoundError, type Guide } from '../guides-api.js';
 import { formatDate, useLocale, useMessages } from '../locale.js';
+import { usePageTitle } from '../page-title.js';
 
 // UC-10 steps 4–6, A5 and A8: one guide, signed in or not. B1 guides have no personal parts.
 const props = defineProps<{ id: string; load?: (id: string) => Promise<Guide> }>();
@@ -44,10 +45,7 @@ const missing = computed(() => notFound.value || (guide.value !== null && picked
 const date = (iso: string) => formatDate(iso, locale.lang);
 const host = (url: string) => new URL(url).host;
 
-watchEffect(() => {
-  const title = t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.value.guides);
-  document.title = `${title} · OmniCourse`;
-});
+usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.value.guides));
 </script>
 
 <template>
