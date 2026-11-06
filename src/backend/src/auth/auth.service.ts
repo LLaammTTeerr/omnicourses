@@ -34,7 +34,7 @@ export class AuthService {
       displayName: dto.displayName,
       consentAt: new Date(),
     });
-    return this.issue(user, userAgent);
+    return { ...(await this.issue(user, userAgent)), accountRestored: false };
   }
 
   async signIn(dto: SignInDto, userAgent?: string): Promise<AuthResultDto> {
@@ -107,7 +107,7 @@ export class AuthService {
     if (!result.affected) throw new NotFoundException('Session not found');
   }
 
-  private async issue(user: User, userAgent?: string): Promise<AuthResultDto> {
+  private async issue(user: User, userAgent?: string): Promise<Omit<AuthResultDto, 'accountRestored'>> {
     const token = newToken();
     const expiresAt = new Date(Date.now() + sessionTtlDays() * DAY_MS);
     await this.sessions.save(
@@ -118,7 +118,7 @@ export class AuthService {
         expiresAt,
       }),
     );
-    return { token, expiresAt, user: UserDto.from(user), accountRestored: false };
+    return { token, expiresAt, user: UserDto.from(user) };
   }
 }
 

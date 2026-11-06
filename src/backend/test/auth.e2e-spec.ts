@@ -35,7 +35,7 @@ describe('Auth against PostgreSQL (e2e)', () => {
       .post('/api/auth/sign-up')
       .send({ email: email.toUpperCase(), password, displayName: 'Test Student', acceptedTerms: true })
       .expect(201);
-    expect(signUp.body.user).toMatchObject({ email, displayName: 'Test Student' });
+    expect(signUp.body).toMatchObject({ user: { email, displayName: 'Test Student' }, accountRestored: false });
     expect(signUp.body.user).not.toHaveProperty('passwordHash');
 
     await http().post('/api/auth/sign-up').send({ email, password, displayName: 'Again', acceptedTerms: true }).expect(409);
@@ -47,6 +47,7 @@ describe('Auth against PostgreSQL (e2e)', () => {
     expect(me.body.email).toBe(email);
 
     const refreshed = await http().post('/api/auth/refresh').set('Authorization', `Bearer ${first}`).expect(200);
+    expect(refreshed.body.accountRestored).toBe(false);
     const second = refreshed.body.token as string;
     await http().get('/api/users/me').set('Authorization', `Bearer ${first}`).expect(401);
     await http().get('/api/users/me').set('Authorization', `Bearer ${second}`).expect(200);
