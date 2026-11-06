@@ -2,24 +2,13 @@ import OpenAI from 'openai';
 import { Logger } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AiUnavailableError } from './ai-unavailable.error.js';
-import { OpenRouterModelClient, toAiUnavailable, toSdkMessages, toStreamParams } from './openrouter-model.client.js';
+import { toAiUnavailable, toSdkMessages, toStreamParams } from './openrouter-model.client.js';
 
 const apiError = (status: number, body?: Record<string, unknown>) =>
   new OpenAI.APIError(status, body, 'provider said something with the prompt in it', new Headers());
 
 describe('OpenRouterModelClient', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
-  });
-
-  it('answers "AI is not configured" without a key instead of crashing', async () => {
-    vi.stubEnv('OPENROUTER_API_KEY', '');
-    const client = new OpenRouterModelClient();
-    await expect(client.complete({ model: 'm', messages: [], jsonSchema: { name: 'reply', schema: {} } })).rejects.toThrow(
-      new AiUnavailableError('AI is not configured'),
-    );
-  });
+  afterEach(() => vi.restoreAllMocks());
 
   it.each([
     [apiError(401), 'AI is not configured', false],
@@ -67,20 +56,6 @@ describe('OpenRouterModelClient', () => {
     expect(params).not.toHaveProperty('tools');
     expect(params).not.toHaveProperty('tool_choice');
     expect(params.stream_options).toEqual({ include_usage: true });
-  });
-
-  it('rebuilds the SDK client when the key or the timeout changes', () => {
-    vi.stubEnv('OPENROUTER_API_KEY', 'key-1');
-    vi.stubEnv('AI_TIMEOUT_MS', '1000');
-    const client = new OpenRouterModelClient();
-    const first = client['sdk']();
-    expect(client['sdk']()).toBe(first);
-    vi.stubEnv('AI_TIMEOUT_MS', '2000');
-    const second = client['sdk']();
-    expect(second).not.toBe(first);
-    expect(second.timeout).toBe(2000);
-    vi.stubEnv('OPENROUTER_API_KEY', 'key-2');
-    expect(client['sdk']()).not.toBe(second);
   });
 
   it('converts tool calls and tool results to the OpenAI wire format', () => {

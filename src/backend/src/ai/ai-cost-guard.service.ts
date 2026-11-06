@@ -1,11 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
-import { aiConfig } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
-import { AiUnavailableError } from './ai-unavailable.error.js';
+import { AI_CONFIG, type AiConfig } from './ai-config.js';
+import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { AiUsage } from './ai-usage.entity.js';
 import type { AiCallContext } from './llm.service.js';
+import { logErrorName } from './log-error-name.js';
 
 export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
 
@@ -23,7 +24,10 @@ export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'late
 export class AiCostGuard {
   private readonly logger = new Logger(AiCostGuard.name);
 
-  constructor(@InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>) {}
+  constructor(
+    @InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>,
+    @Inject(AI_CONFIG) private readonly config: Pick<AiConfig, 'dailyCallsPerUser'>,
+  ) {}
 
   /**
    * Counts and inserts in one transaction under a per-user advisory lock, so
@@ -31,11 +35,11 @@ export class AiCostGuard {
    * Returns the row id for finish(). Throws AiUnavailableError at the cap.
    */
   async reserve(context: AiCallContext, model: string): Promise<string> {
-    const cap = aiConfig().dailyCallsPerUser;
+    const cap = this.config.dailyCallsPerUser;
     return this.usage.manager.transaction(async (em) => {
       await em.query('SELECT pg_advisory_xact_lock(hashtext($1))', [context.userId]);
       const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(Date.now() - DAY_MS)) } });
-      if (used >= cap) throw new AiUnavailableError('Daily AI limit reached, try again tomorrow');
+      if (used >= cap) throw new AiUnavailableError(AI_REASONS.dailyLimit);
       const { identifiers } = await em.insert(AiUsage, { userId: context.userId, feature: context.feature, model });
       return identifiers[0].id as string;
     });
@@ -50,8 +54,7 @@ export class AiCostGuard {
     try {
       await this.usage.update(id, result);
     } catch (error) {
-      // Name only: a driver error can quote the statement's parameters.
-      this.logger.warn(`Could not record AI usage: ${error instanceof Error ? error.name : typeof error}`);
+      logErrorName(this.logger, 'Could not record AI usage', error);
     }
   }
 
@@ -65,7 +68,7 @@ export class AiCostGuard {
     try {
       await this.usage.delete(id);
     } catch (error) {
-      this.logger.warn(`Could not release AI usage: ${error instanceof Error ? error.name : typeof error}`);
+      logErrorName(this.logger, 'Could not release AI usage', error);
     }
   }
 }
