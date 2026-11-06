@@ -13,6 +13,8 @@ import { signedInUser } from './support/users.js';
 // 12:00 on 13 November 2026 in Vietnam, the run day of GUIDE-01j.
 const NOW = new Date('2026-11-13T05:00:00Z');
 const TODAY = vietnamDate(NOW);
+const FIXTURES = guideFixtures(TODAY);
+const fixture = (id: string, lang: string) => FIXTURES.find((f) => f.id === id && f.lang === lang)!;
 
 interface Listed {
   id: string;
@@ -34,7 +36,7 @@ describe('Guides API (e2e)', () => {
   beforeAll(async () => {
     app = await bootApp((builder) => builder.overrideProvider(GUIDES_CLOCK).useValue(() => NOW));
     db = app.get(DataSource);
-    await seedGuides(db, [...GUIDE_FILES, ...guideFixtures(TODAY)]);
+    await seedGuides(db, [...GUIDE_FILES, ...FIXTURES]);
   });
 
   afterAll(async () => {
@@ -45,23 +47,18 @@ describe('Guides API (e2e)', () => {
 
   it('lists the published guides without a token, in each language they are written in', async () => {
     const guides = await listed();
-    expect(guides.map((g) => g.id)).toEqual(['zz-en-only', 'zz-fresh', 'zz-six-months', 'zz-six-months-and-a-day', 'zz-vi-only']);
+    const published = [...new Set(FIXTURES.filter((f) => f.status === 'published').map((f) => f.id))].sort();
+    expect(guides.map((g) => g.id)).toEqual(published);
     const byId = Object.fromEntries(guides.map((g) => [g.id, g]));
     expect(Object.keys(byId['zz-vi-only'].texts)).toEqual(['vi']);
     expect(Object.keys(byId['zz-en-only'].texts)).toEqual(['en']);
+    const fresh = fixture('zz-fresh', 'en');
     expect(byId['zz-fresh']).toEqual({
       id: 'zz-fresh',
-      group: 'registration',
+      group: fresh.group,
       texts: {
-        en: {
-          title: 'Test guide zz-fresh',
-          keywords: ['zz-fresh'],
-          portal: { name: 'Test portal', url: 'https://example.com/portal/zz-fresh', account: 'Test account' },
-          version: 1,
-          lastCheckedOn: TODAY,
-          outOfDate: false,
-        },
-        vi: expect.objectContaining({ title: 'Hướng dẫn thử zz-fresh' }),
+        en: { title: fresh.title, keywords: fresh.keywords, portal: fresh.portal, version: fresh.version, lastCheckedOn: TODAY, outOfDate: false },
+        vi: expect.objectContaining({ title: fixture('zz-fresh', 'vi').title }),
       },
     });
   });
@@ -74,23 +71,25 @@ describe('Guides API (e2e)', () => {
   it('returns a whole guide in both languages', async () => {
     const { body } = await http().get('/api/guides/zz-fresh').expect(200);
     expect(Object.keys(body.texts).sort()).toEqual(['en', 'vi']);
+    const fresh = fixture('zz-fresh', 'en');
+    // The fixture leaves citations, related and portals out: the API sends them as [].
     expect(body.texts.en).toEqual({
-      title: 'Test guide zz-fresh',
-      keywords: ['zz-fresh'],
-      portal: { name: 'Test portal', url: 'https://example.com/portal/zz-fresh', account: 'Test account' },
-      version: 1,
+      title: fresh.title,
+      keywords: fresh.keywords,
+      portal: fresh.portal,
+      version: fresh.version,
       lastCheckedOn: TODAY,
       outOfDate: false,
-      changeNote: 'Test version.',
-      lastCheckedBy: 'Test team',
-      summary: 'A synthetic guide for testing, not a real school task.',
-      when: { text: 'When the tests run.', announcement: { label: 'Test announcement', url: 'https://example.com/announcement' } },
-      appliesTo: 'Test accounts',
-      prepare: [{ text: 'A test account.' }],
-      steps: [{ text: 'Open the test portal.' }, { text: 'Press “Gửi” (Send).' }],
-      notes: [{ text: 'A test note.', source: { kind: 'team' } }],
+      changeNote: fresh.changeNote,
+      lastCheckedBy: fresh.lastChecked!.by,
+      summary: fresh.summary,
+      when: fresh.when,
+      appliesTo: fresh.appliesTo,
+      prepare: fresh.prepare,
+      steps: fresh.steps,
+      notes: fresh.notes,
       citations: [],
-      ifPortalDown: 'Try again later.',
+      ifPortalDown: fresh.ifPortalDown,
       related: [],
       portals: [],
     });

@@ -186,16 +186,22 @@ describe.each(CURRICULUM_SEEDS.map((seed) => [seedLabel(seed), seed] as const))(
     }
   });
 
-  it.skipIf(seed.appendix.length === 0)('matches every row to its appendix row, with the same Vietnamese name', () => {
-    const appendixCodes = seed.appendix.map((a) => a.code);
-    expect(new Set(appendixCodes).size).toBe(appendixCodes.length);
-    expect([...new Set(rows.map((r) => r.code))].sort()).toEqual([...appendixCodes].sort());
-    for (const row of rows) {
-      const appendix = seed.appendix.find((a) => a.code === row.code)!;
-      expect(appendix.name_vi, row.code).toBe(row.name_vi);
-      expect(rowToCourse(seed, row).name_en, row.code).toBe(appendix.name_en);
-    }
-  });
+  if (seed.appendix.length === 0) {
+    it('leaves every English name empty, having no appendix', () => {
+      for (const row of rows) expect(rowToCourse(seed, row).name_en, row.code).toBeNull();
+    });
+  } else {
+    it('matches every row to its appendix row, with the same Vietnamese name', () => {
+      const appendixCodes = seed.appendix.map((a) => a.code);
+      expect(new Set(appendixCodes).size).toBe(appendixCodes.length);
+      expect([...new Set(rows.map((r) => r.code))].sort()).toEqual([...appendixCodes].sort());
+      for (const row of rows) {
+        const appendix = seed.appendix.find((a) => a.code === row.code)!;
+        expect(appendix.name_vi, row.code).toBe(row.name_vi);
+        expect(rowToCourse(seed, row).name_en, row.code).toBe(appendix.name_en);
+      }
+    });
+  }
 });
 
 describe('shared course catalog', () => {
@@ -231,14 +237,14 @@ describe('shared course catalog', () => {
     changed.groups[0].rows[0].credits += 1;
     const code = changed.groups[0].rows[0].code;
 
-    expect(() => buildCatalog([first, changed], [])).toThrow(CatalogConflictError);
+    let error: unknown;
     try {
       buildCatalog([first, changed], []);
-    } catch (error) {
-      expect((error as CatalogConflictError).conflicts).toContainEqual(
-        expect.objectContaining({ code, field: 'credits' }),
-      );
+    } catch (thrown) {
+      error = thrown;
     }
+    expect(error).toBeInstanceOf(CatalogConflictError);
+    expect((error as CatalogConflictError).conflicts).toContainEqual(expect.objectContaining({ code, field: 'credits' }));
   });
 
   it('describes each program the same way in every seed that names it', () => {

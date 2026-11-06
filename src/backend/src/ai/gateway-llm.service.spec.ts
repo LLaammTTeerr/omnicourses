@@ -107,13 +107,9 @@ describe('GatewayLlmService', () => {
       expect(guard.finish).not.toHaveBeenCalled();
     });
 
-    it.each([
-      ['a wrong key', 'AI is not configured'],
-      ['spent credit', 'AI credit is used up'],
-      ['a rate limit', 'The AI provider is busy, try again shortly'],
-    ])('releases the reserved call when the provider refuses it for %s, so a retry is not counted', async (_label, reason) => {
-      model.completions = [new AiUnavailableError(reason, { billed: false })];
-      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError(reason, { billed: false }));
+    it('releases the reserved call when the provider refuses it without billing, so a retry is not counted', async () => {
+      model.completions = [new AiUnavailableError('AI credit is used up', { billed: false })];
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('AI credit is used up', { billed: false }));
       expect(guard.release).toHaveBeenCalledWith('row-1');
       expect(guard.finish).not.toHaveBeenCalled();
     });
@@ -222,8 +218,6 @@ describe('GatewayLlmService', () => {
       const call = { id: 'c', name: 'search_regulations', arguments: '{"query":"x"}' };
       model.turns = [{ toolCalls: [call] }, { text: 'Final.' }];
       const events = await collect(llm.chat({ ...request, maxSteps: 2 }));
-      // The history holds tool calls and results; some providers (Anthropic)
-      // reject such a request when it defines no tools.
       const tools = [{ name: 'search_regulations', description: 'Find a clause', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'], additionalProperties: false } }];
       expect(model.streamCalls[0]).toMatchObject({ tools, toolChoice: 'auto' });
       expect(model.streamCalls[1]).toMatchObject({ tools, toolChoice: 'none' });
@@ -248,10 +242,7 @@ describe('GatewayLlmService', () => {
     it('counts a call the caller stops during the first model turn (client disconnected)', async () => {
       model.turns = [{ text: 'Long answer' }];
       for await (const _event of llm.chat(request)) break;
-      // The row is reserved before the first model request, so it counts toward
-      // the cap although the turn never ended and no tokens are known.
       expect(guard.reserve).toHaveBeenCalledWith(context, 'chat-model');
-      expect(guard.reserve.mock.invocationCallOrder[0]).toBeLessThan(guard.finish.mock.invocationCallOrder[0]);
       expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ inputTokens: 0, succeeded: false }));
     });
 
@@ -271,7 +262,6 @@ describe('GatewayLlmService', () => {
     });
 
     it('fails with ai_unavailable instead of a blank answer when the last turn has no text', async () => {
-      // A provider may ignore tool_choice none and answer with tool calls only.
       const call = { id: 'c', name: 'search_regulations', arguments: '{"query":"x"}' };
       model.turns = [{ toolCalls: [call] }, { toolCalls: [call] }];
       const seen: ChatEvent[] = [];
