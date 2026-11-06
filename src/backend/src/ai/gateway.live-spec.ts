@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { aiConfig, loadEnvFiles } from '../config/env.js';
-import type { AiCostGuard } from './ai-cost-guard.service.js';
-import { GatewayLlmService } from './gateway-llm.service.js';
+import { type CostGuard, GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent } from './llm.service.js';
 import { OpenRouterModelClient } from './openrouter-model.client.js';
 
@@ -10,7 +9,7 @@ import { OpenRouterModelClient } from './openrouter-model.client.js';
 // Synthetic input only (AGENTS.md hard rule 3).
 loadEnvFiles();
 
-const noGuard: Pick<AiCostGuard, 'reserve' | 'finish'> = { reserve: async () => 'live', finish: async () => undefined };
+const noGuard: CostGuard = { reserve: async () => 'live', finish: async () => undefined, release: async () => undefined };
 const context = { userId: '00000000-0000-4000-8000-000000000000', feature: 'live-test' };
 
 const config = aiConfig();
@@ -30,7 +29,7 @@ describe.skipIf(!configured)('AI gateway against OpenRouter (live)', () => {
   let llm: GatewayLlmService;
 
   beforeAll(() => {
-    llm = new GatewayLlmService(new OpenRouterModelClient(config.apiKey ?? '', config.timeoutMs), noGuard as never, config);
+    llm = new GatewayLlmService(new OpenRouterModelClient(config.apiKey ?? '', config.timeoutMs), noGuard, config);
   });
 
   it('structured() returns a reply that passes the schema', async () => {
