@@ -1,4 +1,4 @@
-import { AiUnavailableError } from '../ai-unavailable.error.js';
+import { AI_REASONS, AiUnavailableError } from '../ai-unavailable.error.js';
 import type { ChatEvent, ChatRequest, StructuredRequest } from '../llm.service.js';
 import { LlmService } from '../llm.service.js';
 
@@ -31,7 +31,7 @@ export class FakeLlmService extends LlmService {
     return this;
   }
 
-  failWith(reason = 'AI is unavailable'): this {
+  failWith(reason: string = AI_REASONS.unavailable): this {
     this.failure = reason;
     return this;
   }
@@ -42,7 +42,7 @@ export class FakeLlmService extends LlmService {
     if (!this.structuredReplies.length) throw new Error('FakeLlmService: no scripted structured reply left');
     // Like the real gateway: a reply that misses the schema is a 503, not a ZodError.
     const parsed = request.schema.safeParse(this.structuredReplies.shift());
-    if (!parsed.success) throw new AiUnavailableError('The model returned an unusable reply');
+    if (!parsed.success) throw new AiUnavailableError(AI_REASONS.unusableReply);
     return parsed.data;
   }
 

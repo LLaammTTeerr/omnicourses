@@ -1,11 +1,7 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { User } from '../users/user.entity.js';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 // One row per structured() or chat() call. Never the prompt or the reply
 // (AGENTS.md hard rule 3): only who, which feature, which model, how much.
-// Inserted just before the first model request (AiCostGuard.reserve), so the
-// tokens, latency and outcome start at their defaults and are filled in when
-// the call ends.
 @Entity({ name: 'ai_usage' })
 @Index('ix_ai_usage_user_id_created_at', ['userId', 'createdAt'])
 export class AiUsage {
@@ -14,10 +10,6 @@ export class AiUsage {
 
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user!: User;
 
   @Column({ type: 'varchar', length: 50 })
   feature!: string;

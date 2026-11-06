@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, addMonths, isOutOfDate, vietnamDate } from './out-of-date.js';
+import { addMonths, isOutOfDate, vietnamDate } from './out-of-date.js';
 
 describe('vietnamDate', () => {
   it('is the UTC date during the Vietnamese day', () => {
@@ -22,13 +22,6 @@ describe('addMonths', () => {
   it('moves a day the target month lacks to its last day', () => {
     expect(addMonths('2026-08-31', 6)).toBe('2027-02-28');
     expect(addMonths('2027-08-31', 6)).toBe('2028-02-29');
-  });
-});
-
-describe('addDays', () => {
-  it('adds days across months', () => {
-    expect(addDays('2026-05-13', -1)).toBe('2026-05-12');
-    expect(addDays('2026-02-28', 1)).toBe('2026-03-01');
   });
 });
 

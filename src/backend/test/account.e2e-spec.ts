@@ -2,9 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { findUserTables, isSecretColumn } from '../src/account/account-export.js';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
+import { AuthService } from '../src/auth/auth.service.js';
 import { DAY_MS } from '../src/config/time.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser, storedUser } from './support/users.js';
@@ -152,6 +153,18 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
 
   it('refuses deletion with a wrong password with 403, keeping the session', async () => {
     await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password: 'wrong password!' }).expect(403);
+    await http().get('/api/users/me').set('Authorization', `Bearer ${token}`).expect(200);
+  });
+
+  it('schedules nothing when revoking the sessions fails, so the 500 is not a hidden deletion', async () => {
+    const revoke = vi.spyOn(app.get(AuthService), 'revokeAllWithin').mockRejectedValueOnce(new Error('db down'));
+    try {
+      await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(500);
+    } finally {
+      revoke.mockRestore();
+    }
+    const [row] = await db.query('SELECT deletion_requested_at, purge_after FROM users WHERE id = $1', [userId]);
+    expect(row).toEqual({ deletion_requested_at: null, purge_after: null });
     await http().get('/api/users/me').set('Authorization', `Bearer ${token}`).expect(200);
   });
 

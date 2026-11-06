@@ -7,14 +7,8 @@
 // that may replace it (HP02) and, for some rows, a course or set that may
 // replace HP02 (HP03). Names are as printed, including the PDF's spelling.
 
-import type { EquivalenceCourse, EquivalenceList } from './seed-types.js';
-
-const c = (code_printed: string, name: string, credits: number, code: string | null = code_printed): EquivalenceCourse => ({
-  code,
-  code_printed,
-  name,
-  credits,
-});
+import { equivalenceCourse as c } from './rows.js';
+import type { EquivalenceList } from './seed-types.js';
 
 const DOTTED_CODE =
   'The printed code contains a dot, which neither the normalisation rule (trim, upper-case, strip spaces and ' +
@@ -49,7 +43,7 @@ export const apcsEquivalences: EquivalenceList = {
     {
       stt: [2],
       page: 1,
-      hp01: [c('CTH001.2', 'Những nguyên lý cơ bản của chủ nghĩa Mác – LeNin', 4, null)],
+      hp01: [c('CTH001.2', 'Những nguyên lý cơ bản của chủ nghĩa Mác – LeNin', 4)],
       hp02: [c('BAA00001', 'Những nguyên lý cơ bản của chủ nghĩa Mác – Lênin', 5)],
       hp03: marxSet,
       needs_check: `${DOTTED_CODE} ${MARX_SET}`,
@@ -64,7 +58,7 @@ export const apcsEquivalences: EquivalenceList = {
     {
       stt: [4],
       page: 1,
-      hp01: [c('CTH002.2', 'Đường lối cách mạng của Đảng Cộng sản Việt Nam', 4, null)],
+      hp01: [c('CTH002.2', 'Đường lối cách mạng của Đảng Cộng sản Việt Nam', 4)],
       hp02: [c('BAA00002', 'Đường lối cách mạng của Đảng Cộng sản Việt Nam', 3)],
       hp03: [c('BAA00104', 'Lịch sử Đảng Cộng sản Việt Nam', 2)],
       needs_check: DOTTED_CODE,
@@ -86,7 +80,7 @@ export const apcsEquivalences: EquivalenceList = {
     {
       stt: [7],
       page: 1,
-      hp01: [c('TC001.2', 'Giáo dục thể chất 1', 2, null)],
+      hp01: [c('TC001.2', 'Giáo dục thể chất 1', 2)],
       hp02: [c('BAA00021', 'Thể dục 1', 2)],
       hp03: [],
       needs_check: DOTTED_CODE,
@@ -94,7 +88,7 @@ export const apcsEquivalences: EquivalenceList = {
     {
       stt: [8],
       page: 1,
-      hp01: [c('TC002.2', 'Giáo dục thể chất 2', 2, null)],
+      hp01: [c('TC002.2', 'Giáo dục thể chất 2', 2)],
       hp02: [c('BAA00022', 'Thể dục 2', 2)],
       hp03: [],
       needs_check: DOTTED_CODE,
@@ -102,7 +96,7 @@ export const apcsEquivalences: EquivalenceList = {
     {
       stt: [9],
       page: 1,
-      hp01: [c('TC001.21', 'Giáo dục thể chất (Khiêu vũ)', 3, null)],
+      hp01: [c('TC001.21', 'Giáo dục thể chất (Khiêu vũ)', 3)],
       hp02: [c('BAA00021', 'Thể dục 1', 2)],
       hp03: [],
       needs_check: DOTTED_CODE,

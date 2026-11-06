@@ -14,7 +14,7 @@ export type Page = number;
  * `requirement_group_courses` row.
  */
 export interface PrintedRow {
-  /** loaded: courses.code / requirement_group_courses.course_code. Normalised (normalizeCourseCode). */
+  /** loaded: courses.code / requirement_group_courses.course_code. Normalised (normalizePrintedCode). */
   code: string;
   /** The code exactly as printed, only when it differs from `code`. */
   code_printed?: string;

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { guideFixtures } from './testing/guide-fixtures.js';
-import { contentHash, contentOf } from './seed-guides.js';
+import { contentHash, seed } from './seed-guides.js';
 
 const file = guideFixtures('2026-11-13')[0];
 
@@ -20,8 +20,15 @@ describe('contentHash', () => {
   });
 });
 
-describe('contentOf', () => {
-  it('leaves out the fields stored in their own columns', () => {
-    expect(Object.keys(contentOf(file)).sort()).toEqual(['appliesTo', 'ifPortalDown', 'notes', 'portal', 'prepare', 'steps', 'summary', 'when']);
+describe('seed', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('refuses the test guides on a production server, where they would be published, before touching the database', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const dataSource = { transaction: vi.fn() };
+    await expect(seed(dataSource as never, { guideFixtures: true })).rejects.toThrow(
+      '--guide-fixtures publishes the zz-* test guides: refused when NODE_ENV is production',
+    );
+    expect(dataSource.transaction).not.toHaveBeenCalled();
   });
 });

@@ -1,8 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
-import type { GuideContent, GuideLang } from './guide-file.js';
+import type { GuideContent, GuideLang, GuideStatus } from './guide-file.js';
 import { Guide } from './guide.entity.js';
 
-// One guide in one language, as the seed loaded it from its content file.
 @Entity({ name: 'guide_texts' })
 export class GuideText {
   @PrimaryColumn({ name: 'guide_id', type: 'varchar', length: 64 })
@@ -16,7 +15,8 @@ export class GuideText {
   guide!: Guide;
 
   @Column({ type: 'varchar', length: 20 })
-  status!: 'published' | 'withdrawn';
+  /** A draft is never loaded. */
+  status!: Exclude<GuideStatus, 'draft'>;
 
   @Column({ type: 'integer' })
   version!: number;

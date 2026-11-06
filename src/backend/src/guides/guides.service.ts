@@ -1,10 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { GUIDE_ID, GUIDE_ID_MAX } from './guide-file.js';
 import { GuideText } from './guide-text.entity.js';
 import { GuideDto, GuideListItemDto, GuideListTextDto, GuideTextDto } from './guides.dto.js';
 import { isOutOfDate, vietnamDate } from './out-of-date.js';
-import { GUIDE_ID, GUIDE_ID_MAX } from './validate-guide.js';
 
 /** The clock the out-of-date rule reads; tests replace it. */
 export const GUIDES_CLOCK = Symbol('GUIDES_CLOCK');

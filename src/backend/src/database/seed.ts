@@ -1,29 +1,23 @@
 import { DataSource } from 'typeorm';
-import { databaseUrl, loadEnvFiles, nodeEnv } from '../config/env.js';
-import { vietnamDate } from '../guides/out-of-date.js';
-import { guideSeedFiles } from '../guides/seed-files.js';
-import { seedGuides } from '../guides/seed-guides.js';
+import { databaseUrl, loadEnvFiles } from '../config/env.js';
+import { seed as seedGuides } from '../guides/seed-guides.js';
 import { dataSourceOptions } from './data-source.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './seeds/index.js';
-import { seedCurricula } from './seeds/seed-curricula.js';
+import { seed as seedCurricula } from './seeds/index.js';
 
-// `npm run db:seed -w src/backend`: loads the curriculum seed data (insert-only) and the
-// guides (ADR 0010), each in one transaction. Run db:migrate first.
+// `npm run db:seed -w src/backend`: each feature loads its seed data in its own
+// transaction (ADR 0010 for the guides). Run db:migrate first.
 // `npm run db:seed -w src/backend -- --guide-fixtures` also loads the synthetic zz-* guides
 // of TC-B1-GUIDE-01: test databases only, refused when NODE_ENV is production. Seeding again
 // without the flag withdraws them.
 async function main(): Promise<void> {
   loadEnvFiles();
-  const fixtures = process.argv.includes('--guide-fixtures');
-  // Checked before connecting, so a refused run changes nothing.
-  const files = guideSeedFiles({ fixtures, nodeEnv: nodeEnv(), today: vietnamDate(new Date()) });
+  const options = { guideFixtures: process.argv.includes('--guide-fixtures') };
   const dataSource = new DataSource({ ...dataSourceOptions, url: databaseUrl() });
   await dataSource.initialize();
   try {
-    const report = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
-    console.log(`Inserted: ${JSON.stringify(report.inserted)}`);
-    console.log(`Already present, left untouched: ${JSON.stringify(report.skipped)}`);
-    console.log(`Guides${fixtures ? ', with the test-only zz-* guides' : ''}: ${JSON.stringify(await seedGuides(dataSource, files))}`);
+    // Guides first, so a refused --guide-fixtures run stops before anything is written.
+    for (const line of await seedGuides(dataSource, options)) console.log(line);
+    for (const line of await seedCurricula(dataSource)) console.log(line);
   } finally {
     await dataSource.destroy();
   }
