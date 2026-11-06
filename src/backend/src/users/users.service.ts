@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, IsNull, LessThanOrEqual, MoreThan, Or, Repository } from 'typeorm';
+import { EntityManager, IsNull, MoreThan, Or, Repository } from 'typeorm';
 import { User } from './user.entity.js';
 
 @Injectable()
@@ -15,9 +15,8 @@ export class UsersService {
     return this.users.save(this.users.create({ ...fields, email: fields.email.toLowerCase() }));
   }
 
-  /** `tx` lets the caller schedule the deletion in the same transaction as other writes. */
-  async requestDeletion(userId: string, at: Date, purgeAfter: Date, tx?: EntityManager): Promise<void> {
-    await (tx?.getRepository(User) ?? this.users).update(userId, { deletionRequestedAt: at, purgeAfter });
+  async markDeletionRequestedWithin(manager: EntityManager, userId: string, at: Date, purgeAfter: Date): Promise<void> {
+    await manager.update(User, userId, { deletionRequestedAt: at, purgeAfter });
   }
 
   /**
@@ -31,21 +30,6 @@ export class UsersService {
       { id: userId, purgeAfter: Or(IsNull(), MoreThan(now)) },
       { deletionRequestedAt: null, purgeAfter: null },
     );
-    return (result.affected ?? 0) > 0;
-  }
-
-  /** Ids of the accounts whose stored deadline has passed. */
-  async findDue(now: Date): Promise<string[]> {
-    const due = await this.users.find({ select: { id: true }, where: { purgeAfter: LessThanOrEqual(now) } });
-    return due.map((u) => u.id);
-  }
-
-  /**
-   * Deletes one account if its deadline has still passed (a sign-in since
-   * findDue cancels it); every user table cascades. False if nothing matched.
-   */
-  async purge(userId: string, now: Date): Promise<boolean> {
-    const result = await this.users.delete({ id: userId, purgeAfter: LessThanOrEqual(now) });
     return (result.affected ?? 0) > 0;
   }
 }

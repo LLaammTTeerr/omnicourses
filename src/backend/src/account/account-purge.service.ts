@@ -1,5 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
-import { UsersService } from '../users/users.service.js';
+import { InjectRepository } from '@nestjs/typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
+import { User } from '../users/user.entity.js';
 
 const HOUR_MS = 3_600_000;
 
@@ -13,7 +15,7 @@ export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDest
   private readonly logger = new Logger(AccountPurgeService.name);
   private timer?: NodeJS.Timeout;
 
-  constructor(private readonly users: UsersService) {}
+  constructor(@InjectRepository(User) private readonly users: Repository<User>) {}
 
   onApplicationBootstrap(): void {
     void this.purge();
@@ -26,18 +28,20 @@ export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDest
   }
 
   async purge(now = new Date()): Promise<number> {
-    let due: string[];
+    let due: User[];
     try {
-      due = await this.users.findDue(now);
+      due = await this.users.find({ select: { id: true }, where: { purgeAfter: LessThanOrEqual(now) } });
     } catch (error) {
       this.logger.error(`Account purge failed: ${message(error)}`);
       return 0;
     }
     let purged = 0;
     let failed = 0;
-    for (const id of due) {
+    for (const { id } of due) {
       try {
-        if (await this.users.purge(id, now)) purged++;
+        // Still due: a sign-in since the find cancels the deletion. Every user table cascades.
+        const { affected } = await this.users.delete({ id, purgeAfter: LessThanOrEqual(now) });
+        if (affected) purged++;
       } catch (error) {
         failed++;
         this.logger.error(`Could not purge an account: ${message(error)}`);
