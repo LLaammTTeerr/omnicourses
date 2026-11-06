@@ -17,7 +17,6 @@ export class HttpError extends Error {
   }
 }
 
-/** GETs an API path such as /health and parses the JSON body. */
 export async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`);
   if (!res.ok) throw new HttpError(path, res.status);
