@@ -1,6 +1,8 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from 'vitest/browser';
+import { API_URL } from '../api.js';
+import { HEALTHY } from '../testing/health.js';
 import HomeView from './HomeView.vue';
 
 describe('HomeView in a real browser', () => {
@@ -27,11 +29,9 @@ describe('HomeView in a real browser', () => {
 
     await expect.element(page.getByRole('heading', { name: 'OmniCourse', exact: true })).toBeVisible();
     await expect.element(page.getByText('Checking API…')).toBeVisible();
-    expect(fetch).toHaveBeenCalledWith(
-      `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'}/health`,
-    );
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/health`);
 
-    respond(Response.json({ status: 'ok', database: 'up', postgresVersion: '18.6' }));
+    respond(Response.json(HEALTHY));
 
     await expect.element(page.getByText('API ok · database up (PostgreSQL 18.6)')).toBeVisible();
     await expect.element(page.getByText('Checking API…')).not.toBeInTheDocument();

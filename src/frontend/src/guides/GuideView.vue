@@ -5,17 +5,17 @@ import { useAsyncLoad } from '../async-load.js';
 import { formatDate, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import ContentLink from './ContentLink.vue';
-import { fetchGuide, type Guide } from './api.js';
+import { fetchGuide } from './api.js';
 import LoadFailed from './LoadFailed.vue';
 import { GUIDE_MESSAGES } from './messages.js';
 import { pickText } from './pick-text.js';
 
 // UC-10 steps 4–6, A5 and A8: one guide, signed in or not. B1 guides have no personal parts.
-const props = defineProps<{ id: string; load?: (id: string) => Promise<Guide | null> }>();
+const props = defineProps<{ id: string }>();
 const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
 
-const { status, data: guide, reload } = useAsyncLoad('the guide', () => (props.load ?? fetchGuide)(props.id), () => props.id);
+const { status, data: guide, reload } = useAsyncLoad('the guide', () => fetchGuide(props.id), () => props.id);
 
 const picked = computed(() => (guide.value ? pickText(guide.value.texts, locale.lang) : null));
 const t = computed(() => picked.value?.text ?? null);
