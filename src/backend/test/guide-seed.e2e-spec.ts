@@ -1,22 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DataSource } from 'typeorm';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
-import type { GuideFile } from '../src/guides/guide-file.js';
+import { type GuideFile, textKey } from '../src/guides/guide-file.js';
 import { GuideSeedError, seed, seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { privateSchema } from './support/schema.js';
 
 const FIXTURES = guideFixtures('2026-11-13');
-const PUBLISHED = [
-  'zz-en-only.en',
-  'zz-fresh.en',
-  'zz-fresh.vi',
-  'zz-six-months-and-a-day.en',
-  'zz-six-months-and-a-day.vi',
-  'zz-six-months.en',
-  'zz-six-months.vi',
-  'zz-vi-only.vi',
-];
+const PUBLISHED = FIXTURES.filter((f) => f.status === 'published')
+  .map(textKey)
+  .sort();
 
 /** The fixtures with one text changed. */
 const changing = (id: string, lang: string, change: Partial<GuideFile>) =>
