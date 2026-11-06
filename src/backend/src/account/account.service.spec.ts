@@ -46,8 +46,8 @@ describe('AccountService', () => {
 
   describe('export', () => {
     const userTables = [
-      { table: 'sessions', column: 'user_id', qualifiedTable: 'public.sessions', quotedColumn: 'user_id', onDelete: 'c', columns: ['id', 'user_id', 'token_hash', 'user_agent'] },
-      { table: 'shares', column: 'user_id', qualifiedTable: 'public.shares', quotedColumn: 'user_id', onDelete: 'c', columns: ['id', 'user_id', 'viewer_id'] },
+      { table: 'sessions', qualifiedTable: 'public.sessions', columns: ['id', 'user_id', 'token_hash', 'user_agent'] },
+      { table: 'shares', qualifiedTable: 'public.shares', columns: ['id', 'user_id', 'viewer_id'] },
     ];
 
     beforeEach(() => {

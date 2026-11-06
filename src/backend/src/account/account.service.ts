@@ -18,15 +18,13 @@ export class AccountService {
   ) {}
 
   async export(userId: string): Promise<AccountExportDto> {
-    // One read-only snapshot, so every table is read as of the same moment.
     return this.db.transaction('REPEATABLE READ', async (tx) => {
       await tx.query('SET TRANSACTION READ ONLY');
       // Secret columns are never selected (AGENTS.md: never read users.password_hash).
       const [user] = await tx.query(`SELECT ${selectList(await findUserColumns(tx))} FROM "users" WHERE "id" = $1`, [userId]);
       const tables: Record<string, Record<string, unknown>[]> = {};
-      // Only the rows the student owns: findUserTables returns user_id columns only.
       for (const t of await findUserTables(tx)) {
-        tables[t.table] = await tx.query(`SELECT ${selectList(t.columns)} FROM ${t.qualifiedTable} WHERE ${t.quotedColumn} = $1`, [userId]);
+        tables[t.table] = await tx.query(`SELECT ${selectList(t.columns)} FROM ${t.qualifiedTable} WHERE user_id = $1`, [userId]);
       }
       return { exportedAt: new Date(), user, tables };
     });

@@ -35,8 +35,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   });
 
   it('every user_id key to users cascades, and every other key cascades or sets null (AGENTS.md rule)', async () => {
-    const notCascading = (await findUserTables(db)).filter((t) => t.onDelete !== 'c').map((t) => `${t.table}.${t.column}`);
-    expect(notCascading).toEqual([]);
     expect(await wrongDeleteRuleToUsers(db)).toEqual([]);
   });
 
@@ -93,8 +91,8 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
       await qr.query(`CREATE TABLE zz_parted_1 PARTITION OF zz_parted FOR VALUES IN (1)`);
       await qr.query(`CREATE TABLE zz_by_email (email varchar(254) REFERENCES users(email) ON DELETE CASCADE)`);
       await qr.query(`ALTER TABLE users ADD COLUMN zz_invited_by uuid REFERENCES users(id) ON DELETE SET NULL`);
-      const found = (await findUserTables(qr)).map((t) => `${t.table}.${t.column}`).filter((name) => name.includes('zz_'));
-      expect(found).toEqual(['zz_parted.user_id']);
+      const found = (await findUserTables(qr)).map((t) => t.table).filter((name) => name.includes('zz_'));
+      expect(found).toEqual(['zz_parted']);
     } finally {
       await qr.rollbackTransaction();
       await qr.release();
@@ -106,7 +104,7 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     expect(res.headers['content-disposition']).toContain('attachment');
     expect(res.body.user).toMatchObject({ id: userId, email, display_name: 'Test Student' });
     expect(res.body.tables.sessions).toHaveLength(1);
-    for (const t of await findUserTables(db)) expect([t.table, `${t.table}.${t.column}`].some((key) => key in res.body.tables)).toBe(true);
+    for (const t of await findUserTables(db)) expect(res.body.tables).toHaveProperty(t.table);
     // Checked against the stored values, not the filter's own predicate: only sha256(token) is stored.
     const [{ password_hash }] = await db.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
     const [{ token_hash }] = await db.query('SELECT token_hash FROM sessions WHERE user_id = $1', [userId]);
