@@ -52,8 +52,7 @@ describe('Public routes (e2e)', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
-    // The document of the whole app, as served at /api/docs-json. openapi.json is
-    // built from a hand-written module list, so it could miss a route.
+    // The document of the whole app, as served at /api/docs-json.
     const document: OpenAPIObject = configureApp(app);
     await app.get(DataSource).runMigrations({ transaction: 'each' });
     await app.init();

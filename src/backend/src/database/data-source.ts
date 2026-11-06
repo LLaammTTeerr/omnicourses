@@ -1,30 +1,9 @@
 import { DataSourceOptions } from 'typeorm';
-import { AiUsage } from '../ai/ai-usage.entity.js';
-import { Session } from '../auth/session.entity.js';
-import { GuideText } from '../guides/guide-text.entity.js';
-import { Guide } from '../guides/guide.entity.js';
-import { TranscriptRow } from '../transcript/transcript-row.entity.js';
-import { User } from '../users/user.entity.js';
-import { CreateUsersAndSessions1761696000000 } from './migrations/1761696000000-create-users-and-sessions.js';
-import { CreateAiUsage1792800000000 } from './migrations/1792800000000-create-ai-usage.js';
-import { CreateCurriculumCourseSchema1792912952302 } from './migrations/1792912952302-create-curriculum-course-schema.js';
-import { AddUsersDeletionRequestedAt1792886400000 } from './migrations/1792886400000-add-users-deletion-requested-at.js';
-import { CreateTranscriptRows1793159431000 } from './migrations/1793159431000-create-transcript-rows.js';
-import { CreateGuides1793872582380 } from './migrations/1793872582380-create-guides.js';
+import { MIGRATIONS } from './migrations/index.js';
 
-// Entities and migrations are listed as imported classes, not globs: globs break
-// between ts (tests) and compiled js (dist), and a missing import fails typecheck.
-// Add each new entity and migration here.
+// Entities are registered by their feature modules (TypeOrmModule.forFeature).
 export const dataSourceOptions = {
   type: 'postgres',
-  entities: [User, Session, AiUsage, TranscriptRow, Guide, GuideText],
-  migrations: [
-    CreateUsersAndSessions1761696000000,
-    CreateAiUsage1792800000000,
-    CreateCurriculumCourseSchema1792912952302,
-    AddUsersDeletionRequestedAt1792886400000,
-    CreateTranscriptRows1793159431000,
-    CreateGuides1793872582380,
-  ],
+  migrations: MIGRATIONS,
   synchronize: false,
 } satisfies DataSourceOptions;
