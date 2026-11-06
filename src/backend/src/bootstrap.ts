@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+import { corsOrigin } from './config/env.js';
 
 export const API_PREFIX = 'api';
 export const OPENAPI_VERSION = '3.2.0';
@@ -9,7 +10,7 @@ export const OPENAPI_VERSION = '3.2.0';
 export function configureApp(app: INestApplication): OpenAPIObject {
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.enableCors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' });
+  app.enableCors({ origin: corsOrigin() });
 
   const document = SwaggerModule.createDocument(app, buildOpenApiConfig());
   SwaggerModule.setup(`${API_PREFIX}/docs`, app, document);

@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [swc.vite({ module: { type: 'es6' } })],
   test: {
     include: ['test/**/*.e2e-spec.ts'],
+    setupFiles: ['test/support/setup.ts'],
     environment: 'node',
     testTimeout: 30_000,
     // Files share one database and each runs the migrations: run them one at a time.

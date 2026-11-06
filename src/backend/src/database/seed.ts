@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
 import { DataSource } from 'typeorm';
+import { databaseUrl, loadEnvFiles } from '../config/env.js';
 import { vietnamDate } from '../guides/out-of-date.js';
 import { guideSeedFiles } from '../guides/seed-files.js';
 import { seedGuides } from '../guides/seed-guides.js';
@@ -13,13 +13,11 @@ import { seedCurricula } from './seeds/seed-curricula.js';
 // of TC-B1-GUIDE-01: test databases only, refused when NODE_ENV is production. Seeding again
 // without the flag withdraws them.
 async function main(): Promise<void> {
-  for (const file of ['.env', '../../.env']) {
-    if (existsSync(file) && !process.env.DATABASE_URL) process.loadEnvFile(file);
-  }
+  loadEnvFiles();
   const fixtures = process.argv.includes('--guide-fixtures');
   // Checked before connecting, so a refused run changes nothing.
   const files = guideSeedFiles({ fixtures, nodeEnv: process.env.NODE_ENV, today: vietnamDate(new Date()) });
-  const dataSource = new DataSource({ ...dataSourceOptions, url: process.env.DATABASE_URL });
+  const dataSource = new DataSource({ ...dataSourceOptions, url: databaseUrl() });
   await dataSource.initialize();
   try {
     const report = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);

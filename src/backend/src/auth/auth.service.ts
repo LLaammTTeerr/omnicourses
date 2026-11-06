@@ -3,6 +3,7 @@ import { ConflictException, Injectable, NotFoundException, UnauthorizedException
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
 import { EntityManager, IsNull, MoreThan, Repository } from 'typeorm';
+import { sessionTtlDays } from '../config/env.js';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
@@ -15,7 +16,6 @@ export const hashToken = (token: string): string => createHash('sha256').update(
 
 @Injectable()
 export class AuthService {
-  private readonly ttlMs = Number(process.env.SESSION_TTL_DAYS ?? 7) * DAY_MS;
   // Verified against when the email is unknown, so a wrong email and a wrong
   // password take the same time and the response does not reveal which.
   private readonly dummyHash = hash('omnicourse-timing-equalizer');
@@ -79,7 +79,7 @@ export class AuthService {
   async refresh(session: Session): Promise<AuthResultDto> {
     const token = newToken();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.ttlMs);
+    const expiresAt = new Date(now.getTime() + sessionTtlDays() * DAY_MS);
     await this.sessions.update(session.id, { tokenHash: hashToken(token), rotatedAt: now, expiresAt });
     return { token, expiresAt, user: UserDto.from(session.user), accountRestored: false };
   }
@@ -110,7 +110,7 @@ export class AuthService {
 
   private async issue(user: User, userAgent?: string): Promise<AuthResultDto> {
     const token = newToken();
-    const expiresAt = new Date(Date.now() + this.ttlMs);
+    const expiresAt = new Date(Date.now() + sessionTtlDays() * DAY_MS);
     await this.sessions.save(
       this.sessions.create({
         userId: user.id,

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
-import { aiConfig } from './ai-config.js';
+import { aiConfig } from '../config/env.js';
 import { AiUnavailableError } from './ai-unavailable.error.js';
 import { AiUsage } from './ai-usage.entity.js';
 import type { AiCallContext } from './llm.service.js';
