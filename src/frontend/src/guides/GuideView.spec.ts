@@ -68,7 +68,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     expect(w.get('a[href="https://example.com/news"]').text()).toContain('Announcement');
     expect(w.text()).toContain('All programs');
     expect(w.text()).toContain('A test account.');
-    expect(w.findAll('ol.steps > li').map((li) => li.text())).toEqual(['Open the test portal.', 'Press “Gửi”. Help page (opens in a new tab)']);
+    expect(w.findAll('[data-test="steps"] > li').map((li) => li.text())).toEqual(['Open the test portal.', 'Press “Gửi”. Help page (opens in a new tab)']);
     expect(w.text()).toContain('A regulation note.');
     expect(w.get('a[href="https://example.com/reg.pdf"]').text()).toContain('Test regulation, Article 1');
     expect(w.text()).toContain("Source: the OmniCourse team's experience");
@@ -101,7 +101,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
 
     const stale = await render({ ...GUIDE, texts: { en: text('en', { outOfDate: true, lastCheckedOn: '2026-05-12' }) } });
     expect(stale.get('[data-test="out-of-date"]').text()).toContain('last checked it on 12 May 2026');
-    expect(stale.findAll('ol.steps > li')).toHaveLength(2);
+    expect(stale.findAll('[data-test="steps"] > li')).toHaveLength(2);
   });
 
   it('shows the one language a guide has, with a note (A8)', async () => {
@@ -143,7 +143,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
   it('shows the portal board of G01', async () => {
     const board = [{ name: 'Board portal', url: 'https://portal.example.com', account: 'Student account', purpose: 'Registration and grades' }];
     const w = await render({ ...GUIDE, texts: { en: text('en', { portals: board }) } });
-    const entry = w.get('ul.board > li');
+    const entry = w.get('[data-test="board"] > li');
     expect(entry.text()).toContain('Board portal');
     expect(entry.text()).toContain('Registration and grades');
     expect(entry.get('a').attributes('target')).toBe('_blank');

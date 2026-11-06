@@ -34,11 +34,13 @@ const sections = computed(() => {
 
 const groupsWithGuides = computed(() => GUIDE_GROUPS.filter((group) => guides.value?.some((g) => g.group === group)));
 
+const groupId = (group: GuideGroup) => `group-${group}`;
+
 // UC-10 A2.
 async function browse(group: GuideGroup): Promise<void> {
   query.value = '';
   await nextTick();
-  document.getElementById(`group-${group}`)?.focus();
+  document.getElementById(groupId(group))?.focus();
 }
 
 usePageTitle(() => m.value.listTitle);
@@ -78,11 +80,11 @@ usePageTitle(() => m.value.listTitle);
         </ul>
       </div>
       <template v-else>
-        <section v-for="{ group, entries } in sections" :key="group" class="group" :aria-labelledby="`group-${group}`">
-          <h2 :id="`group-${group}`" tabindex="-1">{{ m.groups[group] }}</h2>
+        <section v-for="{ group, entries } in sections" :key="group" class="group" :aria-labelledby="groupId(group)">
+          <h2 :id="groupId(group)" tabindex="-1">{{ m.groups[group] }}</h2>
           <ul class="entries">
             <li v-for="entry in entries" :key="entry.guide.id" class="card entry" :data-test="`guide-${entry.guide.id}`">
-              <RouterLink class="title" :to="{ name: 'guide', params: { id: entry.guide.id } }" :lang="entry.lang">
+              <RouterLink class="title" data-test="title" :to="{ name: 'guide', params: { id: entry.guide.id } }" :lang="entry.lang">
                 {{ entry.text.title }}
               </RouterLink>
               <p class="meta">
@@ -94,7 +96,7 @@ usePageTitle(() => m.value.listTitle);
                 <span v-else class="chip">{{ m.checkedOn(formatDate(entry.text.lastCheckedOn, locale.lang)) }}</span>
                 <span v-if="entry.fallback" class="chip">{{ m.onlyOtherLanguage }}</span>
               </p>
-              <ExternalLink class="portal" :href="entry.text.portal.url">{{ m.openPortal(entry.text.portal.name) }}</ExternalLink>
+              <ExternalLink class="portal" data-test="portal" :href="entry.text.portal.url">{{ m.openPortal(entry.text.portal.name) }}</ExternalLink>
             </li>
           </ul>
         </section>

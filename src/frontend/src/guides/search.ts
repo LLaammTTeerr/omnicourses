@@ -1,7 +1,7 @@
 import type { GuideListItem } from './api.js';
 
 /** Text as search compares it: no diacritics, đ as d, lower case, single spaces (UC-10 step 3). */
-export function fold(text: string): string {
+function fold(text: string): string {
   return text
     .normalize('NFD')
     .toLowerCase()

@@ -34,7 +34,7 @@ async function render() {
 }
 
 const headings = (w: VueWrapper) => w.findAll('h2').map((h) => h.text());
-const titles = (w: VueWrapper) => w.findAll('.entry .title').map((a) => a.text());
+const titles = (w: VueWrapper) => w.findAll('[data-test="title"]').map((a) => a.text());
 
 describe('GuidesView (UC-10 steps 1–3)', () => {
   beforeEach(() => {
@@ -57,11 +57,11 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const w = await render();
     const entry = w.get('[data-test="guide-register-courses"]');
     expect(entry.text()).toContain('Cổng thử · Tài khoản: Tài khoản thử');
-    const link = entry.get('a.portal');
+    const link = entry.get('[data-test="portal"]');
     expect(link.attributes('href')).toBe('https://example.com/portal?x=1');
     expect(link.attributes('target')).toBe('_blank');
     expect(link.attributes('rel')).toContain('noopener');
-    expect(entry.get('a.title').attributes('href')).toBe('/guides/register-courses');
+    expect(entry.get('[data-test="title"]').attributes('href')).toBe('/guides/register-courses');
   });
 
   it('narrows the list as the student types, in either language', async () => {
@@ -85,7 +85,8 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     await flushPromises();
     expect((w.get('input[type="search"]').element as HTMLInputElement).value).toBe('');
     expect(titles(w)).toHaveLength(3);
-    expect(document.activeElement?.id).toBe('group-tuition-and-fees');
+    expect(document.activeElement?.tagName).toBe('H2');
+    expect(document.activeElement?.textContent).toBe('Học phí và lệ phí');
   });
 
   it('marks an out-of-date guide, and a guide written in one language only', async () => {
@@ -98,7 +99,7 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const viOnly = w.get('[data-test="guide-zz-vi-only"]');
     expect(viOnly.text()).toContain('Vietnamese only');
     expect(viOnly.text()).toContain('May be out of date');
-    expect(viOnly.get('a.title').attributes('lang')).toBe('vi');
+    expect(viOnly.get('[data-test="title"]').attributes('lang')).toBe('vi');
     expect(w.get('[data-test="guide-register-courses"]').text()).toContain('Checked on 1 Nov 2026');
   });
 
