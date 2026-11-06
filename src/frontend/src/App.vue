@@ -21,9 +21,9 @@ const other = computed(() => LANGUAGES[locale.lang].other);
     <button type="button" class="lang" :lang="other" @click="locale.set(other)">{{ LANGUAGES[other].name }}</button>
   </header>
   <main id="main" tabindex="-1">
-    <!-- The guide list stays alive while a guide is open, so Back finds the same search and scroll position. -->
-    <RouterView v-slot="{ Component }">
-      <KeepAlive include="GuidesView"><component :is="Component" /></KeepAlive>
+    <RouterView v-slot="{ Component, route }">
+      <KeepAlive><component :is="Component" v-if="route.meta.keepAlive" /></KeepAlive>
+      <component :is="Component" v-if="!route.meta.keepAlive" />
     </RouterView>
   </main>
 </template>
