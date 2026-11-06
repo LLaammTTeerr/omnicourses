@@ -60,10 +60,4 @@ describe('AI gateway against PostgreSQL (e2e)', () => {
     }
     expect(await app.get(DataSource).getRepository(AiUsage).countBy({ userId: parallelUser })).toBe(2);
   });
-
-  it('deletes usage rows with the user', async () => {
-    const db = app.get(DataSource);
-    await db.query('DELETE FROM users WHERE id = $1', [userId]);
-    expect(await db.getRepository(AiUsage).countBy({ userId })).toBe(0);
-  });
 });

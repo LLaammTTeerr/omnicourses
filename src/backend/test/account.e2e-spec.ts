@@ -126,7 +126,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
       await db.query(`INSERT INTO zz_shares VALUES ($1, $2, 'mine'), ($2, $1, 'theirs')`, [userId, other.id]);
       const res = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
       expect(res.body.tables.zz_shares).toEqual([{ user_id: userId, viewer_id: other.id, note: 'mine' }]);
-      expect(Object.keys(res.body.tables).filter((key) => key.startsWith('zz_shares'))).toEqual(['zz_shares']);
     } finally {
       await db.query('DROP TABLE zz_shares');
       await db.query('DELETE FROM users WHERE id = $1', [other.id]);

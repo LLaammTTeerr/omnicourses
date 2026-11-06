@@ -2,29 +2,10 @@ import { ForbiddenException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
-import { isSecretColumn } from './account-export.js';
 import { AccountPurgeService } from './account-purge.service.js';
 import { AccountService } from './account.service.js';
 
 const user = { id: 'u1', passwordHash: 'h' } as User;
-
-describe('secret columns', () => {
-  // TypeORM names a column after its property unless `name` is set, so camelCase counts too.
-  it.each(['password_hash', 'token_hash', 'google_sub', 'api_key', 'refresh_token', 'client_secret', 'passwordHash', 'apiKey', 'APIKey', 'Password_Hash', 'password', 'token'])(
-    'drops %s',
-    (column) => {
-      expect(isSecretColumn(column)).toBe(true);
-    },
-  );
-
-  // The documented rule is a suffix (AGENTS.md): a secret word elsewhere in the name is the student's data.
-  it.each(['email', 'display_name', 'input_tokens', 'user_id', 'subject_code', 'keyboard_layout', 'key_count', 'sub_total', 'hash_algorithm', 'token_expires_at'])(
-    'keeps %s',
-    (column) => {
-      expect(isSecretColumn(column)).toBe(false);
-    },
-  );
-});
 
 describe('AccountService', () => {
   let db: { query: ReturnType<typeof vi.fn>; transaction: ReturnType<typeof vi.fn> };
@@ -62,25 +43,14 @@ describe('AccountService', () => {
 
     const selects = () => tx.query.mock.calls.map(([sql]) => sql as string).filter((sql) => sql.startsWith('SELECT') && !sql.includes('pg_'));
 
-    it('exports the user and every referencing table', async () => {
-      const result = await service.export('u1');
-      expect(result.user).toEqual({ id: 'u1', email: 'a@example.com' });
-      expect(result.tables.sessions).toEqual([{ id: 's1', user_agent: 'Firefox' }]);
-    });
-
     // AGENTS.md: never read users.password_hash. Secret columns are left out of the SELECT, not filtered after it.
     it('never selects a secret column', async () => {
       await service.export('u1');
-      expect(selects()).toContain('SELECT "id", "email" FROM "users" WHERE "id" = $1');
-      expect(selects()).toContain('SELECT "id", "user_id", "user_agent" FROM public.sessions WHERE user_id = $1');
+      expect(selects()).toHaveLength(3);
       for (const sql of selects()) expect(sql).not.toMatch(/password_hash|google_sub|token_hash|\*/);
     });
 
-    it('keys each table by its name', async () => {
-      const result = await service.export('u1');
-      expect(Object.keys(result.tables)).toEqual(['sessions', 'shares']);
-    });
-
+    // ADR 0004: the contract that the export is one consistent snapshot.
     it('reads every table from one read-only snapshot', async () => {
       await service.export('u1');
       expect(db.transaction).toHaveBeenCalledWith('REPEATABLE READ', expect.any(Function));

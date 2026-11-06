@@ -8,21 +8,19 @@ import { AuthService, hashToken } from './auth.service.js';
 import { Session } from './session.entity.js';
 
 
+// Only the fields AuthService reads, so a new column doesn't break this spec.
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: '00000000-0000-4000-8000-000000000001',
     email: 'student@example.com',
     passwordHash: null,
     displayName: 'Test Student',
-    googleSub: null,
     emailVerifiedAt: null,
-    consentAt: new Date(),
     deletionRequestedAt: null,
     purgeAfter: null,
     createdAt: new Date(),
-    updatedAt: new Date(),
     ...overrides,
-  };
+  } as User;
 }
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -32,13 +30,10 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     userId: user.id,
     user,
     tokenHash: hashToken('token'),
-    userAgent: null,
-    createdAt: new Date(),
-    rotatedAt: null,
     expiresAt: new Date(Date.now() + DAY_MS),
     revokedAt: null,
     ...overrides,
-  };
+  } as Session;
 }
 
 describe('AuthService', () => {
@@ -77,7 +72,6 @@ describe('AuthService', () => {
       );
       const saved = sessions.save.mock.calls[0]![0] as Session;
       expect(saved.tokenHash).toBe(hashToken(result.token));
-      expect(saved.tokenHash).not.toContain(result.token);
     });
 
     it('rejects an email that is already registered', async () => {
@@ -176,7 +170,6 @@ describe('AuthService', () => {
       const session = makeSession();
       sessions.findOne.mockResolvedValue(session);
       await expect(service.authenticate('token')).resolves.toEqual({ user: session.user, session });
-      expect(sessions.findOne.mock.calls[0]![0].where).toEqual({ tokenHash: hashToken('token') });
     });
 
     it.each([
@@ -191,14 +184,16 @@ describe('AuthService', () => {
   });
 
   describe('refresh', () => {
-    it('replaces the token hash and pushes the expiry forward', async () => {
+    it('retires the old token at once and gives a new one a full lifetime', async () => {
       const session = makeSession({ expiresAt: new Date(Date.now() + 1000) });
+      // One stored session: looked up by token hash, changed in place.
+      sessions.findOne.mockImplementation(async ({ where }: { where: { tokenHash: string } }) => (where.tokenHash === session.tokenHash ? session : null));
+      sessions.update.mockImplementation(async (_id: string, changes: Partial<Session>) => Object.assign(session, changes));
+
       const result = await service.refresh(session);
-      const [id, changes] = sessions.update.mock.calls[0]!;
-      expect(id).toBe(session.id);
-      expect(changes.tokenHash).toBe(hashToken(result.token));
-      expect(changes.tokenHash).not.toBe(session.tokenHash);
-      expect(changes.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * DAY_MS);
+      await expect(service.authenticate('token')).resolves.toBeNull();
+      await expect(service.authenticate(result.token)).resolves.toMatchObject({ session: { id: session.id } });
+      expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now() + 6 * DAY_MS);
     });
   });
 

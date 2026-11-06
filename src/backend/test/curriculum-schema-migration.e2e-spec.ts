@@ -23,15 +23,11 @@ describe('curriculum schema migration', () => {
         )
       )[0].id as string;
 
-      const curriculum2 = (
-        await dataSource.query(
-          `INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1,$2,$3,$4) RETURNING id`,
-          [programId, 2025, programCode, 'Curriculum 2025'],
-        )
-      )[0].id as string;
-
-      expect(curriculum1).toBeTruthy();
-      expect(curriculum2).toBeTruthy();
+      // A second cohort of the same program is allowed.
+      await dataSource.query(
+        `INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1,$2,$3,$4)`,
+        [programId, 2025, programCode, 'Curriculum 2025'],
+      );
 
       await expect(
         dataSource.query(

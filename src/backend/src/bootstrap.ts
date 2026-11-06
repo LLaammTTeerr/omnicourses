@@ -3,7 +3,7 @@ import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { corsOrigin } from './config/env.js';
 
 const API_PREFIX = 'api';
-export const OPENAPI_VERSION = '3.2.0';
+const OPENAPI_VERSION = '3.2.0';
 
 // Shared by main.ts and the e2e tests, so the app under test is configured
 // exactly like the deployed one.

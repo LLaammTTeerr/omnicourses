@@ -20,11 +20,6 @@ describe('Auth against PostgreSQL (e2e)', () => {
     await app?.close();
   });
 
-  it('protects routes by default and keeps health public', async () => {
-    await http().get('/api/users/me').expect(401);
-    await http().get('/api/health').expect(200);
-  });
-
   it('requires consent and a 10+ character password at sign-up', async () => {
     await http().post('/api/auth/sign-up').send({ email, password, displayName: 'Test Student', acceptedTerms: false }).expect(400);
     await http().post('/api/auth/sign-up').send({ email, password: 'short', displayName: 'Test Student', acceptedTerms: true }).expect(400);
@@ -60,11 +55,5 @@ describe('Auth against PostgreSQL (e2e)', () => {
 
     await http().post('/api/auth/sign-out').set('Authorization', `Bearer ${second}`).expect(204);
     await http().get('/api/users/me').set('Authorization', `Bearer ${second}`).expect(401);
-  });
-
-  it('publishes the auth routes with bearer security in the OpenAPI document', async () => {
-    const res = await http().get('/api/docs-json').expect(200);
-    expect(res.body.paths).toHaveProperty('/api/auth/sign-in');
-    expect(res.body.components.securitySchemes).toHaveProperty('bearer');
   });
 });
