@@ -20,7 +20,7 @@ export class TranscriptController {
   @Put()
   @ApiOkResponse({ type: TranscriptDto, description: 'The reviewed rows replace the whole saved transcript.' })
   @ApiBadRequestResponse({ description: 'A row is invalid or incomplete; nothing is saved' })
-  replace(@CurrentUser() user: User, @Body() dto: TranscriptDto): Promise<TranscriptDto> {
-    return this.transcript.replace(user.id, dto);
+  async replace(@CurrentUser() user: User, @Body() dto: TranscriptDto): Promise<TranscriptDto> {
+    return { rows: await this.transcript.replace(user.id, dto.rows) };
   }
 }

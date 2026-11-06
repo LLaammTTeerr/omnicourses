@@ -63,13 +63,13 @@ describe('Transcript against PostgreSQL (e2e)', () => {
   it('returns the same course twice in one term in the same order on every read', async () => {
     const userId = await storedUser(app);
     const transcript = app.get(TranscriptService);
-    const saved = await transcript.replace(userId, { rows: [first[0], { ...first[0], grade: 6 }, first[1]] });
+    const saved = await transcript.replace(userId, [first[0], { ...first[0], grade: 6 }, first[1]]);
 
     const byId: { grade: string }[] = await db.query(
       'SELECT grade FROM transcript_rows WHERE user_id = $1 ORDER BY term_year, term_number, course_code, id',
       [userId],
     );
-    for (const rows of [saved.rows, await transcript.rowsFor(userId), await transcript.rowsFor(userId)]) {
+    for (const rows of [saved, await transcript.rowsFor(userId), await transcript.rowsFor(userId)]) {
       expect(rows.map((r) => r.grade)).toEqual(byId.map((r) => Number(r.grade)));
     }
   });
@@ -118,7 +118,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     // Another save, paused halfway: it holds the user lock and has replaced the rows, uncommitted.
     const other = db.createQueryRunner();
     await other.connect();
-    let saving!: Promise<{ rows: TranscriptEntry[] }>;
+    let saving!: Promise<TranscriptEntry[]>;
     try {
       await other.startTransaction();
       const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
@@ -129,7 +129,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
         [userId],
       );
 
-      saving = app.get(TranscriptService).replace(userId, { rows: [first[3]] });
+      saving = app.get(TranscriptService).replace(userId, [first[3]]);
       // Commit only once the save is actually waiting on this transaction.
       await blockedBy(pid);
       await other.commitTransaction();
@@ -138,7 +138,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       await other.release();
     }
 
-    expect((await saving).rows).toEqual([first[3]]);
+    expect(await saving).toEqual([first[3]]);
   });
 
   it('lets the student sign in while a save is in progress', async () => {
@@ -153,7 +153,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       await other.startTransaction();
       const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
       await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
-      saving = app.get(TranscriptService).replace(userId, { rows: [first[3]] });
+      saving = app.get(TranscriptService).replace(userId, [first[3]]);
       await blockedBy(pid);
 
       // Sign-in inserts a session, whose foreign-key check needs a KEY SHARE lock on the user.
