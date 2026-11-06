@@ -6,7 +6,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 import { useLocale } from '../locale.js';
 import { routes } from '../router.js';
 import GuideView from './GuideView.vue';
-import { GuideNotFoundError, type Guide, type GuideText } from './api.js';
+import type { Guide, GuideText } from './api.js';
 
 const text = (lang: 'vi' | 'en', extra: Partial<GuideText> = {}): GuideText => ({
   title: lang === 'vi' ? 'Hướng dẫn thử' : 'Test guide',
@@ -38,7 +38,7 @@ const GUIDE: Guide = { id: 'zz-fresh', group: 'registration', texts: { vi: text(
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
-async function render(load: (id: string) => Promise<Guide> = async () => GUIDE, lang: 'vi' | 'en' = 'en') {
+async function render(load: (id: string) => Promise<Guide | null> = async () => GUIDE, lang: 'vi' | 'en' = 'en') {
   const pinia = createPinia();
   setActivePinia(pinia);
   useLocale().set(lang);
@@ -119,9 +119,7 @@ describe('GuideView (UC-10 steps 4–6)', () => {
   });
 
   it('shows "guide not found" with a link back to Guides', async () => {
-    const w = await render(async (id) => {
-      throw new GuideNotFoundError(id);
-    }, 'vi');
+    const w = await render(async () => null, 'vi');
     const notFound = w.get('[data-test="not-found"]');
     expect(notFound.get('h1').text()).toBe('Không tìm thấy hướng dẫn');
     expect(notFound.get('a').attributes('href')).toBe('/guides');
