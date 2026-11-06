@@ -62,7 +62,6 @@ export class AuthService {
     await (tx?.getRepository(Session) ?? this.sessions).update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
   }
 
-  /** Resolves a bearer token to its live session, or null if unknown, expired or revoked. */
   async authenticate(token: string): Promise<{ user: User; session: Session } | null> {
     const session = await this.sessions.findOne({
       where: { tokenHash: hashToken(token) },
@@ -102,7 +101,6 @@ export class AuthService {
   }
 
   async revoke(userId: string, sessionId: string): Promise<void> {
-    // Scoped by userId: a user can only revoke their own sessions.
     const result = await this.sessions.update({ id: sessionId, userId, revokedAt: IsNull() }, { revokedAt: new Date() });
     if (!result.affected) throw new NotFoundException('Session not found');
   }

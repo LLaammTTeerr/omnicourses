@@ -38,7 +38,6 @@ export class TranscriptRowDto implements TranscriptEntry {
 
   // Required when graded; otherwise null or left out. ValidateIf gates every rule below,
   // so a grade sent with another result is still checked, and refused by nullUnlessGraded.
-  // A missing or unknown result is the result's error alone: nullUnlessGraded lets it pass.
   @ApiProperty({ type: Number, nullable: true, required: false, example: 8.5, description: '10-point scale, one decimal. Required when result is graded; null otherwise.' })
   @ValidateIf((row: TranscriptRowDto) => row.result === 'graded' || (row.grade !== null && row.grade !== undefined))
   @IsNumber({ maxDecimalPlaces: 1 })

@@ -7,11 +7,10 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  // Always stored lowercased (DTO transform + CHECK constraint).
   @Column({ type: 'varchar', length: 254 })
   email!: string;
 
-  // Null for accounts that only sign in with Google (follow-up PR).
+  // Null for accounts that only sign in with Google.
   @Column({ name: 'password_hash', type: 'text', nullable: true })
   passwordHash!: string | null;
 
