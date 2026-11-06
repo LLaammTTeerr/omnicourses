@@ -1,8 +1,7 @@
 import type { Lang } from '../locale.js';
 import type { GuideGroup } from './api.js';
 
-// The strings of the guide pages. The guide text itself comes from the API.
-export interface GuideMessages {
+interface GuideMessages {
   groups: Record<GuideGroup, string>;
   listTitle: string;
   listIntro: string;
