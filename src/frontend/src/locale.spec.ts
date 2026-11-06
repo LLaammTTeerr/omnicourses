@@ -52,7 +52,13 @@ describe('formatDate', () => {
     expect(formatDate('2026-11-13', 'en')).toBe('13 Nov 2026');
   });
 
-  it('keeps the calendar date whatever the time zone', () => {
-    expect(formatDate('2026-01-01', 'en')).toBe('1 Jan 2026');
+  it('keeps the calendar date in a time zone behind UTC', () => {
+    vi.stubEnv('TZ', 'America/Los_Angeles');
+    try {
+      expect(new Date('2026-01-01T00:00:00Z').getDate()).toBe(31);
+      expect(formatDate('2026-01-01', 'en')).toBe('1 Jan 2026');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
