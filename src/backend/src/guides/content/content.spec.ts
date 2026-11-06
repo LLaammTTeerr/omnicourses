@@ -1,11 +1,9 @@
 import { readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { portalsMissingFromBoard, validateGuideSet } from '../validate-guide.js';
 import { GUIDE_FILES } from './index.js';
 
-// Tests run from src/backend (npm -w), so the folder is found from there.
-const DIR = join(process.cwd(), 'src', 'guides', 'content');
+const DIR = __dirname;
 const CONTENT = readdirSync(DIR).filter((name) => /^[a-z0-9-]+\.(vi|en)\.ts$/.test(name));
 
 describe('guide content files', () => {

@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { DataSource, QueryRunner } from 'typeorm';
-import type { GuideContent, GuideFile } from './guide-file.js';
-import { validateGuideSet } from './validate-guide.js';
+import type { DataSource, EntityManager } from 'typeorm';
+import { nodeEnv } from '../config/env.js';
+import { GUIDE_FILES } from './content/index.js';
+import { contentOf, type GuideFile, textKey } from './guide-file.js';
+import { vietnamDate } from './out-of-date.js';
+import { type LoadableGuideFile, parseGuideSet } from './validate-guide.js';
 
 export interface GuideSeedReport {
   /** Texts loaded for the first time. */
@@ -24,10 +27,20 @@ export class GuideSeedError extends Error {
   }
 }
 
-/** What a guide page shows besides the fields stored in their own columns. */
-export function contentOf(file: GuideFile): GuideContent {
-  const { id, lang, status, version, changeNote, lastChecked, group, title, keywords, ...content } = file;
-  return content;
+/**
+ * The guides step of `npm run db:seed`: the content files, plus the zz-* test
+ * guides of TC-B1-GUIDE-01 with `--guide-fixtures`, which a production server
+ * refuses before anything is written.
+ */
+export async function seed(dataSource: DataSource, options: { guideFixtures: boolean }): Promise<string[]> {
+  let files = GUIDE_FILES;
+  if (options.guideFixtures) {
+    if (nodeEnv() === 'production') throw new Error('--guide-fixtures publishes the zz-* test guides: refused when NODE_ENV is production');
+    const { guideFixtures } = await import('./testing/guide-fixtures.js');
+    files = [...GUIDE_FILES, ...guideFixtures(vietnamDate(new Date()))];
+  }
+  const report = await seedGuides(dataSource, files);
+  return [`Guides${options.guideFixtures ? ', with the test-only zz-* guides' : ''}: ${JSON.stringify(report)}`];
 }
 
 /**
@@ -51,12 +64,14 @@ function stableJson(value: unknown): string {
 }
 
 interface LoadedText {
-  guide_id: string;
+  id: string;
   lang: string;
   status: 'published' | 'withdrawn';
   version: number;
   content_hash: string;
 }
+
+type PublishedGuideFile = Extract<LoadableGuideFile, { status: 'published' }>;
 
 /**
  * Loads the guide content files (ADR 0010) in one transaction, all or nothing.
@@ -66,25 +81,20 @@ interface LoadedText {
  * - A text whose file is gone, or marked withdrawn, is withdrawn: kept, never deleted.
  */
 export async function seedGuides(dataSource: DataSource, files: GuideFile[]): Promise<GuideSeedReport> {
-  const invalid = validateGuideSet(files);
-  if (invalid.length) throw new GuideSeedError(invalid);
+  const parsed = parseGuideSet(files);
+  if ('problems' in parsed) throw new GuideSeedError(parsed.problems);
 
-  const report: GuideSeedReport = { inserted: 0, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: 0 };
-  const problems: string[] = [];
-  const runner = dataSource.createQueryRunner();
-  await runner.connect();
-  await runner.startTransaction();
-  try {
+  return dataSource.transaction(async (em) => {
+    const report: GuideSeedReport = { inserted: 0, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: 0 };
+    const problems: string[] = [];
     // A second seed at the same time waits here instead of mixing its checks with ours.
-    await runner.query(`LOCK TABLE "guide_texts" IN SHARE ROW EXCLUSIVE MODE`);
-    const loaded: LoadedText[] = await runner.query(
-      `SELECT "guide_id", "lang", "status", "version", "content_hash" FROM "guide_texts"`,
-    );
-    const rows = new Map(loaded.map((row) => [`${row.guide_id}.${row.lang}`, row]));
+    await em.query(`LOCK TABLE "guide_texts" IN SHARE ROW EXCLUSIVE MODE`);
+    const loaded: LoadedText[] = await em.query(`SELECT "guide_id" AS "id", "lang", "status", "version", "content_hash" FROM "guide_texts"`);
+    const rows = new Map(loaded.map((row) => [textKey(row), row]));
     const inFiles = new Set<string>();
 
-    for (const file of files) {
-      const key = `${file.id}.${file.lang}`;
+    for (const file of parsed.files) {
+      const key = textKey(file);
       const row = rows.get(key);
       inFiles.add(key);
       if (file.status === 'draft') {
@@ -94,22 +104,20 @@ export async function seedGuides(dataSource: DataSource, files: GuideFile[]): Pr
         report.drafts++;
       } else if (file.status === 'withdrawn') {
         if (row?.status === 'published') {
-          await withdraw(runner, file.id, file.lang);
+          await withdraw(em, file);
           report.withdrawn++;
         }
       } else if (!row) {
-        await write(runner, file);
+        await write(em, file);
         report.inserted++;
       } else if (file.version < row.version) {
         problems.push(`${key}: version ${file.version} is lower than the loaded version ${row.version}`);
       } else if (file.version > row.version) {
-        await write(runner, file);
+        await write(em, file);
         report.updated++;
       } else if (contentHash(file) !== row.content_hash) {
-        problems.push(
-          `${key}: changed without a new version; raise version above ${row.version} and write a change note (guides plan §3 rule 7)`,
-        );
-      } else if (await recheck(runner, file)) {
+        problems.push(`${key}: changed without a new version; raise version above ${row.version} and write a change note (guides plan §3 rule 7)`);
+      } else if (await recheck(em, file)) {
         report.rechecked++;
       } else {
         report.unchanged++;
@@ -117,30 +125,22 @@ export async function seedGuides(dataSource: DataSource, files: GuideFile[]): Pr
     }
     // A text whose file is gone is withdrawn, not deleted: problem reports point at it (ADR 0010).
     for (const row of loaded) {
-      if (row.status === 'published' && !inFiles.has(`${row.guide_id}.${row.lang}`)) {
-        await withdraw(runner, row.guide_id, row.lang);
+      if (row.status === 'published' && !inFiles.has(textKey(row))) {
+        await withdraw(em, row);
         report.withdrawn++;
       }
     }
     if (problems.length) throw new GuideSeedError(problems);
-    await runner.commitTransaction();
     return report;
-  } catch (error) {
-    await runner.rollbackTransaction();
-    throw error;
-  } finally {
-    await runner.release();
-  }
+  });
 }
 
-async function write(runner: QueryRunner, file: GuideFile): Promise<void> {
-  // validateGuideSet has checked that a published file has lastChecked.
-  const checked = file.lastChecked!;
-  await runner.query(
+async function write(em: EntityManager, file: PublishedGuideFile): Promise<void> {
+  await em.query(
     `INSERT INTO "guides" ("id", "group") VALUES ($1, $2) ON CONFLICT ("id") DO UPDATE SET "group" = EXCLUDED."group"`,
     [file.id, file.group],
   );
-  await runner.query(
+  await em.query(
     `INSERT INTO "guide_texts" ("guide_id", "lang", "status", "version", "change_note", "last_checked_on",
        "last_checked_by", "title", "keywords", "content", "content_hash")
      VALUES ($1, $2, 'published', $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
@@ -154,8 +154,8 @@ async function write(runner: QueryRunner, file: GuideFile): Promise<void> {
       file.lang,
       file.version,
       file.changeNote,
-      checked.on,
-      checked.by,
+      file.lastChecked.on,
+      file.lastChecked.by,
       file.title,
       file.keywords,
       JSON.stringify(contentOf(file)),
@@ -165,24 +165,20 @@ async function write(runner: QueryRunner, file: GuideFile): Promise<void> {
 }
 
 /** Same version and content: takes a new last-checked date, and shows the text again if it was withdrawn. True if anything changed. */
-async function recheck(runner: QueryRunner, file: GuideFile): Promise<boolean> {
-  const checked = file.lastChecked!;
+async function recheck(em: EntityManager, file: PublishedGuideFile): Promise<boolean> {
   // A CTE, so the query is a SELECT and returns its rows (TypeORM returns [rows, count] for an UPDATE).
-  const [{ n }]: { n: number }[] = await runner.query(
+  const [{ n }]: { n: number }[] = await em.query(
     `WITH changed AS (
        UPDATE "guide_texts" SET "last_checked_on" = $3, "last_checked_by" = $4, "status" = 'published', "updated_at" = now()
        WHERE "guide_id" = $1 AND "lang" = $2
          AND ("last_checked_on", "last_checked_by", "status") IS DISTINCT FROM ($3::date, $4::varchar, 'published'::varchar)
        RETURNING 1)
      SELECT count(*)::int AS n FROM changed`,
-    [file.id, file.lang, checked.on, checked.by],
+    [file.id, file.lang, file.lastChecked.on, file.lastChecked.by],
   );
   return n > 0;
 }
 
-async function withdraw(runner: QueryRunner, id: string, lang: string): Promise<void> {
-  await runner.query(`UPDATE "guide_texts" SET "status" = 'withdrawn', "updated_at" = now() WHERE "guide_id" = $1 AND "lang" = $2`, [
-    id,
-    lang,
-  ]);
+async function withdraw(em: EntityManager, text: { id: string; lang: string }): Promise<void> {
+  await em.query(`UPDATE "guide_texts" SET "status" = 'withdrawn', "updated_at" = now() WHERE "guide_id" = $1 AND "lang" = $2`, [text.id, text.lang]);
 }

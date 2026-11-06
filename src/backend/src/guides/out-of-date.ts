@@ -1,8 +1,7 @@
 // UC-10 A5: a guide is out of date when more than OUT_OF_DATE_MONTHS calendar months have
 // passed since a team member last checked it on the portal. Proposed in UC-10, to be
-// confirmed by Lâm (B1 test cases §6 item 8): a different rule changes this file only.
-
-import { DAY_MS } from '../config/time.js';
+// confirmed by Lâm (B1 test cases §6 item 8). The API description follows the constant;
+// the frontend's wording (src/frontend/src/guides/messages.ts) repeats the number.
 
 export const OUT_OF_DATE_MONTHS = 6;
 
@@ -12,11 +11,6 @@ const VIETNAM_OFFSET_MS = 7 * 3_600_000;
 /** The date in Vietnam at this instant, as YYYY-MM-DD. */
 export function vietnamDate(now: Date): string {
   return new Date(now.getTime() + VIETNAM_OFFSET_MS).toISOString().slice(0, 10);
-}
-
-/** A YYYY-MM-DD date plus whole days. */
-export function addDays(date: string, days: number): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
 /** A YYYY-MM-DD date plus calendar months. A day the target month lacks becomes its last day (31 Aug + 6 months = end of Feb). */

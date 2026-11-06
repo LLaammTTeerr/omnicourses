@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { isOutOfDate } from '../out-of-date.js';
 import { validateGuideSet } from '../validate-guide.js';
-import { guideFixtures } from './guide-fixtures.js';
+import { addDays, guideFixtures } from './guide-fixtures.js';
 
 const checkedOn = (today: string, id: string) => guideFixtures(today).find((f) => f.id === id)!.lastChecked!.on;
+
+describe('addDays', () => {
+  it('adds days across months', () => {
+    expect(addDays('2026-05-13', -1)).toBe('2026-05-12');
+    expect(addDays('2026-02-28', 1)).toBe('2026-03-01');
+  });
+});
 
 describe('guideFixtures (TC-B1-GUIDE-01)', () => {
   it('are valid content files', () => {

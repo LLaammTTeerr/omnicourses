@@ -1,6 +1,10 @@
 // The content model of one guide in one language (guides plan §2). The files in
 // ./content/ are typed by hand against it, and the seed loads them (ADR 0010).
 
+/** A guide ID: lower-case words joined by hyphens, such as `register-courses`. */
+export const GUIDE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const GUIDE_ID_MAX = 64;
+
 export const GUIDE_LANGS = ['vi', 'en'] as const;
 export type GuideLang = (typeof GUIDE_LANGS)[number];
 
@@ -72,8 +76,16 @@ export interface GuideFile {
   portals?: { name: string; url: string; account: string; purpose: string }[];
 }
 
-/** What a guide page shows besides the fields stored in their own columns. */
-export type GuideContent = Omit<
-  GuideFile,
-  'id' | 'lang' | 'status' | 'version' | 'changeNote' | 'lastChecked' | 'group' | 'title' | 'keywords'
->;
+/** One text of one guide, as the seed and its messages name it: `register-courses.vi`. */
+export const textKey = (text: { id: string; lang: string }): string => `${text.id}.${text.lang}`;
+
+// The fields stored in their own guide_texts columns (guide-text.entity.ts).
+const COLUMN_FIELDS = ['id', 'lang', 'status', 'version', 'changeNote', 'lastChecked', 'group', 'title', 'keywords'] as const;
+
+/** What a guide page shows besides the fields stored in their own columns: the `content` column. */
+export type GuideContent = Omit<GuideFile, (typeof COLUMN_FIELDS)[number]>;
+
+export function contentOf(file: GuideFile): GuideContent {
+  const columns: readonly string[] = COLUMN_FIELDS;
+  return Object.fromEntries(Object.entries(file).filter(([field]) => !columns.includes(field))) as GuideContent;
+}
