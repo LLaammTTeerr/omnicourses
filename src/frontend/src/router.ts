@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw, type RouterScrollBehavior } from 'vue-router';
-import GuideView from './views/GuideView.vue';
-import GuidesView from './views/GuidesView.vue';
+import GuideView from './guides/GuideView.vue';
+import GuidesView from './guides/GuidesView.vue';
 import HomeView from './views/HomeView.vue';
 
 export const routes: RouteRecordRaw[] = [

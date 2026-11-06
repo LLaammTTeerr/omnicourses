@@ -1,4 +1,4 @@
-import type { GuideListItem } from '../guides-api.js';
+import type { GuideListItem } from './api.js';
 
 /** Text as search compares it: no diacritics, đ as d, lower case, single spaces (UC-10 step 3). */
 export function fold(text: string): string {

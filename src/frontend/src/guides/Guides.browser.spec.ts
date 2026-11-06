@@ -4,10 +4,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { page } from 'vitest/browser';
 import type { Component } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import type { Guide, GuideListItem, GuideText } from '../guides-api.js';
 import { routes } from '../router.js';
-import GuidesView from './GuidesView.vue';
 import GuideView from './GuideView.vue';
+import GuidesView from './GuidesView.vue';
+import type { Guide, GuideListItem, GuideText } from './api.js';
 
 // Long words and addresses with no break opportunity (no space, hyphen or slash inside):
 // the content most likely to push a narrow page sideways (A11Y-01c).

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
-import ContentLink from '../guides/ContentLink.vue';
-import { GUIDE_MESSAGES } from '../guides/messages.js';
-import { pickText } from '../guides/pick-text.js';
-import { fetchGuide, GuideNotFoundError, type Guide } from '../guides-api.js';
 import { formatDate, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
+import ContentLink from './ContentLink.vue';
+import { fetchGuide, GuideNotFoundError, type Guide } from './api.js';
+import { GUIDE_MESSAGES } from './messages.js';
+import { pickText } from './pick-text.js';
 
 // UC-10 steps 4–6, A5 and A8: one guide, signed in or not. B1 guides have no personal parts.
 const props = defineProps<{ id: string; load?: (id: string) => Promise<Guide> }>();

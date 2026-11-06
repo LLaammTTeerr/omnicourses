@@ -3,10 +3,10 @@ import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
-import { GuideNotFoundError, type Guide, type GuideText } from '../guides-api.js';
 import { useLocale } from '../locale.js';
 import { routes } from '../router.js';
 import GuideView from './GuideView.vue';
+import { GuideNotFoundError, type Guide, type GuideText } from './api.js';
 
 const text = (lang: 'vi' | 'en', extra: Partial<GuideText> = {}): GuideText => ({
   title: lang === 'vi' ? 'Hướng dẫn thử' : 'Test guide',

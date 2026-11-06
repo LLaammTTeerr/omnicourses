@@ -3,10 +3,10 @@ import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import type { GuideListItem, GuideListText } from '../guides-api.js';
 import { useLocale } from '../locale.js';
 import { routes } from '../router.js';
 import GuidesView from './GuidesView.vue';
+import type { GuideListItem, GuideListText } from './api.js';
 
 const text = (title: string, keywords: string[], extra: Partial<GuideListText> = {}): GuideListText => ({
   title,
