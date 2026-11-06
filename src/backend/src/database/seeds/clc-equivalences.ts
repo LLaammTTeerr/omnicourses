@@ -9,13 +9,8 @@
 // curriculum seeds. In the HP03 column the scan renders the digit 1 like a
 // lower-case l (CSCl0009); every such code is written with 1.
 
-import type { EquivalenceCourse, EquivalenceList, EquivalenceRow } from './seed-types.js';
-import { COURSE_CODE_PATTERN, normalizeCourseCode } from './catalog.js';
-
-const c = (code_printed: string, name: string, credits: number | null): EquivalenceCourse => {
-  const code = normalizeCourseCode(code_printed);
-  return { code: COURSE_CODE_PATTERN.test(code) ? code : null, code_printed, name, credits };
-};
+import { equivalenceCourse as c } from './rows.js';
+import type { EquivalenceList, EquivalenceRow } from './seed-types.js';
 
 type Course = [code: string, name: string, credits: number | null];
 
