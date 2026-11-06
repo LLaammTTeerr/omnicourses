@@ -16,18 +16,18 @@ export function loadEnvFiles(): void {
 // A blank, non-numeric, zero or negative value falls back to the default:
 // '' would otherwise read as 0 and a typo as NaN, and both silently change
 // behaviour (a 0 ms timeout, a cap that never triggers, a 0-day grace period).
-export function positiveInt(value: string | undefined, fallback: number): number {
+function positiveInt(value: string | undefined, fallback: number): number {
   const n = Number(value?.trim() || NaN);
   return Number.isInteger(n) && n > 0 ? n : fallback;
 }
 
-export const port = (): number => Number(process.env.PORT ?? 3000);
+export const port = (): number => positiveInt(process.env.PORT, 3000);
 
 export const corsOrigin = (): string => process.env.CORS_ORIGIN ?? 'http://localhost:5173';
 
 export const databaseUrl = (): string | undefined => process.env.DATABASE_URL;
 
-export const sessionTtlDays = (): number => Number(process.env.SESSION_TTL_DAYS ?? 7);
+export const sessionTtlDays = (): number => positiveInt(process.env.SESSION_TTL_DAYS, 7);
 
 export const accountDeletionGraceDays = (): number => positiveInt(process.env.ACCOUNT_DELETION_GRACE_DAYS, 30);
 

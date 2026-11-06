@@ -1,6 +1,6 @@
 import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService, hashToken } from './auth.service.js';
@@ -85,6 +85,31 @@ describe('AuthService', () => {
       await expect(
         service.signUp({ email: 'student@example.com', password: 'correct horse battery', displayName: 'X', acceptedTerms: true }),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('session lifetime', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    const issuedFor = async (ttlDays: string): Promise<number> => {
+      vi.stubEnv('SESSION_TTL_DAYS', ttlDays);
+      const before = Date.now();
+      const { expiresAt } = await new AuthService(sessions as never, users as unknown as UsersService).signUp(
+        { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
+      );
+      return expiresAt.getTime() - before;
+    };
+
+    it('lasts SESSION_TTL_DAYS days', async () => {
+      expect(await issuedFor('3')).toBeGreaterThanOrEqual(3 * DAY);
+      expect(await issuedFor('3')).toBeLessThan(3 * DAY + 1000);
+    });
+
+    // Issue #37: a blank value read as 0, so every token expired as it was issued.
+    it.each(['', ' ', 'abc', '0'])('lasts 7 days when SESSION_TTL_DAYS is %j', async (value) => {
+      const lifetime = await issuedFor(value);
+      expect(lifetime).toBeGreaterThanOrEqual(7 * DAY);
+      expect(lifetime).toBeLessThan(7 * DAY + 1000);
     });
   });
 

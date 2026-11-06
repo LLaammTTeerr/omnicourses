@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountDeletionGraceDays, aiConfig, loadEnvFiles } from './env.js';
+import { accountDeletionGraceDays, aiConfig, loadEnvFiles, port } from './env.js';
 
 describe('loadEnvFiles', () => {
   const cwd = process.cwd();
@@ -38,16 +38,20 @@ describe('settings', () => {
     vi.stubEnv('AI_TIMEOUT_MS', '5000');
     vi.stubEnv('AI_DAILY_CALLS_PER_USER', '3');
     vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '7');
+    vi.stubEnv('PORT', '4000');
     expect(aiConfig()).toMatchObject({ timeoutMs: 5000, dailyCallsPerUser: 3 });
     expect(accountDeletionGraceDays()).toBe(7);
+    expect(port()).toBe(4000);
   });
 
-  // '' would read as 0 (a 0 ms timeout, purge at once) and a typo as NaN (a cap that never triggers).
+  // '' would read as 0 (a 0 ms timeout, purge at once, a random port) and a typo as NaN (a cap that never triggers).
   it.each(['', ' ', 'abc', '0', '-1', '1.5'])('falls back to the defaults when a number is %j', (value) => {
     vi.stubEnv('AI_TIMEOUT_MS', value);
     vi.stubEnv('AI_DAILY_CALLS_PER_USER', value);
     vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', value);
+    vi.stubEnv('PORT', value);
     expect(aiConfig()).toMatchObject({ timeoutMs: 30_000, dailyCallsPerUser: 20 });
     expect(accountDeletionGraceDays()).toBe(30);
+    expect(port()).toBe(3000);
   });
 });
