@@ -1,6 +1,4 @@
-import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -8,8 +6,8 @@ import { AiCostGuard } from '../src/ai/ai-cost-guard.service.js';
 import { AiUnavailableError } from '../src/ai/ai-unavailable.error.js';
 import { AiUsage } from '../src/ai/ai-usage.entity.js';
 import { LlmService } from '../src/ai/llm.service.js';
-import { AppModule } from '../src/app.module.js';
-import { UsersService } from '../src/users/users.service.js';
+import { bootApp } from './support/app.js';
+import { storedUser } from './support/users.js';
 
 // The gateway against PostgreSQL, with no OpenRouter key: the usage table, the
 // daily cap under concurrency and the "AI is not configured" path. No model is
@@ -18,22 +16,12 @@ describe('AI gateway against PostgreSQL (e2e)', () => {
   let app: INestApplication;
   let userId: string;
 
-  async function createUser(): Promise<string> {
-    const user = await app
-      .get(UsersService)
-      .create({ email: `ai-${randomUUID()}@example.com`, passwordHash: 'not-a-real-hash', displayName: 'Test Student', consentAt: new Date() });
-    return user.id;
-  }
-
   beforeAll(async () => {
     vi.stubEnv('OPENROUTER_API_KEY', '');
     vi.stubEnv('AI_MODEL_STRUCTURED', 'any-model');
     vi.stubEnv('AI_DAILY_CALLS_PER_USER', '2');
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    await app.get(DataSource).runMigrations({ transaction: 'each' });
-    await app.init();
-    userId = await createUser();
+    app = await bootApp();
+    userId = await storedUser(app);
   });
 
   afterAll(async () => {
@@ -64,7 +52,7 @@ describe('AI gateway against PostgreSQL (e2e)', () => {
 
   it('lets exactly the cap through when calls arrive in parallel', async () => {
     const guard = app.get(AiCostGuard, { strict: false });
-    const parallelUser = await createUser();
+    const parallelUser = await storedUser(app);
     const results = await Promise.allSettled(Array.from({ length: 5 }, () => guard.reserve({ userId: parallelUser, feature: 'e2e' }, 'any-model')));
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
     for (const r of results.filter((r) => r.status === 'rejected')) {

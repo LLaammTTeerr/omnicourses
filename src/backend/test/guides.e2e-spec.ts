@@ -1,17 +1,14 @@
-import { randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from '../src/app.module.js';
-import { hashToken } from '../src/auth/auth.service.js';
-import { configureApp } from '../src/bootstrap.js';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
 import { GUIDES_CLOCK } from '../src/guides/guides.service.js';
 import { vietnamDate } from '../src/guides/out-of-date.js';
 import { seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
+import { bootApp } from './support/app.js';
+import { signedInUser } from './support/users.js';
 
 // 12:00 on 13 November 2026 in Vietnam, the run day of GUIDE-01j.
 const NOW = new Date('2026-11-13T05:00:00Z');
@@ -35,15 +32,8 @@ describe('Guides API (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(GUIDES_CLOCK)
-      .useValue(() => NOW)
-      .compile();
-    app = moduleRef.createNestApplication();
-    configureApp(app);
+    app = await bootApp((builder) => builder.overrideProvider(GUIDES_CLOCK).useValue(() => NOW));
     db = app.get(DataSource);
-    await db.runMigrations({ transaction: 'each' });
-    await app.init();
     await seedGuides(db, [...GUIDE_FILES, ...guideFixtures(TODAY)]);
   });
 
@@ -114,13 +104,7 @@ describe('Guides API (e2e)', () => {
   });
 
   it('gives a signed-in reader exactly what a signed-out reader gets (GUIDE-01l)', async () => {
-    const [{ id }] = await db.query(
-      `INSERT INTO users (email, password_hash, display_name, consent_at) VALUES ($1, 'not-a-real-hash', 'Test Student', now()) RETURNING id`,
-      [`guides-${randomUUID()}@example.com`],
-    );
-    const token = randomBytes(32).toString('base64url');
-    await db.query(`INSERT INTO sessions (user_id, token_hash, expires_at) VALUES ($1, $2, now() + interval '1 day')`, [id, hashToken(token)]);
-
+    const { token } = await signedInUser(app);
     expect(await listed(token)).toEqual(await listed());
     const signedIn = await http().get('/api/guides/zz-fresh').set('Authorization', `Bearer ${token}`).expect(200);
     const signedOut = await http().get('/api/guides/zz-fresh').expect(200);

@@ -1,19 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findUserTables, isSecretColumn } from '../src/account/account-export.js';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/bootstrap.js';
+import { bootApp } from './support/app.js';
+import { PASSWORD as password, signedInUser, storedUser } from './support/users.js';
 import { ownedButNotExported, purgeBlockers, wrongDeleteRuleToUsers } from './user-table-rules.js';
-
-// The 10/min password budget is per IP and per route: this file uses sign-in ×5,
-// delete ×4, sign-up ×1. It runs in its own app, so auth.e2e-spec's budget is separate.
-const email = `account-${randomUUID()}@example.com`;
-const password = 'correct horse battery';
 
 function allKeys(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(allKeys);
@@ -26,18 +20,13 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   let db: DataSource;
   let token: string;
   let userId: string;
+  let email: string;
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    configureApp(app);
+    app = await bootApp();
     db = app.get(DataSource);
-    await db.runMigrations({ transaction: 'each' });
-    await app.init();
-    const res = await http().post('/api/auth/sign-up').send({ email, password, displayName: 'Test Student', acceptedTerms: true }).expect(201);
-    token = res.body.token;
-    userId = res.body.user.id;
+    ({ token, userId, email } = await signedInUser(app));
   });
 
   afterAll(async () => {
@@ -128,10 +117,7 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
 
   // Lâm's decision: a row that references the student but belongs to someone else is theirs, not exported.
   it('exports only the rows the student owns (user_id), not rows that merely reference them', async () => {
-    const [other] = await db.query(
-      `INSERT INTO users (email, password_hash, display_name, consent_at) VALUES ($1, 'not-a-real-hash', 'Other Student', now()) RETURNING id`,
-      [`account-other-${randomUUID()}@example.com`],
-    );
+    const other = { id: await storedUser(app) };
     // Committed, so the request's own connection sees it; dropped in finally.
     await db.query(`CREATE TABLE zz_shares (
       user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -214,11 +200,8 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
 
   it('purges only the accounts whose deadline has passed, with their rows', async () => {
     // A second account, deletion requested but still inside its grace period: it must survive.
-    const [waiting] = await db.query(
-      `INSERT INTO users (email, password_hash, display_name, consent_at, deletion_requested_at, purge_after)
-       VALUES ($1, 'not-a-real-hash', 'Waiting Student', now(), now(), now() + interval '1 day') RETURNING id`,
-      [`account-waiting-${randomUUID()}@example.com`],
-    );
+    const waiting = { id: await storedUser(app) };
+    await db.query(`UPDATE users SET deletion_requested_at = now(), purge_after = now() + interval '1 day' WHERE id = $1`, [waiting.id]);
     try {
       await app.get(AccountPurgeService, { strict: false }).purge();
       expect(await db.query('SELECT 1 FROM users WHERE id = $1', [userId])).toEqual([]);

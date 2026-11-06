@@ -1,28 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/bootstrap.js';
+import { bootApp } from './support/app.js';
+import { PASSWORD as password } from './support/users.js';
 
-// Calls to sign-up/sign-in here share the 10/min PASSWORD_LIMIT (auth.controller.ts);
-// at about 7 today. Adding more password calls may need a second describe with its own app.
 // Synthetic, unique per run, so reruns against the same database never collide.
 const email = `student-${randomUUID()}@example.com`;
-const password = 'correct horse battery';
 
 describe('Auth against PostgreSQL (e2e)', () => {
   let app: INestApplication;
   const http = () => request(app.getHttpServer());
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    configureApp(app);
-    await app.get(DataSource).runMigrations({ transaction: 'each' });
-    await app.init();
+    app = await bootApp();
   });
 
   afterAll(async () => {

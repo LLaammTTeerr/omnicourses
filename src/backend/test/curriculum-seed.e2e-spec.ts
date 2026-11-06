@@ -1,15 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DataSource } from 'typeorm';
-import { dataSourceOptions } from '../src/database/data-source.js';
 import { CatalogConflictError } from '../src/database/seeds/catalog.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
 import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
-
-const databaseUrl = process.env.DATABASE_URL;
-
-// Other e2e files share the database and leave curriculum rows behind, so this
-// file migrates and seeds a schema of its own, then drops it.
-const schema = `seed_e2e_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+import { privateSchema } from './support/schema.js';
 
 const TABLES = ['programs', 'curriculums', 'requirement_groups', 'courses', 'requirement_group_courses'] as const;
 
@@ -21,28 +15,18 @@ async function counts(dataSource: DataSource): Promise<Record<string, number>> {
   return result;
 }
 
-describe.skipIf(!databaseUrl)('db:seed', () => {
-  let admin: DataSource;
+// Other e2e files share the database and leave curriculum rows behind.
+describe('db:seed', () => {
+  let schema: string;
   let dataSource: DataSource;
+  let drop: (() => Promise<void>) | undefined;
 
   beforeAll(async () => {
-    admin = new DataSource({ ...dataSourceOptions, url: databaseUrl });
-    await admin.initialize();
-    await admin.query(`CREATE SCHEMA "${schema}"`);
-    dataSource = new DataSource({
-      ...dataSourceOptions,
-      url: databaseUrl,
-      schema,
-      extra: { options: `-c search_path=${schema}` },
-    });
-    await dataSource.initialize();
-    await dataSource.runMigrations({ transaction: 'each' });
+    ({ schema, dataSource, drop } = await privateSchema('seed_e2e'));
   });
 
   afterAll(async () => {
-    await dataSource?.destroy();
-    await admin?.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-    await admin?.destroy();
+    await drop?.();
   });
 
   it('migrates into its own empty schema', async () => {
