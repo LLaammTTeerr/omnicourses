@@ -2,9 +2,10 @@
 // passed since a team member last checked it on the portal. Proposed in UC-10, to be
 // confirmed by Lâm (B1 test cases §6 item 8): a different rule changes this file only.
 
+import { DAY_MS } from '../config/time.js';
+
 export const OUT_OF_DATE_MONTHS = 6;
 
-const DAY_MS = 86_400_000;
 // Vietnam is UTC+7 all year: no daylight saving.
 const VIETNAM_OFFSET_MS = 7 * 3_600_000;
 

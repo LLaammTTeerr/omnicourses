@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findUserTables, isSecretColumn } from '../src/account/account-export.js';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
+import { DAY_MS } from '../src/config/time.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser, storedUser } from './support/users.js';
 import { ownedButNotExported, purgeBlockers, wrongDeleteRuleToUsers } from './user-table-rules.js';
@@ -159,7 +160,7 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
 
   it('schedules deletion, signs out everywhere, and a sign-in within the grace period restores the account', async () => {
     const res = await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
-    expect(new Date(res.body.purgeAfter).getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000);
+    expect(new Date(res.body.purgeAfter).getTime()).toBeGreaterThan(Date.now() + 29 * DAY_MS);
     await http().get('/api/users/me').set('Authorization', `Bearer ${token}`).expect(401);
 
     const signIn = await http().post('/api/auth/sign-in').send({ email, password }).expect(200);

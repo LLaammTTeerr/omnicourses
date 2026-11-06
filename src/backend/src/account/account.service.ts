@@ -2,12 +2,11 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuthService } from '../auth/auth.service.js';
 import { accountDeletionGraceDays } from '../config/env.js';
+import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { findUserColumns, findUserTables, selectList } from './account-export.js';
 import { AccountExportDto, DeletionScheduledDto } from './account.dto.js';
-
-const DAY_MS = 86_400_000;
 
 // Privacy NFR (Vision §6, Luật 91/2025/QH15): export and delete a whole account. ADR 0004.
 @Injectable()

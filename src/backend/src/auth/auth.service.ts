@@ -4,13 +4,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
 import { EntityManager, IsNull, MoreThan, Repository } from 'typeorm';
 import { sessionTtlDays } from '../config/env.js';
+import { DAY_MS } from '../config/time.js';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { Session } from './session.entity.js';
-
-const DAY_MS = 86_400_000;
 
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 

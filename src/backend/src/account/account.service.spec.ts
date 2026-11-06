@@ -1,11 +1,11 @@
 import { ForbiddenException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { isSecretColumn } from './account-export.js';
 import { AccountPurgeService } from './account-purge.service.js';
 import { AccountService } from './account.service.js';
 
-const DAY = 86_400_000;
 const user = { id: 'u1', passwordHash: 'h' } as User;
 
 describe('secret columns', () => {
@@ -97,10 +97,10 @@ describe('AccountService', () => {
     // The deadline promised to the student is stored, so a later change of the setting can't move it.
     const [, requestedAt, storedPurgeAfter] = users.requestDeletion.mock.calls[0]!;
     expect(storedPurgeAfter).toEqual(purgeAfter);
-    expect(purgeAfter.getTime() - requestedAt.getTime()).toBe(30 * DAY);
+    expect(purgeAfter.getTime() - requestedAt.getTime()).toBe(30 * DAY_MS);
     expect(auth.revokeAll).toHaveBeenCalledWith('u1', tx);
-    expect(purgeAfter.getTime() - before).toBeGreaterThanOrEqual(30 * DAY);
-    expect(purgeAfter.getTime() - before).toBeLessThan(30 * DAY + 1000);
+    expect(purgeAfter.getTime() - before).toBeGreaterThanOrEqual(30 * DAY_MS);
+    expect(purgeAfter.getTime() - before).toBeLessThan(30 * DAY_MS + 1000);
   });
 
   // If revoking failed after the request was saved, the client got a 500 for a
