@@ -38,7 +38,6 @@ export async function seedCurricula(
     if (rows.length) report.inserted[table]++;
     else report.skipped[table]++;
   };
-  /** Inserts the row unless it exists (the insert returns nothing then), and returns its id either way. */
   const insertOrFind = async (em: EntityManager, table: SeededTable, insert: [string, unknown[]], find: [string, unknown[]]): Promise<string> => {
     count(table, await em.query(...insert));
     return (await em.query(...find))[0].id as string;

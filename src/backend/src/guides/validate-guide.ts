@@ -18,7 +18,6 @@ const APP_PATH = /^\/(?![/\\])[^\s\\]*$/;
 const isSafeUrl = (url: string) => HTTPS_URL.test(url) || APP_PATH.test(url);
 const isRealDate = (date: string) =>
   ISO_DATE.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().startsWith(date);
-/** `a, b or c` */
 const oneOf = (values: readonly string[]) => `${values.slice(0, -1).join(', ')} or ${values.at(-1)}`;
 
 /** The problems with one content file; empty when the seed may load it. A draft only needs its identity and safe links. */
