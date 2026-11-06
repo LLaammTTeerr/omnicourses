@@ -1,47 +1,27 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useAsyncLoad } from '../async-load.js';
 import { formatDate, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import ContentLink from './ContentLink.vue';
-import { fetchGuide, GuideNotFoundError, type Guide } from './api.js';
+import { fetchGuide, type Guide } from './api.js';
+import LoadFailed from './LoadFailed.vue';
 import { GUIDE_MESSAGES } from './messages.js';
 import { pickText } from './pick-text.js';
 
 // UC-10 steps 4–6, A5 and A8: one guide, signed in or not. B1 guides have no personal parts.
-const props = defineProps<{ id: string; load?: (id: string) => Promise<Guide> }>();
+const props = defineProps<{ id: string; load?: (id: string) => Promise<Guide | null> }>();
 const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
 
-const guide = ref<Guide | null>(null);
-const notFound = ref(false);
-// A failed load shows a plain sentence; the details go to the console.
-const failed = ref(false);
-
-async function load(): Promise<void> {
-  const id = props.id;
-  guide.value = null;
-  notFound.value = false;
-  failed.value = false;
-  try {
-    const loaded = await (props.load ?? fetchGuide)(id);
-    if (props.id === id) guide.value = loaded;
-  } catch (e) {
-    if (props.id !== id) return;
-    if (e instanceof GuideNotFoundError) notFound.value = true;
-    else {
-      console.error('Loading the guide failed:', e);
-      failed.value = true;
-    }
-  }
-}
-watch(() => props.id, load, { immediate: true });
+const { status, data: guide, reload } = useAsyncLoad('the guide', () => (props.load ?? fetchGuide)(props.id), () => props.id);
 
 const picked = computed(() => (guide.value ? pickText(guide.value.texts, locale.lang) : null));
 const t = computed(() => picked.value?.text ?? null);
 // The guide's language on its text when it differs from the screen's (A8).
 const textLang = computed(() => (picked.value?.fallback ? picked.value.lang : undefined));
-const missing = computed(() => notFound.value || (guide.value !== null && picked.value === null));
+const missing = computed(() => status.value === 'loaded' && picked.value === null);
 const date = (iso: string) => formatDate(iso, locale.lang);
 const host = (url: string) => new URL(url).host;
 
@@ -49,7 +29,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
 </script>
 
 <template>
-  <section class="guide-page" :aria-busy="t === null && !missing && !failed">
+  <section class="guide-page" :aria-busy="status === 'loading'">
     <p class="crumbs">
       <RouterLink :to="{ name: 'guides' }">{{ m.guides }}</RouterLink>
       <template v-if="guide && t"> / {{ m.groups[guide.group] }}</template>
@@ -60,9 +40,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
       <p>{{ m.notFoundText }}</p>
       <RouterLink :to="{ name: 'guides' }">{{ m.allGuides }}</RouterLink>
     </div>
-    <p v-else-if="failed" role="alert">
-      {{ m.loadFailed }} <button type="button" @click="load">{{ m.retry }}</button>
-    </p>
+    <LoadFailed v-else-if="status === 'failed'" @retry="reload" />
     <p v-else-if="t === null">{{ m.loading }}</p>
 
     <article v-else class="guide">

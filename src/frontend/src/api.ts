@@ -6,8 +6,23 @@ export interface Health {
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
 
-export async function fetchHealth(): Promise<Health> {
-  const res = await fetch(`${API_URL}/health`);
-  if (!res.ok) throw new Error(`GET /health failed: ${res.status}`);
-  return res.json() as Promise<Health>;
+export class HttpError extends Error {
+  constructor(
+    path: string,
+    readonly status: number,
+  ) {
+    super(`GET ${path} failed: ${status}`);
+    this.name = 'HttpError';
+  }
+}
+
+/** GETs an API path such as /health and parses the JSON body. */
+export async function getJson<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`);
+  if (!res.ok) throw new HttpError(path, res.status);
+  return res.json() as Promise<T>;
+}
+
+export function fetchHealth(): Promise<Health> {
+  return getJson<Health>('/health');
 }

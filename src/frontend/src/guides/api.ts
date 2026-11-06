@@ -1,4 +1,4 @@
-import { API_URL } from '../api.js';
+import { getJson, HttpError } from '../api.js';
 
 // Guides plan §2, in the order the guides page lists them.
 export const GUIDE_GROUPS = [
@@ -69,23 +69,17 @@ export interface Guide {
   texts: GuideTexts<GuideText>;
 }
 
-export class GuideNotFoundError extends Error {
-  constructor(id: string) {
-    super(`No guide ${id}`);
-    this.name = 'GuideNotFoundError';
-  }
-}
-
 /** Every published guide (ADR 0010: no sign-in, so no token is sent). */
 export async function fetchGuides(): Promise<GuideListItem[]> {
-  const res = await fetch(`${API_URL}/guides`);
-  if (!res.ok) throw new Error(`GET /guides failed: ${res.status}`);
-  return ((await res.json()) as { guides: GuideListItem[] }).guides;
+  return (await getJson<{ guides: GuideListItem[] }>('/guides')).guides;
 }
 
-export async function fetchGuide(id: string): Promise<Guide> {
-  const res = await fetch(`${API_URL}/guides/${encodeURIComponent(id)}`);
-  if (res.status === 404) throw new GuideNotFoundError(id);
-  if (!res.ok) throw new Error(`GET /guides/${id} failed: ${res.status}`);
-  return (await res.json()) as Guide;
+/** The published guide with this id, or null when there is none. */
+export async function fetchGuide(id: string): Promise<Guide | null> {
+  try {
+    return await getJson<Guide>(`/guides/${encodeURIComponent(id)}`);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 404) return null;
+    throw e;
+  }
 }

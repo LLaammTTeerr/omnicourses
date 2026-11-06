@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useAsyncLoad } from '../async-load.js';
 import { formatDate, LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import { fetchGuides, GUIDE_GROUPS, type GuideGroup, type GuideListItem } from './api.js';
+import LoadFailed from './LoadFailed.vue';
 import { GUIDE_MESSAGES } from './messages.js';
 import { pickText } from './pick-text.js';
 import { matches } from './search.js';
@@ -13,21 +15,8 @@ const props = defineProps<{ load?: () => Promise<GuideListItem[]> }>();
 const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
 
-const guides = ref<GuideListItem[] | null>(null);
-// A failed load shows a plain sentence; the details go to the console.
-const failed = ref(false);
+const { status, data: guides, reload } = useAsyncLoad('the guides', () => (props.load ?? fetchGuides)());
 const query = ref('');
-
-async function load(): Promise<void> {
-  failed.value = false;
-  try {
-    guides.value = await (props.load ?? fetchGuides)();
-  } catch (e) {
-    console.error('Loading the guides failed:', e);
-    failed.value = true;
-  }
-}
-onMounted(load);
 
 // The guides that match, under their task group in plan order, each in the screen language where written.
 const sections = computed(() => {
@@ -57,7 +46,7 @@ usePageTitle(() => m.value.listTitle);
 </script>
 
 <template>
-  <section class="guides" :aria-busy="guides === null && !failed">
+  <section class="guides" :aria-busy="status === 'loading'">
     <h1>{{ m.listTitle }}</h1>
     <p class="intro">{{ m.listIntro }}</p>
     <p class="note">{{ m.noPortalAccess }}</p>
@@ -77,9 +66,7 @@ usePageTitle(() => m.value.listTitle);
     </div>
 
     <div id="guide-results">
-      <p v-if="failed" role="alert">
-        {{ m.loadFailed }} <button type="button" @click="load">{{ m.retry }}</button>
-      </p>
+      <LoadFailed v-if="status === 'failed'" @retry="reload" />
       <p v-else-if="guides === null">{{ m.loading }}</p>
       <p v-else-if="guides.length === 0">{{ m.noGuides }}</p>
       <div v-else-if="sections.length === 0" class="card" role="status" data-test="no-match">
