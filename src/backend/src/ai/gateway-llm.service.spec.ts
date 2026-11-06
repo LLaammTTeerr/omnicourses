@@ -114,6 +114,14 @@ describe('GatewayLlmService', () => {
       expect(guard.finish).not.toHaveBeenCalled();
     });
 
+    it('keeps the call when the retry is refused, since the first reply was billed even with no usage reported', async () => {
+      vi.spyOn(model, 'complete').mockResolvedValueOnce({ content: 'not json', usage: { inputTokens: 0, outputTokens: 0 } });
+      model.completions = [new AiUnavailableError('AI credit is used up', { billed: false })];
+      await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('AI credit is used up', { billed: false }));
+      expect(guard.release).not.toHaveBeenCalled();
+      expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ succeeded: false }));
+    });
+
     it('keeps the reserved call when the provider may have billed it (a timeout)', async () => {
       model.completions = [new AiUnavailableError('The AI provider timed out')];
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('The AI provider timed out'));

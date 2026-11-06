@@ -10,7 +10,10 @@ import { ModelClient, ModelMessage, ModelStreamEvent, ModelToolCall, ModelUsage 
 
 const DEFAULT_MAX_STEPS = 5;
 
-/** What the gateway needs of the cost guard; the live test passes one that never caps. */
+/**
+ * What the gateway needs of the cost guard; the live test passes one that never caps.
+ * `finish` and `release` must never throw: the gateway does not catch them.
+ */
 export type CostGuard = Pick<AiCostGuard, 'reserve' | 'finish' | 'release'>;
 
 /** The JSON Schema sent to the model; `$schema` is dropped because some providers reject it. */
