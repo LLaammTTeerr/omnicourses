@@ -6,7 +6,7 @@ import { CreateTranscriptRows1793159431000 } from './1793159431000-create-transc
 import { CreateGuides1793872582380 } from './1793872582380-create-guides.js';
 
 // Imported classes, not a glob: globs break between ts (tests) and compiled js
-// (dist), and a missing import fails typecheck (ADR 0002).
+// (dist) (ADR 0002). A migration left out of this list never runs.
 export const MIGRATIONS = [
   CreateUsersAndSessions1761696000000,
   CreateAiUsage1792800000000,

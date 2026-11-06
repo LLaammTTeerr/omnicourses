@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { databaseUrl, loadEnvFiles } from '../config/env.js';
+import { databaseUrl, loadEnvFiles, nodeEnv } from '../config/env.js';
 import { vietnamDate } from '../guides/out-of-date.js';
 import { guideSeedFiles } from '../guides/seed-files.js';
 import { seedGuides } from '../guides/seed-guides.js';
@@ -16,7 +16,7 @@ async function main(): Promise<void> {
   loadEnvFiles();
   const fixtures = process.argv.includes('--guide-fixtures');
   // Checked before connecting, so a refused run changes nothing.
-  const files = guideSeedFiles({ fixtures, nodeEnv: process.env.NODE_ENV, today: vietnamDate(new Date()) });
+  const files = guideSeedFiles({ fixtures, nodeEnv: nodeEnv(), today: vietnamDate(new Date()) });
   const dataSource = new DataSource({ ...dataSourceOptions, url: databaseUrl() });
   await dataSource.initialize();
   try {

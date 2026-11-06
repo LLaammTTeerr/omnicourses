@@ -7,6 +7,7 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  // Stored lowercased; a CHECK constraint in the migration enforces it.
   @Column({ type: 'varchar', length: 254 })
   email!: string;
 

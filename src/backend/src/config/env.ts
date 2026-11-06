@@ -27,6 +27,8 @@ export const corsOrigin = (): string => process.env.CORS_ORIGIN ?? 'http://local
 
 export const databaseUrl = (): string | undefined => process.env.DATABASE_URL;
 
+export const nodeEnv = (): string | undefined => process.env.NODE_ENV;
+
 export const sessionTtlDays = (): number => positiveInt(process.env.SESSION_TTL_DAYS, 7);
 
 export const accountDeletionGraceDays = (): number => positiveInt(process.env.ACCOUNT_DELETION_GRACE_DAYS, 30);
