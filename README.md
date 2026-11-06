@@ -39,7 +39,7 @@ Documents are written in Markdown and exported to .docx only for submission.
 
 ## Run it locally
 
-Requirements: Node 22.12+, npm 11 (`npm i -g npm@11`), and Podman or Docker.
+Requirements: Node 22.22.1 (`.nvmrc`), npm 11 (`npm i -g npm@11`), and Podman or Docker.
 
 ```bash
 cp .env.example .env
