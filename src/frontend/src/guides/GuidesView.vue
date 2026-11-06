@@ -165,12 +165,6 @@ h1 {
   flex-wrap: wrap;
   gap: 8px;
 }
-.card {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 12px 16px;
-}
 .entry {
   display: grid;
   gap: 6px;
@@ -179,7 +173,7 @@ h1 {
 .title {
   font-weight: 600;
   font-size: 1.05rem;
-  color: #0b4f9c;
+  color: var(--accent);
 }
 .meta {
   margin: 0;
@@ -210,11 +204,6 @@ h1 {
 }
 .portal {
   justify-self: start;
-  color: #0b4f9c;
-}
-button {
-  font: inherit;
-  padding: 6px 12px;
-  cursor: pointer;
+  color: var(--accent);
 }
 </style>

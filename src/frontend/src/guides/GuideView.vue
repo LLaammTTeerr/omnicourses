@@ -195,12 +195,6 @@ h3 {
   gap: 16px;
   min-width: 0;
 }
-.card {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 12px 16px;
-}
 .card > p,
 .note p {
   margin: 0 0 8px;
@@ -254,7 +248,7 @@ h3 {
   display: inline-block;
   padding: 8px 14px;
   border-radius: 6px;
-  background: #0b4f9c;
+  background: var(--accent);
   color: #fff;
   text-decoration: none;
   font-weight: 600;
@@ -271,10 +265,5 @@ p,
 li,
 h1 {
   overflow-wrap: anywhere;
-}
-button {
-  font: inherit;
-  padding: 6px 12px;
-  cursor: pointer;
 }
 </style>

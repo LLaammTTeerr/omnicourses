@@ -1,3 +1,4 @@
+import './styles.css';
 import { createPinia } from 'pinia';
 import { createApp, type App as VueApp } from 'vue';
 import type { Router } from 'vue-router';
