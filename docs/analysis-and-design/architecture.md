@@ -31,12 +31,11 @@ C4Context
   UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 
   Person(reader, "Signed-out reader", "A student before signing up, or an advisor opening a shared plan link (F9, planned)")
-  Person(student, "Student", "Signed in. Owns their transcript and plans")
   Person(staff, "Program administrator, catalog maintainer or access manager", "Maintains curriculum data and grants (F12, planned)")
-  System_Ext(portals, "HCMUS portals", "Registration, grades, tuition. Linked only: never automated, no portal password stored")
-  System(omni, "OmniCourse", "Degree audit, curriculum explorer, plans, guides, AI goal box and advisor")
+  Person(student, "Student", "Signed in. Owns their transcript and plans")
   System_Ext(openrouter, "OpenRouter", "LLM provider. Used only by the F6 goal box and the F8 advisor (ADR 0003)")
-  System_Ext(gha, "GitHub Actions", "CI on every pull request; deploy workflow")
+  System(omni, "OmniCourse", "Degree audit, curriculum explorer, plans, guides, AI goal box and advisor")
+  System_Ext(portals, "HCMUS portals", "Registration, grades, tuition. Linked only: never automated, no portal password stored")
 
   Rel(reader, omni, "Reads guides, shared plans", "HTTPS")
   Rel(student, omni, "Audits, plans, asks", "HTTPS")
@@ -44,10 +43,11 @@ C4Context
   Rel(staff, omni, "Maintains curriculum", "HTTPS")
   Rel(omni, portals, "Links only", "hyperlink")
   Rel(omni, openrouter, "Goal box, advisor", "HTTPS")
-  Rel(gha, omni, "Tests, builds, deploys")
 
-  UpdateRelStyle(student, portals, $offsetX="-70", $offsetY="-10")
-  UpdateRelStyle(omni, openrouter, $offsetY="-25")
+  UpdateRelStyle(reader, omni, $offsetX="-150")
+  UpdateRelStyle(student, omni, $offsetX="30")
+  UpdateRelStyle(omni, openrouter, $offsetX="-50", $offsetY="-30")
+  UpdateRelStyle(omni, portals, $offsetX="-28", $offsetY="-30")
 
   UpdateElementStyle(staff, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
@@ -62,26 +62,26 @@ C4Context
 
 - **HCMUS portals.** OmniCourse only links to them. It never stores a portal password and never automates a registration (AGENTS.md hard rule 2). A [guide](../requirements/guides-plan.md) gives the link, the steps and the account the portal needs; the student does the task on the portal.
 - **OpenRouter** is the language-model provider, reached only through the AI gateway and only by F6's goal box and F8's advisor ([ADR 0003](adr/0003-language-model-scope.md)). Training opt-out and a monthly credit limit are set on the OpenRouter account. The model receives no name, email or student ID.
-- **GitHub Actions** runs CI on every pull request (typecheck, unit and e2e tests against PostgreSQL 18.6, browser tests, build, the OpenAPI export, and the signed-commit, Conventional Commits and changeset checks). The deploy workflow builds the artifacts and tags builds B0–B3; pushing them to a host waits for the staging host ([§7](#7-deployment-view)).
+- **GitHub Actions** runs CI on every pull request (typecheck, unit and e2e tests against PostgreSQL 18.6, browser tests, build, the OpenAPI export, and the signed-commit, Conventional Commits and changeset checks). The deploy workflow builds the artifacts and tags builds B0–B3; pushing them to a host waits for the staging host. It is not drawn in the context diagram because it builds and deploys OmniCourse rather than running with it ([§7](#7-deployment-view)).
 
 ## 3. L2 Containers
 
 ```mermaid
 C4Container
   title OmniCourse: containers
-  UpdateLayoutConfig($c4ShapeInRow="5", $c4BoundaryInRow="1")
+  UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")
 
-  Person(reader, "Signed-out reader")
-  Person(student, "Student")
   Person(staff, "Program administrator, catalog maintainer or access manager", "planned")
-  System_Ext(portals, "HCMUS portals", "Linked only")
+  Person(reader, "Signed-out reader")
   System_Ext(openrouter, "OpenRouter", "LLM provider")
+  Person(student, "Student")
+  System_Ext(portals, "HCMUS portals", "Linked only")
 
   System_Boundary(omni, "OmniCourse") {
-    Container(spa, "Single-page app", "Vue 3.5, Vite 8, Pinia, vue-router", "Every screen, in Vietnamese and English")
-    Container(api, "REST API", "NestJS 12, Node 22, TypeORM 1.1", "Business logic, rule engine, AI gateway. OpenAPI 3.2.0 at /api/docs")
-    ContainerDb(db, "Database", "PostgreSQL 18.6", "Users, sessions, transcripts, guides, curriculum, AI usage")
     Container(cli, "CLI jobs", "Node scripts in the API build", "db:migrate, db:seed; admin:bootstrap planned")
+    ContainerDb(db, "Database", "PostgreSQL 18.6", "Users, sessions, transcripts, guides, curriculum, AI usage")
+    Container(api, "REST API", "NestJS 12, Node 22, TypeORM 1.1", "Business logic, rule engine, AI gateway. OpenAPI 3.2.0 at /api/docs")
+    Container(spa, "Single-page app", "Vue 3.5, Vite 8, Pinia, vue-router", "Every screen, in Vietnamese and English")
   }
 
   Rel(reader, spa, "Uses", "HTTPS")
@@ -92,6 +92,13 @@ C4Container
   Rel(api, openrouter, "Model calls", "HTTPS")
   Rel(api, db, "Reads, writes", "SQL")
   Rel(cli, db, "Migrations, seeds", "SQL")
+
+  UpdateRelStyle(reader, spa, $offsetX="60")
+  UpdateRelStyle(spa, portals, $offsetX="-300", $offsetY="-130")
+  UpdateRelStyle(api, openrouter, $offsetX="25", $offsetY="-130")
+  UpdateRelStyle(spa, api, $offsetX="-67", $offsetY="75")
+  UpdateRelStyle(api, db, $offsetX="-36", $offsetY="-25")
+  UpdateRelStyle(cli, db, $offsetX="-50", $offsetY="80")
 
   UpdateElementStyle(staff, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
@@ -145,6 +152,11 @@ C4Component
   Rel(auth, users, "find, create")
   Rel(account, users, "mark deletion")
   Rel(account, auth, "revoke all sessions")
+
+  UpdateRelStyle(ai, openrouter, $offsetY="-50")
+  UpdateRelStyle(database, pg, $offsetY="-50")
+  UpdateRelStyle(throttle, authguard, $offsetY="-12")
+  UpdateRelStyle(auth, users, $offsetX="-32", $offsetY="-12")
 ```
 
 Every request from the single-page app passes the throttler guard, then the auth guard, then reaches the controller of the matching module. Every module reaches the database through its own TypeORM repositories; those arrows are left out.
@@ -179,29 +191,29 @@ C4Component
   UpdateLayoutConfig($c4ShapeInRow="1", $c4BoundaryInRow="2")
 
   Boundary(callers, "Feature modules", "REST API") {
-    Component(audit, "audit", "planned · Triết", "F3 degree audit")
     Component(explorer, "curriculum", "planned · Triết", "F4 curriculum explorer")
     Component(plans, "plans", "planned · Hoà", "F5 plans, live validation; F7 what-if")
     Component(plangen, "plan-generator", "planned · Lâm", "F6 planner; goal box on top")
     Component(advisor, "advisor", "planned · Dũng", "F8 chat, tools, regulation files")
+    Component(audit, "audit", "planned · Triết", "F3 degree audit")
     Component(admin, "curriculum-admin", "planned · Thắng", "F12 writes and grants")
     Component(guides, "guides", "built", "F11; rule values from B3")
   }
   Boundary(core, "Shared services and other planned modules", "REST API") {
+    Component(sharing, "sharing", "planned · Dũng", "F9 shared-plan read, through plans")
+    Component(notifications, "notifications", "planned · Dũng", "F10 reminders, warnings")
     Component(ai, "ai gateway", "built", "LlmService: structured(), chat()")
     Component(rules, "rules: RulesService", "planned · Triết", "Deterministic rule engine in src/rules/, 80% statement gate")
     Component(transcript, "transcript", "built", "rowsFor()")
-    Component(sharing, "sharing", "planned · Dũng", "F9 shared-plan read, through plans")
-    Component(notifications, "notifications", "planned · Dũng", "F10 reminders, warnings")
   }
 
-  Rel(audit, rules, "")
   Rel(explorer, rules, "")
+  Rel(guides, rules, "")
   Rel(plans, rules, "")
   Rel(plangen, rules, "")
   Rel(advisor, rules, "")
+  Rel(audit, rules, "")
   Rel(admin, rules, "")
-  Rel(guides, rules, "")
   Rel(plangen, ai, "")
   Rel(advisor, ai, "")
   Rel(audit, transcript, "")
@@ -265,13 +277,13 @@ C4Component
 
   Container_Boundary(spa, "Single-page app") {
     Component(shell, "App shell", "App.vue, createOmniCourseApp", "Header, navigation, language switch, skip link, global styles")
-    Component(router, "Router", "vue-router 5, createAppRouter", "Routes, scroll position, KeepAlive by route name")
-    Component(guides, "guides feature", "src/frontend/src/guides/", "List, search and guide views; guides-api.ts")
-    Component(home, "Home", "HomeView, ApiStatus", "Landing page, API status")
-    Component(locale, "Locale", "Pinia store, locale.ts", "Vietnamese and English language table")
-    Component(blocks, "Shared view blocks", "composables, components", "useAsyncLoad, usePageTitle, ExternalLink")
     Component(apiclient, "API client", "api.ts", "API base URL, getJson(), health")
     Component(types, "API types", "TypeScript", "From src/backend/openapi.json, ADR 0012 proposed")
+    Component(home, "Home", "HomeView, ApiStatus", "Landing page, API status")
+    Component(router, "Router", "vue-router 5, createAppRouter", "Routes, scroll position, KeepAlive by route name")
+    Component(guides, "guides feature", "src/frontend/src/guides/", "List, search and guide views; guides-api.ts")
+    Component(locale, "Locale", "Pinia store, locale.ts", "Vietnamese and English language table")
+    Component(blocks, "Shared view blocks", "composables, components", "useAsyncLoad, usePageTitle, ExternalLink")
     Component(session, "Session store", "planned · Hoà, Lâm", "Bearer token in memory or sessionStorage; refresh on start-up")
     Component(screens, "Student screens", "planned · Hoà, Lâm, Triết", "Sign-in, onboarding, transcript, audit, explorer, planner, goal box")
     Component(chat, "Advisor and sharing screens", "planned · Dũng", "F8 chat read with fetch; F9 shared plan")
@@ -285,6 +297,12 @@ C4Component
   Rel(apiclient, types, "Typed by")
   Rel(apiclient, api, "JSON", "HTTPS")
   Rel(screens, session, "Token")
+
+  UpdateRelStyle(student, shell, $offsetY="-60")
+  UpdateRelStyle(apiclient, api, $offsetX="25")
+  UpdateRelStyle(router, guides, $offsetX="-21", $offsetY="-12")
+  UpdateRelStyle(apiclient, types, $offsetX="-24", $offsetY="-12")
+  UpdateRelStyle(screens, session, $offsetX="-17", $offsetY="-12")
 
   UpdateElementStyle(session, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
   UpdateElementStyle(screens, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
