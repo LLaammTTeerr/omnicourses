@@ -1,10 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { Equals, IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { trimString } from '../common/transforms.js';
 import { UserDto } from '../users/user.dto.js';
 
+export const PASSWORD_MAX_LENGTH = 128;
+
 const normalizeEmail = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toLowerCase() : value);
-const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 export class SignUpDto {
   @ApiProperty({ example: 'student@example.com' })
@@ -13,14 +15,14 @@ export class SignUpDto {
   @MaxLength(254)
   email!: string;
 
-  @ApiProperty({ minLength: 10, maxLength: 128, example: 'correct horse battery' })
+  @ApiProperty({ minLength: 10, maxLength: PASSWORD_MAX_LENGTH, example: 'correct horse battery' })
   @IsString()
   @MinLength(10)
-  @MaxLength(128)
+  @MaxLength(PASSWORD_MAX_LENGTH)
   password!: string;
 
   @ApiProperty({ example: 'Nguyễn Văn A', maxLength: 100 })
-  @Transform(trim)
+  @Transform(trimString)
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
@@ -40,7 +42,7 @@ export class SignInDto {
   @ApiProperty({ example: 'correct horse battery' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(128)
+  @MaxLength(PASSWORD_MAX_LENGTH)
   password!: string;
 }
 
