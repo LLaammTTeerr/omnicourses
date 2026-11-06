@@ -34,10 +34,10 @@ Run typecheck, tests and build before every push. Run e2e when you touch the bac
 Every route requires a signed-in user by default (global `AuthGuard`, see [ADR 0002](docs/analysis-and-design/adr/0002-authentication-and-sessions.md)). Do not add your own guard.
 
 ```ts
-import { CurrentUser, Public } from '../auth/auth.decorators.js';
+import { Authenticated, CurrentUser, Public } from '../auth/auth.decorators.js';
 import { User } from '../users/user.entity.js';
 
-@ApiBearerAuth()
+@Authenticated()                             // documents the bearer token and the 401
 @Controller('plans')
 export class PlansController {
   @Get()

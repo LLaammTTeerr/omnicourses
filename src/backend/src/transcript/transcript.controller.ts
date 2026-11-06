@@ -1,13 +1,12 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiOkResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/auth.decorators.js';
+import { ApiBadRequestResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
 import { User } from '../users/user.entity.js';
 import { TranscriptDto } from './transcript.dto.js';
 import { TranscriptService } from './transcript.service.js';
 
 @ApiTags('users')
-@ApiBearerAuth()
-@ApiUnauthorizedResponse({ description: 'Missing, expired or revoked token' })
+@Authenticated()
 @Controller('users/me/transcript')
 export class TranscriptController {
   constructor(private readonly transcript: TranscriptService) {}

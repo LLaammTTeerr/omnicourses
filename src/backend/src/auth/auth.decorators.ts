@@ -1,4 +1,5 @@
-import { createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
+import { applyDecorators, createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
+import { ApiBearerAuth, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import type { User } from '../users/user.entity.js';
 import type { Session } from './session.entity.js';
 
@@ -9,6 +10,10 @@ export const IS_PUBLIC = 'isPublic';
 
 /** Opts a route (or a whole controller) out of the global AuthGuard. */
 export const Public = () => SetMetadata(IS_PUBLIC, true);
+
+/** Documents a controller's routes as needing a bearer token, and their 401. */
+export const Authenticated = () =>
+  applyDecorators(ApiBearerAuth(), ApiUnauthorizedResponse({ description: 'Missing, expired or revoked token' }));
 
 export interface AuthenticatedRequest {
   headers: Record<string, string | string[] | undefined>;
