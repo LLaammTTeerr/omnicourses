@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
-import { formatDate, useLocale, useMessages } from '../locale.js';
+import { formatDate, LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import { fetchGuides, GUIDE_GROUPS, type GuideGroup, type GuideListItem } from './api.js';
 import { GUIDE_MESSAGES } from './messages.js';
@@ -37,7 +37,7 @@ const sections = computed(() => {
       const picked = pickText(guide.texts, locale.lang);
       return picked ? [{ guide, ...picked }] : [];
     });
-  const collator = new Intl.Collator(locale.lang);
+  const collator = new Intl.Collator(LANGUAGES[locale.lang].tag);
   return GUIDE_GROUPS.map((group) => ({
     group,
     entries: entries.filter((e) => e.guide.group === group).sort((a, b) => collator.compare(a.text.title, b.text.title)),

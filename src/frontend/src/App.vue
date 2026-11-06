@@ -1,14 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
-import { useLocale, useMessages } from './locale.js';
+import { LANGUAGES, useLocale, useMessages } from './locale.js';
 
 const locale = useLocale();
 const m = useMessages({
   vi: { skip: 'Bỏ qua điều hướng', nav: 'Điều hướng chính', guides: 'Hướng dẫn' },
   en: { skip: 'Skip to main content', nav: 'Main navigation', guides: 'Guides' },
 });
-// The button names the language it switches to, in that language.
-const other = () => (locale.lang === 'vi' ? { lang: 'en' as const, label: 'English' } : { lang: 'vi' as const, label: 'Tiếng Việt' });
+const other = computed(() => LANGUAGES[locale.lang].other);
 </script>
 
 <template>
@@ -18,7 +18,7 @@ const other = () => (locale.lang === 'vi' ? { lang: 'en' as const, label: 'Engli
     <nav :aria-label="m.nav">
       <RouterLink :to="{ name: 'guides' }">{{ m.guides }}</RouterLink>
     </nav>
-    <button type="button" class="lang" :lang="other().lang" @click="locale.set(other().lang)">{{ other().label }}</button>
+    <button type="button" class="lang" :lang="other" @click="locale.set(other)">{{ LANGUAGES[other].name }}</button>
   </header>
   <main id="main" tabindex="-1">
     <!-- The guide list stays alive while a guide is open, so Back finds the same search and scroll position. -->

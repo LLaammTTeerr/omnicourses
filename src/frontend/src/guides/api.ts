@@ -1,5 +1,4 @@
 import { API_URL } from '../api.js';
-import type { Lang } from '../locale.js';
 
 // Guides plan §2, in the order the guides page lists them.
 export const GUIDE_GROUPS = [
@@ -13,6 +12,12 @@ export const GUIDE_GROUPS = [
   'graduation',
 ] as const;
 export type GuideGroup = (typeof GUIDE_GROUPS)[number];
+
+// The languages a guide can be published in. The screen languages are locale.ts's.
+export const GUIDE_LANGS = ['vi', 'en'] as const;
+export type GuideLang = (typeof GUIDE_LANGS)[number];
+/** Only the languages the guide is published in (UC-10 A8). */
+export type GuideTexts<T> = Partial<Record<GuideLang, T>>;
 
 export interface GuideLink {
   label: string;
@@ -38,7 +43,7 @@ export interface GuideListText {
 export interface GuideListItem {
   id: string;
   group: GuideGroup;
-  texts: Partial<Record<Lang, GuideListText>>;
+  texts: GuideTexts<GuideListText>;
 }
 
 export type GuideNoteSource = { kind: 'regulation'; document: string; clause: string; url: string } | { kind: 'team' };
@@ -61,7 +66,7 @@ export interface GuideText extends GuideListText {
 export interface Guide {
   id: string;
   group: GuideGroup;
-  texts: Partial<Record<Lang, GuideText>>;
+  texts: GuideTexts<GuideText>;
 }
 
 export class GuideNotFoundError extends Error {
