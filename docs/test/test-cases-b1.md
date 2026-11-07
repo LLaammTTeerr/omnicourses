@@ -2,12 +2,12 @@
 
 - Owner: Dũng
 - Build: B1, 15 November 2026. Acceptance run 13–15 November ([test plan §8](test-plan.md#8-schedule-and-remaining-work)).
-- Version: 0.1, 5 November 2026. Due 12 November.
-- Parent checks: test plan §5, rows `TC-B1-USER-01` and `TC-B1-GUIDE-01` of [B1 checks](test-plan.md#b1-checks), and `TC-B1-PERF-01` and `TC-B1-A11Y-01` of [Coverage and speed](test-plan.md#coverage-and-speed). Each case below has its parent's ID plus a letter, such as `TC-B1-USER-01a`. The tables shorten it to `USER-01a`.
+- Version: 0.2, 7 November 2026. Due 12 November.
+- Parent checks: test plan §5, rows `TC-B1-USER-01`, `TC-B1-GUIDE-01`, `TC-B1-ACAD-01`, `TC-B1-ACAD-02`, `TC-B1-PLAN-01`, `TC-B1-DATA-01`, `TC-B1-AI-01` and `TC-B1-COV-01` of [B1 checks](test-plan.md#b1-checks), and `TC-B1-PERF-01` and `TC-B1-A11Y-01` of [Coverage and speed](test-plan.md#coverage-and-speed). Each case below has its parent's ID plus a letter, such as `TC-B1-USER-01a`. The tables shorten it to `USER-01a`.
 
 Each case lists what to do and the result to expect. This file is not a test report: no case here has been run yet.
 
-**Other B1 checks.** Dũng writes the cases for every B1 parent (test plan §1 and §3). The owners only send the reviewed expected results: Triết for `TC-B1-ACAD-01`, Triết and Lâm for `ACAD-02`, Hoà for `PLAN-01`, Thắng and Triết for `DATA-01` and `COV-01`, and Lâm for `AI-01`. §7 tracks them. The B0 cases carried to B1 (UI-01a–q, DB-01f, DEP-01a–f and SESS-01l, [B0 report §5](report-b0.md#5-cases-carried-to-b1)) are in §8, with DB-01f written out.
+**Other B1 checks.** The reviewed expected results sent by the owners (Triết for `TC-B1-ACAD-01`, Triết and Lâm for `ACAD-02`, Hoà for `PLAN-01`, Thắng and Triết for `DATA-01` and `COV-01`, and Lâm for `AI-01`) are incorporated in §7. The B0 cases carried to B1 (UI-01a–q, DB-01f, DEP-01a–f and SESS-01l, [B0 report §5](report-b0.md#5-cases-carried-to-b1)) are in §8, with DB-01f written out.
 
 **What exists on 5 November.** Of the features tested here, only account export and deletion are merged (#14, [ADR 0004](../analysis-and-design/adr/0004-account-export-and-deletion.md)). Onboarding, the guides, the dashboard, the grades page and every screen except the home page are not, and neither are their API routes. Steps that name a screen label or a route follow UC-01, UC-10, UC-14 and the [UI prototypes](../analysis-and-design/ui-prototypes/README.md). Dũng updates them when the code lands, by 12 November. A case whose feature is not in the B1 candidate is **not run: feature not merged** ([test plan §7](test-plan.md#7-when-a-build-is-ready)).
 
@@ -304,16 +304,96 @@ Until an item is answered, the cases it affects stay **blocked** with the item a
 
 ## 7. Other B1 checks
 
-Dũng writes these cases too, with the same ID scheme (test plan §1 and §3). The owners named in test plan §5 send only the reviewed expected results. Only ACAD-01 and ACAD-02 wait on numbers. The other four can be written from what is on `main` now, and are due with this file on 12 November.
+The reviewed expected results sent by the feature owners (test plan §5).
 
 | Parent | Area | Owner, sends the expected results | Cases |
 | --- | --- | --- | --- |
-| TC-B1-ACAD-01 | Rules, audit and explorer | Triết | Wait on Triết's reviewed results |
-| TC-B1-ACAD-02 | Audit counting and freshness | Triết, Lâm | Wait on Triết's reviewed results |
-| TC-B1-PLAN-01 | Basic plans | Hoà | To come by 12 November: ownership, persistence after reload, failed saves |
-| TC-B1-DATA-01 | APCS integration | Thắng, Triết | To come by 12 November, from `curriculum-seed.e2e-spec.ts`: repeat seeding, conflicting catalog values abort, failure rolls back |
-| TC-B1-AI-01 | Gateway regression | Lâm | To come by 12 November, from `ai/sse.ts` and `ai.e2e-spec.ts` |
-| TC-B1-COV-01 | Rule-engine coverage | Thắng, Triết | To come by 12 November, from the coverage gate in `vitest.config.mts` |
+| TC-B1-ACAD-01 | Rules, audit and explorer | Triết | ACAD-01a–h written out below |
+| TC-B1-ACAD-02 | Audit counting and freshness | Triết, Lâm | ACAD-02a–f written out below |
+| TC-B1-PLAN-01 | Basic plans | Hoà | PLAN-01a–f written out below |
+| TC-B1-DATA-01 | APCS integration | Thắng, Triết | DATA-01a–e written out below |
+| TC-B1-AI-01 | Gateway regression | Lâm | AI-01a–f written out below |
+| TC-B1-COV-01 | Rule-engine coverage | Thắng, Triết | COV-01a–c written out below |
+
+### TC-B1-ACAD-01: Rules, audit and explorer
+
+Sources: [UC-03][uc03] steps 1–9, A1–A4; [UC-04][uc04] steps 1–7; [UC-19][uc19] steps 1–7; Vision §4–§5; test plan §5 row `TC-B1-ACAD-01`.
+
+| ID | Do this | Expect |
+| --- | --- | --- |
+| ACAD-01a | **Screen.** Open the dashboard with a new account onboarded to APCS 2024 without a transcript. | Summary displays 0 / 163 credits earned, cumulative GPA unset, estimated graduation term unset, and each requirement group at 0 passed credits out of its minimum. The screen states the audit assumes no courses have been passed and offers a link to import a transcript (UC-03 A1). |
+| ACAD-01b | Save a partial transcript with passed courses (e.g. `CS160` at 8.0, 4 credits; `CM102` at 7.0, 4 credits). Reload the dashboard. | Summary shows 8 credits passed out of 163, cumulative GPA **7.50**, and 155 credits remaining. Group `Kiến thức Computer Science (A): bắt buộc` shows 4 / 40 credits; group `Kiến thức Non Computer Science` shows 4 / 26 credits. |
+| ACAD-01c | Save a completed transcript fulfilling all 163 credits across all compulsory and elective groups of APCS 2024. Reload the dashboard. | Summary reports 163 / 163 credits earned. The dashboard announces that graduation requirements are met, cites the graduation regulation clause, and displays a link to the graduation guide (UC-03 A4). |
+| ACAD-01d | Save a transcript with no courses in `Kiến thức Computer Science (A): tự chọn`, no foreign language certificate, and a course placed without its prerequisite taken. Reload the dashboard. | **Needs attention** displays three items (UC-03 step 6): (1) elective group still empty with a link to the planner, (2) foreign language requirement not met with a link to the certificate guide, and (3) missing prerequisite for the dependent course. |
+| ACAD-01e | In a saved plan for APCS 2024, test main-term credit boundaries in term 1 (fall): place 13 credits, then 14, then 25, then 26 credits. | 13 credits: flagged with a violation ("Below minimum term load of 14 credits", Vision §4). 14 credits: valid, no load violation. 25 credits: valid, no load violation. 26 credits: flagged with a violation ("Exceeds term cap of 25 credits", Vision §4). |
+| ACAD-01f | In a saved plan, test summer-term credit boundaries in term 3 (summer): place 12 credits, then 13 credits. | 12 credits: valid, no load violation. 13 credits: flagged with a violation ("Exceeds summer cap of 12 credits", Vision §4, ADR 0009). |
+| ACAD-01g | **Screen.** Open **Curriculum** (UC-04) for APCS 2024. Search for `cau truc du lieu`, then clear the box. Open the course drawer for `CS163`. | Courses are listed by requirement group. Each course indicates its state: in progress, available now, locked (with a padlock icon and missing prerequisites listed), or passed. Search matches with and without diacritics. The course drawer displays code, name, credits, group, prerequisites with states, and unlocked courses. Wide prerequisite graph scrolls inside its container. |
+| ACAD-01h | In **Settings**, change cohort to APCS 2025. Open **Curriculum**. | The explorer displays the APCS 2025 curriculum (`APCS2025`), its groups, and course links without error. |
+
+### TC-B1-ACAD-02: Audit counting and freshness
+
+Sources: [ADR 0007](../analysis-and-design/adr/0007-transcript.md); [UC-03][uc03]; [UC-15][uc15]; [UC-19][uc19]; test plan §5 row `TC-B1-ACAD-02`.
+
+| ID | Do this | Expect |
+| --- | --- | --- |
+| ACAD-02a | Save a transcript with rows having each result type: `graded` (grade 8.0, 4 cr), `graded` (grade 3.0, 4 cr), `pass` (grade null, 2 cr), `fail` (grade null, 2 cr), `exempt` (grade null, 3 cr), and `in_progress` (grade null, 4 cr). Open the dashboard. | Graded ≥ 5.0 contributes 4 earned credits and enters GPA calculation. Graded < 5.0 yields 0 earned credits and enters GPA calculation as a failed attempt. `pass` earns 2 credits and is excluded from GPA. `fail` yields 0 credits and is excluded from GPA. `exempt` earns 3 credits and is excluded from GPA. `in_progress` is tracked under in-progress credits only (0 earned credits, excluded from cumulative GPA). |
+| ACAD-02b | Save a transcript where `CS160` (4 cr) is taken twice: term 1 with grade 3.0 (`graded`, failed), and term 2 with grade 8.0 (`graded`, passed). Open the dashboard. | Earned credits count `CS160` exactly once (4 credits, not 8). Cumulative GPA reflects the retake according to the academic regulation without double-counting earned credits. |
+| ACAD-02c | Save a transcript where student completes 44 credits in `Kiến thức Computer Science (A)` (40 BB credits + 4 excess TC credits beyond the 16 TC minimum). Check credit allocation to `Tự chọn Computer Science (C)`. | The 4 surplus credits allocate towards group (C) as permitted by the curriculum note, without double-counting: the 4 credits contribute to total degree progress exactly once. |
+| ACAD-02d | **API / Screen.** Open the dashboard as S1. Save an updated transcript with one additional passed course via `PUT /api/users/me/transcript`. Refresh the dashboard. | The degree audit recomputes immediately from the newly committed transcript rows; passed credits, group progress bar, and cumulative GPA reflect the added course without stale caching. |
+| ACAD-02e | S1 saves a transcript with 20 credits. S2 queries `GET /api/users/me/transcript` and opens the dashboard. | S2's audit and GPA are strictly computed from S2's own transcript rows; S1's courses, credits, and GPA appear nowhere in S2's response or view. |
+| ACAD-02f | Save a transcript with an unknown synthetic course code `ZZ999` (4 credits, graded 9.0) and unverified certificate data. Open the dashboard. | `ZZ999` is listed under summary as "Not counted toward graduation" (UC-03 A3); its credits and grade do not satisfy any curriculum requirement group, and unverified certificates are recorded as unresolved rather than assumed passed. |
+
+### TC-B1-PLAN-01: Basic plans
+
+Sources: [UC-05][uc05] steps 1–7; [ADR 0004](../analysis-and-design/adr/0004-account-export-and-deletion.md); [ADR 0009](../analysis-and-design/adr/0009-term-encoding.md); Vision §5 F5; test plan §5 row `TC-B1-PLAN-01`.
+
+| ID | Do this | Expect |
+| --- | --- | --- |
+| PLAN-01a | **Screen / API.** As S1, create two distinct plans named "Standard 4-Year" and "Fast Track". Call `GET /api/plans`. | Both plans are saved and listed with their respective IDs, titles, and `user_id`. Each plan maintains its own independent set of course placements. |
+| PLAN-01b | In "Standard 4-Year", place `CS160` in `{ "year": 2024, "number": 1 }` and `CS163` in `{ "year": 2024, "number": 2 }`. Save and reload. Then remove `CS160` and save. | Placement persists across reload. After removal, term 1 is empty and term 2 contains `CS163`. Terms are stored using `{ year, number }` encoding (ADR 0009). |
+| PLAN-01c | With S1 signed in on browsers A and B, edit and save the plan in A. Reload B and open the plan. | Browser B loads the exact course placements saved from browser A. |
+| PLAN-01d | **API.** As student S2, attempt to read `GET /api/plans/<S1_plan_id>` and update `PUT /api/plans/<S1_plan_id>`. | Refused with **404 Not Found** (or **403 Forbidden**). S1's plan is not disclosed and remains unchanged. |
+| PLAN-01e | Simulate server unavailability or a network error while saving a plan edit. | The screen indicates save failure with an error message and does **not** report the plan as saved. The unsaved edit remains in the editor allowing retry, or reverts to the last server state upon reload. |
+| PLAN-01f | **API / Database.** Export S1's data via `GET /api/users/me/export`. Then delete S1 with password. Inspect the database. | The export JSON includes S1's plans in `tables.plans`. After S1's account deletion and grace purge, all associated plan rows in the database are purged (`ON DELETE CASCADE`). |
+
+### TC-B1-DATA-01: APCS integration
+
+Sources: [ADR 0005](../analysis-and-design/adr/0005-curriculum-cohort-and-course-catalog.md); [`curriculum-seed.e2e-spec.ts`](../../src/backend/test/curriculum-seed.e2e-spec.ts); PR #23 and PR #36; test plan §5 row `TC-B1-DATA-01`.
+
+| ID | Do this | Expect |
+| --- | --- | --- |
+| DATA-01a | **CLI / API.** Run `npm run db:seed -w src/backend`. Note row counts across `programs`, `curriculums`, `requirement_groups`, `courses`, and `requirement_group_courses`. Run the seed command a second time. | Second seed reports 0 new rows inserted across all 5 tables (`{ programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0 }`). All row counts match the first run exactly. |
+| DATA-01b | **Database.** In `requirement_groups`, update `official_notes = 'admin note'` for group `Kiến thức Math`. Re-run `npm run db:seed -w src/backend`. | The seed completes without error and retains the modification: `official_notes` remains `'admin note'`. |
+| DATA-01c | **Database.** In `courses`, update `name_vi = 'Renamed'` for course `CS160`. Run `seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS)`. Revert `CS160` afterward. | The seed aborts and throws [`CatalogConflictError`](../../src/backend/src/database/seeds/catalog.ts) citing `CS160.name_vi`. No conflicting values are silently overwritten. |
+| DATA-01d | **Database.** Inject an invalid curriculum seed row with an invalid group kind (`kind: 'other'` violating `ck_requirement_groups_kind`). Run `seedCurricula`. | Rejection matching `/ck_requirement_groups_kind/`. The entire seed transaction rolls back; database table counts remain identical to pre-run counts. |
+| DATA-01e | **Database.** Query the seeded APCS curricula in PostgreSQL. | APCS 2024 has `total_credits_min = 163`. Course codes adhere to `^[A-Z0-9]{2,20}$`. Group `Kiến thức Computer Science (A)` is seeded as two groups: compulsory (kind `compulsory`, 40 credits, 10 courses) and elective (kind `elective`, min 16 credits, 6 courses). Missing prerequisites or offering terms in official PDFs are recorded as unresolved in the test report, not fabricated. |
+
+Already automated: `src/backend/test/curriculum-seed.e2e-spec.ts`.
+
+### TC-B1-AI-01: Gateway regression
+
+Sources: [ADR 0003](../analysis-and-design/adr/0003-language-model-scope.md); [`sse.ts`](../../src/backend/src/ai/sse.ts); [`ai.e2e-spec.ts`](../../src/backend/test/ai.e2e-spec.ts); test plan §5 row `TC-B1-AI-01`.
+
+| ID | Do this | Expect |
+| --- | --- | --- |
+| AI-01a | **API.** Invoke `LlmService.structured` with `OPENROUTER_API_KEY=''` (unconfigured). | Rejects with **503** [`AiUnavailableError`](../../src/backend/src/ai/ai-unavailable.error.ts) (`"AI is not configured"`). Zero rows are added to `ai_usage`. |
+| AI-01b | **API.** Set `AI_DAILY_CALLS_PER_USER=2`. Make 1 completed call, then reserve a 2nd call that stops before finishing (`succeeded: false`, 0 tokens). Make a 3rd call. | The 3rd call rejects with **503** (`"Daily AI limit reached, try again tomorrow"`). Both earlier calls are recorded in `ai_usage`, proving unfinished reserved calls count toward the daily quota. |
+| AI-01c | **API.** Dispatch 5 simultaneous reservation requests in parallel for a user with daily limit 2. | Exactly 2 requests succeed; the other 3 reject with **503** (`"Daily AI limit reached, try again tomorrow"`). `ai_usage` holds exactly 2 rows for that user. |
+| AI-01d | **API.** Test [`streamChat`](../../src/backend/src/ai/sse.ts): (1) Cause a failure before the first stream event; (2) Cause a failure after the stream has started. | (1) Returns HTTP **503** `ai_unavailable`. (2) Returns HTTP **200** with `Content-Type: text/event-stream`, emits `event: error\ndata: {"code":"ai_unavailable","message":...}`, and cleanly terminates the stream. |
+| AI-01e | **API.** Submit a chat request with `role: 'system'` or an unlisted role in messages. | Request is rejected by DTO validation (`@IsIn(['user', 'assistant'])`); the gateway ensures client-injected system instructions are dropped. |
+| AI-01f | **Database.** Delete a user with rows in `ai_usage`. Query `ai_usage WHERE user_id = <id>`. | 0 rows remain; usage records are deleted via `ON DELETE CASCADE`. Usage rows contain no prompts, replies, or personal tokens. |
+
+Already automated: `src/backend/test/ai.e2e-spec.ts` and `src/backend/src/ai/sse.spec.ts`.
+
+### TC-B1-COV-01: Rule-engine coverage
+
+Sources: [Test plan §5](test-plan.md#coverage-and-speed); [`vitest.config.mts`](../../src/backend/vitest.config.mts); Vision §6 Testability and Maintainability.
+
+| ID | Do this | Expect |
+| --- | --- | --- |
+| COV-01a | Check that `src/backend/src/rules/` exists on the tested candidate commit and inspect production rule files. | The directory exists and contains production rule files; Vitest's statement denominator is non-empty (> 0 statements). An absent directory or empty denominator fails acceptance. |
+| COV-01b | Run `npm test -w src/backend` (which executes tests with coverage). Read the report for `src/rules/**`. | Statement coverage for `src/rules/**` is **≥ 80.0%**. Test files, testing helpers (`**/testing/**`), migrations, and non-rule source files are excluded from this threshold. |
+| COV-01c | Introduce an uncovered branch in `src/backend/src/rules/` that drops statement coverage below 80%. Run `npm test -w src/backend`. | Vitest fails with exit code 1 due to coverage threshold breach, demonstrating CI gate enforcement. |
 
 ## 8. B0 cases run on B1
 
@@ -389,3 +469,8 @@ Left out of these cases on purpose:
 - **Not decided:** Google sign-in, verified-student-email sign-up and two-factor authentication ([test plan §8](test-plan.md#8-schedule-and-remaining-work)).
 
 [uc01]: https://github.com/LLaammTTeerr/omnicourses/blob/9d1f13bcb3be62cede0629799cf484d7ed321406/docs/requirements/use-cases/UC-01-sign-up-and-onboard.md
+[uc03]: ../../report/assignments/PA2/uc-specs.tex
+[uc04]: ../../report/assignments/PA2/uc-specs.tex
+[uc05]: ../../report/assignments/PA2/uc-specs.tex
+[uc15]: ../../report/assignments/PA2/uc-specs.tex
+[uc19]: ../../report/assignments/PA2/uc-specs.tex
