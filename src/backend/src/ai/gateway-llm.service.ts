@@ -102,7 +102,7 @@ export class GatewayLlmService extends LlmService {
     let usageId: string | undefined;
     try {
       usageId = await this.guard.reserve(request.context, model);
-      // response_format is only a preference on OpenRouter, so a reply can still
+      // response_format is only a preference on some providers, so a reply can still
       // miss the schema: one retry, then give up.
       for (let attempt = 1; attempt <= 2; attempt++) {
         const reply = await client.complete({ model, messages, jsonSchema });
