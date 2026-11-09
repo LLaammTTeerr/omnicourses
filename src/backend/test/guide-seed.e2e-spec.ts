@@ -1,14 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DataSource } from 'typeorm';
-import { dataSourceOptions } from '../src/database/data-source.js';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
 import type { GuideFile } from '../src/guides/guide-file.js';
 import { GuideSeedError, seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
+import { privateSchema } from './support/schema.js';
 
-const databaseUrl = process.env.DATABASE_URL;
-// The seed tests rewrite and withdraw guides, so they run in a schema of their own.
-const schema = `guide_seed_e2e_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 const FIXTURES = guideFixtures('2026-11-13');
 const PUBLISHED = [
   'zz-en-only.en',
@@ -25,21 +22,17 @@ const PUBLISHED = [
 const changing = (id: string, lang: string, change: Partial<GuideFile>) =>
   FIXTURES.map((f) => (f.id === id && f.lang === lang ? { ...f, ...change } : f));
 
-describe.skipIf(!databaseUrl)('Guide seed against PostgreSQL (e2e)', () => {
-  let admin: DataSource;
+// The seed tests rewrite and withdraw guides.
+describe('Guide seed against PostgreSQL (e2e)', () => {
   let db: DataSource;
+  let drop: (() => Promise<void>) | undefined;
   const texts = (): Promise<{ key: string; status: string; version: number; title: string; checked: string }[]> =>
     db.query(`SELECT guide_id || '.' || lang AS key, status, version, title, to_char(last_checked_on, 'YYYY-MM-DD') AS checked
               FROM guide_texts ORDER BY (guide_id || '.' || lang) COLLATE "C"`);
   const text = async (key: string) => (await texts()).find((t) => t.key === key);
 
   beforeAll(async () => {
-    admin = new DataSource({ ...dataSourceOptions, url: databaseUrl });
-    await admin.initialize();
-    await admin.query(`CREATE SCHEMA "${schema}"`);
-    db = new DataSource({ ...dataSourceOptions, url: databaseUrl, schema, extra: { options: `-c search_path=${schema}` } });
-    await db.initialize();
-    await db.runMigrations({ transaction: 'each' });
+    ({ dataSource: db, drop } = await privateSchema('guide_seed_e2e'));
   });
 
   beforeEach(async () => {
@@ -47,9 +40,7 @@ describe.skipIf(!databaseUrl)('Guide seed against PostgreSQL (e2e)', () => {
   });
 
   afterAll(async () => {
-    await db?.destroy();
-    await admin?.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-    await admin?.destroy();
+    await drop?.();
   });
 
   it('loads the published texts only, then nothing more when run again', async () => {

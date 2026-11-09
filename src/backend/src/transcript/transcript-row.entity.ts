@@ -25,11 +25,10 @@ export class TranscriptRow {
   @Column({ type: 'smallint' })
   credits!: number;
 
-  // graded, in_progress, exempt, pass or fail (ADR 0007). A CHECK keeps grade set exactly when graded.
+  // A CHECK keeps grade set exactly when the result is graded (ADR 0007).
   @Column({ type: 'varchar', length: 20 })
   result!: TranscriptResult;
 
-  // 10-point scale, one decimal, when the result is graded; null otherwise.
   @Column({
     type: 'numeric',
     precision: 3,
@@ -40,7 +39,6 @@ export class TranscriptRow {
   })
   grade!: number | null;
 
-  // Term encoding of ADR 0009: academic year 2026 = 2026–2027; 1 and 2 are main terms, 3 is summer.
   @Column({ name: 'term_year', type: 'smallint' })
   termYear!: number;
 

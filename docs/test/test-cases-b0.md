@@ -59,7 +59,7 @@ Run as **API** now; as **Screen** too once #13 is merged. The expected status co
 | AUTH-01o | Wait a minute. Send 11 sign-ins within one minute (a wrong password is fine). Wait a minute and sign in correctly. | Requests 1–10: **401**. Request 11: **429**, too many requests. After the minute: **200**. |
 | AUTH-01p | Wait a minute. Send 11 sign-ups within one minute (new emails). | Requests 1–10 answered normally. Request 11: **429**. |
 
-Already automated: `auth.e2e-spec.ts` covers a, c, d, j, k and m; `auth.service.spec.ts` covers n (same error and timing). Manual runs still check them on each build, and the automated tests do not cover the screen.
+Already automated: `auth.e2e-spec.ts` covers a, c, d, j, k and m; `auth.service.spec.ts` covers n (same error and timing); `rate-limits.e2e-spec.ts` covers the 429 of o. Manual runs still check them on each build, and the automated tests do not cover the screen.
 
 ## 3. TC-B0-SESS-01: Sessions
 
@@ -80,7 +80,7 @@ All **API**. Needs two accounts: S1 is `b0-01@example.com` from AUTH-01a, S2 is 
 | SESS-01k | Without Authorize, call `GET /api/health`. | **200.** Health is the one route that needs no sign-in besides sign-up and sign-in. |
 | SESS-01l | An expired token. | **Not run by hand**: sessions last 7 days. Covered by `auth.service.spec.ts` ("returns null for an expired session"). Check instead that every `expiresAt` in SESS-01c to e is about 7 days ahead; a time near "now" means `SESSION_TTL_DAYS` is blank or wrong (issue #37). |
 
-Already automated: `auth.e2e-spec.ts` covers a, c, e, f and j; `auth.service.spec.ts` covers g.
+Already automated: `auth.e2e-spec.ts` covers c, e, f and j; `public-routes.e2e-spec.ts` covers a and k; `auth.service.spec.ts` covers g.
 
 ## 4. TC-B0-UI-01: Screens
 

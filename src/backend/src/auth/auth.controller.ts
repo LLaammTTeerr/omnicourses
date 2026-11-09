@@ -11,9 +11,10 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { User } from '../users/user.entity.js';
-import { CurrentSession, CurrentUser, PASSWORD_LIMIT, Public } from './auth.decorators.js';
+import { CurrentSession, CurrentUser, Public } from './auth.decorators.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { AuthService } from './auth.service.js';
+import { PASSWORD_LIMIT } from './rate-limits.js';
 import { Session } from './session.entity.js';
 
 @ApiTags('auth')

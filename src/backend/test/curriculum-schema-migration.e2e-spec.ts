@@ -1,20 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { DataSource } from 'typeorm';
-import { dataSourceOptions } from '../src/database/data-source.js';
+import { privateSchema } from './support/schema.js';
 
-const databaseUrl = process.env.DATABASE_URL;
-
-describe.skipIf(!databaseUrl)('curriculum schema migration', () => {
+describe('curriculum schema migration', () => {
   it('applies migrations and enforces cohort/catalog constraints', async () => {
-    const dataSource = new DataSource({ ...dataSourceOptions, url: databaseUrl });
-    await dataSource.initialize();
+    const { dataSource, drop } = await privateSchema('migration_e2e');
     const suffix = randomUUID().replace(/-/g, '').slice(0, 8);
     const programCode = `P${suffix}`.toUpperCase();
     const courseCode = `CS${suffix.slice(0, 6)}`.toUpperCase();
     try {
-      await dataSource.runMigrations({ transaction: 'each' });
-
       const programId = (
         await dataSource.query(
           `INSERT INTO programs (code, name_vi, faculty) VALUES ($1,$2,$3) RETURNING id`,
@@ -29,15 +23,11 @@ describe.skipIf(!databaseUrl)('curriculum schema migration', () => {
         )
       )[0].id as string;
 
-      const curriculum2 = (
-        await dataSource.query(
-          `INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1,$2,$3,$4) RETURNING id`,
-          [programId, 2025, programCode, 'Curriculum 2025'],
-        )
-      )[0].id as string;
-
-      expect(curriculum1).toBeTruthy();
-      expect(curriculum2).toBeTruthy();
+      // A second cohort of the same program is allowed.
+      await dataSource.query(
+        `INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1,$2,$3,$4)`,
+        [programId, 2025, programCode, 'Curriculum 2025'],
+      );
 
       await expect(
         dataSource.query(
@@ -97,12 +87,7 @@ describe.skipIf(!databaseUrl)('curriculum schema migration', () => {
         [group2, courseCode],
       );
     } finally {
-      await dataSource.query(`DELETE FROM requirement_group_courses WHERE course_code = $1`, [courseCode]);
-      await dataSource.query(`DELETE FROM courses WHERE code = $1`, [courseCode]);
-      await dataSource.query(`DELETE FROM requirement_groups WHERE curriculum_id IN (SELECT id FROM curriculums WHERE program_id IN (SELECT id FROM programs WHERE code = $1))`, [programCode]);
-      await dataSource.query(`DELETE FROM curriculums WHERE program_id IN (SELECT id FROM programs WHERE code = $1)`, [programCode]);
-      await dataSource.query(`DELETE FROM programs WHERE code = $1`, [programCode]);
-      await dataSource.destroy();
+      await drop();
     }
   });
 });

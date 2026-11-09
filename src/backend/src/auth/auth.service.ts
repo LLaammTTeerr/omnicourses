@@ -3,19 +3,18 @@ import { ConflictException, Injectable, NotFoundException, UnauthorizedException
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
 import { EntityManager, IsNull, MoreThan, Repository } from 'typeorm';
+import { sessionTtlDays } from '../config/env.js';
+import { DAY_MS } from '../config/time.js';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { Session } from './session.entity.js';
 
-const DAY_MS = 86_400_000;
-
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
 @Injectable()
 export class AuthService {
-  private readonly ttlMs = Number(process.env.SESSION_TTL_DAYS ?? 7) * DAY_MS;
   // Verified against when the email is unknown, so a wrong email and a wrong
   // password take the same time and the response does not reveal which.
   private readonly dummyHash = hash('omnicourse-timing-equalizer');
@@ -35,7 +34,7 @@ export class AuthService {
       displayName: dto.displayName,
       consentAt: new Date(),
     });
-    return this.issue(user, userAgent);
+    return { ...(await this.issue(user, userAgent)), accountRestored: false };
   }
 
   async signIn(dto: SignInDto, userAgent?: string): Promise<AuthResultDto> {
@@ -63,7 +62,6 @@ export class AuthService {
     await (tx?.getRepository(Session) ?? this.sessions).update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
   }
 
-  /** Resolves a bearer token to its live session, or null if unknown, expired or revoked. */
   async authenticate(token: string): Promise<{ user: User; session: Session } | null> {
     const session = await this.sessions.findOne({
       where: { tokenHash: hashToken(token) },
@@ -79,7 +77,7 @@ export class AuthService {
   async refresh(session: Session): Promise<AuthResultDto> {
     const token = newToken();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.ttlMs);
+    const expiresAt = new Date(now.getTime() + sessionTtlDays() * DAY_MS);
     await this.sessions.update(session.id, { tokenHash: hashToken(token), rotatedAt: now, expiresAt });
     return { token, expiresAt, user: UserDto.from(session.user), accountRestored: false };
   }
@@ -103,14 +101,13 @@ export class AuthService {
   }
 
   async revoke(userId: string, sessionId: string): Promise<void> {
-    // Scoped by userId: a user can only revoke their own sessions.
     const result = await this.sessions.update({ id: sessionId, userId, revokedAt: IsNull() }, { revokedAt: new Date() });
     if (!result.affected) throw new NotFoundException('Session not found');
   }
 
-  private async issue(user: User, userAgent?: string): Promise<AuthResultDto> {
+  private async issue(user: User, userAgent?: string): Promise<Omit<AuthResultDto, 'accountRestored'>> {
     const token = newToken();
-    const expiresAt = new Date(Date.now() + this.ttlMs);
+    const expiresAt = new Date(Date.now() + sessionTtlDays() * DAY_MS);
     await this.sessions.save(
       this.sessions.create({
         userId: user.id,
@@ -119,7 +116,7 @@ export class AuthService {
         expiresAt,
       }),
     );
-    return { token, expiresAt, user: UserDto.from(user), accountRestored: false };
+    return { token, expiresAt, user: UserDto.from(user) };
   }
 }
 

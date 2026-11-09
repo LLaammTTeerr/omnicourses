@@ -1,14 +1,14 @@
 import { Body, Controller, Delete, Get, Header, HttpCode } from '@nestjs/common';
-import { ApiAcceptedResponse, ApiBearerAuth, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiTooManyRequestsResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiAcceptedResponse, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiTooManyRequestsResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { CurrentUser, PASSWORD_LIMIT } from '../auth/auth.decorators.js';
+import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { PASSWORD_LIMIT } from '../auth/rate-limits.js';
 import { User } from '../users/user.entity.js';
 import { AccountExportDto, DeleteAccountDto, DeletionScheduledDto } from './account.dto.js';
 import { AccountService } from './account.service.js';
 
 @ApiTags('users')
-@ApiBearerAuth()
-@ApiUnauthorizedResponse({ description: 'Missing, expired or revoked token' })
+@Authenticated()
 @Controller('users/me')
 export class AccountController {
   constructor(private readonly account: AccountService) {}

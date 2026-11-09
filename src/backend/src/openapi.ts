@@ -1,32 +1,10 @@
 import { writeFileSync } from 'node:fs';
-import { Test } from '@nestjs/testing';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AccountModule } from './account/account.module.js';
-import { AuthModule } from './auth/auth.module.js';
-import { configureApp } from './bootstrap.js';
-import { dataSourceOptions } from './database/data-source.js';
-import { GuidesModule } from './guides/guides.module.js';
-import { HealthModule } from './health/health.module.js';
-import { TranscriptModule } from './transcript/transcript.module.js';
-import { UsersModule } from './users/users.module.js';
+import { buildOpenApiDocument, serializeOpenApi } from './openapi-document.js';
 
-// Writes the OpenAPI contract to openapi.json without a database, so CI can
-// publish it as an artifact on every pull request. Import every feature module
-// here, or its routes are missing from the contract.
+// `npm run openapi -w src/backend` (after a build): rewrites the committed openapi.json.
+// CI also publishes it as an artifact on every pull request.
 async function main(): Promise<void> {
-  const moduleRef = await Test.createTestingModule({
-    imports: [
-      TypeOrmModule.forRoot({ ...dataSourceOptions, manualInitialization: true }),
-      HealthModule,
-      UsersModule,
-      AuthModule,
-      AccountModule,
-      TranscriptModule,
-      GuidesModule,
-    ],
-  }).compile();
-  const document = configureApp(moduleRef.createNestApplication());
-  writeFileSync('openapi.json', JSON.stringify(document, null, 2));
+  writeFileSync('openapi.json', serializeOpenApi(await buildOpenApiDocument()));
 }
 
 void main();
