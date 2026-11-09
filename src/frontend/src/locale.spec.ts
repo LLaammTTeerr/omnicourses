@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { formatDate, useLocale } from './locale.js';
+import { formatDate, formatDateTime, useLocale } from './locale.js';
 
 describe('locale store', () => {
   beforeEach(() => {
@@ -62,6 +62,18 @@ describe('formatDate', () => {
     try {
       expect(new Date('2026-01-01T00:00:00Z').getDate()).toBe(31);
       expect(formatDate('2026-01-01', 'en')).toBe('1 Jan 2026');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+describe('formatDateTime', () => {
+  it('writes an instant the way each language does, in the browser time zone', () => {
+    vi.stubEnv('TZ', 'Asia/Ho_Chi_Minh');
+    try {
+      expect(formatDateTime('2026-12-09T08:05:00.000Z', 'vi')).toBe('15:05 09/12/2026');
+      expect(formatDateTime('2026-12-09T08:05:00.000Z', 'en')).toBe('9 Dec 2026, 15:05');
     } finally {
       vi.unstubAllEnvs();
     }
