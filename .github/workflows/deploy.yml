@@ -1,46 +1,110 @@
 name: Deploy
 
-# The author of a merged pull request runs this by hand (Actions > Deploy >
-# Run workflow), as the branch rules require: "after approval the author
-# merges and deploys". It only runs from main.
+# main → production, once CI has passed on the merged commit.
+# staging → staging, on every push (anyone may merge into staging).
+# A manual run redeploys a branch's head (production from main, staging from staging) and can tag
+# the deployed commit as a build (B0…B3).
+#
+# The server side is deploy/server/omnicourse-deploy, reached with a forced-command SSH key per
+# environment: the key fixes the environment, and the server only deploys commits on its branch.
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [staging]
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'production deploys main, staging deploys staging'
+        type: choice
+        options: [staging, production]
+        default: staging
       build_tag:
-        description: 'Optional build tag to create on this commit (B0, B1, B2, B3)'
+        description: 'Optional build tag for the deployed commit (B0, B1, B2, B3)'
         required: false
         type: string
 
 permissions:
-  contents: write
-
-env:
-  NPM_VERSION: 11.21.1
+  contents: read
 
 jobs:
-  deploy:
-    if: github.ref == 'refs/heads/main'
+  target:
     runs-on: ubuntu-latest
-    environment: staging
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+      sha: ${{ steps.pick.outputs.sha }}
+    steps:
+      - id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_EVENT: ${{ github.event.workflow_run.event }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+        run: |
+          case "$EVENT" in
+            workflow_run)
+              if [ "$RUN_CONCLUSION" != success ] || [ "$RUN_EVENT" != push ]; then
+                echo "CI did not pass on a push to main: nothing to deploy."
+                exit 0
+              fi
+              environment=production; sha="$RUN_SHA" ;;
+            push)
+              environment=staging; sha="$SHA" ;;
+            workflow_dispatch)
+              case "$INPUT_ENVIRONMENT:$REF" in
+                production:refs/heads/main | staging:refs/heads/staging) ;;
+                *) echo "::error::Run production from main and staging from staging."; exit 1 ;;
+              esac
+              environment="$INPUT_ENVIRONMENT"; sha="$SHA" ;;
+          esac
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Deploying $sha to $environment."
+
+  deploy:
+    needs: target
+    if: needs.target.outputs.environment != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.target.outputs.environment }}
+      url: ${{ needs.target.outputs.environment == 'production' && 'https://omnicourses.lamter.cc' || 'https://stag-omnicourses.lamter.cc' }}
+    concurrency:
+      group: deploy-${{ needs.target.outputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Deploy on the server
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          SHA: ${{ needs.target.outputs.sha }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "omnicourse@$HOST" "$SHA"
+
+  tag:
+    needs: [target, deploy]
+    if: github.event_name == 'workflow_dispatch' && inputs.build_tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
         with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm install -g npm@${{ env.NPM_VERSION }}
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-artifact@v7
-        with:
-          name: build-${{ github.sha }}
-          path: |
-            src/backend/dist
-            src/frontend/dist
-      # TODO(Sprint 2): push the build to the free-tier staging host once it is
-      # chosen. Until then this job produces the deployable artifacts only.
-      - name: Tag build
-        if: inputs.build_tag != ''
+          fetch-depth: 0
+      - name: Tag the deployed commit
+        env:
+          TAG: ${{ inputs.build_tag }}
+          SHA: ${{ needs.target.outputs.sha }}
         run: |
-          git tag "${{ inputs.build_tag }}"
-          git push origin "${{ inputs.build_tag }}"
+          [[ "$TAG" =~ ^B[0-9]+$ ]] || { echo "::error::A build tag looks like B1."; exit 1; }
+          git tag "$TAG" "$SHA"
+          git push origin "refs/tags/$TAG"

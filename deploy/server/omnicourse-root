@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# The only root actions the omnicourse user may run (via /etc/sudoers.d/omnicourse):
+#   omnicourse-root restart <prod|stag>   restart that environment's API
+#   omnicourse-root dump <prod|stag>      write a compressed pg_dump to /var/backups/omnicourse, keep 14
+set -euo pipefail
+action="${1:-}"; env="${2:-}"
+[[ "$env" == prod || "$env" == stag ]] || { echo "usage: $0 restart|dump prod|stag" >&2; exit 2; }
+case "$action" in
+  restart) systemctl restart "omnicourse@$env" ;;
+  dump)
+    out="/var/backups/omnicourse/$env-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
+    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$out"
+    chown omnicourse:omnicourse "$out"; chmod 600 "$out"
+    ls -1t /var/backups/omnicourse/"$env"-*.sql.gz | tail -n +15 | xargs -r rm -f
+    echo "backup: $out" ;;
+  *) echo "usage: $0 restart|dump prod|stag" >&2; exit 2 ;;
+esac

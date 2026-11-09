@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Deploys one commit of OmniCourse to one environment. Runs as the omnicourse user.
+#
+# GitHub Actions reaches it through a forced-command SSH key, so the environment is fixed by the
+# key and the only thing the caller chooses is the commit:
+#   command="/usr/local/bin/omnicourse-deploy stag",restrict ssh-ed25519 AAAA...
+#   ssh omnicourse@host <40-hex commit>
+# By hand: sudo -u omnicourse omnicourse-deploy <prod|stag> <commit>
+#
+# The commit must already be on the environment's branch (prod: main, stag: staging), so a leaked
+# key can redeploy reviewed code but never run anything else.
+set -euo pipefail
+
+env="${1:-}"
+sha="${SSH_ORIGINAL_COMMAND:-${2:-}}"
+sha="${sha//[[:space:]]/}"
+case "$env" in
+  prod) branch=main;    port=3101 ;;
+  stag) branch=staging; port=3102 ;;
+  *) echo "unknown environment '$env'" >&2; exit 2 ;;
+esac
+[[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "expected a full 40-character commit hash" >&2; exit 2; }
+
+APP=/opt/omnicourse
+REPO="$APP/repo.git"
+ROOT="$APP/$env"
+export PATH="$APP/node/bin:/usr/bin:/bin"
+export npm_config_update_notifier=false npm_config_fund=false npm_config_audit=false
+
+exec 9>"$ROOT/deploy.lock"
+flock 9   # one deploy per environment at a time; the next one waits
+log() { echo "[$(date -u +%H:%M:%S)] $env: $*"; }
+
+# 1. The commit must be on the environment's branch.
+[[ -d "$REPO" ]] || git clone --quiet --bare https://github.com/LLaammTTeerr/omnicourses.git "$REPO"
+git -C "$REPO" fetch --quiet --prune origin "+refs/heads/$branch:refs/heads/$branch"
+git -C "$REPO" merge-base --is-ancestor "$sha" "refs/heads/$branch" \
+  || { echo "$sha is not on $branch" >&2; exit 3; }
+
+# 2. Build the release once; a redeploy of the same commit reuses it.
+rel="$ROOT/releases/$sha"
+if [[ ! -f "$rel/.built" ]]; then
+  log "building $sha"
+  rm -rf "$rel" && mkdir -p "$rel"
+  git -C "$REPO" archive "$sha" | tar -x -C "$rel"
+  (cd "$rel" && nice -n 10 npm ci --no-progress >/dev/null && VITE_API_URL=/api nice -n 10 npm run build >/dev/null)
+  touch "$rel/.built"
+fi
+
+# 3. Back up the database, then migrate and seed with the new code.
+log "backing up the database"
+sudo -n /usr/local/sbin/omnicourse-root dump "$env"
+set -a; . "/etc/omnicourse/$env.env"; set +a
+log "migrating and seeding"
+(cd "$rel/src/backend" && node dist/database/migrate.js && node dist/database/seed.js)
+
+# 4. Switch, restart, and check health; on failure switch back.
+prev="$(readlink -f "$ROOT/current" 2>/dev/null || true)"
+ln -sfn "$rel" "$ROOT/current.new" && mv -T "$ROOT/current.new" "$ROOT/current"
+sudo -n /usr/local/sbin/omnicourse-root restart "$env"
+healthy() {
+  for _ in $(seq 30); do
+    curl -fsS -o /dev/null "http://127.0.0.1:$port/api/health" && return 0
+    sleep 1
+  done
+  return 1
+}
+if healthy; then
+  log "live: $sha"
+else
+  log "health check failed for $sha"
+  if [[ -n "$prev" && "$prev" != "$rel" ]]; then
+    ln -sfn "$prev" "$ROOT/current.new" && mv -T "$ROOT/current.new" "$ROOT/current"
+    sudo -n /usr/local/sbin/omnicourse-root restart "$env"
+    log "rolled back to $(basename "$prev"); its database was already migrated, the backup above is the way back"
+  fi
+  exit 1
+fi
+
+# 5. Keep the three newest releases plus the live one.
+current="$(readlink -f "$ROOT/current")"
+ls -1dt "$ROOT"/releases/*/ | sed 's|/$||' | tail -n +4 | while read -r old; do
+  [[ "$old" == "$current" ]] || rm -rf "$old"
+done
