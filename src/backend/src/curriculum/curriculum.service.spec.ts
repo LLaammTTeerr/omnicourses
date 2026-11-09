@@ -162,7 +162,7 @@ describe('CurriculumService bulk reads for plans', () => {
   function bulk(found: { curriculum?: Partial<Curriculum> | null; courses?: Course[] } = {}) {
     const findOne = vi.fn().mockResolvedValue(found.curriculum === undefined ? { id: 'c1', requirementGroups: [{ id: 'g1' }, { id: 'g2' }] } : found.curriculum);
     const find = vi.fn().mockResolvedValue(found.courses ?? []);
-    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}));
+    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}), {} as CourseRulesService);
     return { svc, findOne, find };
   }
 
