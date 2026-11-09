@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, isOutOfDate, vietnamDate } from './out-of-date.js';
+import { vietnamDate } from '../config/time.js';
+import { addMonths, isOutOfDate } from './out-of-date.js';
 
 describe('vietnamDate', () => {
   it('is the UTC date during the Vietnamese day', () => {

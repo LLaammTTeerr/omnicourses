@@ -576,6 +576,75 @@
           "curriculum"
         ]
       }
+    },
+    "/api/users/me/onboarding": {
+      "get": {
+        "operationId": "OnboardingController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The saved answers. Before the first save every answer is null and finished is false.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "operationId": "OnboardingController_save",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Every answer is replaced; the saved answers are returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An answer is invalid or missing; nothing is saved"
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
     }
   },
   "info": {
@@ -831,7 +900,7 @@
               2,
               3
             ],
-            "description": "1 and 2 are main terms, 3 is the summer term."
+            "description": "Term of the academic year: 1, 2 or 3. Whether 3 is a main or a summer term depends on the program (APCS: main, QĐ 1175/QĐ-KHTN Điều 6.4b)."
           }
         },
         "required": [
@@ -1709,6 +1778,84 @@
           "exercisePeriods",
           "projectPeriods",
           "memberships"
+        ]
+      },
+      "OnboardingDto": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "APCS",
+              null
+            ],
+            "example": "APCS",
+            "description": "Program code. Only the programs offered in this release; null until the student picks one (UC-01 A7)."
+          },
+          "cohort": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "example": 2024,
+            "description": "Cohort: the year the student entered the program. Offered: APCS 2024, 2025. Set together with program, and null together with it."
+          },
+          "targetGraduationTerm": {
+            "description": "Target graduation term, from the current term up to 8 academic years ahead; null when not set.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creditsPerTerm": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "example": 18,
+            "description": "Credits the student wants to take per term, a whole number of 1 or more; null when not set. Stored as asked: the rule engine applies the credit cap when it builds a plan."
+          },
+          "internshipTerm": {
+            "description": "Internship term, in the same range as targetGraduationTerm; \"none\" when none is planned; null when not set.",
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TermDto"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "none"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finished": {
+            "type": "boolean",
+            "description": "The student pressed Finish (UC-01 step 9): onboarding then opens no more. Needs a program and cohort. False while onboarding is unfinished, so it resumes at the first unanswered step (UC-01 A8)."
+          }
+        },
+        "required": [
+          "program",
+          "cohort",
+          "targetGraduationTerm",
+          "creditsPerTerm",
+          "internshipTerm",
+          "finished"
         ]
       }
     }

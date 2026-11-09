@@ -10,7 +10,7 @@ export class TermDto implements Term {
   @Max(2100)
   year!: number;
 
-  @ApiProperty({ enum: TERM_NUMBERS, description: '1 and 2 are main terms, 3 is the summer term.' })
+  @ApiProperty({ enum: TERM_NUMBERS, description: 'Term of the academic year: 1, 2 or 3. Whether 3 is a main or a summer term depends on the program (APCS: main, QĐ 1175/QĐ-KHTN Điều 6.4b).' })
   @IsIn(TERM_NUMBERS)
   number!: Term['number'];
 }
