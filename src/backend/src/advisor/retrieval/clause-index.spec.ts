@@ -1,0 +1,87 @@
+import { describe, expect, it } from 'vitest';
+import { ClauseIndex, queryTerms } from './clause-index.js';
+import { REGULATION_QUESTIONS } from './labelled-questions.js';
+import { loadRegulations, regulationIndex } from './regulation-corpus.js';
+import { cleanInput, contentWords, fold, words } from './text.js';
+
+/** Share of labelled questions with at least one expected clause in the top k hits. */
+export function recallAt(index: ClauseIndex, k: number): { recall: number; misses: string[] } {
+  const misses = REGULATION_QUESTIONS.filter((q) => {
+    const top = index.search(q.question, k).hits.map((h) => h.clause.id);
+    return !q.expected.some((id) => top.includes(id));
+  }).map((q) => q.question);
+  return { recall: 1 - misses.length / REGULATION_QUESTIONS.length, misses };
+}
+
+describe('regulation retrieval', () => {
+  const index = regulationIndex();
+
+  it('indexes every committed clause and finds them by exact id', () => {
+    const clauses = loadRegulations().flatMap((d) => d.clauses);
+    expect(index.size).toBe(clauses.length);
+    expect(index.size).toBeGreaterThanOrEqual(200);
+    expect(index.get('qd-1175-2021/d7/k2/b')?.label).toBe('Điều 7, khoản 2, điểm b');
+    expect(index.get('qd-1175-2021/d99/k1')).toBeUndefined();
+    expect(index.hasArticle('qd-1175-2021', 24)).toBe(true);
+    expect(index.hasArticle('qd-1175-2021', 99)).toBe(false);
+  });
+
+  // ADR 0015 reports this number; the labelled set is in labelled-questions.ts.
+  it('finds an expected clause in the top 5 for at least 95% of the labelled questions (vi and en)', () => {
+    const { recall, misses } = recallAt(index, 5);
+    console.info(`advisor retrieval: recall@5 = ${(recall * 100).toFixed(1)}% over ${REGULATION_QUESTIONS.length} questions; recall@1 = ${(recallAt(index, 1).recall * 100).toFixed(1)}%`);
+    expect(misses).toEqual([]);
+    expect(recall).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it.each([
+    ['how many credits can I take', 'qd-1175-2021/d7/k2/b'],
+    ['học lại', 'qd-1175-2021/d14/k1'],
+    ['điểm trung bình', 'qd-1175-2021/d15/k2/a'],
+    ['điều kiện tốt nghiệp', 'qd-1175-2021/d17/k3/f'],
+  ])('answers %j with the right clause among the first hits', (question, id) => {
+    expect(index.search(question, 5).hits.map((h) => h.clause.id)).toContain(id);
+  });
+
+  it('matches without diacritics, in decomposed Unicode, and through homoglyphs', () => {
+    const top = (q: string) => index.search(q, 3).hits[0]?.clause.id;
+    const composed = top('điều kiện tốt nghiệp');
+    expect(top('dieu kien tot nghiep')).toBe(composed);
+    expect(top('điều kiện tốt nghiệp'.normalize('NFD'))).toBe(composed);
+    expect(top('đ​iều kiện tốt nghiệp')).toBe(composed);
+  });
+
+  it('scores an off-topic question with low coverage', () => {
+    expect(index.search('Write a Python function to reverse a linked list').coverage).toBeLessThan(0.2);
+    expect(index.search('how many credits can I take per term').coverage).toBeGreaterThan(0.5);
+  });
+
+  it('returns nothing for an empty or stopword-only question', () => {
+    expect(index.search('').hits).toEqual([]);
+    expect(index.search('the and of là của').coverage).toBe(0);
+  });
+});
+
+describe('text folding', () => {
+  it('drops diacritics and đ, folds homoglyphs and full-width letters, and removes invisible characters', () => {
+    expect(fold('Điều kiện TỐT NGHIỆP')).toBe('dieu kien tot nghiep');
+    expect(fold('іgnore')).toBe('ignore'); // Cyrillic і
+    expect(fold('ｉｇｎｏｒｅ')).toBe('ignore');
+    expect(cleanInput('a​b‮c\u{E0041}')).toBe('abc');
+    expect(words('5,0 điểm')).toEqual(['5,0', 'diem']);
+    // tôi is a stopword, tối (in tối đa) is not; typed without diacritics both read as stopwords.
+    expect(contentWords('tôi tối đa')).toEqual(['toi', 'da']);
+    expect(contentWords('toi muon hoc lai')).toEqual(['hoc', 'lai']);
+  });
+
+  it('turns English and slang into the regulation wording', () => {
+    const terms = (q: string) => queryTerms(q).map((t) => t.term);
+    expect(terms('retake')).toEqual(expect.arrayContaining(['~học', '~lại', '~học_lại']));
+    expect(terms('rớt môn')).toEqual(expect.arrayContaining(['~không_đạt']));
+    expect(terms('GPA')).toEqual(expect.arrayContaining(['~điểm_trung', '~trung_bình']));
+    // Typed without diacritics, a question matches the folded form.
+    expect(terms('dieu kien')).toEqual(['dieu', 'kien', 'dieu_kien']);
+    // Neighbours from two replacements are not paired.
+    expect(terms('how many credits')).not.toContain('da_tin');
+  });
+});
