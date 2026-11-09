@@ -137,6 +137,7 @@ C4Component
     Component(throttle, "ThrottlerGuard", "global guard, runs first", "Every request: 120 a minute per address; 10 on password routes")
     Component(authguard, "AuthGuard", "global guard, runs second", "Default-deny bearer check; @Public() opts a route out")
     Component(transcript, "transcript", "module", "Saves and reads the transcript; rowsFor()")
+    Component(curriculum, "curriculum", "module", "Read-only programs, curricula and courses")
     Component(guides, "guides", "module", "Public guide reads; guide seed")
     Component(users, "users", "module", "User identity and state; GET /users/me")
     Component(auth, "auth", "module", "Sign-up, sign-in, refresh, sign-out, sessions")
@@ -170,6 +171,7 @@ Every request from the single-page app passes the throttler guard, then the auth
 | auth | `auth/` | F1 sign-up, sign-in, refresh with rotation, sign-out, list and revoke sessions; argon2id passwords; the `sessions` table ([ADR 0002](adr/0002-authentication-and-sessions.md)). Sign-in before the purge deadline cancels a pending deletion. | `AuthService` (incl. `revokeAllWithin(manager, userId)`), `AuthGuard` |
 | account | `account/` | `GET /api/users/me/export` and `DELETE /api/users/me`. Owns the deletion flows: request, find accounts past their deadline, purge one account at a time, hourly ([ADR 0004](adr/0004-account-export-and-deletion.md)). Scheduling a deletion and revoking every session commit in one transaction, through the `…Within(manager)` methods of `users` and `auth`; `account` never writes the `sessions` table itself. | |
 | transcript | `transcript/` | F2 storage: `GET` and `PUT /api/users/me/transcript`, whole-set replace under a row lock ([ADR 0007](adr/0007-transcript.md)). The F2 PDF parser is planned (Lâm, 22 Nov). | `TranscriptService.rowsFor(userId)` returning `TranscriptEntry[]` |
+| curriculum | `curriculum/` | The read side of the curriculum data (#65): `GET /api/programs`, `GET /api/programs/:program/curricula/:cohort` and `GET /api/courses/:code`, signed-in and read-only. Its entities mirror migration `1792912952302`, and an e2e test diffs them against the migrated schema. Prerequisites, offering terms and the program's training type have no storage yet. | `CurriculumService` for the rule engine, onboarding and the planner |
 | guides | `guides/` | F11: `GET /api/guides` and `GET /api/guides/:id`, public and read-only ([ADR 0010](adr/0010-public-pages-and-guide-content.md)). Owns its records: `guide-file.ts` holds the ID rule and the mapping between content files and rows, and the guides seed loads them. | `seed(dataSource, options)` for the CLI |
 | ai | `ai/` | The AI gateway ([ADR 0003](adr/0003-language-model-scope.md)). No routes. `LlmService.structured()` and `chat()` with a tool loop; `AI_CONFIG`, a provider read once at boot from `config/env.ts`; one `preflight()` (model and key) before the cost guard reserves a call; the OpenRouter client built once; `streamChat` for SSE. Every failure is `AiUnavailableError` → 503 `ai_unavailable`. | `LlmService`, `streamChat`, `FakeLlmService` for tests |
 | App wiring | `features.ts`, `config/`, `bootstrap.ts`, `app.module.ts` | `FEATURE_MODULES` is the one list of feature modules; `app.module.ts` and `openapi-document.ts` (the document `npm run openapi` writes and the drift test compares) both spread it, so the contract always lists every route. Each module registers its own entities (`autoLoadEntities`). `config/env.ts` holds `loadEnvFiles()` and typed getters (port, CORS origin, database URL, session lifetime, deletion grace period, AI settings); `main.ts` and the CLI jobs call it. `configureApp()` sets the `/api` prefix, the validation pipe, CORS and Swagger for the server and the e2e tests alike. | |
@@ -191,7 +193,7 @@ C4Component
   UpdateLayoutConfig($c4ShapeInRow="1", $c4BoundaryInRow="2")
 
   Boundary(callers, "Feature modules", "REST API") {
-    Component(explorer, "curriculum", "planned · Triết", "F4 curriculum explorer")
+    Component(explorer, "curriculum explorer", "planned · Triết", "F4 prerequisites and unlocks, on the built read API")
     Component(plans, "plans", "planned · Hoà", "F5 plans, live validation; F7 what-if")
     Component(plangen, "plan-generator", "planned · Lâm", "F6 planner; goal box on top")
     Component(advisor, "advisor", "planned · Dũng", "F8 chat, tools, regulation files")
@@ -241,7 +243,7 @@ Black lines are calls into the rule engine, purple lines calls to the AI gateway
 | --- | --- | --- | --- | --- |
 | `rules` (`RulesService`) | rule engine | Triết | validation endpoint 16 Nov; planner functions 29 Nov | Vision objective 2; [ADR 0006](adr/0006-plan-generator.md) |
 | `audit` | F3 degree audit | Triết | B1, 15 Nov | Vision F3, UC-03 |
-| `curriculum` (explorer) | F4 curriculum explorer | Triết | B1, 15 Nov | Vision F4, UC-04 |
+| `curriculum` (explorer) | F4 curriculum explorer: prerequisites and unlocks, on top of the read API already built (#65) | Triết | B1, 15 Nov | Vision F4, UC-04 |
 | `plans` | F5 planner, F7 what-if | Hoà | API 8 Nov; planner B2; what-if B3 | Vision F5, F7; UC-05, UC-06 |
 | `plan-generator` | F6 plan generator and goal box | Lâm | B3 | [ADR 0003](adr/0003-language-model-scope.md); [ADR 0006](adr/0006-plan-generator.md) |
 | `advisor` | F8 advisor chat | Dũng | B3 | [ADR 0003](adr/0003-language-model-scope.md), UC-08 |
@@ -397,7 +399,7 @@ This is the first version of the document. It describes the backend and frontend
 | 3 | Production and staging run on one shared host (§7): one machine, no failover. The nightly backup and the restore rehearsal are not set up yet. | Lâm | `deploy/README.md`; Vision NFR Recovery |
 | 4 | The `RulesService` interface is not merged, and seven planned components depend on it. A late change ripples to every caller (risk R9). | Triết | SDP R1, R9; ADR 0006 |
 | 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
-| 6 | The curriculum seeds live in `database/`. Moving them into a curriculum module is a new module boundary and belongs with ADR 0011's work. | Thắng, Triết | ADR 0011 |
+| 6 | The curriculum seeds live in `database/`. Moving them into the `curriculum` module (#65) is a new module boundary and belongs with ADR 0011's work. | Thắng, Triết | ADR 0011 |
 | 7 | F10's delivery channel, schedule and trigger contract are undefined, so the notifications component has no interface yet. | Dũng | Test plan §8 |
 | 8 | Whether the portal transcript PDF has a text layer and a fixed layout, and numbers the third term of the year 3. Manual entry works either way. | Lâm | ADR 0003, 0007, 0009, 0012; SDP R7 |
 | 9 | The SPA keeps a bearer token, so XSS exposure must be limited with a strict Content Security Policy when sign-in screens ship. | Hoà, Lâm | ADR 0002 |
