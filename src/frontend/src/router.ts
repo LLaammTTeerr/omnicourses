@@ -1,16 +1,25 @@
-import { createRouter, createWebHistory, type RouteRecordRaw, type RouterScrollBehavior } from 'vue-router';
-import GuideView from './views/GuideView.vue';
-import GuidesView from './views/GuidesView.vue';
+import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory, type RouterScrollBehavior } from 'vue-router';
+import GuideView from './guides/GuideView.vue';
+import GuidesView from './guides/GuidesView.vue';
 import HomeView from './views/HomeView.vue';
 
-export const routes: RouteRecordRaw[] = [
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** App.vue keeps the page alive while another page is open. */
+    keepAlive?: boolean;
+  }
+}
+
+const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: HomeView },
   // Readable signed out (ADR 0010).
-  { path: '/guides', name: 'guides', component: GuidesView },
+  // The guide list stays alive while a guide is open, so Back finds the same search and scroll position.
+  { path: '/guides', name: 'guides', component: GuidesView, meta: { keepAlive: true } },
   { path: '/guides/:id', name: 'guide', component: GuideView, props: true },
 ];
 
-// Back returns to where the reader was; the skip link (#main) moves to the main content; any other page opens at the top.
-export const scrollBehavior: RouterScrollBehavior = (to, _from, saved) => saved ?? (to.hash ? { el: to.hash } : { top: 0 });
+const scrollBehavior: RouterScrollBehavior = (to, _from, saved) => saved ?? (to.hash ? { el: to.hash } : { top: 0 });
 
-export const router = createRouter({ history: createWebHistory(), routes, scrollBehavior });
+export function createAppRouter(history: RouterHistory = createWebHistory()): Router {
+  return createRouter({ history, routes, scrollBehavior });
+}

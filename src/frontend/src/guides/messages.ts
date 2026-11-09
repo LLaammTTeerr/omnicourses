@@ -1,8 +1,7 @@
-import type { GuideGroup } from '../guides-api.js';
 import type { Lang } from '../locale.js';
+import type { GuideGroup } from './api.js';
 
-// The strings of the guide pages. The guide text itself comes from the API.
-export interface GuideMessages {
+interface GuideMessages {
   groups: Record<GuideGroup, string>;
   listTitle: string;
   listIntro: string;
@@ -18,7 +17,6 @@ export interface GuideMessages {
   browseGroups: string;
   account: string;
   openPortal: (portal: string) => string;
-  newTab: string;
   outOfDateChip: string;
   checkedOn: (date: string) => string;
   onlyOtherLanguage: string;
@@ -71,7 +69,6 @@ export const GUIDE_MESSAGES: Record<Lang, GuideMessages> = {
     browseGroups: 'Xem theo nhóm việc:',
     account: 'Tài khoản:',
     openPortal: (portal) => `Mở ${portal}`,
-    newTab: ' (mở ở tab mới)',
     outOfDateChip: 'Có thể đã cũ',
     checkedOn: (date) => `Kiểm tra ngày ${date}`,
     onlyOtherLanguage: 'Chỉ có tiếng Anh',
@@ -123,7 +120,6 @@ export const GUIDE_MESSAGES: Record<Lang, GuideMessages> = {
     browseGroups: 'Browse by task group:',
     account: 'Account:',
     openPortal: (portal) => `Open ${portal}`,
-    newTab: ' (opens in a new tab)',
     outOfDateChip: 'May be out of date',
     checkedOn: (date) => `Checked on ${date}`,
     onlyOtherLanguage: 'Vietnamese only',

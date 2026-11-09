@@ -1,6 +1,3 @@
-import { createPinia } from 'pinia';
-import { createApp } from 'vue';
-import App from './App.vue';
-import { router } from './router.js';
+import { createOmniCourseApp } from './app.js';
 
-createApp(App).use(createPinia()).use(router).mount('#app');
+createOmniCourseApp().mount('#app');
