@@ -22,9 +22,9 @@ const audit = computed(() => (data.value?.status === 'ready' ? data.value.audit 
 /** How many unmet conditions the dashboard lists before sending the student to the audit page. */
 const TOP_UNMET = 5;
 
-// TODO(F5): the planner screen is being built on `feat/ui-planner`. Until its route (named `planner`) exists, the
-// link shows as coming soon instead of leading nowhere.
-const hasPlanner = computed(() => router.hasRoute('planner'));
+// TODO(F5): the plans screen comes with #80 (`feat/ui-planner`, route `plans`). Until that route exists, the link
+// shows as coming soon instead of leading nowhere.
+const hasPlanner = computed(() => router.hasRoute('plans'));
 
 const score = (value: number | null) => formatScore(value, locale.lang) ?? m.value.noGrade;
 const unmet = (a: DegreeAudit) => a.graduation.unmet.slice(0, TOP_UNMET);
@@ -173,7 +173,7 @@ usePageTitle(() => m.value.dashboardTitle);
               <RouterLink class="db-link" :to="{ name: 'explorer' }" data-test="link-explorer">
                 <Icon name="graph" /><span><b>{{ m.openExplorer }}</b><small>{{ m.openExplorerText }}</small></span>
               </RouterLink>
-              <RouterLink v-if="hasPlanner" class="db-link" :to="{ name: 'planner' }" data-test="link-planner">
+              <RouterLink v-if="hasPlanner" class="db-link" :to="{ name: 'plans' }" data-test="link-planner">
                 <Icon name="cap" /><span><b>{{ m.openPlanner }}</b><small>{{ m.openPlannerText }}</small></span>
               </RouterLink>
               <span v-else class="db-link soon" data-test="link-planner" aria-disabled="true">

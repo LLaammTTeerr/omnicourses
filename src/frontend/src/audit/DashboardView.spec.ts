@@ -14,7 +14,7 @@ let wrapper: VueWrapper | undefined;
 async function render(answer: unknown = degreeAudit(), { planner = false } = {}) {
   const fetch = mockApi({ 'GET /users/me/audit': answer });
   const app = await setup('/dashboard');
-  if (planner) app.router.addRoute({ path: '/planner', name: 'planner', component: defineComponent({ render: () => null }) });
+  if (planner) app.router.addRoute({ path: '/plans', name: 'plans', component: defineComponent({ render: () => null }) });
   wrapper = mount(DashboardView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch, ...app };
@@ -102,7 +102,7 @@ describe('DashboardView (F3, UC-03)', () => {
 
   it('links to the planner once its route exists', async () => {
     const { w } = await render(degreeAudit(), { planner: true });
-    expect(w.get('[data-test="link-planner"]').attributes('href')).toBe('/planner');
+    expect(w.get('[data-test="link-planner"]').attributes('href')).toBe('/plans');
   });
 
   it('with no transcript, says the figures assume nothing is passed and points to the upload', async () => {
