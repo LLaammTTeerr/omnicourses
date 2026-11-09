@@ -12,7 +12,8 @@
     "test:live": "vitest run --config vitest.live.config.mts",
     "openapi": "node dist/openapi.js",
     "db:migrate": "node dist/database/migrate.js",
-    "db:seed": "node dist/database/seed.js"
+    "db:seed": "node dist/database/seed.js",
+    "admin:bootstrap": "node dist/curriculum-admin/bootstrap-cli.js"
   },
   "dependencies": {
     "@nestjs/common": "12.1.3",

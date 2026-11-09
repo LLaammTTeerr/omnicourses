@@ -91,9 +91,13 @@ describe('Curriculum API (e2e)', () => {
     for (const row of printed) if (!decided.has(row.code)) expect(credits[row.code]).toBe(row.credits);
   });
 
-  it('carries no prerequisite or offering-term data, because none is stored', async () => {
-    const { text } = await get('/api/programs/APCS/curricula/2024').expect(200);
-    expect(text).not.toMatch(/prereq|offering/i);
+  it('reads prerequisites and offering terms as not recorded (null), never as none, while F12 has stored none', async () => {
+    // A CLC curriculum: no e2e file records rules for it, and no seed does (ADR 0011, amended 9 November 2026).
+    const seed = CURRICULUM_SEEDS.find((s) => s.program.code !== 'APCS')!;
+    const { body } = await get(`/api/programs/${seed.program.code}/curricula/${seed.curriculum.cohort_year}`).expect(200);
+    const courses = (body.requirementGroups as Group[]).flatMap((g) => g.courses as unknown as { prerequisites: unknown; offeringTerms: unknown }[]);
+    expect(courses.length).toBeGreaterThan(0);
+    for (const course of courses) expect([course.prerequisites, course.offeringTerms]).toEqual([null, null]);
   });
 
   it('answers 404 for an unknown program, an unknown cohort or a malformed cohort', async () => {
