@@ -1,6 +1,6 @@
 # ADR 0006: How the plan generator builds a plan
 
-- Status: proposed
+- Status: accepted (9 November 2026)
 - Date: 2026-10-28
 - Deciders: Lâm (owner of `plan-generator`)
 - Reviewer: Triết (rule engine interface), Hoà (plans API, how reasons are shown)
@@ -30,6 +30,15 @@ The rule engine isn't built yet (callable functions due 29 Nov), and the curricu
 | **No model summary, for now.** The reasons are the explanation. | A model summary of the reasons, which ADR 0003 allows ("explains the result") | A second model call per plan costs money and can misstate a rule in fluent prose. Revisit if students find the reasons too terse. |
 | **At the 30-second limit, return the best plan found so far, never nothing.** The method above is expected to take well under a second, so v1 has no limit of its own. The client shows progress, mostly for the goal box's model call (up to 30 s, ADR 0003), and cancels by dropping the request. | Stop and ask the student to relax the goal | Performance NFR (Vision §6). The real cost depends on the engine; it is measured on the APCS seed (8 Nov) before Sprint 5. |
 | **A pure function behind one endpoint.** `generatePlan(goal, rules)` has no database access. One endpoint returns the unsaved plan, and the student saves it through Hoà's plans API (UC-07 step 10). | The planner saves the plan itself | Ownership stays split as in ADR 0003. Unit tests run on synthetic curricula with a fake engine. |
+
+### Review decisions (9 November 2026)
+
+Decided under Lâm's standing delegation to the project's AI assistant:
+
+1. **Greedy, not a solver.** Accepted. A plan may graduate one term later than the best possible; the ADR calls the method a heuristic, and every placement keeps its one-line reason.
+2. **No model summary.** Accepted. The reasons are the explanation, so there is no extra model call per plan and no prose that could misstate a rule.
+3. **Summer terms only when needed.** Accepted. The planning-goal form gets **no** summer field: the planner adds summer terms only when main terms miss the target, and after saving, the student can still move or remove them by editing the plan (F5).
+4. **Courses in progress stay in their current term** and are listed under "assumes these are passed". Accepted.
 
 ## What the planner needs from the rule engine
 
