@@ -123,6 +123,14 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
     expect(second.finished_at).toEqual(first.finished_at);
   });
 
+  it('a PUT replaces finished too: false after a Finish reopens onboarding and clears its time', async () => {
+    const { auth, userId } = await student();
+    await http().put('/api/users/me/onboarding').set(auth).send(FULL).expect(200);
+    await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, finished: false }).expect(200);
+    expect((await http().get('/api/users/me/onboarding').set(auth).expect(200)).body.finished).toBe(false);
+    expect(await db.query('SELECT finished_at FROM onboarding_answers WHERE user_id = $1', [userId])).toEqual([{ finished_at: null }]);
+  });
+
   it('B1 §6 item 4: the current term and the last term eight academic years ahead are accepted', async () => {
     const { auth } = await student();
     for (const term of [now, lastTerm]) {
