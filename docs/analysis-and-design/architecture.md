@@ -3,7 +3,7 @@
 - Status: draft for review, due 15 Nov 2026 (SDP v2 §2.3)
 - Owner: Triết (Backend Lead; the SDP gives him the architecture document). This version was written at Lâm's request.
 - Reviewers: Triết (backend, rule engine), Hoà (frontend), Lâm (authentication, AI gateway, deployment)
-- Code described: `main` at `a8bd0c9`, plus the untangle refactor (see [Revisions in this version](#revisions-in-this-version))
+- Code described: `main` at `a7dd2c5` (9 November 2026), after the untangle refactor #56, #57 and #58 (see [Revisions in this version](#revisions-in-this-version))
 
 ## 1. Purpose and scope
 
@@ -172,7 +172,7 @@ Every request from the single-page app passes the throttler guard, then the auth
 | transcript | `transcript/` | F2 storage: `GET` and `PUT /api/users/me/transcript`, whole-set replace under a row lock ([ADR 0007](adr/0007-transcript.md)). The F2 PDF parser is planned (Lâm, 22 Nov). | `TranscriptService.rowsFor(userId)` returning `TranscriptEntry[]` |
 | guides | `guides/` | F11: `GET /api/guides` and `GET /api/guides/:id`, public and read-only ([ADR 0010](adr/0010-public-pages-and-guide-content.md)). Owns its records: `guide-file.ts` holds the ID rule and the mapping between content files and rows, and the guides seed loads them. | `seed(dataSource, options)` for the CLI |
 | ai | `ai/` | The AI gateway ([ADR 0003](adr/0003-language-model-scope.md)). No routes. `LlmService.structured()` and `chat()` with a tool loop; `AI_CONFIG`, a provider read once at boot from `config/env.ts`; one `preflight()` (model and key) before the cost guard reserves a call; the OpenRouter client built once; `streamChat` for SSE. Every failure is `AiUnavailableError` → 503 `ai_unavailable`. | `LlmService`, `streamChat`, `FakeLlmService` for tests |
-| App wiring | `features.ts`, `config/`, `bootstrap.ts`, `app.module.ts` | `FEATURE_MODULES` is the one list of feature modules; `app.module.ts` and the OpenAPI generator `openapi.ts` both spread it, so the contract always lists every route. Each module registers its own entities (`autoLoadEntities`). `config/env.ts` holds `loadEnvFiles()` and typed getters (port, CORS origin, database URL, session lifetime, deletion grace period, AI settings); `main.ts` and the CLI jobs call it. `configureApp()` sets the `/api` prefix, the validation pipe, CORS and Swagger for the server and the e2e tests alike. | |
+| App wiring | `features.ts`, `config/`, `bootstrap.ts`, `app.module.ts` | `FEATURE_MODULES` is the one list of feature modules; `app.module.ts` and `openapi-document.ts` (the document `npm run openapi` writes and the drift test compares) both spread it, so the contract always lists every route. Each module registers its own entities (`autoLoadEntities`). `config/env.ts` holds `loadEnvFiles()` and typed getters (port, CORS origin, database URL, session lifetime, deletion grace period, AI settings); `main.ts` and the CLI jobs call it. `configureApp()` sets the `/api` prefix, the validation pipe, CORS and Swagger for the server and the e2e tests alike. | |
 | database | `database/` | `data-source.ts` (connection options and migrations only), `migrations/index.ts` (the ordered list of migration classes), the curriculum schema (programs, curricula, requirement groups, courses; [ADR 0005](adr/0005-curriculum-cohort-and-course-catalog.md)) and the APCS and CLC curriculum seeds. | `seed()` for the curriculum data |
 
 `terms/` is not a module: it holds the shared `Term` interface and `TermDto` that every module uses for a term ([ADR 0009](adr/0009-term-encoding.md)).
@@ -278,10 +278,10 @@ C4Component
   Container_Boundary(spa, "Single-page app") {
     Component(shell, "App shell", "App.vue, createOmniCourseApp", "Header, navigation, language switch, skip link, global styles")
     Component(apiclient, "API client", "api.ts", "API base URL, getJson(), health")
-    Component(types, "API types", "TypeScript", "From src/backend/openapi.json, ADR 0012 proposed")
+    Component(types, "API types", "TypeScript", "Hand-written, checked against src/backend/openapi.json")
     Component(home, "Home", "HomeView, ApiStatus", "Landing page, API status")
     Component(router, "Router", "vue-router 5, createAppRouter", "Routes, scroll position, KeepAlive by route name")
-    Component(guides, "guides feature", "src/frontend/src/guides/", "List, search and guide views; guides-api.ts")
+    Component(guides, "guides feature", "src/frontend/src/guides/", "List, search and guide views; api.ts")
     Component(locale, "Locale", "Pinia store, locale.ts", "Vietnamese and English language table")
     Component(blocks, "Shared view blocks", "composables, components", "useAsyncLoad, usePageTitle, ExternalLink")
     Component(session, "Session store", "planned · Hoà, Lâm", "Bearer token in memory or sessionStorage; refresh on start-up")
@@ -317,8 +317,8 @@ C4Component
 | Locale | `locale.ts` | Pinia store for the screen language. One table maps each language to its `Intl` tag, date format, own name and the other language. Defaults to Vietnamese; remembered in `localStorage`. The UI language type is separate from a guide's content language. |
 | Shared view blocks | composables and components | `useAsyncLoad` (loading, failure, retry, ignoring a stale response), `usePageTitle` (tab title, aware of KeepAlive), `ExternalLink.vue` (new tab with safe `rel`), used by every view. |
 | API client | `api.ts` | `API_URL` from `VITE_API_URL`; one `getJson(path)`; `fetchHealth()`. Feature modules build their calls on it. Components never call `fetch` directly (AGENTS.md). |
-| API types | generated | Request and response types come from the committed contract `src/backend/openapi.json`, through `openapi-typescript`. If that tool refuses OpenAPI 3.2.0, a frontend test instead checks the hand-written types' enums and property names against the same file (ADR 0012, proposed with the frontend refactor). A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift. |
-| guides feature | `src/frontend/src/guides/` | F11 screens: `guides-api.ts` (`fetchGuides`, `fetchGuide` with its not-found error), the list and guide views, diacritic-insensitive search, language fallback (`pick-text`), content links. `GUIDE_GROUPS` stays a frontend array for display order, checked at compile time against the contract's group enum. |
+| API types | `guides/api.ts`, `testing/contract.ts` | Request and response types are written by hand beside each API module. Specs check them against the committed contract `src/backend/openapi.json` through `testing/contract.ts`, so a renamed or missing field fails a test. `openapi-typescript` is not used: it requires TypeScript 5 and the repo pins 6.0.3 (decided 9 November 2026; revisit when it supports TypeScript 6). A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift. |
+| guides feature | `src/frontend/src/guides/` | F11 screens: `api.ts` (`fetchGuides`, `fetchGuide` with its not-found error), the list and guide views, diacritic-insensitive search, language fallback (`pick-text`), content links. `GUIDE_GROUPS` stays a frontend array for display order, checked at compile time against the contract's group enum. |
 | Home | `views/HomeView.vue`, `components/ApiStatus.vue` | Landing page and API health. |
 | Planned screens | | Sign-in and sign-up (Hoà), onboarding and transcript import with its review table (Lâm), degree audit and explorer (Triết), planner and what-if (Hoà), goal box (Lâm), advisor chat and shared-plan page (Dũng), administration (Thắng). Each feature gets its own folder like `guides/`. |
 
@@ -371,13 +371,12 @@ This section gets a C4 deployment diagram once the host is chosen.
 | [0009 Term encoding](adr/0009-term-encoding.md) | proposed | `terms/`; `transcript`, `plans`, offering terms, `plan-generator` |
 | [0010 Public pages and guide content](adr/0010-public-pages-and-guide-content.md) | accepted | `guides`, `sharing`; the public routes allow-list and its e2e test; guides as content files plus seed |
 | [0011 Curriculum administration](adr/0011-curriculum-administration.md) | proposed; not authorization to implement | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
-| 0012 API types from the OpenAPI contract | proposed with the frontend refactor | Committed `src/backend/openapi.json`; SPA API types; drift test |
 
 There is no ADR 0006 on `main` yet; the number is held by PR #27.
 
 ### Revisions in this version
 
-This is the first version of the document. It describes the backend and frontend after the untangle refactor, which changes internal layout only: routes, JSON fields, tables, env var names, error codes and the OpenAPI document stay the same. The refactor lands as three PRs, from the branches `refactor/untangle-backend-core`, `refactor/untangle-backend-features` and `refactor/untangle-frontend`.
+This is the first version of the document. It describes the backend and frontend after the untangle refactor, which changes internal layout only: routes, JSON fields, tables, env var names, error codes and the OpenAPI document stay the same. The refactor landed on 9 November 2026 as three PRs: #56 (backend core), #58 (backend features) and #57 (frontend).
 
 1. **One feature list.** `features.ts` exports `FEATURE_MODULES`, used by both the app and the OpenAPI generator. Before, `openapi.ts` kept its own copy, and a module missing from it would have dropped its routes from the contract. Each module registers its own entities, and migrations are listed in `migrations/index.ts`.
 2. **One env module.** `config/env.ts` loads `.env` and gives typed getters. Before, three entry points each looked up `.env` themselves, and `@nestjs/config` was a fourth path. It also fixes a blank `SESSION_TTL_DAYS` expiring every session at once (issue #37) and a blank `PORT` picking a random port.
@@ -385,7 +384,7 @@ This is the first version of the document. It describes the backend and frontend
 4. **AI configuration as a provider.** `AI_CONFIG` is read once at boot and injected, with one `preflight()` check before a call is reserved and one logging helper for hard rule 3 ([ADR 0003](adr/0003-language-model-scope.md)).
 5. **Rate limits and auth decorators in one place.** Throttler names and limits are defined together; one `Authenticated()` decorator replaces the copied OpenAPI pair on each controller ([ADR 0002](adr/0002-authentication-and-sessions.md)).
 6. **Features own their seeds.** `database/seed.ts` only loads env and calls each feature's `seed()`; guides own their file-to-row mapping ([ADR 0010](adr/0010-public-pages-and-guide-content.md)).
-7. **Frontend feature folder and contract types.** The guides API module and views move into `src/frontend/src/guides/`; API types come from the committed OpenAPI document (ADR 0012); shared view blocks, one language table and a global stylesheet replace copies across views.
+7. **Frontend feature folder and contract types.** The guides API module and views move into `src/frontend/src/guides/`; a test checks the hand-written API types against the committed OpenAPI document; shared view blocks, one language table and a global stylesheet replace copies across views.
 
 ## 9. Open questions and risks
 
@@ -398,8 +397,7 @@ This is the first version of the document. It describes the backend and frontend
 | 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed, and ADR 0006 is unmerged; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
 | 6 | The curriculum seeds live in `database/`. Moving them into a curriculum module is a new module boundary and belongs with ADR 0011's work. | Thắng, Triết | ADR 0011 |
 | 7 | F10's delivery channel, schedule and trigger contract are undefined, so the notifications component has no interface yet. | Dũng | Test plan §8 |
-| 8 | ADR 0012's gate: whether `openapi-typescript` accepts OpenAPI 3.2.0, or the frontend falls back to a test against the committed contract. | Hoà | Frontend refactor PR |
-| 9 | Whether the portal transcript PDF has a text layer and a fixed layout, and numbers the summer term 3. Manual entry works either way. | Lâm | ADR 0003, 0007, 0009; SDP R7 |
-| 10 | The SPA keeps a bearer token, so XSS exposure must be limited with a strict Content Security Policy when sign-in screens ship. | Hoà, Lâm | ADR 0002 |
-| 11 | Google sign-in and email verification are deferred; Google-only accounts cannot confirm deletion until then. | Lâm | ADR 0002, ADR 0004 |
-| 12 | Personal data reaching an AI tool, a log or a fixture (risk R8). Mitigated by the logging rule above and synthetic test data. | Lâm | SDP R8; hard rule 3 |
+| 8 | Whether the portal transcript PDF has a text layer and a fixed layout, and numbers the summer term 3. Manual entry works either way. | Lâm | ADR 0003, 0007, 0009; SDP R7 |
+| 9 | The SPA keeps a bearer token, so XSS exposure must be limited with a strict Content Security Policy when sign-in screens ship. | Hoà, Lâm | ADR 0002 |
+| 10 | Google sign-in and email verification are deferred; Google-only accounts cannot confirm deletion until then. | Lâm | ADR 0002, ADR 0004 |
+| 11 | Personal data reaching an AI tool, a log or a fixture (risk R8). Mitigated by the logging rule above and synthetic test data. | Lâm | SDP R8; hard rule 3 |
