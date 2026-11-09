@@ -1,18 +1,13 @@
 import { request } from '../api.js';
+import type { Term } from '../terms.js';
+
+export { TERM_NUMBERS, type Term } from '../terms.js';
 
 // The transcript DTOs of the API (ADR 0007, ADR 0009), written by hand; api.spec.ts checks them against
 // src/backend/openapi.json.
 
 export const TRANSCRIPT_RESULTS = ['graded', 'in_progress', 'exempt', 'pass', 'fail'] as const;
 export type TranscriptResult = (typeof TRANSCRIPT_RESULTS)[number];
-
-export const TERM_NUMBERS = [1, 2, 3] as const;
-
-/** ADR 0009: `year` 2026 is the academic year 2026–2027; 1 and 2 are main terms, 3 is summer. */
-export interface Term {
-  year: number;
-  number: (typeof TERM_NUMBERS)[number];
-}
 
 export interface TranscriptRow {
   courseCode: string;
