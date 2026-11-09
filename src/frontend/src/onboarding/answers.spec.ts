@@ -4,7 +4,7 @@ import { NOT_STARTED } from './api.js';
 import { creditsProblem, errorsByField, goalAnswers, goalDraft, goalTermChoices, programChoices, resumeStep } from './answers.js';
 import { onboarding } from './testing/fixtures.js';
 
-const program = (code: string, cohortYears: number[]): Program => ({ code, nameVi: `Chương trình ${code}`, nameEn: null, faculty: null, cohortYears });
+const program = (code: string, cohortYears: number[]): Program => ({ code, nameVi: `Chương trình ${code}`, nameEn: null, faculty: null, trainingType: null, cohortYears });
 
 describe('creditsProblem (UC-01 §7: 1 or more, no upper limit)', () => {
   it.each(['', '  ', '1', '18', '40', '2147483647'])('accepts %j', (text) => {

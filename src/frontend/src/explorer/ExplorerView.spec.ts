@@ -1,12 +1,12 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Course, CourseDetail, Curriculum, Program, RequirementGroup } from '../curriculum/api.js';
+import type { CourseDetail, Curriculum, CurriculumCourse, Program, RequirementGroup } from '../curriculum/api.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import ExplorerView from './ExplorerView.vue';
 
 // A synthetic curriculum: made-up codes and names, the group headings of the real APCS tables.
-const course = (code: string, nameVi: string, credits = 4, nameEn: string | null = null): Course => ({
+const course = (code: string, nameVi: string, credits = 4, nameEn: string | null = null): CurriculumCourse => ({
   code,
   nameVi,
   nameEn,
@@ -15,8 +15,10 @@ const course = (code: string, nameVi: string, credits = 4, nameEn: string | null
   labPeriods: 30,
   exercisePeriods: null,
   projectPeriods: 0,
+  prerequisites: null,
+  offeringTerms: null,
 });
-const group = (id: string, name: string, kind: RequirementGroup['kind'], courses: Course[], extra: Partial<RequirementGroup> = {}): RequirementGroup => ({
+const group = (id: string, name: string, kind: RequirementGroup['kind'], courses: CurriculumCourse[], extra: Partial<RequirementGroup> = {}): RequirementGroup => ({
   id: `00000000-0000-4000-8000-00000000${id}`,
   name,
   kind,
@@ -30,7 +32,7 @@ const ML = course('ZZ414', 'Học máy thử', 4, 'Machine learning (test)');
 const CURRICULUM: Curriculum = {
   id: '00000000-0000-4000-8000-0000000000c1',
   code: 'APCS2024',
-  program: { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null },
+  program: { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced' },
   cohortYear: 2024,
   nameVi: 'CTĐT thử khóa 2024',
   nameEn: null,
@@ -44,7 +46,7 @@ const CURRICULUM: Curriculum = {
     group('0a03', 'Kiến thức Computer Science (A): bắt buộc', 'compulsory', [course('ZZ201', 'Lập trình thử')]),
   ],
 };
-const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, cohortYears: [2024, 2025] }];
+const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced', cohortYears: [2024, 2025] }];
 const DETAIL: CourseDetail = {
   ...ML,
   memberships: [

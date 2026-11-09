@@ -8,7 +8,7 @@ import { NOT_STARTED, type Onboarding } from './api.js';
 import StudySettings from './StudySettings.vue';
 import { onboarding } from './testing/fixtures.js';
 
-const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, cohortYears: [2024, 2025] }];
+const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced', cohortYears: [2024, 2025] }];
 
 let wrapper: VueWrapper | undefined;
 

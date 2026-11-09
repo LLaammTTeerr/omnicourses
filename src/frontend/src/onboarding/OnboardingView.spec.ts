@@ -10,8 +10,8 @@ import { onboarding } from './testing/fixtures.js';
 
 // Synthetic programs: APCS as the API lists it, and one the release does not offer.
 const PROGRAMS: Program[] = [
-  { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: 'Advanced Program (test)', faculty: null, cohortYears: [2023, 2024, 2025] },
-  { code: 'ZZCLC', nameVi: 'Chương trình thử chưa hỗ trợ', nameEn: null, faculty: null, cohortYears: [2025] },
+  { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: 'Advanced Program (test)', faculty: null, trainingType: 'advanced', cohortYears: [2023, 2024, 2025] },
+  { code: 'ZZCLC', nameVi: 'Chương trình thử chưa hỗ trợ', nameEn: null, faculty: null, trainingType: null, cohortYears: [2025] },
 ];
 
 let wrapper: VueWrapper | undefined;

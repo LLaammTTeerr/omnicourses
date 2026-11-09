@@ -5,10 +5,12 @@ import {
   fetchCourse,
   fetchCurriculum,
   REQUIREMENT_GROUP_KINDS,
+  TRAINING_TYPES,
   type Course,
   type CourseDetail,
   type CourseMembership,
   type Curriculum,
+  type CurriculumCourse,
   type Program,
   type ProgramList,
   type ProgramSummary,
@@ -28,10 +30,17 @@ const course = {
 
 describe('curriculum types against the contract (F4, ADR 0005)', () => {
   it.each([
-    ['ProgramSummaryDto', { code: 'required', nameVi: 'required', nameEn: 'required', faculty: 'required' } satisfies Shape<ProgramSummary>],
-    ['ProgramDto', { code: 'required', nameVi: 'required', nameEn: 'required', faculty: 'required', cohortYears: 'required' } satisfies Shape<Program>],
+    [
+      'ProgramSummaryDto',
+      { code: 'required', nameVi: 'required', nameEn: 'required', faculty: 'required', trainingType: 'required' } satisfies Shape<ProgramSummary>,
+    ],
+    [
+      'ProgramDto',
+      { code: 'required', nameVi: 'required', nameEn: 'required', faculty: 'required', trainingType: 'required', cohortYears: 'required' } satisfies Shape<Program>,
+    ],
     ['ProgramListDto', { programs: 'required' } satisfies Shape<ProgramList>],
     ['CourseDto', course satisfies Shape<Course>],
+    ['CurriculumCourseDto', { ...course, prerequisites: 'required', offeringTerms: 'required' } satisfies Shape<CurriculumCourse>],
     ['CourseDetailDto', { ...course, memberships: 'required' } satisfies Shape<CourseDetail>],
     [
       'CourseMembershipDto',
@@ -76,6 +85,10 @@ describe('curriculum types against the contract (F4, ADR 0005)', () => {
 
   it('has the group kinds of the contract', () => {
     expect([...REQUIREMENT_GROUP_KINDS].sort()).toEqual(contractEnum('RequirementGroupDto', 'kind'));
+  });
+
+  it('has the training types of the contract', () => {
+    expect([...TRAINING_TYPES, null].sort()).toEqual(contractEnum('ProgramSummaryDto', 'trainingType'));
   });
 });
 
