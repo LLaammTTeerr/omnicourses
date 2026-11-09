@@ -46,6 +46,14 @@ _Avoid_: unit, hour
 A named set of courses in a curriculum with a rule for how much of it counts toward graduation.
 _Avoid_: category, block, knowledge block, khối kiến thức
 
+**Combined minimum**:
+A number of credits several requirement groups of a curriculum must reach together, such as APCS's 43 credits over Tự chọn Math (B) and Tự chọn Computer Science (C) ([ADR 0013](docs/analysis-and-design/adr/0013-rule-engine-and-degree-audit.md)).
+_Avoid_: block, pool, khối kiến thức
+
+**Overflow**:
+Credits a student passes in a requirement group beyond its own minimum that the curriculum lets count toward another group, such as APCS's (A) tự chọn toward (C).
+_Avoid_: excess transfer, spill-over, tín chỉ dư (in English text)
+
 **Compulsory course**:
 A course every student of the cohort must pass.
 _Avoid_: required course, mandatory course, core course
@@ -79,6 +87,14 @@ _Avoid_: OCR, scan, upload
 **Graduation status**:
 Which requirements of the curriculum a student has met and which remain.
 _Avoid_: progress, eligibility
+
+**Official attempt**:
+The attempt of a course that counts: its last completed one, even when an earlier attempt scored higher (QĐ 1175/QĐ-KHTN Điều 14).
+_Avoid_: best attempt, final grade
+
+**Unmatched course**:
+A transcript course that no requirement group of the student's curriculum lists; the degree audit counts it toward nothing.
+_Avoid_: unknown course, extra course
 
 **Degree audit**:
 The computation of a student's graduation status from their transcript against their curriculum.
