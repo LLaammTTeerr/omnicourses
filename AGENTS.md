@@ -73,6 +73,7 @@ ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response) {   //
 ```
 
 - Every failure is `AiUnavailableError` → **503 `ai_unavailable`**. Give each AI screen a manual path. Document it with `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`.
+- A tool handler gets only the arguments the model wrote. Build the tools per request and close over the signed-in `user`; never take a user id from the arguments.
 - Validate the role of each chat message with `@IsIn(['user', 'assistant'])`. The gateway also drops any other role, so a client cannot inject a system message.
 - Unit tests use `FakeLlmService` (`src/ai/testing/`). CI never calls OpenRouter. `npm run test:live -w src/backend` is the manual smoke test and spends credit.
 - Calls are capped per user per day (`AI_DAILY_CALLS_PER_USER`). A call counts once it reaches the model, even if the student disconnects, times out or gets a provider 5xx. One that fails before (no key, no model) does not, and neither does one the provider refused without billing (wrong key, no credit, rate limit): the gateway releases its row. Usage rows hold no content. Never log a prompt, a reply, tool arguments or a provider error message.
