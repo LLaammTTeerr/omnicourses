@@ -18,6 +18,8 @@ import ExplorerView from './explorer/ExplorerView.vue';
 import GuideView from './guides/GuideView.vue';
 import GuidesView from './guides/GuidesView.vue';
 import OnboardingView from './onboarding/OnboardingView.vue';
+import PlanEditorView from './plans/PlanEditorView.vue';
+import PlansView from './plans/PlansView.vue';
 import { useOnboarding } from './onboarding/store.js';
 import TranscriptView from './transcript/TranscriptView.vue';
 import HomeView from './views/HomeView.vue';
@@ -51,6 +53,15 @@ const routes: RouteRecordRaw[] = [
   { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
   { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
   { path: '/explorer', name: 'explorer', component: ExplorerView, meta: { layout: 'app', auth: 'required' } },
+  // Nested, so the sidebar's Plans link stays marked while a plan is open.
+  {
+    path: '/plans',
+    meta: { layout: 'app', auth: 'required' },
+    children: [
+      { path: '', name: 'plans', component: PlansView },
+      { path: ':id', name: 'plan', component: PlanEditorView, props: true },
+    ],
+  },
   { path: '/transcript', name: 'transcript', component: TranscriptView, meta: { layout: 'app', auth: 'required' } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { layout: 'app', auth: 'required', onboarding: 'optional' } },
   { path: '/:unknown(.*)*', redirect: '/' },
