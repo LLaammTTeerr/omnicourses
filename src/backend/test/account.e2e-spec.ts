@@ -136,7 +136,7 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   // Independent of isSecretColumn: any column that merely mentions a credential word, in any
   // case or plural, must either be dropped by the export or be listed here as the student's data.
   it('every exported column that looks like a credential is dropped or known to be data', async () => {
-    const looksSecret = /(^|_)(hash|token|secret|key|password|sub)(e?s)?(_|$)/;
+    const looksSecret = /(^|_)(hash|token|secret|key|password|sub|salt|seed)(e?s)?(_|$)/;
     const known = ['ai_usage.input_tokens', 'ai_usage.output_tokens'];
     const columns: { table: string; column: string }[] = await db.query(`
       SELECT DISTINCT cl.relname AS "table", a.attname AS "column"
