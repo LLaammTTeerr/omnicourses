@@ -28,3 +28,34 @@ describe('Rate limits (e2e)', () => {
     await http().get('/api/health').expect(429);
   });
 });
+
+// Behind nginx every request comes from 127.0.0.1. With TRUST_PROXY=loopback the limits count the
+// visitor nginx names in X-Forwarded-For; without it that header is ignored, so a client cannot
+// dodge the limit by inventing addresses.
+describe('Rate limits behind a proxy (e2e)', () => {
+  const signIn = (app: INestApplication, ip: string) =>
+    request(app.getHttpServer()).post('/api/auth/sign-in').set('X-Forwarded-For', ip).send({});
+
+  it('counts each forwarded visitor separately when TRUST_PROXY=loopback', async () => {
+    process.env.TRUST_PROXY = 'loopback';
+    const app = await bootApp();
+    try {
+      for (let i = 0; i < 11; i++) await signIn(app, `203.0.113.${i + 1}`).expect(400);
+      for (let i = 0; i < 10; i++) await signIn(app, '198.51.100.7').expect(400);
+      await signIn(app, '198.51.100.7').expect(429);
+    } finally {
+      delete process.env.TRUST_PROXY;
+      await app.close();
+    }
+  });
+
+  it('ignores X-Forwarded-For when TRUST_PROXY is unset', async () => {
+    const app = await bootApp();
+    try {
+      for (let i = 0; i < 10; i++) await signIn(app, `203.0.113.${i + 1}`).expect(400);
+      await signIn(app, '203.0.113.99').expect(429);
+    } finally {
+      await app.close();
+    }
+  });
+});

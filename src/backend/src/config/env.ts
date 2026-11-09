@@ -23,6 +23,14 @@ function positiveInt(value: string | undefined, fallback: number): number {
 
 export const port = (): number => positiveInt(process.env.PORT, 3000);
 
+// Behind a reverse proxy every request arrives from the proxy, so the per-address rate limits
+// (ADR 0002) would count all visitors as one. TRUST_PROXY is Express's `trust proxy` value:
+// `loopback` when nginx runs on the same host. Unset, the TCP peer is the client.
+export const trustProxy = (): string | undefined => process.env.TRUST_PROXY?.trim() || undefined;
+
+// The interface the API listens on: `127.0.0.1` behind a local proxy. Unset, every interface.
+export const listenHost = (): string | undefined => process.env.LISTEN_HOST?.trim() || undefined;
+
 export const corsOrigin = (): string => process.env.CORS_ORIGIN ?? 'http://localhost:5173';
 
 export const databaseUrl = (): string | undefined => process.env.DATABASE_URL;
