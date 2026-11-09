@@ -684,6 +684,310 @@
           "users"
         ]
       }
+    },
+    "/api/plans": {
+      "get": {
+        "operationId": "PlansController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The student's plans, without their placements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanListDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      },
+      "post": {
+        "operationId": "PlansController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No curriculum for this program and cohort, or a placement is invalid; nothing is saved."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}": {
+      "get": {
+        "operationId": "PlansController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      },
+      "patch": {
+        "operationId": "PlansController_rename",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenamePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The renamed plan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name is empty or longer than 100 characters."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      },
+      "delete": {
+        "operationId": "PlansController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The plan and its placements are deleted. It cannot be undone; the UI asks first."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}/duplicate": {
+      "post": {
+        "operationId": "PlansController_duplicate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new copy; the original is unchanged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}/placements": {
+      "put": {
+        "operationId": "PlansController_replacePlacements",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBoardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The board replaces every placement of the plan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A term or placement is invalid, a course is placed twice, a code is not in the catalog, or a slot names a group outside the plan’s curriculum; nothing is changed."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      }
     }
   },
   "info": {
@@ -2636,6 +2940,265 @@
           "statusCode",
           "code",
           "message"
+        ]
+      },
+      "PlanCurriculumDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "example": "APCS2024"
+          },
+          "programCode": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "cohortYear": {
+            "type": "number",
+            "example": 2024
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "programCode",
+          "cohortYear"
+        ]
+      },
+      "PlanSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Main plan"
+          },
+          "curriculum": {
+            "description": "The curriculum the plan is made against; it stays the same when the student changes program or cohort.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanCurriculumDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last rename or change of placements."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "curriculum",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "PlanListDto": {
+        "type": "object",
+        "properties": {
+          "plans": {
+            "description": "Oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "plans"
+        ]
+      },
+      "PlanPlacementDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "course",
+              "slot"
+            ],
+            "description": "course: a course of the catalog. slot: credits held for a requirement group, no course chosen yet."
+          },
+          "courseCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "CSC10001",
+            "description": "A catalog course code, exactly as stored. Set for a course, null for a slot."
+          },
+          "requirementGroupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "A requirement group of the plan's curriculum. Set for a slot, null for a course."
+          },
+          "credits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 30,
+            "example": 3,
+            "description": "The slot's credits. Null for a course, whose credits are the catalog's."
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "PlanTermDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/TermDto"
+          },
+          "placements": {
+            "description": "In order, at most 30. A term with nothing placed is left out.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanPlacementDto"
+            }
+          }
+        },
+        "required": [
+          "term",
+          "placements"
+        ]
+      },
+      "CreatePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Main plan",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "programCode": {
+            "type": "string",
+            "example": "APCS",
+            "description": "The program of the curriculum the plan is made against."
+          },
+          "cohortYear": {
+            "type": "number",
+            "example": 2024,
+            "description": "The cohort of that curriculum."
+          },
+          "terms": {
+            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues. Left out: an empty plan.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "programCode",
+          "cohortYear"
+        ]
+      },
+      "PlanDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Main plan"
+          },
+          "curriculum": {
+            "description": "The curriculum the plan is made against; it stays the same when the student changes program or cohort.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanCurriculumDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last rename or change of placements."
+          },
+          "terms": {
+            "description": "Terms oldest first, placements in order. A body to PUT back as it is.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "curriculum",
+          "createdAt",
+          "updatedAt",
+          "terms"
+        ]
+      },
+      "RenamePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Main plan",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "DuplicatePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Lighter load",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "The copy's name. Left out: the original's name; the UI words any \"copy of\"."
+          }
+        }
+      },
+      "PlanBoardDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          }
+        },
+        "required": [
+          "terms"
         ]
       }
     }
