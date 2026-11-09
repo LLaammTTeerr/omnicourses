@@ -29,7 +29,7 @@ A student states what they want from a plan, either in the planning-goal form or
    - courses to take and courses to avoid.
 
    Above the form, a goal box invites the student to describe the goal in their own words. A note under it says that the text is sent to an AI provider, so names and student IDs should be left out.
-3. The student types a goal, for example "graduate by summer 2028, at most 20 credits a term, internship in the third summer, no networking courses", and presses **Fill the form**.
+3. The student types a goal, for example "graduate by the end of 2027–2028, at most 20 credits a term, internship in term 3 of my third year, no networking courses", and presses **Fill the form**.
 4. The system sends the sentence and the course codes and names of the student's curriculum to the model, and asks for the form's fields as structured data.
 5. The system checks the reply against the form's schema, fills the form with it, and highlights every field that changed.
 6. The student reviews the form, corrects any field, and presses **Plan**.
@@ -54,7 +54,7 @@ A student states what they want from a plan, either in the planning-goal form or
 
 **A7. No transcript yet.** At step 2 the student has no saved transcript. The system warns that the plan assumes no course has been passed and offers to import one first (UC-02). The student can go on.
 
-**A8. Planning takes too long.** At step 7 the planner has not finished within 30 seconds (Performance NFR). The student can cancel at any time while progress shows. What the planner does at the limit is decided in its ADR (see Open).
+**A8. Planning takes too long.** At step 7 the planner has not finished within 30 seconds (Performance NFR). The student can cancel at any time while progress shows. At the limit the planner returns the best plan it has found so far, never nothing, with every violation the rule engine finds shown on it (ADR 0006, #27).
 
 **A9. Discard.** At step 8 the student leaves without saving. No plan is stored.
 
@@ -76,9 +76,10 @@ A student states what they want from a plan, either in the planning-goal form or
 
 ## 8. Additional information
 
-- **Depends on:** Triết's rule engine as callable functions (due 29 Nov), and Hoà's plans API (due 8 Nov). The goal box uses the AI gateway (#12).
+- **Depends on:** the rule engine as callable functions, and the plans API; neither is on `main` yet. The goal box uses the AI gateway (#12).
 - **Extension points:** UC-05 (edit the generated plan), UC-06 (what-if scenario on it).
-- **Open**, for the planner's ADR (Lâm, `plan-generator` module, before Sprint 5):
-  - the search method;
-  - what happens at the 30-second limit (A8): stop and suggest relaxing the goal, or return the best rule-abiding plan found so far;
-  - whether the model also writes a plain-language summary of the result from the planner's reasons, which ADR 0003 allows. The summary could never change a placement.
+- **Decided** in ADR 0006 (#27, accepted 9 November 2026), the planner's ADR:
+  - the search method: fill terms one at a time, the course with the longest prerequisite chain first, asking the rule engine about every placement;
+  - at the 30-second limit (A8): return the best plan found so far;
+  - no model summary of the result: the planner's reasons are the explanation.
+- **Credit caps** depend on the program's training type ([ADR 0012](../../analysis-and-design/adr/0012-credit-caps-by-training-type.md)). For APCS, term 3 of a year is a third main term, not a summer term.
