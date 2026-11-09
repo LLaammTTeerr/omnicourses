@@ -3,8 +3,8 @@ import { TRAINING_TYPES, type TrainingType } from './program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from './requirement-group.entity.js';
 
 // Read shapes of the curriculum (F4, ADR 0005). They carry only what the database stores:
-// prerequisites and offering terms have no storage yet (ADR 0011, "Prerequisites, offering
-// terms and implementation gates"), so no field claims a course has none.
+// prerequisites and offering terms are null until F12 records them for a course of a
+// curriculum (ADR 0011, amended 9 November 2026), so no field claims a course has none.
 
 /** A program without its cohorts. */
 export class ProgramSummaryDto {
@@ -66,6 +66,26 @@ export class CourseDto {
   projectPeriods!: number | null;
 }
 
+/** A course as one curriculum uses it: the catalog fields plus that curriculum's rules. */
+export class CurriculumCourseDto extends CourseDto {
+  @ApiProperty({
+    type: [String],
+    nullable: true,
+    example: ['CSC10001'],
+    description:
+      'Codes of the courses that must all be passed first, in this curriculum. null: not recorded (unknown, not "none"). []: recorded as having no prerequisite.',
+  })
+  prerequisites!: string[] | null;
+
+  @ApiProperty({
+    type: [Number],
+    nullable: true,
+    example: [1, 3],
+    description: 'Term numbers (1, 2, 3; ADR 0009, ADR 0012) the course is offered in, in this curriculum. null: not recorded. Never empty.',
+  })
+  offeringTerms!: number[] | null;
+}
+
 export class RequirementGroupDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -89,8 +109,8 @@ export class RequirementGroupDto {
   @ApiProperty({ type: String, nullable: true, description: 'The printed rule text, for rules the columns cannot express' })
   officialNotes!: string | null;
 
-  @ApiProperty({ type: [CourseDto], description: 'The courses linked to the group, by code' })
-  courses!: CourseDto[];
+  @ApiProperty({ type: [CurriculumCourseDto], description: 'The courses linked to the group, by code' })
+  courses!: CurriculumCourseDto[];
 }
 
 /** The curriculum one cohort of one program follows. */

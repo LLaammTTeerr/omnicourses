@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import type { ObjectLiteral, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import type { Course } from './course.entity.js';
+import type { CourseRules, CourseRulesService } from './course-rules.service.js';
 import { CurriculumController } from './curriculum.controller.js';
 import type { Curriculum } from './curriculum.entity.js';
 import { CurriculumService } from './curriculum.service.js';
@@ -38,7 +39,7 @@ const curriculum = {
   requirementGroups: [group('g2', 'Tự chọn', 'elective', ['ZZ003', 'ZZ001']), group('g1', 'Bắt buộc', 'compulsory', ['ZZ002', 'ZZ001'])],
 } as unknown as Curriculum;
 
-function service(overrides: { curriculum?: Curriculum | null; course?: Course | null; links?: RequirementGroupCourse[] } = {}) {
+function service(overrides: { curriculum?: Curriculum | null; course?: Course | null; links?: RequirementGroupCourse[]; rules?: CourseRules } = {}) {
   const repo = <T extends ObjectLiteral>(methods: Record<string, unknown>) => methods as unknown as Repository<T>;
   const findOne = vi.fn().mockResolvedValue(overrides.curriculum === undefined ? curriculum : overrides.curriculum);
   const findOneBy = vi.fn().mockResolvedValue(overrides.course === undefined ? course('ZZ001') : overrides.course);
@@ -49,10 +50,12 @@ function service(overrides: { curriculum?: Curriculum | null; course?: Course | 
     ]),
   });
   const links = repo<RequirementGroupCourse>({ find: vi.fn().mockResolvedValue(overrides.links ?? []) });
+  const rulesFor = vi.fn().mockResolvedValue(overrides.rules ?? { prerequisites: new Map(), offeringTerms: new Map() });
   return {
     findOne,
     findOneBy,
-    svc: new CurriculumService(programs, repo<Curriculum>({ findOne }), repo<Course>({ findOneBy }), links),
+    rulesFor,
+    svc: new CurriculumService(programs, repo<Curriculum>({ findOne }), repo<Course>({ findOneBy }), links, { rulesFor } as unknown as CourseRulesService),
   };
 }
 
@@ -85,13 +88,30 @@ describe('CurriculumService', () => {
       labPeriods: null,
       exercisePeriods: 0,
       projectPeriods: 0,
+      prerequisites: null,
+      offeringTerms: null,
     });
   });
 
-  it('claims nothing it does not store: no prerequisite or offering-term field', async () => {
+  it('reads prerequisites and offering terms nothing recorded as null, never as none', async () => {
     const result = await service().svc.getCurriculum('ZZ', 2030);
     // An empty list would read as "none"; the data is missing, not empty (test plan, data gaps).
-    expect(JSON.stringify(result)).not.toMatch(/prereq|offering/i);
+    const courses = result.requirementGroups.flatMap((g) => g.courses);
+    expect(courses.every((c) => c.prerequisites === null && c.offeringTerms === null)).toBe(true);
+  });
+
+  it('serves the rules recorded for this curriculum, in every group the course sits in', async () => {
+    const rules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3]]]) };
+    const { svc, rulesFor } = service({ rules });
+    const result = await svc.getCurriculum('ZZ', 2030);
+    expect(rulesFor).toHaveBeenCalledWith('c1');
+    const rows = result.requirementGroups.flatMap((g) => g.courses.map((c) => [g.name, c.code, c.prerequisites, c.offeringTerms]));
+    expect(rows).toEqual([
+      ['Bắt buộc', 'ZZ001', [], null],
+      ['Bắt buộc', 'ZZ002', ['ZZ001'], [1, 3]],
+      ['Tự chọn', 'ZZ001', [], null],
+      ['Tự chọn', 'ZZ003', null, null],
+    ]);
   });
 
   it('answers null, then 404, for an unknown curriculum', async () => {
@@ -142,7 +162,7 @@ describe('CurriculumService bulk reads for plans', () => {
   function bulk(found: { curriculum?: Partial<Curriculum> | null; courses?: Course[] } = {}) {
     const findOne = vi.fn().mockResolvedValue(found.curriculum === undefined ? { id: 'c1', requirementGroups: [{ id: 'g1' }, { id: 'g2' }] } : found.curriculum);
     const find = vi.fn().mockResolvedValue(found.courses ?? []);
-    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}));
+    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}), {} as CourseRulesService);
     return { svc, findOne, find };
   }
 

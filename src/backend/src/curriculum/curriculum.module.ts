@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CombinedMinimum, CombinedMinimumGroup } from './combined-minimum.entity.js';
+import { CourseOfferingTerm } from './course-offering-term.entity.js';
+import { CoursePrerequisiteList } from './course-prerequisite-list.entity.js';
+import { CoursePrerequisite } from './course-prerequisite.entity.js';
+import { CourseRulesService } from './course-rules.service.js';
 import { Course } from './course.entity.js';
 import { CurriculumRulesReader } from './curriculum-rules.reader.js';
 import { CurriculumController } from './curriculum.controller.js';
@@ -25,10 +29,13 @@ import { RequirementGroup } from './requirement-group.entity.js';
       CombinedMinimum,
       CombinedMinimumGroup,
       RequirementGroupOverflow,
+      CoursePrerequisiteList,
+      CoursePrerequisite,
+      CourseOfferingTerm,
     ]),
   ],
   controllers: [CurriculumController],
-  providers: [CurriculumService, CurriculumRulesReader],
-  exports: [CurriculumService, CurriculumRulesReader],
+  providers: [CurriculumService, CurriculumRulesReader, CourseRulesService],
+  exports: [CurriculumService, CurriculumRulesReader, CourseRulesService],
 })
 export class CurriculumModule {}

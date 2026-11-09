@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { isCourseCode } from '../common/course-code.js';
 import { Course } from './course.entity.js';
+import { type CourseRules, CourseRulesService } from './course-rules.service.js';
 import { Curriculum } from './curriculum.entity.js';
-import { CourseDetailDto, CourseDto, CurriculumDto, ProgramDto, ProgramSummaryDto, RequirementGroupDto } from './curriculum.dto.js';
+import { CourseDetailDto, CourseDto, CurriculumCourseDto, CurriculumDto, ProgramDto, ProgramSummaryDto, RequirementGroupDto } from './curriculum.dto.js';
 import { Program } from './program.entity.js';
 import { RequirementGroupCourse } from './requirement-group-course.entity.js';
 import type { RequirementGroup } from './requirement-group.entity.js';
@@ -21,6 +22,7 @@ export class CurriculumService {
     @InjectRepository(Curriculum) private readonly curriculums: Repository<Curriculum>,
     @InjectRepository(Course) private readonly courses: Repository<Course>,
     @InjectRepository(RequirementGroupCourse) private readonly links: Repository<RequirementGroupCourse>,
+    private readonly rules: CourseRulesService,
   ) {}
 
   /** Every program by code, with the cohorts that have a curriculum, oldest first. */
@@ -38,7 +40,7 @@ export class CurriculumService {
       where: { cohortYear, program: { code: programCode } },
       relations: { program: true, requirementGroups: { courseLinks: { course: true } } },
     });
-    return row ? curriculumDto(row) : null;
+    return row ? curriculumDto(row, await this.rules.rulesFor(row.id)) : null;
   }
 
   /** Like findCurriculum, for a route: a missing curriculum is a 404. */
@@ -116,7 +118,11 @@ export function courseDto(c: Course): CourseDto {
   };
 }
 
-function groupDto(g: RequirementGroup): RequirementGroupDto {
+function curriculumCourseDto(c: Course, rules: CourseRules): CurriculumCourseDto {
+  return { ...courseDto(c), prerequisites: rules.prerequisites.get(c.code) ?? null, offeringTerms: rules.offeringTerms.get(c.code) ?? null };
+}
+
+function groupDto(g: RequirementGroup, rules: CourseRules): RequirementGroupDto {
   return {
     id: g.id,
     name: g.name,
@@ -124,11 +130,11 @@ function groupDto(g: RequirementGroup): RequirementGroupDto {
     creditsTotal: g.creditsTotal,
     creditsTotalMin: g.creditsTotalMin,
     officialNotes: g.officialNotes,
-    courses: g.courseLinks.map((link) => courseDto(link.course)).sort((a, b) => byText(a.code, b.code)),
+    courses: g.courseLinks.map((link) => curriculumCourseDto(link.course, rules)).sort((a, b) => byText(a.code, b.code)),
   };
 }
 
-export function curriculumDto(c: Curriculum): CurriculumDto {
+export function curriculumDto(c: Curriculum, rules: CourseRules): CurriculumDto {
   return {
     id: c.id,
     code: c.code,
@@ -138,6 +144,6 @@ export function curriculumDto(c: Curriculum): CurriculumDto {
     nameEn: c.nameEn,
     language: c.language,
     totalCreditsMin: c.totalCreditsMin,
-    requirementGroups: c.requirementGroups.map(groupDto).sort((a, b) => byText(a.name, b.name)),
+    requirementGroups: c.requirementGroups.map((g) => groupDto(g, rules)).sort((a, b) => byText(a.name, b.name)),
   };
 }
