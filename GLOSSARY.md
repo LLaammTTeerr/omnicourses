@@ -74,6 +74,10 @@ _Avoid_: availability, schedule
 An official HCMUS or national document that states academic rules, cited clause by clause.
 _Avoid_: policy, rules, quy chế (in English text)
 
+**Clause**:
+The finest numbered unit of a regulation: a Điều, a khoản of it, or a điểm of that, cited by its label ("Điều 7, khoản 2, điểm b") and stored with its exact text (`src/backend/src/advisor/regulations/`).
+_Avoid_: section, paragraph, rule
+
 ### Student record
 
 **Transcript**:

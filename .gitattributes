@@ -1,1 +1,4 @@
 *.sh text eol=lf
+
+# pdftotext output is committed byte for byte: its sha256 is checked by a test.
+*.pdftotext.txt -text
