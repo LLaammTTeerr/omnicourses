@@ -326,6 +326,7 @@ These B0 cases carry to B1 ([B0 report §5](report-b0.md#5-cases-carried-to-b1))
 | DB-01f | Written out below. |
 | DEP-01a–f | Run on staging. DEP-01f checks the **`B1`** tag instead of `B0`: the commit of the `B1` tag, the commit of the deploy run and the commit this report tests are the same. Without staging they stay **blocked: no server yet** (§1). |
 | SESS-01l | Nothing to change: still not run by hand, by design (sessions last 7 days). The check in its place, every `expiresAt` in SESS-01c–e about 7 days ahead, runs with them. |
+| DB-01b, DB-01c, DEP-01a | The public health route no longer reports the PostgreSQL version (issue #28). DB-01b expects `{"status":"ok","database":"up"}`; DB-01c expects `"status":"degraded"` and `"database":"down"` with no version field; DEP-01a's home page shows "API ok · database up" with no version. Check the version on the server instead (`docker exec omnicourse-db postgres --version`), recorded by Lâm or Thắng. |
 
 ### DB-01f: Curriculum constraints
 

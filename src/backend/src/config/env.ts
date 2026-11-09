@@ -37,6 +37,15 @@ export const databaseUrl = (): string | undefined => process.env.DATABASE_URL;
 
 export const nodeEnv = (): string | undefined => process.env.NODE_ENV;
 
+// The Swagger pages (/api/docs, /api/docs-json). Off in production, since they
+// map the API for anyone, unless API_DOCS=true (a staging server testers use).
+// API_DOCS=false turns them off anywhere. Issue #28.
+export function apiDocs(): boolean {
+  const flag = process.env.API_DOCS?.trim().toLowerCase();
+  if (flag === 'true' || flag === 'false') return flag === 'true';
+  return nodeEnv() !== 'production';
+}
+
 export const sessionTtlDays = (): number => positiveInt(process.env.SESSION_TTL_DAYS, 7);
 
 export const accountDeletionGraceDays = (): number => positiveInt(process.env.ACCOUNT_DELETION_GRACE_DAYS, 30);

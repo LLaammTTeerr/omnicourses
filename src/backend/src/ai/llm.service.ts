@@ -33,7 +33,11 @@ export interface ChatTool<A = unknown> {
   description: string;
   /** Arguments the model must send; parsed before the handler runs. */
   schema: z.ZodType<A>;
-  /** Returns any JSON-serialisable value; a throw is reported to the model as a tool error. */
+  /**
+   * Returns any JSON-serialisable value; a throw is reported to the model as a tool error.
+   * The model writes `args`: never read a user id or any identity from them. Build the
+   * tool per request and close over the signed-in user (`@CurrentUser()`). Issue #28.
+   */
   handler: (args: A) => Promise<unknown>;
 }
 

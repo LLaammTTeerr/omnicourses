@@ -52,7 +52,7 @@ export class PlansController {
 }
 ```
 
-Reference the user from your tables as `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Never read or return `users.password_hash`. That reference is what makes account export and deletion cover your table with no extra code ([ADR 0004](docs/analysis-and-design/adr/0004-account-export-and-deletion.md)): the export reads the rows whose `user_id` is the student (rows that only reference them in another column are someone else's), and an e2e test fails on a `user_id` key that does not cascade, on a key to `users` in another column (`reviewed_by`, `viewer_id`) that is neither `ON DELETE SET NULL` nor `CASCADE` (prefer `SET NULL`: the row is someone else's), on a key that would block the purge, and on a table that reaches `users` only through another table (give it its own `user_id`). Name any credential column `*_hash`, `*_token`, `*_secret`, `*_key`, `*_password` or `*_sub` (snake_case or camelCase) so the export never selects it.
+Reference the user from your tables as `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Never read or return `users.password_hash`. That reference is what makes account export and deletion cover your table with no extra code ([ADR 0004](docs/analysis-and-design/adr/0004-account-export-and-deletion.md)): the export reads the rows whose `user_id` is the student (rows that only reference them in another column are someone else's), and an e2e test fails on a `user_id` key that does not cascade, on a key to `users` in another column (`reviewed_by`, `viewer_id`) that is neither `ON DELETE SET NULL` nor `CASCADE` (prefer `SET NULL`: the row is someone else's), on a key that would block the purge, and on a table that reaches `users` only through another table (give it its own `user_id`). Name any credential column `*_hash`, `*_token`, `*_secret`, `*_key`, `*_password`, `*_sub`, `*_salt` or `*_seed` (snake_case or camelCase) so the export never selects it.
 
 ## AI gateway (how to use it in your module)
 
@@ -73,6 +73,7 @@ ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response) {   //
 ```
 
 - Every failure is `AiUnavailableError` → **503 `ai_unavailable`**. Give each AI screen a manual path. Document it with `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`.
+- A tool handler gets only the arguments the model wrote. Build the tools per request and close over the signed-in `user`; never take a user id from the arguments.
 - Validate the role of each chat message with `@IsIn(['user', 'assistant'])`. The gateway also drops any other role, so a client cannot inject a system message.
 - Unit tests use `FakeLlmService` (`src/ai/testing/`). CI never calls OpenRouter. `npm run test:live -w src/backend` is the manual smoke test and spends credit.
 - Calls are capped per user per day (`AI_DAILY_CALLS_PER_USER`). A call counts once it reaches the model, even if the student disconnects, times out or gets a provider 5xx. One that fails before (no key, no model) does not, and neither does one the provider refused without billing (wrong key, no credit, rate limit): the gateway releases its row. Usage rows hold no content. Never log a prompt, a reply, tool arguments or a provider error message.

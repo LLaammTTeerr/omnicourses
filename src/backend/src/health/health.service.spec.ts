@@ -13,21 +13,14 @@ async function controllerWith(query: DataSource['query']): Promise<HealthControl
 }
 
 describe('HealthController', () => {
-  it('reports ok and the server version when the database answers', async () => {
+  // Issue #28: the route is public, so it says whether the database answers, not which version it runs.
+  it('reports ok when the database answers, without its version', async () => {
     const controller = await controllerWith(vi.fn().mockResolvedValue([{ server_version: '18.6' }]));
-    await expect(controller.check()).resolves.toEqual({
-      status: 'ok',
-      database: 'up',
-      postgresVersion: '18.6',
-    });
+    await expect(controller.check()).resolves.toEqual({ status: 'ok', database: 'up' });
   });
 
   it('reports degraded instead of throwing when the database is down', async () => {
     const controller = await controllerWith(vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
-    await expect(controller.check()).resolves.toEqual({
-      status: 'degraded',
-      database: 'down',
-      postgresVersion: null,
-    });
+    await expect(controller.check()).resolves.toEqual({ status: 'degraded', database: 'down' });
   });
 });

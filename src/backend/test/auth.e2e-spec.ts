@@ -56,4 +56,11 @@ describe('Auth against PostgreSQL (e2e)', () => {
     await http().post('/api/auth/sign-out').set('Authorization', `Bearer ${second}`).expect(204);
     await http().get('/api/users/me').set('Authorization', `Bearer ${second}`).expect(401);
   });
+
+  // Issue #28: both pass the lookup before either inserts; the unique email must answer 409, not 500.
+  it('answers 201 and 409 to two concurrent sign-ups with one email', async () => {
+    const body = { email: `student-${randomUUID()}@example.com`, password, displayName: 'Test Student', acceptedTerms: true };
+    const statuses = (await Promise.all([1, 2].map(() => http().post('/api/auth/sign-up').send(body)))).map((r) => r.status);
+    expect(statuses.sort()).toEqual([201, 409]);
+  });
 });

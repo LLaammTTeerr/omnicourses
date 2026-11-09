@@ -10,7 +10,6 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
   <p v-if="status === 'failed'" data-test="status">API unreachable: {{ message(error) }}</p>
   <p v-else-if="health" data-test="status">
     API {{ health.status }} · database {{ health.database }}
-    <span v-if="health.postgresVersion">(PostgreSQL {{ health.postgresVersion }})</span>
   </p>
   <p v-else data-test="status">Checking API…</p>
 </template>

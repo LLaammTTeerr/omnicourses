@@ -4,8 +4,10 @@
 // that merely references them (viewer_id, reviewed_by) belongs to someone
 // else. Credential columns are never selected: the rule is the documented
 // suffix (AGENTS.md), in snake_case or camelCase (TypeORM names a column
-// after its property unless `name` is set).
-const SECRET_SUFFIX = /(^|_)(hash|token|secret|key|password|sub)$/;
+// after its property unless `name` is set). Salts and seeds (TOTP, recovery)
+// are key material too. Plurals are left to the e2e check that flags any
+// credential-looking column: `input_tokens` is the student's usage data.
+const SECRET_SUFFIX = /(^|_)(hash|token|secret|key|password|sub|salt|seed)$/;
 
 const snakeCase = (name: string): string =>
   name

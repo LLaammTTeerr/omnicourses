@@ -4,7 +4,7 @@ import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 
 describe('Health against the contract', () => {
   it('has the fields of HealthDto', () => {
-    expect(contractShape('HealthDto')).toEqual({ status: 'required', database: 'required', postgresVersion: 'required' } satisfies Shape<Health>);
+    expect(contractShape('HealthDto')).toEqual({ status: 'required', database: 'required' } satisfies Shape<Health>);
   });
 
   it('has the values of HealthDto', () => {

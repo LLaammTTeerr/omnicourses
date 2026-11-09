@@ -76,6 +76,8 @@ TRUST_PROXY=loopback
 CORS_ORIGIN=https://$host
 DATABASE_URL=postgres://$db:$pw@127.0.0.1:$PG_PORT/$db
 ENV
+    # Staging serves the Swagger pages for the team; production hides them (API_DOCS defaults off there).
+    [[ $env == stag ]] && echo "API_DOCS=true" >>"$envfile"
     umask 022
     chown root:omnicourse "$envfile"; chmod 640 "$envfile"
   fi

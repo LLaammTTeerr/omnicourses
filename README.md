@@ -22,7 +22,7 @@ Supporting choices (TypeScript 6.0.3, TypeORM, npm 11, Node 22) and the reasons 
 ## Repository layout
 
 ```
-src/backend/                NestJS REST API (+ Swagger UI at /api/docs)
+src/backend/                NestJS REST API (+ Swagger UI at /api/docs, off in production unless API_DOCS=true)
 src/frontend/               Vue 3 + Vite single-page app
 docs/management/            Project plan, weekly reports, meeting notes
 docs/requirements/          Vision document, use-case model and specifications
