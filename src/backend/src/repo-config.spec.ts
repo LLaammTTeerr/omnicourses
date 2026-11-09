@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Security rules for the repository's own config files (issue #28). Read as
 // text: the rules are about lines, and no YAML parser is a direct dependency.
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
+const ROOT = join(__dirname, '../../..');
 const read = (path: string): string => readFileSync(join(ROOT, path), 'utf8');
 
 describe('compose.yaml', () => {
