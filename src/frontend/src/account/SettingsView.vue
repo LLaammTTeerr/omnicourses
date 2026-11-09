@@ -12,12 +12,14 @@ import Icon from '../shell/Icon.vue';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
 import { EXPORT_FILE_NAME, exportAccount, saveFile } from './api.js';
+import StudySettings from '../onboarding/StudySettings.vue';
 import DeleteAccountDialog from './DeleteAccountDialog.vue';
 import { SETTINGS_MESSAGES } from './messages.js';
 import { describeDevice } from './user-agent.js';
 
-// Settings (UI prototypes: settings.html), the parts with an API today: sessions (ADR 0002), theme, language,
-// export and deletion (ADR 0004), sign-out. Profile edits, password change and AI consent wait for their API.
+// Settings (UI prototypes: settings.html), the parts with an API today: the onboarding answers (UC-01 A9), sessions
+// (ADR 0002), theme, language, export and deletion (ADR 0004), sign-out. Profile edits, password change and AI
+// consent wait for their API.
 const auth = useAuth();
 const locale = useLocale();
 const router = useRouter();
@@ -93,6 +95,7 @@ usePageTitle(() => m.value.title);
     <div class="settings">
       <nav class="card snav" :aria-label="m.sections">
         <a href="#profile">{{ m.profile }}</a>
+        <a href="#study">{{ m.study }}</a>
         <a href="#security">{{ m.security }}</a>
         <a href="#look">{{ m.look }}</a>
         <a href="#data">{{ m.data }}</a>
@@ -118,6 +121,8 @@ usePageTitle(() => m.value.title);
             </div>
           </div>
         </section>
+
+        <StudySettings />
 
         <section id="security" class="card flush" aria-labelledby="security-title" :aria-busy="sessions.status.value === 'loading'">
           <div class="card-head"><h2 id="security-title">{{ m.sessions }}</h2></div>

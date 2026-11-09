@@ -4,6 +4,7 @@ interface SettingsMessages {
   title: string;
   sections: string;
   profile: string;
+  study: string;
   security: string;
   look: string;
   data: string;
@@ -62,6 +63,7 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     title: 'Cài đặt',
     sections: 'Mục cài đặt',
     profile: 'Hồ sơ',
+    study: 'Chương trình và mục tiêu',
     security: 'Phiên đăng nhập',
     look: 'Giao diện',
     data: 'Dữ liệu của bạn',
@@ -119,6 +121,7 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     title: 'Settings',
     sections: 'Settings sections',
     profile: 'Profile',
+    study: 'Program and goal',
     security: 'Sessions',
     look: 'Appearance',
     data: 'Your data',

@@ -1,4 +1,5 @@
 import type { Lang } from '../locale.js';
+import { termName } from '../terms.js';
 import type { Term, TranscriptResult } from './api.js';
 import type { Problem } from './rows.js';
 
@@ -75,7 +76,7 @@ export const TRANSCRIPT_MESSAGES: Record<Lang, TranscriptMessages> = {
     empty: 'Chưa có môn nào. Thêm dòng đầu tiên để bắt đầu.',
     full: 'Bảng điểm có tối đa 300 dòng.',
     columns: { term: 'Học kỳ', courseCode: 'Mã môn', courseName: 'Tên môn', credits: 'TC', result: 'Kết quả', grade: 'Điểm (thang 10)', check: 'Kiểm tra', remove: 'Xóa' },
-    term: (year, n) => `${{ 1: 'HK1', 2: 'HK2', 3: 'HK3' }[n]} ${year}–${year + 1}`,
+    term: (year, number) => termName({ year, number }, 'vi'),
     results: { graded: 'Có điểm', in_progress: 'Đang học', exempt: 'Miễn', pass: 'Đạt', fail: 'Không đạt' },
     pickResult: 'Chọn kết quả',
     rowLabel: (n, code) => `dòng ${n}${code ? ` (${code})` : ''}`,
@@ -118,7 +119,7 @@ export const TRANSCRIPT_MESSAGES: Record<Lang, TranscriptMessages> = {
     empty: 'No courses yet. Add the first row to start.',
     full: 'A transcript has at most 300 rows.',
     columns: { term: 'Term', courseCode: 'Code', courseName: 'Course', credits: 'Credits', result: 'Result', grade: 'Grade (out of 10)', check: 'Check', remove: 'Remove' },
-    term: (year, n) => `${{ 1: 'Term 1', 2: 'Term 2', 3: 'Term 3' }[n]} ${year}–${year + 1}`,
+    term: (year, number) => termName({ year, number }, 'en'),
     results: { graded: 'Graded', in_progress: 'In progress', exempt: 'Exempt', pass: 'Pass', fail: 'Fail' },
     pickResult: 'Pick a result',
     rowLabel: (n, code) => `row ${n}${code ? ` (${code})` : ''}`,

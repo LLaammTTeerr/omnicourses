@@ -18,6 +18,7 @@ export interface NavItem {
 
 export const NAV: readonly NavItem[] = [
   { route: 'transcript', icon: 'file', label: { vi: 'Bảng điểm', en: 'Transcript' }, group: 'gen', section: 'main' },
+  { route: 'explorer', icon: 'graph', label: { vi: 'Chương trình', en: 'Curriculum' }, group: 'phys', section: 'main' },
   { route: 'guides', icon: 'book', label: { vi: 'Hướng dẫn', en: 'Guides' }, group: 'math', section: 'main' },
   { route: 'settings', icon: 'sliders', label: { vi: 'Cài đặt', en: 'Settings' }, group: 'thesis', section: 'account' },
 ];

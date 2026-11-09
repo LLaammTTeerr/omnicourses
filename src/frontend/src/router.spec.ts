@@ -4,7 +4,9 @@ import { createMemoryHistory } from 'vue-router';
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult } from './auth/testing/fixtures.js';
 import { createAppRouter } from './router.js';
-import { mockApi } from './testing/fetch.js';
+import { NOT_STARTED } from './onboarding/api.js';
+import { onboarding } from './onboarding/testing/fixtures.js';
+import { mockApi, status } from './testing/fetch.js';
 import { setup } from './testing/signed-in.js';
 
 describe('router guard (issue #13)', () => {
@@ -43,5 +45,49 @@ describe('router guard (issue #13)', () => {
   it('sends an unknown address to the home page', async () => {
     const { router } = await setup('/no/such/page', { signedIn: false });
     expect(router.currentRoute.value.fullPath).toBe('/');
+  });
+});
+
+describe('onboarding comes first (UC-01 A5, A8)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it.each(['/transcript', '/explorer'])('sends a student who has not finished from %s to onboarding, and back after', async (path) => {
+    mockApi({ 'GET /users/me/onboarding': NOT_STARTED });
+    const { router } = await setup(path, { onboarded: null });
+    expect(router.currentRoute.value.name).toBe('onboarding');
+    expect(router.currentRoute.value.query.redirect).toBe(path);
+  });
+
+  it('keeps settings open, so account controls work before onboarding is finished (A7)', async () => {
+    mockApi({ 'GET /users/me/onboarding': NOT_STARTED });
+    expect((await setup('/settings', { onboarded: null })).router.currentRoute.value.fullPath).toBe('/settings');
+  });
+
+  it('opens onboarding no more once it is finished (step 9)', async () => {
+    expect((await setup('/onboarding')).router.currentRoute.value.fullPath).toBe('/transcript');
+    expect((await setup('/onboarding?redirect=/explorer')).router.currentRoute.value.fullPath).toBe('/explorer');
+    expect((await setup('/onboarding?redirect=/onboarding')).router.currentRoute.value.fullPath).toBe('/transcript');
+  });
+
+  it('opens a private page right away for a student who has finished', async () => {
+    const fetch = mockApi({ 'GET /users/me/onboarding': onboarding() });
+    expect((await setup('/explorer', { onboarded: null })).router.currentRoute.value.fullPath).toBe('/explorer');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('never loops when the answers cannot be loaded: the page opens', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockApi({ 'GET /users/me/onboarding': status(503) });
+    expect((await setup('/transcript', { onboarded: null })).router.currentRoute.value.fullPath).toBe('/transcript');
+  });
+
+  it('leaves signed-out visitors to the sign-in guard', async () => {
+    const fetch = mockApi({});
+    expect((await setup('/explorer', { signedIn: false, onboarded: null })).router.currentRoute.value.name).toBe('sign-in');
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

@@ -1,12 +1,24 @@
 import { getActivePinia } from 'pinia';
-import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory, type RouterScrollBehavior } from 'vue-router';
+import {
+  createRouter,
+  createWebHistory,
+  type NavigationGuardReturn,
+  type RouteLocationNormalized,
+  type RouteRecordRaw,
+  type Router,
+  type RouterHistory,
+  type RouterScrollBehavior,
+} from 'vue-router';
 import SettingsView from './account/SettingsView.vue';
-import { afterSignIn } from './auth/redirect.js';
+import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
 import SignInView from './auth/SignInView.vue';
 import SignUpView from './auth/SignUpView.vue';
 import { useAuth } from './auth/store.js';
+import ExplorerView from './explorer/ExplorerView.vue';
 import GuideView from './guides/GuideView.vue';
 import GuidesView from './guides/GuidesView.vue';
+import OnboardingView from './onboarding/OnboardingView.vue';
+import { useOnboarding } from './onboarding/store.js';
 import TranscriptView from './transcript/TranscriptView.vue';
 import HomeView from './views/HomeView.vue';
 
@@ -21,6 +33,11 @@ declare module 'vue-router' {
     layout?: 'public' | 'app' | 'bare' | 'auto';
     /** `required`: signed out goes to sign-in and comes back. `guest`: signed in goes on to the app. */
     auth?: 'required' | 'guest';
+    /**
+     * A signed-in student whose onboarding is unfinished is sent to it first (UC-01 A5, A8). `optional`: the page
+     * opens anyway, so account controls stay reachable when the student's program is not offered yet (A7).
+     */
+    onboarding?: 'optional';
   }
 }
 
@@ -32,12 +49,32 @@ const routes: RouteRecordRaw[] = [
   // The guide list stays alive while a guide is open, so Back finds the same search and scroll position.
   { path: '/guides', name: 'guides', component: GuidesView, meta: { layout: 'auto', keepAlive: true } },
   { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
+  { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
+  { path: '/explorer', name: 'explorer', component: ExplorerView, meta: { layout: 'app', auth: 'required' } },
   { path: '/transcript', name: 'transcript', component: TranscriptView, meta: { layout: 'app', auth: 'required' } },
-  { path: '/settings', name: 'settings', component: SettingsView, meta: { layout: 'app', auth: 'required' } },
+  { path: '/settings', name: 'settings', component: SettingsView, meta: { layout: 'app', auth: 'required', onboarding: 'optional' } },
   { path: '/:unknown(.*)*', redirect: '/' },
 ];
 
 const scrollBehavior: RouterScrollBehavior = (to, _from, saved) => saved ?? (to.hash ? { el: to.hash } : { top: 0 });
+
+/** Unfinished onboarding comes before any other private page; once finished, onboarding opens no more (UC-01 step 9). */
+async function onboardingFirst(to: RouteLocationNormalized): Promise<NavigationGuardReturn> {
+  let finished: boolean;
+  try {
+    ({ finished } = await useOnboarding().load());
+  } catch (e) {
+    // Never trap the student in a loop: the page opens, and a 401 has already signed them out (App.vue).
+    console.error('Loading the onboarding answers failed:', e);
+    return true;
+  }
+  if (to.name === 'onboarding') {
+    if (!finished) return true;
+    const next = afterSignIn(to.query.redirect);
+    return next.startsWith('/onboarding') ? HOME_SIGNED_IN : next;
+  }
+  return finished ? true : { name: 'onboarding', query: { redirect: to.fullPath } };
+}
 
 export function createAppRouter(history: RouterHistory = createWebHistory()): Router {
   const router = createRouter({ history, routes, scrollBehavior });
@@ -48,6 +85,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
     const signedIn = auth?.signedIn ?? false;
     if (to.meta.auth === 'required' && !signedIn) return { name: 'sign-in', query: { redirect: to.fullPath } };
     if (to.meta.auth === 'guest' && signedIn) return afterSignIn(to.query.redirect);
+    if (signedIn && to.meta.auth === 'required' && to.meta.onboarding !== 'optional') return onboardingFirst(to);
     return true;
   });
   return router;
