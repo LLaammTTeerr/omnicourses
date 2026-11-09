@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountDeletionGraceDays, aiConfig, loadEnvFiles, port } from './env.js';
+import { accountDeletionGraceDays, aiConfig, apiDocs, loadEnvFiles, port } from './env.js';
 
 describe('loadEnvFiles', () => {
   const cwd = process.cwd();
@@ -53,5 +53,19 @@ describe('settings', () => {
     expect(aiConfig()).toMatchObject({ timeoutMs: 30_000, dailyCallsPerUser: 20 });
     expect(accountDeletionGraceDays()).toBe(30);
     expect(port()).toBe(3000);
+  });
+
+  it.each([
+    [undefined, undefined, true],
+    ['test', '', true],
+    ['production', undefined, false],
+    ['production', ' ', false],
+    ['production', 'true', true],
+    ['production', 'TRUE', true],
+    ['development', 'false', false],
+  ])('API docs with NODE_ENV=%j and API_DOCS=%j: %s', (env, flag, expected) => {
+    vi.stubEnv('NODE_ENV', env);
+    vi.stubEnv('API_DOCS', flag);
+    expect(apiDocs()).toBe(expected);
   });
 });

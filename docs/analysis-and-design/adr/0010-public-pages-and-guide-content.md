@@ -39,7 +39,7 @@ Lâm decided these points on 30 October 2026, in answer to Dũng's questions on 
   - if Express serves a route the document lacks, such as one hidden with `@ApiExcludeEndpoint`.
 
   It runs in CI on every pull request. A new public route fails it until it is added to the list, where reviewers see it. Today the list holds health, sign-up and sign-in; the guides and shared-plan pull requests add their routes.
-- The API docs pages are public too: `/api/docs` with its assets, `/api/docs-json` and `/api/docs-yaml`. `SwaggerModule.setup` serves them outside any controller, so they are not in the document, and the test skips them by path. They only describe the API.
+- The API docs pages are public too: `/api/docs` with its assets, `/api/docs-json` and `/api/docs-yaml`. `SwaggerModule.setup` serves them outside any controller, so they are not in the document, and the test skips them by path. They only describe the API. They are not served when `NODE_ENV=production` unless `API_DOCS=true` (issue #28).
 - Public routes use the global rate limit (120 requests a minute per address). Behind the staging host's proxy, all visitors share one address until `trust proxy` is set (ADR 0002, Deferred). That fix now protects public pages as well as sign-in.
 - Hoà's `plans` module exports one read-only method for the `sharing` module. F9 needs it before Sprint 4 (B2).
 - Regulation documents for the advisor chat (UC-08) use the same approach, also decided by Lâm on 30 October: files in the `advisor` module, typed by hand and reviewed in pull requests. They are not public pages.
