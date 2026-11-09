@@ -2,7 +2,7 @@ import type { DataSource, EntityManager } from 'typeorm';
 import { buildCatalog, CatalogConflictError, type CatalogConflict } from './catalog.js';
 import type { CatalogCourse, CatalogDecision, CurriculumSeed } from './seed-types.js';
 
-type SeededTable = 'programs' | 'curriculums' | 'requirement_groups' | 'courses' | 'links';
+type SeededTable = 'programs' | 'curriculums' | 'requirement_groups' | 'courses' | 'links' | 'combined_minimums' | 'overflows';
 
 export interface SeedReport {
   inserted: Record<SeededTable, number>;
@@ -31,8 +31,8 @@ export async function seedCurricula(
   const catalog = buildCatalog(seeds, decisions);
 
   const report: SeedReport = {
-    inserted: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0 },
-    skipped: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0 },
+    inserted: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0 },
+    skipped: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0 },
   };
   const count = (table: SeededTable, rows: unknown[]) => {
     if (rows.length) report.inserted[table]++;
@@ -73,9 +73,9 @@ export async function seedCurricula(
         em,
         'programs',
         [
-          `INSERT INTO programs (code, name_vi, name_en, faculty) VALUES ($1, $2, $3, $4)
+          `INSERT INTO programs (code, name_vi, name_en, faculty, training_type) VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (code) DO NOTHING RETURNING id`,
-          [program.code, program.name_vi, program.name_en, program.faculty],
+          [program.code, program.name_vi, program.name_en, program.faculty, program.training_type],
         ],
         [`SELECT id FROM programs WHERE code = $1`, [program.code]],
       );
@@ -100,6 +100,7 @@ export async function seedCurricula(
         [`SELECT id FROM curriculums WHERE program_id = $1 AND cohort_year = $2`, [programId, curriculum.cohort_year]],
       );
 
+      const groupIds = new Map<string, string>();
       for (const group of seed.groups) {
         const groupId = await insertOrFind(
           em,
@@ -112,18 +113,57 @@ export async function seedCurricula(
           ],
           [`SELECT id FROM requirement_groups WHERE curriculum_id = $1 AND name = $2`, [curriculumId, group.name]],
         );
+        groupIds.set(group.name, groupId);
 
         for (const row of group.rows) {
           count(
             'links',
             await em.query(
-              `INSERT INTO requirement_group_courses (requirement_group_id, course_code)
-               VALUES ($1, $2)
+              `INSERT INTO requirement_group_courses (requirement_group_id, course_code, counts_toward_total, counts_toward_gpa)
+               VALUES ($1, $2, $3, $4)
                ON CONFLICT (requirement_group_id, course_code) DO NOTHING RETURNING course_code`,
-              [groupId, row.code],
+              [groupId, row.code, row.counts_toward_total, row.counts_toward_gpa],
             ),
           );
         }
+      }
+
+      const groupId = (name: string): string => {
+        const id = groupIds.get(name);
+        if (!id) throw new Error(`${curriculum.code}: no requirement group named "${name}"`);
+        return id;
+      };
+
+      // A block printed as a minimum ("≥ 43") is a rule over several groups (ADR 0013).
+      for (const block of seed.blocks.filter((b) => b.at_least)) {
+        const minimumId = await insertOrFind(
+          em,
+          'combined_minimums',
+          [
+            `INSERT INTO combined_minimums (curriculum_id, name, credits_min) VALUES ($1, $2, $3)
+             ON CONFLICT (curriculum_id, name) DO NOTHING RETURNING id`,
+            [curriculumId, block.name, block.credits],
+          ],
+          [`SELECT id FROM combined_minimums WHERE curriculum_id = $1 AND name = $2`, [curriculumId, block.name]],
+        );
+        for (const name of block.groups) {
+          await em.query(
+            `INSERT INTO combined_minimum_groups (combined_minimum_id, requirement_group_id) VALUES ($1, $2)
+             ON CONFLICT DO NOTHING`,
+            [minimumId, groupId(name)],
+          );
+        }
+      }
+
+      for (const group of seed.groups.filter((g) => g.overflow_to !== undefined)) {
+        count(
+          'overflows',
+          await em.query(
+            `INSERT INTO requirement_group_overflows (from_group_id, to_group_id) VALUES ($1, $2)
+             ON CONFLICT (from_group_id) DO NOTHING RETURNING from_group_id`,
+            [groupId(group.name), groupId(group.overflow_to!)],
+          ),
+        );
       }
     }
   });

@@ -8,7 +8,16 @@ import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
-const CURRICULUM_TABLES = ['programs', 'curriculums', 'requirement_groups', 'courses', 'requirement_group_courses'];
+const CURRICULUM_TABLES = [
+  'programs',
+  'curriculums',
+  'requirement_groups',
+  'courses',
+  'requirement_group_courses',
+  'combined_minimums',
+  'combined_minimum_groups',
+  'requirement_group_overflows',
+];
 
 interface Group {
   id: string;
@@ -37,7 +46,7 @@ describe('Curriculum API (e2e)', () => {
     await app?.close();
   });
 
-  it('maps the five curriculum tables exactly as migration 1792912952302 creates them', async () => {
+  it('maps the curriculum tables exactly as migrations 1792912952302 and 1794300000000 create them', async () => {
     const { upQueries } = await app.get(DataSource).driver.createSchemaBuilder().log();
     const touching = upQueries.map((q) => q.query).filter((q) => CURRICULUM_TABLES.some((t) => q.includes(`"${t}"`)));
     expect(touching).toEqual([]);
@@ -46,7 +55,7 @@ describe('Curriculum API (e2e)', () => {
   it('lists every seeded program with its cohorts', async () => {
     const { body } = await get('/api/programs').expect(200);
     const byCode = Object.fromEntries((body.programs as { code: string; cohortYears: number[] }[]).map((p) => [p.code, p]));
-    expect(byCode.APCS).toEqual({ code: 'APCS', nameVi: apcs2024.program.name_vi, nameEn: null, faculty: null, cohortYears: [2024, 2025] });
+    expect(byCode.APCS).toEqual({ code: 'APCS', nameVi: apcs2024.program.name_vi, nameEn: null, faculty: null, trainingType: 'advanced', cohortYears: [2024, 2025] });
     for (const seed of CURRICULUM_SEEDS) expect(byCode[seed.program.code].cohortYears).toContain(seed.curriculum.cohort_year);
   });
 

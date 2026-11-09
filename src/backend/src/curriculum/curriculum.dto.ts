@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { TRAINING_TYPES, type TrainingType } from './program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from './requirement-group.entity.js';
 
 // Read shapes of the curriculum (F4, ADR 0005). They carry only what the database stores:
@@ -18,6 +19,14 @@ export class ProgramSummaryDto {
 
   @ApiProperty({ type: String, nullable: true, description: 'The faculty that owns the program' })
   faculty!: string | null;
+
+  @ApiProperty({
+    enum: TRAINING_TYPES,
+    nullable: true,
+    description:
+      'Training type (QĐ 1175/QĐ-KHTN Điều 6.4, 7.2; ADR 0012): advanced = Tiên tiến, joint = Liên kết, high_quality = Chất lượng cao, standard = đại trà. It sets the terms and the credit caps. null: not recorded.',
+  })
+  trainingType!: TrainingType | null;
 }
 
 export class ProgramDto extends ProgramSummaryDto {

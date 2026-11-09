@@ -360,3 +360,44 @@ describe.each(EQUIVALENCE_LISTS.map((list) => [list.source.file, list] as const)
     expect(stt).toEqual(Array.from({ length: stt.length }, (_, i) => i + 1));
   });
 });
+
+// The rules the degree audit reads (migration 1794300000000, ADR 0013).
+describe.each(CURRICULUM_SEEDS.map((seed) => [seedLabel(seed), seed] as const))('%s audit rules in the seed', (_, seed) => {
+  it('has the training type of its program (ADR 0012)', () => {
+    expect(seed.program.training_type).toBe(seed.program.code === 'APCS' ? 'advanced' : 'high_quality');
+  });
+
+  it('leaves out of the GPA exactly the rows it leaves out of the cohort total (Điều 15.1.c, as printed)', () => {
+    for (const row of seed.groups.flatMap((g) => g.rows)) expect(row.counts_toward_gpa, row.code).toBe(row.counts_toward_total);
+  });
+
+  it('overflows only into another group of the same curriculum', () => {
+    const names = seed.groups.map((g) => g.name);
+    for (const group of seed.groups.filter((g) => g.overflow_to !== undefined)) {
+      expect(names, group.name).toContain(group.overflow_to);
+      expect(group.overflow_to, group.name).not.toBe(group.name);
+    }
+  });
+
+  it('names only its own groups in a block printed as a minimum', () => {
+    for (const block of seed.blocks.filter((b) => b.at_least)) {
+      for (const name of block.groups) expect(seed.groups.map((g) => g.name), block.name).toContain(name);
+    }
+  });
+});
+
+describe('APCS audit rules', () => {
+  it.each(CURRICULUM_SEEDS.filter((s) => s.program.code === 'APCS').map((s) => [s.curriculum.code, s] as const))(
+    '%s: (A) tự chọn overflows into (C), and (B) + (C) is at least 43 (p.5)',
+    (_, seed) => {
+      expect(seed.groups.filter((g) => g.overflow_to).map((g) => [g.name, g.overflow_to])).toEqual([
+        ['Kiến thức Computer Science (A): tự chọn', 'Tự chọn Computer Science (C)'],
+      ]);
+      expect(seed.blocks.filter((b) => b.at_least).map((b) => [b.name, b.credits, b.groups])).toEqual([
+        ['Kiến thức tự chọn', 43, ['Tự chọn Math (B)', 'Tự chọn Computer Science (C)']],
+      ]);
+      const notCounted = seed.groups.flatMap((g) => g.rows).filter((r) => !r.counts_toward_total).map((r) => r.code);
+      expect(notCounted).toEqual(['BAA00021', 'BAA00022', 'BAA00030']);
+    },
+  );
+});
