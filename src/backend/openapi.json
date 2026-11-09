@@ -451,6 +451,131 @@
           "guides"
         ]
       }
+    },
+    "/api/programs": {
+      "get": {
+        "operationId": "CurriculumController_listPrograms",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Every program, with the cohorts that have a curriculum.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgramListDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/programs/{program}/curricula/{cohort}": {
+      "get": {
+        "operationId": "CurriculumController_getCurriculum",
+        "parameters": [
+          {
+            "name": "program",
+            "required": true,
+            "in": "path",
+            "description": "Program code",
+            "schema": {
+              "example": "APCS",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cohort",
+            "required": true,
+            "in": "path",
+            "description": "Cohort year",
+            "schema": {
+              "example": "2024",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The curriculum of the cohort, with its requirement groups and their courses.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "The program does not exist, has no curriculum for this cohort, or the cohort is not a 4-digit year."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/courses/{code}": {
+      "get": {
+        "operationId": "CurriculumController_getCourse",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "description": "Course code, exactly as the catalog stores it",
+            "schema": {
+              "example": "CSC10001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A catalog course and every requirement group that links to it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No course has this code."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum"
+        ]
+      }
     }
   },
   "info": {
@@ -1198,6 +1323,392 @@
           "id",
           "group",
           "texts"
+        ]
+      },
+      "ProgramDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "faculty": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The faculty that owns the program"
+          },
+          "cohortYears": {
+            "example": [
+              2024,
+              2025
+            ],
+            "description": "The cohorts that have a curriculum, oldest first",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn",
+          "faculty",
+          "cohortYears"
+        ]
+      },
+      "ProgramListDto": {
+        "type": "object",
+        "properties": {
+          "programs": {
+            "description": "Every program, by code",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgramDto"
+            }
+          }
+        },
+        "required": [
+          "programs"
+        ]
+      },
+      "ProgramSummaryDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "faculty": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The faculty that owns the program"
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn",
+          "faculty"
+        ]
+      },
+      "CourseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CSC10001",
+            "pattern": "^[A-Z0-9]{2,20}$"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Nhập môn lập trình"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credits": {
+            "type": "number",
+            "example": 4
+          },
+          "theoryPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Theory periods (\"LT\"); null where the official table leaves the cell blank"
+          },
+          "labPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Lab periods (\"TH\")"
+          },
+          "exercisePeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Exercise periods (\"BT\")"
+          },
+          "projectPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Project periods (\"ĐT\")"
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn",
+          "credits",
+          "theoryPeriods",
+          "labPeriods",
+          "exercisePeriods",
+          "projectPeriods"
+        ]
+      },
+      "RequirementGroupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Kiến thức Math",
+            "description": "The heading as printed in the official curriculum"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "compulsory",
+              "elective"
+            ],
+            "description": "compulsory: every course must be passed. elective: the student chooses courses up to creditsTotalMin."
+          },
+          "creditsTotal": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Credits of a compulsory group"
+          },
+          "creditsTotalMin": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Minimum credits of an elective group. null when the printed rule is not a minimum on this group alone; officialNotes then states it."
+          },
+          "officialNotes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The printed rule text, for rules the columns cannot express"
+          },
+          "courses": {
+            "description": "The courses linked to the group, by code",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "creditsTotal",
+          "creditsTotalMin",
+          "officialNotes",
+          "courses"
+        ]
+      },
+      "CurriculumDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "example": "APCS2024"
+          },
+          "program": {
+            "$ref": "#/components/schemas/ProgramSummaryDto"
+          },
+          "cohortYear": {
+            "type": "number",
+            "example": 2024,
+            "description": "The year the cohort entered the program"
+          },
+          "nameVi": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "en",
+            "description": "Language of instruction"
+          },
+          "totalCreditsMin": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 163,
+            "description": "Credits the cohort needs to graduate, as printed"
+          },
+          "requirementGroups": {
+            "description": "Every requirement group, by name (the schema stores no printed order). A course may sit in several groups.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequirementGroupDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "program",
+          "cohortYear",
+          "nameVi",
+          "nameEn",
+          "language",
+          "totalCreditsMin",
+          "requirementGroups"
+        ]
+      },
+      "CourseMembershipDto": {
+        "type": "object",
+        "properties": {
+          "programCode": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "cohortYear": {
+            "type": "number",
+            "example": 2024
+          },
+          "curriculumCode": {
+            "type": "string",
+            "example": "APCS2024"
+          },
+          "requirementGroupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requirementGroupName": {
+            "type": "string",
+            "example": "Kiến thức Math"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "compulsory",
+              "elective"
+            ]
+          }
+        },
+        "required": [
+          "programCode",
+          "cohortYear",
+          "curriculumCode",
+          "requirementGroupId",
+          "requirementGroupName",
+          "kind"
+        ]
+      },
+      "CourseDetailDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CSC10001",
+            "pattern": "^[A-Z0-9]{2,20}$"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Nhập môn lập trình"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credits": {
+            "type": "number",
+            "example": 4
+          },
+          "theoryPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Theory periods (\"LT\"); null where the official table leaves the cell blank"
+          },
+          "labPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Lab periods (\"TH\")"
+          },
+          "exercisePeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Exercise periods (\"BT\")"
+          },
+          "projectPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Project periods (\"ĐT\")"
+          },
+          "memberships": {
+            "description": "By program code, cohort year, then group name",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseMembershipDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn",
+          "credits",
+          "theoryPeriods",
+          "labPeriods",
+          "exercisePeriods",
+          "projectPeriods",
+          "memberships"
         ]
       }
     }
