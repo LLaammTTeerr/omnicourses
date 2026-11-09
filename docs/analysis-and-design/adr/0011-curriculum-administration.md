@@ -1,6 +1,6 @@
 # ADR 0011: Curriculum administration and program-scoped permissions
 
-- Status: proposed; not authorization to implement
+- Status: proposed; not authorization to implement. Scope, audit and prerequisite decisions recorded on 9 November 2026; review findings below still open
 - Date: 2026-11-03
 - Owner: Thắng (F12)
 - Deciders: Lâm (Project Lead), Triết (curriculum schema and rule engine)
@@ -8,7 +8,7 @@
 
 ## Context
 
-F12 needs an API to create and edit programs, cohorts, courses, prerequisites and requirement groups, with administration rights scoped per program. [UC-11](../../requirements/use-cases/UC-11-maintain-curriculum.md) separates program administration, shared catalog maintenance and access management. The [test plan](../../test/test-plan.md#b2-checks) places this work in B2 and requires this ADR before code, after [PR #23](https://github.com/LLaammTTeerr/omnicourses/pull/23) merges. On 3 November 2026, #23 is still open. This change is documentation only.
+F12 needs an API to create and edit programs, cohorts, courses, prerequisites and requirement groups, with administration rights scoped per program. [UC-11](../../requirements/use-cases/UC-11-maintain-curriculum.md) separates program administration, shared catalog maintenance and access management. The [test plan](../../test/test-plan.md#b2-checks) places this work in B2 and requires this ADR before code, after [PR #23](https://github.com/LLaammTTeerr/omnicourses/pull/23) merges. #23 merged on 3 November 2026 as `900b1b8`, after this ADR was first written; its migration is byte-identical to the inspected `700213a` below. This change is documentation only.
 
 The inspected [#23 migration at `700213a`](https://github.com/LLaammTTeerr/omnicourses/blob/700213a224fb0486449e83008060d186c751081e/src/backend/src/database/migrations/1792912952302-create-curriculum-course-schema.ts) defines `programs`, `curriculums`, `requirement_groups`, `courses` and `requirement_group_courses`. A curriculum is unique by `(program_id, cohort_year)`; a course is shared across curricula. It supplies no prerequisite or offering-term storage, entities or read/validation interface. Its [ADR 0005](https://github.com/LLaammTTeerr/omnicourses/blob/700213a224fb0486449e83008060d186c751081e/docs/analysis-and-design/adr/0005-curriculum-cohort-and-course-catalog.md) still mentions a link-level `compulsory` column that the migration removed. F12 must reconcile the merged schema and ADR rather than restore that column.
 
@@ -19,6 +19,16 @@ The inspected [#23 migration at `700213a`](https://github.com/LLaammTTeerr/omnic
 Vision v2 §6 Security ([source](../../../report/assignments/PA2/Vision.tex)) requires administrator rights per school and per program. The [glossary](../../../GLOSSARY.md) defines a faculty as the HCMUS unit owning programs; it does not make a faculty a school. #23 stores `programs.faculty` as descriptive text, not an authorization boundary.
 
 This ADR proposes **program-scoped grants within the current HCMUS deployment**, plus the two global permissions below. Global means the entire deployment. There is no faculty inheritance or cross-school isolation. This is an explicit proposed reduction of the school-scoping requirement for B2/B3, not evidence that the whole Security NFR passes. Lâm and Hoà must accept that scope change or require school identifiers and scoped catalog/access-manager grants before implementation. Renaming `faculty` to `school` would not resolve it.
+
+**Decided (Lâm, 9 November 2026):** accepted for B2 and B3. OmniCourse serves one school (HCMUS), so a school level would add a boundary with nothing on the other side of it. The Security NFR's per-school clause is recorded as a known exception in the B2/B3 acceptance evidence; a second school needs a new ADR first.
+
+### Open from review (Thắng, 9 November 2026)
+
+These block acceptance; Thắng revises this ADR for them:
+
+1. **Catalog read path for program administrators.** No curriculum or catalog read route exists on `main`. Define the endpoints, their permission (including whether ordinary students may use them), fields, filtering and pagination.
+2. **Rejecting unknown and immutable PATCH fields.** The global `ValidationPipe` uses `whitelist: true` without `forbidNonWhitelisted`, so such fields are silently dropped today. Name the per-route mechanism and its stable `400` response for the admin DTOs.
+3. **Field contracts outside courses.** Create/PATCH fields, normalization and null rules for programs, curricula (including `curriculums.code`) and requirement groups.
 
 ## Decisions
 
@@ -58,6 +68,8 @@ Account export includes only the recipient's grant rows. Purging a recipient rem
 ### Audit trail: open before curriculum/catalog writes
 
 Neither #23's `updated_at` nor grant attribution records who changed a curriculum or catalog row. **Lâm and Triết must decide whether B2 requires a change-history log or explicitly defers it before those mutations are implemented.** No audit trail is claimed by this proposal. If included, the reviewed contract must define recorded operations and before/after fields, transaction failure behavior, read permissions and retention; Thắng adds the storage and acceptance cases here before coding. If deferred, record the missing history in B2's acceptance evidence.
+
+**Decided (Lâm, 9 November 2026): deferred until after B3.** Curriculum and catalog writes may be implemented without a change-history log. B2's acceptance evidence records the missing history, and nothing in B2 or B3 may claim an audit trail.
 
 A retained log describes shared curriculum/catalog changes, not a student's owned record. Its actor reference must be nullable `actor_id uuid REFERENCES users(id) ON DELETE SET NULL`, never `user_id`; account purge detaches the actor and preserves the change record. Do not duplicate actor names, email, student identifiers or credentials into the log payload. This does not change the recipient-owned grant tables above. Export/purge tests must prove the log is not exported as the actor's owned data and survives actor purge with `actor_id = NULL`.
 
@@ -104,6 +116,8 @@ Normalize course codes by trimming and uppercasing, then require `^[A-Z0-9]{2,20
 
 **B2 totals are gated fields, not accepted everywhere.** Once Triết supplies their meanings and validation, cohort POST/PATCH may accept `totalCreditsMin` (`curriculums.total_credits_min`); requirement-group POST/PATCH may accept `creditsTotal` and `creditsTotalMin` (the corresponding group columns). Validate supplied values as nonnegative integers or explicit null where the reviewed contract permits unknown values. Before that handoff, those fields are rejected with `400 validation_failed`; creation leaves them null and unrelated edits preserve stored values. Reads may show existing totals. Catalog, group-link and CSV routes never accept total fields. Creating or changing links still needs final-state group-total validation, even though its input has no totals. B2 completion depends on those handoffs; the date alone does not enable the fields or satisfy the tests.
 
+Every write sets `updated_at` in the same statement or save: entities use `@UpdateDateColumn`, and raw SQL sets `"updated_at" = now()`, the pattern `users` and `guide_texts` already follow. No trigger is added.
+
 Reject unsupported fields and nonexistent references before saving. Reconcile #23's nullable period fields and missing nonnegative-total constraints with this contract in a follow-up migration, never by editing an applied migration. Resolve ADR 0005's stale compulsory-link description: the inspected schema has only group `kind`, not a second source on each link.
 
 | Response | Meaning |
@@ -144,7 +158,9 @@ UC-11 A9 records the matching upload → preview → correction → confirmation
 
 ## Prerequisites, offering terms and implementation gates
 
-The prerequisite API remains part of the requested F12 work. It is **blocked, not dropped**. There is no prerequisite table in #23, and neither F12 nor this ADR may guess whether prerequisites are global, per curriculum, conjunctions, alternatives or equivalences. A shared course code alone is not an authorization boundary for a curriculum rule.
+The prerequisite API remains part of the requested F12 work. It is **blocked, not dropped**.
+
+**Decided (Lâm, 9 November 2026):** basic program, cohort, group and catalog create/edit go ahead in dependency order (below) once the remaining gates allow, without prerequisites. F12 is reported as **partial** until Triết hands off prerequisite/offering storage and the rule-engine interfaces. There is no prerequisite table in #23, and neither F12 nor this ADR may guess whether prerequisites are global, per curriculum, conjunctions, alternatives or equivalences. A shared course code alone is not an authorization boundary for a curriculum rule.
 
 | Gate | Required handoff | Owner/reviewer |
 | --- | --- | --- |
