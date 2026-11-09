@@ -120,7 +120,7 @@ Cancel discards the unsaved draft. Re-importing the same valid data creates no d
 | Lâm | Authentication. | Reuse the work merged in [PR #8](https://github.com/LLaammTTeerr/omnicourses/pull/8). |
 | Hoà | Use-case model and agreed requirements. | Review UC-11 for the PA2 model. |
 
-Offering terms use `term_number` values `1` and `2` for main terms and `3` for summer, from proposed [ADR 0009 in PR #29](https://github.com/LLaammTTeerr/omnicourses/blob/812d0c2336ad6ec4f8a942f7f388300e7434ef21/docs/analysis-and-design/adr/0009-term-encoding.md). If an offering is tied to an academic year, also use its `term_year`. The encoding moved out of ADR 0007; Triết must agree this handoff before implementation. A suggested study term is not evidence of an offering term.
+Offering terms use `term_number` values `1`, `2` and `3`, from proposed [ADR 0009 in PR #29](https://github.com/LLaammTTeerr/omnicourses/blob/812d0c2336ad6ec4f8a942f7f388300e7434ef21/docs/analysis-and-design/adr/0009-term-encoding.md). As amended by [ADR 0012](../../analysis-and-design/adr/0012-credit-caps-by-training-type.md), `3` is a third main term in a Tiên tiến, Liên kết or Chất lượng cao program such as APCS, and the summer term only in a đại trà program. If an offering is tied to an academic year, also use its `term_year`. The encoding moved out of ADR 0007; Triết must agree this handoff before implementation. A suggested study term is not evidence of an offering term.
 
 ### Proposed F12 permission model
 
