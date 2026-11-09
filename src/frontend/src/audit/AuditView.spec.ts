@@ -9,9 +9,9 @@ import { COMBINED, course, degreeAudit, emptyAudit, group, GROUP_A, GROUP_C, GRO
 
 let wrapper: VueWrapper | undefined;
 
-async function render(answer: unknown = degreeAudit()) {
+async function render(answer: unknown = degreeAudit(), path = '/audit') {
   const fetch = mockApi({ 'GET /users/me/audit': answer });
-  const app = await setup('/audit');
+  const app = await setup(path);
   wrapper = mount(AuditView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch };
@@ -164,6 +164,15 @@ describe('AuditView (F3, ADR 0013)', () => {
     expect(w.get('h1').text()).toBe('Degree audit');
     expect(rowsOf(w, GROUP_C)[0]).toEqual(['ZZ414', 'Test elective ZZ414', '4', 'In progress', '–']);
     expect(rowsOf(w, GROUP_A)[1]![4]).toBe('4.5');
+  });
+
+  it('scrolls to the group the dashboard linked to, once the audit is drawn', async () => {
+    const scrolled: string[] = [];
+    Element.prototype.scrollIntoView = vi.fn(function (this: Element) {
+      scrolled.push(this.id);
+    });
+    await render(degreeAudit(), `/audit#group-${GROUP_A}`);
+    expect(scrolled).toEqual([`group-${GROUP_A}`]);
   });
 
   it('sends a student without a program to onboarding', async () => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { RouterLink } from 'vue-router';
+import { computed, nextTick, watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
@@ -19,6 +19,19 @@ const locale = useLocale();
 const m = useMessages(AUDIT_MESSAGES);
 const { status, data, error, reload } = useAudit();
 const audit = computed(() => (data.value?.status === 'ready' ? data.value.audit : null));
+
+// The dashboard links to a group, a combined minimum or the conditions by hash. The router scrolls before the audit
+// has loaded, when the target does not exist yet, so the page scrolls to it once it is drawn.
+const route = useRoute();
+watch(
+  () => [status.value, route.hash] as const,
+  async ([loaded, hash]) => {
+    if (loaded !== 'loaded' || !hash) return;
+    await nextTick();
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: 'start' });
+  },
+  { immediate: true },
+);
 
 const score = (value: number | null) => formatScore(value, locale.lang) ?? '–';
 
