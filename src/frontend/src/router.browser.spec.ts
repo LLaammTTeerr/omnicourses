@@ -96,6 +96,6 @@ it('names the tab after the home page when the reader goes home from a guide', a
   expect(document.title).toBe('Hướng dẫn thử 07 · OmniCourse');
 
   await page.getByRole('banner').getByRole('link', { name: 'OmniCourse', exact: true }).click();
-  await expect.element(page.getByRole('heading', { level: 1, name: 'OmniCourse', exact: true })).toBeVisible();
+  await expect.element(page.getByRole('heading', { level: 1, name: 'Biết chính xác còn thiếu gì để tốt nghiệp.' })).toBeVisible();
   expect(document.title).toBe('OmniCourse');
 });

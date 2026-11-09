@@ -113,7 +113,7 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
             <p :lang="textLang"><strong>{{ t.portal.name }}</strong></p>
             <p class="host">{{ host(t.portal.url) }}</p>
             <p>{{ m.account }} <span :lang="textLang">{{ t.portal.account }}</span></p>
-            <ExternalLink class="button" :href="t.portal.url" data-test="open-portal">{{ m.openPortal(t.portal.name) }}</ExternalLink>
+            <ExternalLink class="btn primary open-portal" :href="t.portal.url" data-test="open-portal">{{ m.openPortal(t.portal.name) }}</ExternalLink>
           </section>
 
           <section class="card">
@@ -150,112 +150,145 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
 </template>
 
 <style scoped>
+/* One guide, as in the UI prototypes (guides.html): numbered steps on the left, where and when on the right. */
 .guide-page {
-  max-width: 1040px;
+  max-width: 1080px;
   margin: 0 auto;
   display: grid;
   gap: 12px;
 }
 .crumbs {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.crumbs a {
+  font-weight: 600;
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--ink);
 }
 .head {
   display: grid;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-h1 {
-  margin: 0;
-  font-size: 1.75rem;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 .head p {
   margin: 0;
+  color: var(--ink-2);
+  max-width: 70ch;
 }
 h2 {
-  font-size: 1.05rem;
-  margin: 0 0 8px;
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+.column h2 + h2,
+.column p + h2,
+.column ul + h2 {
+  margin-top: 16px;
 }
 h3 {
-  font-size: 0.95rem;
+  font-size: 14.5px;
   margin: 0 0 4px;
 }
 .layout {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 @media (min-width: 900px) {
   .layout {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: minmax(0, 1fr) 320px;
     align-items: start;
   }
 }
 .column {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   min-width: 0;
 }
 .card > p,
 .note p {
   margin: 0 0 8px;
 }
-.steps {
+.card ul {
   margin: 0;
-  padding-left: 1.5em;
+  padding-left: 1.2em;
+}
+.steps {
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
 }
 .steps li {
-  margin: 8px 0;
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.steps li::before {
+  content: counter(step);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--acc-bg);
+  color: var(--acc-ink);
+  font: 700 15px var(--display);
 }
 .board {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 !important;
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
 }
 .board li {
   display: grid;
   gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 13.5px;
 }
 .note + .note {
-  border-top: 1px solid #eee;
-  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
 }
 .source {
-  font-size: 0.85rem;
-  color: #555;
+  font-size: 13px;
+  color: var(--ink-3);
 }
 .host {
-  font-family: ui-monospace, monospace;
-  font-size: 0.85rem;
-  color: #555;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--info);
 }
 .callout {
+  display: block;
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: #eef1f5;
 }
 .callout.warn {
-  background: #fff4d6;
-  color: #4a3000;
-  border: 1px solid #e0b84f;
+  border-color: color-mix(in oklab, var(--warn) 45%, var(--edge));
 }
 .callout.warn p {
   margin: 4px 0 0;
 }
-.button {
-  display: inline-block;
-  padding: 8px 14px;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-  text-decoration: none;
-  font-weight: 600;
+.open-portal {
+  white-space: normal;
+  text-align: center;
+  min-height: 42px;
+  margin-top: 4px;
 }
 .meta {
-  font-size: 0.85rem;
-  color: #555;
+  font-size: 13px;
+  color: var(--ink-3);
 }
 .meta p {
   margin: 0 0 4px;

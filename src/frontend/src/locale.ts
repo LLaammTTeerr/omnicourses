@@ -59,6 +59,11 @@ export function useMessages<T>(messages: Record<Lang, T>): ComputedRef<T> {
   return computed(() => messages[locale.lang]);
 }
 
+/** An instant (ISO date-time) as each language writes it, in the browser's time zone: 13/11/2026 14:05, 13 Nov 2026, 14:05. */
+export function formatDateTime(iso: string, lang: Lang): string {
+  return new Intl.DateTimeFormat(LANGUAGES[lang].tag, { ...LANGUAGES[lang].date, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+}
+
 /** A YYYY-MM-DD date as each language writes it: 13/11/2026, 13 Nov 2026. */
 export function formatDate(isoDate: string, lang: Lang): string {
   // A calendar date, not an instant: format it in UTC so no time zone moves it.
