@@ -57,6 +57,7 @@ interface PlannerMessages {
   notFound: string;
   saved: string;
   saving: string;
+  notSaved: string;
   saveFailed: string;
   saveRefused: (details: string) => string;
   checking: string;
@@ -165,6 +166,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     notFound: 'Không có kế hoạch này trong các kế hoạch của bạn.',
     saved: 'Đã lưu',
     saving: 'Đang lưu…',
+    notSaved: 'Chưa lưu',
     saveFailed: 'Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất.',
     saveRefused: (details) => `Máy chủ không nhận thay đổi này (${details}). Kế hoạch đã trở về lần lưu gần nhất.`,
     checking: 'Đang kiểm tra…',
@@ -282,6 +284,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     notFound: 'This plan is not among your plans.',
     saved: 'Saved',
     saving: 'Saving…',
+    notSaved: 'Not saved',
     saveFailed: 'The change could not be saved. The plan is back to its last saved state.',
     saveRefused: (details) => `The server refused this change (${details}). The plan is back to its last saved state.`,
     checking: 'Checking…',

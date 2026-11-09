@@ -287,7 +287,7 @@ function onTileKey(event: KeyboardEvent, tile: Tile, rowIndex: number): void {
   if (event.key === ' ') {
     lifted.value = { key: tile.key, target: rowIndex };
     announce(m.value.lifted(title, nameOf(board.value[rowIndex]!.term)));
-  } else if (event.key === 'Delete' || event.key === 'Backspace') {
+  } else if (event.key === 'Delete') {
     remove(tile);
   } else return;
   event.preventDefault();
@@ -312,6 +312,10 @@ function overRow(event: DragEvent, term: Term): void {
   if (!dragging.value) return;
   event.preventDefault();
   dropRow.value = termKey(term);
+}
+function leaveRow(event: DragEvent): void {
+  // Crossing into a tile of the same row is not leaving it.
+  if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) dropRow.value = null;
 }
 function dropOnRow(term: Term): void {
   const what = dragging.value;
@@ -365,7 +369,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
       <div class="planner-status">
         <span class="chip" :class="{ bad: saveState === 'failed', ok: saveState === 'saved' }" role="status" data-test="save-state">
           <Icon :name="saveState === 'failed' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
-          {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : m.saveFailed }}
+          {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : m.notSaved }}
         </span>
         <span class="small t3">{{ m.curriculum(plan.curriculum.code) }}</span>
       </div>
@@ -441,7 +445,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
               :aria-labelledby="`term-${termKey(row.term)}`"
               :data-test="`term-${termKey(row.term)}`"
               @dragover="overRow($event, row.term)"
-              @dragleave="dropRow = null"
+              @dragleave="leaveRow"
               @drop.prevent="dropOnRow(row.term)"
             >
               <div class="trow-h">

@@ -238,7 +238,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
     await flushPromises();
     expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ101 ZZ102', 'HK2 2026–2027:']);
     expect(w.get('[data-test="save-error"]').text()).toBe('Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất.');
-    expect(w.get('[data-test="save-state"]').text()).not.toBe('Đã lưu');
+    expect(w.get('[data-test="save-state"]').text()).toBe('Chưa lưu');
   });
 
   it('shows the server’s reason when it refuses a board (400)', async () => {
