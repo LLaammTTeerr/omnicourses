@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readCourseDescriptions } from '../../advisor/sources/source-text.js';
+import { readCourseDescriptions } from '../../advisor/course-descriptions/course-description-files.js';
 import { normalizePrintedCode } from '../../common/course-code.js';
 import { apcsPrerequisites } from './apcs-prerequisites.js';
 
@@ -8,13 +8,13 @@ import { apcsPrerequisites } from './apcs-prerequisites.js';
 // and `resolved` / `unresolved` against the one rule they may follow: a part
 // names a course only by its exact code or its exact heading.
 
-const booklet = readCourseDescriptions('apcs-course-descriptions.json');
-const byCode = new Map(booklet.entries.map((e) => [e.code, e]));
+const booklet = readCourseDescriptions('apcs-course-descriptions-2021').document;
+const byCode = new Map(booklet.courses.map((c) => [c.code, c]));
 
 /** The course a part of a line names exactly, if any. */
 function lookup(part: string): string | undefined {
   if (/^[A-Za-z]{2,4}\s?\d{3}[A-Za-z]?$/.test(part) && byCode.has(normalizePrintedCode(part))) return normalizePrintedCode(part);
-  const titled = booklet.entries.filter((e) => e.name_en === part);
+  const titled = booklet.courses.filter((e) => e.name_en === part);
   return titled.length === 1 ? titled[0].code : undefined;
 }
 
@@ -44,9 +44,9 @@ function resolve(printed: string): { resolved: string[]; unresolved: string[] } 
 
 describe('APCS printed prerequisites (Prior-course lines)', () => {
   it('names the same PDF as the course descriptions', () => {
-    expect(apcsPrerequisites.source.file).toBe(booklet.document.file);
-    expect(apcsPrerequisites.source.sha256).toBe(booklet.document.sha256);
-    expect(apcsPrerequisites.source.pages).toBe(booklet.document.pages);
+    expect(apcsPrerequisites.source.file).toBe(booklet.pdf.file);
+    expect(apcsPrerequisites.source.sha256).toBe(booklet.pdf.sha256);
+    expect(apcsPrerequisites.source.pages).toBe(booklet.pdf.pages);
   });
 
   it('lists every course of the booklet once, as a line or as blank', () => {
@@ -60,11 +60,11 @@ describe('APCS printed prerequisites (Prior-course lines)', () => {
   it('copies each line and page from the extracted description', () => {
     for (const l of apcsPrerequisites.lines) {
       expect(l.printed, l.code).toBe(byCode.get(l.code)!.prerequisites_printed);
-      expect(l.page, l.code).toBe(byCode.get(l.code)!.page);
+      expect(l.page, l.code).toBe(byCode.get(l.code)!.pages[0]);
     }
     for (const b of apcsPrerequisites.blank) {
       expect(byCode.get(b.code)!.prerequisites_printed, b.code).toBeNull();
-      expect(b.page, b.code).toBe(byCode.get(b.code)!.page);
+      expect(b.page, b.code).toBe(byCode.get(b.code)!.pages[0]);
     }
   });
 

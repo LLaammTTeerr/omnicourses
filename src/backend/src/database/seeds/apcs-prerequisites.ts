@@ -9,8 +9,8 @@ import type { PrintedPrerequisite, PrintedPrerequisiteList } from './seed-types.
 // terms: the curricula (CTĐT) of APCS 2021-2025 and CLC 2024 have no
 // prerequisite column, and their "Học kỳ n" is a suggested study term.
 //
-// course-descriptions.spec.ts checks every `printed` line against the PDF's
-// text; apcs-prerequisites.spec.ts checks `resolved` and `unresolved`.
+// advisor/course-descriptions/course-descriptions.spec.ts checks every
+// `printed` line against the PDF's text; apcs-prerequisites.spec.ts checks `resolved` and `unresolved`.
 
 /** line(course, printed line, resolved codes, unresolved parts, page) */
 const line = (code: string, printed: string, resolved: string[], unresolved: string[], page: number): PrintedPrerequisite => ({

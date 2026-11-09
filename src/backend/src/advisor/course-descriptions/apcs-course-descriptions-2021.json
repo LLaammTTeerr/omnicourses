@@ -1,17 +1,30 @@
 {
-  "document": {
-    "id": "apcs-course-descriptions-2021",
+  "id": "apcs-course-descriptions-2021",
+  "title": "Course descriptions, Bachelor of Science, Advanced Program in Computer Science",
+  "shortName": "APCS course descriptions (March 2021)",
+  "issuer": "Viet Nam National University – Ho Chi Minh City, University of Science, Faculty of Information Technology",
+  "issued": "Ho Chi Minh City – March 2021",
+  "language": "en",
+  "sourceUrl": null,
+  "pdf": {
     "file": "APCS_Program_Descriptions.pdf",
     "sha256": "6558752d046fd2f3d57ddde178fa53b0a786529daf30f22a49b5b419227bd4fb",
-    "pages": 129,
-    "title": "COURSE DESCRIPTIONS - BACHELOR OF SCIENCE Advanced Program in Computer Science",
-    "issuer": "Viet Nam National University - Ho Chi Minh City, University of Science, Faculty of Information Technology",
-    "issued": "Ho Chi Minh City – March 2021",
-    "language": "en",
-    "text": "text/APCS_Program_Descriptions.txt",
-    "note": "Course descriptions of the APCS program as printed in March 2021. Codes follow the booklet (CS161, CS162, CM101), which differ from the 2024/2025 curricula (CS160, CM102). The booklet prints no Vietnamese names (name_vi is null), no assessment and no offering terms. \"prerequisites_printed\" is the booklet's \"Prior-course\" line, verbatim; it is not a rule the rule engine applies."
+    "pages": 129
   },
-  "entries": [
+  "textLayer": {
+    "command": "pdftotext -layout",
+    "tool": "pdftotext 26.01.0 (Poppler)",
+    "sha256": "7bcf63d9b210316d2f27d22fe80d147df39c57b274e6575e11014a0dbf9cb0a1"
+  },
+  "notes": [
+    "Shared by Dũng (F8) on 9 November 2026; no public URL.",
+    "The printed page numbers equal the PDF page numbers. Every page repeats a two-column letterhead, which the extraction drops.",
+    "Course codes are the 2021 ones (CS161, CS162, CM101); the 2024 and 2025 curricula use CS160 and CM102 and add courses the booklet does not describe (CS252, CS323, CS414, CS435, CS468 and the BAA general-education courses).",
+    "The booklet prints no Vietnamese names, no assessment and no offering terms.",
+    "CS386 (page 128) repeats the description of CS486 (page 22) under another code; both are kept as printed.",
+    "\"Prior-course\" is printed verbatim as prerequisites_printed. It is not a rule: the rule engine never reads it (AGENTS.md hard rule 1)."
+  ],
+  "courses": [
     {
       "id": "apcs-course-descriptions-2021/CS161",
       "code": "CS161",
@@ -39,8 +52,10 @@
         "Structures",
         "Review"
       ],
-      "page": 4,
-      "last_page": 5
+      "pages": [
+        4,
+        5
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS162",
@@ -70,8 +85,10 @@
         "Binary File",
         "Review for the final exam"
       ],
-      "page": 6,
-      "last_page": 7
+      "pages": [
+        6,
+        7
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS163",
@@ -102,8 +119,10 @@
         "Sorting: Insertion, Selection, Bubble, Radix Sort, MergeSort, QuickSort",
         "Review for the final exam"
       ],
-      "page": 8,
-      "last_page": 9
+      "pages": [
+        8,
+        9
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS201",
@@ -135,8 +154,10 @@
         "Virtual Memory (optional)",
         "Review"
       ],
-      "page": 10,
-      "last_page": 11
+      "pages": [
+        10,
+        11
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS202",
@@ -169,8 +190,10 @@
         "Design patterns: Singleton, Composite",
         "Review for the final exam"
       ],
-      "page": 12,
-      "last_page": 13
+      "pages": [
+        12,
+        13
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS250",
@@ -218,8 +241,10 @@
         "Tree Traversal",
         "Spanning Trees"
       ],
-      "page": 14,
-      "last_page": 15
+      "pages": [
+        14,
+        15
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS300",
@@ -257,8 +282,10 @@
         "Review",
         "Project presentation"
       ],
-      "page": 16,
-      "last_page": 17
+      "pages": [
+        16,
+        17
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS305",
@@ -291,8 +318,10 @@
         "Notes on Presentation",
         "Students’ presentations"
       ],
-      "page": 18,
-      "last_page": 19
+      "pages": [
+        18,
+        19
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS333",
@@ -323,8 +352,10 @@
         "File systems",
         "Review"
       ],
-      "page": 20,
-      "last_page": 21
+      "pages": [
+        20,
+        21
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS486",
@@ -354,8 +385,10 @@
         "Recovery methods",
         "Other database issues"
       ],
-      "page": 22,
-      "last_page": 23
+      "pages": [
+        22,
+        23
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/ECE341",
@@ -388,8 +421,10 @@
         "Direct Memory Access (DMA)",
         "Final Exam"
       ],
-      "page": 24,
-      "last_page": 25
+      "pages": [
+        24,
+        25
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS251",
@@ -420,8 +455,10 @@
         "Undecidability of predicate logic",
         "Exercises and Review"
       ],
-      "page": 26,
-      "last_page": 27
+      "pages": [
+        26,
+        27
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS311",
@@ -456,8 +493,10 @@
         "Church-Turing thesis",
         "The Chomsky Hierarchy and Beyond"
       ],
-      "page": 28,
-      "last_page": 29
+      "pages": [
+        28,
+        29
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS320",
@@ -487,8 +526,10 @@
         "Formal semantics and program correctness",
         "Final Exam: In class, closed books, no phones or Internet"
       ],
-      "page": 30,
-      "last_page": 31
+      "pages": [
+        30,
+        31
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS350",
@@ -513,8 +554,11 @@
       "content": [
         "Chapter 1. Introduction to Algorithms 1.1 Introduction to Algorithms. 1.2 Analysis of Algorithms 1.3 Asymptotic Complexity 1.4 Divide-and-conquer Design Paradigm Chapter 2. Sorting and Order Statistics 2.1 Quick Sort 2.2 Heap Sort 2.3 Linear Time Sorting 2.4 Order Statistics Midterm Examination Chapter 3. Searching and Data Structure 3.1 Linear Search 3.2 Binary Search Tree 3.3 Hashing Chapter 4. Optimization Algorithms 4.1 Dynamic Programming 4.2 Greedy Algorithms Chapter 5. Graph Algorithms 5.1 Bread-first Search and Depth-first Search Algorithms 5.2 Single-source-shortest Path Algorithms - Bellman-Ford Algorithm - Single-source-shortest Paths in DAG - Dijkstra’s Algorithm Review"
       ],
-      "page": 32,
-      "last_page": 34
+      "pages": [
+        32,
+        33,
+        34
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS420",
@@ -548,8 +592,10 @@
         "Machine learning: Basic concepts and ID3 Decision tree",
         "Linear regression and Logistic regressions"
       ],
-      "page": 35,
-      "last_page": 36
+      "pages": [
+        35,
+        36
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CM101",
@@ -577,8 +623,10 @@
         "Midterm",
         "Final Project"
       ],
-      "page": 37,
-      "last_page": 38
+      "pages": [
+        37,
+        38
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/SC203",
@@ -605,8 +653,10 @@
         "Lecture 5: Design of Experiments Tools: OpenCV, R, Scikit-learn, TensorFlow and Keras Teams present their data and preliminary experimental results",
         "Review"
       ],
-      "page": 39,
-      "last_page": 40
+      "pages": [
+        39,
+        40
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/WR227",
@@ -648,8 +698,10 @@
         "Full paper submission",
         "Camera-ready paper"
       ],
-      "page": 41,
-      "last_page": 42
+      "pages": [
+        41,
+        42
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/MTH251",
@@ -669,8 +721,10 @@
       "content": [
         "Chapter 1 1.1 Four ways to represent a Function 1.2 Model and Curve Fitting 1.3 New Functions from Old Functions 1.4 Graphing Calculators and Computers 1.5 Exponential functions 1.6 Inverse Function and Logarithms 1.7 Parametric Curves Chapter 2 2.1 The Tangent and Velocity Problems 2.2 The Limit of a Function 2.3 Calculating Limits Using Limit Laws 2.4 Continuity 2.5 Limits Involving Infinity 2.6 Limits of Sequences Chapter 3 3.1 Derivatives 3.2 The Derivative as a Function 3.3 Differentiation Formulae 3.4 Derivatives of Trigonometric Functions 3.5 Rates of Changes in the Natural and Social Sciences 3.6 The Chain Rule 3.7 Implicit Differentiation 3.8 Derivative of Logarithmic Functions Midterm Exam 3.9 Related Rates 3.10 Linear Approximations and Differentials Chapter 4 4.1 Maximum and Minimum Values 4.2 The Mean Value Theorem. Derivatives and the Shapes of Curves 4.3 Graphing with Calculus and Calculators 4.4 Indeterminate Forms and l’Hospital’s Rule 4.5 Optimization Problems 4.6 Application to Business and Economics 4.7 Newton’s Method 4.8 Antiderivatives Chapter 5 5.1 Area and Distances 5.2 The Definite Integral 5.3 Evaluating Definite Integrals 5.4 The Fundamental Theorem of Calculus 5.5 The Substitution Rule 5.6 Integration by Parts 5.7 Approximate Integration 5.8 Improper integrals"
       ],
-      "page": 43,
-      "last_page": 44
+      "pages": [
+        43,
+        44
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/MTH252",
@@ -691,8 +745,10 @@
       "content": [
         "0. Review of Integration 1. Applications of Integration 1.1 More about Areas 1.2 Volumes 1.3 Arc Length 1.4 Average value of a Function 1.5 Applications to Physics and Engineering 1.6 Applications to Economics and Biology 2. Polar Coordinates 2.1 Polar Coordinates System 2.2 Curves in Polar Coordinates 2.3 Areas and Lengths in Polar Coordinates 2.4 Conic Sections in Polar Coordinates. 3. Improper Integrals 3.1 Improper Integrals of Type 1: Infinite Intervals 3.2 Improper Integrals of Type 2: Discontinuous Integrands 3.3 A Comparison Test 4. Differential Equations 4.1 Modeling with Differential Equations 4.2 Direction Fields and Euler’s Method 4.3 Separable Equations 4.4 Exponential Growth and Decay Midterm Exam 4.5 The Logistic Equation 4.6 Predator-Prey Systems 5. Infinite Sequences and Series 5.1 Sequences: Limit Laws for Sequences. Monotonic Sequence Theorem 5.2 Series: Geometric series. Properties of Convergent Series 5.3 The Integral and Comparison Tests 5.4 Other Convergent Tests 5.5 Power Series. 5.6 Representations of Functions as Power Series 5.7 Taylor and Maclaurin Series 5.8 The Binomial Series 5.9 Applications of Taylor Polynomials in Approximations and Physics 5.10 Fourier Series and integrals Review"
       ],
-      "page": 45,
-      "last_page": 46
+      "pages": [
+        45,
+        46
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/MTH261",
@@ -716,8 +772,10 @@
       "content": [
         "1. Systems of Linear Equations and Matrices 1.1 Introduction to Systems of Linear Equations 1.2 Gaussian Elimination 1.3 Matrices and Matrix Operations 1.4. Inverses; Rules of Matrix Arithmetic 1.5 Finding Inverse by Elementary Matrices 1.6 Further Results on Systems of Equations and Invertibility 1.7 Diagonal, Triangular, and Symmetric Matrices 2. Determinants 2.1 The Determinant Function 2.2 Properties of the Determinant Function 2.3 Cofactor Expansion; Cramer’s Rule 3. Vectors in 2-Space and 3-Space 3.1 Norm of a Vector; Vector Arithmetic 3.2 Dot Product; Projections 3.3 Cross Product 4. Euclidean Vector Spaces 4.1 Euclidean n-Space 4.2 Linear Transformation from Rn to Rm 4.3 Properties of Linear Transformation from Rn to Rm 5. General Vector Spaces 5.1 Real Vector Spaces 5.2 Subspaces 5.3 Linear Independence 5.4.Basis and Dimension 5.5 Row Space, Column Space, and Null Space 5.6 Rank and Nullity 6. Inner Product Spaces 6.1 Inner Products 6.2 Orthogonality in Inner Product Spaces 6.3 Orthonormal Bases 6.4 Gram-Schmidt Process; QR-Decomposition 6.5 Best Approximation; Least Squares 6.6 Orthogonal Matrices; Change of Basis 7. Eigenvalues, Eigenvectors 7.1 Eigenvalues and Eigenvectors 7.2 Diagonalization 7.3 Orthogonal Diagonalization Review"
       ],
-      "page": 47,
-      "last_page": 48
+      "pages": [
+        47,
+        48
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/STAT451",
@@ -738,8 +796,10 @@
       "content": [
         "1.1 – Basic statistical concepts 1.2 – Methods in descriptive statistics 2.1 – Sample spaces and Events 2.2 – Properties of Probability 3.1 – Random Variables 3.2 – Probability dist’s for discrete RVs 3.6 – Poisson distribution 4.1 – Probability density function 4.4 – Exponential and Gamma distributions 4.5 – Other continuous distributions 4.6 – Probability plots Midterm Exam 5.5 – Distribution of a linear combination 6.1 – Point estimation 6.2 - Methods of point estimation 7.3 – Confident interval for a normal population 7.4 – Confident interval for variance and standard deviation 8.3 – Tests about a population proportion 8.4 – p-value method 9.2 – Two-sample t test 9.3 – Analysis of Paired Data Review"
       ],
-      "page": 50,
-      "last_page": 51
+      "pages": [
+        50,
+        51
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/PH211",
@@ -775,8 +835,10 @@
         "The Kinetic Theory of Gases",
         "Heat Engines, Entropy, and the Second Law of Thermodynamics"
       ],
-      "page": 52,
-      "last_page": 53
+      "pages": [
+        52,
+        53
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/PH212",
@@ -804,8 +866,10 @@
         "LC and RLC circuits, Alternating-current circuits",
         "Maxwell’s Equations, Electromagnetic waves"
       ],
-      "page": 54,
-      "last_page": 55
+      "pages": [
+        54,
+        55
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/PH213",
@@ -826,8 +890,10 @@
       "content": [
         "Chapter 1 Geometrical Optics 1.1 Reflection & Refraction 1.2 Images in Mirrors 1.3 Images in Lenses 1.4 Optical Instruments 1.6 Images in Lenses 1.7 Optical Instruments Chapter 2 Wave Optics 2.1 Light as an Electromagnetic Wave 2.2 Polarization & Scattering 2.3 Interference 2.4 Thin Films 2.5 Diffraction Gratings Chapter 3 Relativity 3.1 The Michelson-Morley Experiment 3.2 Simultaneity 3.3 The Relativity of Space and Time 3.4 The Lorentz Transformations 3.5 Momentum and Energy Chapter 4 Quantum Physics 4.1 The Structure of Matter 4.2 Light as Particles 4.3 Electrons as Waves 4.4 Wave-Particle Duality 4.5 The Heisenberg Uncertainty Principle 4.6 The Bohr Model of Hydrogen Chapter 5 Quantum Mechanics 5.1 The Wave Function 5.2 The Schrödinger Equation 5.3 Hydrogen Revisited 5.4 The Zeeman Effect 5.5 The Dirac Equation and Antimatter Chapter 6 Nuclear Physics 6.1 The Strong Interaction and the Structure of the Nucleus 6.2 Radioactive Decay and the Neutrino 6.3 Nuclear Fission and Fusion Chapter 7 Particle Physics 7.1 Quarks & Leptons 7.2 The Weak Nuclear Interaction 7.3 General Relativity"
       ],
-      "page": 56,
-      "last_page": 57
+      "pages": [
+        56,
+        57
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/MTH253",
@@ -848,8 +914,10 @@
       "content": [
         "Chapter 1: Differentiation 1.1 Spaces Geometry in R^3 Lines and planes 1.2 Functions of several variables Limits and continuity 1.3 Partial derivatives Tangent planes and linear approximations, higher partial derivatives 1.4 Vector functions The chain rule Directional derivatives and the gradient vectors 1.5 Extremum of functions of several variables Lagrange multipliers Chapter 2: Integration Integration over rectangles Integrals over general regions, Volume, Properties Fubini formula Change of variables Applications Midterm Exam Chapter: Vector Calculus Line integrals The Fundamental Theorem for Line Integrals Green’s Theorem Surface integrals Reviews"
       ],
-      "page": 58,
-      "last_page": 59
+      "pages": [
+        58,
+        59
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/MTH344",
@@ -909,8 +977,11 @@
         "Problems",
         "Case study"
       ],
-      "page": 60,
-      "last_page": 62
+      "pages": [
+        60,
+        61,
+        62
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/MTH346",
@@ -935,8 +1006,10 @@
         "Finding Generators and Discrete Logarithms in Zp*",
         "Quadratic reciprocity and computing modular square roots"
       ],
-      "page": 63,
-      "last_page": 64
+      "pages": [
+        63,
+        64
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/STAT452",
@@ -969,8 +1042,10 @@
         "Goodness-of-fit Tests",
         "Review"
       ],
-      "page": 65,
-      "last_page": 66
+      "pages": [
+        65,
+        66
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS411",
@@ -1001,8 +1076,10 @@
         "Hidden line / hidden surface removal",
         "Illumination models and shading"
       ],
-      "page": 67,
-      "last_page": 68
+      "pages": [
+        67,
+        68
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS412",
@@ -1033,8 +1110,10 @@
         "Object detection",
         "Object tracking"
       ],
-      "page": 69,
-      "last_page": 70
+      "pages": [
+        69,
+        70
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS415",
@@ -1066,8 +1145,10 @@
         "Conjugate gradient methods",
         "Affine scaling algorithm - Interior point methods - Semidefinite optimization I"
       ],
-      "page": 71,
-      "last_page": 72
+      "pages": [
+        71,
+        72
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS416",
@@ -1101,8 +1182,11 @@
         "Domain Specific Languages",
         "Business Applications of Model-Based Software & Data Integration (domain-specific)"
       ],
-      "page": 73,
-      "last_page": 75
+      "pages": [
+        73,
+        74,
+        75
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS417",
@@ -1138,8 +1222,10 @@
         "Link Prediction: Link Prediction via Proximity, and Supervised Random Walks",
         "Network Inference: Cascade Diffusion Model"
       ],
-      "page": 76,
-      "last_page": 77
+      "pages": [
+        76,
+        77
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS418",
@@ -1171,8 +1257,10 @@
         "Characteristics of the Vietnamese language processing system",
         "Coursework report"
       ],
-      "page": 78,
-      "last_page": 79
+      "pages": [
+        78,
+        79
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS419",
@@ -1204,8 +1292,10 @@
         "Evaluate the performance of information retrieval system",
         "Review"
       ],
-      "page": 80,
-      "last_page": 81
+      "pages": [
+        80,
+        81
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS421",
@@ -1240,8 +1330,10 @@
         "Requirement Management",
         "Final Presentation"
       ],
-      "page": 82,
-      "last_page": 83
+      "pages": [
+        82,
+        83
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS422",
@@ -1287,8 +1379,11 @@
         "Model-Driven Architecture",
         "Mashups and Widgets"
       ],
-      "page": 84,
-      "last_page": 86
+      "pages": [
+        84,
+        85,
+        86
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS423",
@@ -1345,8 +1440,10 @@
         "BDD",
         "Review"
       ],
-      "page": 87,
-      "last_page": 88
+      "pages": [
+        87,
+        88
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS424",
@@ -1392,8 +1489,10 @@
         "Web Technologies",
         "Web Development Framework"
       ],
-      "page": 90,
-      "last_page": 91
+      "pages": [
+        90,
+        91
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS426",
@@ -1435,8 +1534,10 @@
         "Session 19: Advanced Topics",
         "Session 20: Advanced Topics"
       ],
-      "page": 92,
-      "last_page": 93
+      "pages": [
+        92,
+        93
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS427",
@@ -1495,8 +1596,11 @@
         "Seminar",
         "Review"
       ],
-      "page": 94,
-      "last_page": 96
+      "pages": [
+        94,
+        95,
+        96
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS428",
@@ -1526,8 +1630,10 @@
         "Chapter 9: Other e-commerce issues",
         "Review"
       ],
-      "page": 97,
-      "last_page": 98
+      "pages": [
+        97,
+        98
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS429",
@@ -1556,8 +1662,10 @@
         "Recommendation System",
         "Review"
       ],
-      "page": 99,
-      "last_page": 100
+      "pages": [
+        99,
+        100
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS430",
@@ -1587,8 +1695,10 @@
         "Current hot topics in HCI & UX world",
         "Wrapping it up"
       ],
-      "page": 101,
-      "last_page": 102
+      "pages": [
+        101,
+        102
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS431",
@@ -1622,8 +1732,10 @@
         "Introduction to Cellular Networks: 1G/2G/3G",
         "Introduction to LTE (4G)/5G"
       ],
-      "page": 103,
-      "last_page": 104
+      "pages": [
+        103,
+        104
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS432",
@@ -1665,8 +1777,10 @@
         "Advanced topics",
         "Review"
       ],
-      "page": 105,
-      "last_page": 106
+      "pages": [
+        105,
+        106
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS433",
@@ -1697,8 +1811,10 @@
         "Layer 7 security issues including email and secure protocols including kerberos, PGP.",
         "Network monitoring including anomaly-based and signature-based detection systems."
       ],
-      "page": 107,
-      "last_page": 108
+      "pages": [
+        107,
+        108
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS434",
@@ -1740,8 +1856,10 @@
         "Session 19: Practice: Binary Exploitation and Pwn.",
         "Session 20: Practice: Introduction to Malware Analysis."
       ],
-      "page": 109,
-      "last_page": 110
+      "pages": [
+        109,
+        110
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS494",
@@ -1771,8 +1889,10 @@
         "Link Layer and Local Area Network (LAN): Link layer services, Error detection and correction, Multiple Access Protocols",
         "Link Layer and Local Area Network (LAN): Link layer addressing, Ethernet, Hubs and switches, Point-to-Point Protocol"
       ],
-      "page": 111,
-      "last_page": 112
+      "pages": [
+        111,
+        112
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS404",
@@ -1794,8 +1914,10 @@
         "After finishing the internship: Students are requested to write a report on what they have done during their internship. There will be no template for the report. But, as a recommendation, this report should have (not limit to) following parts: overview of the company; information about the internship, the project, intern role in the project; ways of communications; models/solutions/techniques applied in the project; (success and/or failure) lessons learned from this internship, etc. This report should be formatted as a technical report with cover, table of contents, references, etc.",
         "Also, students have to declare the following statement in the report: \"I declare that this internship report is my own work and does not involve in plagiarism or collusion. I accept heavy penalty for any cheating or plagiarism\"."
       ],
-      "page": 113,
-      "last_page": 114
+      "pages": [
+        113,
+        114
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS405",
@@ -1824,8 +1946,10 @@
         "Sustainable lifestyles",
         "Sustainable solutions: ecosystems, local loops, green energy, food"
       ],
-      "page": 115,
-      "last_page": 116
+      "pages": [
+        115,
+        116
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS407",
@@ -1859,8 +1983,10 @@
         "Mock-up design",
         "Presentation of Team/Individual Projects"
       ],
-      "page": 117,
-      "last_page": 118
+      "pages": [
+        117,
+        118
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS408",
@@ -1890,8 +2016,10 @@
         "Review",
         "Final Thoughts on the Market"
       ],
-      "page": 119,
-      "last_page": 120
+      "pages": [
+        119,
+        120
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS409",
@@ -1957,8 +2085,11 @@
         "Step 24: Develop a Product Plan",
         "Final Presentation"
       ],
-      "page": 121,
-      "last_page": 123
+      "pages": [
+        121,
+        122,
+        123
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS469",
@@ -1995,8 +2126,10 @@
         "Meeting",
         "Project presentation (first phase)"
       ],
-      "page": 124,
-      "last_page": 125
+      "pages": [
+        124,
+        125
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS470",
@@ -2021,8 +2154,10 @@
       "content": [
         "Initially, the Capstone class will have a structure like that of most other classes. Saturday morning meetings will consist of lecture and class interaction. The goal of these lectures will be to help reinforce students' knowledge of commonly accepted software engineering and project management practices. However, by the second term of the Capstone Sequence, the structure of the course will have morphed to something unlike any other course you have taken here. A major goal of the Capstone is to accustom you to a corporate team environment, where responsibility for getting things done belongs to the team and its members. Each team will arrange a regular half hour status meeting with the Instructor each week. This will provide some visibility into team performance, dynamics, and effort invested by individual team members. In addition, the status meetings will ensure that each team makes steady, consistent progress towards completing the project."
       ],
-      "page": 126,
-      "last_page": 127
+      "pages": [
+        126,
+        127
+      ]
     },
     {
       "id": "apcs-course-descriptions-2021/CS386",
@@ -2052,8 +2187,10 @@
         "Recovery methods",
         "Other database issues"
       ],
-      "page": 128,
-      "last_page": 129
+      "pages": [
+        128,
+        129
+      ]
     }
   ]
 }
