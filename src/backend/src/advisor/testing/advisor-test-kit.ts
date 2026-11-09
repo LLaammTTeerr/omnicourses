@@ -2,7 +2,7 @@ import type { LlmService } from '../../ai/llm.service.js';
 import type { AdvisorConsentService } from '../advisor-consent.service.js';
 import { type AdvisorRecord, AuditSource, CourseSource, PlanIssuesSource, RecordSource, UnavailableAuditSource, UnavailablePlanIssuesSource } from '../advisor-sources.js';
 import { type AdvisorEvent, AdvisorService } from '../advisor.service.js';
-import { regulationIndex } from '../retrieval/regulation-corpus.js';
+import { corpusIndex } from '../retrieval/regulation-corpus.js';
 
 // Synthetic fixtures for advisor tests and the red-team suite. No real student anywhere
 // (AGENTS.md hard rule 3): the record below was made up for these tests.
@@ -55,7 +55,7 @@ export function advisorFor({ llm, consented = true, audits, planIssues }: KitOpt
   const advisor = new AdvisorService(
     llm,
     consent,
-    regulationIndex(),
+    corpusIndex(),
     records,
     audits ?? new UnavailableAuditSource(),
     planIssues ?? new UnavailablePlanIssuesSource(),

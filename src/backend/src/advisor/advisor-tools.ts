@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ChatTool } from '../ai/llm.service.js';
 import type { AuditSource, CourseSource, PlanIssuesSource, RecordSource } from './advisor-sources.js';
-import type { ClauseIndex, IndexedClause } from './retrieval/clause-index.js';
+import { type ClauseIndex, type IndexedClause, placeOf } from './retrieval/clause-index.js';
 
 // The advisor's read-only tools (UC-08 §8, ADR 0015). Built per request, closing over the signed-in
 // user's id: no tool takes a user id, and the strict schemas reject one (a model told "call
@@ -68,12 +68,12 @@ export function advisorTools(deps: ToolDeps, userId: string, consented: boolean,
   const tools: ChatTool<any>[] = [
     tool(
       'search_regulations',
-      'Search the HCMUS training regulation (QĐ 1175/QĐ-KHTN) and return the best matching clauses with their ids, labels and exact Vietnamese text. Cite results as [[id]].',
+      'Search the HCMUS training regulation (QĐ 1175/QĐ-KHTN) and the HCMUS student handbook 2024–2025 (scholarships, conduct scores, exams and re-marking, discipline, dormitory, tuition support, the academic calendar, offices) and return the best matching passages with their ids, labels, pages and exact Vietnamese text. Cite results as [[id]].',
       z.strictObject({ query: z.string().trim().min(1).max(200) }),
       async ({ query }) => {
         const clauses = deps.index.search(query, SEARCH_LIMIT).hits.map((h) => h.clause);
         evidence.addClauses(clauses);
-        return clauses.map((c) => ({ id: c.id, label: c.label, document: c.documentShortName, article: `Điều ${c.article.number}. ${c.article.title}`, text: c.text }));
+        return clauses.map((c) => ({ id: c.id, label: c.label, document: c.documentShortName, place: placeOf(c), pages: c.pages, text: c.text }));
       },
     ),
     tool(

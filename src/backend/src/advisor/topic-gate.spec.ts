@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { OFF_TOPIC_QUESTIONS, RECORD_QUESTIONS, REGULATION_QUESTIONS } from './retrieval/labelled-questions.js';
-import { regulationIndex } from './retrieval/regulation-corpus.js';
+import { HANDBOOK_QUESTIONS, OFF_TOPIC_QUESTIONS, RECORD_QUESTIONS, REGULATION_QUESTIONS } from './retrieval/labelled-questions.js';
+import { corpusIndex } from './retrieval/regulation-corpus.js';
 import { gate, hasRecordIntent } from './topic-gate.js';
 
 describe('topic gate', () => {
-  const index = regulationIndex();
+  const index = corpusIndex();
   const passes = (q: string) => gate(index, [q], true).decision !== 'off_topic';
 
-  // ADR 0015 reports these numbers. Positive = on topic (a regulation or own-record question).
-  it('lets every labelled on-topic question through and stops every labelled off-topic one', () => {
-    const onTopic = [...REGULATION_QUESTIONS, ...RECORD_QUESTIONS].map((q) => q.question);
+  // ADR 0015 reports these numbers. Positive = on topic (a regulation, handbook or own-record question).
+  // With the handbook in the index, one off-topic request shares enough of its words ("tiếng Anh",
+  // "Việt Nam") to pass at the chosen threshold: a known false positive, documented in ADR 0015. It
+  // reaches the model, whose prompt refuses it, and the guard still checks the reply.
+  it('lets every labelled on-topic question through and stops every labelled off-topic one but one', () => {
+    const onTopic = [...REGULATION_QUESTIONS, ...HANDBOOK_QUESTIONS, ...RECORD_QUESTIONS].map((q) => q.question);
     const offTopic = OFF_TOPIC_QUESTIONS.map((q) => q.question);
     const truePositives = onTopic.filter(passes).length;
     const falsePositives = offTopic.filter(passes).length;
@@ -20,7 +23,7 @@ describe('topic gate', () => {
         `(${onTopic.length} on-topic, ${offTopic.length} off-topic questions)`,
     );
     expect(onTopic.filter((q) => !passes(q))).toEqual([]);
-    expect(offTopic.filter(passes)).toEqual([]);
+    expect(offTopic.filter(passes)).toEqual(['Dịch câu này sang tiếng Anh: tôi yêu Việt Nam']);
   });
 
   it('asks for consent, without the model, when an own-record question has no consent', () => {

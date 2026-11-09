@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { buildInstructions, FIXED_REPLIES } from './advisor-prompt.js';
 import { TurnEvidence } from './advisor-tools.js';
 import { guardAnswer, maskPersonalData } from './output-guard.js';
-import { regulationIndex } from './retrieval/regulation-corpus.js';
+import { corpusIndex } from './retrieval/regulation-corpus.js';
 
-const index = regulationIndex();
+const index = corpusIndex();
 const canary = 'OC-feedface00000000';
-const clause = (id: string) => index.get(`qd-1175-2021/${id}`)!;
+const clause = (id: string) => index.get(id.startsWith('so-tay-') ? id : `qd-1175-2021/${id}`)!;
 
 function check(answer: string, options: { context?: string[]; tool?: unknown; language?: 'vi' | 'en' } = {}) {
   const evidence = new TurnEvidence();
@@ -133,6 +133,44 @@ describe('output guard', () => {
 
   it('masks a student ID, an email and a phone number in an answer it shows', () => {
     expect(maskPersonalData('Student 99990001, a@example.com, 0900000000, grade 8.5, CSC10001')).toBe('Student […], […], […], grade 8.5, CSC10001');
+  });
+
+  describe('with the student handbook', () => {
+    const HB = 'so-tay-2024-2025';
+    const remark = `${HB}/khao-thi/d12/k2`;
+    const examOffice = `${HB}/phong-ban/p3`;
+    const scholarship = `${HB}/hoc-bong/d2/k1`;
+
+    it('accepts a handbook citation and the numbers it states', () => {
+      const verdict = check(`A merit scholarship needs an average of 7.0 or more in the term [[${scholarship}]].`, { context: [scholarship] });
+      expect(verdict).toMatchObject({ status: 'passed', reasons: [] });
+      expect(verdict.citations.map((c) => c.id)).toEqual([scholarship]);
+    });
+
+    it('lets a web address through only when a passage the answer cites prints it', () => {
+      const context = [remark, examOffice];
+      expect(check(`Apply at the examination office [[${remark}]]. Its page is www.ktdbcl.hcmus.edu.vn [[${examOffice}]]`, { context }).status).toBe('passed');
+      // The same address, but the passage that prints it is not cited.
+      expect(check(`Apply at the examination office, page www.ktdbcl.hcmus.edu.vn [[${remark}]]`, { context }).reasons).toContain('link');
+      expect(check(`Apply online at https://remark-hcmus.example.com/form [[${remark}]]`, { context }).reasons).toContain('link');
+      // A lookalike that starts with the printed address.
+      expect(check(`Use the form at www.ktdbcl.hcmus.edu.vn.remark-form.example/apply [[${examOffice}]]`, { context }).reasons).toContain('link');
+    });
+
+    it('does not read a page reference as a rule number', () => {
+      expect(check(`Theo sổ tay sinh viên 2024-2025, trang 87, bạn nộp đơn tại Phòng Khảo thí [[${remark}]].`, { context: [remark], language: 'vi' }).status).toBe('passed');
+    });
+
+    it('accepts a referral to the offices the handbook names, with no citation', () => {
+      expect(check('Mình không chắc điều này. Bạn hãy hỏi Phòng Công tác Sinh viên nhé.', { language: 'vi' }).status).toBe('passed');
+      expect(check("I'm not sure. Please ask the examination office.").status).toBe('passed');
+    });
+
+    it('reads an article of a handbook excerpt as an article in the context, and a passage with no article as none', () => {
+      // Điều 2 of the scholarship rules is in the context; the office passage adds no article number.
+      expect(check(`Theo Điều 2, điểm trung bình xét học bổng phải từ 7.0 trở lên [[${scholarship}]].`, { context: [scholarship, examOffice], language: 'vi' }).status).toBe('passed');
+      expect(check(`Theo Điều 12, bạn nộp đơn tại phòng khảo thí [[${examOffice}]].`, { context: [examOffice], language: 'vi' }).reasons).toContain('uncited_article');
+    });
   });
 
   it('never finds the reference block delimiters inside a clause text', () => {

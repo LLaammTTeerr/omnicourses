@@ -9,10 +9,11 @@ import { cleanInput, fold, words } from './retrieval/text.js';
 // Policy, in order (the first match decides the fallback):
 // 1. The internal marker, an 8-word run of the system prompt, or a tool name → noDisclosure.
 // 2. A claim to have acted (registered, withdrawn, signed in, paid…), a request for a password, an
-//    OTP or identity data (name, student ID, date of birth…), a promise to store it, or a link → cannotAct.
+//    OTP or identity data (name, student ID, date of birth…), a promise to store it, or a link that
+//    is not, exactly, in a passage the answer cites (the handbook's office pages) → cannotAct.
 // 3. Code (a fenced block or code-shaped lines) → offTopic.
-// 4. A citation [[id]] that is not a real clause, or a real clause the model was not given this
-//    turn; an "Điều N" / "Article N" outside the clauses it was given; another legal document; a
+// 4. A citation [[id]] that is not a real clause or passage, or one the model was not given this
+//    turn; an "Điều N" / "Article N" outside the clauses it was given (in any of their documents); another legal document; a
 //    quotation followed by a citation whose words are not in the cited clause → ungrounded.
 // 5. A number (other than labels, course codes and list markers) that is not in a clause the answer
 //    cites or in a record, course or engine result of this turn → ungrounded. Numbers from the
@@ -67,10 +68,11 @@ export const LONG_UNGROUNDED_ANSWER = 400;
 // student elsewhere (UC-08 A6, A7, A10). Anything else uncited ("graduation looks settled for you")
 // is replaced: a short claim needs a source as much as a long one.
 const DEFLECTION =
-  /\b(phong dao tao|academic affairs office|academic office|found no|no clause|not in my sources|could not find|cannot find|can'?t find|cannot confirm|can'?t confirm|khong tim thay|khong co dieu khoan|khong the xac nhan|chua the xac nhan|ngoai pham vi|outside (that|my|this) scope|trang huong dan|guides page|doi mat khau|change your (portal )?password)\b/;
+  /\b(phong dao tao|phong cong tac sinh vien|phong ctsv|phong khao thi|academic affairs office|academic office|student affairs office|examination office|exams office|found no|no clause|not in my sources|could not find|cannot find|can'?t find|cannot confirm|can'?t confirm|khong tim thay|khong co dieu khoan|khong the xac nhan|chua the xac nhan|ngoai pham vi|outside (that|my|this) scope|trang huong dan|guides page|doi mat khau|change your (portal )?password)\b/;
 const SHINGLE = 8;
 const CITATION = /\[\[([^\]]{1,120})\]\]/g;
-const CLAUSE_ID = /^[a-z0-9-]+\/d\d+(?:-\d+)?(?:\/k\d+(?:-\d+)?(?:\/[a-z]{1,2}(?:-\d+)?)?)?$/;
+/** A clause or passage id: `qd-1175-2021/d7/k2/b`, `so-tay-2024-2025/hoc-bong/d2/k2`. The index lookup is the real check. */
+const CLAUSE_ID = /^[a-z0-9-]+(?:\/[a-z0-9-]+){1,5}$/;
 
 const ACTION_EN = new RegExp(
   [
@@ -96,6 +98,8 @@ const SECRET_STATED = /\b(your|ban)\s+(\S+\s+){0,2}(password|mat khau|otp)\s+(is
 const STORE_CLAIM = /\b(i will|i'll|i can|i have|i've|let me|we will|minh se|minh da|toi se|toi da|tro ly se)\s+(save|store|remember|keep|record|luu|ghi nho|ghi lai)\b/;
 const NEGATED = /(khong|chua|dung|never|don'?t|don’t|do not|does not|doesn'?t|won'?t|will not|no need|not need|needn'?t|without|cannot|can'?t|khong bao gio|khong can|not)\s+(\S+\s+){0,3}$/;
 const LINK = /\bhttps?:\/\/|\bwww\.[a-z0-9-]+\.|\b[a-z0-9-]+\.(com|net|org|io|vn|me|ly|app|xyz)\/\S/;
+/** A web address as written in an answer or a passage, trailing punctuation aside. */
+const URL_IN_TEXT = /(?:https?:\/\/|www\.)[^\s<>"'()\[\]]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|vn|me|ly|app|xyz)\/[^\s<>"'()\[\]]*/gi;
 const CODE_LINE = /^\s*(def |function |class |import |from \S+ import|#include|public (static )?\w|console\.|print\(|SELECT |INSERT |DELETE FROM|UPDATE \S+ SET|<\/?(script|html|div)|\$ |npm |pip )/im;
 const DOCUMENT = /\b(thong tu|nghi dinh|quyet dinh|luat|decree|circular|decision|law)\s*(so\s*)?(\d+)/g;
 const ARTICLE = /\b(dieu|article|art)\s*\.?\s*(\d+)/g;
@@ -109,6 +113,8 @@ function withoutReferences(folded: string): string {
     .replace(/\b(cau|question|buoc|step|part)\s*\d+\b/g, ' ')
     .replace(/^\s*\d{1,2}[.)]\s+(?=[a-z])/gm, ' ')
     .replace(/\b(qd|quyet dinh)\s*(so\s*)?1175(\s*\/\s*(qd-khtn|qd-dhkhtn|2021))?\b/g, ' ')
+    .replace(/\b(so tay|handbook)(\s+(sinh vien|sv|student))?(\s+(nam hoc|nh))?\s*\d{4}\s*[-–]\s*\d{4}\b/g, ' ')
+    .replace(/\b(trang|tr|page|pages|p)\s*\.?\s*\d{1,3}(\s*[-–]\s*\d{1,3})?\b/g, ' ')
     .replace(/\b[a-z]{2,4}\s?\d{3,5}\b/g, ' ');
 }
 
@@ -230,7 +236,6 @@ export function guardAnswer(input: GuardInput): GuardVerdict {
   if (ACTION_EN.test(folded) || ACTION_VI.test(folded)) reasons.push('action_claim');
   if (asks(CREDENTIAL_REQUEST, folded) || SECRET_STATED.test(folded)) reasons.push('credential');
   if (asks(IDENTITY_REQUEST, folded) || STORE_CLAIM.test(folded)) reasons.push('personal_data_request');
-  if (LINK.test(folded)) reasons.push('link');
   // 3. Code
   if (text.includes('```') || CODE_LINE.test(withoutFixedReplies(text))) reasons.push('code');
 
@@ -243,7 +248,11 @@ export function guardAnswer(input: GuardInput): GuardVerdict {
     else if (!evidence.clauses.has(id)) reasons.push('citation_not_in_context');
     else if (!cited.includes(clause)) cited.push(clause);
   }
-  const contextArticles = new Set([...evidence.clauses.values()].map((c) => c.article.number));
+  // A link is shown only when it is, exactly, in a passage the answer cites: an office's web page.
+  const citedLinks = (url: string) => cited.some((c) => c.text.includes(url));
+  const unlisted = text.replace(URL_IN_TEXT, (url) => (citedLinks(url.replace(/[.,;:!?]+$/u, '')) ? ' ' : url));
+  if (LINK.test(fold(withoutFixedReplies(unlisted)))) reasons.push('link');
+  const contextArticles = new Set([...evidence.clauses.values()].flatMap((c) => (c.article ? [c.article.number] : [])));
   for (const [, , n] of withoutCitations(folded).matchAll(ARTICLE)) if (!contextArticles.has(Number(n))) reasons.push('uncited_article');
   const contextNumbers = new Set([...evidence.clauses.values()].flatMap((c) => [...numbersIn(c.text)]));
   for (const [, , , n] of folded.matchAll(DOCUMENT)) if (n !== '1175' && !contextNumbers.has(Number(n))) reasons.push('other_document');

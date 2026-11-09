@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { loadHandbooks } from '../handbook/handbook-files.js';
 import type { RegulationDocument } from '../regulations/regulation.js';
 import { REGULATIONS_DIR, regulationIds } from '../regulations/regulation-files.js';
-import { ClauseIndex } from './clause-index.js';
+import { ClauseIndex, handbookClauses, type IndexedClause, regulationClauses } from './clause-index.js';
 
 /**
  * Every committed regulation document, read from the source tree. `nest build` does not copy JSON to
@@ -13,10 +14,15 @@ export function loadRegulations(dir = REGULATIONS_DIR): RegulationDocument[] {
   return regulationIds(join(dir, 'sources')).map((id) => JSON.parse(readFileSync(join(dir, `${id}.json`), 'utf8')) as RegulationDocument);
 }
 
+/** Everything the advisor cites: the regulation clauses, then the student handbook's passages. */
+export function loadCorpus(): IndexedClause[] {
+  return [...loadRegulations().flatMap(regulationClauses), ...loadHandbooks().flatMap(handbookClauses)];
+}
+
 let shared: ClauseIndex | undefined;
 
-/** The index over every committed document, built on first use and kept for the process. */
-export function regulationIndex(): ClauseIndex {
-  shared ??= new ClauseIndex(loadRegulations());
+/** The index over every committed source, built on first use and kept for the process. */
+export function corpusIndex(): ClauseIndex {
+  shared ??= new ClauseIndex(loadCorpus());
   return shared;
 }

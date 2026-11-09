@@ -8,10 +8,15 @@ import { words } from './retrieval/text.js';
 
 /**
  * Relevance is coverage × the best BM25 score: coverage says how much of the question the clauses
- * explain, the score how strongly. On the labelled set (labelled-questions.ts) every regulation
- * question scores at least 7.2 and every off-topic question at most 6.1; the threshold sits between.
+ * explain, the score how strongly. The scale grows with the corpus (IDF), so the threshold is
+ * re-measured whenever a source is added. With QĐ 1175 and the 2024–2025 handbook, on the labelled
+ * set (labelled-questions.ts) every regulation and handbook question scores at least 11.5, and every
+ * off-topic question at most 9.7 but one: "Dịch câu này sang tiếng Anh…" (11.2), whose words (dịch
+ * vụ, tiếng Anh, Việt Nam) fill the handbook's office and faculty pages. The threshold sits low in
+ * the gap, nearer the off-topic side: a refused real question costs the student more than one
+ * off-topic call does, which the prompt and the guard answer with the fixed off-topic reply.
  */
-export const RELEVANCE_THRESHOLD = 6.6;
+export const RELEVANCE_THRESHOLD = 10.4;
 
 /** A follow-up ("and in summer?") is gated together with the question before it, if it is this short. */
 export const FOLLOW_UP_MAX_LENGTH = 120;

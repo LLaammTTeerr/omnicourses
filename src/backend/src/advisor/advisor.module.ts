@@ -10,7 +10,7 @@ import { AuditSource, CourseSource, PlanIssuesSource, RecordSource, UnavailableA
 import { AdvisorController } from './advisor.controller.js';
 import { AdvisorService, CLAUSE_INDEX } from './advisor.service.js';
 import { CatalogCourseSource, StudentRecordSource } from './main-sources.js';
-import { regulationIndex } from './retrieval/regulation-corpus.js';
+import { corpusIndex } from './retrieval/regulation-corpus.js';
 
 // F8 advisor chat (UC-08, ADR 0015). The rule engine (PR #72) and plans (PR #71) connect by
 // replacing UnavailableAuditSource and UnavailablePlanIssuesSource below.
@@ -20,7 +20,7 @@ import { regulationIndex } from './retrieval/regulation-corpus.js';
   providers: [
     AdvisorService,
     AdvisorConsentService,
-    { provide: CLAUSE_INDEX, useFactory: regulationIndex },
+    { provide: CLAUSE_INDEX, useFactory: corpusIndex },
     { provide: RecordSource, useClass: StudentRecordSource },
     { provide: CourseSource, useClass: CatalogCourseSource },
     { provide: AuditSource, useClass: UnavailableAuditSource },

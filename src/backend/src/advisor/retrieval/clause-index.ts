@@ -1,18 +1,62 @@
-import type { Clause, RegulationDocument } from '../regulations/regulation.js';
+import type { HandbookDocument } from '../handbook/handbook.js';
+import type { RegulationDocument } from '../regulations/regulation.js';
 import { expandSynonyms } from './synonyms.js';
 import { type Term, termsOf, tokens } from './text.js';
 
-// In-memory BM25 over the regulation clauses (ADR 0015). A few hundred clauses fit in memory and
-// index in milliseconds at boot: no vector store, no extra service, and the same input always gives
-// the same ranking, so retrieval is unit-tested like any other code.
+// In-memory BM25 over the advisor's sources (ADR 0015): the regulation clauses and the student
+// handbook's passages. A few hundred of each fit in memory and index in milliseconds at boot: no
+// vector store, no extra service, and the same input always gives the same ranking, so retrieval is
+// unit-tested like any other code.
 
 const K1 = 1.2;
 const B = 0.75;
 
-/** A clause with the document it belongs to, as retrieval returns it. */
-export interface IndexedClause extends Clause {
+/** A citable unit as retrieval returns it: a regulation's Điều, khoản or điểm, or a handbook passage. */
+export interface IndexedClause {
+  /** `qd-1175-2021/d7/k2/b`, `so-tay-2024-2025/hoc-bong/d2/k2`, `so-tay-2024-2025/ke-hoach-nam-hoc/p4`. */
+  id: string;
+  /** The citation as a student reads it. */
+  label: string;
   documentId: string;
   documentShortName: string;
+  /** The Điều it belongs to, in its own document's numbering; null for a handbook prose passage. */
+  article: { number: number; title: string } | null;
+  /** What it sits under besides its label: the article title, or a handbook heading. Indexed twice. */
+  title: string;
+  /** Printed page numbers. */
+  pages: number[];
+  text: string;
+}
+
+/** Where a clause sits, for the model: "Điều 7. Đăng ký học tập", or a handbook heading. */
+export function placeOf(c: IndexedClause): string {
+  return c.article ? `Điều ${c.article.number}. ${c.article.title}` : c.title;
+}
+
+export function regulationClauses(document: RegulationDocument): IndexedClause[] {
+  return document.clauses.map((c) => ({
+    id: c.id,
+    label: c.label,
+    documentId: document.id,
+    documentShortName: document.shortName,
+    article: c.article,
+    title: c.article.title,
+    pages: c.pages,
+    text: c.text,
+  }));
+}
+
+export function handbookClauses(document: HandbookDocument): IndexedClause[] {
+  return document.passages.map((p) => ({
+    id: p.id,
+    label: p.label,
+    documentId: document.id,
+    documentShortName: document.shortName,
+    article: p.article,
+    title: p.article?.title ?? p.heading ?? '',
+    pages: p.pages,
+    text: p.text,
+  }));
 }
 
 export interface ClauseHit {
@@ -48,8 +92,7 @@ export class ClauseIndex {
   private readonly averageLength: number;
   private readonly maxIdf: number;
 
-  constructor(documents: RegulationDocument[]) {
-    const clauses: IndexedClause[] = documents.flatMap((d) => d.clauses.map((c) => ({ ...c, documentId: d.id, documentShortName: d.shortName })));
+  constructor(clauses: IndexedClause[]) {
     this.byId = new Map(clauses.map((c) => [c.id, c]));
     this.docs = clauses.map((clause) => {
       const terms = termsOf(tokens(indexText(clause, this.byId)), 'index').map((t) => t.term);
@@ -73,7 +116,7 @@ export class ClauseIndex {
 
   /** The article numbers of a document, to tell a real "Điều 7" from an invented "Điều 99". */
   hasArticle(documentId: string, article: number): boolean {
-    return this.docs.some((d) => d.clause.documentId === documentId && d.clause.article.number === article);
+    return this.docs.some((d) => d.clause.documentId === documentId && d.clause.article?.number === article);
   }
 
   search(question: string, limit = 5): SearchResult {
@@ -115,13 +158,13 @@ export class ClauseIndex {
 }
 
 /**
- * What a clause is indexed by: its label, its article's title, its text, and for a khoản or điểm its
- * parent's lead-in ("3. Sinh viên được xếp trình độ năm học…" above "a) Trình độ năm thứ nhất: N < 38").
+ * What a clause is indexed by: its label, its title (article title or handbook heading) twice, its
+ * text, and for a khoản or điểm its parent's lead-in ("3. Sinh viên được xếp trình độ năm học…" above
+ * "a) Trình độ năm thứ nhất: N < 38"): the clause one id segment up, where there is one.
  */
-function indexText(clause: Clause, byId: Map<string, Clause>): string {
-  const parts = [clause.label, clause.article.title, clause.article.title, clause.text];
-  const parentId = clause.id.split('/').slice(0, -1).join('/');
-  const parent = clause.level === 'article' ? undefined : byId.get(parentId);
+function indexText(clause: IndexedClause, byId: Map<string, IndexedClause>): string {
+  const parts = [clause.label, clause.title, clause.title, clause.text];
+  const parent = byId.get(clause.id.split('/').slice(0, -1).join('/'));
   if (parent) parts.push(parent.text);
   return parts.join('\n');
 }
