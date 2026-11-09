@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Patch, PipeTransform, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Inject, NotFoundException, Param, Patch, PipeTransform, Post, Put } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
 import { User } from '../users/user.entity.js';
+import { PlanIssuesDto } from './plan-issues.dto.js';
+import { PLAN_ISSUES_PROVIDER, type PlanIssuesProvider } from './plan-issues.js';
 import { CreatePlanDto, DuplicatePlanDto, PlanBoardDto, PlanDto, PlanListDto, RenamePlanDto } from './plans.dto.js';
 import { PlansService } from './plans.service.js';
 
@@ -23,7 +25,10 @@ const PlanId = () => Param('id', new PlanIdPipe());
 @Authenticated()
 @Controller('plans')
 export class PlansController {
-  constructor(private readonly plans: PlansService) {}
+  constructor(
+    private readonly plans: PlansService,
+    @Inject(PLAN_ISSUES_PROVIDER) private readonly issues: PlanIssuesProvider,
+  ) {}
 
   @Get()
   @ApiOkResponse({ type: PlanListDto, description: "The student's plans, without their placements." })
@@ -44,6 +49,19 @@ export class PlansController {
   @ApiNotFoundResponse({ description: NOT_FOUND })
   get(@CurrentUser() user: User, @PlanId() id: string): Promise<PlanDto> {
     return this.plans.get(user.id, id);
+  }
+
+  @Get(':id/issues')
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({
+    type: PlanIssuesDto,
+    description:
+      "The rule engine's check of the plan against its curriculum and the student's transcript: prerequisites, offering terms, credit caps, repeats and coverage, each with its citation. Unrecorded data is reported as unknown, never as a pass or a fail. Nothing here blocks saving.",
+  })
+  @ApiNotFoundResponse({ description: NOT_FOUND })
+  async issuesOf(@CurrentUser() user: User, @PlanId() id: string): Promise<PlanIssuesDto> {
+    const plan = await this.plans.get(user.id, id);
+    return this.issues.issuesFor(user.id, plan);
   }
 
   @Patch(':id')

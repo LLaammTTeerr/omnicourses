@@ -882,6 +882,48 @@
         ]
       }
     },
+    "/api/plans/{id}/issues": {
+      "get": {
+        "operationId": "PlansController_issuesOf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rule engine's check of the plan against its curriculum and the student's transcript: prerequisites, offering terms, credit caps, repeats and coverage, each with its citation. Unrecorded data is reported as unknown, never as a pass or a fail. Nothing here blocks saving.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanIssuesDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      }
+    },
     "/api/plans/{id}/duplicate": {
       "post": {
         "operationId": "PlansController_duplicate",
@@ -4762,6 +4804,359 @@
           "createdAt",
           "updatedAt",
           "terms"
+        ]
+      },
+      "PlanTermLoadDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/TermDto"
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "main",
+              "summer",
+              null
+            ],
+            "description": "null: the program's training type is not recorded."
+          },
+          "credits": {
+            "type": "number",
+            "example": 16,
+            "description": "Courses at their catalog credits plus slots at theirs (Điều 7.1.b)."
+          },
+          "caps": {
+            "description": "Điều 7.2 for the training type (ADR 0012); null when it is not recorded.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreditCapsDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "term",
+          "kind",
+          "credits",
+          "caps"
+        ]
+      },
+      "PlanIssueDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "prerequisite_not_met",
+              "prerequisites_not_recorded",
+              "not_offered",
+              "offering_terms_not_recorded",
+              "load_below_minimum",
+              "load_above_maximum",
+              "caps_not_checked",
+              "placed_twice",
+              "already_passed",
+              "not_in_curriculum",
+              "credits_not_recorded",
+              "requirement_not_covered"
+            ],
+            "description": "prerequisite_not_met, not_offered, placed_twice, requirement_not_covered: violations. load_below_minimum, load_above_maximum (a petition allows them, Điều 7.2.b), already_passed (a grade improvement, Điều 14.2), not_in_curriculum: flags. prerequisites_not_recorded, offering_terms_not_recorded, caps_not_checked, credits_not_recorded: the data is not recorded, so the rule is neither passed nor failed."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "violation",
+              "flag",
+              "unknown"
+            ],
+            "description": "violation: breaks a rule. flag: allowed, worth a look. unknown: not recorded, not checked. None blocks saving the plan."
+          },
+          "term": {
+            "description": "The term it is about; null for a coverage issue.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "The placement's index in its term's placements; null for a term or coverage issue."
+          },
+          "courseCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "CS161"
+          },
+          "requirementGroupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "requirement_not_covered of a requirement group."
+          },
+          "combinedMinimumId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "requirement_not_covered of a combined minimum."
+          },
+          "missingCourseCodes": {
+            "description": "prerequisite_not_met: the missing prerequisites. requirement_not_covered of a compulsory group: its courses neither passed nor placed.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "offeredTermNumbers": {
+            "description": "not_offered: the term numbers the course is taught in.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "credits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Load and coverage issues: the credits counted."
+          },
+          "limit": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Load and coverage issues: the limit compared with."
+          },
+          "citation": {
+            "type": "string",
+            "example": "QĐ 1175/QĐ-KHTN Điều 3.1.c",
+            "description": "Where the rule comes from."
+          },
+          "message": {
+            "type": "string",
+            "description": "An English sentence, for a screen that does not word the code itself."
+          }
+        },
+        "required": [
+          "code",
+          "kind",
+          "term",
+          "position",
+          "courseCode",
+          "requirementGroupId",
+          "combinedMinimumId",
+          "missingCourseCodes",
+          "offeredTermNumbers",
+          "credits",
+          "limit",
+          "citation",
+          "message"
+        ]
+      },
+      "PlanGroupCoverageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Kiến thức Math"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "compulsory",
+              "elective"
+            ]
+          },
+          "requiredCredits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "null: the group has no minimum of its own."
+          },
+          "credits": {
+            "type": "number",
+            "description": "Credits passed, in progress or placed, toward the cohort total, overflow in included."
+          },
+          "remainingCredits": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "met": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "requiredCredits",
+          "credits",
+          "remainingCredits",
+          "met"
+        ]
+      },
+      "PlanCombinedMinimumCoverageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Kiến thức tự chọn"
+          },
+          "creditsMin": {
+            "type": "number",
+            "example": 43
+          },
+          "credits": {
+            "type": "number"
+          },
+          "remainingCredits": {
+            "type": "number"
+          },
+          "met": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "creditsMin",
+          "credits",
+          "remainingCredits",
+          "met"
+        ]
+      },
+      "PlanCoverageDto": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "description": "By name.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanGroupCoverageDto"
+            }
+          },
+          "combinedMinimums": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanCombinedMinimumCoverageDto"
+            }
+          },
+          "totalRequired": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "The cohort total; null when not recorded."
+          },
+          "totalCredits": {
+            "type": "number",
+            "description": "Credits toward the cohort total with the plan completed."
+          },
+          "totalRemaining": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "graduation": {
+            "type": "string",
+            "enum": [
+              "done",
+              "not_yet"
+            ],
+            "description": "done: every requirement the data can check would be met; the school still checks the rest (Điều 17.3)."
+          }
+        },
+        "required": [
+          "groups",
+          "combinedMinimums",
+          "totalRequired",
+          "totalCredits",
+          "totalRemaining",
+          "graduation"
+        ]
+      },
+      "PlanIssuesDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "trainingType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "advanced",
+              "joint",
+              "high_quality",
+              "standard",
+              null
+            ],
+            "description": "The program's training type, which sets the caps (ADR 0012); null: not recorded."
+          },
+          "terms": {
+            "description": "The plan's terms, oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermLoadDto"
+            }
+          },
+          "issues": {
+            "description": "By term, oldest first: load issues, then placements in order; coverage issues last. [] when nothing is found.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanIssueDto"
+            }
+          },
+          "coverage": {
+            "description": "The curriculum as it would stand with every placement and every course in progress passed.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanCoverageDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "planId",
+          "trainingType",
+          "terms",
+          "issues",
+          "coverage"
         ]
       },
       "RenamePlanDto": {

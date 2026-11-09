@@ -31,7 +31,7 @@ AGENTS.md hard rule 1 leaves every academic rule to the rule engine, and [ADR 00
 
 ## Consequences
 
-- The rule engine's PR registers a `PlanIssuesProvider` and adds `GET /api/plans/{id}/issues`.
+- The rule engine registers a `PlanIssuesProvider` and serves `GET /api/plans/{id}/issues` (ADR 0013, "Plan issues").
 - The sharing module (F9, ADR 0010) needs a read-only method on `PlansService` that reads a plan by id for a share token. Its share table will have its own `user_id` and `plan_id … ON DELETE CASCADE`, so deleting a plan stops its links (UC-09 A5).
 - F12 must refuse to delete a curriculum or requirement group that a plan uses; the database refuses it already. A course-code correction must update `plan_placements.course_code` in the same migration as the transcript (ADR 0011).
 - The plan generator saves its result with `POST /api/plans` and `terms` in the body, in one request.

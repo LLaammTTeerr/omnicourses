@@ -65,6 +65,20 @@ Not stored, with the reason:
 | **Prerequisites and offering terms are checked by pure functions that take the data as input**: a course's prerequisite codes, or null, and its offering term numbers, or null. Null gives `not_recorded`, distinct from `none`. No prerequisite data exists in the database or the APCS PDFs (`teaching plan.prerequisites` is empty), so nothing is invented. | Điều 3.1.c; ADR 0011 (prerequisite storage is F12's) |
 | **Credit caps** follow ADR 0012: `termKind(trainingType, number)` makes term 3 a summer term only in a đại trà program; `checkTermLoad` reports a load outside the caps with Điều 7.2 and the petition route, never blocking. The audit reports each transcript term's load the same way. For đại trà, courses outside the cohort total (GDTC, GDQP-AN) are left out of the minimum; general foreign language is not identified yet. | Điều 6.4, 7.1.b, 7.2 |
 
+### Plan issues (amended 9 November 2026)
+
+`RulesService` implements the plans module's `PlanIssuesProvider` (ADR 0014); `checkPlan` in `rules/plan-issues.ts` composes the rules above. `GET /api/plans/{id}/issues` serves it to the plan's owner only.
+
+| Decision | Alternatives rejected | Evidence |
+| --- | --- | --- |
+| **Each issue has a kind: `violation`, `flag` or `unknown`.** Violations: a prerequisite not met, a course outside its offering terms, a course placed twice, a requirement left uncovered (GLOSSARY "Violation"). Flags: a load outside the caps, a course already passed, a course outside the curriculum. Unknown: prerequisites, offering terms, the training type or a course's credits not recorded. None blocks saving. | Two levels; leaving unrecorded data out of the report | Điều 7.2.b allows a load outside the caps by petition (ADR 0012), and Điều 14.2 allows retaking a passed course to improve the grade, so neither breaks a rule. ADR 0011: `null` is "not recorded", which must read as neither a pass nor a fail. |
+| **The plan is checked against its own curriculum**, not the onboarding one. | Onboarding's program and cohort | ADR 0014: a plan keeps the curriculum it was made against. |
+| **A prerequisite counts as passed before term T** when the transcript's last completed attempt before T passes, when an attempt before T is still in progress, or when the plan places it in a term before T. The same term does not count. *Judgment call*: a course in progress is assumed to pass, as every placed course is. | Only passed transcript attempts | Điều 3.1.c ("phải học và thi đạt mới được đăng ký"); without it, every plan made during a term reports the next term's courses as blocked. |
+| **Offering terms are checked by term number** (ADR 0011), cited as Điều 6.5 (the term plan says which courses open) and 7.1.a (students register for those). | No citation | The regulation names no offering rule per course; these clauses are where a course's opening is decided. |
+| **A course already passed before the placement's term is a flag**, cited as Điều 14.2. A placement in the same term as a passing attempt is not: the plan is showing that term as it was. A failed course placed again is a retake and gets nothing. | A violation | Điều 14.2.a. |
+| **Coverage is the degree audit run on a projected transcript**: every placed course and every course in progress passed in its term. A slot is an unnamed course of its group with the slot's credits, so it counts, and overflows, as the course chosen for it would. *Judgment call*: a compulsory group with a slot still needs every one of its listed courses. | A separate coverage computation for plans; slots counted outside the groups | One coverage rule for the audit and the planner. A slot is credits held for a course of that group (ADR 0014). |
+| **A course placed twice is still reported**, though the database refuses to store it. | Not checking it | The plan generator validates a draft before saving it (ADR 0006). |
+
 ## Consequences
 
 - The planner (F5) and the advisor (F8) call `RulesService`; they never compute a credit, a GPA or a cap themselves.
