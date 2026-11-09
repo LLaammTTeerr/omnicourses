@@ -7,3 +7,8 @@ indent_style = space
 indent_size = 2
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+# pdftotext output is committed byte for byte: its sha256 is checked by a test.
+[*.pdftotext.txt]
+trim_trailing_whitespace = false
+insert_final_newline = false

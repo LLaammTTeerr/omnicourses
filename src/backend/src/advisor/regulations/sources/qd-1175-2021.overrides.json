@@ -1,0 +1,164 @@
+[
+  {
+    "kind": "layout",
+    "page": 1,
+    "reason": "The heading block prints two columns side by side; a table keeps each name in its column.",
+    "source": [
+      "ĐẠI HỌC QUỐC GIA TP.HCM CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM",
+      "TRƯỜNG ĐẠI HỌC KHOA HỌC TỰ NHIÊN Độc lập - Tự do - Hạnh phúc"
+    ],
+    "replacement": [
+      "| ĐẠI HỌC QUỐC GIA TP.HCM | CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM |",
+      "| --- | --- |",
+      "| TRƯỜNG ĐẠI HỌC KHOA HỌC TỰ NHIÊN | Độc lập - Tự do - Hạnh phúc |"
+    ]
+  },
+  {
+    "kind": "layout",
+    "page": 5,
+    "reason": "Điều 6 khoản 7 điểm a: class-period table at 227 Nguyễn Văn Cừ. The evening column has three rows.",
+    "source": [
+      "Buổi sáng Buổi chiều Buổi tối",
+      "Tiết 1 : 6g40-7g30 Tiết 7 : 12g30-13g20 Tiết 13 :18g00-18g50",
+      "Tiết 2 : 7g30-8g20 Tiết 8 : 13g20-14g10 Tiết 14: 18g50-19g40",
+      "Tiết 3 : 8g30-9g20 Tiết 9 : 14g20-15g10 Tiết 15: 19g40-20g30",
+      "Tiết 4 : 9g20-10g10 Tiết 10: 15g10-16g00",
+      "Tiết 5 : 10g20-11g10 Tiết 11: 16g10-17g00",
+      "Tiết 6 : 11g10-12g00 Tiết 12: 17g00-17g50"
+    ],
+    "replacement": [
+      "| Buổi sáng | Buổi chiều | Buổi tối |",
+      "| --- | --- | --- |",
+      "| Tiết 1 : 6g40-7g30 | Tiết 7 : 12g30-13g20 | Tiết 13 :18g00-18g50 |",
+      "| Tiết 2 : 7g30-8g20 | Tiết 8 : 13g20-14g10 | Tiết 14: 18g50-19g40 |",
+      "| Tiết 3 : 8g30-9g20 | Tiết 9 : 14g20-15g10 | Tiết 15: 19g40-20g30 |",
+      "| Tiết 4 : 9g20-10g10 | Tiết 10: 15g10-16g00 | |",
+      "| Tiết 5 : 10g20-11g10 | Tiết 11: 16g10-17g00 | |",
+      "| Tiết 6 : 11g10-12g00 | Tiết 12: 17g00-17g50 | |"
+    ]
+  },
+  {
+    "kind": "layout",
+    "page": 5,
+    "reason": "Điều 6 khoản 7 điểm b: class-period table at Linh Trung.",
+    "source": [
+      "Buổi sáng Buổi chiều",
+      "Tiết 1 : 7g30-8g20 Tiết 6 : 12g30-13g20",
+      "Tiết 2 : 8g20-9g10 Tiết 7 : 13g20-14g10",
+      "Tiết 3 : 9g20-10g10 Tiết 8 : 14g20-15g10",
+      "Tiết 4 : 10g10-11g00 Tiết 9: 15g10-16g00",
+      "Tiết 5 : 11g10-12g00 Tiết 10: 16g10-17g00"
+    ],
+    "replacement": [
+      "| Buổi sáng | Buổi chiều |",
+      "| --- | --- |",
+      "| Tiết 1 : 7g30-8g20 | Tiết 6 : 12g30-13g20 |",
+      "| Tiết 2 : 8g20-9g10 | Tiết 7 : 13g20-14g10 |",
+      "| Tiết 3 : 9g20-10g10 | Tiết 8 : 14g20-15g10 |",
+      "| Tiết 4 : 10g10-11g00 | Tiết 9: 15g10-16g00 |",
+      "| Tiết 5 : 11g10-12g00 | Tiết 10: 16g10-17g00 |"
+    ]
+  },
+  {
+    "kind": "text",
+    "page": 10,
+    "reason": "Điều 11 khoản 1: the grade table breaks across pages 9 and 10, and page 10 repeats its header row. The repeat is dropped so the table reads as one.",
+    "source": ["Thang điểm 10 Điểm 4 Điểm chữ"],
+    "replacement": []
+  },
+  {
+    "kind": "layout",
+    "page": 9,
+    "reason": "Điều 11 khoản 1: grade conversion table (10-point scale, 4-point scale, letter grade), pages 9 and 10.",
+    "source": [
+      "Thang điểm 10 Điểm 4 Điểm chữ",
+      "9,0 đến 10,0 4,0 A+",
+      "8,0 đến cận 9,0 3,5 A",
+      "7,0 đến cận 8,0 3,0 B+",
+      "6,0 đến cận 7,0 2,5 B",
+      "5,0 đến cận 6,0 2,0 C",
+      "4,0 đến cận 5,0 1,5 D+",
+      "3,0 đến cận 4,0 1,0 D",
+      "<3,0 0,0 F"
+    ],
+    "replacement": [
+      "| Thang điểm 10 | Điểm 4 | Điểm chữ |",
+      "| --- | --- | --- |",
+      "| 9,0 đến 10,0 | 4,0 | A+ |",
+      "| 8,0 đến cận 9,0 | 3,5 | A |",
+      "| 7,0 đến cận 8,0 | 3,0 | B+ |",
+      "| 6,0 đến cận 7,0 | 2,5 | B |",
+      "| 5,0 đến cận 6,0 | 2,0 | C |",
+      "| 4,0 đến cận 5,0 | 1,5 | D+ |",
+      "| 3,0 đến cận 4,0 | 1,0 | D |",
+      "| <3,0 | 0,0 | F |"
+    ]
+  },
+  {
+    "kind": "text",
+    "page": 12,
+    "reason": "Điều 15 khoản 2 điểm a: the formula is an equation object whose text layer is scrambled (U+F0E5 and U+F03D are the Symbol font's Σ and =). Transcribed from the rendered page as LaTeX.",
+    "source": ["N", "a .n i i", "A  i1N", "n", "i1", "i"],
+    "replacement": ["$$A = \\frac{\\sum_{i=1}^{N} a_i.n_i}{\\sum_{i=1}^{N} n_i}$$"]
+  },
+  {
+    "kind": "layout",
+    "page": 12,
+    "reason": "Điều 15 khoản 2 điểm b: classification table for cohorts from 2021. Its header cell \"Xếp loại/hạng\" spans the first two rows.",
+    "source": [
+      "Điểm trung bình",
+      "Xếp loại/hạng",
+      "a. Loại đạt",
+      "Từ 9 đến 10 Xuất sắc",
+      "Từ 8 đến cận 9 Giỏi",
+      "Từ 7 đến cận 8 Khá",
+      "Từ 5 đến cận 7 Trung bình",
+      "b. Loại không đạt Xếp loại",
+      "Từ 4 đến cận 5 Yếu",
+      "Dưới 4 Kém"
+    ],
+    "replacement": [
+      "| Điểm trung bình | Xếp loại/hạng |",
+      "| --- | --- |",
+      "| a. Loại đạt | |",
+      "| Từ 9 đến 10 | Xuất sắc |",
+      "| Từ 8 đến cận 9 | Giỏi |",
+      "| Từ 7 đến cận 8 | Khá |",
+      "| Từ 5 đến cận 7 | Trung bình |",
+      "| b. Loại không đạt | Xếp loại |",
+      "| Từ 4 đến cận 5 | Yếu |",
+      "| Dưới 4 | Kém |"
+    ]
+  },
+  {
+    "kind": "layout",
+    "page": 13,
+    "reason": "Điều 15 khoản 2 điểm b: classification table for cohorts up to 2020.",
+    "source": [
+      "Điểm trung bình",
+      "Xếp loại/hạng",
+      "a. Loại đạt",
+      "Từ 9 đến 10 Xuất sắc",
+      "Từ 8 đến cận 9 Giỏi",
+      "Từ 7 đến cận 8 Khá",
+      "Từ 6 đến cận 7 Trung bình khá",
+      "Từ 5 đến cận 6 Trung bình",
+      "b. Loại không đạt Xếp loại",
+      "Từ 4 đến cận 5 Yếu",
+      "Dưới 4 Kém"
+    ],
+    "replacement": [
+      "| Điểm trung bình | Xếp loại/hạng |",
+      "| --- | --- |",
+      "| a. Loại đạt | |",
+      "| Từ 9 đến 10 | Xuất sắc |",
+      "| Từ 8 đến cận 9 | Giỏi |",
+      "| Từ 7 đến cận 8 | Khá |",
+      "| Từ 6 đến cận 7 | Trung bình khá |",
+      "| Từ 5 đến cận 6 | Trung bình |",
+      "| b. Loại không đạt | Xếp loại |",
+      "| Từ 4 đến cận 5 | Yếu |",
+      "| Dưới 4 | Kém |"
+    ]
+  }
+]

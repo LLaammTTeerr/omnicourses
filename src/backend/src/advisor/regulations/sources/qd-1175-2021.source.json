@@ -1,0 +1,26 @@
+{
+  "id": "qd-1175-2021",
+  "title": "Quy chế đào tạo trình độ đại học",
+  "shortName": "QĐ 1175/QĐ-KHTN",
+  "decision": {
+    "number": "1175/QĐ-KHTN",
+    "date": "2021-09-24",
+    "text": "Ban hành kèm theo Quyết định số 1175/QĐ-KHTN ngày 24 tháng 9 năm 2021 của Hiệu trưởng Trường Đại học Khoa học Tự nhiên – ĐHQG-HCM"
+  },
+  "issuer": "Trường Đại học Khoa học Tự nhiên, Đại học Quốc gia Thành phố Hồ Chí Minh",
+  "sourceUrl": "https://www.ctda.hcmus.edu.vn/wp-content/uploads/2023/03/Quy-che-dao-tao-2021.pdf",
+  "pdf": {
+    "sha256": "951eb00d75e0517040291d2e07a6b33f2650bb861fbd313977000943448626dd",
+    "pages": 18
+  },
+  "textLayer": {
+    "command": "pdftotext -layout",
+    "tool": "pdftotext 26.01.0 (Poppler)",
+    "sha256": "9c1887b4a9619c9d1355d554f45287817e2048fc4d6c738068d518a533be142c"
+  },
+  "notes": [
+    "Phụ lục 1, which Điều 10 khoản 3 cites for online thesis defences, is not part of this PDF.",
+    "The signature block on page 18 is an image with no text layer; it is not transcribed.",
+    "The printed page numbers equal the PDF page numbers."
+  ]
+}
