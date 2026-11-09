@@ -5,14 +5,6 @@
 
 export const OUT_OF_DATE_MONTHS = 6;
 
-// Vietnam is UTC+7 all year: no daylight saving.
-const VIETNAM_OFFSET_MS = 7 * 3_600_000;
-
-/** The date in Vietnam at this instant, as YYYY-MM-DD. */
-export function vietnamDate(now: Date): string {
-  return new Date(now.getTime() + VIETNAM_OFFSET_MS).toISOString().slice(0, 10);
-}
-
 /** A YYYY-MM-DD date plus calendar months. A day the target month lacks becomes its last day (31 Aug + 6 months = end of Feb). */
 export function addMonths(date: string, months: number): string {
   const [year, month, day] = date.split('-').map(Number);

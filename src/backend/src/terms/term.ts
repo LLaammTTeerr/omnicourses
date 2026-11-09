@@ -3,7 +3,7 @@
 
 export const TERM_NUMBERS = [1, 2, 3] as const;
 
-/** A term (ADR 0009): `year` 2026 is the academic year 2026–2027; 1 and 2 are main terms, 3 is summer. */
+/** A term (ADR 0009): `year` 2026 is the academic year 2026–2027; terms 1, 2 and 3. Term 3 is a main term in APCS (QĐ 1175/QĐ-KHTN Điều 6.4b) and can be a summer term in other programs. */
 export interface Term {
   year: number;
   number: (typeof TERM_NUMBERS)[number];

@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import type { DataSource, EntityManager } from 'typeorm';
 import { nodeEnv } from '../config/env.js';
+import { vietnamDate } from '../config/time.js';
 import { GUIDE_FILES } from './content/index.js';
 import { contentOf, type GuideFile, textKey } from './guide-file.js';
 import type { GuideText } from './guide-text.entity.js';
-import { vietnamDate } from './out-of-date.js';
 import { type LoadableGuideFile, parseGuideSet } from './validate-guide.js';
 
 export interface GuideSeedReport {
