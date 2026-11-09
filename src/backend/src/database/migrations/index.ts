@@ -5,6 +5,7 @@ import { CreateCurriculumCourseSchema1792912952302 } from './1792912952302-creat
 import { CreateTranscriptRows1793159431000 } from './1793159431000-create-transcript-rows.js';
 import { CreateGuides1793872582380 } from './1793872582380-create-guides.js';
 import { CreateOnboardingAnswers1794216390492 } from './1794216390492-create-onboarding-answers.js';
+import { AddAuditRulesToCurriculum1794300000000 } from './1794300000000-add-audit-rules-to-curriculum.js';
 
 // Imported classes, not a glob: globs break between ts (tests) and compiled js
 // (dist) (ADR 0002). A migration left out of this list never runs.
@@ -16,4 +17,5 @@ export const MIGRATIONS = [
   CreateTranscriptRows1793159431000,
   CreateGuides1793872582380,
   CreateOnboardingAnswers1794216390492,
+  AddAuditRulesToCurriculum1794300000000,
 ];

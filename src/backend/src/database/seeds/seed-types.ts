@@ -42,8 +42,15 @@ export interface PrintedRow {
    * false when the PDF says the course must be passed but does not count
    * towards the cohort total (GDTC, GDQP-AN). The schema has no column for
    * this; the group's official_notes carries the printed rule.
+   * loaded: requirement_group_courses.counts_toward_total (migration 1794300000000).
    */
   counts_toward_total: boolean;
+  /**
+   * loaded: requirement_group_courses.counts_toward_gpa. false when the PDF says the
+   * course's grade is left out of the GPA (QĐ 1175/QĐ-KHTN Điều 15.1.c). In every seeded
+   * curriculum these are exactly the rows with counts_toward_total false.
+   */
+  counts_toward_gpa: boolean;
   page: Page;
   /** Set when a value could not be read with certainty: the reason. */
   needs_check?: string;
@@ -80,6 +87,11 @@ export interface PrintedGroup {
    * belongs to no block.
    */
   outside_total?: boolean;
+  /**
+   * loaded: requirement_group_overflows. The name of the group of the same curriculum that the
+   * credits passed here beyond this group's own minimum count toward (APCS (A) → (C), p.5).
+   */
+  overflow_to?: string;
   rows: PrintedRow[];
   needs_check?: string;
 }
@@ -95,8 +107,11 @@ export interface AppendixRow {
 
 /**
  * A "khối kiến thức" row of the section 6 structure table: a printed total
- * over several groups. Not loaded (the schema has no such level); the spec
- * uses it to check that the groups add up to the cohort total.
+ * over several groups. The spec uses it to check that the groups add up to
+ * the cohort total. A block printed as a minimum (`at_least`, "≥ 43") is
+ * loaded as a combined minimum (combined_minimums, ADR 0013): its groups
+ * must reach it together. An exact block adds no rule: it is the sum of its
+ * groups' own totals.
  */
 export interface PrintedBlock {
   name: string;
@@ -117,6 +132,8 @@ export interface SeedProgram {
   name_en: string | null;
   /** loaded: programs.faculty. */
   faculty: string | null;
+  /** loaded: programs.training_type (ADR 0012): APCS is Tiên tiến, the CLC programs Chất lượng cao. */
+  training_type: 'advanced' | 'joint' | 'high_quality' | 'standard';
   page: Page;
 }
 

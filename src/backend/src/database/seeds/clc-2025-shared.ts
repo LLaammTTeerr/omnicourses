@@ -89,7 +89,7 @@ function group(
   };
 }
 
-const notCounted = (rows: PrintedRow[]) => rows.map((r) => ({ ...r, counts_toward_total: false }));
+const notCounted = (rows: PrintedRow[]) => rows.map((r) => ({ ...r, counts_toward_total: false, counts_toward_gpa: false }));
 
 /** Builds the seed of one specialisation from its rows and its booklet references. */
 export function clc2025Seed(spec: ClcSpecialisation): CurriculumSeed {
@@ -147,6 +147,7 @@ export function clc2025Seed(spec: ClcSpecialisation): CurriculumSeed {
       name_vi: `Cử nhân Công nghệ thông tin - Chương trình tăng cường tiếng Anh - Chuyên ngành ${spec.name_vi}`,
       name_en: null,
       faculty: null,
+      training_type: 'high_quality',
       page: 1,
     },
     curriculum: {

@@ -79,7 +79,7 @@ export class CurriculumService {
 }
 
 function programSummary(p: Program): ProgramSummaryDto {
-  return { code: p.code, nameVi: p.nameVi, nameEn: p.nameEn, faculty: p.faculty };
+  return { code: p.code, nameVi: p.nameVi, nameEn: p.nameEn, faculty: p.faculty, trainingType: p.trainingType };
 }
 
 export function courseDto(c: Course): CourseDto {

@@ -2,7 +2,7 @@ import { isCourseCode, normalizePrintedCode } from '../../common/course-code.js'
 import type { EquivalenceCourse, PrintedRow } from './seed-types.js';
 
 type Periods = number | null;
-type Extra = Partial<Pick<PrintedRow, 'counts_toward_total' | 'needs_check' | 'code_printed'>>;
+type Extra = Partial<Pick<PrintedRow, 'counts_toward_total' | 'counts_toward_gpa' | 'needs_check' | 'code_printed'>>;
 
 // One call per printed table row, arguments in the order of the PDF's columns:
 //   bb(code, name_vi, credits, LT, TH, BT, ĐT, page)
@@ -20,6 +20,7 @@ function row(type: PrintedRow['type'], code: string, name_vi: string, credits: n
     project_periods: dt,
     type,
     counts_toward_total: true,
+    counts_toward_gpa: true,
     page,
     ...extra,
   };

@@ -14,6 +14,7 @@ export const apcs2025: CurriculumSeed = {
     name_vi: 'Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến',
     name_en: null,
     faculty: null,
+    training_type: 'advanced',
     page: 1,
   },
   curriculum: {
@@ -103,6 +104,7 @@ export const apcs2025: CurriculumSeed = {
         'Sinh viên chọn học 16 tín chỉ trong các học phần tự chọn (TC) của khối.',
       page: 5,
       credits_pages: [5, 6],
+      overflow_to: 'Tự chọn Computer Science (C)',
       rows: [
         tc('CS251', 'Cấu trúc logic', 4, 40, 30, 0, 0, 6),
         tc('CS252', 'Tư duy tính toán', 4, 40, 30, 0, 0, 6),
@@ -133,9 +135,9 @@ export const apcs2025: CurriculumSeed = {
         bb('BAA00104', 'Lịch sử Đảng Cộng sản Việt Nam', 2, 30, 0, 0, 0, 6),
         bb('BAA00003', 'Tư tưởng Hồ Chí Minh', 2, 30, 0, 0, 0, 6),
         bb('BAA00004', 'Pháp luật đại cương', 3, 45, 0, 0, 0, 6),
-        bb('BAA00021', 'Thể dục 1', 2, 15, 30, 0, 0, 6, { counts_toward_total: false }),
-        bb('BAA00022', 'Thể dục 2', 2, 15, 30, 0, 0, 6, { counts_toward_total: false }),
-        bb('BAA00030', 'Giáo dục quốc phòng - An ninh', 4, null, null, null, null, 6, { counts_toward_total: false }),
+        bb('BAA00021', 'Thể dục 1', 2, 15, 30, 0, 0, 6, { counts_toward_total: false, counts_toward_gpa: false }),
+        bb('BAA00022', 'Thể dục 2', 2, 15, 30, 0, 0, 6, { counts_toward_total: false, counts_toward_gpa: false }),
+        bb('BAA00030', 'Giáo dục quốc phòng - An ninh', 4, null, null, null, null, 6, { counts_toward_total: false, counts_toward_gpa: false }),
       ],
     },
     {
