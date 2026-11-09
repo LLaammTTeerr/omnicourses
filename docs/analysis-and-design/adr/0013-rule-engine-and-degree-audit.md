@@ -62,7 +62,7 @@ Not stored, with the reason:
 | **Overflow is one hop, of passed credits only**: a group's passed credits beyond its own minimum count toward its target. In-progress credits never overflow, and overflow never makes the source group met. A chain or a target outside the curriculum is ignored. A combined minimum counts overflow between two of its own groups once, adds overflow from a group outside it, and leaves out overflow sent outside it. | APCS p.5 |
 | **A transcript course no group links is listed as unmatched** and counts toward nothing: not credits, not the GPA. | Điều 15.1; ADR 0007 (matching is the engine's job) |
 | **Graduation is `done` when every condition the data can check is met**: every group, every combined minimum, and the cohort total. The audit always lists, as not checked, what it cannot see: no prosecution or suspension (Điều 17.3.a), the GDQP-AN certificate (17.3.c; passing the courses is checked with their group), the foreign-language standard (17.3.d), the IT standard (17.3.e) and the maximum study time (Điều 2.7). None is ever assumed met. | Điều 17.3, 2.7 |
-| **Prerequisites and offering terms are checked by pure functions that take the data as input**: a course's prerequisite codes, or null, and its offering term numbers, or null. Null gives `not_recorded`, distinct from `none`. No prerequisite data exists in the database or the APCS PDFs (`teaching plan.prerequisites` is empty), so nothing is invented. | Điều 3.1.c; ADR 0011 (prerequisite storage is F12's) |
+| **Prerequisites and offering terms are checked by pure functions that take the data as input**: a course's prerequisite codes, or null, and its offering term numbers, or null. Null gives `not_recorded`, distinct from `none`. The APCS PDFs print none (`teaching plan.prerequisites` is empty), so they are entered through F12 (ADR 0011 amendment) and none is seeded or invented. | Điều 3.1.c; ADR 0011 (prerequisite storage is F12's) |
 | **Credit caps** follow ADR 0012: `termKind(trainingType, number)` makes term 3 a summer term only in a đại trà program; `checkTermLoad` reports a load outside the caps with Điều 7.2 and the petition route, never blocking. The audit reports each transcript term's load the same way. For đại trà, courses outside the cohort total (GDTC, GDQP-AN) are left out of the minimum; general foreign language is not identified yet. | Điều 6.4, 7.1.b, 7.2 |
 
 ### Plan issues (amended 9 November 2026)
@@ -86,6 +86,6 @@ Not stored, with the reason:
 - **Open data gaps**, each reported, never guessed:
   - Equivalences (APCS and CLC lists) are not loaded; legacy codes show as unmatched.
   - CLC: the graduation alternatives, the overflow from 7.2.2.x.1 into 7.2.2.x.2, and the free electives drawn from other specialisations are not stored, so a CLC audit can under-report. CLC is not offered in onboarding (B1 §6 item 1).
-  - Prerequisites and offering terms wait on F12's storage (ADR 0011).
+  - Prerequisites and offering terms are entered through F12 (ADR 0011 amendment); none is seeded, so a plan reports them as unknown until they are.
   - Which courses are general foreign language (the đại trà minimum) and which are Tin học cơ sở (the GPA) is not recorded; no seeded curriculum has one.
   - The estimated graduation term is a planner output (GLOSSARY), not the audit's.
