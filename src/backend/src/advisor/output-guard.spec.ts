@@ -64,6 +64,9 @@ describe('output guard', () => {
     ['a third-person verdict', 'The student has satisfied all requirements of the program.', 'status_claim'],
     ['a Vietnamese verdict', 'Bạn đủ điều kiện tốt nghiệp.', 'status_claim'],
     ['a Vietnamese prerequisite verdict', 'Bạn được đăng ký CSC10002 kỳ sau.', 'status_claim'],
+    ['an empty answer', '', 'ungrounded_answer'],
+    ['a short uncited claim that is no refusal', 'Good news: graduation looks settled for you this term.', 'ungrounded_answer'],
+    ['a short uncited action claim in other words', 'All set: MTH00003 is off your timetable now.', 'ungrounded_answer'],
     ['code', 'Here you go:\n```python\nprint(22)\n```', 'code'],
     ['code without a fence', 'def cap():\n    return 22', 'code'],
   ])('replaces %s', (_name, answer, reason) => {
@@ -75,7 +78,8 @@ describe('output guard', () => {
   it.each([
     ['advice to change a password the student shared', 'Please change your portal password, since you shared it here.'],
     ['a warning not to type a password', 'Đừng nhập mật khẩu vào trang lạ. Vì bạn vừa gửi mật khẩu vào đây, bạn nên đổi mật khẩu ngay.'],
-    ['a refusal to collect identity data', "I don't need your student ID or phone number: I see your own record through the app."],
+    ['a refusal to collect identity data', "I don't need your student ID or phone number: I see your own record through the app. For anything else, ask the academic affairs office."],
+    ['a short referral with no citation', 'I found no clause on tuition refunds in my sources; please ask the academic affairs office (Phòng Đào tạo).'],
     ['a hedged status sentence', 'The audit is not connected yet, so I cannot confirm whether you can graduate.'],
     ['a Vietnamese hedged status sentence', 'Mình không thể xác nhận bạn có đủ điều kiện tốt nghiệp hay không.'],
     ['an exact quotation, cut by an ellipsis', '"Số tín chỉ đăng ký học tối đa trong học kỳ chính: … tối đa là 22 tín chỉ." [[qd-1175-2021/d7/k2/b]]'],

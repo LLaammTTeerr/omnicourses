@@ -20,7 +20,8 @@ import { cleanInput, fold, words } from './retrieval/text.js';
 // 6. A verdict on the student's own standing (eligible, can graduate, meets the requirement, on
 //    probation, may register for CSC10002, a bare yes/no) with no rule-engine result this turn
 //    (hard rule 1) → ungrounded.
-// 7. A long answer (over 400 characters) with no valid citation and no data tool result → ungrounded.
+// 7. An empty answer, or one with no valid citation and no data tool result, unless it is a short
+//    refusal or referral ("I found no clause…, ask the academic affairs office") → ungrounded.
 // A replaced answer is replaced whole: a partly wrong academic answer is not shown in part.
 // Student IDs, emails and phone numbers are masked in any answer that is shown.
 
@@ -62,6 +63,11 @@ export interface GuardInput {
 }
 
 export const LONG_UNGROUNDED_ANSWER = 400;
+// What an answer with no citation and no data may do: decline, say no source answers it, or send the
+// student elsewhere (UC-08 A6, A7, A10). Anything else uncited ("graduation looks settled for you")
+// is replaced: a short claim needs a source as much as a long one.
+const DEFLECTION =
+  /\b(phong dao tao|academic affairs office|academic office|found no|no clause|not in my sources|could not find|cannot find|can'?t find|cannot confirm|can'?t confirm|khong tim thay|khong co dieu khoan|khong the xac nhan|chua the xac nhan|ngoai pham vi|outside (that|my|this) scope|trang huong dan|guides page|doi mat khau|change your (portal )?password)\b/;
 const SHINGLE = 8;
 const CITATION = /\[\[([^\]]{1,120})\]\]/g;
 const CLAUSE_ID = /^[a-z0-9-]+\/d\d+(?:-\d+)?(?:\/k\d+(?:-\d+)?(?:\/[a-z]{1,2}(?:-\d+)?)?)?$/;
@@ -251,8 +257,12 @@ export function guardAnswer(input: GuardInput): GuardVerdict {
   if ([...numbersIn(withoutReferences(withDigits(folded)))].some((n) => !grounded.has(n))) reasons.push('ungrounded_number');
   // 6. A verdict on the student's standing without the engine
   if (!evidence.engineAnswered && statusClaim(folded, cited.length)) reasons.push('status_claim');
-  // 7. Long and grounded in nothing
-  if (withoutFixedReplies(text).trim().length > LONG_UNGROUNDED_ANSWER && cited.length === 0 && !evidence.hasDataResult) reasons.push('ungrounded_answer');
+  // 7. Grounded in nothing: no citation and no data. Only a short refusal or referral may stand.
+  const rest = withoutFixedReplies(text).trim();
+  if (!text) reasons.push('ungrounded_answer');
+  else if (cited.length === 0 && !evidence.hasDataResult && words(rest).length >= 3 && (rest.length > LONG_UNGROUNDED_ANSWER || !DEFLECTION.test(fold(rest)))) {
+    reasons.push('ungrounded_answer');
+  }
 
   const unique = [...new Set(reasons)];
   if (unique.length === 0) return { status: 'passed', text: maskPersonalData(text), reasons: [], citations: cited };

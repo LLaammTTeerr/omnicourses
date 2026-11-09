@@ -48,6 +48,15 @@ describe('AdvisorService', () => {
     expect(run.text).not.toContain('40');
   });
 
+  it('replaces an empty answer instead of showing nothing as answered', async () => {
+    const llm = new FakeLlmService().replyChat({ tool: 'search_regulations', args: { query: 'credit cap' } });
+    const { advisor } = advisorFor({ llm });
+    const run = summary(await collect(advisor.ask(TEST_USER_ID, ask('How many credits can I take in a term?'))));
+    expect(run.outcome).toBe('replaced');
+    expect(run.reasons).toEqual(['ungrounded_answer']);
+    expect(run.text).toBe(FIXED_REPLIES.ungrounded.en);
+  });
+
   it('offers only the regulation search and the course catalogue without consent, and never reads the record', async () => {
     const llm = new FakeLlmService().replyChat({ text: 'I can only answer from the regulation.' });
     const { advisor, records } = advisorFor({ llm, consented: false });
