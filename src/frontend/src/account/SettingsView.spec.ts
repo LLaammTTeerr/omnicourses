@@ -23,7 +23,7 @@ let wrapper: VueWrapper | undefined;
 let router: Router;
 
 async function render(routes: Record<string, unknown> = {}) {
-  const fetch = mockApi({ 'GET /auth/sessions': [OLD, PHONE, HERE], ...routes });
+  const fetch = mockApi({ 'GET /auth/sessions': [OLD, PHONE, HERE], 'GET /programs': { programs: [] }, ...routes });
   const app = await setup('/settings');
   router = app.router;
   wrapper = mount(SettingsView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
@@ -86,7 +86,7 @@ describe('SettingsView', () => {
     await w.get('dialog[open]').findAll('button').find((b) => b.text() === 'Hủy')!.trigger('click');
     await flushPromises();
     expect(w.find('dialog[open]').exists()).toBe(false);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toEqual([]);
   });
 
   it('downloads the export as a file (ADR 0004)', async () => {
