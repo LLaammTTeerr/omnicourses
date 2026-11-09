@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OmniCourse</title>
+    <!-- Be Vietnam Pro for text, JetBrains Mono for course codes; both with the Vietnamese subset. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    />
+    <!-- The saved theme before the first paint, so a dark page never flashes white (src/shell/theme.ts owns it after). -->
+    <script>
+      try {
+        var t = localStorage.getItem('omnicourse.theme');
+        document.documentElement.dataset.theme =
+          t === 'light' || t === 'dark' ? t : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="app"></div>

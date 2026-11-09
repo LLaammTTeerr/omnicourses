@@ -33,7 +33,7 @@ it('boots the app entry and renders the home route inside the app shell', async 
   await expect.element(banner.getByRole('link', { name: 'OmniCourse', exact: true })).toHaveAttribute('href', '/');
   await expect.element(banner.getByRole('link', { name: 'Hướng dẫn', exact: true })).toHaveAttribute('href', '/guides');
   const main = page.getByRole('main');
-  await expect.element(main.getByRole('heading', { name: 'OmniCourse', exact: true })).toBeVisible();
+  await expect.element(main.getByRole('heading', { level: 1, name: 'Biết chính xác còn thiếu gì để tốt nghiệp.' })).toBeVisible();
   await expect.element(main.getByText('API ok · database up')).toBeVisible();
 
   // The header switches the screen language (Vision §6 Usability).
