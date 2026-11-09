@@ -239,11 +239,11 @@ Black lines are calls into the rule engine, purple lines calls to the AI gateway
 
 | Planned component | Feature | Owner | Due (SDP v2) | Source |
 | --- | --- | --- | --- | --- |
-| `rules` (`RulesService`) | rule engine | Triết | validation endpoint 16 Nov; planner functions 29 Nov | Vision objective 2; [ADR 0006](https://github.com/LLaammTTeerr/omnicourses/pull/27) (proposed, PR #27) |
+| `rules` (`RulesService`) | rule engine | Triết | validation endpoint 16 Nov; planner functions 29 Nov | Vision objective 2; [ADR 0006](adr/0006-plan-generator.md) |
 | `audit` | F3 degree audit | Triết | B1, 15 Nov | Vision F3, UC-03 |
 | `curriculum` (explorer) | F4 curriculum explorer | Triết | B1, 15 Nov | Vision F4, UC-04 |
 | `plans` | F5 planner, F7 what-if | Hoà | API 8 Nov; planner B2; what-if B3 | Vision F5, F7; UC-05, UC-06 |
-| `plan-generator` | F6 plan generator and goal box | Lâm | B3 | [ADR 0003](adr/0003-language-model-scope.md); ADR 0006 (proposed) |
+| `plan-generator` | F6 plan generator and goal box | Lâm | B3 | [ADR 0003](adr/0003-language-model-scope.md); [ADR 0006](adr/0006-plan-generator.md) |
 | `advisor` | F8 advisor chat | Dũng | B3 | [ADR 0003](adr/0003-language-model-scope.md), UC-08 |
 | `sharing` | F9 export and sharing | Dũng | B2 | [ADR 0010](adr/0010-public-pages-and-guide-content.md), UC-09 |
 | `notifications` | F10 notifications | Dũng | B2 | Vision F10, UC-12; delivery contract open |
@@ -256,7 +256,7 @@ Seven components call the engine, all as readers of its answers:
 - `audit` computes graduation status from `TranscriptService.rowsFor()` and the curriculum.
 - `curriculum` shows prerequisites and what each course unlocks.
 - `plans` validates every change to a plan live (performance NFR: under 300 ms).
-- `plan-generator` places courses term by term and asks the engine whether each placement is allowed (ADR 0006, proposed). It holds no rule of its own.
+- `plan-generator` places courses term by term and asks the engine whether each placement is allowed ([ADR 0006](adr/0006-plan-generator.md)). It holds no rule of its own.
 - `advisor`'s tool handlers ask the engine to check a rule for the student.
 - `curriculum-admin` asks for final-state validation before a write commits ([ADR 0011](adr/0011-curriculum-administration.md)).
 - `guides` fills rule values, such as the student's credit cap, into a guide from B3 (UC-10 A3).
@@ -367,7 +367,7 @@ Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy
 | [0003 Where a language model is used](adr/0003-language-model-scope.md) | accepted | `ai` gateway, OpenRouter; goal box in `plan-generator`, `advisor`; SSE protocol; F2 and F12 stay deterministic |
 | [0004 Account export and deletion](adr/0004-account-export-and-deletion.md) | accepted | `account`, `users`; the `user_id` rule for every table of every module; the purge |
 | [0005 Curriculum cohorting and course catalog](adr/0005-curriculum-cohort-and-course-catalog.md) | proposed | `database` curriculum schema and seeds; `curriculum`, `curriculum-admin`, `rules` read it |
-| 0006 How the plan generator builds a plan ([PR #27](https://github.com/LLaammTTeerr/omnicourses/pull/27)) | proposed, not merged | `plan-generator`; the planner's interface to `RulesService` |
+| [0006 How the plan generator builds a plan](adr/0006-plan-generator.md) | accepted; amended by 0012 | `plan-generator`; the planner's interface to `RulesService` |
 | [0007 Storing the transcript](adr/0007-transcript.md) | proposed | `transcript`; its `rowsFor()` contract to `audit` and `advisor` |
 | [0008 Real-browser test provider](adr/0008-browser-testing.md) | proposed | SPA browser tests (Vitest browser mode, Playwright Chromium); CI frontend job |
 | [0009 Term encoding](adr/0009-term-encoding.md) | proposed | `terms/`; `transcript`, `plans`, offering terms, `plan-generator` |
@@ -375,7 +375,6 @@ Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy
 | [0011 Curriculum administration](adr/0011-curriculum-administration.md) | proposed; not authorization to implement | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
 | [0012 Credit caps by training type](adr/0012-credit-caps-by-training-type.md) | accepted; amends 0009 | `rules` (caps per training type, a training-type column on `programs`), `terms/`, `plans`, `plan-generator` |
 
-There is no ADR 0006 on `main` yet; the number is held by PR #27.
 
 ### Revisions in this version
 
@@ -397,7 +396,7 @@ This is the first version of the document. It describes the backend and frontend
 | 2 | Audit trail for curriculum and catalog changes: decide before those writes are built whether B2 needs a change log or defers it. | Lâm, Triết | ADR 0011 |
 | 3 | Production and staging run on one shared host (§7): one machine, no failover. The nightly backup and the restore rehearsal are not set up yet. | Lâm | `deploy/README.md`; Vision NFR Recovery |
 | 4 | The `RulesService` interface is not merged, and seven planned components depend on it. A late change ripples to every caller (risk R9). | Triết | SDP R1, R9; ADR 0006 |
-| 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed, and ADR 0006 is unmerged; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
+| 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
 | 6 | The curriculum seeds live in `database/`. Moving them into a curriculum module is a new module boundary and belongs with ADR 0011's work. | Thắng, Triết | ADR 0011 |
 | 7 | F10's delivery channel, schedule and trigger contract are undefined, so the notifications component has no interface yet. | Dũng | Test plan §8 |
 | 8 | Whether the portal transcript PDF has a text layer and a fixed layout, and numbers the third term of the year 3. Manual entry works either way. | Lâm | ADR 0003, 0007, 0009, 0012; SDP R7 |
