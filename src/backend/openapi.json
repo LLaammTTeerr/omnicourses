@@ -645,6 +645,45 @@
           "users"
         ]
       }
+    },
+    "/api/users/me/audit": {
+      "get": {
+        "operationId": "AuditController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The student's transcript against the curriculum of their onboarding program and cohort.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DegreeAuditDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "409": {
+            "description": "onboarding_required: onboarding is not finished, so there is no program and cohort; send the student to onboarding. curriculum_not_found: no curriculum for the chosen program and cohort.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditUnavailableDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
     }
   },
   "info": {
@@ -1418,6 +1457,20 @@
             ],
             "description": "The faculty that owns the program"
           },
+          "trainingType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "advanced",
+              "joint",
+              "high_quality",
+              "standard",
+              null
+            ],
+            "description": "Training type (QĐ 1175/QĐ-KHTN Điều 6.4, 7.2; ADR 0012): advanced = Tiên tiến, joint = Liên kết, high_quality = Chất lượng cao, standard = đại trà. It sets the terms and the credit caps. null: not recorded."
+          },
           "cohortYears": {
             "example": [
               2024,
@@ -1435,6 +1488,7 @@
           "nameVi",
           "nameEn",
           "faculty",
+          "trainingType",
           "cohortYears"
         ]
       },
@@ -1476,13 +1530,28 @@
               "null"
             ],
             "description": "The faculty that owns the program"
+          },
+          "trainingType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "advanced",
+              "joint",
+              "high_quality",
+              "standard",
+              null
+            ],
+            "description": "Training type (QĐ 1175/QĐ-KHTN Điều 6.4, 7.2; ADR 0012): advanced = Tiên tiến, joint = Liên kết, high_quality = Chất lượng cao, standard = đại trà. It sets the terms and the credit caps. null: not recorded."
           }
         },
         "required": [
           "code",
           "nameVi",
           "nameEn",
-          "faculty"
+          "faculty",
+          "trainingType"
         ]
       },
       "CourseDto": {
@@ -1856,6 +1925,717 @@
           "creditsPerTerm",
           "internshipTerm",
           "finished"
+        ]
+      },
+      "CreditSummaryDto": {
+        "type": "object",
+        "properties": {
+          "accumulated": {
+            "type": "number",
+            "description": "Credits of every passed course of the curriculum, GDTC and GDQP-AN included (Điều 11.4)"
+          },
+          "towardTotal": {
+            "type": "number",
+            "description": "Passed credits toward the cohort total"
+          },
+          "inProgressTowardTotal": {
+            "type": "number"
+          },
+          "totalRequired": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 163
+          },
+          "remaining": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "yearLevel": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "description": "Year of study from the accumulated credits (Điều 15.3)"
+          }
+        },
+        "required": [
+          "accumulated",
+          "towardTotal",
+          "inProgressTowardTotal",
+          "totalRequired",
+          "remaining",
+          "yearLevel"
+        ]
+      },
+      "GpaSummaryDto": {
+        "type": "object",
+        "properties": {
+          "average": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Điểm trung bình (Điều 15.1.a): every course studied, by its official grade, 10-point scale"
+          },
+          "accumulatedAverage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Điểm trung bình tích lũy (Điều 15.1.b): passed courses only, 10-point scale"
+          },
+          "accumulatedAverageFourPoint": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "accumulatedAverage on the 4-point scale; reference only (Điều 11.2)"
+          },
+          "classification": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "excellent",
+              "very_good",
+              "good",
+              "fairly_good",
+              "average",
+              "weak",
+              "poor",
+              null
+            ],
+            "description": "Điều 15.2.b, from accumulatedAverage"
+          },
+          "gradedCredits": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "average",
+          "accumulatedAverage",
+          "accumulatedAverageFourPoint",
+          "classification",
+          "gradedCredits"
+        ]
+      },
+      "CreditCapsDto": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "max": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "min",
+          "max"
+        ]
+      },
+      "CapViolationDto": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": [
+              "below_minimum",
+              "above_maximum"
+            ]
+          },
+          "credits": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "citation": {
+            "type": "string",
+            "example": "QĐ 1175/QĐ-KHTN Điều 7.2"
+          },
+          "petition": {
+            "type": "string",
+            "description": "The petition route; a violation never blocks"
+          }
+        },
+        "required": [
+          "rule",
+          "credits",
+          "limit",
+          "citation",
+          "petition"
+        ]
+      },
+      "TermSummaryDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/TermDto"
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "main",
+              "summer",
+              null
+            ],
+            "description": "null when the training type is not recorded"
+          },
+          "credits": {
+            "type": "number",
+            "description": "Every course of the term, retakes included (Điều 7.1.b)"
+          },
+          "passedCredits": {
+            "type": "number"
+          },
+          "average": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Term average, every graded attempt (Điều 15.1.a)"
+          },
+          "accumulatedAverage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Term average of passed attempts (Điều 15.1.b)"
+          },
+          "cumulativeAccumulatedAverage": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Điểm trung bình tích lũy from the start to the end of this term"
+          },
+          "failedCourseCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inProgressCourseCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "caps": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreditCapsDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "capViolations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CapViolationDto"
+            }
+          }
+        },
+        "required": [
+          "term",
+          "kind",
+          "credits",
+          "passedCredits",
+          "average",
+          "accumulatedAverage",
+          "cumulativeAccumulatedAverage",
+          "failedCourseCodes",
+          "inProgressCourseCodes",
+          "caps",
+          "capViolations"
+        ]
+      },
+      "CourseCoverageDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CS160"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Nhập môn Tin học"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credits": {
+            "type": "number",
+            "example": 4,
+            "description": "Catalog credits"
+          },
+          "countsTowardTotal": {
+            "type": "boolean",
+            "description": "false: required, but outside the cohort total (GDTC, GDQP-AN)"
+          },
+          "countsTowardGpa": {
+            "type": "boolean",
+            "description": "false: left out of the GPA (QĐ 1175/QĐ-KHTN Điều 15.1.c)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "in_progress",
+              "failed",
+              "not_taken",
+              "counted_in_other_group"
+            ],
+            "description": "counted_in_other_group: the course is passed or in progress but counts in another group (a course counts once, ADR 0013)"
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "graded",
+              "in_progress",
+              "exempt",
+              "pass",
+              "fail",
+              null
+            ],
+            "description": "The official attempt: the last completed one (Điều 14)"
+          },
+          "grade": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 8.5
+          },
+          "countedInGroupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn",
+          "credits",
+          "countsTowardTotal",
+          "countsTowardGpa",
+          "status",
+          "result",
+          "grade",
+          "countedInGroupId"
+        ]
+      },
+      "GroupCoverageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Kiến thức Math"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "compulsory",
+              "elective"
+            ]
+          },
+          "requiredCredits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "null: the group has no minimum of its own (see combinedMinimums)"
+          },
+          "passedCredits": {
+            "type": "number",
+            "description": "Passed credits counted here toward the cohort total"
+          },
+          "inProgressCredits": {
+            "type": "number"
+          },
+          "overflowInCredits": {
+            "type": "number",
+            "description": "Credits another group's excess brings here"
+          },
+          "overflowOutCredits": {
+            "type": "number",
+            "description": "Passed credits beyond requiredCredits, counted toward overflowToGroupId"
+          },
+          "overflowToGroupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "remainingCredits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "requiredCredits − passed − overflowIn − inProgress, at least 0"
+          },
+          "met": {
+            "type": "boolean",
+            "description": "Compulsory: every course passed. Elective: passed + overflowIn ≥ requiredCredits; true without one."
+          },
+          "courses": {
+            "description": "Every course of the group, by code",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseCoverageDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "requiredCredits",
+          "passedCredits",
+          "inProgressCredits",
+          "overflowInCredits",
+          "overflowOutCredits",
+          "overflowToGroupId",
+          "remainingCredits",
+          "met",
+          "courses"
+        ]
+      },
+      "CombinedMinimumCoverageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Kiến thức tự chọn"
+          },
+          "creditsMin": {
+            "type": "number",
+            "example": 43
+          },
+          "officialNotes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "groupIds": {
+            "description": "Ids of the requirement groups it adds up",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "credits": {
+            "type": "number",
+            "description": "Passed credits of the groups together, overflow from outside them included"
+          },
+          "inProgressCredits": {
+            "type": "number"
+          },
+          "remainingCredits": {
+            "type": "number"
+          },
+          "met": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "creditsMin",
+          "officialNotes",
+          "groupIds",
+          "credits",
+          "inProgressCredits",
+          "remainingCredits",
+          "met"
+        ]
+      },
+      "UnmatchedCourseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "ZZ101"
+          },
+          "name": {
+            "type": "string"
+          },
+          "credits": {
+            "type": "number"
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "graded",
+              "in_progress",
+              "exempt",
+              "pass",
+              "fail",
+              null
+            ]
+          },
+          "grade": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "inProgress": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "credits",
+          "result",
+          "grade",
+          "passed",
+          "inProgress"
+        ]
+      },
+      "GraduationConditionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "total_credits"
+          },
+          "description": {
+            "type": "string"
+          },
+          "citation": {
+            "type": "string",
+            "example": "QĐ 1175/QĐ-KHTN Điều 17.3.b"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "met",
+              "not_met",
+              "not_checked"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "citation",
+          "status"
+        ]
+      },
+      "GraduationStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "done",
+              "not_yet"
+            ],
+            "description": "done: every condition the data can check is met; the notChecked ones still need the school"
+          },
+          "met": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraduationConditionDto"
+            }
+          },
+          "unmet": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraduationConditionDto"
+            }
+          },
+          "notChecked": {
+            "description": "Never assumed met",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraduationConditionDto"
+            }
+          }
+        },
+        "required": [
+          "status",
+          "met",
+          "unmet",
+          "notChecked"
+        ]
+      },
+      "AuditWarningDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "credits_differ",
+              "same_term_attempts",
+              "not_in_curriculum"
+            ]
+          },
+          "courseCode": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "courseCode",
+          "message"
+        ]
+      },
+      "DegreeAuditDto": {
+        "type": "object",
+        "properties": {
+          "programCode": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "trainingType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "advanced",
+              "joint",
+              "high_quality",
+              "standard",
+              null
+            ]
+          },
+          "cohortYear": {
+            "type": "number",
+            "example": 2024
+          },
+          "curriculumCode": {
+            "type": "string",
+            "example": "APCS2024"
+          },
+          "credits": {
+            "$ref": "#/components/schemas/CreditSummaryDto"
+          },
+          "gpa": {
+            "$ref": "#/components/schemas/GpaSummaryDto"
+          },
+          "terms": {
+            "description": "Oldest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermSummaryDto"
+            }
+          },
+          "groups": {
+            "description": "By name",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupCoverageDto"
+            }
+          },
+          "combinedMinimums": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CombinedMinimumCoverageDto"
+            }
+          },
+          "unmatchedCourses": {
+            "description": "Transcript courses no group lists; they count toward nothing",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnmatchedCourseDto"
+            }
+          },
+          "graduation": {
+            "$ref": "#/components/schemas/GraduationStatusDto"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditWarningDto"
+            }
+          }
+        },
+        "required": [
+          "programCode",
+          "trainingType",
+          "cohortYear",
+          "curriculumCode",
+          "credits",
+          "gpa",
+          "terms",
+          "groups",
+          "combinedMinimums",
+          "unmatchedCourses",
+          "graduation",
+          "warnings"
+        ]
+      },
+      "AuditUnavailableDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 409
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "onboarding_required",
+              "curriculum_not_found"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "statusCode",
+          "code",
+          "message"
         ]
       }
     }
