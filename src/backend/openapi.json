@@ -486,19 +486,11 @@
               "up",
               "down"
             ]
-          },
-          "postgresVersion": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "18.6"
           }
         },
         "required": [
           "status",
-          "database",
-          "postgresVersion"
+          "database"
         ]
       },
       "UserDto": {

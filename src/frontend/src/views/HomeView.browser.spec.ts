@@ -33,13 +33,13 @@ describe('HomeView in a real browser', () => {
 
     respond(Response.json(HEALTHY));
 
-    await expect.element(page.getByText('API ok · database up (PostgreSQL 18.6)')).toBeVisible();
+    await expect.element(page.getByText('API ok · database up')).toBeVisible();
     await expect.element(page.getByText('Checking API…')).not.toBeInTheDocument();
   });
 
   it('shows a degraded database response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      Response.json({ status: 'degraded', database: 'down', postgresVersion: null }),
+      Response.json({ status: 'degraded', database: 'down' }),
     );
     wrapper = mount(HomeView, { attachTo: host });
 

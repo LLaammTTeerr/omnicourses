@@ -6,12 +6,13 @@ import { HealthDto } from './health.dto.js';
 export class HealthService {
   constructor(private readonly dataSource: DataSource) {}
 
+  // Public route: it says whether the database answers, never which version it runs (issue #28).
   async check(): Promise<HealthDto> {
     try {
-      const rows: { server_version: string }[] = await this.dataSource.query('SHOW server_version');
-      return { status: 'ok', database: 'up', postgresVersion: rows[0]?.server_version ?? null };
+      await this.dataSource.query('SELECT 1');
+      return { status: 'ok', database: 'up' };
     } catch {
-      return { status: 'degraded', database: 'down', postgresVersion: null };
+      return { status: 'degraded', database: 'down' };
     }
   }
 }
