@@ -68,7 +68,7 @@ Not stored, with the reason:
 ## Consequences
 
 - The planner (F5) and the advisor (F8) call `RulesService`; they never compute a credit, a GPA or a cap themselves.
-- TC-B1-ACAD-01 in the test plan still states APCS caps of 14–25 and 12. ADR 0012 superseded them; the engine follows ADR 0012 (10–22 in every APCS term).
+- TC-B1-ACAD-01 in the test plan now states the APCS caps of ADR 0012 (10–22 in every term, term 3 a main term), which the engine follows; it stated 14–25 and 12 before.
 - **Open data gaps**, each reported, never guessed:
   - Equivalences (APCS and CLC lists) are not loaded; legacy codes show as unmatched.
   - CLC: the graduation alternatives, the overflow from 7.2.2.x.1 into 7.2.2.x.2, and the free electives drawn from other specialisations are not stored, so a CLC audit can under-report. CLC is not offered in onboarding (B1 §6 item 1).
