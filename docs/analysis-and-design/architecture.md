@@ -62,7 +62,7 @@ C4Context
 
 - **HCMUS portals.** OmniCourse only links to them. It never stores a portal password and never automates a registration (AGENTS.md hard rule 2). A [guide](../requirements/guides-plan.md) gives the link, the steps and the account the portal needs; the student does the task on the portal.
 - **OpenRouter** is the language-model provider, reached only through the AI gateway and only by F6's goal box and F8's advisor ([ADR 0003](adr/0003-language-model-scope.md)). Training opt-out and a monthly credit limit are set on the OpenRouter account. The model receives no name, email or student ID.
-- **GitHub Actions** runs CI on every pull request (typecheck, unit and e2e tests against PostgreSQL 18.6, browser tests, build, the OpenAPI export, and the signed-commit, Conventional Commits and changeset checks). The deploy workflow builds the artifacts and tags builds B0–B3; pushing them to a host waits for the staging host. It is not drawn in the context diagram because it builds and deploys OmniCourse rather than running with it ([§7](#7-deployment-view)).
+- **GitHub Actions** runs CI on every pull request (typecheck, unit and e2e tests against PostgreSQL 18.6, browser tests, build, the OpenAPI export, and the signed-commit, Conventional Commits and changeset checks). The deploy workflow deploys `main` to production once CI passes and the `staging` branch to staging, and can tag builds B0–B3. It is not drawn in the context diagram because it builds and deploys OmniCourse rather than running with it ([§7](#7-deployment-view)).
 
 ## 3. L2 Containers
 
@@ -332,7 +332,7 @@ C4Component
 | Public routes allow-list | Public today: health, sign-up, sign-in, the two guide reads, and the API docs pages. Planned: the shared-plan read. Only sign-up and sign-in write. `public-routes.e2e-spec.ts` calls every route in the OpenAPI document without a token and fails on any unexpected non-401, on a public write, and on a served route the document lacks. A new public route needs an ADR 0010 change. | `@Public()`, `test/public-routes.e2e-spec.ts` | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | Term encoding | A term is `{ year, number }`: `year` is the first calendar year of the academic year, `number` is 1, 2 or 3 in the order of the academic year: 3 is a third main term in a Tiên tiến, Liên kết or Chất lượng cao program such as APCS, and the summer term only in a đại trà program. SQL: `term_year smallint`, `term_number smallint CHECK (1, 2, 3)`. `terms/` still calls 3 the summer term; it changes with the rule engine. | `terms/term.ts`, `terms/term.dto.ts` | [ADR 0009](adr/0009-term-encoding.md), amended by [ADR 0012](adr/0012-credit-caps-by-training-type.md) |
 | Logging | Never log a prompt, a reply, tool arguments, a provider error message, a transcript row or any identity field (hard rule 3). AI errors are logged by name or status code only, through one helper. The purge logs counts, not accounts. Test data and seeds are synthetic. | `ai/` logging helper, `account/` | [ADR 0003](adr/0003-language-model-scope.md), AGENTS.md hard rule 3 |
-| Rate limits | `@nestjs/throttler`, per client address: 120 requests a minute by default, 10 a minute on sign-up, sign-in and account deletion. Runs before authentication, so unauthenticated floods are cut first. Behind a proxy, Express `trust proxy` must be set or every visitor shares one address. | `auth/rate-limits.ts`, `app.module.ts` | [ADR 0002](adr/0002-authentication-and-sessions.md), [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
+| Rate limits | `@nestjs/throttler`, per client address: 120 requests a minute by default, 10 a minute on sign-up, sign-in and account deletion. Runs before authentication, so unauthenticated floods are cut first. Behind a proxy, Express `trust proxy` must be set (`TRUST_PROXY`, `loopback` on the host) or every visitor shares one address. | `auth/rate-limits.ts`, `app.module.ts` | [ADR 0002](adr/0002-authentication-and-sessions.md), [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | OpenAPI contract | The API publishes OpenAPI 3.2.0. DTOs carry `@ApiProperty`, so the document is complete. The generated document is committed as `src/backend/openapi.json`; a backend test (`openapi-document.spec.ts`) fails when it drifts. The SPA's API types are written by hand, and frontend tests (`api.spec.ts`, `guides/api.spec.ts`, through `testing/contract.ts`) check them against the same file. CI also uploads it on every run. | `bootstrap.ts`, `openapi.ts`, `src/backend/openapi.json`, `src/frontend/src/testing/contract.ts` | [ADR 0001](adr/0001-technology-stack.md) |
 | Configuration | Environment variables only, loaded once by `config/env.ts` from `.env` or `../../.env`. Blank or invalid numbers fall back to their defaults. A missing AI key is not a start-up error: the app boots and AI routes answer 503. | `config/env.ts`, `.env.example` | [ADR 0003](adr/0003-language-model-scope.md), [ADR 0004](adr/0004-account-export-and-deletion.md) |
 | Schema changes | TypeORM migrations, listed as imported classes in `migrations/index.ts`; applied migrations are never edited. A decision that outlives one PR (new table family, new module boundary) needs an ADR. | `database/migrations/` | [ADR 0001](adr/0001-technology-stack.md), [ADR 0002](adr/0002-authentication-and-sessions.md) |
@@ -340,21 +340,23 @@ C4Component
 
 ## 7. Deployment view
 
-**Pending: the staging host is not chosen yet ([issue #24](https://github.com/LLaammTTeerr/omnicourses/issues/24)); due 12 Nov 2026.** If no host exists by then, B1 is tested locally with the network throttle profile and its results are labelled provisional ([test plan §4](../test/test-plan.md)).
+Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy/README.md`](../../deploy/README.md) is the operator's guide; this section states what the architecture depends on.
 
-What is fixed already, whichever host is chosen:
+| Environment | Address | Branch | Deploys when |
+| --- | --- | --- | --- |
+| production | https://omnicourses.lamter.cc | `main` | CI passes on a merge to `main` |
+| staging | https://stag-omnicourses.lamter.cc | `staging` | anything is pushed or merged to `staging`; reset to `main` every other day |
 
 | Item | Requirement | Source |
 | --- | --- | --- |
-| Build | The deploy workflow, run by hand from `main`, builds `src/backend/dist` and `src/frontend/dist`, uploads them, and can tag B0–B3. Pushing to a host is the missing step. | `.github/workflows/deploy.yml` |
-| Database | Managed PostgreSQL 18.6. `db:migrate` runs before the new API starts. | ADR 0001; SDP risk R2 |
-| Environment | `NODE_ENV=production` on staging, so `db:seed --guide-fixtures` is refused. `DATABASE_URL`, `CORS_ORIGIN` (the SPA's origin), `SESSION_TTL_DAYS`, `ACCOUNT_DELETION_GRACE_DAYS`, `OPENROUTER_API_KEY`, `AI_MODEL_STRUCTURED`, `AI_MODEL_CHAT` are set as host secrets. `VITE_API_URL` is set when the SPA is built. | `.env.example`, `guides/` seed |
-| Proxy | Set Express `trust proxy` for the host's proxy, or the rate limit treats every visitor as one address. | ADR 0002 (Deferred), ADR 0010 |
-| Instances | One API instance is enough. The hourly purge is safe with more, because each purge is an idempotent `DELETE`. | ADR 0004 |
-| Backups | Nightly backup kept 7 days; a restore rehearsed once before B3. Not set up yet. Purged accounts stay in backups until they rotate out; the privacy notice must say so. | Vision NFR Recovery; ADR 0004 |
-| HTTPS | SPA and API served over HTTPS. If they end up on one origin, revisit bearer versus cookie. | ADR 0002 |
-
-This section gets a C4 deployment diagram once the host is chosen.
+| Deploy | `deploy.yml` reaches the host over SSH with one forced-command key per environment, which only deploys commits already on that environment's branch. The host builds once (`npm ci`, `npm run build`), dumps the database, runs `db:migrate` and `db:seed`, switches to the new release, restarts and checks `/api/health`; an unhealthy release is switched back and fails the job. A manual run can tag the deployed commit B0–B3. | `.github/workflows/deploy.yml`, `deploy/server/omnicourse-deploy` |
+| Processes | One systemd unit per environment (`omnicourse@prod`, `omnicourse@stag`), each one API instance limited to 1 GB of memory and two cores. nginx accepts only Cloudflare, serves the SPA's static files and proxies `/api`. Other sites share the host, so OmniCourse stays inside these limits. | `deploy/server/setup.sh`, `deploy/server/nginx-site.conf` |
+| Database | Self-hosted PostgreSQL 18.6 in Docker on the host, bound to localhost, one database and role per environment. `db:migrate` runs before the new API starts. | ADR 0001, `deploy/server/setup.sh` |
+| Environment | `/etc/omnicourse/<env>.env` on the host; generated passwords never leave it. `NODE_ENV=production` in both environments, so `db:seed --guide-fixtures` is refused and the API docs pages are off; staging sets `API_DOCS=true` for testers. `CORS_ORIGIN` is the environment's own address, and the SPA is built with `VITE_API_URL=/api`. | `deploy/server/setup.sh`, `deploy/server/omnicourse-deploy`, `config/env.ts` |
+| Proxy | `TRUST_PROXY=loopback`, so the rate limit sees each visitor's address through nginx. | `config/env.ts`, `bootstrap.ts`, ADR 0002 |
+| Instances | One API instance per environment is enough. The hourly purge would also be safe with more, because each purge is an idempotent `DELETE`. | ADR 0004 |
+| Backups | A `pg_dump` before every deploy, 14 kept in `/var/backups/omnicourse`. A rollback restores code, not data. The nightly backup kept 7 days and a restore rehearsal before B3 (Vision NFR Recovery) are not set up yet. Purged accounts stay in backups until they rotate out; the privacy notice must say so. | `deploy/README.md`; Vision NFR Recovery; ADR 0004 |
+| HTTPS | Cloudflare in front, and a certificate on the host from certbot. SPA and API share one origin per environment, the case in which ADR 0002 says to revisit bearer tokens versus cookies. | `deploy/README.md`, ADR 0002 |
 
 ## 8. Architecture decisions
 
@@ -393,7 +395,7 @@ This is the first version of the document. It describes the backend and frontend
 | --- | --- | --- | --- |
 | 1 | ADR 0011 is proposed and gated. Its narrowing of "administrator rights per school and per program" to per-program grants needs Lâm's and Hoà's acceptance. | Lâm, Hoà | ADR 0011; Vision §6 Security |
 | 2 | Audit trail for curriculum and catalog changes: decide before those writes are built whether B2 needs a change log or defers it. | Lâm, Triết | ADR 0011 |
-| 3 | No staging host (risk R2, exposure 16); `trust proxy`, nightly backups and restore rehearsal follow from it. | Lâm | Issue #24; SDP R2; ADR 0002 |
+| 3 | Production and staging run on one shared host (§7): one machine, no failover. The nightly backup and the restore rehearsal are not set up yet. | Lâm | `deploy/README.md`; Vision NFR Recovery |
 | 4 | The `RulesService` interface is not merged, and seven planned components depend on it. A late change ripples to every caller (risk R9). | Triết | SDP R1, R9; ADR 0006 |
 | 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed, and ADR 0006 is unmerged; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
 | 6 | The curriculum seeds live in `database/`. Moving them into a curriculum module is a new module boundary and belongs with ADR 0011's work. | Thắng, Triết | ADR 0011 |
