@@ -106,49 +106,62 @@ usePageTitle(() => m.value.listTitle);
 </template>
 
 <style scoped>
+/* The guide list of the UI prototypes (guides.html): a large search box, then each task group's guides as cards. */
 .guides {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
-h1 {
-  margin: 0;
-  font-size: 1.75rem;
-}
-.intro,
-.note {
-  margin: 0;
+.intro {
+  color: var(--ink-2);
+  max-width: 70ch;
 }
 .note {
-  color: #555;
-  font-size: 0.9rem;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: var(--ink-3);
+  font-size: 13.5px;
 }
 .search {
   display: grid;
-  gap: 4px;
+  gap: 8px;
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
 }
 .search label {
-  font-weight: 600;
+  font-weight: 650;
+  font-size: 17px;
 }
 .search input {
   font: inherit;
+  font-size: 16px;
   width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid #767676;
-  border-radius: 6px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid var(--edge-strong);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.search input:focus {
+  outline: none;
+  border-color: var(--info);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--info) 22%, transparent);
 }
 .search small {
-  color: #555;
+  color: var(--ink-3);
 }
 #guide-results {
   display: grid;
-  gap: 16px;
+  gap: 22px;
 }
 .group h2 {
-  margin: 0 0 8px;
-  font-size: 1.15rem;
+  margin: 0 0 10px;
+  font-size: 17px;
 }
 .entries,
 .groups {
@@ -158,7 +171,7 @@ h1 {
 }
 .entries {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
 }
 .groups {
@@ -166,20 +179,46 @@ h1 {
   flex-wrap: wrap;
   gap: 8px;
 }
+.groups button {
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid var(--edge-strong);
+  background: var(--surface);
+  cursor: pointer;
+}
+.groups button:hover {
+  background: var(--surface-2);
+}
 .entry {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   align-content: start;
+  padding: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.entry:hover {
+  border-color: var(--edge-strong);
+  box-shadow: var(--shadow-lg);
 }
 .title {
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--accent);
+  font-weight: 650;
+  font-size: 15.5px;
+  line-height: 1.3;
+  color: var(--ink);
+  text-decoration: none;
+}
+.title:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .meta {
   margin: 0;
-  color: #444;
-  font-size: 0.9rem;
+  color: var(--ink-3);
+  font-size: 13px;
 }
 .meta,
 .title,
@@ -193,18 +232,16 @@ h1 {
   gap: 6px;
 }
 .chip {
-  font-size: 0.8rem;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #eef1f5;
-  color: #333;
-}
-.chip.warn {
-  background: #fff4d6;
-  color: #6b4500;
+  white-space: normal;
 }
 .portal {
   justify-self: start;
-  color: var(--accent);
+  color: var(--info);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+.portal:hover {
+  text-decoration: underline;
 }
 </style>

@@ -7,7 +7,7 @@ const m = useMessages(GUIDE_MESSAGES);
 </script>
 
 <template>
-  <p role="alert">
-    {{ m.loadFailed }} <button type="button" @click="$emit('retry')">{{ m.retry }}</button>
+  <p class="callout bad" role="alert">
+    {{ m.loadFailed }} <button class="btn sm" type="button" @click="$emit('retry')">{{ m.retry }}</button>
   </p>
 </template>
