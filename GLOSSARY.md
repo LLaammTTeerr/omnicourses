@@ -14,6 +14,10 @@ _Avoid_: department, school
 An undergraduate degree, such as APCS, with its own curriculum per cohort.
 _Avoid_: major, degree
 
+**Training type**:
+The kind of program the training regulation names: Tiên tiến (Advanced Program, such as APCS), Liên kết (joint program), Chất lượng cao (high-quality program) or đại trà (standard program). It sets a program's terms and its credit caps (QĐ 1175/QĐ-KHTN Điều 6.4 and 7.2).
+_Avoid_: program type, hệ, hệ đào tạo
+
 **Specialization**:
 A path inside a program with its own requirement groups, chosen by the student.
 _Avoid_: concentration, track, major
@@ -83,11 +87,19 @@ _Avoid_: audit check, graduation check, degree check
 ### Planning
 
 **Term**:
-An academic period in which courses are taken: a main term or a summer term.
+An academic period in which courses are taken: a main term or a summer term. A Tiên tiến, Liên kết or Chất lượng cao program has three main terms a year; a đại trà program has two main terms and may add a summer term.
 _Avoid_: semester, session, học kỳ
 
+**Main term**:
+A regular term of the academic year: one of three in a Tiên tiến, Liên kết or Chất lượng cao program, one of two in a đại trà program.
+_Avoid_: regular semester, học kỳ chính (in English text)
+
+**Summer term**:
+A short optional term after the two main terms of a đại trà program, for retaking a course, improving a grade or getting ahead. Tiên tiến, Liên kết and Chất lượng cao programs have none: their third term is a main term.
+_Avoid_: third term, học kỳ hè (in English text)
+
 **Credit cap**:
-The minimum and maximum credits a student may take in one term, published per program.
+The minimum and maximum credits a student may take in one term, set by the program's training type: 10–22 in every term for Tiên tiến, Liên kết and Chất lượng cao; 14–25 in a main term and at most 12 in a summer term for đại trà (QĐ 1175/QĐ-KHTN Điều 7.2). A student may go beyond either by a petition the faculty and the Rector approve.
 _Avoid_: credit limit, load limit, max credits
 
 **Plan**:
@@ -111,7 +123,7 @@ An academic rule a plan breaks: a prerequisite not met, a credit cap exceeded, a
 _Avoid_: error, conflict, warning
 
 **What-if scenario**:
-A hypothetical change (a failed course, another specialization, an added summer term, a heavier load) applied to a copy of a plan to see its effect on the estimated graduation term.
+A hypothetical change (a failed course, another specialization, an added term, a heavier load) applied to a copy of a plan to see its effect on the estimated graduation term.
 _Avoid_: simulation, sandbox
 
 **Rule engine**:
