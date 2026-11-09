@@ -250,6 +250,44 @@ export interface TeachingPlan {
   known_discrepancies: KnownDiscrepancy[];
 }
 
+// Prerequisites and offering terms as printed. Not loaded: the tables come
+// with F12 (ADR 0011), and the rule engine decides what a printed line means.
+
+/**
+ * One course's "Prior-course" line in a course-description booklet. The line
+ * names courses by title, by code or by topic; `resolved` keeps only the
+ * courses the line names exactly, `unresolved` everything else.
+ */
+export interface PrintedPrerequisite {
+  /** The course the line belongs to, as printed in its "Course ID". */
+  code: string;
+  /** The line exactly as printed, wraps joined. */
+  printed: string;
+  /**
+   * Codes the line names exactly: a printed code (normalizePrintedCode), or a
+   * comma-separated part equal to one course heading of the same document.
+   * Order as printed, no duplicates. Not a judgement of what the line means.
+   */
+  resolved: string[];
+  /** Parts of the line that name no course of the document exactly. */
+  unresolved: string[];
+  page: Page;
+}
+
+/** The prerequisite statements of one document, and what it says about offering terms. */
+export interface PrintedPrerequisiteList {
+  source: { file: string; pages: number; sha256: string; issued: string };
+  /** The printed field the lines come from, e.g. "Prior-course". */
+  field: string;
+  /** What the field may mean, and what must be decided before it is loaded. */
+  note: string;
+  lines: PrintedPrerequisite[];
+  /** Courses whose line is printed blank. */
+  blank: { code: string; page: Page }[];
+  /** Offering terms the document prints; [] when it prints none. */
+  offering_terms: { code: string; terms: number[]; page: Page }[];
+}
+
 // Equivalent and replacement course lists ("học phần tương đương/thay thế").
 // Not loaded: there is no table for them yet.
 
