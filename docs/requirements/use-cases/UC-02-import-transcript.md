@@ -73,4 +73,4 @@ No other system takes part. The file is read on the OmniCourse server and is not
   - The uploaded file is deleted as soon as it has been read, and is never kept (steps 2 and 8). This is the retention period the privacy NFR asks to state.
   - Uploads are limited to 5 MB (A7). A portal transcript is a few hundred kilobytes.
 - Open (ADR 0003): before Sprint 4, confirm on one real portal transcript, locally, that the PDF has a text layer and a fixed layout. If it does not, F2 ships as manual entry only, and A1 is the outcome for every upload.
-- The saved transcript is the student record that Triết's audit and Dũng's advisor read (Work Breakdown handoff, due 22 Nov). Its table and API contract are designed in a separate PR.
+- The saved transcript is the student record that the degree audit and the advisor read. Its storage is built (#29, [ADR 0007](../../analysis-and-design/adr/0007-transcript.md)): `GET` and `PUT /api/users/me/transcript`, where a save replaces the whole set (step 8, A5), and every row states its result (`graded`, `in_progress`, `exempt`, `pass` or `fail`). The PDF parser (steps 3–4) is not built yet.
