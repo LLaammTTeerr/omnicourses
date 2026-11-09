@@ -1,5 +1,6 @@
 import { ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { hash, verify } from '@node-rs/argon2';
+import { QueryFailedError } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
@@ -79,6 +80,24 @@ describe('AuthService', () => {
       await expect(
         service.signUp({ email: 'student@example.com', password: 'correct horse battery', displayName: 'X', acceptedTerms: true }),
       ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    // Issue #28: two sign-ups racing past the check; the database's unique email decides.
+    it('answers 409, not 500, when a concurrent sign-up took the email first', async () => {
+      const duplicate = Object.assign(new Error('duplicate key'), { code: '23505', constraint: 'uq_users_email' });
+      users.create.mockRejectedValueOnce(new QueryFailedError('INSERT INTO "users"', [], duplicate));
+      await expect(
+        service.signUp({ email: 'student@example.com', password: 'correct horse battery', displayName: 'X', acceptedTerms: true }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(sessions.save).not.toHaveBeenCalled();
+    });
+
+    it('lets any other database error through', async () => {
+      const failure = new QueryFailedError('INSERT INTO "users"', [], Object.assign(new Error('check'), { code: '23514' }));
+      users.create.mockRejectedValueOnce(failure);
+      await expect(
+        service.signUp({ email: 'student@example.com', password: 'correct horse battery', displayName: 'X', acceptedTerms: true }),
+      ).rejects.toBe(failure);
     });
   });
 

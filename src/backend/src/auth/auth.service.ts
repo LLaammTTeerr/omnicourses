@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
-import { EntityManager, IsNull, MoreThan, Repository } from 'typeorm';
+import { EntityManager, IsNull, MoreThan, QueryFailedError, Repository } from 'typeorm';
 import { sessionTtlDays } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
 import { UserDto } from '../users/user.dto.js';
@@ -25,15 +25,20 @@ export class AuthService {
   ) {}
 
   async signUp(dto: SignUpDto, userAgent?: string): Promise<AuthResultDto> {
-    if (await this.users.findByEmail(dto.email)) {
-      throw new ConflictException('An account with this email already exists');
-    }
-    const user = await this.users.create({
-      email: dto.email,
-      passwordHash: await hash(dto.password),
-      displayName: dto.displayName,
-      consentAt: new Date(),
-    });
+    const taken = () => new ConflictException('An account with this email already exists');
+    if (await this.users.findByEmail(dto.email)) throw taken();
+    // Two sign-ups can both pass the lookup; the unique email decides, and the
+    // loser gets the same 409 (a 500 would also log the row, hash included).
+    const user = await this.users
+      .create({
+        email: dto.email,
+        passwordHash: await hash(dto.password),
+        displayName: dto.displayName,
+        consentAt: new Date(),
+      })
+      .catch((error: unknown) => {
+        throw isUniqueViolation(error) ? taken() : error;
+      });
     return { ...(await this.issue(user, userAgent)), accountRestored: false };
   }
 
@@ -119,6 +124,10 @@ export class AuthService {
     return { token, expiresAt, user: UserDto.from(user) };
   }
 }
+
+// PostgreSQL's unique_violation. Only email is unique on a row signUp inserts.
+const isUniqueViolation = (error: unknown): boolean =>
+  error instanceof QueryFailedError && (error.driverError as { code?: unknown }).code === '23505';
 
 function newToken(): string {
   return randomBytes(32).toString('base64url');
