@@ -104,6 +104,8 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(term.attributes('aria-label')).toBe('Học kỳ, dòng 1 (ZZ101)');
     expect((term.element as HTMLSelectElement).selectedOptions[0]!.text).toBe('HK1 2024–2025');
     await term.setValue('2023-3');
+    // Term 3 is a main term in APCS, not summer (ADR 0009, amended 9 November 2026).
+    expect((term.element as HTMLSelectElement).selectedOptions[0]!.text).toBe('HK3 2023–2024');
     await saveButton(w).trigger('click');
     await flushPromises();
     const put = fetch.mock.calls.find(([, init]) => init?.method === 'PUT')!;
