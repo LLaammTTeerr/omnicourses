@@ -4,7 +4,7 @@ import { Term } from '../terms/term.js';
 // B1 test cases §6 item 1 (Lâm, 9 November 2026): onboarding offers only APCS, cohorts 2024 and
 // 2025. The CLC curricula are seeded but not offered until they are verified, so the seeded
 // tables alone can't answer which ones a student may pick.
-// TODO: switch to CurriculumService (offered curricula) once the curriculum module lands.
+// This is the release scope, a subset of what CurriculumService lists, so it stays a constant.
 export const OFFERED_COHORTS: Readonly<Record<string, readonly number[]>> = { APCS: [2024, 2025] };
 
 export const OFFERED_PROGRAMS = Object.keys(OFFERED_COHORTS);
