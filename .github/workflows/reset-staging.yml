@@ -1,0 +1,33 @@
+name: Reset staging
+
+# Every other day staging becomes a copy of main (what production runs), then redeploys.
+# Anything merged into staging but not into main is dropped. Only the code is reset: the staging
+# database keeps its data, and the deploy runs main's migrations on it.
+on:
+  schedule:
+    - cron: '0 19 */2 * *'   # 02:00 Vietnam time, every other day
+  workflow_dispatch:
+
+permissions:
+  contents: write   # force-push staging
+  actions: write    # start the staging deploy
+
+concurrency:
+  group: reset-staging
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Point staging at main
+        run: git push --force origin HEAD:refs/heads/staging
+      # A push made with GITHUB_TOKEN starts no workflow, so start the deploy explicitly.
+      - name: Deploy staging
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref staging -f environment=staging

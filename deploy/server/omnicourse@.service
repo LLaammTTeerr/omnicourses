@@ -1,0 +1,33 @@
+# OmniCourse API, one instance per environment: omnicourse@prod, omnicourse@stag.
+# Installed by deploy/server/setup.sh. Settings come from /etc/omnicourse/<env>.env.
+[Unit]
+Description=OmniCourse API (%i)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=omnicourse
+Group=omnicourse
+EnvironmentFile=/etc/omnicourse/%i.env
+WorkingDirectory=/opt/omnicourse/%i/current/src/backend
+ExecStart=/opt/omnicourse/node/bin/node dist/main.js
+Restart=on-failure
+RestartSec=3
+
+# Share the host politely: other services run here too.
+MemoryMax=1G
+CPUQuota=100%
+AllowedCPUs=0-1
+Nice=5
+
+# Hardening: the API writes nothing to disk.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target
