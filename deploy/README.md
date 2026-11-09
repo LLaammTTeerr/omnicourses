@@ -37,7 +37,7 @@ GitHub Actions (deploy.yml)                         host
 - user `omnicourse`, with no sudo except `omnicourse-root restart|dump <env>`;
 - Node 22.22.1 and npm 11.21.1 in `/opt/omnicourse/node`, the host's own Node untouched;
 - PostgreSQL 18.6 in Docker (`omnicourse-db`, `127.0.0.1:5433`), one database and role per environment;
-- `/etc/omnicourse/<env>.env` (generated passwords never leave the host);
+- `/etc/omnicourse/<env>.env` (generated passwords never leave the host; staging's adds `API_DOCS=true`, so only staging serves `/api/docs`);
 - systemd `omnicourse@prod` (port 3101) and `omnicourse@stag` (3102): 1 GB memory, cores 0–1, hardened;
 - nginx sites that accept only Cloudflare and serve the SPA plus `/api`.
 
