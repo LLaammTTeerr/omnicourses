@@ -3,6 +3,7 @@ import { page, userEvent } from 'vitest/browser';
 import type { App as VueApp } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createOmniCourseApp } from './app.js';
+import { course as auditCourse, degreeAudit, group as auditGroup } from './audit/testing/fixtures.js';
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult, session } from './auth/testing/fixtures.js';
 import { createAppRouter } from './router.js';
@@ -35,6 +36,16 @@ const CURRICULUM = {
   ],
 };
 const PROGRAMS = { programs: [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, cohortYears: [2024, 2025] }] };
+// The widest the audit gets: a long group name, a long course name, and the synthetic fixture's every section.
+const BASE_AUDIT = degreeAudit();
+const AUDIT = degreeAudit({
+  groups: [
+    ...BASE_AUDIT.groups,
+    auditGroup('00000000-0000-4000-8000-000000000a09', LONG_GROUP, {
+      courses: [auditCourse('ZZ777', { nameVi: LONG, countsTowardTotal: false, countsTowardGpa: false, status: 'counted_in_other_group', countedInGroupId: BASE_AUDIT.groups[0]!.id })],
+    }),
+  ],
+});
 const SESSIONS = [
   session({ current: true }),
   session({ id: '00000000-0000-4000-8000-0000000000b2', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Version/18.0 Mobile/15E148 Safari/604.1' }),
@@ -68,6 +79,7 @@ async function open(path: string, { signedIn = true, routes = {} as Record<strin
     'GET /users/me/onboarding': onboarding(),
     'GET /programs': PROGRAMS,
     'GET /programs/APCS/curricula/2024': CURRICULUM,
+    'GET /users/me/audit': AUDIT,
     ...routes,
   });
   const router = createAppRouter(createMemoryHistory());
@@ -95,6 +107,8 @@ describe('the new screens at a phone width and on a desktop', () => {
     ['/settings', true, 'Cài đặt'],
     ['/transcript', true, 'Bảng điểm'],
     ['/explorer', true, 'Chương trình đào tạo'],
+    ['/dashboard', true, 'Tổng quan'],
+    ['/audit', true, 'Xét tốt nghiệp'],
     ['/onboarding', true, 'Bạn đang học chương trình nào?', { 'GET /users/me/onboarding': NOT_STARTED }],
   ];
 
@@ -131,9 +145,9 @@ describe('the new screens at a phone width and on a desktop', () => {
     await open('/settings');
     const tabs = page.getByRole('navigation', { name: 'Điều hướng nhanh' });
     await expect.element(tabs.getByRole('link', { name: 'Cài đặt' })).toBeVisible();
-    // Four tabs fit side by side at 400 px.
+    // Seven tabs fit side by side at 400 px.
     const links = [...(tabs.element() as HTMLElement).querySelectorAll('a')];
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Tổng quan', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(new Set(links.map((a) => Math.round(a.getBoundingClientRect().top))).size).toBe(1);
     await expect.element(page.getByRole('complementary')).not.toBeInTheDocument();
   });

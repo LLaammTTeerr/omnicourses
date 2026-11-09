@@ -39,7 +39,7 @@ describe('SignUpView (F1, issue #13)', () => {
     vi.restoreAllMocks();
   });
 
-  it('creates the account with the consent the API records, and opens the transcript', async () => {
+  it('creates the account with the consent the API records, and opens the dashboard', async () => {
     const fetch = mockApi({ 'POST /auth/sign-up': () => Response.json(authResult({ token: 'zz-new' }), { status: 201 }) });
     const { w, router } = await render();
     await fill(w, { name: '  Sinh viên thử ', email: ' zz-student@example.com ' });
@@ -51,7 +51,7 @@ describe('SignUpView (F1, issue #13)', () => {
       acceptedTerms: true,
     });
     expect(useAuth().token).toBe('zz-new');
-    expect(router.currentRoute.value.fullPath).toBe('/transcript');
+    expect(router.currentRoute.value.fullPath).toBe('/dashboard');
   });
 
   it('refuses to send without consent, a name, a valid email and a 10-character password', async () => {

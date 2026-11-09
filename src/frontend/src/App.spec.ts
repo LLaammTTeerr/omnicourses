@@ -39,7 +39,7 @@ describe('App shell', () => {
 
     const student = await render('/guides', true);
     expect(student.w.find('.pub-head').exists()).toBe(false);
-    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
+    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(student.w.get('.side .nav a[href="/guides"]').classes()).toContain('router-link-active');
     expect(student.w.get('.side .me').text()).toContain('Sinh viên thử');
   });
@@ -57,7 +57,7 @@ describe('App shell', () => {
     expect(visitor.w.get('.pub-head').text()).toContain('Tạo tài khoản');
     visitor.w.unmount();
     const student = await render('/', true);
-    expect(student.w.get('.pub-head a.primary').attributes('href')).toBe('/transcript');
+    expect(student.w.get('.pub-head a.primary').attributes('href')).toBe('/dashboard');
   });
 
   it('sends the student to sign in, and back, when the session ends on a private page', async () => {

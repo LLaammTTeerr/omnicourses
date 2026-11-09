@@ -17,6 +17,8 @@ export interface NavItem {
 }
 
 export const NAV: readonly NavItem[] = [
+  { route: 'dashboard', icon: 'home', label: { vi: 'Tổng quan', en: 'Dashboard' }, group: 'core', section: 'main' },
+  { route: 'audit', icon: 'audit', label: { vi: 'Xét tốt nghiệp', en: 'Degree audit' }, group: 'gen', section: 'main' },
   { route: 'transcript', icon: 'file', label: { vi: 'Bảng điểm', en: 'Transcript' }, group: 'gen', section: 'main' },
   { route: 'explorer', icon: 'graph', label: { vi: 'Chương trình', en: 'Curriculum' }, group: 'phys', section: 'main' },
   { route: 'plans', icon: 'columns', label: { vi: 'Lộ trình', en: 'Plans' }, group: 'elec', section: 'main' },

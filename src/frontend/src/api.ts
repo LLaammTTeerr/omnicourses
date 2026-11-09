@@ -13,6 +13,8 @@ export class HttpError extends Error {
     method = 'GET',
     /** The messages of a Nest error body, such as each failed validation of a 400. */
     readonly details: string[] = [],
+    /** The machine-readable `code` of the error body, such as `onboarding_required` on a 409, or null. */
+    readonly code: string | null = null,
   ) {
     super(`${method} ${path} failed: ${status}`);
     this.name = 'HttpError';
@@ -32,14 +34,14 @@ export interface RequestOptions {
   token?: string | null;
 }
 
-async function errorDetails(res: Response): Promise<string[]> {
+async function errorBody(res: Response): Promise<{ details: string[]; code: string | null }> {
   try {
     const body: unknown = await res.json();
-    const message = body && typeof body === 'object' ? (body as { message?: unknown }).message : undefined;
-    if (Array.isArray(message)) return message.filter((m): m is string => typeof m === 'string');
-    return typeof message === 'string' ? [message] : [];
+    const { message, code } = body && typeof body === 'object' ? (body as { message?: unknown; code?: unknown }) : {};
+    const details = Array.isArray(message) ? message.filter((m): m is string => typeof m === 'string') : typeof message === 'string' ? [message] : [];
+    return { details, code: typeof code === 'string' ? code : null };
   } catch {
-    return [];
+    return { details: [], code: null };
   }
 }
 
@@ -49,7 +51,10 @@ export async function send(method: string, path: string, { body, token }: Reques
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`${API_URL}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-  if (!res.ok) throw new HttpError(path, res.status, method, await errorDetails(res));
+  if (!res.ok) {
+    const { details, code } = await errorBody(res);
+    throw new HttpError(path, res.status, method, details, code);
+  }
   return res;
 }
 

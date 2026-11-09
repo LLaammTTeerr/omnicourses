@@ -1,7 +1,7 @@
 import type { LocationQueryValue } from 'vue-router';
 
-/** Where a signed-in student lands when nothing asked for another page. There is no dashboard yet (F3). */
-export const HOME_SIGNED_IN = '/transcript';
+/** Where a signed-in student lands when nothing asked for another page: the dashboard (F3, UC-03). */
+export const HOME_SIGNED_IN = '/dashboard';
 
 /**
  * The page to open after signing in: the `redirect` the guard put in the address, if it is a path in this app.
