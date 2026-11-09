@@ -40,9 +40,9 @@ export class AccountService {
     const requestedAt = new Date();
     const purgeAfter = new Date(requestedAt.getTime() + accountDeletionGraceDays() * DAY_MS);
     // One transaction: a failed revoke must not leave a deletion scheduled behind a 500.
-    await this.db.transaction(async (tx) => {
-      await this.users.requestDeletion(user.id, requestedAt, purgeAfter, tx);
-      await this.auth.revokeAll(user.id, tx);
+    await this.db.transaction(async (manager) => {
+      await this.users.markDeletionRequestedWithin(manager, user.id, requestedAt, purgeAfter);
+      await this.auth.revokeAllWithin(manager, user.id);
     });
     return { purgeAfter };
   }

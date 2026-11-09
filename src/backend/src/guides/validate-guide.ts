@@ -1,8 +1,10 @@
-import { GUIDE_GROUPS, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink } from './guide-file.js';
+import { GUIDE_GROUPS, GUIDE_ID, GUIDE_ID_MAX, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink, textKey } from './guide-file.js';
 
-/** A guide ID: lower-case words joined by hyphens, such as `register-courses`. */
-export const GUIDE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-export const GUIDE_ID_MAX = 64;
+/** A file the seed may load: a published one always has its last-checked date. */
+export type LoadableGuideFile =
+  | (GuideFile & { status: 'draft' })
+  | (GuideFile & { status: 'withdrawn' })
+  | (GuideFile & { status: 'published'; lastChecked: NonNullable<GuideFile['lastChecked']> });
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 // AGENTS.md hard rule 1: a guide never types a credit count ("25 credits", "14–25 TC", "20 tín chỉ").
@@ -16,11 +18,12 @@ const APP_PATH = /^\/(?![/\\])[^\s\\]*$/;
 const isSafeUrl = (url: string) => HTTPS_URL.test(url) || APP_PATH.test(url);
 const isRealDate = (date: string) =>
   ISO_DATE.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().startsWith(date);
+const oneOf = (values: readonly string[]) => `${values.slice(0, -1).join(', ')} or ${values.at(-1)}`;
 
 /** The problems with one content file; empty when the seed may load it. A draft only needs its identity and safe links. */
 export function validateGuideFile(file: GuideFile): string[] {
   const problems: string[] = [];
-  const problem = (message: string) => problems.push(`${file.id}.${file.lang}: ${message}`);
+  const problem = (message: string) => problems.push(`${textKey(file)}: ${message}`);
   const required = (field: string, value: string) => {
     if (!value.trim()) problem(`${field} is required`);
   };
@@ -28,8 +31,8 @@ export function validateGuideFile(file: GuideFile): string[] {
   if (!GUIDE_ID.test(file.id) || file.id.length > GUIDE_ID_MAX) {
     problem(`id must be lower-case words joined by hyphens, at most ${GUIDE_ID_MAX} characters`);
   }
-  if (!GUIDE_LANGS.includes(file.lang)) problem('lang must be vi or en');
-  if (!GUIDE_STATUSES.includes(file.status)) problem('status must be draft, published or withdrawn');
+  if (!GUIDE_LANGS.includes(file.lang)) problem(`lang must be ${oneOf(GUIDE_LANGS)}`);
+  if (!GUIDE_STATUSES.includes(file.status)) problem(`status must be ${oneOf(GUIDE_STATUSES)}`);
   if (!GUIDE_GROUPS.includes(file.group)) problem(`group must be one of ${GUIDE_GROUPS.join(', ')}`);
   if (!Number.isInteger(file.version) || file.version < 1) problem('version must be a whole number from 1');
   for (const [field, link] of linksOf(file)) {
@@ -94,19 +97,26 @@ export function validateGuideSet(files: GuideFile[]): string[] {
   const problems = files.flatMap(validateGuideFile);
   const byKey = new Map<string, GuideFile>();
   for (const file of files) {
-    const key = `${file.id}.${file.lang}`;
+    const key = textKey(file);
     if (byKey.has(key)) problems.push(`${key}: two files have this id and language`);
     byKey.set(key, file);
   }
   for (const vi of files.filter((f) => f.lang === 'vi')) {
-    const en = byKey.get(`${vi.id}.en`);
+    const en = byKey.get(textKey({ id: vi.id, lang: 'en' }));
     if (!en) continue;
     if (en.group !== vi.group) problems.push(`${vi.id}: the vi and en files must have the same group`);
     if (vi.status === 'published' && en.status === 'published' && vi.portal.url !== en.portal.url) {
       problems.push(`${vi.id}: the vi and en files must link the same portal.url`);
     }
   }
-  return problems;
+  return [...problems, ...portalsMissingFromBoard(files)];
+}
+
+/** The set typed for loading, or the problems that keep the seed from loading it. */
+export function parseGuideSet(files: GuideFile[]): { files: LoadableGuideFile[] } | { problems: string[] } {
+  const problems = validateGuideSet(files);
+  // validateGuideFile requires lastChecked on every published file.
+  return problems.length ? { problems } : { files: files as LoadableGuideFile[] };
 }
 
 /** Published guides whose portal is not on a published portal board (G01): every guide sends the student to a site the board lists. */
@@ -116,7 +126,7 @@ export function portalsMissingFromBoard(files: GuideFile[]): string[] {
   if (!hosts.size) return [];
   return published
     .filter((f) => !f.portals && !hosts.has(new URL(f.portal.url).host))
-    .map((f) => `${f.id}.${f.lang}: ${new URL(f.portal.url).host} is not on the portal board`);
+    .map((f) => `${textKey(f)}: ${new URL(f.portal.url).host} is not on the portal board`);
 }
 
 function linksOf(file: GuideFile): [string, GuideLink][] {

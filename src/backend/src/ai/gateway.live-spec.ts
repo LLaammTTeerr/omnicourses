@@ -1,8 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { loadEnvFiles } from '../config/env.js';
-import type { AiCostGuard } from './ai-cost-guard.service.js';
-import { GatewayLlmService } from './gateway-llm.service.js';
+import { aiConfig, loadEnvFiles } from '../config/env.js';
+import { type CostGuard, GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent } from './llm.service.js';
 import { OpenRouterModelClient } from './openrouter-model.client.js';
 
@@ -10,10 +9,11 @@ import { OpenRouterModelClient } from './openrouter-model.client.js';
 // Synthetic input only (AGENTS.md hard rule 3).
 loadEnvFiles();
 
-const noGuard: Pick<AiCostGuard, 'reserve' | 'finish'> = { reserve: async () => 'live', finish: async () => undefined };
+const noGuard: CostGuard = { reserve: async () => 'live', finish: async () => undefined, release: async () => undefined };
 const context = { userId: '00000000-0000-4000-8000-000000000000', feature: 'live-test' };
 
-const configured = Boolean(process.env.OPENROUTER_API_KEY && process.env.AI_MODEL_STRUCTURED && process.env.AI_MODEL_CHAT);
+const config = aiConfig();
+const configured = Boolean(config.apiKey && config.structuredModel && config.chatModel);
 
 const creditCapTool = (calls: string[]) => ({
   name: 'lookup_credit_cap',
@@ -26,7 +26,11 @@ const creditCapTool = (calls: string[]) => ({
 });
 
 describe.skipIf(!configured)('AI gateway against OpenRouter (live)', () => {
-  const llm = new GatewayLlmService(new OpenRouterModelClient(), noGuard as never);
+  let llm: GatewayLlmService;
+
+  beforeAll(() => {
+    llm = new GatewayLlmService(new OpenRouterModelClient(config.apiKey ?? '', config.timeoutMs), noGuard, config);
+  });
 
   it('structured() returns a reply that passes the schema', async () => {
     const schema = z.object({ creditsPerTerm: z.number().int().nullable(), internshipTerm: z.string().nullable() });
@@ -54,8 +58,7 @@ describe.skipIf(!configured)('AI gateway against OpenRouter (live)', () => {
     expect(events.at(-1)).toMatchObject({ type: 'done', text: expect.stringContaining('25') });
   });
 
-  // The last step keeps the tools with tool_choice none, since the history holds
-  // tool calls; this checks the configured chat model accepts that and answers.
+  // Checks the configured chat model accepts tool_choice none with tools defined.
   it('chat() answers in text when it runs out of steps', async () => {
     const calls: string[] = [];
     const events: ChatEvent[] = [];

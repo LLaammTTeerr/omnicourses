@@ -1,22 +1,16 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DataSource } from 'typeorm';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
-import type { GuideFile } from '../src/guides/guide-file.js';
-import { GuideSeedError, seedGuides } from '../src/guides/seed-guides.js';
+import { type GuideFile, textKey } from '../src/guides/guide-file.js';
+import { GuideSeedError, seed, seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { privateSchema } from './support/schema.js';
 
 const FIXTURES = guideFixtures('2026-11-13');
-const PUBLISHED = [
-  'zz-en-only.en',
-  'zz-fresh.en',
-  'zz-fresh.vi',
-  'zz-six-months-and-a-day.en',
-  'zz-six-months-and-a-day.vi',
-  'zz-six-months.en',
-  'zz-six-months.vi',
-  'zz-vi-only.vi',
-];
+const DRAFTS = FIXTURES.filter((f) => f.status === 'draft').length;
+const PUBLISHED = FIXTURES.filter((f) => f.status === 'published')
+  .map(textKey)
+  .sort();
 
 /** The fixtures with one text changed. */
 const changing = (id: string, lang: string, change: Partial<GuideFile>) =>
@@ -44,9 +38,9 @@ describe('Guide seed against PostgreSQL (e2e)', () => {
   });
 
   it('loads the published texts only, then nothing more when run again', async () => {
-    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: 8, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: 2 });
+    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: PUBLISHED.length, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: DRAFTS });
     expect((await texts()).map((t) => t.key)).toEqual(PUBLISHED);
-    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: 0, updated: 0, rechecked: 0, unchanged: 8, withdrawn: 0, drafts: 2 });
+    expect(await seedGuides(db, FIXTURES)).toEqual({ inserted: 0, updated: 0, rechecked: 0, unchanged: PUBLISHED.length, withdrawn: 0, drafts: DRAFTS });
   });
 
   it('replaces a text when its version goes up', async () => {
@@ -59,7 +53,7 @@ describe('Guide seed against PostgreSQL (e2e)', () => {
   it('takes a new last-checked date without a new version', async () => {
     await seedGuides(db, FIXTURES);
     const report = await seedGuides(db, changing('zz-fresh', 'en', { lastChecked: { on: '2026-11-20', by: 'Another tester' } }));
-    expect(report).toMatchObject({ rechecked: 1, unchanged: 7 });
+    expect(report).toMatchObject({ rechecked: 1, unchanged: PUBLISHED.length - 1 });
     expect(await text('zz-fresh.en')).toMatchObject({ version: 1, checked: '2026-11-20' });
   });
 
@@ -101,6 +95,14 @@ describe('Guide seed against PostgreSQL (e2e)', () => {
     expect(error).toBeInstanceOf(GuideSeedError);
     expect((error as GuideSeedError).problems).toEqual(['zz-fresh.en: steps needs at least one step']);
     expect(await texts()).toEqual([]);
+  });
+
+  it('db:seed loads the zz-* test guides only with --guide-fixtures, and withdraws them without it', async () => {
+    const zz = async () => (await texts()).filter((t) => t.key.startsWith('zz-'));
+    await seed(db, { guideFixtures: true });
+    expect((await zz()).filter((t) => t.status === 'published').map((t) => t.key)).toEqual(PUBLISHED);
+    await seed(db, { guideFixtures: false });
+    expect((await zz()).every((t) => t.status === 'withdrawn')).toBe(true);
   });
 
   it('loads the content files of the repository', async () => {

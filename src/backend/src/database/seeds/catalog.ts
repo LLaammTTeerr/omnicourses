@@ -1,13 +1,5 @@
 import type { CatalogCourse, CatalogDecision, CurriculumSeed, PrintedRow } from './seed-types.js';
 
-/** courses.code CHECK in migration 1792912952302. */
-export const COURSE_CODE_PATTERN = /^[A-Z0-9]{2,20}$/;
-
-/** Trim, upper-case, and drop spaces and dashes, so a printed code meets the CHECK. */
-export function normalizeCourseCode(printed: string): string {
-  return printed.trim().toUpperCase().replace(/[\s\-‐-―]/g, '');
-}
-
 const CATALOG_FIELDS = [
   'name_vi',
   'name_en',
@@ -35,9 +27,7 @@ export function rowToCourse(seed: CurriculumSeed, row: PrintedRow): CatalogCours
 
 interface Sighting {
   course: CatalogCourse;
-  cohort_year: number;
   label: string;
-  page: number;
 }
 
 /** Two sightings of one code that disagree on one field. */
@@ -62,7 +52,7 @@ export class CatalogConflictError extends Error {
   }
 }
 
-function seedLabel(seed: CurriculumSeed): string {
+export function seedLabel(seed: CurriculumSeed): string {
   return `${seed.program.code} ${seed.curriculum.cohort_year}`;
 }
 
@@ -78,12 +68,7 @@ export function buildCatalog(seeds: CurriculumSeed[], decisions: CatalogDecision
     for (const group of seed.groups) {
       for (const row of group.rows) {
         const list = sightings.get(row.code) ?? [];
-        list.push({
-          course: rowToCourse(seed, row),
-          cohort_year: seed.curriculum.cohort_year,
-          label: `${seedLabel(seed)} p.${row.page}`,
-          page: row.page,
-        });
+        list.push({ course: rowToCourse(seed, row), label: `${seedLabel(seed)} p.${row.page}` });
         sightings.set(row.code, list);
       }
     }

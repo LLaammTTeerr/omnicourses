@@ -1,9 +1,15 @@
+import { DAY_MS } from '../../config/time.js';
 import type { GuideFile, GuideGroup, GuideLang, GuideStatus } from '../guide-file.js';
-import { addDays, addMonths, isOutOfDate, OUT_OF_DATE_MONTHS } from '../out-of-date.js';
+import { addMonths, isOutOfDate, OUT_OF_DATE_MONTHS } from '../out-of-date.js';
 
 // Synthetic guides for the cases of TC-B1-GUIDE-01 the real batch cannot reach (i–o).
 // Loaded by the tests and by `npm run db:seed -w src/backend -- --guide-fixtures`, on test
 // databases only. Never put them in ../content/. Each title holds its ID, so a search finds it.
+
+/** A YYYY-MM-DD date plus whole days. */
+export function addDays(date: string, days: number): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+}
 
 /** The oldest last-checked date still fresh on `today`: 6 months back, or a little later when that month is shorter. */
 export function oldestFreshDate(today: string): string {

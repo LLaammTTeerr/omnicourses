@@ -58,8 +58,8 @@ export class AuthService {
     return user.passwordHash ? verify(user.passwordHash, password) : false;
   }
 
-  async revokeAll(userId: string, tx?: EntityManager): Promise<void> {
-    await (tx?.getRepository(Session) ?? this.sessions).update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
+  async revokeAllWithin(manager: EntityManager, userId: string): Promise<void> {
+    await manager.update(Session, { userId, revokedAt: IsNull() }, { revokedAt: new Date() });
   }
 
   async authenticate(token: string): Promise<{ user: User; session: Session } | null> {

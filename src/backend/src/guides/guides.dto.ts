@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { GUIDE_GROUPS, type GuideGroup } from './guide-file.js';
+import { OUT_OF_DATE_MONTHS } from './out-of-date.js';
 
 export class GuideLinkDto {
   @ApiProperty({ example: 'Thông báo của Phòng Đào tạo' })
@@ -91,7 +92,7 @@ export class GuideListTextDto {
   @ApiProperty({ format: 'date', example: '2026-11-10', description: 'The day a team member last followed the guide on the real portal' })
   lastCheckedOn!: string;
 
-  @ApiProperty({ description: 'Last checked more than 6 months ago, counted in Vietnam dates (UC-10 A5)' })
+  @ApiProperty({ description: `Last checked more than ${OUT_OF_DATE_MONTHS} months ago, counted in Vietnam dates (UC-10 A5)` })
   outOfDate!: boolean;
 }
 

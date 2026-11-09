@@ -1,23 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
-import { aiConfig } from '../config/env.js';
+import { AI_CONFIG, type AiConfig } from './ai-config.js';
 import { AiCostGuard } from './ai-cost-guard.service.js';
-import { AiUnavailableError } from './ai-unavailable.error.js';
+import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import type { ChatEvent, ChatMessage, ChatRequest, ChatTool, StructuredRequest } from './llm.service.js';
 import { LlmService } from './llm.service.js';
+import { logErrorName } from './log-error-name.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelToolCall, ModelUsage } from './model-client.js';
 
 const DEFAULT_MAX_STEPS = 5;
 
+/**
+ * What the gateway needs of the cost guard; the live test passes one that never caps.
+ * `finish` and `release` must never throw: the gateway does not catch them.
+ */
+export type CostGuard = Pick<AiCostGuard, 'reserve' | 'finish' | 'release'>;
+
 /** The JSON Schema sent to the model; `$schema` is dropped because some providers reject it. */
-export function toModelSchema(schema: z.ZodType): Record<string, unknown> {
+function toModelSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _ignored, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
   return rest;
-}
-
-function requireModel(model: string | null): string {
-  if (!model) throw new AiUnavailableError('AI is not configured');
-  return model;
 }
 
 function addUsage(total: ModelUsage, more: ModelUsage): void {
@@ -79,15 +81,15 @@ export class GatewayLlmService extends LlmService {
   private readonly logger = new Logger(GatewayLlmService.name);
 
   constructor(
-    private readonly model: ModelClient,
-    private readonly guard: AiCostGuard,
+    @Inject(ModelClient) private readonly client: ModelClient | null,
+    @Inject(AiCostGuard) private readonly guard: CostGuard,
+    @Inject(AI_CONFIG) private readonly config: Pick<AiConfig, 'structuredModel' | 'chatModel'>,
   ) {
     super();
   }
 
   async structured<T>(request: StructuredRequest<T>): Promise<T> {
-    const model = requireModel(aiConfig().structuredModel);
-    this.model.assertConfigured();
+    const { client, model } = this.preflight(this.config.structuredModel);
     const messages: ModelMessage[] = [
       { role: 'system', content: request.instructions },
       { role: 'user', content: request.input },
@@ -96,15 +98,15 @@ export class GatewayLlmService extends LlmService {
     const usage: ModelUsage = { inputTokens: 0, outputTokens: 0 };
     const started = Date.now();
     let succeeded = false;
+    let billedTurns = 0;
     let usageId: string | undefined;
     try {
-      // Reserved just before the first model request, so the call counts even
-      // if it never finishes (ai-cost-guard.service.ts).
       usageId = await this.guard.reserve(request.context, model);
       // response_format is only a preference on OpenRouter, so a reply can still
       // miss the schema: one retry, then give up.
       for (let attempt = 1; attempt <= 2; attempt++) {
-        const reply = await this.model.complete({ model, messages, jsonSchema });
+        const reply = await client.complete({ model, messages, jsonSchema });
+        billedTurns++;
         addUsage(usage, reply.usage);
         const value = parseReply(reply.content, request.schema);
         if (value !== undefined) {
@@ -112,10 +114,10 @@ export class GatewayLlmService extends LlmService {
           return value;
         }
       }
-      throw new AiUnavailableError('The model returned an unusable reply');
+      throw new AiUnavailableError(AI_REASONS.unusableReply);
     } catch (error) {
       const failure = this.unavailable(error);
-      usageId = await this.releaseIfUnbilled(usageId, failure, usage);
+      usageId = await this.releaseIfUnbilled(usageId, failure, billedTurns);
       throw failure;
     } finally {
       await this.finish(usageId, usage, started, succeeded);
@@ -123,8 +125,7 @@ export class GatewayLlmService extends LlmService {
   }
 
   async *chat(request: ChatRequest): AsyncIterable<ChatEvent> {
-    const model = requireModel(aiConfig().chatModel);
-    this.model.assertConfigured();
+    const { client, model } = this.preflight(this.config.chatModel);
     const tools = request.tools ?? [];
     const modelTools = tools.map((t) => ({ name: t.name, description: t.description, parameters: toModelSchema(t.schema) }));
     const maxSteps = request.maxSteps ?? DEFAULT_MAX_STEPS;
@@ -132,24 +133,24 @@ export class GatewayLlmService extends LlmService {
     const usage: ModelUsage = { inputTokens: 0, outputTokens: 0 };
     const started = Date.now();
     let succeeded = false;
+    let billedTurns = 0;
     let usageId: string | undefined;
     try {
       usageId = await this.guard.reserve(request.context, model);
       for (let step = 1; step <= maxSteps; step++) {
-        // On the last turn the model has to answer: the tools stay defined, since
-        // the history holds tool calls, but tool choice is none.
         const last = step === maxSteps;
         let end: Extract<ModelStreamEvent, { type: 'end' }> | undefined;
-        for await (const event of this.model.stream({ model, messages, tools: modelTools, toolChoice: last ? 'none' : 'auto' })) {
+        for await (const event of client.stream({ model, messages, tools: modelTools, toolChoice: last ? 'none' : 'auto' })) {
           if (event.type === 'text') yield event;
           else end = event;
         }
-        if (!end) throw new AiUnavailableError('The model stream ended early');
+        if (!end) throw new AiUnavailableError(AI_REASONS.streamEndedEarly);
+        billedTurns++;
         addUsage(usage, end.usage);
         if (end.toolCalls.length === 0 || last) {
           // A provider may ignore tool_choice none and answer with tool calls
           // only; a blank answer is no answer.
-          if (!end.content.trim()) throw new AiUnavailableError('The model returned an unusable reply');
+          if (!end.content.trim()) throw new AiUnavailableError(AI_REASONS.unusableReply);
           succeeded = true;
           yield { type: 'done', text: end.content };
           return;
@@ -165,42 +166,41 @@ export class GatewayLlmService extends LlmService {
       }
     } catch (error) {
       const failure = this.unavailable(error);
-      usageId = await this.releaseIfUnbilled(usageId, failure, usage);
+      usageId = await this.releaseIfUnbilled(usageId, failure, billedTurns);
       throw failure;
     } finally {
       // Also runs when the client disconnects and the caller stops iterating.
-      // The row was reserved up front, so a stopped call still counts.
       await this.finish(usageId, usage, started, succeeded);
     }
   }
 
+  /**
+   * The model to call, checked before reserve(): a call that cannot reach a
+   * model (no key, no model configured) does not count toward the cap.
+   */
+  private preflight(model: string | null): { client: ModelClient; model: string } {
+    if (!this.client || !model) throw new AiUnavailableError(AI_REASONS.notConfigured);
+    return { client: this.client, model };
+  }
+
   private unavailable(error: unknown): AiUnavailableError {
-    // Provider errors arrive here already converted, and logged by the client.
     if (error instanceof AiUnavailableError) return error;
-    // Name only: the error object may carry the prompt (AGENTS.md hard rule 3).
-    this.logger.warn(`Unexpected AI gateway error: ${error instanceof Error ? error.name : typeof error}`);
+    logErrorName(this.logger, 'Unexpected AI gateway error', error);
     return new AiUnavailableError();
   }
 
   /**
    * Releases the reserved call when the provider refused it without billing
-   * and no earlier turn was metered. Returns the row id still to finish, or
+   * and no earlier turn was billed. Returns the row id still to finish, or
    * undefined once released. A disconnect never gets here, so it still counts.
    */
-  private async releaseIfUnbilled(usageId: string | undefined, failure: AiUnavailableError, usage: ModelUsage): Promise<string | undefined> {
-    if (usageId === undefined || failure.billed || usage.inputTokens > 0 || usage.outputTokens > 0) return usageId;
+  private async releaseIfUnbilled(usageId: string | undefined, failure: AiUnavailableError, billedTurns: number): Promise<string | undefined> {
+    if (usageId === undefined || failure.billed || billedTurns > 0) return usageId;
     await this.guard.release(usageId);
     return undefined;
   }
 
   private async finish(usageId: string | undefined, usage: ModelUsage, started: number, succeeded: boolean): Promise<void> {
-    if (usageId === undefined) return;
-    // AiCostGuard.finish never throws; this catch keeps that true for any guard,
-    // since a throw here would replace the reply or the AiUnavailableError.
-    try {
-      await this.guard.finish(usageId, { ...usage, latencyMs: Date.now() - started, succeeded });
-    } catch (error) {
-      this.logger.warn(`Could not record AI usage: ${error instanceof Error ? error.name : typeof error}`);
-    }
+    if (usageId !== undefined) await this.guard.finish(usageId, { ...usage, latencyMs: Date.now() - started, succeeded });
   }
 }

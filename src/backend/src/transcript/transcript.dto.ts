@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
+import { COURSE_CODE_PATTERN } from '../common/course-code.js';
 import { trimString } from '../common/transforms.js';
 import { TermDto } from '../terms/term.dto.js';
 import { TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
@@ -11,7 +12,7 @@ export class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'CSC10001' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   @IsString()
-  @Matches(/^[A-Z0-9]{2,20}$/, { message: 'courseCode must be 2–20 letters or digits' })
+  @Matches(COURSE_CODE_PATTERN, { message: 'courseCode must be 2–20 letters or digits' })
   courseCode!: string;
 
   @ApiProperty({ example: 'Introduction to Programming' })
