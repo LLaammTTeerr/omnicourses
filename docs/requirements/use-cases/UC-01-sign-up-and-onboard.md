@@ -3,7 +3,7 @@
 - Feature: F1 Account and onboarding (Vision §5)
 - Owner: Lâm
 - Status: draft for the use-case model (PA2)
-- Built so far: email and password sign-up and sign-in, sessions (#8, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)). In review: account export, deletion and restore on sign-in (PR #14, ADR 0004).
+- Built so far: email and password sign-up and sign-in, sessions (#8, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)); account export, deletion and restore on sign-in (#14, [ADR 0004](../../analysis-and-design/adr/0004-account-export-and-deletion.md)). Onboarding is not on `main` yet; its B1 decisions are in the [B1 test cases §6](../../test/test-cases-b1.md#6-inputs-still-needed).
 
 ## 1. Brief description
 
@@ -26,11 +26,11 @@ A student creates an OmniCourse account, signs in, and tells OmniCourse which pr
 3. The student fills in the form, ticks consent, and submits.
 4. The system checks the input: a valid email, a password of 10 to 128 characters, a display name that is not empty and at most 100 characters, and consent given.
 5. The system creates the account, stores the password only as an argon2id hash, records the time of consent, and signs the student in on this device.
-6. The system starts onboarding and asks for the student's **faculty**, **program** and **cohort**, offering only the ones that exist in the curriculum data.
+6. The system starts onboarding and asks for the student's **faculty**, **program** and **cohort**, offering only the ones that exist in the curriculum data. While no program in the curriculum data has a faculty, the system skips the faculty question and lists the programs directly. B1 offers only APCS, cohorts 2024 and 2025 (B1 test cases §6 item 1).
 7. The student chooses them.
 8. The system asks for the student's default **planning goal**. Every field is optional and can be changed later:
-   - target graduation term;
-   - credits per term;
+   - target graduation term, from the current term up to 8 academic years ahead;
+   - credits per term, a whole number of 1 or more;
    - internship term, or none planned.
 9. The student fills in what they know and presses **Finish**.
 10. The system saves the onboarding answers and opens the degree audit (UC-03).
@@ -58,7 +58,7 @@ How a Google sign-in meets an account that already uses the same email is decide
 
 If the email is unknown or the password is wrong, the system says only that the email or password is invalid. It does not reveal which, and the response time is the same in both cases.
 
-**A6. Signing in cancels a pending deletion** (in review, PR #14). At A5 step 2 the account was scheduled for deletion less than 30 days ago (privacy NFR). The system cancels the deletion, signs the student in, and tells them their account has been restored.
+**A6. Signing in cancels a pending deletion** (#14, ADR 0004). At A5 step 2 the account was scheduled for deletion less than 30 days ago (privacy NFR). The system cancels the deletion, signs the student in, and tells them their account has been restored.
 
 **A7. Program not offered yet.** At step 7 the student's program or cohort is not in the list. The system explains that only the listed programs are supported in this release. The student can leave onboarding unfinished. Guides (UC-10) work without a program; the degree audit and the planner wait until onboarding is finished.
 
@@ -75,7 +75,7 @@ If the email is unknown or the password is wrong, the system says only that the 
 
 - **Security** (Vision §6): passwords hashed with argon2id; sessions rotate, expire after 7 days and can be revoked from any of the student's devices.
 - **Privacy** (Vision §6, Luật 91/2025/QH15): consent is required and its time stored. No school-portal password is ever asked for (AGENTS.md hard rule 2).
-- **Academic rules** (AGENTS.md hard rule 1): onboarding stores the credits per term the student asks for and does not apply the credit cap; the rule engine does, when a plan is built.
+- **Academic rules** (AGENTS.md hard rule 1): onboarding stores the credits per term the student asks for and does not apply the credit cap: any whole number of 1 or more is kept, with no upper limit. The rule engine applies the caps of the program's training type when a plan is built or checked ([ADR 0012](../../analysis-and-design/adr/0012-credit-caps-by-training-type.md)).
 - **Usability:** the forms work from 360 px wide, by keyboard, in Vietnamese and English.
 
 ## 8. Additional information
@@ -87,10 +87,11 @@ Account operations that belong to F1 but are not separate use cases. They are li
 | Sign out on this device | `POST /api/auth/sign-out` |
 | List and revoke my sessions | `GET /api/auth/sessions`, `DELETE /api/auth/sessions/:id` |
 | Stay signed in (token rotation) | `POST /api/auth/refresh` |
-| Export my whole account | `GET /api/users/me/export` (in review, PR #14) |
-| Delete my whole account (password again, 30-day grace) | `DELETE /api/users/me` (in review, PR #14) |
+| Export my whole account | `GET /api/users/me/export` (#14) |
+| Delete my whole account (password again, 30-day grace) | `DELETE /api/users/me` (#14) |
+| Read and save the onboarding answers (steps 6–9, A8, A9) | `GET /api/users/me/onboarding`, `PUT /api/users/me/onboarding` (decided, not built yet) |
 
 Open:
 - Sign-up with a verified HCMUS student email (Vision F1) needs a mail sender; not planned before B3.
-- The onboarding API is not built. Program and cohort reference Triết's curriculum tables (due 28 Oct). A7 and A8 describe the intended behaviour for it.
+- The onboarding API is not built yet. Its routes and stored values are decided (B1 test cases §6 items 1–4): a goal left empty is stored as `null`, and an internship term of "none planned" as `'none'`. Program and cohort reference the curriculum tables ([ADR 0005](../../analysis-and-design/adr/0005-curriculum-cohort-and-course-catalog.md), #23). A7 and A8 describe the intended behaviour for it.
 - Google sign-in (A4): whether a Google identity may join an existing email account, and on what proof, is a security decision for the ADR that adds it.
