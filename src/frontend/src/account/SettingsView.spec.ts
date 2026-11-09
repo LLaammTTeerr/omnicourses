@@ -99,7 +99,9 @@ describe('SettingsView', () => {
     await w.findAll('button').find((b) => b.text().includes('Xuất dữ liệu'))!.trigger('click');
     await flushPromises();
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/users/me/export'), expect.objectContaining({ headers: { Authorization: 'Bearer zz-token' } }));
-    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    // The file holds what the API sent. (Node's Blob and jsdom's differ, so check the content, not the class.)
+    const saved = vi.mocked(URL.createObjectURL).mock.calls[0]![0] as Blob;
+    expect(JSON.parse(await saved.text())).toEqual({ exportedAt: '2026-11-09T00:00:00.000Z', user: {}, tables: {} });
     expect(downloads).toEqual(['omnicourse-account.json']);
     expect(useToast().message).toBe('Đã tải về omnicourse-account.json.');
   });
