@@ -32,7 +32,8 @@ describe('the phone tab bar', () => {
 
   it('shows four pages, then More, in both languages', async () => {
     const w = await render('/dashboard');
-    expect(tabs(w)).toEqual(['Tổng quan', 'Lộ trình', 'Xét tốt nghiệp', 'Chương trình', 'Thêm']);
+    // The audit is "Xét tốt nghiệp / Degree audit" in the sidebar (GLOSSARY); its tab is shorter, to fit one line.
+    expect(tabs(w)).toEqual(['Tổng quan', 'Lộ trình', 'Tốt nghiệp', 'Chương trình', 'Thêm']);
     expect(w.findAll('.tabbar a').map((a) => a.attributes('href'))).toEqual(['/dashboard', '/plans', '/audit', '/explorer']);
     useLocale().set('en');
     await flushPromises();
@@ -82,13 +83,35 @@ describe('the phone tab bar', () => {
     closed();
 
     await open();
-    // A click inside the sheet keeps it open; one on the dialog itself (the backdrop) closes it.
+    // A click inside the sheet keeps it open; one that starts and ends on the dialog itself (the backdrop) closes it.
+    await sheet(w).get('#more-title').trigger('mousedown');
     await sheet(w).get('#more-title').trigger('click');
     await flushPromises();
     expect(sheet(w).attributes('open')).toBeDefined();
+    await sheet(w).trigger('mousedown');
     await sheet(w).trigger('click');
     await flushPromises();
     closed();
+  });
+
+  it('stays open after a drag that starts inside the sheet and ends on the backdrop', async () => {
+    const w = await render('/dashboard');
+    await more(w).trigger('click');
+    await flushPromises();
+    // The browser sends the click to the dialog, the common ancestor of where the press began and ended.
+    await sheet(w).get('.more-list').trigger('mousedown');
+    await sheet(w).trigger('click');
+    await flushPromises();
+    expect(sheet(w).attributes('open')).toBeDefined();
+  });
+
+  it('fills the sheet with its content, so a tap in its margin lands inside it', async () => {
+    const w = await render('/dashboard');
+    await more(w).trigger('click');
+    await flushPromises();
+    const children = sheet(w).element.children;
+    expect(children).toHaveLength(1);
+    expect(children[0]!.classList.contains('more-body')).toBe(true);
   });
 
   it('closes when the student follows a link in it', async () => {
@@ -105,12 +128,15 @@ describe('the phone tab bar', () => {
   it.each(['/transcript', '/guides', '/settings'])('marks More as the current tab on %s', async (path) => {
     const w = await render(path);
     expect(more(w).classes()).toContain('router-link-active');
+    // Screen readers hear the current page too, as they did when every page was a tab.
+    expect(more(w).attributes('aria-current')).toBe('page');
     expect(w.findAll('.tabbar a.router-link-active')).toHaveLength(0);
   });
 
   it.each(['/dashboard', '/plans', '/audit', '/explorer'])('leaves More unmarked on %s', async (path) => {
     const w = await render(path);
     expect(more(w).classes()).not.toContain('router-link-active');
+    expect(more(w).attributes('aria-current')).toBeUndefined();
     expect(w.findAll('.tabbar a.router-link-active')).toHaveLength(1);
   });
 });

@@ -147,12 +147,13 @@ describe('the new screens at a phone width and on a desktop', () => {
     // Four pages and More, side by side at 400 px; Settings is under More, which shows as the current tab.
     await expect.element(tabs.getByRole('button', { name: 'Thêm' })).toHaveClass(/router-link-active/);
     const items = [...(tabs.element() as HTMLElement).children] as HTMLElement[];
-    expect(items.map((item) => item.textContent?.trim())).toEqual(['Tổng quan', 'Lộ trình', 'Xét tốt nghiệp', 'Chương trình', 'Thêm']);
+    expect(items.map((item) => item.textContent?.trim())).toEqual(['Tổng quan', 'Lộ trình', 'Tốt nghiệp', 'Chương trình', 'Thêm']);
     expect(new Set(items.map((item) => Math.round(item.getBoundingClientRect().top))).size).toBe(1);
     await expect.element(page.getByRole('complementary')).not.toBeInTheDocument();
   });
 
-  // English has long words that cannot wrap ("Curriculum"), Vietnamese has long labels that do ("Xét tốt nghiệp").
+  // English has long words that cannot wrap ("Curriculum"), Vietnamese has long labels that can ("Chương trình").
+  // Every label stays inside its tab; the audit's, shortened to "Tốt nghiệp" for the tab, stays on one line.
   it.each([
     ['vi', 'Điều hướng nhanh'],
     ['en', 'Quick navigation'],
@@ -170,7 +171,26 @@ describe('the new screens at a phone width and on a desktop', () => {
       expect(label.scrollWidth, what).toBeLessThanOrEqual(label.clientWidth);
       expect(label.getBoundingClientRect().left, what).toBeGreaterThanOrEqual(item.getBoundingClientRect().left);
       expect(label.getBoundingClientRect().right, what).toBeLessThanOrEqual(item.getBoundingClientRect().right);
+      if (item.getAttribute('href') === '/audit') {
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        expect(new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size, `${what} on one line`).toBe(1);
+      }
     }
+  });
+
+  it('keeps the More sheet open on a tap in its margin, beside the links', async () => {
+    await page.viewport(400, 800);
+    await open('/dashboard');
+    await page.getByRole('navigation', { name: 'Điều hướng nhanh' }).getByRole('button', { name: 'Thêm' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Thêm' });
+    await expect.element(sheet).toBeVisible();
+    const dialog = sheet.element() as HTMLDialogElement;
+    const list = dialog.querySelector('.more-list')!.getBoundingClientRect();
+    const box = dialog.getBoundingClientRect();
+    // 6 px in from the sheet's left edge, level with the middle of the links: inside the sheet, beside its content.
+    await sheet.click({ position: { x: 6, y: Math.round(list.top - box.top + list.height / 2) } });
+    expect(dialog.open).toBe(true);
   });
 
   it('opens More as a modal sheet that traps focus, closes on Escape and gives focus back', async () => {

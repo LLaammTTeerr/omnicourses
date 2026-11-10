@@ -29,9 +29,16 @@ const inMore = computed(() => PHONE_MORE.find((item) => route.matched.some((reco
 // Following a link, or going back, closes the sheet.
 watch(() => route.fullPath, () => (moreOpen.value = false));
 
-/** A click on the backdrop lands on the <dialog> itself; one inside the sheet lands on its content. */
+// A tap on the backdrop lands on the <dialog> itself. The content fills the dialog, so a tap in the sheet's margin
+// lands on the content; and a drag that starts inside and ends on the backdrop sends its click to the dialog, so the
+// sheet closes only when the press began on the dialog itself too.
+let pressedOnBackdrop = false;
+function press(event: MouseEvent): void {
+  pressedOnBackdrop = event.target === event.currentTarget;
+}
 function backdrop(event: MouseEvent): void {
-  if (event.target === event.currentTarget) moreOpen.value = false;
+  if (pressedOnBackdrop && event.target === event.currentTarget) moreOpen.value = false;
+  pressedOnBackdrop = false;
 }
 </script>
 
@@ -53,6 +60,7 @@ function backdrop(event: MouseEvent): void {
         type="button"
         data-test="more"
         :class="[groupClass(inMore?.group ?? 'core'), { 'router-link-active': inMore }]"
+        :aria-current="inMore ? 'page' : undefined"
         aria-haspopup="dialog"
         aria-controls="more-sheet"
         :aria-expanded="moreOpen ? 'true' : 'false'"
@@ -61,18 +69,20 @@ function backdrop(event: MouseEvent): void {
         <Icon name="more" /><span>{{ m.more }}</span>
       </button>
     </nav>
-    <ModalDialog id="more-sheet" class="more-sheet" :open="moreOpen" labelledby="more-title" @close="moreOpen = false" @click="backdrop">
-      <div class="more-head">
-        <h2 id="more-title">{{ m.more }}</h2>
-        <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="moreOpen = false"><Icon name="x" size="sm" /></button>
+    <ModalDialog id="more-sheet" class="more-sheet" :open="moreOpen" labelledby="more-title" @close="moreOpen = false" @mousedown="press" @click="backdrop">
+      <div class="more-body">
+        <div class="more-head">
+          <h2 id="more-title">{{ m.more }}</h2>
+          <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="moreOpen = false"><Icon name="x" size="sm" /></button>
+        </div>
+        <ul class="more-list">
+          <li v-for="item in PHONE_MORE" :key="item.route">
+            <RouterLink :class="groupClass(item.group)" :to="{ name: item.route }" @click="moreOpen = false">
+              <Icon :name="item.icon" /><span>{{ item.label[locale.lang] }}</span>
+            </RouterLink>
+          </li>
+        </ul>
       </div>
-      <ul class="more-list">
-        <li v-for="item in PHONE_MORE" :key="item.route">
-          <RouterLink :class="groupClass(item.group)" :to="{ name: item.route }" @click="moreOpen = false">
-            <Icon :name="item.icon" /><span>{{ item.label[locale.lang] }}</span>
-          </RouterLink>
-        </li>
-      </ul>
     </ModalDialog>
   </template>
 </template>
@@ -95,7 +105,8 @@ function backdrop(event: MouseEvent): void {
   }
   .tabbar a.router-link-active, .tabbar button.router-link-active { background: var(--c); color: var(--on); }
 }
-dialog.modal.more-sheet { margin: auto 10px 10px; width: auto; max-width: none; padding: 16px; gap: 8px; border-radius: 16px; }
+dialog.modal.more-sheet { margin: auto 10px 10px; width: auto; max-width: none; padding: 0; border-radius: 16px; }
+.more-body { display: grid; gap: 8px; padding: 16px; }
 .more-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 dialog.modal.more-sheet h2 { font-size: 18px; }
 .more-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }

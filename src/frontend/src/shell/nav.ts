@@ -20,7 +20,7 @@ export interface NavItem {
 
 export const NAV: readonly NavItem[] = [
   { route: 'dashboard', icon: 'home', label: { vi: 'Tổng quan', en: 'Dashboard' }, group: 'core', section: 'main' },
-  { route: 'audit', icon: 'audit', label: { vi: 'Xét tốt nghiệp', en: 'Degree audit' }, tab: { vi: 'Xét tốt nghiệp', en: 'Audit' }, group: 'gen', section: 'main' },
+  { route: 'audit', icon: 'audit', label: { vi: 'Xét tốt nghiệp', en: 'Degree audit' }, tab: { vi: 'Tốt nghiệp', en: 'Audit' }, group: 'gen', section: 'main' },
   { route: 'transcript', icon: 'file', label: { vi: 'Bảng điểm', en: 'Transcript' }, group: 'gen', section: 'main' },
   { route: 'explorer', icon: 'graph', label: { vi: 'Chương trình', en: 'Curriculum' }, group: 'phys', section: 'main' },
   { route: 'plans', icon: 'columns', label: { vi: 'Lộ trình', en: 'Plans' }, group: 'elec', section: 'main' },
@@ -31,8 +31,9 @@ export const NAV: readonly NavItem[] = [
 const pick = (...routes: string[]): readonly NavItem[] => routes.map((route) => NAV.find((item) => item.route === route)!);
 
 /**
- * The phone tab bar: four tabs, then "More" for the rest (UI prototypes' TABS), since all seven do not fit at 400 px
- * in English. Every NAV item is in one of the two lists (nav.spec.ts); the desktop sidebar lists them all.
+ * The phone tab bar: four tabs, then "More" for the rest, since all seven do not fit at 400 px in English. The bar
+ * takes the UI prototypes' look (ui-prototypes/assets/shell.js), not their list of tabs. Every NAV item is in one of
+ * the two lists (nav.spec.ts); the desktop sidebar lists them all.
  */
 export const PHONE_TABS: readonly NavItem[] = pick('dashboard', 'plans', 'audit', 'explorer');
 export const PHONE_MORE: readonly NavItem[] = pick('transcript', 'guides', 'settings');
