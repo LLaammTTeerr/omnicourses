@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
@@ -210,6 +213,87 @@ describe('Degree audit API (e2e)', () => {
         'At least 163 credits toward the cohort total',
       ]);
       expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
+    });
+  });
+
+  // TC-B1-ACAD-01c (docs/test/test-cases-b1.md §6 item 13): a synthetic student who has passed every
+  // requirement of APCS 2024. The file is the exact PUT /api/users/me/transcript body, so the manual run
+  // on a server saves the same rows. Changing it means updating the checksum and values in §6 item 13.
+  describe('the APCS 2024 completion fixture', () => {
+    const file = readFileSync(join(__dirname, 'fixtures', 'apcs-2024-completion.json'));
+    const fixture = JSON.parse(file.toString('utf8')) as { rows: object[] };
+    let audit: Record<string, any>;
+
+    beforeAll(async () => {
+      const { auth } = await student(ONBOARDED, fixture.rows);
+      audit = (await http().get('/api/users/me/audit').set(auth).expect(200)).body;
+    });
+
+    it('is the version the test cases record', () => {
+      expect(createHash('sha256').update(file).digest('hex')).toBe('d0a0493f2fe62da8b070d853392100a9f47babac789f2c099ed69ccfdf3facde');
+      expect(fixture.rows).toHaveLength(45);
+    });
+
+    it('meets every group and the combined minimum', () => {
+      const rows = (audit.groups as Record<string, any>[]).map((g) => [g.name, g.requiredCredits, g.passedCredits, g.overflowOutCredits, g.remainingCredits, g.met]);
+      expect(rows).toEqual([
+        // name, required, passed, overflow out, remaining, met
+        ['Kiến thức Computer Science (A): bắt buộc', 40, 40, 0, 0, true],
+        // CS251, CS252, CS311, CS420: exactly 16, nothing overflows to (C).
+        ['Kiến thức Computer Science (A): tự chọn', 16, 16, 0, 0, true],
+        ['Kiến thức Math', 16, 16, 0, 0, true],
+        // The 26 credits, plus Thể dục 1, Thể dục 2 and GDQP passed outside them.
+        ['Kiến thức Non Computer Science', 26, 26, 0, 0, true],
+        ['Kiến thức Physics', 12, 12, 0, 0, true],
+        // CS468 Khóa luận tốt nghiệp, 10 credits.
+        ['Kiến thức tốt nghiệp', 10, 10, 0, 0, true],
+        // Nine courses of 4 credits.
+        ['Tự chọn Computer Science (C)', null, 36, 0, null, true],
+        // MTH253 and MTH346.
+        ['Tự chọn Math (B)', 8, 8, 0, 0, true],
+      ]);
+      const courses = (audit.groups as { courses: { code: string; status: string }[] }[]).flatMap((g) => g.courses);
+      expect(courses.filter((c) => ['BAA00021', 'BAA00022', 'BAA00030'].includes(c.code)).map((c) => c.status)).toEqual(['passed', 'passed', 'passed']);
+      // (B) 8 + (C) 36 = 44 ≥ 43.
+      expect(audit.combinedMinimums).toEqual([expect.objectContaining({ name: 'Kiến thức tự chọn', creditsMin: 43, credits: 44, remainingCredits: 0, met: true })]);
+    });
+
+    it('counts 164 credits toward the 163', () => {
+      // 40 + 16 + 26 + 16 + 12 + 10 + 36 + 8 = 164; accumulated adds Thể dục 1 and 2 (2 each) and GDQP (4).
+      expect(audit.credits).toEqual({ accumulated: 172, towardTotal: 164, inProgressTowardTotal: 0, totalRequired: 163, remaining: 0, yearLevel: 4 });
+    });
+
+    it('computes the averages from the 42 graded courses', () => {
+      // Σ grade × credits = 1274 over 164 credits = 7.768… → 7.77; 4-point 540.5 / 164 = 3.295… → 3.30.
+      // Every graded course is passed, so both averages are the same. The three `pass` rows enter neither.
+      expect(audit.gpa).toEqual({ average: 7.77, accumulatedAverage: 7.77, accumulatedAverageFourPoint: 3.3, classification: 'good', gradedCredits: 164 });
+    });
+
+    it('keeps every term within the APCS caps', () => {
+      const terms = (audit.terms as Record<string, any>[]).map((t) => [`${t.term.year}-${t.term.number}`, t.credits, t.average, t.cumulativeAccumulatedAverage, t.capViolations.length]);
+      expect(terms).toEqual([
+        // term, credits (Thể dục and GDQP included, Điều 7.1.b), average, cumulative, violations
+        ['2024-1', 20, 7.38, 7.38, 0], // 118 / 16
+        ['2024-2', 15, 7.2, 7.29, 0], // 108 / 15; 226 / 31
+        ['2024-3', 15, 7.4, 7.33, 0], // 111 / 15; 337 / 46
+        ['2025-1', 18, 8.13, 7.53, 0], // 130 / 16; 467 / 62
+        ['2025-2', 18, 7.25, 7.47, 0], // 116 / 16; 583 / 78
+        ['2025-3', 16, 8, 7.56, 0], // 128 / 16; 711 / 94
+        ['2026-1', 18, 7.61, 7.57, 0], // 137 / 18; 848 / 112
+        ['2026-2', 10, 7.8, 7.59, 0], // 78 / 10; 926 / 122
+        ['2026-3', 12, 8.33, 7.66, 0], // 100 / 12; 1026 / 134
+        ['2027-1', 10, 7.8, 7.67, 0], // 78 / 10; 1104 / 144
+        ['2027-2', 10, 8, 7.69, 0], // 80 / 10; 1184 / 154
+        ['2027-3', 10, 9, 7.77, 0], // 90 / 10; 1274 / 164
+      ]);
+    });
+
+    it('is done, with the conditions it cannot check still listed, and no warning', () => {
+      expect(audit.graduation.status).toBe('done');
+      expect(audit.graduation.unmet).toEqual([]);
+      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
+      expect(audit.unmatchedCourses).toEqual([]);
+      expect(audit.warnings).toEqual([]);
     });
   });
 
