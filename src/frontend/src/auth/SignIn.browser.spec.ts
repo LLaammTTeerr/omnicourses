@@ -3,10 +3,12 @@ import { page } from 'vitest/browser';
 import type { App as VueApp } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createOmniCourseApp } from '../app.js';
+import { degreeAudit } from '../audit/testing/fixtures.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { createAppRouter } from '../router.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { HEALTHY } from '../testing/health.js';
+import { HOME_SIGNED_IN } from './redirect.js';
 import { SESSION_STORAGE_KEY } from './store.js';
 import { authResult } from './testing/fixtures.js';
 
@@ -54,19 +56,22 @@ async function signIn(email: string, password: string): Promise<void> {
 const heading = (name: string) => page.getByRole('heading', { level: 1, name });
 
 describe('signing in (UC-01)', () => {
-  it('signs in with a valid email and password, keeps the session and opens the transcript', async () => {
+  it('signs in with a valid email and password, keeps the session and opens the dashboard', async () => {
+    let sent: unknown;
     const router = await open('/sign-in', {
+      // Captured, not asserted here: a throw inside fetch would surface as a network error, not as the body diff.
       'POST /auth/sign-in': (init: RequestInit) => {
-        expect(sentBody(init)).toEqual({ email: EMAIL, password: PASSWORD });
+        sent = sentBody(init);
         return Response.json(authResult());
       },
-      'GET /users/me/transcript': { rows: [] },
+      'GET /users/me/audit': degreeAudit(),
     });
     await expect.element(heading('Chào mừng trở lại.')).toBeVisible();
 
     await signIn(`  ${EMAIL} `, PASSWORD);
-    await expect.element(heading('Bảng điểm')).toBeVisible();
-    expect(router.currentRoute.value.fullPath).toBe('/transcript');
+    await expect.element(heading('Tổng quan')).toBeVisible();
+    expect(sent).toEqual({ email: EMAIL, password: PASSWORD });
+    expect(router.currentRoute.value.fullPath).toBe(HOME_SIGNED_IN);
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBe('zz-token');
   });
 
