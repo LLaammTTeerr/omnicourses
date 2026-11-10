@@ -49,6 +49,14 @@ const issue = (fields: Pick<PlanIssue, 'code' | 'kind' | 'citation' | 'message'>
 
 const copyTerm = (t: Term): Term => ({ year: t.year, number: t.number });
 
+/**
+ * Whether a slot of the group counts toward the cohort total (and so toward the đại trà minimum):
+ * only when every course of the group does. A slot in a group that mixes both, such as APCS's
+ * with the Thể dục rows, may hold either, so it is not claimed toward graduation (ADR 0013).
+ */
+const slotCountsTowardTotal = (rules: CurriculumRules, groupId: string | null): boolean =>
+  rules.groups.find((g) => g.id === groupId)?.courses.every((c) => c.countsTowardTotal) ?? true;
+
 /** Every issue of a plan, its terms' loads, and the coverage the plan would reach. */
 export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
   const { rules, courseRules, transcript, catalogCredits } = input;
@@ -87,7 +95,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
 
     tiles.forEach((p, position) => {
       if (p.kind === 'slot' || p.courseCode === null) {
-        load.push({ credits: p.credits ?? 0 });
+        load.push({ credits: p.credits ?? 0, excludedFromMinimum: !slotCountsTowardTotal(rules, p.requirementGroupId) });
         return;
       }
       const code = p.courseCode;
@@ -198,7 +206,8 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
 /**
  * The degree audit as it would stand with the plan completed: every placed course and every course
  * in progress passed in its term. A slot is an unnamed course of its group with the slot's credits,
- * so it counts, and overflows, as the course chosen for it would.
+ * so it counts, and overflows, as the course chosen for it would; it counts toward the total only
+ * when every course of its group does.
  */
 function projectedCoverage(input: PlanCheckInput, terms: readonly BoardTerm[]): { coverage: PlanCoverage; issues: PlanIssue[] } {
   const { rules, catalogCredits } = input;
@@ -215,7 +224,7 @@ function projectedCoverage(input: PlanCheckInput, terms: readonly BoardTerm[]): 
       } else if (p.requirementGroupId !== null && p.credits !== null) {
         // Lower case: never a catalog code (COURSE_CODE_PATTERN is capitals and digits).
         const code = `slot:${term.year}-${term.number}-${position}`;
-        const slot = { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: true, countsTowardGpa: false };
+        const slot = { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: slotCountsTowardTotal(rules, p.requirementGroupId), countsTowardGpa: false };
         slotsByGroup.set(p.requirementGroupId, [...(slotsByGroup.get(p.requirementGroupId) ?? []), slot]);
         projected.push(pass(code, p.credits, term));
       }

@@ -6,7 +6,7 @@ import type { Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { CAP_CITATION, PETITION_NOTE } from './credit-caps.js';
 import { checkPlan, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CITATION, OFFERING_CITATION, PLAN_MODEL_CITATION, PREREQUISITE_CITATION } from './plan-issues.js';
-import { graded, term, ungraded, zzCurriculum } from './testing/fixtures.js';
+import { course as fixtureCourse, graded, group, term, ungraded, zzCurriculum } from './testing/fixtures.js';
 
 // Synthetic curriculum and transcripts only (AGENTS.md hard rule 3): zzCurriculum is Tiên tiến,
 // 10–22 credits in every term, and needs 38 credits.
@@ -16,6 +16,10 @@ const slot = (requirementGroupId: string, credits: number): Placement => ({ kind
 const at = (t: Term, ...placements: Placement[]): BoardTerm => ({ term: t, placements });
 
 const ALL_CODES = zzCurriculum().groups.flatMap((g) => g.courses.map((c) => c.code));
+const NONE: Record<string, string[]> = Object.fromEntries(ALL_CODES.map((c) => [c, []]));
+const EVERY_TERM: Record<string, number[]> = Object.fromEntries(ALL_CODES.map((c) => [c, [1, 2, 3]]));
+/** A group wholly outside the cohort total, like CLC 2025's Giáo dục thể chất. */
+const PE_GROUP = group('pe', 'compulsory', 2, [fixtureCourse('ZZPE2', 2, { countsTowardTotal: false, countsTowardGpa: false })]);
 
 interface Options {
   transcript?: TranscriptEntry[];
@@ -175,6 +179,19 @@ describe('checkPlan', () => {
       ]);
     });
 
+    it('leaves a slot of a group outside the total out of the đại trà minimum, as its course would be', () => {
+      const rules = zzCurriculum({ trainingType: 'standard', groups: [...zzCurriculum().groups, PE_GROUP] });
+      const options = { rules, prerequisites: { ...NONE, ZZPE2: [] }, offering: { ...EVERY_TERM, ZZPE2: [1, 2, 3] } };
+      const real = check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZB1'), course('ZZPE2'))], options);
+      const held = check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZB1'), slot('pe', 2))], options);
+      for (const report of [real, held]) {
+        expect(report.terms[0].credits).toBe(14);
+        expect(termIssues(report.issues)).toMatchObject([{ code: 'load_below_minimum', credits: 12, limit: 14 }]);
+      }
+      // A slot whose group the curriculum no longer has counts toward the minimum, as any course does.
+      expect(termIssues(check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZB1'), slot('gone', 2))], options).issues)).toEqual([]);
+    });
+
     it('reports the caps as not checked when the training type is not recorded', () => {
       const report = check([at(term(2025, 1), course('ZZA1'))], { rules: zzCurriculum({ trainingType: null }) });
       expect(report.trainingType).toBeNull();
@@ -199,6 +216,7 @@ describe('checkPlan', () => {
         expect.objectContaining({ code: 'already_passed', kind: 'flag', term: term(2025, 1), position: 0, courseCode: 'ZZA1', citation: IMPROVEMENT_CITATION }),
       ]);
     });
+
   });
 
   describe('courses outside the curriculum', () => {
@@ -255,6 +273,18 @@ describe('checkPlan', () => {
       expect(report.coverage.groups.find((g) => g.id === 'a-tc')).toMatchObject({ credits: 8, met: true });
       expect(report.coverage.groups.find((g) => g.id === 'c')).toMatchObject({ credits: 8, met: true });
       expect(report.coverage).toMatchObject({ totalCredits: 38, graduation: 'done' });
+    });
+
+    it('counts a slot toward the total only when every course of its group counts toward it', () => {
+      const rules = zzCurriculum({ groups: [...zzCurriculum().groups, PE_GROUP] });
+      const options = { rules, prerequisites: { ...NONE, ZZPE2: [] }, offering: { ...EVERY_TERM, ZZPE2: [1, 2, 3] } };
+      const total = (...placements: Placement[]) => check([at(term(2025, 1), ...placements)], options).coverage.totalCredits;
+      expect(total(course('ZZA1'))).toBe(4);
+      expect(total(course('ZZA1'), course('ZZPE2'))).toBe(4);
+      expect(total(course('ZZA1'), slot('pe', 2))).toBe(4);
+      // `non` mixes ZZN1 (counted) with ZZPE1 (not): the slot may hold either, so it is not counted.
+      expect(total(course('ZZA1'), slot('non', 2))).toBe(4);
+      expect(total(course('ZZA1'), slot('b', 4))).toBe(8);
     });
 
     it('says nothing about the total when the cohort total is not recorded', () => {
