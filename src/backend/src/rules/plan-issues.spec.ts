@@ -119,6 +119,23 @@ describe('checkPlan', () => {
       expect(termIssues(report.issues)).toMatchObject([{ code: 'prerequisite_not_met', courseCode: 'ZZB1', missingCourseCodes: ['ZZA1'] }]);
     });
 
+    it('follows the transcript over a placement in a term it records a fail in, as coverage does', () => {
+      const withA2 = { ...Object.fromEntries(ALL_CODES.map((c) => [c, []])), ZZA2: ['ZZA1'] };
+      const report = check([at(term(2025, 1), course('ZZA1')), at(term(2025, 2), course('ZZA2'))], { prerequisites: withA2, transcript: [graded('ZZA1', 4, 3, term(2025, 1))] });
+      expect(termIssues(report.issues)).toContainEqual(expect.objectContaining({ code: 'prerequisite_not_met', term: term(2025, 2), courseCode: 'ZZA2', missingCourseCodes: ['ZZA1'] }));
+      expect(report.issues).toContainEqual(expect.objectContaining({ code: 'requirement_not_covered', requirementGroupId: 'a-bb', missingCourseCodes: ['ZZA1'] }));
+
+      // A fail recorded in a later term than the placement wins too; the transcript's last completed attempt counts (Điều 14.1.a).
+      const later = check([at(term(2025, 1), course('ZZA1')), at(term(2025, 3), course('ZZA2'))], { prerequisites: withA2, transcript: [graded('ZZA1', 4, 3, term(2025, 2))] });
+      expect(termIssues(later.issues)).toContainEqual(expect.objectContaining({ code: 'prerequisite_not_met', courseCode: 'ZZA2', missingCourseCodes: ['ZZA1'] }));
+
+      // A pass, or an attempt still in progress, in the placement's term keeps the placement's assumption.
+      for (const transcript of [[graded('ZZA1', 4, 6, term(2025, 1))], [ungraded('ZZA1', 4, 'in_progress', term(2025, 1))], [graded('ZZA1', 4, 3, term(2025, 1)), graded('ZZA1', 4, 7, term(2025, 2))]]) {
+        const fine = check([at(term(2025, 1), course('ZZA1')), at(term(2025, 3), course('ZZA2'))], { prerequisites: withA2, transcript });
+        expect(fine.issues.filter((i) => i.code === 'prerequisite_not_met')).toEqual([]);
+      }
+    });
+
     it('reports unrecorded prerequisites as unknown, never as met or not met', () => {
       const { ZZB1: _dropped, ...withoutB1 } = prerequisites;
       const report = check([at(term(2025, 1), course('ZZB1'), course('ZZC1'), course('ZZC2'))], { prerequisites: withoutB1 });

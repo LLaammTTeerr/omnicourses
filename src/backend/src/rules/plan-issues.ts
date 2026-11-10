@@ -8,7 +8,7 @@ import type { PlanCoverage, PlanIssue, PlanIssuesReport, PlanTermLoad } from '..
 import { compareTerms, termLabel } from '../terms/current-term.js';
 import type { Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { resolve } from './attempts.js';
+import { isCompleted, resolve } from './attempts.js';
 import { degreeAudit } from './audit.js';
 import { CAP_CITATION, PETITION_NOTE, checkTermLoad, type LoadCourse } from './credit-caps.js';
 import { placements } from './coverage.js';
@@ -77,8 +77,8 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
   const issues: PlanIssue[] = [];
   const loads: PlanTermLoad[] = [];
   const firstPlacedIn = new Map<string, Term>();
-  /** Courses the plan places in the terms checked so far: the plan assumes each is passed. */
-  const plannedEarlier = new Set<string>();
+  /** Courses the plan places in the terms checked so far, with their term: the plan assumes each is passed. */
+  const plannedEarlier = new Map<string, Term>();
 
   for (const { term, placements: tiles } of terms) {
     const at = copyTerm(term);
@@ -86,8 +86,13 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
     const placementIssues: PlanIssue[] = [];
     const load: LoadCourse[] = [];
 
-    // Passed before this term: in the transcript (or in progress there, assumed passed as the plan is), or placed earlier in the plan.
-    const passedBefore = new Set(plannedEarlier);
+    // Passed before this term: in the transcript (or in progress there, assumed passed as the plan is), or placed earlier in the
+    // plan. Once the transcript has a completed attempt in or after the placement's term, it decides, as it does in coverage.
+    const passedBefore = new Set<string>();
+    for (const [code, placedIn] of plannedEarlier) {
+      const recorded = (attemptsByCode.get(code) ?? []).some((a) => isCompleted(a) && compareTerms(a.term, placedIn) >= 0 && compareTerms(a.term, term) < 0);
+      if (!recorded) passedBefore.add(code);
+    }
     for (const code of attemptsByCode.keys()) {
       const standing = standingBefore(code, term);
       if (standing && (standing.passed || standing.inProgress)) passedBefore.add(code);
@@ -195,7 +200,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
       );
     }
     issues.push(...placementIssues);
-    for (const p of tiles) if (p.kind === 'course' && p.courseCode !== null) plannedEarlier.add(p.courseCode);
+    for (const p of tiles) if (p.kind === 'course' && p.courseCode !== null && !plannedEarlier.has(p.courseCode)) plannedEarlier.set(p.courseCode, at);
   }
 
   const coverage = projectedCoverage(input, terms);
