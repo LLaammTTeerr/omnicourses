@@ -24,6 +24,11 @@ export const PLAN_ISSUE_CODES = [
   'load_above_maximum',
   /** The program's training type is not recorded, so no cap is checked (ADR 0013). */
   'caps_not_checked',
+  /**
+   * A course of the term has unknown credits (credits_not_recorded), so the load is at least `credits`
+   * and a cap it may still cross is not checked. A load already above the maximum is still flagged.
+   */
+  'load_not_checked',
   /** The course is placed in more than one term of the plan (ADR 0014). */
   'placed_twice',
   /** The transcript already has the course passed before this term: a grade improvement (Điều 14.2). */
@@ -77,7 +82,10 @@ export interface PlanTermLoad {
   term: Term;
   /** Null when the program's training type is not recorded. */
   kind: TermKind | null;
-  /** The credits placed: courses at their catalog credits, slots at theirs (Điều 7.1.b). */
+  /**
+   * The credits placed: courses at their catalog credits, slots at theirs (Điều 7.1.b). A course whose
+   * credits are unknown is left out, so this is then a lower bound (load_not_checked).
+   */
   credits: number;
   /** Null when the program's training type is not recorded: no cap is checked. */
   caps: CreditCaps | null;

@@ -85,6 +85,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
     const label = termLabel(term);
     const placementIssues: PlanIssue[] = [];
     const load: LoadCourse[] = [];
+    const unknownCredits: string[] = [];
 
     // Passed before this term: in the transcript (or in progress there, assumed passed as the plan is), or placed earlier in the
     // plan. Once the transcript has a completed attempt in or after the placement's term, it decides, as it does in coverage.
@@ -107,6 +108,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
       const where = { term: at, position, courseCode: code };
       const credits = creditsOf(code);
       if (credits === undefined) {
+        unknownCredits.push(code);
         placementIssues.push(
           issue({ ...where, code: 'credits_not_recorded', kind: 'unknown', citation: 'QĐ 1175/QĐ-KHTN Điều 7.1.b', message: `${code} is not in the catalog, so its credits are unknown and left out of the load of ${label}.` }),
         );
@@ -185,7 +187,28 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
         issue({ term: at, code: 'caps_not_checked', kind: 'unknown', credits: checked.credits, citation: CAP_CITATION, message: `The training type of ${rules.programCode} is not recorded, so the load of ${label} is not checked.` }),
       );
     }
-    for (const v of checked.violations) {
+    // A course of unknown credits may add any number: only a load already above the maximum is certain (ADR 0011: unknown, never a pass or a fail).
+    // A known load below the minimum may yet reach it; one not above the maximum may yet cross it.
+    const violations = unknownCredits.length ? checked.violations.filter((v) => v.rule === 'above_maximum') : checked.violations;
+    if (unknownCredits.length && checked.caps !== null) {
+      const { min, max } = checked.caps;
+      const minOpen = checked.violations.some((v) => v.rule === 'below_minimum');
+      const maxOpen = !violations.length;
+      if (minOpen || maxOpen) {
+        const against = minOpen && maxOpen ? `the caps of ${min}–${max}` : minOpen ? `the minimum of ${min}` : `the maximum of ${max}`;
+        issues.push(
+          issue({
+            term: at,
+            code: 'load_not_checked',
+            kind: 'unknown',
+            credits: checked.credits,
+            citation: CAP_CITATION,
+            message: `The credits of ${unknownCredits.join(', ')} are unknown, so ${label} holds at least ${checked.credits} credits and is not checked against ${against}.`,
+          }),
+        );
+      }
+    }
+    for (const v of violations) {
       const below = v.rule === 'below_minimum';
       issues.push(
         issue({

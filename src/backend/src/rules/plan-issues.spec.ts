@@ -209,6 +209,52 @@ describe('checkPlan', () => {
       expect(termIssues(check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZB1'), slot('gone', 2))], options).issues)).toEqual([]);
     });
 
+    describe('with a course whose credits are unknown', () => {
+      const options = { prerequisites: { ...NONE, ZZGONE: [] }, offering: { ...EVERY_TERM, ZZGONE: [1, 2, 3] } };
+      const loadIssues = (report: ReturnType<typeof check>) => report.issues.filter((i) => i.position === null && i.term !== null);
+
+      it('reports the load as at least the known credits, never below the minimum', () => {
+        const report = check([at(term(2025, 1), course('ZZA1'), course('ZZGONE'), course('ZZC1'))], options);
+        expect(report.terms[0]).toMatchObject({ credits: 8, caps: { min: 10, max: 22 } });
+        expect(loadIssues(report)).toEqual([
+          expect.objectContaining({ code: 'load_not_checked', kind: 'unknown', term: term(2025, 1), position: null, credits: 8, limit: null, citation: CAP_CITATION }),
+        ]);
+        expect(loadIssues(report)[0].message).toBe('The credits of ZZGONE are unknown, so 2025–2026 term 1 holds at least 8 credits and is not checked against the caps of 10–22.');
+      });
+
+      it('does not pass a known load under the maximum that the unknown credits may push over it', () => {
+        const report = check([at(term(2025, 1), course('ZZT1'), course('ZZA1'), course('ZZA2'), course('ZZGONE'))], options);
+        expect(loadIssues(report)).toMatchObject([{ code: 'load_not_checked', credits: 18 }]);
+        expect(loadIssues(report)[0].message).toContain('not checked against the maximum of 22.');
+      });
+
+      it('still flags a known load already above the maximum, and checks nothing else', () => {
+        const report = check([at(term(2025, 1), course('ZZT1'), course('ZZA1'), course('ZZA2'), course('ZZC1'), course('ZZC2'), course('ZZGONE'))], options);
+        expect(loadIssues(report)).toMatchObject([{ code: 'load_above_maximum', kind: 'flag', credits: 26, limit: 22 }]);
+      });
+
+      it('reports the đại trà minimum as not checked even above the maximum, and the summer term against its maximum only', () => {
+        const rules = zzCurriculum({ trainingType: 'standard', groups: [...zzCurriculum().groups, PE_GROUP] });
+        const report = check([at(term(2025, 1), slot('pe', 24), course('ZZA1'), course('ZZGONE')), at(term(2025, 3), course('ZZA2'), course('ZZGONE2'))], {
+          rules,
+          prerequisites: { ...options.prerequisites, ZZGONE2: [] },
+          offering: { ...options.offering, ZZGONE2: [1, 2, 3] },
+        });
+        expect(loadIssues(report)).toMatchObject([
+          { code: 'load_not_checked', term: term(2025, 1), credits: 28 },
+          { code: 'load_above_maximum', term: term(2025, 1), credits: 28, limit: 25 },
+          { code: 'load_not_checked', term: term(2025, 3), credits: 4 },
+        ]);
+        expect(loadIssues(report)[0].message).toContain('not checked against the minimum of 14.');
+        expect(loadIssues(report)[2].message).toContain('not checked against the maximum of 12.');
+      });
+
+      it('reports only that the caps are not checked when the training type is not recorded either', () => {
+        const report = check([at(term(2025, 1), course('ZZA1'), course('ZZGONE'))], { ...options, rules: zzCurriculum({ trainingType: null }) });
+        expect(loadIssues(report)).toMatchObject([{ code: 'caps_not_checked', credits: 4 }]);
+      });
+    });
+
     it('reports the caps as not checked when the training type is not recorded', () => {
       const report = check([at(term(2025, 1), course('ZZA1'))], { rules: zzCurriculum({ trainingType: null }) });
       expect(report.trainingType).toBeNull();
@@ -251,6 +297,7 @@ describe('checkPlan', () => {
       });
       expect(report.terms[0].credits).toBe(12);
       expect(termIssues(report.issues)).toMatchObject([
+        { code: 'load_not_checked', kind: 'unknown', credits: 12, position: null },
         { code: 'credits_not_recorded', kind: 'unknown', courseCode: 'ZZGONE', position: 1 },
         { code: 'not_in_curriculum', courseCode: 'ZZGONE' },
       ]);
