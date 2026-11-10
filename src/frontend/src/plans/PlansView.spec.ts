@@ -228,6 +228,31 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
+  it('says a deletion that gets no answer in its dialog, and lets the student out', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    // The request's timeout, fired by the test instead of after 30 seconds.
+    const timer = new AbortController();
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timer.signal);
+    const { w } = await render({
+      [`DELETE /plans/${OTHER_ID}`]: (init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(init.signal!.reason))),
+    });
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    const keep = () => w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!;
+    expect(keep().attributes('disabled')).toBeDefined();
+
+    timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Chưa thực hiện được. Hãy thử lại.');
+    expect(keep().attributes('disabled')).toBeUndefined();
+    await keep().trigger('click');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+  });
+
   it('lets no other action start while a copy runs, so its failure is not said in another dialog', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let answer!: (response: Response) => void;
