@@ -7,7 +7,7 @@ import { session } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { closeNatively, mockApi, sentBody, status } from '../testing/fetch.js';
+import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SettingsView from './SettingsView.vue';
 
@@ -189,6 +189,24 @@ describe('SettingsView', () => {
     await flushPromises();
     expect(router.currentRoute.value.name).toBe('home');
     expect(useAuth().signedIn).toBe(false);
+  });
+
+  // The server may have done it: a retry then gets a 401, which signs the student out, and signing in cancels it.
+  it('says a deletion that got no answer may have gone through', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const timer = new AbortController();
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timer.signal);
+    const { w } = await render({ 'DELETE /users/me': hung });
+    const dialog = await openDeletion(w);
+    await dialog.get('#delete-password').setValue('zz-password-1');
+    await dialog.get('form').trigger('submit');
+    await flushPromises();
+    timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe(
+      'OmniCourse chưa trả lời, có thể việc xóa đã xong. Nếu thử lại mà bị đăng xuất thì tài khoản đã được hẹn xóa, và đăng nhập lại sẽ hủy việc xóa.',
+    );
+    expect(useAuth().signedIn).toBe(true);
   });
 
   it('signs out here and says when the deletion completes', async () => {

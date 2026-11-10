@@ -56,7 +56,8 @@ async function confirm(): Promise<void> {
     else if (status === 429) error.value = m.value.rateLimited;
     else {
       console.error('Deleting the account failed:', e);
-      error.value = m.value.unreachable;
+      // A timeout: the request may have reached the server and revoked every session (ADR 0004).
+      error.value = e instanceof DOMException && e.name === 'TimeoutError' ? m.value.noAnswer : m.value.unreachable;
     }
   } finally {
     busy.value = false;

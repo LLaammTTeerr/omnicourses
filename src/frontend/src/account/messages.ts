@@ -53,6 +53,7 @@ interface SettingsMessages {
   wrongPassword: string;
   rateLimited: string;
   unreachable: string;
+  noAnswer: string;
   deleted: (date: string) => string;
   signOut: string;
   signedOut: string;
@@ -113,6 +114,8 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     wrongPassword: 'Mật khẩu không đúng.',
     rateLimited: 'Quá nhiều lần thử. Đợi một phút rồi thử lại.',
     unreachable: 'Chưa kết nối được OmniCourse. Thử lại sau ít phút.',
+    noAnswer:
+      'OmniCourse chưa trả lời, có thể việc xóa đã xong. Nếu thử lại mà bị đăng xuất thì tài khoản đã được hẹn xóa, và đăng nhập lại sẽ hủy việc xóa.',
     deleted: (date) => `Tài khoản sẽ bị xóa vĩnh viễn sau ${date}. Đăng nhập lại trước đó để hủy.`,
     signOut: 'Đăng xuất',
     signedOut: 'Đã đăng xuất.',
@@ -171,6 +174,7 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     wrongPassword: 'Wrong password.',
     rateLimited: 'Too many attempts. Wait a minute, then try again.',
     unreachable: 'Could not reach OmniCourse. Try again in a moment.',
+    noAnswer: 'OmniCourse did not answer, so the deletion may have gone through. If trying again signs you out, it did, and signing in again cancels it.',
     deleted: (date) => `Your account will be deleted for good after ${date}. Sign in before then to cancel.`,
     signOut: 'Sign out',
     signedOut: 'Signed out.',
