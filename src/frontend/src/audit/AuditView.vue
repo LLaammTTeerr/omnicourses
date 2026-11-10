@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, watch } from 'vue';
+import { nextTick, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { courseName } from '../curriculum/present.js';
 import { groupClass } from '../groups.js';
@@ -10,7 +10,7 @@ import { termName } from '../terms.js';
 import type { CourseCoverage, DegreeAudit, GraduationCondition, GroupCoverage } from './api.js';
 import AuditGate from './AuditGate.vue';
 import { AUDIT_MESSAGES } from './messages.js';
-import { combinedNamesOf, conditionFor, conditionLabel, formatScore, groupName, notPassed, shownGroups, useAudit } from './present.js';
+import { combinedNamesOf, conditionFor, conditionLabel, formatScore, groupName, notPassedByStatus, shownGroups, useAudit, withoutOwnCondition } from './present.js';
 
 // The degree audit (F3, UC-03, ADR 0013): every requirement group with the courses counted in it, its credits and
 // what is missing; the minimums across groups; the graduation conditions with the clause each one cites; each term's
@@ -18,18 +18,18 @@ import { combinedNamesOf, conditionFor, conditionLabel, formatScore, groupName, 
 // (AGENTS.md hard rule 1).
 const locale = useLocale();
 const m = useMessages(AUDIT_MESSAGES);
-const { status, data, error, reload } = useAudit();
-const audit = computed(() => (data.value?.status === 'ready' ? data.value.audit : null));
+const { status, data, error, reload, audit } = useAudit();
 
 // The dashboard links to a group, a combined minimum or the conditions by hash. The router scrolls before the audit
-// has loaded, when the target does not exist yet, so the page scrolls to it once it is drawn.
+// has loaded, when the target does not exist yet, so the page scrolls to it once it is drawn. The router has already
+// decoded the hash; decoding it again would throw on a stray %.
 const route = useRoute();
 watch(
   () => [status.value, route.hash] as const,
   async ([loaded, hash]) => {
     if (loaded !== 'loaded' || !hash) return;
     await nextTick();
-    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: 'start' });
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
   },
   { immediate: true },
 );
@@ -43,14 +43,21 @@ function outcome(course: Pick<CourseCoverage, 'grade' | 'result'>): string {
   return '–';
 }
 
-/** What a group still needs, in words: the API's remaining credits, and for a compulsory group its courses not passed. */
-function missingLine(group: GroupCoverage): string {
+/**
+ * What a group still needs, in words: the API's remaining credits (none written as 0: what is left may all be in
+ * progress), and for a compulsory group its courses not passed, by status. A group with no condition of its own
+ * points to the combined minimum that is its rule.
+ */
+function missingLine(a: DegreeAudit, group: GroupCoverage): string {
+  if (withoutOwnCondition(a, group)) {
+    const names = combinedNamesOf(a, group.id);
+    return names.length ? m.value.seeCombined(names.join(', ')) : m.value.noMinimum;
+  }
   if (group.met) return m.value.nothingMissing;
   const parts: string[] = [];
-  if (group.remainingCredits !== null) parts.push(m.value.missingCredits(group.remainingCredits));
-  if (group.inProgressCredits) parts.push(m.value.inProgress(group.inProgressCredits));
-  const left = notPassed(group);
-  if (left.length) parts.push(`${m.value.toPass}: ${left.map((course) => course.code).join(', ')}`);
+  if (group.remainingCredits) parts.push(m.value.missingCredits(group.remainingCredits));
+  if (group.inProgressCredits) parts.push(group.remainingCredits ? m.value.inProgress(group.inProgressCredits) : m.value.awaiting(group.inProgressCredits));
+  for (const { status: courseStatus, codes } of notPassedByStatus(group)) parts.push(`${m.value.statuses[courseStatus]}: ${codes.join(', ')}`);
   return parts.join(' · ');
 }
 
@@ -152,11 +159,12 @@ usePageTitle(() => m.value.auditTitle);
                 <template v-if="group.overflowOutCredits">{{ m.overflowOut(group.overflowOutCredits, groupName(a, group.overflowToGroupId)) }}</template>
               </p>
             </div>
-            <span :class="['chip', group.met ? 'ok' : 'warn']" data-test="group-state">{{ group.met ? `✓ ${m.met}` : `○ ${m.notMet}` }}</span>
+            <span v-if="withoutOwnCondition(a, group)" class="chip" data-test="group-state">{{ m.byCombined }}</span>
+            <span v-else :class="['chip', group.met ? 'ok' : 'warn']" data-test="group-state">{{ group.met ? `✓ ${m.met}` : `○ ${m.notMet}` }}</span>
           </div>
 
           <div class="au-missing" data-test="missing">
-            <p><b>{{ m.missing }}:</b>{{ ` ${missingLine(group)}` }}</p>
+            <p><b>{{ m.missing }}:</b>{{ ` ${missingLine(a, group)}` }}</p>
             <span v-if="groupCondition(a, group.id)" class="cite">{{ m.citation }}: {{ groupCondition(a, group.id)!.citation }}</span>
           </div>
 
@@ -182,7 +190,7 @@ usePageTitle(() => m.value.auditTitle);
                   <td class="r">{{ course.credits }}</td>
                   <td>
                     <span :class="['status', course.status]">{{ m.statuses[course.status] }}</span>
-                    <span v-if="course.status === 'counted_in_other_group' && groupName(a, course.countedInGroupId)" class="small t3">
+                    <span v-if="groupName(a, course.countedInGroupId)" class="small t3">
                       · {{ m.countedIn(groupName(a, course.countedInGroupId)!) }}
                     </span>
                   </td>
@@ -204,7 +212,7 @@ usePageTitle(() => m.value.auditTitle);
               <p class="small t2">
                 {{ m.combinedCredits(combined.credits, combined.creditsMin)
                 }}<template v-if="combined.inProgressCredits"> · {{ m.inProgress(combined.inProgressCredits) }}</template
-                ><template v-if="!combined.met"> · {{ m.missing }}: {{ m.missingCredits(combined.remainingCredits) }}</template>
+                ><template v-if="!combined.met && combined.remainingCredits"> · {{ m.missing }}: {{ m.missingCredits(combined.remainingCredits) }}</template>
               </p>
               <p class="small t3">{{ m.combinedOf(combined.groupIds.map((id) => groupName(a, id) ?? id).join(', ')) }}</p>
               <p v-if="combined.officialNotes" class="small t3">{{ combined.officialNotes }}</p>
@@ -264,7 +272,7 @@ usePageTitle(() => m.value.auditTitle);
         <section v-if="a.warnings.length" class="card" aria-labelledby="au-warnings-title" data-test="warnings">
           <h2 id="au-warnings-title">{{ m.warningsTitle }}</h2>
           <ul class="au-list">
-            <li v-for="w in a.warnings" :key="`${w.code}-${w.courseCode}`" class="small">{{ m.warnings[w.code](w.courseCode) }}</li>
+            <li v-for="w in a.warnings" :key="`${w.code}-${w.courseCode}`" class="small">{{ m.warnings[w.code](w) }}</li>
           </ul>
         </section>
 
@@ -295,6 +303,8 @@ usePageTitle(() => m.value.auditTitle);
   border: 1px solid var(--edge); white-space: normal; overflow-wrap: anywhere;
 }
 .au-group { display: grid; gap: 12px; }
+/* The dashboard links here by hash: a target keeps clear of the top edge, and of the phone's sticky top bar. */
+.audit-page :is(#graduation, .au-group, .au-list > li[id]) { scroll-margin-top: 16px; }
 .au-group-head { display: flex; gap: 12px; align-items: flex-start; }
 .au-group-title { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .au-group-title h2 { overflow-wrap: anywhere; }
@@ -313,6 +323,9 @@ usePageTitle(() => m.value.auditTitle);
 .au-violation { display: grid; gap: 4px; justify-items: start; }
 .au-violation + .au-violation { margin-top: 8px; }
 .au-violation .chip { white-space: normal; }
+@media (max-width: 960px) {
+  .audit-page :is(#graduation, .au-group, .au-list > li[id]) { scroll-margin-top: 72px; }
+}
 @media (max-width: 760px) {
   .audit-page .au-sum-row { grid-template-columns: minmax(0, 1fr); }
 }

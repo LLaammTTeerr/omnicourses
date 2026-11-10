@@ -60,6 +60,9 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(math!.text()).toContain('✓ Đã đạt');
     expect(elective!.text()).toContain('Không có tối thiểu riêng · tính trong Kiến thức tự chọn');
     expect(elective!.text()).not.toMatch(/\/ 0/);
+    // The API calls it met but lists no condition for it: no ✓, its rule is the combined minimum.
+    expect(elective!.text()).not.toContain('✓');
+    expect(elective!.text()).not.toContain('Chưa đạt');
     expect(elective!.find('.meter').exists()).toBe(false);
     expect(text(w, 'combined')).toContain('0 / 12 TC');
     expect(text(w, 'combined')).toContain('còn 8 TC');
@@ -122,6 +125,23 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'credits')).toContain('8 / 20 credits');
     expect(text(w, 'gpa')).toContain('7.75');
     expect(w.get('h1').text()).toBe('Dashboard');
+  });
+
+  it('writes one condition and one credit in the singular in English', async () => {
+    const base = degreeAudit();
+    const notYet = degreeAudit({ graduation: { ...base.graduation, unmet: base.graduation.unmet.slice(0, 1) }, credits: { ...base.credits, towardTotal: 1, totalRequired: null } });
+    const { w } = await render(notYet);
+    useLocale().set('en');
+    await flushPromises();
+    expect(text(w, 'graduation')).toContain('1 condition not met yet.');
+    expect(text(w, 'credits')).toContain('1 credit');
+    expect(text(w, 'credits')).not.toContain('1 credits');
+    const done = degreeAudit({ graduation: { ...base.graduation, status: 'done', unmet: [], notChecked: base.graduation.notChecked.slice(0, 1) } });
+    wrapper?.unmount();
+    const again = await render(done);
+    useLocale().set('en');
+    await flushPromises();
+    expect(text(again.w, 'graduation')).toContain('1 condition OmniCourse cannot check remains for the training office.');
   });
 
   it('sends a student who has not finished onboarding there, with no error', async () => {

@@ -119,6 +119,11 @@ describe('the new screens at a phone width and on a desktop', () => {
       for (const [path, signedIn, heading, routes] of pages) {
         await open(path, { signedIn, routes });
         await expect.element(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+        if (path === '/dashboard' || path === '/audit') {
+          // The heading is drawn before the audit loads: wait for the groups, long names and all, before measuring.
+          await expect.poll(() => document.querySelectorAll('[data-test="group"]').length).toBe(AUDIT.groups.length);
+          expect(document.body.textContent).toContain(LONG_GROUP);
+        }
         if (path === '/transcript') {
           // An invalid row, with its reasons spelled out, is the widest the table gets.
           await page.getByRole('button', { name: 'Thêm dòng' }).click();
@@ -191,6 +196,17 @@ describe('the new screens at a phone width and on a desktop', () => {
     // 6 px in from the sheet's left edge, level with the middle of the links: inside the sheet, beside its content.
     await sheet.click({ position: { x: 6, y: Math.round(list.top - box.top + list.height / 2) } });
     expect(dialog.open).toBe(true);
+  });
+
+  it('scrolls a linked group below the phone top bar, not under it', async () => {
+    await page.viewport(400, 800);
+    const target = AUDIT.groups.find((g) => g.name === 'Kiến thức Math')!;
+    await open(`/audit#group-${target.id}`);
+    await expect.poll(() => document.querySelectorAll('[data-test="group"]').length).toBe(AUDIT.groups.length);
+    const bar = document.querySelector('.mobile-top')!;
+    const section = document.getElementById(`group-${target.id}`)!;
+    await expect.poll(() => Math.abs(section.getBoundingClientRect().top - bar.getBoundingClientRect().bottom)).toBeLessThan(40);
+    expect(section.getBoundingClientRect().top).toBeGreaterThanOrEqual(bar.getBoundingClientRect().bottom);
   });
 
   it('opens More as a modal sheet that traps focus, closes on Escape and gives focus back', async () => {

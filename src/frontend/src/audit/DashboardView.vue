@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -8,15 +7,14 @@ import Icon from '../shell/Icon.vue';
 import type { DegreeAudit } from './api.js';
 import AuditGate from './AuditGate.vue';
 import { AUDIT_MESSAGES } from './messages.js';
-import { combinedNamesOf, conditionAnchor, conditionLabel, formatScore, share, shownGroups, useAudit } from './present.js';
+import { combinedNamesOf, conditionAnchor, conditionLabel, formatScore, share, shownGroups, useAudit, withoutOwnCondition } from './present.js';
 
 // The dashboard (F3, UC-03; UI prototypes: dashboard.html), where a signed-in student lands: graduation status,
 // credits, each requirement group's progress, the conditions not met yet, and the way on. Every figure is the
 // degree audit API's (ADR 0013); the page draws and words them, and decides none (AGENTS.md hard rule 1).
 const locale = useLocale();
 const m = useMessages(AUDIT_MESSAGES);
-const { status, data, error, reload } = useAudit();
-const audit = computed(() => (data.value?.status === 'ready' ? data.value.audit : null));
+const { status, data, error, reload, audit } = useAudit();
 
 /** How many unmet conditions the dashboard lists before sending the student to the audit page. */
 const TOP_UNMET = 5;
@@ -105,9 +103,10 @@ usePageTitle(() => m.value.dashboardTitle);
                       <i class="current" :style="{ width: `${share(group.inProgressCredits, group.requiredCredits)}%` }"></i>
                     </span>
                     <span class="small t3 db-g-note">
-                      <span :class="['state', group.met ? 'ok' : 'todo']">{{ group.met ? `✓ ${m.met}` : `○ ${m.notMet}` }}</span>
+                      <!-- A group with no condition of its own (no minimum of its own) gets no ✓: its rule is the combined minimum. -->
+                      <span v-if="!withoutOwnCondition(a, group)" :class="['state', group.met ? 'ok' : 'todo']">{{ group.met ? `✓ ${m.met}` : `○ ${m.notMet}` }}</span>
                       <template v-if="group.requiredCredits === null">
-                        · {{ combinedNamesOf(a, group.id).length ? m.noMinimumIn(combinedNamesOf(a, group.id).join(', ')) : m.noMinimum }}
+                        <template v-if="!withoutOwnCondition(a, group)">· </template>{{ combinedNamesOf(a, group.id).length ? m.noMinimumIn(combinedNamesOf(a, group.id).join(', ')) : m.noMinimum }}
                       </template>
                       <template v-else-if="group.remainingCredits">· {{ m.remaining(group.remainingCredits) }}</template>
                       <template v-if="group.inProgressCredits">· {{ m.inProgress(group.inProgressCredits) }}</template>

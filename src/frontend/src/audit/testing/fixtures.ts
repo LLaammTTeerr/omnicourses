@@ -129,7 +129,8 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
     unmatchedCourses: [{ code: 'ZZ999', name: 'Môn ngoài chương trình thử', credits: 3, result: 'graded', grade: 9, passed: true, inProgress: false }],
     graduation: {
       status: 'not_yet',
-      met: [condition(`group:${GROUP_C}`, 'Requirement group "Tự chọn Computer Science (C)"', 'met'), condition(`group:${GROUP_MATH}`, 'Requirement group "Kiến thức Math"', 'met')],
+      // (C) has no minimum of its own, so the API lists no condition for it: its rule is the combined minimum.
+      met: [condition(`group:${GROUP_MATH}`, 'Requirement group "Kiến thức Math"', 'met')],
       unmet: [
         condition(`group:${GROUP_A}`, 'Requirement group "Kiến thức Computer Science (A): bắt buộc"', 'not_met'),
         condition(`combined:${COMBINED}`, '"Kiến thức tự chọn": at least 12 credits across its groups', 'not_met'),
@@ -167,7 +168,7 @@ export function emptyAudit(): DegreeAudit {
     unmatchedCourses: [],
     graduation: {
       status: 'not_yet',
-      met: [condition(`group:${GROUP_C}`, 'Requirement group "Tự chọn Computer Science (C)"', 'met')],
+      met: [],
       unmet: [
         condition(`group:${GROUP_A}`, 'Requirement group "Kiến thức Computer Science (A): bắt buộc"', 'not_met'),
         condition(`group:${GROUP_MATH}`, 'Requirement group "Kiến thức Math"', 'not_met'),

@@ -1,9 +1,10 @@
+import { computed } from 'vue';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import { groupColour, orderGroups } from '../curriculum/present.js';
 import { GROUPS, type GroupId } from '../groups.js';
 import { LANGUAGES, type Lang } from '../locale.js';
-import { fetchAudit, type CourseCoverage, type DegreeAudit, type GraduationCondition, type GroupCoverage } from './api.js';
+import { fetchAudit, type AuditOutcome, type CourseStatus, type DegreeAudit, type GraduationCondition, type GroupCoverage } from './api.js';
 import type { AUDIT_MESSAGES } from './messages.js';
 
 // How the dashboard and the audit page show the API's degree audit: colours, order, names and number formats.
@@ -12,10 +13,14 @@ import type { AUDIT_MESSAGES } from './messages.js';
 
 type Messages = (typeof AUDIT_MESSAGES)[Lang];
 
+/** The audit in an answer of the API, or null when there is none (409, or nothing loaded yet). */
+export const readyAudit = (outcome: AuditOutcome | null): DegreeAudit | null => (outcome?.status === 'ready' ? outcome.audit : null);
+
 /** Loads the signed-in student's audit; the API works it out afresh on every call (ADR 0013). */
 export function useAudit() {
   const auth = useAuth();
-  return useAsyncLoad('the degree audit', () => auth.authed(fetchAudit));
+  const load = useAsyncLoad('the degree audit', () => auth.authed(fetchAudit));
+  return { ...load, audit: computed(() => readyAudit(load.data.value)) };
 }
 
 export interface ShownGroup {
@@ -67,9 +72,25 @@ export function conditionAnchor(condition: GraduationCondition): string {
   return '#graduation';
 }
 
-/** The courses of a compulsory group the API does not report as passed or counted elsewhere: what is left to pass. */
-export const notPassed = (group: GroupCoverage): CourseCoverage[] =>
-  group.kind === 'compulsory' ? group.courses.filter((course) => course.status === 'not_taken' || course.status === 'failed' || course.status === 'in_progress') : [];
+/**
+ * A group with no graduation condition of its own in the API's answer: an elective group with no minimum of its own,
+ * whose rule is the combined minimum it adds to (ADR 0013). The API calls it met; the screens show it with no ✓.
+ */
+export const withoutOwnCondition = (audit: DegreeAudit, group: GroupCoverage): boolean => conditionFor(audit, `group:${group.id}`) === null;
+
+/** The statuses a compulsory group's courses still to pass can have, in the order the screens list them. */
+const NOT_PASSED: readonly CourseStatus[] = ['not_taken', 'failed', 'in_progress'];
+
+/**
+ * The codes of a compulsory group's courses the API does not report as passed, by status: what is left to pass. A
+ * course counted in another group is passed there (the API keeps a failed or in-progress one's own status here).
+ */
+export function notPassedByStatus(group: GroupCoverage): { status: CourseStatus; codes: string[] }[] {
+  if (group.kind !== 'compulsory') return [];
+  return NOT_PASSED.map((status) => ({ status, codes: group.courses.filter((course) => course.status === status).map((course) => course.code) })).filter(
+    (bucket) => bucket.codes.length > 0,
+  );
+}
 
 /** A share of a bar, for drawing only: 0 to 100. */
 export function share(part: number, whole: number | null): number {
@@ -77,8 +98,13 @@ export function share(part: number, whole: number | null): number {
   return Math.max(0, Math.min(100, (part / whole) * 100));
 }
 
+const scoreFormats = new Map<Lang, Intl.NumberFormat>();
+
 /** A grade or an average as the language writes it, to two decimals at most: 7,5 or 7.5. */
 export function formatScore(value: number | null, lang: Lang): string | null {
-  return value === null ? null : new Intl.NumberFormat(LANGUAGES[lang].tag, { maximumFractionDigits: 2 }).format(value);
+  if (value === null) return null;
+  let format = scoreFormats.get(lang);
+  if (!format) scoreFormats.set(lang, (format = new Intl.NumberFormat(LANGUAGES[lang].tag, { maximumFractionDigits: 2 })));
+  return format.format(value);
 }
 

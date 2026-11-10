@@ -1,8 +1,11 @@
 import type { RequirementGroupKind } from '../curriculum/api.js';
 import type { Lang } from '../locale.js';
-import type { AuditWarningCode, CapRule, Classification, CourseStatus, TermKind } from './api.js';
+import type { AuditWarning, AuditWarningCode, CapRule, Classification, CourseStatus, TermKind } from './api.js';
 
 // The words of the dashboard and the degree audit. Every number they hold is the API's; these only phrase it.
+
+/** "1 credit", "4 credits". */
+const credits = (n: number) => `${n} credit${n === 1 ? '' : 's'}`;
 
 interface AuditMessages {
   dashboardTitle: string;
@@ -29,7 +32,6 @@ interface AuditMessages {
   graduationNotYetText: (unmet: number) => string;
   met: string;
   notMet: string;
-  notChecked: string;
   notCheckedTitle: string;
   notCheckedText: string;
   metTitle: string;
@@ -64,8 +66,10 @@ interface AuditMessages {
   overflowOut: (n: number, target: string | null) => string;
   missing: string;
   missingCredits: (n: number) => string;
-  toPass: string;
+  awaiting: (n: number) => string;
   nothingMissing: string;
+  byCombined: string;
+  seeCombined: (names: string) => string;
   combinedTitle: string;
   combinedCredits: (credits: number, min: number) => string;
   combinedOf: (names: string) => string;
@@ -93,7 +97,6 @@ interface AuditMessages {
   load: string;
   passed: string;
   termAverage: string;
-  termAccumulated: string;
   cumulative: string;
   caps: (min: number | null, max: number) => string;
   capRules: Record<CapRule, (credits: number, limit: number) => string>;
@@ -102,7 +105,7 @@ interface AuditMessages {
   unmatchedTitle: string;
   unmatchedText: string;
   warningsTitle: string;
-  warnings: Record<AuditWarningCode, (code: string) => string>;
+  warnings: Record<AuditWarningCode, (warning: AuditWarning) => string>;
   // Conditions
   totalCondition: (n: number | null) => string;
   combinedCondition: (name: string, min: number) => string;
@@ -146,7 +149,6 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     graduationNotYetText: (n) => `Còn ${n} điều kiện chưa đạt.`,
     met: 'Đã đạt',
     notMet: 'Chưa đạt',
-    notChecked: 'Chưa kiểm tra',
     notCheckedTitle: 'Trường sẽ xét',
     notCheckedText: 'Dữ liệu của OmniCourse không cho biết các điều kiện này, nên chúng không bao giờ được coi là đã đạt.',
     metTitle: 'Đã đạt',
@@ -178,8 +180,10 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     overflowOut: (n, target) => (target ? `${n} TC dư tính cho ${target}` : `${n} TC dư tính cho nhóm khác`),
     missing: 'Còn thiếu',
     missingCredits: (n) => `${n} TC`,
-    toPass: 'Học phần chưa đạt',
+    awaiting: (n) => `chờ kết quả ${n} TC đang học`,
     nothingMissing: 'Không còn thiếu gì.',
+    byCombined: 'Xét theo tối thiểu chung',
+    seeCombined: (names) => `xem ${names}`,
     combinedTitle: 'Tối thiểu chung của nhiều nhóm',
     combinedCredits: (credits, min) => `${credits} / ${min} TC`,
     combinedOf: (names) => `Gồm: ${names}`,
@@ -204,7 +208,6 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     load: 'Khối lượng',
     passed: 'Đạt',
     termAverage: 'ĐTB học kỳ',
-    termAccumulated: 'ĐTB tích lũy học kỳ',
     cumulative: 'ĐTB tích lũy đến kỳ',
     caps: (min, max) => (min === null ? `tối đa ${max} TC` : `${min}–${max} TC`),
     capRules: {
@@ -216,9 +219,12 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     unmatchedText: 'Không nhóm nào của chương trình đào tạo có các học phần này, nên chúng không được tính vào tín chỉ hay điểm trung bình.',
     warningsTitle: 'Lưu ý',
     warnings: {
-      credits_differ: (code) => `${code}: số tín chỉ trong bảng điểm khác chương trình đào tạo; số nhỏ hơn được tính.`,
-      same_term_attempts: (code) => `${code}: nhiều lần học xong trong cùng một học kỳ; kết quả thấp hơn được tính.`,
-      not_in_curriculum: (code) => `${code}: không thuộc nhóm nào và chưa có học phần tương đương, nên không được tính.`,
+      credits_differ: ({ courseCode, transcriptCredits, curriculumCredits }) =>
+        transcriptCredits && curriculumCredits !== null
+          ? `${courseCode}: bảng điểm ghi ${transcriptCredits.join(', ')} TC, chương trình đào tạo ghi ${curriculumCredits} TC; số nhỏ hơn được tính.`
+          : `${courseCode}: số tín chỉ trong bảng điểm khác chương trình đào tạo; số nhỏ hơn được tính.`,
+      same_term_attempts: ({ courseCode }) => `${courseCode}: nhiều lần học xong trong cùng một học kỳ; kết quả thấp hơn được tính.`,
+      not_in_curriculum: ({ courseCode }) => `${courseCode}: không thuộc nhóm nào và chưa có học phần tương đương, nên không được tính.`,
     },
     totalCondition: (n) => (n === null ? 'Tổng tín chỉ của khóa chưa được ghi nhận' : `Tích lũy tối thiểu ${n} TC của khóa`),
     combinedCondition: (name, min) => `${name}: tối thiểu ${min} TC`,
@@ -261,17 +267,16 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     graduation: 'Graduation',
     graduationDone: 'Every condition OmniCourse can check is met',
     graduationNotYet: 'Not ready to graduate yet',
-    graduationDoneText: (n) => `${n} conditions OmniCourse cannot check remain for the training office.`,
-    graduationNotYetText: (n) => `${n} conditions not met yet.`,
+    graduationDoneText: (n) => (n === 1 ? '1 condition OmniCourse cannot check remains' : `${n} conditions OmniCourse cannot check remain`) + ' for the training office.',
+    graduationNotYetText: (n) => `${n} condition${n === 1 ? '' : 's'} not met yet.`,
     met: 'Met',
     notMet: 'Not met',
-    notChecked: 'Not checked',
     notCheckedTitle: 'For the school to check',
     notCheckedText: 'OmniCourse has no data on these conditions, so it never treats them as met.',
     metTitle: 'Met',
     unmetTitle: 'Not met',
     creditsTitle: 'Credits',
-    creditsOf: (passed, total) => (total === null ? `${passed} credits` : `${passed} / ${total} credits`),
+    creditsOf: (passed, total) => (total === null ? credits(passed) : `${passed} / ${credits(total)}`),
     totalNotRecorded: 'The cohort total is not recorded.',
     inProgress: (n) => `${n} in progress`,
     remaining: (n) => `${n} to go`,
@@ -290,17 +295,19 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     legendOverflow: 'From another group',
     legendInProgress: 'In progress',
     kinds: { compulsory: 'Compulsory', elective: 'Elective' },
-    groupCredits: (passed, required) => `${passed} / ${required} credits`,
+    groupCredits: (passed, required) => `${passed} / ${credits(required)}`,
     noMinimum: 'No minimum of its own',
     noMinimumIn: (names) => `No minimum of its own · counts in ${names}`,
-    overflowIn: (n) => `+${n} surplus credits from another group`,
-    overflowOut: (n, target) => (target ? `${n} surplus credits count for ${target}` : `${n} surplus credits count for another group`),
+    overflowIn: (n) => `+${n} surplus ${n === 1 ? 'credit' : 'credits'} from another group`,
+    overflowOut: (n, target) => `${n} surplus ${n === 1 ? 'credit counts' : 'credits count'} for ${target ?? 'another group'}`,
     missing: 'Still missing',
-    missingCredits: (n) => `${n} credits`,
-    toPass: 'Courses not passed yet',
+    missingCredits: credits,
+    awaiting: (n) => `waiting on ${credits(n)} in progress`,
     nothingMissing: 'Nothing missing.',
+    byCombined: 'Checked by the shared minimum',
+    seeCombined: (names) => `see ${names}`,
     combinedTitle: 'Minimums across groups',
-    combinedCredits: (credits, min) => `${credits} / ${min} credits`,
+    combinedCredits: (passed, min) => `${passed} / ${credits(min)}`,
     combinedOf: (names) => `Adds up: ${names}`,
     attentionTitle: 'Conditions not met',
     attentionNone: 'No condition is left unmet.',
@@ -323,24 +330,26 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     load: 'Load',
     passed: 'Passed',
     termAverage: 'Term average',
-    termAccumulated: 'Term accumulated average',
     cumulative: 'Accumulated to date',
-    caps: (min, max) => (min === null ? `at most ${max} credits` : `${min}–${max} credits`),
+    caps: (min, max) => (min === null ? `at most ${credits(max)}` : `${min}–${max} credits`),
     capRules: {
-      below_minimum: (credits, limit) => `${credits} credits, below the minimum of ${limit}`,
-      above_maximum: (credits, limit) => `${credits} credits, above the maximum of ${limit}`,
+      below_minimum: (load, limit) => `${credits(load)}, below the minimum of ${limit}`,
+      above_maximum: (load, limit) => `${credits(load)}, above the maximum of ${limit}`,
     },
     noViolation: 'Within the caps',
     unmatchedTitle: 'Courses not counted',
     unmatchedText: 'No group of the curriculum lists these courses, so they count toward neither credits nor averages.',
     warningsTitle: 'Notes',
     warnings: {
-      credits_differ: (code) => `${code}: the transcript and the curriculum give different credits; the smaller number counts.`,
-      same_term_attempts: (code) => `${code}: several attempts finished in the same term; the worse result counts.`,
-      not_in_curriculum: (code) => `${code}: in no group and with no recorded equivalent, so it does not count.`,
+      credits_differ: ({ courseCode, transcriptCredits, curriculumCredits }) =>
+        transcriptCredits && curriculumCredits !== null
+          ? `${courseCode}: the transcript gives ${transcriptCredits.length === 1 ? credits(transcriptCredits[0]!) : `${transcriptCredits.join(', ')} credits`} and the curriculum ${curriculumCredits}; the smaller number counts.`
+          : `${courseCode}: the transcript and the curriculum give different credits; the smaller number counts.`,
+      same_term_attempts: ({ courseCode }) => `${courseCode}: several attempts finished in the same term; the worse result counts.`,
+      not_in_curriculum: ({ courseCode }) => `${courseCode}: in no group and with no recorded equivalent, so it does not count.`,
     },
-    totalCondition: (n) => (n === null ? 'The cohort total is not recorded' : `At least ${n} credits toward the cohort total`),
-    combinedCondition: (name, min) => `${name}: at least ${min} credits`,
+    totalCondition: (n) => (n === null ? 'The cohort total is not recorded' : `At least ${credits(n)} toward the cohort total`),
+    combinedCondition: (name, min) => `${name}: at least ${credits(min)}`,
     conditions: {
       no_prosecution_or_suspension: 'Not prosecuted, and not serving a suspension',
       defence_education_certificate: 'The national defence and security education certificate',
