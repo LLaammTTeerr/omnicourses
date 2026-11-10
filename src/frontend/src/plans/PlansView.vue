@@ -98,6 +98,11 @@ function askDelete(plan: PlanSummary): void {
   deleting.value = plan;
 }
 
+/** Keep and Escape do nothing while the deletion is out: it would still go through. */
+function closeDelete(): void {
+  if (!busy.value) deleting.value = null;
+}
+
 async function confirmDelete(): Promise<void> {
   const plan = deleting.value;
   if (!plan) return;
@@ -168,13 +173,13 @@ usePageTitle(() => m.value.title);
       @save="saveName"
     />
 
-    <ModalDialog :open="deleting !== null" role="alertdialog" labelledby="delete-plan-title" describedby="delete-plan-body" @close="deleting = null">
+    <ModalDialog :open="deleting !== null" role="alertdialog" labelledby="delete-plan-title" describedby="delete-plan-body" @close="closeDelete">
       <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
       <h2 id="delete-plan-title">{{ m.deleteTitle(deleting?.name ?? '') }}</h2>
       <p id="delete-plan-body" class="t2">{{ m.deleteBody }}</p>
       <p v-if="dialogError" class="callout bad small" role="alert"><Icon name="alert" size="sm" /><span>{{ dialogError }}</span></p>
       <div class="acts">
-        <button class="btn" type="button" autofocus @click="deleting = null">{{ m.keep }}</button>
+        <button class="btn" type="button" autofocus :disabled="busy" @click="closeDelete">{{ m.keep }}</button>
         <button class="btn danger" type="button" data-test="confirm-delete" :disabled="busy" @click="confirmDelete">
           <Icon name="trash" size="sm" />{{ busy ? m.deleting : m.delete }}
         </button>

@@ -148,6 +148,44 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(useToast().message).toBe('Đã xóa Nhẹ tải thử.');
   });
 
+  it('keeps the delete dialog open until the deletion answers', async () => {
+    let answer!: (response: Response) => void;
+    const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    const keep = w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!;
+    expect(keep.attributes('disabled')).toBeDefined();
+    // Escape reaches the dialog as a cancel event.
+    await w.get('dialog[open]').trigger('cancel');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+    answer(new Response(null, { status: 204 }));
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(names(w)).toEqual(['Kế hoạch thử']);
+  });
+
+  it('keeps the name dialog open until its request answers', async () => {
+    let answer!: (response: Response) => void;
+    const { w } = await render({ [`PATCH /plans/${PLAN_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 0).get('[data-test="rename"]').trigger('click');
+    await flushPromises();
+    await w.get('dialog[open] input').setValue('Đổi tên thử');
+    await w.get('dialog[open] form').trigger('submit');
+    await flushPromises();
+    const cancel = w.findAll('dialog[open] button').find((b) => b.text() === 'Hủy')!;
+    expect(cancel.attributes('disabled')).toBeDefined();
+    await w.get('dialog[open]').trigger('cancel');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+    answer(Response.json({ ...plan(), name: 'Đổi tên thử' }));
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
+  });
+
   it('offers a retry when the plans cannot be loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let fail = true;
