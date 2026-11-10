@@ -91,6 +91,10 @@ async function check(snapshot: Board): Promise<void> {
     issuesStatus.value = 'failed';
   }
 }
+/** The Issues panel's retry. During a save it waits: the loop checks when it ends, after the last PUT. */
+function retryCheck(): void {
+  if (!opened.saving) void check(saved.value);
+}
 /** The report describes the board on screen. Empty rows do not count: they are not saved, so not checked either. */
 const fresh = computed(() => issues.value !== null && sameTiles(issues.value.board, board.value));
 
@@ -613,7 +617,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
           </button>
         </div>
 
-        <IssuesPanel :attached="issues" :status="issuesStatus" :fresh="fresh" :ctx="ctx" @retry="check(saved)" @focus-tile="focusTile" />
+        <IssuesPanel :attached="issues" :status="issuesStatus" :fresh="fresh" :ctx="ctx" @retry="retryCheck" @focus-tile="focusTile" />
       </div>
     </template>
 

@@ -456,6 +456,30 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.findAll('[data-test="issue-violation"]')).toHaveLength(1);
   });
 
+  it('leaves a retried check to the save in flight, which checks when it ends', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const puts = held();
+    const { w, sent, checks } = await render({
+      reports: [503, REPORT],
+      routes: {
+        [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+          sent.push((sentBody(init) as { terms: PlanTerm[] }).terms);
+          return puts.respond();
+        },
+      },
+    });
+    await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    // A GET sent now could be answered about the board being saved and pinned to the one before it.
+    await w.get('[data-test="issues-failed"] button').trigger('click');
+    await flushPromises();
+    expect(checks()).toBe(1);
+    puts.answer(Response.json(plan(sent[0]!)));
+    await flushPromises();
+    expect(checks()).toBe(2);
+    expect(w.find('[data-test="issues-failed"]').exists()).toBe(false);
+  });
+
   it('drops a keyboard lift when a failed save puts the board back', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const puts = held();
