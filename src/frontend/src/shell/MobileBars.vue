@@ -100,7 +100,7 @@ function backdrop(event: MouseEvent): void {
     background: var(--surface); border: 1px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 6px;
   }
   .tabbar a, .tabbar button {
-    display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border: 0; border-radius: 10px; background: none; cursor: pointer;
+    display: grid; justify-items: center; gap: 2px; padding: 6px 0; border: 0; border-radius: 10px; background: none; cursor: pointer;
     text-decoration: none; font: inherit; font-size: 11.5px; font-weight: 650; color: var(--ink-3);
   }
   .tabbar a.router-link-active, .tabbar button.router-link-active { background: var(--c); color: var(--on); }
