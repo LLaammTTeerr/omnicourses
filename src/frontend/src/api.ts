@@ -21,18 +21,24 @@ export class HttpError extends Error {
   }
 }
 
-/** A public read: no token is sent (ADR 0010). */
-export async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`);
-  if (!res.ok) throw new HttpError(path, res.status);
-  return res.json() as Promise<T>;
-}
-
 export interface RequestOptions {
   body?: unknown;
   /** The session token (ADR 0002), sent as `Authorization: Bearer`. */
   token?: string | null;
+  /** Aborts the request, with any timeout. */
+  signal?: AbortSignal;
+  /**
+   * Milliseconds before the request fails, reading the answer included; null for none. `request` defaults to
+   * REQUEST_TIMEOUT_MS; `send` has none, for a download or a stream that may take longer.
+   */
+  timeout?: number | null;
 }
+
+/**
+ * How long a JSON call may take before it fails, so a hung connection ends in an error the screen can say and
+ * re-enables its buttons. The server may still have done what a timed-out write asked.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000;
 
 async function errorBody(res: Response): Promise<{ details: string[]; code: string | null }> {
   try {
@@ -46,11 +52,17 @@ async function errorBody(res: Response): Promise<{ details: string[]; code: stri
 }
 
 /** Sends a request with an optional JSON body and token; throws HttpError on any status but 2xx. */
-export async function send(method: string, path: string, { body, token }: RequestOptions = {}): Promise<Response> {
+export async function send(method: string, path: string, { body, token, signal, timeout }: RequestOptions = {}): Promise<Response> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_URL}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const signals = [signal, timeout == null ? undefined : AbortSignal.timeout(timeout)].filter((s) => s !== undefined);
+  const res = await fetch(`${API_URL}${path}`, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    ...(signals.length > 0 && { signal: signals.length === 1 ? signals[0] : AbortSignal.any(signals) }),
+  });
   if (!res.ok) {
     const { details, code } = await errorBody(res);
     throw new HttpError(path, res.status, method, details, code);
@@ -58,10 +70,15 @@ export async function send(method: string, path: string, { body, token }: Reques
   return res;
 }
 
-/** Like send, with the JSON answer parsed. Resolves to undefined on 204 No Content. */
+/** Like send, with the JSON answer parsed and a timeout of REQUEST_TIMEOUT_MS by default. Resolves to undefined on 204. */
 export async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
-  const res = await send(method, path, options);
+  const res = await send(method, path, { ...options, timeout: options.timeout === undefined ? REQUEST_TIMEOUT_MS : options.timeout });
   return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+/** A public read: no token is sent (ADR 0010). It times out like any JSON call. */
+export function getJson<T>(path: string): Promise<T> {
+  return request<T>('GET', path);
 }
 
 export function fetchHealth(): Promise<Health> {
