@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
+import { courseName } from '../curriculum/present.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
@@ -9,7 +10,7 @@ import { termName } from '../terms.js';
 import type { CourseCoverage, DegreeAudit, GraduationCondition, GroupCoverage } from './api.js';
 import AuditGate from './AuditGate.vue';
 import { AUDIT_MESSAGES } from './messages.js';
-import { combinedNamesOf, conditionFor, conditionLabel, courseName, formatScore, groupName, notPassed, shownGroups, useAudit } from './present.js';
+import { combinedNamesOf, conditionFor, conditionLabel, formatScore, groupName, notPassed, shownGroups, useAudit } from './present.js';
 
 // The degree audit (F3, UC-03, ADR 0013): every requirement group with the courses counted in it, its credits and
 // what is missing; the minimums across groups; the graduation conditions with the clause each one cites; each term's

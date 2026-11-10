@@ -1,6 +1,5 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent } from 'vue';
 import { useAuth } from '../auth/store.js';
 import { useLocale } from '../locale.js';
 import { mockApi, status } from '../testing/fetch.js';
@@ -11,10 +10,9 @@ import { COMBINED, degreeAudit, emptyAudit, GROUP_A } from './testing/fixtures.j
 
 let wrapper: VueWrapper | undefined;
 
-async function render(answer: unknown = degreeAudit(), { planner = false } = {}) {
+async function render(answer: unknown = degreeAudit()) {
   const fetch = mockApi({ 'GET /users/me/audit': answer });
   const app = await setup('/dashboard');
-  if (planner) app.router.addRoute({ path: '/plans', name: 'plans', component: defineComponent({ render: () => null }) });
   wrapper = mount(DashboardView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch, ...app };
@@ -89,19 +87,12 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'unmet')).toContain('và 2 điều kiện khác');
   });
 
-  it('links to the audit, the transcript and the explorer, and marks the planner as coming until its route exists', async () => {
+  it('links to the audit, the transcript, the explorer and the plans', async () => {
     const { w } = await render();
     expect(w.get('[data-test="link-audit"]').attributes('href')).toBe('/audit');
     expect(w.get('[data-test="link-transcript"]').attributes('href')).toBe('/transcript');
     expect(w.get('[data-test="link-explorer"]').attributes('href')).toBe('/explorer');
-    const planner = w.get('[data-test="link-planner"]');
-    expect(planner.element.tagName).toBe('SPAN');
-    expect(planner.attributes('aria-disabled')).toBe('true');
-    expect(planner.text()).toContain('Sắp có');
-  });
-
-  it('links to the planner once its route exists', async () => {
-    const { w } = await render(degreeAudit(), { planner: true });
+    // The app's own router: the plans route of #80, not one the test adds.
     expect(w.get('[data-test="link-planner"]').attributes('href')).toBe('/plans');
   });
 

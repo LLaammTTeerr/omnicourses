@@ -118,7 +118,6 @@ interface AuditMessages {
   openTranscriptText: string;
   openPlanner: string;
   openPlannerText: string;
-  soon: string;
   engineNote: string;
 }
 
@@ -240,7 +239,6 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     openTranscriptText: 'Nhập hoặc sửa bảng điểm để xét lại.',
     openPlanner: 'Lộ trình',
     openPlannerText: 'Xếp các học phần còn lại vào từng học kỳ.',
-    soon: 'Sắp có',
     engineNote: 'Mọi con số do rule engine tính từ bảng điểm bạn đã lưu, theo QĐ 1175/QĐ-KHTN. Không có con số nào do AI quyết định.',
   },
   en: {
@@ -360,7 +358,6 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     openTranscriptText: 'Enter or correct your transcript to check again.',
     openPlanner: 'Roadmap',
     openPlannerText: 'Place the courses you still need in each term.',
-    soon: 'Coming soon',
     engineNote: 'Every figure is worked out by the rule engine from the transcript you saved, under QĐ 1175/QĐ-KHTN. No figure is decided by AI.',
   },
 };

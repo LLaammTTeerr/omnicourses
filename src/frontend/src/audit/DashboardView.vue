@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { RouterLink } from 'vue-router';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
@@ -14,17 +14,12 @@ import { combinedNamesOf, conditionAnchor, conditionLabel, formatScore, share, s
 // credits, each requirement group's progress, the conditions not met yet, and the way on. Every figure is the
 // degree audit API's (ADR 0013); the page draws and words them, and decides none (AGENTS.md hard rule 1).
 const locale = useLocale();
-const router = useRouter();
 const m = useMessages(AUDIT_MESSAGES);
 const { status, data, error, reload } = useAudit();
 const audit = computed(() => (data.value?.status === 'ready' ? data.value.audit : null));
 
 /** How many unmet conditions the dashboard lists before sending the student to the audit page. */
 const TOP_UNMET = 5;
-
-// TODO(F5): the plans screen comes with #80 (`feat/ui-planner`, route `plans`). Until that route exists, the link
-// shows as coming soon instead of leading nowhere.
-const hasPlanner = computed(() => router.hasRoute('plans'));
 
 const score = (value: number | null) => formatScore(value, locale.lang) ?? m.value.noGrade;
 const unmet = (a: DegreeAudit) => a.graduation.unmet.slice(0, TOP_UNMET);
@@ -173,12 +168,9 @@ usePageTitle(() => m.value.dashboardTitle);
               <RouterLink class="db-link" :to="{ name: 'explorer' }" data-test="link-explorer">
                 <Icon name="graph" /><span><b>{{ m.openExplorer }}</b><small>{{ m.openExplorerText }}</small></span>
               </RouterLink>
-              <RouterLink v-if="hasPlanner" class="db-link" :to="{ name: 'plans' }" data-test="link-planner">
+              <RouterLink class="db-link" :to="{ name: 'plans' }" data-test="link-planner">
                 <Icon name="cap" /><span><b>{{ m.openPlanner }}</b><small>{{ m.openPlannerText }}</small></span>
               </RouterLink>
-              <span v-else class="db-link soon" data-test="link-planner" aria-disabled="true">
-                <Icon name="cap" /><span><b>{{ m.openPlanner }} <span class="chip">{{ m.soon }}</span></b><small>{{ m.openPlannerText }}</small></span>
-              </span>
             </nav>
           </div>
         </div>
@@ -230,7 +222,6 @@ a.db-link:hover { background: var(--surface-2); }
 .db-link > span { display: grid; gap: 2px; min-width: 0; }
 .db-link b { font-size: 14px; display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .db-link small { color: var(--ink-3); font-size: 12.5px; }
-.db-link.soon { opacity: 0.7; }
 @media (max-width: 1100px) {
   .db-main { grid-template-columns: minmax(0, 1fr); }
 }

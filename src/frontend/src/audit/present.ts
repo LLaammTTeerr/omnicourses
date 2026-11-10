@@ -82,4 +82,3 @@ export function formatScore(value: number | null, lang: Lang): string | null {
   return value === null ? null : new Intl.NumberFormat(LANGUAGES[lang].tag, { maximumFractionDigits: 2 }).format(value);
 }
 
-export const courseName = (course: Pick<CourseCoverage, 'nameVi' | 'nameEn'>, lang: Lang): string => (lang === 'en' && course.nameEn) || course.nameVi;
