@@ -456,6 +456,33 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.findAll('[data-test="issue-violation"]')).toHaveLength(1);
   });
 
+  it('drops a keyboard lift when a failed save puts the board back', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const puts = held();
+    const { w, sent } = await render({
+      routes: {
+        [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+          sent.push((sentBody(init) as { terms: PlanTerm[] }).terms);
+          return puts.respond();
+        },
+      },
+    });
+    await tile(w, 'ZZ102').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="add-row"]').trigger('click');
+    const zz101 = tile(w, 'ZZ101');
+    await zz101.trigger('keydown', { key: ' ' });
+    for (let i = 0; i < 5; i++) await zz101.trigger('keydown', { key: 'ArrowDown' });
+    expect(row(w, '2027-3').classes()).toContain('drop-target');
+    puts.answer(new Response(null, { status: 503 }));
+    await flushPromises();
+    expect(tile(w, 'ZZ101').classes()).not.toContain('lifted');
+    expect(w.findAll('.trow.drop-target')).toHaveLength(0);
+    await tile(w, 'ZZ101').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+    expect(sent).toHaveLength(1);
+  });
+
   it('says when the plan is not the student’s (404)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render({ routes: { [`GET /plans/${PLAN_ID}`]: status(404) } });

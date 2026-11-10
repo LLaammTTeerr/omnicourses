@@ -127,6 +127,8 @@ async function save(): Promise<void> {
   } catch (e) {
     if (mine !== opened) return;
     board.value = saved.value;
+    // A lifted tile's target row may be gone, or the tile may be back in another row.
+    lifted.value = null;
     const code = statusOf(e);
     saveState.value = code === 401 ? 'saved' : 'failed';
     if (code === 401) return; // App.vue takes the student to sign in.
