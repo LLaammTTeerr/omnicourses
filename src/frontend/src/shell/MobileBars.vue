@@ -1,23 +1,38 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { RouterLink } from 'vue-router';
+import { computed, ref, watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 import { HOME_SIGNED_IN } from '../auth/redirect.js';
 import { useAuth } from '../auth/store.js';
+import ModalDialog from '../components/ModalDialog.vue';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
 import { SHELL_MESSAGES } from './messages.js';
-import { NAV } from './nav.js';
+import { PHONE_MORE, PHONE_TABS } from './nav.js';
 import ThemeButton from './ThemeButton.vue';
 
 // Below 960 px the sidebar gives way to a top bar and a tab bar at the bottom (UI prototypes). `part` picks which.
+// The tab bar holds four pages and "More", a modal sheet with the rest: the native <dialog> traps focus, makes the
+// page behind it inert, closes on Escape and gives focus back to "More".
 defineProps<{ part: 'top' | 'tabs' }>();
 const auth = useAuth();
 const locale = useLocale();
+const route = useRoute();
 const m = useMessages(SHELL_MESSAGES);
 const initial = computed(() => auth.user?.displayName.trim()[0]?.toUpperCase() ?? '');
+
+const moreOpen = ref(false);
+/** The page in "More" the student is on, if any: "More" then shows as the current tab, in that page's colour. */
+const inMore = computed(() => PHONE_MORE.find((item) => route.matched.some((record) => record.name === item.route)) ?? null);
+// Following a link, or going back, closes the sheet.
+watch(() => route.fullPath, () => (moreOpen.value = false));
+
+/** A click on the backdrop lands on the <dialog> itself; one inside the sheet lands on its content. */
+function backdrop(event: MouseEvent): void {
+  if (event.target === event.currentTarget) moreOpen.value = false;
+}
 </script>
 
 <template>
@@ -29,11 +44,37 @@ const initial = computed(() => auth.user?.displayName.trim()[0]?.toUpperCase() ?
       <RouterLink class="avatar" :to="{ name: 'settings' }" :aria-label="m.account">{{ initial }}</RouterLink>
     </span>
   </header>
-  <nav v-else class="tabbar" :aria-label="m.tabs" :style="{ '--tabs': NAV.length }">
-    <RouterLink v-for="item in NAV" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }">
-      <Icon :name="item.icon" /><span>{{ item.label[locale.lang] }}</span>
-    </RouterLink>
-  </nav>
+  <template v-else>
+    <nav class="tabbar" :aria-label="m.tabs" :style="{ '--tabs': PHONE_TABS.length + 1 }">
+      <RouterLink v-for="item in PHONE_TABS" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }">
+        <Icon :name="item.icon" /><span>{{ (item.tab ?? item.label)[locale.lang] }}</span>
+      </RouterLink>
+      <button
+        type="button"
+        data-test="more"
+        :class="[groupClass(inMore?.group ?? 'core'), { 'router-link-active': inMore }]"
+        aria-haspopup="dialog"
+        aria-controls="more-sheet"
+        :aria-expanded="moreOpen ? 'true' : 'false'"
+        @click="moreOpen = true"
+      >
+        <Icon name="more" /><span>{{ m.more }}</span>
+      </button>
+    </nav>
+    <ModalDialog id="more-sheet" class="more-sheet" :open="moreOpen" labelledby="more-title" @close="moreOpen = false" @click="backdrop">
+      <div class="more-head">
+        <h2 id="more-title">{{ m.more }}</h2>
+        <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="moreOpen = false"><Icon name="x" size="sm" /></button>
+      </div>
+      <ul class="more-list">
+        <li v-for="item in PHONE_MORE" :key="item.route">
+          <RouterLink :class="groupClass(item.group)" :to="{ name: item.route }" @click="moreOpen = false">
+            <Icon :name="item.icon" /><span>{{ item.label[locale.lang] }}</span>
+          </RouterLink>
+        </li>
+      </ul>
+    </ModalDialog>
+  </template>
 </template>
 
 <style>
@@ -48,7 +89,18 @@ const initial = computed(() => auth.user?.displayName.trim()[0]?.toUpperCase() ?
     display: grid; grid-template-columns: repeat(var(--tabs), minmax(0, 1fr)); position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 50;
     background: var(--surface); border: 1px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 6px;
   }
-  .tabbar a { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; text-decoration: none; font-size: 11.5px; font-weight: 650; color: var(--ink-3); }
-  .tabbar a.router-link-active { background: var(--c); color: var(--on); }
+  .tabbar a, .tabbar button {
+    display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border: 0; border-radius: 10px; background: none; cursor: pointer;
+    text-decoration: none; font: inherit; font-size: 11.5px; font-weight: 650; color: var(--ink-3);
+  }
+  .tabbar a.router-link-active, .tabbar button.router-link-active { background: var(--c); color: var(--on); }
 }
+dialog.modal.more-sheet { margin: auto 10px 10px; width: auto; max-width: none; padding: 16px; gap: 8px; border-radius: 16px; }
+.more-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+dialog.modal.more-sheet h2 { font-size: 18px; }
+.more-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.more-list a { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; text-decoration: none; color: var(--ink); font-weight: 600; }
+.more-list a .icon { color: var(--c); }
+.more-list a.router-link-active { background: var(--c); color: var(--on); }
+.more-list a.router-link-active .icon { color: inherit; }
 </style>

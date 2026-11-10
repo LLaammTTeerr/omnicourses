@@ -144,17 +144,67 @@ describe('the new screens at a phone width and on a desktop', () => {
     await page.viewport(400, 800);
     await open('/settings');
     const tabs = page.getByRole('navigation', { name: 'Điều hướng nhanh' });
-    await expect.element(tabs.getByRole('link', { name: 'Cài đặt' })).toBeVisible();
-    // Seven tabs fit side by side at 400 px.
-    const links = [...(tabs.element() as HTMLElement).querySelectorAll('a')];
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['Tổng quan', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
-    expect(new Set(links.map((a) => Math.round(a.getBoundingClientRect().top))).size).toBe(1);
-    // No label spills out of its tab or is cut off.
-    for (const a of links) {
-      const label = a.querySelector('span')!;
-      expect(label.scrollWidth, a.textContent ?? '').toBeLessThanOrEqual(a.clientWidth);
-    }
+    // Four pages and More, side by side at 400 px; Settings is under More, which shows as the current tab.
+    await expect.element(tabs.getByRole('button', { name: 'Thêm' })).toHaveClass(/router-link-active/);
+    const items = [...(tabs.element() as HTMLElement).children] as HTMLElement[];
+    expect(items.map((item) => item.textContent?.trim())).toEqual(['Tổng quan', 'Lộ trình', 'Xét tốt nghiệp', 'Chương trình', 'Thêm']);
+    expect(new Set(items.map((item) => Math.round(item.getBoundingClientRect().top))).size).toBe(1);
     await expect.element(page.getByRole('complementary')).not.toBeInTheDocument();
+  });
+
+  // English has long words that cannot wrap ("Curriculum"), Vietnamese has long labels that do ("Xét tốt nghiệp").
+  it.each([
+    ['vi', 'Điều hướng nhanh'],
+    ['en', 'Quick navigation'],
+  ])('fits every tab label in its tab at 400 px in %s', async (lang, name) => {
+    localStorage.setItem('omnicourse.lang', lang);
+    await page.viewport(400, 800);
+    await open('/dashboard');
+    const tabs = page.getByRole('navigation', { name });
+    await expect.element(tabs).toBeVisible();
+    const items = [...(tabs.element() as HTMLElement).children] as HTMLElement[];
+    expect(items).toHaveLength(5);
+    for (const item of items) {
+      const label = item.querySelector('span')!;
+      const what = item.textContent?.trim() ?? '';
+      expect(label.scrollWidth, what).toBeLessThanOrEqual(label.clientWidth);
+      expect(label.getBoundingClientRect().left, what).toBeGreaterThanOrEqual(item.getBoundingClientRect().left);
+      expect(label.getBoundingClientRect().right, what).toBeLessThanOrEqual(item.getBoundingClientRect().right);
+    }
+  });
+
+  it('opens More as a modal sheet that traps focus, closes on Escape and gives focus back', async () => {
+    await page.viewport(400, 800);
+    await open('/dashboard');
+    const button = page.getByRole('navigation', { name: 'Điều hướng nhanh' }).getByRole('button', { name: 'Thêm' });
+    await expect.element(button).toHaveAttribute('aria-expanded', 'false');
+    await button.click();
+
+    const sheet = page.getByRole('dialog', { name: 'Thêm' });
+    await expect.element(sheet).toBeVisible();
+    await expect.element(button).toHaveAttribute('aria-expanded', 'true');
+    const dialog = sheet.element() as HTMLDialogElement;
+    expect(dialog.matches(':modal')).toBe(true);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    // The page behind is inert: a tab there cannot take focus.
+    const behind = document.querySelector<HTMLElement>('.tabbar a')!;
+    behind.focus();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    await expect.element(sheet.getByRole('link', { name: 'Bảng điểm' })).toBeVisible();
+    await expect.element(sheet.getByRole('link', { name: 'Hướng dẫn' })).toBeVisible();
+    await expect.element(sheet.getByRole('link', { name: 'Cài đặt' })).toBeVisible();
+
+    await userEvent.keyboard('{Escape}');
+    await expect.poll(() => dialog.open).toBe(false);
+    await expect.element(button).toHaveAttribute('aria-expanded', 'false');
+    expect(document.activeElement).toBe(button.element());
+
+    // A link in the sheet opens its page and closes the sheet.
+    await button.click();
+    await sheet.getByRole('link', { name: 'Hướng dẫn' }).click();
+    await expect.element(page.getByRole('heading', { level: 1, name: 'Hướng dẫn thủ tục' })).toBeVisible();
+    await expect.poll(() => dialog.open).toBe(false);
+    await expect.element(button).toHaveClass(/router-link-active/);
   });
 
   it('keeps every sidebar label for screen readers when the rail is narrow', async () => {

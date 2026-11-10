@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryHistory } from 'vue-router';
 import { createAppRouter } from '../router.js';
-import { NAV, PUBLIC_NAV } from './nav.js';
+import { NAV, PHONE_MORE, PHONE_TABS, PUBLIC_NAV } from './nav.js';
 
 const router = createAppRouter(createMemoryHistory());
 const record = (name: string) => router.getRoutes().find((route) => route.name === name);
@@ -16,6 +16,13 @@ describe('navigation', () => {
 
   it('lists each page once', () => {
     expect(new Set(NAV.map((item) => item.route)).size).toBe(NAV.length);
+  });
+
+  it('puts every page on the phone once: four tabs, the rest under More', () => {
+    expect(PHONE_TABS).toHaveLength(4);
+    const phone = [...PHONE_TABS, ...PHONE_MORE];
+    expect(phone.every(Boolean)).toBe(true);
+    expect(phone.map((item) => item.route).sort()).toEqual(NAV.map((item) => item.route).sort());
   });
 
   it('shows visitors only pages they can read signed out', () => {
