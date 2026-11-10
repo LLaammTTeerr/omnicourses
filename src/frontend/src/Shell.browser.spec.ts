@@ -149,6 +149,11 @@ describe('the new screens at a phone width and on a desktop', () => {
     const links = [...(tabs.element() as HTMLElement).querySelectorAll('a')];
     expect(links.map((a) => a.textContent?.trim())).toEqual(['Tổng quan', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(new Set(links.map((a) => Math.round(a.getBoundingClientRect().top))).size).toBe(1);
+    // No label spills out of its tab or is cut off.
+    for (const a of links) {
+      const label = a.querySelector('span')!;
+      expect(label.scrollWidth, a.textContent ?? '').toBeLessThanOrEqual(a.clientWidth);
+    }
     await expect.element(page.getByRole('complementary')).not.toBeInTheDocument();
   });
 
