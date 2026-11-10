@@ -124,7 +124,7 @@ usePageTitle(() => m.value.title);
         <p>{{ m.listLead }}</p>
       </div>
       <div class="head-actions">
-        <button class="btn primary" type="button" :disabled="!program || status !== 'loaded'" data-test="new-plan" @click="openNaming(null)">
+        <button class="btn primary" type="button" :disabled="!program || status !== 'loaded' || busy" data-test="new-plan" @click="openNaming(null)">
           <Icon name="plus" size="sm" />{{ m.newPlan }}
         </button>
       </div>
@@ -159,10 +159,11 @@ usePageTitle(() => m.value.title);
           <RouterLink class="plan-name" :to="{ name: 'plan', params: { id: plan.id } }">{{ plan.name }}</RouterLink>
           <p class="small t3">{{ m.curriculum(plan.curriculum.code) }} · {{ m.updated(formatDateTime(plan.updatedAt, locale.lang)) }}</p>
         </div>
+        <!-- One action at a time: they share `busy` and `dialogError`, so a copy's failure cannot show in another's dialog. -->
         <div class="plan-card-acts" role="group" :aria-label="m.actionsFor(plan.name)">
-          <button class="btn sm" type="button" data-test="rename" @click="openNaming(plan)"><Icon name="edit" size="sm" />{{ m.rename }}</button>
+          <button class="btn sm" type="button" data-test="rename" :disabled="busy" @click="openNaming(plan)"><Icon name="edit" size="sm" />{{ m.rename }}</button>
           <button class="btn sm" type="button" data-test="copy" :disabled="busy" @click="copy(plan)"><Icon name="copy" size="sm" />{{ m.copy }}</button>
-          <button class="btn sm ghost" type="button" data-test="delete" @click="askDelete(plan)"><Icon name="trash" size="sm" />{{ m.delete }}</button>
+          <button class="btn sm ghost" type="button" data-test="delete" :disabled="busy" @click="askDelete(plan)"><Icon name="trash" size="sm" />{{ m.delete }}</button>
         </div>
       </li>
     </ul>

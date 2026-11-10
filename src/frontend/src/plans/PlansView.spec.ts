@@ -228,6 +228,26 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
+  it('lets no other action start while a copy runs, so its failure is not said in another dialog', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let answer!: (response: Response) => void;
+    const { w, fetch } = await render({ [`POST /plans/${PLAN_ID}/duplicate`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 0).get('[data-test="copy"]').trigger('click');
+    await flushPromises();
+    for (const action of ['rename', 'copy', 'delete']) expect(card(w, 1).get(`[data-test="${action}"]`).attributes('disabled')).toBeDefined();
+    expect(w.get('[data-test="new-plan"]').attributes('disabled')).toBeDefined();
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+
+    answer(status(503)());
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(useToast().message).toBe('Chưa thực hiện được. Hãy thử lại.');
+    expect(calls(fetch, 'DELETE')).toHaveLength(0);
+    expect(card(w, 1).get('[data-test="delete"]').attributes('disabled')).toBeUndefined();
+  });
+
   it('loads the student’s program itself, with a retry, when the answers were not loaded before', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let failures = 2;
