@@ -1,5 +1,4 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { createPinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { defineComponent, h, nextTick, reactive } from 'vue';
@@ -15,7 +14,7 @@ const Parent = defineComponent({
       if (state.accept === true || (state.accept === 'native' && !document.querySelector('dialog')?.open)) state.open = false;
     };
     return () =>
-      h(ModalDialog, { open: state.open, busy: state.busy, labelledby: 'modal-title', onClose: close }, () => [
+      h(ModalDialog, { open: state.open, busy: state.busy, busyText: 'Đang xử lý…', labelledby: 'modal-title', onClose: close }, () => [
         h('h2', { id: 'modal-title' }, 'Xóa thử?'),
         h('button', { type: 'button', onClick: () => (state.busy = true) }, 'Xóa'),
       ]);
@@ -30,7 +29,7 @@ describe('ModalDialog in a real browser', () => {
   let showModal: ReturnType<typeof vi.spyOn>;
 
   async function render(errorHandler?: (e: unknown) => void): Promise<HTMLDialogElement> {
-    wrapper = mount(Parent, { attachTo: host, global: { plugins: [createPinia()], config: { errorHandler } } });
+    wrapper = mount(Parent, { attachTo: host, global: { config: { errorHandler } } });
     await expect.element(page.getByRole('dialog', { name: 'Xóa thử?' })).toBeVisible();
     const el = host.querySelector('dialog')!;
     el.addEventListener('cancel', (e) => events.push(`cancel:${e.cancelable}`));

@@ -9,6 +9,7 @@ import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
+import { SHELL_MESSAGES } from '../shell/messages.js';
 import { useToast } from '../shell/toast.js';
 import { createPlan, deletePlan, duplicatePlan, fetchPlans, renamePlan, type PlanSummary } from './api.js';
 import { PLANNER_MESSAGES } from './messages.js';
@@ -22,6 +23,7 @@ const locale = useLocale();
 const toast = useToast();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
+const shell = useMessages(SHELL_MESSAGES);
 
 const plans = ref<PlanSummary[]>([]);
 const { status, reload } = useAsyncLoad('the plans', async () => {
@@ -187,6 +189,7 @@ usePageTitle(() => m.value.title);
       labelledby="delete-plan-title"
       describedby="delete-plan-body"
       :busy="busy"
+      :busy-text="shell.working"
       @close="deleting = null"
     >
       <span class="ic" aria-hidden="true"><Icon name="trash" /></span>

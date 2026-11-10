@@ -6,6 +6,7 @@ import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
+import { SHELL_MESSAGES } from '../shell/messages.js';
 import { useToast } from '../shell/toast.js';
 import { deleteAccount } from './api.js';
 import { SETTINGS_MESSAGES } from './messages.js';
@@ -19,6 +20,7 @@ const locale = useLocale();
 const router = useRouter();
 const toast = useToast();
 const m = useMessages(SETTINGS_MESSAGES);
+const shell = useMessages(SHELL_MESSAGES);
 
 const password = ref('');
 const error = ref<string | null>(null);
@@ -59,7 +61,7 @@ async function confirm(): Promise<void> {
 
 <template>
   <!-- Busy: Keep is disabled and Escape is refused, so a wrong password is said in the dialog, not lost. -->
-  <ModalDialog :open="open" role="alertdialog" labelledby="delete-title" describedby="delete-body" :busy="busy" @close="emit('close')">
+  <ModalDialog :open="open" role="alertdialog" labelledby="delete-title" describedby="delete-body" :busy="busy" :busy-text="shell.working" @close="emit('close')">
     <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
     <h2 id="delete-title">{{ m.deleteDialogTitle }}</h2>
     <p id="delete-body" class="t2">{{ m.deleteDialogBody }}</p>

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
+import { SHELL_MESSAGES } from '../shell/messages.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
 // Asks for a plan's name, to create or rename one. The API trims it and allows 1 to 100 characters.
@@ -11,6 +12,7 @@ const MAX_NAME = 100;
 const props = defineProps<{ open: boolean; title: string; body?: string; submit: string; initial: string; busy: boolean; error: string | null }>();
 const emit = defineEmits<{ close: []; save: [name: string] }>();
 const m = useMessages(PLANNER_MESSAGES);
+const shell = useMessages(SHELL_MESSAGES);
 
 const name = ref(props.initial);
 const invalid = ref(false);
@@ -32,7 +34,7 @@ function save(): void {
 
 <template>
   <!-- Busy: Cancel is disabled and Escape is refused, since the request would still go through. -->
-  <ModalDialog :open="open" labelledby="plan-name-title" :describedby="body ? 'plan-name-body' : undefined" :busy="busy" @close="emit('close')">
+  <ModalDialog :open="open" labelledby="plan-name-title" :describedby="body ? 'plan-name-body' : undefined" :busy="busy" :busy-text="shell.working" @close="emit('close')">
     <h2 id="plan-name-title">{{ title }}</h2>
     <p v-if="body" id="plan-name-body" class="t2">{{ body }}</p>
     <form class="stack plan-name-form" novalidate @submit.prevent="save">

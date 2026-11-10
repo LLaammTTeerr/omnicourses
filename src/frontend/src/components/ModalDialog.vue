@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { useMessages } from '../locale.js';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 
 // A modal on the native <dialog>: the browser traps focus inside, makes the page behind it inert, closes it on
 // Escape and gives focus back to the button that opened it. The parent owns `open` and must accept `close`, which
 // is emitted once per dismissal (Escape, the Android back gesture). While `busy` (a request is out and would still
-// go through) the dialog cannot be dismissed and says it is working.
-const props = defineProps<{ open: boolean; labelledby: string; describedby?: string; role?: 'dialog' | 'alertdialog'; busy?: boolean }>();
+// go through) Escape cannot dismiss it, and it says `busyText`, such as "Working…". The back gesture then falls
+// through to history back, so a parent that passes `busy` also refuses to leave the route meanwhile.
+const props = defineProps<{ open: boolean; labelledby: string; describedby?: string; role?: 'dialog' | 'alertdialog'; busy?: boolean; busyText?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDialogElement>();
-const m = useMessages(SHELL_MESSAGES);
 
 function sync(open: boolean): void {
   const el = dialog.value;
@@ -33,8 +31,8 @@ function cancel(event: Event): void {
   if (event.cancelable && !props.busy) emit('close');
 }
 
-// The <dialog> closed. While busy, `closedby="none"` stops Escape and the back gesture in a browser that supports
-// it; in one that does not, the dialog is shown again at once, without telling the parent.
+// The <dialog> closed. While busy, `closedby="none"` stops Escape in a browser that supports it; in one that does
+// not, the dialog is shown again at once, without telling the parent.
 function closed(): void {
   const el = dialog.value;
   // The parent closed it, or this event was queued before a reopen: nothing was dismissed.
@@ -66,8 +64,8 @@ function closed(): void {
   >
     <template v-if="open">
       <slot />
-      <!-- Always in the page while open, so the text is announced when it appears. -->
-      <p class="modal-status small t2" role="status">{{ busy ? m.working : '' }}</p>
+      <!-- In the page from the start, so the text is announced when it appears. -->
+      <p v-if="busyText" class="small t2" :class="{ 'sr-only': !busy }" role="status">{{ busy ? busyText : '' }}</p>
     </template>
   </dialog>
 </template>
