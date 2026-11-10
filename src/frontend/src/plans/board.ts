@@ -76,6 +76,23 @@ export function findTile(board: Board, key: number): { row: Row; index: number }
   return null;
 }
 
+/**
+ * Whether two boards hold the same tiles in the same places. Rows with nothing placed do not count, as they are not
+ * stored (ADR 0014); a tile keeps its object while it moves, so a course removed and added again is a new tile.
+ */
+export function sameTiles(a: Board, b: Board): boolean {
+  const filled = (board: Board) => board.filter((row) => row.tiles.length > 0);
+  const x = filled(a);
+  const y = filled(b);
+  return (
+    x.length === y.length &&
+    x.every((row, i) => {
+      const other = y[i]!;
+      return termKey(row.term) === termKey(other.term) && row.tiles.length === other.tiles.length && row.tiles.every((tile, j) => tile === other.tiles[j]);
+    })
+  );
+}
+
 /** A row added after the last one. */
 export const withNextRow = (board: Board): Row[] => [...board, { term: nextTerm(board.at(-1)!.term), tiles: [] }];
 
@@ -106,7 +123,7 @@ export function moveTile(board: Board, key: number, to: Term): Board {
 
 /** The engine's report pinned to what it is about, on the board it was computed for. */
 export interface AttachedIssues {
-  /** The board the report describes: issues are fresh while it is the board on screen. */
+  /** The board the report describes: issues are fresh while the board on screen holds the same tiles (`sameTiles`). */
   board: Board;
   report: PlanIssues;
   byTile: Map<number, PlanIssue[]>;

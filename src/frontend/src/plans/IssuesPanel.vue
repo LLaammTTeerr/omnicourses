@@ -26,10 +26,10 @@ const tileOf = (issue: PlanIssue) => props.attached?.tileOf.get(issue);
 </script>
 
 <template>
-  <aside class="card issues-panel" aria-labelledby="issues-title" :aria-busy="status === 'loading' || !fresh">
+  <aside class="card issues-panel" aria-labelledby="issues-title" :aria-busy="status === 'loading'">
     <div class="issues-head">
       <h2 id="issues-title">{{ m.issuesTitle }}</h2>
-      <span v-if="status === 'loading' || (attached && !fresh)" class="chip" role="status" data-test="checking">{{ m.checking }}</span>
+      <span v-if="status === 'loading'" class="chip" role="status" data-test="checking">{{ m.checking }}</span>
     </div>
     <p class="small t3">{{ m.issuesLead }}</p>
 

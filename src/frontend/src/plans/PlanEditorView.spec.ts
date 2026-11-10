@@ -379,6 +379,54 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(other).toEqual([[{ term: { year: 2026, number: 2 }, placements: [course('ZZ201')] }]]);
   });
 
+  it('checks the saved board again when a save fails after an earlier one went through', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const puts = held();
+    const { w, sent, checks } = await render({
+      routes: {
+        [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+          sent.push((sentBody(init) as { terms: PlanTerm[] }).terms);
+          return puts.respond();
+        },
+      },
+    });
+    await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    await tile(w, 'ZZ102').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    puts.answer(Response.json(plan(sent[0]!)));
+    await flushPromises();
+    puts.answer(new Response(null, { status: 503 }));
+    await flushPromises();
+    // Back to the first change, which the API holds, and checked again.
+    expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ102', 'HK2 2026–2027: ZZ101']);
+    expect(checks()).toBe(2);
+    expect(w.find('[data-test="checking"]').exists()).toBe(false);
+    expect(w.findAll('.trow.stale')).toHaveLength(0);
+  });
+
+  it('settles the issues when a term is added while a check is in flight', async () => {
+    const issues = held();
+    const { w } = await render({ routes: { [`GET /plans/${PLAN_ID}/issues`]: issues.respond } });
+    await w.get('[data-test="add-row"]').trigger('click');
+    issues.answer(Response.json(REPORT));
+    await flushPromises();
+    expect(tile(w, 'ZZ102').classes()).toContain('has-violation');
+    expect(w.find('[data-test="checking"]').exists()).toBe(false);
+    expect(w.findAll('.trow.stale')).toHaveLength(0);
+    expect(w.get('.issues-panel').attributes('aria-busy')).toBe('false');
+  });
+
+  it('does not say it is checking once a re-check has failed', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render({ reports: [REPORT, 503] });
+    await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    expect(w.get('[data-test="issues-failed"]').text()).toContain('Chưa kiểm tra được kế hoạch.');
+    expect(w.find('[data-test="checking"]').exists()).toBe(false);
+    expect(w.get('.issues-panel').attributes('aria-busy')).toBe('false');
+  });
+
   it('says when the plan is not the student’s (404)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render({ routes: { [`GET /plans/${PLAN_ID}`]: status(404) } });

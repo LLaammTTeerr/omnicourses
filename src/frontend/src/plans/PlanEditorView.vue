@@ -24,6 +24,7 @@ import {
   moveTile,
   removeTile,
   rowsFor,
+  sameTiles,
   withNextRow,
   type AttachedIssues,
   type Board,
@@ -37,8 +38,8 @@ import { KIND_STYLE, strongest } from './present.js';
 // (Space, arrows, Enter, Escape: UC-05 A1) or drag and drop. Each change saves the whole board (ADR 0014), then the
 // rule engine's report is read again from GET /plans/{id}/issues. The editor never judges a placement, a load or a
 // requirement itself (AGENTS.md hard rule 1): rows and tiles change colour, and loads and caps appear, only from
-// that report. A report is pinned to the board it was computed for, so its issues follow their tiles and are shown
-// as being re-checked until the next report arrives.
+// that report. A report is pinned to the board it was computed for, so its issues follow their tiles, and they are
+// dimmed while the board on screen holds other tiles than that one.
 const props = defineProps<{ id: string }>();
 const auth = useAuth();
 const onboarding = useOnboarding();
@@ -87,15 +88,16 @@ async function check(snapshot: Board): Promise<void> {
     issuesStatus.value = 'failed';
   }
 }
-/** The report describes the board on screen. */
-const fresh = computed(() => issues.value?.board === board.value && issuesStatus.value === 'idle');
+/** The report describes the board on screen. Empty rows do not count: they are not saved, so not checked either. */
+const fresh = computed(() => issues.value !== null && sameTiles(issues.value.board, board.value));
 
 // ---------- Saving ----------
 const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
 const saveError = ref<string | null>(null);
 
 /**
- * Saves the board on screen until the API holds it; a failure puts back the last saved board. If the student opens
+ * Saves the board on screen until the API holds it, then checks the saved board, also after a failure, which puts
+ * back the last saved board (an earlier request of the same loop may have gone through). If the student opens
  * another plan meanwhile, the request in flight still lands in this one and the loop stops there: a change not yet
  * sent is dropped rather than written into the plan now open.
  */
@@ -105,8 +107,12 @@ async function save(): Promise<void> {
   mine.saving = true;
   saveState.value = 'saving';
   try {
-    while (board.value !== saved.value) {
+    for (;;) {
       const sending = board.value;
+      if (sameTiles(sending, saved.value)) {
+        saved.value = sending; // Same tiles, maybe more empty rows: keep them if a later save fails.
+        break;
+      }
       const updated = await auth.authed((token) => savePlacements(token, mine.id, boardBody(sending)));
       if (mine !== opened) return;
       plan.value = updated;
@@ -123,6 +129,7 @@ async function save(): Promise<void> {
     console.error('Saving the plan failed:', e);
     const details = e instanceof HttpError ? e.details.join('; ') : '';
     saveError.value = code === 400 && details ? m.value.saveRefused(details) : m.value.saveFailed;
+    void check(saved.value);
   } finally {
     mine.saving = false;
   }
@@ -289,7 +296,6 @@ function addRow(): void {
   const next = withNextRow(before);
   board.value = next;
   if (saved.value === before) saved.value = next;
-  if (issues.value?.board === before) issues.value = { ...issues.value, board: next };
 }
 
 // Keyboard moves (UC-05 A1): Space lifts the focused tile, the arrows pick a row, Enter or Space drops, Escape cancels.

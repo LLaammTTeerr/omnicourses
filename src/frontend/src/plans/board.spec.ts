@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Term } from '../terms.js';
-import { addCourse, attachIssues, boardBody, boardOf, moveTile, nextTerm, placedCodes, removeTile, rowsFor, termsBetween, withNextRow, type Board } from './board.js';
+import { addCourse, attachIssues, boardBody, boardOf, moveTile, nextTerm, placedCodes, removeTile, rowsFor, sameTiles, termsBetween, withNextRow, type Board } from './board.js';
 import { course, issue, report } from './testing/fixtures.js';
 
 const t = (year: number, number: 1 | 2 | 3): Term => ({ year, number });
@@ -29,6 +29,19 @@ describe('terms on the board', () => {
 
 describe('board changes', () => {
   const start = () => boardOf([{ term: t(2026, 1), placements: [course('ZZ101'), course('ZZ102')] }], [t(2026, 1), t(2026, 2)], keys());
+
+  it('tells boards apart by their tiles, not by their empty rows', () => {
+    const board = start();
+    expect(sameTiles(board, withNextRow(board))).toBe(true);
+    const moved = moveTile(board, 0, t(2026, 2));
+    expect(sameTiles(board, moved)).toBe(false);
+    expect(sameTiles(board, moveTile(moved, 0, t(2026, 1)))).toBe(false); // back, but after ZZ102
+    // Removed and added again: the same course in the same place, but a new tile, which the old report does not describe.
+    const one = boardOf([{ term: t(2026, 1), placements: [course('ZZ101')] }], [t(2026, 1)], keys());
+    const again = addCourse(removeTile(one, 0), 'ZZ101', t(2026, 1), 7);
+    expect(boardBody(again)).toEqual(boardBody(one));
+    expect(sameTiles(one, again)).toBe(false);
+  });
 
   it('adds, moves and removes tiles, keeping each change a new board', () => {
     const board = start();
