@@ -49,7 +49,8 @@ export class CourseCoverageDto implements CourseCoverage {
 
   @ApiProperty({
     enum: COURSE_STATUSES,
-    description: 'counted_in_other_group: the course is passed or in progress but counts in another group (a course counts once, ADR 0013)',
+    description:
+      'counted_in_other_group: the course is passed and counts in another group (a course counts once, ADR 0013). A failed or in-progress course keeps its own status in every group that lists it.',
   })
   status!: CourseStatus;
 
@@ -59,7 +60,7 @@ export class CourseCoverageDto implements CourseCoverage {
   @ApiProperty({ type: Number, nullable: true, example: 8.5 })
   grade!: number | null;
 
-  @ApiProperty({ type: String, format: 'uuid', nullable: true })
+  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'The group a passed or in-progress course counts its credits in, when that is another group' })
   countedInGroupId!: string | null;
 }
 
@@ -91,7 +92,7 @@ export class GroupCoverageDto implements GroupCoverage {
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   overflowToGroupId!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'requiredCredits − passed − overflowIn − inProgress, at least 0' })
+  @ApiProperty({ type: Number, nullable: true, description: 'requiredCredits − passed − overflowIn − inProgress, at least 0; 0 once met' })
   remainingCredits!: number | null;
 
   @ApiProperty({ description: 'Compulsory: every course passed. Elective: passed + overflowIn ≥ requiredCredits; true without one.' })
@@ -287,6 +288,12 @@ export class AuditWarningDto implements AuditWarning {
 
   @ApiProperty()
   message!: string;
+
+  @ApiProperty({ type: [Number], nullable: true, description: 'credits_differ: the credits the transcript gives that differ from the curriculum; null for other codes' })
+  transcriptCredits!: number[] | null;
+
+  @ApiProperty({ type: Number, nullable: true, description: "credits_differ: the curriculum's credits; null for other codes" })
+  curriculumCredits!: number | null;
 }
 
 export class DegreeAuditDto implements DegreeAudit {

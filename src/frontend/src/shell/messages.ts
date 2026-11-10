@@ -5,6 +5,8 @@ export const SHELL_MESSAGES = {
     skip: 'Bỏ qua điều hướng',
     nav: 'Điều hướng chính',
     tabs: 'Điều hướng nhanh',
+    more: 'Thêm',
+    close: 'Đóng',
     account: 'Tài khoản',
     toDark: 'Giao diện tối',
     toLight: 'Giao diện sáng',
@@ -17,11 +19,14 @@ export const SHELL_MESSAGES = {
     regulation: 'Quy chế đào tạo 2021',
     sessionEnded: 'Phiên đăng nhập đã kết thúc. Hãy đăng nhập lại.',
     restored: 'Chào mừng trở lại. Việc xóa tài khoản đã được hủy, dữ liệu của bạn vẫn còn nguyên.',
+    working: 'Đang xử lý…',
   },
   en: {
     skip: 'Skip to main content',
     nav: 'Main navigation',
     tabs: 'Quick navigation',
+    more: 'More',
+    close: 'Close',
     account: 'Account',
     toDark: 'Dark theme',
     toLight: 'Light theme',
@@ -34,6 +39,7 @@ export const SHELL_MESSAGES = {
     regulation: 'Training regulation 2021',
     sessionEnded: 'Your session has ended. Please sign in again.',
     restored: 'Welcome back. Your account deletion is cancelled and your data is intact.',
+    working: 'Working…',
   },
 } satisfies Record<Lang, Record<string, string>>;
 

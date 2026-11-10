@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
@@ -9,6 +9,7 @@ import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
+import { SHELL_MESSAGES } from '../shell/messages.js';
 import { useToast } from '../shell/toast.js';
 import { createPlan, deletePlan, duplicatePlan, fetchPlans, renamePlan, type PlanSummary } from './api.js';
 import { PLANNER_MESSAGES } from './messages.js';
@@ -22,6 +23,7 @@ const locale = useLocale();
 const toast = useToast();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
+const shell = useMessages(SHELL_MESSAGES);
 
 const plans = ref<PlanSummary[]>([]);
 const { status, reload } = useAsyncLoad('the plans', async () => {
@@ -102,21 +104,26 @@ function askDelete(plan: PlanSummary): void {
   deleting.value = plan;
 }
 
-/** Keep and Escape do nothing while the deletion is out: it would still go through. */
-function closeDelete(): void {
-  if (!busy.value) deleting.value = null;
-}
-
 async function confirmDelete(): Promise<void> {
   const plan = deleting.value;
   if (!plan) return;
   const done = await attempt('Deleting the plan', async () => {
-    await auth.authed((token) => deletePlan(token, plan.id));
+    try {
+      await auth.authed((token) => deletePlan(token, plan.id));
+    } catch (e) {
+      // Already gone: an earlier deletion that timed out here may have gone through on the server.
+      if (statusOf(e) !== 404) throw e;
+    }
     plans.value = plans.value.filter((p) => p.id !== plan.id);
     toast.show(m.value.deleted(plan.name));
   });
   if (done) deleting.value = null;
 }
+
+// A busy dialog refuses Escape with `closedby="none"`, which leaves the Android back gesture to the browser: history
+// back. Stay until its request answers, so the result is said. A 401 has signed the student out, who may leave; a
+// create closes its dialog before opening the new plan.
+onBeforeRouteLeave(() => !(busy.value && (naming.value !== null || deleting.value !== null)) || !auth.signedIn);
 
 usePageTitle(() => m.value.title);
 </script>
@@ -129,7 +136,7 @@ usePageTitle(() => m.value.title);
         <p>{{ m.listLead }}</p>
       </div>
       <div class="head-actions">
-        <button class="btn primary" type="button" :disabled="!program || status !== 'loaded'" data-test="new-plan" @click="openNaming(null)">
+        <button class="btn primary" type="button" :disabled="!program || status !== 'loaded' || busy" data-test="new-plan" @click="openNaming(null)">
           <Icon name="plus" size="sm" />{{ m.newPlan }}
         </button>
       </div>
@@ -164,10 +171,11 @@ usePageTitle(() => m.value.title);
           <RouterLink class="plan-name" :to="{ name: 'plan', params: { id: plan.id } }">{{ plan.name }}</RouterLink>
           <p class="small t3">{{ m.curriculum(plan.curriculum.code) }} · {{ m.updated(formatDateTime(plan.updatedAt, locale.lang)) }}</p>
         </div>
+        <!-- One action at a time: they share `busy` and `dialogError`, so a copy's failure cannot show in another's dialog. -->
         <div class="plan-card-acts" role="group" :aria-label="m.actionsFor(plan.name)">
-          <button class="btn sm" type="button" data-test="rename" @click="openNaming(plan)"><Icon name="edit" size="sm" />{{ m.rename }}</button>
+          <button class="btn sm" type="button" data-test="rename" :disabled="busy" @click="openNaming(plan)"><Icon name="edit" size="sm" />{{ m.rename }}</button>
           <button class="btn sm" type="button" data-test="copy" :disabled="busy" @click="copy(plan)"><Icon name="copy" size="sm" />{{ m.copy }}</button>
-          <button class="btn sm ghost" type="button" data-test="delete" @click="askDelete(plan)"><Icon name="trash" size="sm" />{{ m.delete }}</button>
+          <button class="btn sm ghost" type="button" data-test="delete" :disabled="busy" @click="askDelete(plan)"><Icon name="trash" size="sm" />{{ m.delete }}</button>
         </div>
       </li>
     </ul>
@@ -184,13 +192,22 @@ usePageTitle(() => m.value.title);
       @save="saveName"
     />
 
-    <ModalDialog :open="deleting !== null" role="alertdialog" labelledby="delete-plan-title" describedby="delete-plan-body" @close="closeDelete">
+    <!-- Busy: Keep is disabled and Escape is refused, since the deletion would still go through. -->
+    <ModalDialog
+      :open="deleting !== null"
+      role="alertdialog"
+      labelledby="delete-plan-title"
+      describedby="delete-plan-body"
+      :busy="busy"
+      :busy-text="shell.working"
+      @close="deleting = null"
+    >
       <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
       <h2 id="delete-plan-title">{{ m.deleteTitle(deleting?.name ?? '') }}</h2>
       <p id="delete-plan-body" class="t2">{{ m.deleteBody }}</p>
       <p v-if="dialogError" class="callout bad small" role="alert"><Icon name="alert" size="sm" /><span>{{ dialogError }}</span></p>
       <div class="acts">
-        <button class="btn" type="button" autofocus :disabled="busy" @click="closeDelete">{{ m.keep }}</button>
+        <button class="btn" type="button" autofocus :disabled="busy" @click="deleting = null">{{ m.keep }}</button>
         <button class="btn danger" type="button" data-test="confirm-delete" :disabled="busy" @click="confirmDelete">
           <Icon name="trash" size="sm" />{{ busy ? m.deleting : m.delete }}
         </button>

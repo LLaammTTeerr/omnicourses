@@ -1,13 +1,13 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import type { Router } from 'vue-router';
+import { RouterView, type Router } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import { session } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SettingsView from './SettingsView.vue';
 
@@ -22,11 +22,12 @@ const HERE = session({ id: '00000000-0000-4000-8000-0000000000b1', current: true
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
-async function render(routes: Record<string, unknown> = {}) {
+/** `routed`: through a RouterView, so the view's route guards run. */
+async function render(routes: Record<string, unknown> = {}, { routed = false } = {}) {
   const fetch = mockApi({ 'GET /auth/sessions': [OLD, PHONE, HERE], 'GET /programs': { programs: [] }, ...routes });
   const app = await setup('/settings');
   router = app.router;
-  wrapper = mount(SettingsView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
+  wrapper = mount(routed ? RouterView : SettingsView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch };
 }
@@ -142,6 +143,71 @@ describe('SettingsView', () => {
     expect(dialog.get('#delete-password').attributes('aria-invalid')).toBe('true');
     expect(useAuth().signedIn).toBe(true);
     expect(router.currentRoute.value.name).toBe('settings');
+  });
+
+  it('keeps the dialog open while the deletion is out, and says a wrong password there', async () => {
+    let answer!: (response: Response) => void;
+    const { w } = await render({ 'DELETE /users/me': () => new Promise<Response>((resolve) => (answer = resolve)) });
+    const dialog = await openDeletion(w);
+    await dialog.get('#delete-password').setValue('zz-wrong-password');
+    await dialog.get('form').trigger('submit');
+    await flushPromises();
+    expect(dialog.findAll('button').find((b) => b.text() === 'Giữ lại')!.attributes('disabled')).toBeDefined();
+    expect(dialog.get('[role="status"]').text()).toBe('Đang xử lý…');
+    // Escape reaches the dialog as a cancel event; a browser without `closedby` may then close it anyway.
+    await dialog.trigger('cancel');
+    closeNatively(dialog.element);
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+
+    answer(status(403, { message: 'Wrong password' })());
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Mật khẩu không đúng.');
+    expect(useAuth().signedIn).toBe(true);
+  });
+
+  // While busy, `closedby="none"` leaves the Android back gesture to the browser, which goes back in history.
+  it('stays on the page when the student goes back during the deletion, then leaves once it is done', async () => {
+    let answer!: (response: Response) => void;
+    const { w } = await render(
+      { 'DELETE /users/me': () => new Promise<Response>((resolve) => (answer = resolve)), 'GET /health': { status: 'ok', database: 'up' }, 'GET /guides': { guides: [] } },
+      { routed: true },
+    );
+    // A page to go back to.
+    await router.push('/guides');
+    await router.push('/settings');
+    await flushPromises();
+    const dialog = await openDeletion(w);
+    await dialog.get('#delete-password').setValue('zz-password-1');
+    await dialog.get('form').trigger('submit');
+    await flushPromises();
+    router.back();
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/settings');
+    expect(w.find('dialog[open]').exists()).toBe(true);
+
+    answer(Response.json({ purgeAfter: '2026-12-09T08:00:00.000Z' }, { status: 202 }));
+    await flushPromises();
+    expect(router.currentRoute.value.name).toBe('home');
+    expect(useAuth().signedIn).toBe(false);
+  });
+
+  // The server may have done it: a retry then gets a 401, which signs the student out, and signing in cancels it.
+  it('says a deletion that got no answer may have gone through', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const timer = new AbortController();
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timer.signal);
+    const { w } = await render({ 'DELETE /users/me': hung });
+    const dialog = await openDeletion(w);
+    await dialog.get('#delete-password').setValue('zz-password-1');
+    await dialog.get('form').trigger('submit');
+    await flushPromises();
+    timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe(
+      'OmniCourse chưa trả lời, có thể việc xóa đã xong. Nếu thử lại mà bị đăng xuất thì tài khoản đã được hẹn xóa, và đăng nhập lại sẽ hủy việc xóa.',
+    );
+    expect(useAuth().signedIn).toBe(true);
   });
 
   it('signs out here and says when the deletion completes', async () => {

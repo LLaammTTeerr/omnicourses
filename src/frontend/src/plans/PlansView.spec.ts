@@ -4,7 +4,7 @@ import { RouterView, type Router } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { useToast } from '../shell/toast.js';
-import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import { OTHER_ID, PLAN_ID, plan, report, summary } from './testing/fixtures.js';
 
@@ -157,6 +157,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await flushPromises();
     const keep = w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!;
     expect(keep.attributes('disabled')).toBeDefined();
+    expect(w.get('dialog[open] [role="status"]').text()).toBe('Đang xử lý…');
     // Escape reaches the dialog as a cancel event.
     await w.get('dialog[open]').trigger('cancel');
     await flushPromises();
@@ -177,6 +178,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await flushPromises();
     const cancel = w.findAll('dialog[open] button').find((b) => b.text() === 'Hủy')!;
     expect(cancel.attributes('disabled')).toBeDefined();
+    expect(w.get('dialog[open] [role="status"]').text()).toBe('Đang xử lý…');
     await w.get('dialog[open]').trigger('cancel');
     await flushPromises();
     expect(w.find('dialog[open]').exists()).toBe(true);
@@ -184,6 +186,125 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await flushPromises();
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
+  });
+
+  it('brings the delete dialog back when the browser closes it during the deletion, and says there if it fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let answer!: (response: Response) => void;
+    const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    closeNatively(w.get('dialog[open]').element);
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+    answer(status(503)());
+    await flushPromises();
+    const dialog = w.get('dialog[open]');
+    expect(dialog.get('[role="alert"]').text()).toBe('Chưa thực hiện được. Hãy thử lại.');
+    expect(names(w)).toEqual(['Kế hoạch thử', 'Nhẹ tải thử']);
+  });
+
+  it('brings the name dialog back when the browser closes it during its request', async () => {
+    let answer!: (response: Response) => void;
+    const { w } = await render({ [`PATCH /plans/${PLAN_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 0).get('[data-test="rename"]').trigger('click');
+    await flushPromises();
+    await w.get('dialog[open] input').setValue('Đổi tên thử');
+    await w.get('dialog[open] form').trigger('submit');
+    await flushPromises();
+    closeNatively(w.get('dialog[open]').element);
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+    answer(Response.json({ ...plan(), name: 'Đổi tên thử' }));
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
+  });
+
+  // While busy, `closedby="none"` leaves the Android back gesture to the browser, which goes back in history.
+  it('stays on the page when the student goes back during a deletion, and says its result', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let answer!: (response: Response) => void;
+    const { w } = await render({
+      [`DELETE /plans/${OTHER_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)),
+      'GET /guides': { guides: [] },
+    });
+    // A page to go back to.
+    await router.push('/guides');
+    await router.push('/plans');
+    await flushPromises();
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    router.back();
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/plans');
+    expect(w.find('dialog[open]').exists()).toBe(true);
+
+    answer(status(503)());
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Chưa thực hiện được. Hãy thử lại.');
+    await w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!.trigger('click');
+    router.back();
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/guides');
+  });
+
+  it('says a deletion that gets no answer in its dialog, and lets the student out', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    // The request's timeout, fired by the test instead of after 30 seconds.
+    const timer = new AbortController();
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timer.signal);
+    const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: hung });
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    const keep = () => w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!;
+    expect(keep().attributes('disabled')).toBeDefined();
+
+    timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Chưa thực hiện được. Hãy thử lại.');
+    expect(keep().attributes('disabled')).toBeUndefined();
+    await keep().trigger('click');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+  });
+
+  // A deletion that timed out here may still have gone through on the server, so a retry finds no plan.
+  it('takes a plan that is already gone (404) out of the list instead of asking to try again', async () => {
+    const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: status(404, { statusCode: 404, message: 'No plan with this id' }) });
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(names(w)).toEqual(['Kế hoạch thử']);
+    expect(useToast().message).toBe('Đã xóa Nhẹ tải thử.');
+  });
+
+  it('lets no other action start while a copy runs, so its failure is not said in another dialog', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let answer!: (response: Response) => void;
+    const { w, fetch } = await render({ [`POST /plans/${PLAN_ID}/duplicate`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 0).get('[data-test="copy"]').trigger('click');
+    await flushPromises();
+    for (const action of ['rename', 'copy', 'delete']) expect(card(w, 1).get(`[data-test="${action}"]`).attributes('disabled')).toBeDefined();
+    expect(w.get('[data-test="new-plan"]').attributes('disabled')).toBeDefined();
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+
+    answer(status(503)());
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(useToast().message).toBe('Chưa thực hiện được. Hãy thử lại.');
+    expect(calls(fetch, 'DELETE')).toHaveLength(0);
+    expect(card(w, 1).get('[data-test="delete"]').attributes('disabled')).toBeUndefined();
   });
 
   it('loads the student’s program itself, with a retry, when the answers were not loaded before', async () => {

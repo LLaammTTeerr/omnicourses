@@ -1,0 +1,499 @@
+{
+  "rows": [
+    {
+      "courseCode": "CS160",
+      "courseName": "Nhập môn Tin học",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8.5,
+      "term": {
+        "year": 2024,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CM102",
+      "courseName": "Tư duy phản biện",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7.5,
+      "term": {
+        "year": 2024,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "MTH251",
+      "courseName": "Vi tích phân I",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2024,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "PH211",
+      "courseName": "Vật lý đại cương I",
+      "credits": 4,
+      "result": "graded",
+      "grade": 6.5,
+      "term": {
+        "year": 2024,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "BAA00030",
+      "courseName": "Giáo dục quốc phòng - An ninh",
+      "credits": 4,
+      "result": "pass",
+      "grade": null,
+      "term": {
+        "year": 2024,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS163",
+      "courseName": "Cấu trúc dữ liệu",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2024,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "MTH252",
+      "courseName": "Vi tích phân II",
+      "credits": 4,
+      "result": "graded",
+      "grade": 6,
+      "term": {
+        "year": 2024,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "PH212",
+      "courseName": "Vật lý đại cương II",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2024,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "BAA00004",
+      "courseName": "Pháp luật đại cương",
+      "credits": 3,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2024,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "CS202",
+      "courseName": "Các hệ thống lập trình",
+      "credits": 4,
+      "result": "graded",
+      "grade": 9,
+      "term": {
+        "year": 2024,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "MTH261",
+      "courseName": "Đại số tuyến tính",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7.5,
+      "term": {
+        "year": 2024,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "PH213",
+      "courseName": "Vật lý đại cương III",
+      "credits": 4,
+      "result": "graded",
+      "grade": 6,
+      "term": {
+        "year": 2024,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "BAA00101",
+      "courseName": "Triết học Mác - Lênin",
+      "credits": 3,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2024,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS201",
+      "courseName": "Lập trình hệ thống",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2025,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS252",
+      "courseName": "Tư duy tính toán",
+      "credits": 4,
+      "result": "graded",
+      "grade": 9,
+      "term": {
+        "year": 2025,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS250",
+      "courseName": "Cấu trúc rời rạc I",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2025,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "SC203",
+      "courseName": "Phương pháp khoa học",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8.5,
+      "term": {
+        "year": 2025,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "BAA00021",
+      "courseName": "Thể dục 1",
+      "credits": 2,
+      "result": "pass",
+      "grade": null,
+      "term": {
+        "year": 2025,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS251",
+      "courseName": "Cấu trúc logic",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7.5,
+      "term": {
+        "year": 2025,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "ECE341",
+      "courseName": "Phần cứng máy tính",
+      "credits": 4,
+      "result": "graded",
+      "grade": 6.5,
+      "term": {
+        "year": 2025,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "WR227",
+      "courseName": "Kỹ năng viết tài liệu khoa học",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2025,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "STAT451",
+      "courseName": "Xác suất thống kê cho CNTT I",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2025,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "BAA00022",
+      "courseName": "Thể dục 2",
+      "credits": 2,
+      "result": "pass",
+      "grade": null,
+      "term": {
+        "year": 2025,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "CS323",
+      "courseName": "Đạo đức khoa học",
+      "credits": 4,
+      "result": "graded",
+      "grade": 9,
+      "term": {
+        "year": 2025,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS486",
+      "courseName": "Nhập môn các hệ cơ sở dữ liệu",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2025,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "MTH253",
+      "courseName": "Vi tích phân III",
+      "credits": 4,
+      "result": "graded",
+      "grade": 6.5,
+      "term": {
+        "year": 2025,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS426",
+      "courseName": "Phát triển ứng dụng trên thiết bị di động",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8.5,
+      "term": {
+        "year": 2025,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS300",
+      "courseName": "Nhập môn Công nghệ phần mềm",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2026,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS311",
+      "courseName": "Cấu trúc tính toán",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2026,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS420",
+      "courseName": "Trí tuệ nhân tạo",
+      "credits": 4,
+      "result": "graded",
+      "grade": 9.5,
+      "term": {
+        "year": 2026,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "MTH346",
+      "courseName": "Lý thuyết số",
+      "credits": 4,
+      "result": "graded",
+      "grade": 6,
+      "term": {
+        "year": 2026,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "BAA00102",
+      "courseName": "Kinh tế chính trị Mác - Lênin",
+      "credits": 2,
+      "result": "graded",
+      "grade": 7.5,
+      "term": {
+        "year": 2026,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS333",
+      "courseName": "Nhập môn Hệ điều hành",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7.5,
+      "term": {
+        "year": 2026,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "CS411",
+      "courseName": "Đồ họa máy tính",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2026,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "BAA00103",
+      "courseName": "Chủ nghĩa xã hội khoa học",
+      "credits": 2,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2026,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "CS414",
+      "courseName": "Máy học",
+      "credits": 4,
+      "result": "graded",
+      "grade": 9,
+      "term": {
+        "year": 2026,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS416",
+      "courseName": "Tích hợp và mô hình hóa dữ liệu",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7.5,
+      "term": {
+        "year": 2026,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS427",
+      "courseName": "Trực quan hóa 3D và phát triển game",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8.5,
+      "term": {
+        "year": 2026,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS412",
+      "courseName": "Thị giác máy tính",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2027,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS423",
+      "courseName": "Kiểm chứng phần mềm",
+      "credits": 4,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2027,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "BAA00003",
+      "courseName": "Tư tưởng Hồ Chí Minh",
+      "credits": 2,
+      "result": "graded",
+      "grade": 9,
+      "term": {
+        "year": 2027,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS421",
+      "courseName": "Phân tích và quản lý yêu cầu phần mềm",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8.5,
+      "term": {
+        "year": 2027,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "CS407",
+      "courseName": "Kỹ năng sáng tạo và lãnh đạo",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8,
+      "term": {
+        "year": 2027,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "BAA00104",
+      "courseName": "Lịch sử Đảng Cộng sản Việt Nam",
+      "credits": 2,
+      "result": "graded",
+      "grade": 7,
+      "term": {
+        "year": 2027,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "CS468",
+      "courseName": "Khóa luận tốt nghiệp",
+      "credits": 10,
+      "result": "graded",
+      "grade": 9,
+      "term": {
+        "year": 2027,
+        "number": 3
+      }
+    }
+  ]
+}

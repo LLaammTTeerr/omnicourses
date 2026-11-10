@@ -24,7 +24,7 @@ export interface CourseCoverage {
   result: TranscriptResult | null;
   /** The official attempt's grade, or null. */
   grade: number | null;
-  /** When status is counted_in_other_group: the group the course counts in. */
+  /** A passed or in-progress course whose credits count in another group: that group. */
   countedInGroupId: string | null;
 }
 
@@ -43,7 +43,7 @@ export interface GroupCoverage {
   /** This group's passed credits beyond its own minimum, counted toward overflowToGroupId. */
   overflowOutCredits: number;
   overflowToGroupId: string | null;
-  /** requiredCredits − passed − overflowIn − inProgress, never below 0; null without requiredCredits. */
+  /** requiredCredits − passed − overflowIn − inProgress, never below 0, and 0 once met; null without requiredCredits. */
   remainingCredits: number | null;
   /** Compulsory: every course passed. Elective: passed + overflowIn ≥ requiredCredits (always true without one). */
   met: boolean;
@@ -147,6 +147,10 @@ export interface AuditWarning {
   code: AuditWarningCode;
   courseCode: string;
   message: string;
+  /** credits_differ: the credits the transcript gives that differ from the curriculum's; null for other codes. */
+  transcriptCredits: number[] | null;
+  /** credits_differ: the curriculum's credits; null for other codes. */
+  curriculumCredits: number | null;
 }
 
 export interface DegreeAudit {

@@ -27,10 +27,10 @@ describe('router guard (issue #13)', () => {
     expect(router.currentRoute.value.fullPath).toBe(path);
   });
 
-  it('sends a signed-in student away from sign-in, to the redirect or the transcript', async () => {
-    expect((await setup('/sign-in')).router.currentRoute.value.fullPath).toBe('/transcript');
+  it('sends a signed-in student away from sign-in, to the redirect or the dashboard', async () => {
+    expect((await setup('/sign-in')).router.currentRoute.value.fullPath).toBe('/dashboard');
     expect((await setup('/sign-up?redirect=/settings')).router.currentRoute.value.fullPath).toBe('/settings');
-    expect((await setup('/sign-in?redirect=https://example.com')).router.currentRoute.value.fullPath).toBe('/transcript');
+    expect((await setup('/sign-in?redirect=https://example.com')).router.currentRoute.value.fullPath).toBe('/dashboard');
   });
 
   it('opens a private page after a reload once the saved session is refreshed', async () => {
@@ -68,9 +68,9 @@ describe('onboarding comes first (UC-01 A5, A8)', () => {
   });
 
   it('opens onboarding no more once it is finished (step 9)', async () => {
-    expect((await setup('/onboarding')).router.currentRoute.value.fullPath).toBe('/transcript');
+    expect((await setup('/onboarding')).router.currentRoute.value.fullPath).toBe('/dashboard');
     expect((await setup('/onboarding?redirect=/explorer')).router.currentRoute.value.fullPath).toBe('/explorer');
-    expect((await setup('/onboarding?redirect=/onboarding')).router.currentRoute.value.fullPath).toBe('/transcript');
+    expect((await setup('/onboarding?redirect=/onboarding')).router.currentRoute.value.fullPath).toBe('/dashboard');
   });
 
   it('opens a private page right away for a student who has finished', async () => {
