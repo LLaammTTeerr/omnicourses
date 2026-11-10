@@ -87,7 +87,8 @@ async function saveName(name: string): Promise<void> {
 }
 
 async function copy(plan: PlanSummary): Promise<void> {
-  const name = m.value.copyName(plan.name).slice(0, 100);
+  // The API allows 100 characters, counting an emoji as one: cut between code points, never inside a surrogate pair.
+  const name = Array.from(m.value.copyName(plan.name)).slice(0, 100).join('');
   const done = await attempt('Copying the plan', async () => {
     const copied = await auth.authed((token) => duplicatePlan(token, plan.id, name));
     plans.value = [...plans.value, copied];

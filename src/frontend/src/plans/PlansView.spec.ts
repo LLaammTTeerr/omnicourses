@@ -203,6 +203,21 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(w.get('[data-test="new-plan"]').attributes('disabled')).toBeUndefined();
   });
 
+  it('cuts a long copy name between characters, never inside one', async () => {
+    let body: unknown;
+    const long = `${'x'.repeat(87)}😀yy`;
+    const { w } = await render({
+      'GET /plans': { plans: [summary({ name: long })] },
+      [`POST /plans/${PLAN_ID}/duplicate`]: (init: RequestInit) => {
+        body = sentBody(init);
+        return Response.json(plan([], { id: '00000000-0000-4000-8000-0000000000a3', name: 'Bản sao' }), { status: 201 });
+      },
+    });
+    await card(w, 0).get('[data-test="copy"]').trigger('click');
+    await flushPromises();
+    expect(body).toEqual({ name: `Bản sao của ${'x'.repeat(87)}😀` });
+  });
+
   it('offers a retry when the plans cannot be loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let fail = true;
