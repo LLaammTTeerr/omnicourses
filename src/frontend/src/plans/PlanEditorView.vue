@@ -560,10 +560,10 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                 <li v-if="row.tiles.length === 0" class="drop-hint">{{ m.dropHere }}</li>
               </ul>
             </section>
-            <button v-if="board.length" class="btn add-row" type="button" data-test="add-row" @click="addRow">
-              <Icon name="plus" size="sm" />{{ m.addTerm(nameOf(withNextRow(board).at(-1)!.term)) }}
-            </button>
           </div>
+          <button v-if="board.length" class="btn add-row" type="button" data-test="add-row" @click="addRow">
+            <Icon name="plus" size="sm" />{{ m.addTerm(nameOf(withNextRow(board).at(-1)!.term)) }}
+          </button>
         </div>
 
         <IssuesPanel :attached="issues" :status="issuesStatus" :fresh="fresh" :ctx="ctx" @retry="check(saved)" @focus-tile="focusTile" />

@@ -483,6 +483,13 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(sent).toHaveLength(1);
   });
 
+  it('keeps the add-term button out of the list of terms', async () => {
+    const { w } = await render();
+    const list = w.get('[role="list"]');
+    expect([...list.element.children].every((child) => child.getAttribute('role') === 'listitem')).toBe(true);
+    expect(w.find('[data-test="add-row"]').exists()).toBe(true);
+  });
+
   it('says when the plan is not the student’s (404)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render({ routes: { [`GET /plans/${PLAN_ID}`]: status(404) } });
