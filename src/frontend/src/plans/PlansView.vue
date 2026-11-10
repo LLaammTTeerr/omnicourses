@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
@@ -114,6 +114,11 @@ async function confirmDelete(): Promise<void> {
   });
   if (done) deleting.value = null;
 }
+
+// A busy dialog refuses Escape with `closedby="none"`, which leaves the Android back gesture to the browser: history
+// back. Stay until its request answers, so the result is said. A 401 has signed the student out, who may leave; a
+// create closes its dialog before opening the new plan.
+onBeforeRouteLeave(() => !(busy.value && (naming.value !== null || deleting.value !== null)) || !auth.signedIn);
 
 usePageTitle(() => m.value.title);
 </script>

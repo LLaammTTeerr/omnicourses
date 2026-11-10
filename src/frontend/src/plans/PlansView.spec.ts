@@ -221,6 +221,36 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
+  // While busy, `closedby="none"` leaves the Android back gesture to the browser, which goes back in history.
+  it('stays on the page when the student goes back during a deletion, and says its result', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let answer!: (response: Response) => void;
+    const { w } = await render({
+      [`DELETE /plans/${OTHER_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)),
+      'GET /guides': { guides: [] },
+    });
+    // A page to go back to.
+    await router.push('/guides');
+    await router.push('/plans');
+    await flushPromises();
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    router.back();
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/plans');
+    expect(w.find('dialog[open]').exists()).toBe(true);
+
+    answer(status(503)());
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Chưa thực hiện được. Hãy thử lại.');
+    await w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!.trigger('click');
+    router.back();
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/guides');
+  });
+
   it('says a deletion that gets no answer in its dialog, and lets the student out', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     // The request's timeout, fired by the test instead of after 30 seconds.

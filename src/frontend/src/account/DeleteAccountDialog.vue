@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
@@ -34,12 +34,17 @@ watch(
   },
 );
 
+// Busy, the dialog refuses Escape with `closedby="none"`, which leaves the Android back gesture to the browser:
+// history back. Stay until the deletion answers, so a wrong password is said. A 401 has signed the student out.
+onBeforeRouteLeave(() => !busy.value || !auth.signedIn);
+
 async function confirm(): Promise<void> {
   if (!password.value || busy.value) return;
   busy.value = true;
   error.value = null;
   try {
     const { purgeAfter } = await auth.authed((token) => deleteAccount(token, { password: password.value }));
+    busy.value = false;
     // Every session is gone on the server: leave the private pages first, then forget this one.
     await router.push({ name: 'home' });
     auth.clear();
