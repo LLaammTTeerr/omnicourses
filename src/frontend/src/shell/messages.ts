@@ -19,6 +19,7 @@ export const SHELL_MESSAGES = {
     regulation: 'Quy chế đào tạo 2021',
     sessionEnded: 'Phiên đăng nhập đã kết thúc. Hãy đăng nhập lại.',
     restored: 'Chào mừng trở lại. Việc xóa tài khoản đã được hủy, dữ liệu của bạn vẫn còn nguyên.',
+    working: 'Đang xử lý…',
   },
   en: {
     skip: 'Skip to main content',
@@ -38,6 +39,7 @@ export const SHELL_MESSAGES = {
     regulation: 'Training regulation 2021',
     sessionEnded: 'Your session has ended. Please sign in again.',
     restored: 'Welcome back. Your account deletion is cancelled and your data is intact.',
+    working: 'Working…',
   },
 } satisfies Record<Lang, Record<string, string>>;
 

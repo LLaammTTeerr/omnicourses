@@ -186,8 +186,8 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
-  // A second Escape closes a <dialog> whatever the page does (Chrome's close watchers; see
-  // ModalDialog.browser.spec.ts). jsdom has no close watcher, so these close it as the browser does.
+  // A browser without `closedby` (Safari) still closes a busy <dialog> on a second Escape (see
+  // ModalDialog.browser.spec.ts). jsdom has no close watcher, so these close it as such a browser does.
   const closeNatively = (dialog: Element) => {
     dialog.removeAttribute('open');
     dialog.dispatchEvent(new Event('close'));
