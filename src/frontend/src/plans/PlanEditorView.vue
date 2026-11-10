@@ -50,29 +50,22 @@ const plan = shallowRef<Plan | null>(null);
 const board = shallowRef<Board>([]);
 /** The board the API last saved. */
 const saved = shallowRef<Board>([]);
+/** The tile lifted with the keyboard, and the row it would drop on. */
+const lifted = shallowRef<{ key: number; target: number } | null>(null);
 let nextKey = 0;
 const newKey = () => nextKey++;
 const currentTermNow = () => currentTerm(vietnamDate(new Date()));
 
-const loaded = useAsyncLoad(
-  'the plan',
-  async () => {
-    const found = await auth.authed((token) => fetchPlan(token, props.id));
-    // The rows run to the target graduation term; without onboarding answers they stop at the plan's last term.
-    const target = await onboarding.load().then(
-      (answers) => answers.targetGraduationTerm,
-      () => null,
-    );
-    const start = boardOf(found.terms, rowsFor(found.terms, currentTermNow(), target), newKey);
-    plan.value = found;
-    board.value = start;
-    saved.value = start;
-    addTarget.value = termKey(start.find((row) => compareTerms(row.term, currentTermNow()) >= 0)?.term ?? start[0]!.term);
-    void check(start);
-    return found;
-  },
-  () => props.id,
-);
+/**
+ * The plan this editor has open. The router reuses the editor when the student goes from one plan straight to
+ * another, so each load opens a new one, and a save or check started for an earlier one stops instead of touching
+ * the plan now on screen.
+ */
+interface Opened {
+  id: string;
+  saving: boolean;
+}
+let opened: Opened = { id: props.id, saving: false };
 
 // ---------- The rule engine's report ----------
 const issues = shallowRef<AttachedIssues | null>(null);
@@ -81,9 +74,10 @@ let checkCall = 0;
 
 async function check(snapshot: Board): Promise<void> {
   const call = ++checkCall;
+  const { id } = opened;
   issuesStatus.value = 'loading';
   try {
-    const report = await auth.authed((token) => fetchPlanIssues(token, props.id));
+    const report = await auth.authed((token) => fetchPlanIssues(token, id));
     if (call !== checkCall) return;
     issues.value = attachIssues(snapshot, report);
     issuesStatus.value = 'idle';
@@ -99,22 +93,29 @@ const fresh = computed(() => issues.value?.board === board.value && issuesStatus
 // ---------- Saving ----------
 const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
 const saveError = ref<string | null>(null);
-let saving = false;
 
-/** Saves the board on screen until the API holds it; a failure puts back the last saved board. */
+/**
+ * Saves the board on screen until the API holds it; a failure puts back the last saved board. If the student opens
+ * another plan meanwhile, the request in flight still lands in this one and the loop stops there: a change not yet
+ * sent is dropped rather than written into the plan now open.
+ */
 async function save(): Promise<void> {
-  if (saving) return;
-  saving = true;
+  const mine = opened;
+  if (mine.saving) return;
+  mine.saving = true;
   saveState.value = 'saving';
   try {
     while (board.value !== saved.value) {
       const sending = board.value;
-      plan.value = await auth.authed((token) => savePlacements(token, props.id, boardBody(sending)));
+      const updated = await auth.authed((token) => savePlacements(token, mine.id, boardBody(sending)));
+      if (mine !== opened) return;
+      plan.value = updated;
       saved.value = sending;
     }
     saveState.value = 'saved';
     void check(saved.value);
   } catch (e) {
+    if (mine !== opened) return;
     board.value = saved.value;
     const code = statusOf(e);
     saveState.value = code === 401 ? 'saved' : 'failed';
@@ -123,7 +124,7 @@ async function save(): Promise<void> {
     const details = e instanceof HttpError ? e.details.join('; ') : '';
     saveError.value = code === 400 && details ? m.value.saveRefused(details) : m.value.saveFailed;
   } finally {
-    saving = false;
+    mine.saving = false;
   }
 }
 
@@ -134,6 +135,35 @@ function change(next: Board, said?: string): void {
   if (said) announce(said);
   void save();
 }
+
+// ---------- Loading ----------
+const loaded = useAsyncLoad(
+  'the plan',
+  async () => {
+    const mine: Opened = (opened = { id: props.id, saving: false });
+    ++checkCall;
+    issues.value = null;
+    saveState.value = 'saved';
+    saveError.value = null;
+    lifted.value = null;
+    const found = await auth.authed((token) => fetchPlan(token, mine.id));
+    // The rows run to the target graduation term; without onboarding answers they stop at the plan's last term.
+    const target = await onboarding.load().then(
+      (answers) => answers.targetGraduationTerm,
+      () => null,
+    );
+    // A later load owns the editor now; useAsyncLoad drops this answer too.
+    if (mine !== opened) return found;
+    const start = boardOf(found.terms, rowsFor(found.terms, currentTermNow(), target), newKey);
+    plan.value = found;
+    board.value = start;
+    saved.value = start;
+    addTarget.value = termKey(start.find((row) => compareTerms(row.term, currentTermNow()) >= 0)?.term ?? start[0]!.term);
+    void check(start);
+    return found;
+  },
+  () => props.id,
+);
 
 // ---------- What a tile shows ----------
 interface CourseInfo {
@@ -263,7 +293,6 @@ function addRow(): void {
 }
 
 // Keyboard moves (UC-05 A1): Space lifts the focused tile, the arrows pick a row, Enter or Space drops, Escape cancels.
-const lifted = shallowRef<{ key: number; target: number } | null>(null);
 function onTileKey(event: KeyboardEvent, tile: Tile, rowIndex: number): void {
   if (event.target !== event.currentTarget) return;
   const title = tileTitle(tile);

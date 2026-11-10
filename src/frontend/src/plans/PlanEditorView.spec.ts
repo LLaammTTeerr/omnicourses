@@ -5,7 +5,7 @@ import { useAuth } from '../auth/store.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import type { PlanIssues, PlanTerm } from './api.js';
-import { course, CURRICULUM, issue, plan, PLAN_ID, report } from './testing/fixtures.js';
+import { course, CURRICULUM, issue, OTHER_ID, plan, PLAN_ID, report } from './testing/fixtures.js';
 
 // 1 October 2026 in Vietnam: term 1 of 2026–2027. The synthetic student's target is term 2 of 2027–2028, so the
 // editor draws five rows: 2026-1 to 2027-2.
@@ -62,7 +62,18 @@ async function render({ routes = {}, reports = [REPORT] }: Options = {}) {
   const app = await setup(`/plans/${PLAN_ID}`);
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
-  return { w: wrapper, fetch, sent, checks: () => checks };
+  return { w: wrapper, fetch, sent, checks: () => checks, router: app.router };
+}
+
+/** A request the test answers when it chooses: `answer` resolves the oldest call still open. */
+function held() {
+  const open: ((response: Response) => void)[] = [];
+  return {
+    respond: () => new Promise<Response>((resolve) => open.push(resolve)),
+    answer(response: Response) {
+      open.shift()!(response);
+    },
+  };
 }
 
 const rowCodes = (w: VueWrapper) =>
@@ -300,6 +311,72 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(rowCodes(w).at(-1)).toBe('HK3 2027–2028:');
     expect(sent).toHaveLength(0);
     expect(w.find('[data-test="checking"]').exists()).toBe(false);
+  });
+
+  it('never writes this plan’s board into another plan opened in the same editor', async () => {
+    const puts = held();
+    const other: PlanTerm[][] = [];
+    const otherLoad = held();
+    const { w, router, sent } = await render({
+      routes: {
+        [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+          sent.push((sentBody(init) as { terms: PlanTerm[] }).terms);
+          return puts.respond();
+        },
+        [`GET /plans/${OTHER_ID}`]: otherLoad.respond,
+        [`GET /plans/${OTHER_ID}/issues`]: () => Response.json(report()),
+        [`PUT /plans/${OTHER_ID}/placements`]: (init: RequestInit) => {
+          const { terms } = sentBody(init) as { terms: PlanTerm[] };
+          other.push(terms);
+          return Response.json(plan(terms, { id: OTHER_ID, name: 'Nhẹ tải thử' }));
+        },
+      },
+    });
+    await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    await tile(w, 'ZZ102').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    // The student opens another plan while the first change is still being saved.
+    await router.push(`/plans/${OTHER_ID}`);
+    await flushPromises();
+    puts.answer(Response.json(plan(sent[0]!)));
+    await flushPromises();
+    otherLoad.answer(Response.json(plan([{ term: { year: 2026, number: 1 }, placements: [course('ZZ201')] }], { id: OTHER_ID, name: 'Nhẹ tải thử' })));
+    await flushPromises();
+    expect(other).toEqual([]);
+    expect(w.get('h1').text()).toBe('Nhẹ tải thử');
+    expect(rowCodes(w)[0]).toBe('HK1 2026–2027: ZZ201');
+    // An edit of the plan now open is saved to it.
+    await tile(w, 'ZZ201').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    expect(other).toEqual([[{ term: { year: 2026, number: 2 }, placements: [course('ZZ201')] }]]);
+    expect(sent).toHaveLength(1);
+  });
+
+  it('shows the plan opened last when the load of an earlier one answers late', async () => {
+    const first = held();
+    const other: PlanTerm[][] = [];
+    const { w, router } = await render({
+      routes: {
+        [`GET /plans/${PLAN_ID}`]: first.respond,
+        [`GET /plans/${OTHER_ID}`]: plan([{ term: { year: 2026, number: 1 }, placements: [course('ZZ201')] }], { id: OTHER_ID, name: 'Nhẹ tải thử' }),
+        [`GET /plans/${OTHER_ID}/issues`]: () => Response.json(report()),
+        [`PUT /plans/${OTHER_ID}/placements`]: (init: RequestInit) => {
+          const { terms } = sentBody(init) as { terms: PlanTerm[] };
+          other.push(terms);
+          return Response.json(plan(terms, { id: OTHER_ID, name: 'Nhẹ tải thử' }));
+        },
+      },
+    });
+    await router.push(`/plans/${OTHER_ID}`);
+    await flushPromises();
+    first.answer(Response.json(plan(SAVED)));
+    await flushPromises();
+    expect(w.get('h1').text()).toBe('Nhẹ tải thử');
+    expect(rowCodes(w)[0]).toBe('HK1 2026–2027: ZZ201');
+    await tile(w, 'ZZ201').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    expect(other).toEqual([[{ term: { year: 2026, number: 2 }, placements: [course('ZZ201')] }]]);
   });
 
   it('says when the plan is not the student’s (404)', async () => {
