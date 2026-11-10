@@ -28,6 +28,9 @@ const { status, reload } = useAsyncLoad('the plans', async () => {
   plans.value = (await auth.authed(fetchPlans)).plans;
 });
 
+// The router guard loads the onboarding answers but opens the page when that fails, so the list loads them too:
+// "pick a program in Settings" is said only once they are known to have none.
+const answers = useAsyncLoad('the onboarding answers', () => onboarding.load());
 const program = computed(() => {
   const answers = onboarding.answers;
   return answers?.program && answers.cohort ? { code: answers.program, cohort: answers.cohort } : null;
@@ -131,7 +134,14 @@ usePageTitle(() => m.value.title);
       </div>
     </header>
 
-    <p v-if="!program" class="callout warn" data-test="no-program">
+    <div v-if="answers.status.value === 'failed'" class="callout warn" role="alert" data-test="program-failed">
+      <Icon name="alert" />
+      <div>
+        <p>{{ m.programFailed }}</p>
+        <button class="btn sm" type="button" @click="answers.reload">{{ m.retry }}</button>
+      </div>
+    </div>
+    <p v-else-if="answers.status.value === 'loaded' && !program" class="callout warn" data-test="no-program">
       <Icon name="info" /><span>{{ m.noProgram }} <RouterLink class="link" :to="{ name: 'settings' }">{{ m.openSettings }}</RouterLink></span>
     </p>
 

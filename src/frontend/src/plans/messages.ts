@@ -23,6 +23,7 @@ interface PlannerMessages {
   empty: string;
   emptyHint: string;
   noProgram: string;
+  programFailed: string;
   openSettings: string;
   curriculum: (code: string) => string;
   updated: (when: string) => string;
@@ -135,6 +136,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     empty: 'Bạn chưa có kế hoạch nào.',
     emptyHint: 'Tạo một kế hoạch trống rồi xếp môn vào từng học kỳ.',
     noProgram: 'Hãy chọn chương trình và khóa trong Cài đặt trước khi tạo kế hoạch.',
+    programFailed: 'Chưa tải được chương trình và khóa của bạn.',
     openSettings: 'Mở Cài đặt',
     curriculum: (c) => `CTĐT ${c}`,
     updated: (when) => `Sửa lần cuối ${when}`,
@@ -256,6 +258,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     empty: 'You have no plan yet.',
     emptyHint: 'Create an empty plan, then place courses into its terms.',
     noProgram: 'Choose your program and cohort in Settings before creating a plan.',
+    programFailed: 'Could not load your program and cohort.',
     openSettings: 'Open Settings',
     curriculum: (c) => `Curriculum ${c}`,
     updated: (when) => `Last changed ${when}`,

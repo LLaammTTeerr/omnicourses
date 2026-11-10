@@ -186,6 +186,23 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
+  it('loads the student’s program itself, with a retry, when the answers were not loaded before', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let failures = 2;
+    const { w } = await render(
+      { 'GET /users/me/onboarding': () => (failures-- > 0 ? new Response(null, { status: 503 }) : Response.json(onboarding())) },
+      { onboarded: null },
+    );
+    // The router guard's load and the view's both failed: the program is unknown, not missing.
+    expect(w.find('[data-test="no-program"]').exists()).toBe(false);
+    expect(w.get('[data-test="program-failed"]').text()).toContain('Chưa tải được chương trình và khóa của bạn.');
+    expect(w.get('[data-test="new-plan"]').attributes('disabled')).toBeDefined();
+    await w.get('[data-test="program-failed"] button').trigger('click');
+    await flushPromises();
+    expect(w.find('[data-test="program-failed"]').exists()).toBe(false);
+    expect(w.get('[data-test="new-plan"]').attributes('disabled')).toBeUndefined();
+  });
+
   it('offers a retry when the plans cannot be loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let fail = true;
