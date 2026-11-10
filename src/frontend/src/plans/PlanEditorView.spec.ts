@@ -427,6 +427,35 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.get('.issues-panel').attributes('aria-busy')).toBe('false');
   });
 
+  it('drops a report asked for before a save went out', async () => {
+    const issues = held();
+    const puts = held();
+    const { w, sent } = await render({
+      routes: {
+        [`GET /plans/${PLAN_ID}/issues`]: issues.respond,
+        [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+          sent.push((sentBody(init) as { terms: PlanTerm[] }).terms);
+          return puts.respond();
+        },
+      },
+    });
+    await tile(w, 'ZZ101').get('[data-test="remove"]').trigger('click');
+    await flushPromises();
+    // The server may read the placements after the PUT commits: this report is about ZZ102 alone, at position 0.
+    const afterRemoval = report({
+      issues: [issue({ code: 'prerequisite_not_met', kind: 'violation', term: { year: 2026, number: 1 }, position: 0, courseCode: 'ZZ102', missingCourseCodes: ['ZZ101'] })],
+    });
+    issues.answer(Response.json(afterRemoval));
+    await flushPromises();
+    expect(w.find('[data-test="issue-violation"]').exists()).toBe(false);
+    puts.answer(Response.json(plan(sent[0]!)));
+    await flushPromises();
+    issues.answer(Response.json(afterRemoval));
+    await flushPromises();
+    expect(tile(w, 'ZZ102').classes()).toContain('has-violation');
+    expect(w.findAll('[data-test="issue-violation"]')).toHaveLength(1);
+  });
+
   it('says when the plan is not the student’s (404)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render({ routes: { [`GET /plans/${PLAN_ID}`]: status(404) } });

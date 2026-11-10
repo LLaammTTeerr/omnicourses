@@ -113,6 +113,10 @@ async function save(): Promise<void> {
         saved.value = sending; // Same tiles, maybe more empty rows: keep them if a later save fails.
         break;
       }
+      // A check asked for before this PUT may be answered after it commits, about this board and not its snapshot:
+      // drop it. The loop checks again when it ends.
+      ++checkCall;
+      if (issuesStatus.value === 'loading') issuesStatus.value = 'idle';
       const updated = await auth.authed((token) => savePlacements(token, mine.id, boardBody(sending)));
       if (mine !== opened) return;
       plan.value = updated;
