@@ -186,7 +186,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
-  // A browser without `closedby` (Safari) still closes a busy <dialog> on a second Escape (see
+  // A browser without `closedby` still closes a busy <dialog> on a second Escape (see
   // ModalDialog.browser.spec.ts). jsdom has no close watcher, so these close it as such a browser does.
   const closeNatively = (dialog: Element) => {
     dialog.removeAttribute('open');

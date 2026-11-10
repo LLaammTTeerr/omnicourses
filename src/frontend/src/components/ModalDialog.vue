@@ -33,8 +33,8 @@ function cancel(event: Event): void {
   if (event.cancelable && !props.busy) emit('close');
 }
 
-// The <dialog> closed. While busy, `closedby="none"` stops Escape and the back gesture where the browser supports
-// it; where it does not, the dialog is shown again at once, without telling the parent.
+// The <dialog> closed. While busy, `closedby="none"` stops Escape and the back gesture in a browser that supports
+// it; in one that does not, the dialog is shown again at once, without telling the parent.
 function closed(): void {
   const el = dialog.value;
   // The parent closed it, or this event was queued before a reopen: nothing was dismissed.
@@ -60,7 +60,6 @@ function closed(): void {
     :role="role"
     :aria-labelledby="labelledby"
     :aria-describedby="describedby"
-    :aria-busy="busy ? 'true' : undefined"
     :closedby="busy ? 'none' : undefined"
     @close="closed"
     @cancel="cancel"

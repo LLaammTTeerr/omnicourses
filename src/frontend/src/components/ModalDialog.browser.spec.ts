@@ -58,7 +58,6 @@ describe('ModalDialog in a real browser', () => {
   it('refuses Escape while busy, without closing, telling the parent or reopening, and says it is working', async () => {
     const el = await render();
     await page.getByRole('button', { name: 'Xóa' }).click();
-    await expect.element(page.getByRole('status')).toHaveTextContent('Đang xử lý…');
 
     for (let i = 0; i < 3; i++) await userEvent.keyboard('{Escape}');
     await settle();
@@ -69,6 +68,7 @@ describe('ModalDialog in a real browser', () => {
     expect(el.open).toBe(true);
     // Modal, not merely shown: the page behind stays inert.
     expect(el.matches(':modal')).toBe(true);
+    await expect.element(page.getByRole('status')).toHaveTextContent('Đang xử lý…');
   });
 
   it('emits close once for an Escape the page cannot prevent, and stays closed when the parent accepts it', async () => {
@@ -90,17 +90,18 @@ describe('ModalDialog in a real browser', () => {
     expect(showModal).toHaveBeenCalledTimes(1);
   });
 
-  // Browsers without `closedby` (Safari) still close a busy dialog on a second Escape.
+  // A browser without `closedby` still closes a busy dialog on a second Escape.
   it('shows itself again, without telling the parent, when the browser closes it while busy', async () => {
     const el = await render();
     state.busy = true;
     await nextTick();
     el.close();
-    await settle();
 
-    expect(state.closes).toBe(0);
+    await expect.poll(() => events).toEqual(['close']);
     expect(el.open).toBe(true);
     expect(el.matches(':modal')).toBe(true);
+    await settle();
+    expect(state.closes).toBe(0);
   });
 
   it('ignores a close event queued before the parent opened it again', async () => {
@@ -110,9 +111,8 @@ describe('ModalDialog in a real browser', () => {
     // close() queued its event as a task; the parent reopens before it runs.
     state.open = true;
     await nextTick();
-    await settle();
 
-    expect(events).toEqual(['close']);
+    await expect.poll(() => events).toEqual(['close']);
     expect(state.closes).toBe(0);
     expect(el.open).toBe(true);
   });
@@ -127,9 +127,8 @@ describe('ModalDialog in a real browser', () => {
       throw failure;
     });
     el.close();
-    await settle();
 
-    expect(errors).toEqual([failure]);
+    await expect.poll(() => errors).toEqual([failure]);
     expect(state.closes).toBe(1);
     expect(state.open).toBe(false);
   });
