@@ -94,6 +94,14 @@ export class CurriculumService {
     return new Set(rows.map((c) => c.code));
   }
 
+  /** Catalog credits by code for the codes among these that the catalog has, in one query (a whole plan at once). */
+  async courseCredits(codes: readonly string[]): Promise<Map<string, number>> {
+    const wellFormed = [...new Set(codes)].filter(isCourseCode);
+    if (!wellFormed.length) return new Map();
+    const rows = await this.courses.find({ select: { code: true, credits: true }, where: { code: In(wellFormed) } });
+    return new Map(rows.map((c) => [c.code, c.credits]));
+  }
+
   /** The ids of the requirement groups of one curriculum; empty when there is none. */
   async requirementGroupIds(curriculumId: string): Promise<Set<string>> {
     const row = await this.curriculums.findOne({ select: { id: true, requirementGroups: { id: true } }, where: { id: curriculumId }, relations: { requirementGroups: true } });

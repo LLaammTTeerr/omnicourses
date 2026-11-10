@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { CourseRulesService } from '../curriculum/course-rules.service.js';
 import { CurriculumRulesReader } from '../curriculum/curriculum-rules.reader.js';
+import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
+import { courseCodesOf } from '../plans/plan-board.js';
+import type { PlanIssuesProvider, PlanIssuesReport } from '../plans/plan-issues.js';
+import type { PlanDto } from '../plans/plans.dto.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
 import { degreeAudit } from './audit.js';
 import type { DegreeAudit } from './audit-types.js';
 import { checkTermLoad, creditCaps, termKind } from './credit-caps.js';
+import { checkPlan } from './plan-issues.js';
 import { checkOfferingTerm, checkPrerequisites } from './prerequisites.js';
 
 export type AuditOutcome =
@@ -18,7 +24,7 @@ export type AuditOutcome =
 // rule 1). This service loads the inputs; every rule is a pure function in this folder, also
 // exposed here for other modules (the planner, the advisor's tools).
 @Injectable()
-export class RulesService {
+export class RulesService implements PlanIssuesProvider {
   readonly termKind = termKind;
   readonly creditCaps = creditCaps;
   readonly checkTermLoad = checkTermLoad;
@@ -30,6 +36,8 @@ export class RulesService {
     private readonly curriculum: CurriculumRulesReader,
     private readonly transcript: TranscriptService,
     private readonly onboarding: OnboardingService,
+    private readonly courseRules: CourseRulesService,
+    private readonly catalog: CurriculumService,
   ) {}
 
   /** The degree audit of the signed-in student: their onboarding program and cohort, their transcript. */
@@ -39,5 +47,22 @@ export class RulesService {
     const [rules, entries] = await Promise.all([this.curriculum.rulesFor(answers.program, answers.cohort), this.transcript.rowsFor(userId)]);
     if (!rules) return { status: 'curriculum_not_found', programCode: answers.program, cohortYear: answers.cohort };
     return { status: 'ok', audit: degreeAudit(rules, entries) };
+  }
+
+  /**
+   * The issues of one of the student's plans (PlanIssuesProvider, ADR 0014), against the plan's own
+   * curriculum, never the onboarding one: a plan keeps the curriculum it was made against.
+   */
+  async issuesFor(userId: string, plan: PlanDto): Promise<PlanIssuesReport> {
+    const { id: curriculumId, programCode, cohortYear } = plan.curriculum;
+    const [rules, courseRules, transcript, catalogCredits] = await Promise.all([
+      this.curriculum.rulesFor(programCode, cohortYear),
+      this.courseRules.rulesFor(curriculumId),
+      this.transcript.rowsFor(userId),
+      this.catalog.courseCredits(courseCodesOf(plan.terms)),
+    ]);
+    // ON DELETE RESTRICT keeps a plan's curriculum (ADR 0014), so this is a broken invariant.
+    if (!rules) throw new Error(`The curriculum of plan ${plan.id} is missing`);
+    return checkPlan({ planId: plan.id, rules, courseRules, transcript, terms: plan.terms, catalogCredits });
   }
 }
