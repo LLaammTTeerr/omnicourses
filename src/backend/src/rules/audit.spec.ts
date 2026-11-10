@@ -284,16 +284,16 @@ describe('degree audit', () => {
     expect(groupOf(audit, 'a-bb')).toMatchObject({ passedCredits: 7, requiredCredits: 8, met: true, remainingCredits: 0 });
     // (8·3 + 6·4) / 7 = 6.857…
     expect(audit.gpa.average).toBe(6.86);
-    expect(audit.warnings.map((w) => [w.code, w.courseCode])).toEqual([
-      ['credits_differ', 'ZZA1'],
-      ['credits_differ', 'ZZA2'],
+    expect(audit.warnings.map((w) => [w.code, w.courseCode, w.transcriptCredits, w.curriculumCredits])).toEqual([
+      ['credits_differ', 'ZZA1', [3], 4],
+      ['credits_differ', 'ZZA2', [5], 4],
     ]);
   });
 
   it('warns about two completed attempts in one term', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 8), graded('ZZA1', 4, 3)]);
     expect(statusOf(audit, 'a-bb', 'ZZA1')).toBe('failed');
-    expect(audit.warnings.map((w) => w.code)).toEqual(['same_term_attempts']);
+    expect(audit.warnings).toMatchObject([{ code: 'same_term_attempts', transcriptCredits: null, curriculumCredits: null }]);
   });
 
   it('checks no cap and no total when the curriculum does not record them', () => {

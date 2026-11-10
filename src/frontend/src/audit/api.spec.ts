@@ -80,7 +80,7 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
     ],
     ['GraduationConditionDto', all(['id', 'description', 'citation', 'status']) satisfies Shape<GraduationCondition>],
     ['GraduationStatusDto', all(['status', 'met', 'unmet', 'notChecked']) satisfies Shape<GraduationStatus>],
-    ['AuditWarningDto', all(['code', 'courseCode', 'message']) satisfies Shape<AuditWarning>],
+    ['AuditWarningDto', all(['code', 'courseCode', 'message', 'transcriptCredits', 'curriculumCredits']) satisfies Shape<AuditWarning>],
     [
       'DegreeAuditDto',
       all([

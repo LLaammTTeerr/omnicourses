@@ -288,6 +288,12 @@ export class AuditWarningDto implements AuditWarning {
 
   @ApiProperty()
   message!: string;
+
+  @ApiProperty({ type: [Number], nullable: true, description: 'credits_differ: the credits the transcript gives that differ from the curriculum; null for other codes' })
+  transcriptCredits!: number[] | null;
+
+  @ApiProperty({ type: Number, nullable: true, description: "credits_differ: the curriculum's credits; null for other codes" })
+  curriculumCredits!: number | null;
 }
 
 export class DegreeAuditDto implements DegreeAudit {

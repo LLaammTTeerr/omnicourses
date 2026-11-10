@@ -36,7 +36,7 @@ export interface CourseCoverage {
   status: CourseStatus;
   result: TranscriptResult | null;
   grade: number | null;
-  /** When status is counted_in_other_group: the group the course counts in. */
+  /** A passed or in-progress course whose credits count in another group: that group. */
   countedInGroupId: string | null;
 }
 
@@ -143,6 +143,10 @@ export interface AuditWarning {
   code: AuditWarningCode;
   courseCode: string;
   message: string;
+  /** credits_differ: the credits the transcript gives that differ from the curriculum's; null for other codes. */
+  transcriptCredits: number[] | null;
+  /** credits_differ: the curriculum's credits; null for other codes. */
+  curriculumCredits: number | null;
 }
 
 export interface DegreeAudit {

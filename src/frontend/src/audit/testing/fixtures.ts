@@ -142,6 +142,8 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
         code: 'not_in_curriculum',
         courseCode: 'ZZ999',
         message: 'No requirement group of the curriculum lists this course, and no course equivalence is recorded, so it counts toward nothing.',
+        transcriptCredits: null,
+        curriculumCredits: null,
       },
     ],
     ...overrides,
