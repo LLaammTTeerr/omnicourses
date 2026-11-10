@@ -198,6 +198,8 @@ const ctx = computed<IssueContext>(() => ({
 // ---------- Rows ----------
 const rowIssues = (term: Term) => issues.value?.byTerm.get(termKey(term)) ?? [];
 const rowLoad = (term: Term) => issues.value?.loads.get(termKey(term)) ?? null;
+/** The engine reports a load with a course of unknown credits as a lower bound (load_not_checked). */
+const loadText = (term: Term, credits: number) => (rowIssues(term).some((i) => i.code === 'load_not_checked') ? m.value.loadAtLeast(credits) : m.value.load(credits));
 function rowTone(term: Term): string {
   const kind = strongest(rowIssues(term).filter((i) => i.kind !== 'unknown'));
   return kind ? `has-${kind}` : '';
@@ -454,7 +456,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span v-if="rowLoad(row.term)?.kind === 'summer'" class="chip info">{{ m.summer }}</span>
                 </div>
                 <div v-if="rowLoad(row.term)" class="tload" data-test="load">
-                  <b>{{ m.load(rowLoad(row.term)!.credits) }}</b>
+                  <b>{{ loadText(row.term, rowLoad(row.term)!.credits) }}</b>
                   <span class="t3"> · {{ rowLoad(row.term)!.caps ? m.caps(rowLoad(row.term)!.caps!.min, rowLoad(row.term)!.caps!.max) : m.capsUnknown }}</span>
                 </div>
                 <div v-if="meter(row.term)" class="tmeter" aria-hidden="true">

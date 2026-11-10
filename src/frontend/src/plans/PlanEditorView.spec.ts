@@ -119,6 +119,30 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(panel.get('[data-test="coverage"]').text()).toContain('Thiếu 4 TC');
   });
 
+  it('shows a load with a course of unknown credits as a lower bound, and a course placed again while in progress as a flag', async () => {
+    const t1 = { year: 2026, number: 1 } as const;
+    const { w } = await render({
+      reports: [
+        report({
+          terms: [{ term: t1, kind: 'main', credits: 4, caps: { min: 10, max: 22 } }],
+          issues: [
+            issue({ code: 'load_not_checked', kind: 'unknown', term: t1, credits: 4, citation: 'QĐ 1175/QĐ-KHTN Điều 7.2' }),
+            issue({ code: 'already_in_progress', kind: 'flag', term: t1, position: 0, courseCode: 'ZZ101', citation: 'QĐ 1175/QĐ-KHTN Điều 14.2' }),
+            issue({ code: 'credits_not_recorded', kind: 'unknown', term: t1, position: 1, courseCode: 'ZZ102' }),
+          ],
+        }),
+      ],
+    });
+    const term = row(w, '2026-1');
+    expect(term.get('[data-test="load"]').text()).toBe('Ít nhất 4 TC · 10–22 TC');
+    expect(term.get('[data-test="row-issue-unknown"]').text()).toBe(
+      'Chưa ghi nhận: Có môn chưa rõ số tín chỉ, nên học kỳ này có ít nhất 4 TC; chưa kiểm tra giới hạn tín chỉ. QĐ 1175/QĐ-KHTN Điều 7.2',
+    );
+    expect(tile(w, 'ZZ101').get('[data-test="tile-issue-flag"]').text()).toContain(
+      'ZZ101 đang học ở học kỳ trước và kế hoạch coi như sẽ đạt: học lại để cải thiện điểm, hoặc học lại nếu trượt.',
+    );
+  });
+
   it('shows no load, cap or issue the rule engine did not report', async () => {
     const { w } = await render({ reports: [report()] });
     expect(w.find('[data-test="load"]').exists()).toBe(false);

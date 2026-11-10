@@ -79,6 +79,8 @@ interface PlannerMessages {
   termsLabel: string;
   credits: (n: number) => string;
   load: (credits: number) => string;
+  /** A term with a course of unknown credits (load_not_checked): its load is a lower bound. */
+  loadAtLeast: (credits: number) => string;
   caps: (min: number | null, max: number) => string;
   capsUnknown: string;
   summer: string;
@@ -118,8 +120,8 @@ interface PlannerMessages {
 const list = (codes: readonly (string | number)[]) => codes.join(', ');
 const code = (issue: PlanIssue) => issue.courseCode ?? '?';
 const UNKNOWN_WHAT: Record<Lang, Partial<Record<PlanIssueCode, string>>> = {
-  vi: { prerequisites_not_recorded: 'môn tiên quyết', offering_terms_not_recorded: 'học kỳ mở môn', credits_not_recorded: 'số tín chỉ', caps_not_checked: 'giới hạn tín chỉ' },
-  en: { prerequisites_not_recorded: 'prerequisites', offering_terms_not_recorded: 'offering terms', credits_not_recorded: 'credits', caps_not_checked: 'credit caps' },
+  vi: { prerequisites_not_recorded: 'môn tiên quyết', offering_terms_not_recorded: 'học kỳ mở môn', credits_not_recorded: 'số tín chỉ', caps_not_checked: 'giới hạn tín chỉ', load_not_checked: 'số tín chỉ của học kỳ' },
+  en: { prerequisites_not_recorded: 'prerequisites', offering_terms_not_recorded: 'offering terms', credits_not_recorded: 'credits', caps_not_checked: 'credit caps', load_not_checked: 'term load' },
 };
 
 export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
@@ -188,6 +190,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     termsLabel: 'Các học kỳ',
     credits: (n) => `${n} TC`,
     load: (credits) => `${credits} TC`,
+    loadAtLeast: (credits) => `Ít nhất ${credits} TC`,
     caps: (min, max) => (min === null ? `tối đa ${max} TC` : `${min}–${max} TC`),
     capsUnknown: 'chưa ghi nhận giới hạn TC',
     summer: 'Học kỳ hè',
@@ -231,8 +234,10 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
       load_below_minimum: (i) => `${i.credits} TC, dưới mức tối thiểu ${i.limit} TC. Được phép nếu có đơn được duyệt.`,
       load_above_maximum: (i) => `${i.credits} TC, vượt mức tối đa ${i.limit} TC. Được phép nếu có đơn được duyệt.`,
       caps_not_checked: () => 'Chưa ghi nhận loại hình đào tạo của chương trình, nên chưa kiểm tra giới hạn tín chỉ.',
+      load_not_checked: (i) => `Có môn chưa rõ số tín chỉ, nên học kỳ này có ít nhất ${i.credits ?? 0} TC; chưa kiểm tra giới hạn tín chỉ.`,
       placed_twice: (i) => `${code(i)} được xếp ở nhiều học kỳ.`,
       already_passed: (i) => `${code(i)} đã đạt trước học kỳ này: học lại để cải thiện điểm.`,
+      already_in_progress: (i) => `${code(i)} đang học ở học kỳ trước và kế hoạch coi như sẽ đạt: học lại để cải thiện điểm, hoặc học lại nếu trượt.`,
       not_in_curriculum: (i) => `${code(i)} không thuộc chương trình đào tạo này, nên không tính cho yêu cầu nào.`,
       credits_not_recorded: (i) => `${code(i)} không còn trong danh mục học phần; số tín chỉ không được tính.`,
       requirement_not_covered: (i, ctx) =>
@@ -306,6 +311,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     termsLabel: 'Terms',
     credits: (n) => `${n} cr`,
     load: (credits) => `${credits} credits`,
+    loadAtLeast: (credits) => `At least ${credits} credits`,
     caps: (min, max) => (min === null ? `at most ${max}` : `${min}–${max}`),
     capsUnknown: 'credit caps not recorded',
     summer: 'Summer term',
@@ -349,8 +355,10 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
       load_below_minimum: (i) => `${i.credits} credits, below the minimum of ${i.limit}. A petition can allow it.`,
       load_above_maximum: (i) => `${i.credits} credits, above the maximum of ${i.limit}. A petition can allow it.`,
       caps_not_checked: () => 'The program’s training type is not recorded yet, so the credit caps are not checked.',
+      load_not_checked: (i) => `A course’s credits are unknown, so this term holds at least ${i.credits ?? 0} credits; the credit caps are not checked.`,
       placed_twice: (i) => `${code(i)} is placed in more than one term.`,
       already_passed: (i) => `${code(i)} is already passed before this term: taking it again improves the grade.`,
+      already_in_progress: (i) => `${code(i)} is in progress in an earlier term, and the plan assumes it passes: taking it again improves the grade, or retakes it if it fails.`,
       not_in_curriculum: (i) => `${code(i)} is not in this curriculum, so it counts toward no requirement.`,
       credits_not_recorded: (i) => `${code(i)} is no longer in the course catalog; its credits are not counted.`,
       requirement_not_covered: (i, ctx) =>
