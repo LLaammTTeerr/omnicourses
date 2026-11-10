@@ -4,14 +4,14 @@ import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
-import { groupColour, matches, orderGroups } from '../curriculum/present.js';
+import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { programChoices } from '../onboarding/answers.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
-import { fetchTranscript } from '../transcript/api.js';
+import { useTranscriptCodes } from '../transcript/codes.js';
 import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
@@ -55,17 +55,13 @@ const curriculum = useAsyncLoad(
 );
 
 // The codes in the student's saved transcript. Only a mark: no transcript, or none loaded, shows no marks.
-const transcriptCodes = shallowRef(new Set<string>());
-auth
-  .authed(fetchTranscript)
-  .then(({ rows }) => (transcriptCodes.value = new Set(rows.map((row) => row.courseCode))))
-  .catch((e) => statusOf(e) === 401 || console.error('Loading the transcript for the explorer failed:', e));
+const transcriptCodes = useTranscriptCodes('the explorer');
 
 const query = ref('');
 const only = ref<GroupId | null>(null);
 const groups = computed(() => orderGroups(curriculum.data.value?.requirementGroups ?? []).map((group) => ({ group, colour: groupColour(group) })));
 const colours = computed(() => GROUPS.filter((g) => groups.value.some((entry) => entry.colour === g.id)));
-const courseName = (course: Course) => (locale.lang === 'en' && course.nameEn) || course.nameVi;
+const courseName = (course: Course) => nameIn(course, locale.lang);
 const shown = computed(() =>
   groups.value
     .filter(({ colour }) => !only.value || colour === only.value)

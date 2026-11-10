@@ -5,15 +5,15 @@ import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import { fetchCurriculum, type CurriculumCourse } from '../curriculum/api.js';
-import { groupColour, matches, orderGroups } from '../curriculum/present.js';
+import { courseName, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
-import { fetchTranscript } from '../transcript/api.js';
+import { useTranscriptCodes } from '../transcript/codes.js';
 import { currentTerm, termKey, termName, vietnamDate, type Term } from '../terms.js';
-import { fetchPlan, fetchPlanIssues, savePlacements, type Plan, type PlanIssue, type PlanIssueCode } from './api.js';
+import { fetchPlan, fetchPlanIssues, savePlacements, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
 import {
   addCourse,
   attachIssues,
@@ -22,12 +22,15 @@ import {
   boardOf,
   findTile,
   moveTile,
+  nextTerm,
+  placedCodes,
   removeTile,
   rowsFor,
   sameTiles,
   withNextRow,
   type AttachedIssues,
   type Board,
+  type Row,
   type Tile,
 } from './board.js';
 import IssuesPanel from './IssuesPanel.vue';
@@ -203,31 +206,13 @@ const catalog = computed(() => {
 const groupNames = computed(() => new Map((curriculum.data.value?.requirementGroups ?? []).map((g) => [g.id, g])));
 // A neutral mark on the courses of the student's saved transcript, as in the explorer: whether one counts as passed
 // is the engine's call (it flags a placed one as already_passed). No transcript, or none loaded, shows no marks.
-const transcriptCodes = shallowRef(new Set<string>());
-auth
-  .authed(fetchTranscript)
-  .then(({ rows }) => (transcriptCodes.value = new Set(rows.map((row) => row.courseCode))))
-  .catch((e) => statusOf(e) === 401 || console.error('Loading the transcript for the planner failed:', e));
-const courseName = (course: CurriculumCourse) => (locale.lang === 'en' && course.nameEn) || course.nameVi;
+const transcriptCodes = useTranscriptCodes('the planner');
 
 function tileTitle(tile: Tile): string {
   const p = tile.placement;
   if (p.kind === 'course') return p.courseCode ?? '?';
   return m.value.slot(groupNames.value.get(p.requirementGroupId ?? '')?.name ?? m.value.slotGroupUnknown);
 }
-const tileInfo = (tile: Tile) => (tile.placement.courseCode ? catalog.value.get(tile.placement.courseCode) : undefined);
-function tileCredits(tile: Tile): number | null {
-  return tile.placement.kind === 'slot' ? (tile.placement.credits ?? null) : (tileInfo(tile)?.course.credits ?? null);
-}
-function tileClass(tile: Tile): string[] {
-  const info = tileInfo(tile);
-  const slotGroup = tile.placement.kind === 'slot' ? groupNames.value.get(tile.placement.requirementGroupId ?? '') : undefined;
-  const colour = info?.colour ?? (slotGroup ? groupColour(slotGroup) : null);
-  const kind = strongest(issues.value?.byTile.get(tile.key)?.filter((i) => i.kind !== 'unknown'));
-  return ['ptile', colour ? groupClass(colour) : 'g-none', tile.placement.kind === 'slot' ? 'slot' : '', kind ? `has-${kind}` : '', lifted.value?.key === tile.key ? 'lifted' : ''];
-}
-const tileIssues = (tile: Tile, kind: 'violation' | 'flag') => issues.value?.byTile.get(tile.key)?.filter((i) => i.kind === kind) ?? [];
-const tileUnknowns = (tile: Tile): PlanIssueCode[] => (issues.value?.byTile.get(tile.key) ?? []).filter((i) => i.kind === 'unknown').map((i) => i.code);
 
 const ctx = computed<IssueContext>(() => ({
   requirementName: (issue: PlanIssue) => {
@@ -238,23 +223,85 @@ const ctx = computed<IssueContext>(() => ({
   },
 }));
 
-// ---------- Rows ----------
-const rowIssues = (term: Term) => issues.value?.byTerm.get(termKey(term)) ?? [];
-const rowLoad = (term: Term) => issues.value?.loads.get(termKey(term)) ?? null;
-/** The engine reports a load with a course of unknown credits as a lower bound (load_not_checked). */
-const loadText = (term: Term, credits: number) => (rowIssues(term).some((i) => i.code === 'load_not_checked') ? m.value.loadAtLeast(credits) : m.value.load(credits));
-function rowTone(term: Term): string {
-  const kind = strongest(rowIssues(term).filter((i) => i.kind !== 'unknown'));
-  return kind ? `has-${kind}` : '';
+// ---------- What each row and tile shows, worked out once per change ----------
+interface TileView {
+  tile: Tile;
+  title: string;
+  label: string;
+  credits: number | null;
+  name: string | null;
+  classes: string[];
+  /** Violations, then flags. */
+  issues: PlanIssue[];
+  unknowns: PlanIssueCode[];
 }
+interface RowView {
+  row: Row;
+  key: string;
+  name: string;
+  summer: boolean;
+  load: { text: string; caps: string } | null;
+  meter: { fill: number; min: number | null; max: number } | null;
+  tone: string;
+  issues: PlanIssue[];
+  tiles: TileView[];
+}
+
+const toneOf = (issues: readonly PlanIssue[]) => {
+  const kind = strongest(issues.filter((i) => i.kind !== 'unknown'));
+  return kind ? `has-${kind}` : '';
+};
+
+function tileView(tile: Tile, termName: string): TileView {
+  const p = tile.placement;
+  const info = p.courseCode ? catalog.value.get(p.courseCode) : undefined;
+  const slotGroup = p.kind === 'slot' ? groupNames.value.get(p.requirementGroupId ?? '') : undefined;
+  const colour = info?.colour ?? (slotGroup ? groupColour(slotGroup) : null);
+  const all = issues.value?.byTile.get(tile.key) ?? [];
+  const title = tileTitle(tile);
+  return {
+    tile,
+    title,
+    label: m.value.tileLabel(title, termName),
+    credits: p.kind === 'slot' ? (p.credits ?? null) : (info?.course.credits ?? null),
+    name: info ? courseName(info.course, locale.lang) : null,
+    classes: ['ptile', colour ? groupClass(colour) : 'g-none', p.kind === 'slot' ? 'slot' : '', toneOf(all)],
+    issues: [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')],
+    unknowns: all.filter((i) => i.kind === 'unknown').map((i) => i.code),
+  };
+}
+
 /** The meter runs a little past the maximum, so a load above it still shows. Drawing only: the engine compares. */
-function meter(term: Term): { fill: number; min: number | null; max: number } | null {
-  const load = rowLoad(term);
+function meter(load: PlanTermLoad | null): RowView['meter'] {
   if (!load?.caps) return null;
   const scale = load.caps.max + 6;
   const pct = (n: number) => Math.min(100, (n / scale) * 100);
   return { fill: pct(load.credits), min: load.caps.min === null ? null : pct(load.caps.min), max: pct(load.caps.max) };
 }
+
+function rowView(row: Row): RowView {
+  const key = termKey(row.term);
+  const name = nameOf(row.term);
+  const rowIssues = issues.value?.byTerm.get(key) ?? [];
+  const load = issues.value?.loads.get(key) ?? null;
+  // The engine reports a load with a course of unknown credits as a lower bound (load_not_checked).
+  const atLeast = rowIssues.some((i) => i.code === 'load_not_checked');
+  return {
+    row,
+    key,
+    name,
+    summer: load?.kind === 'summer',
+    load: load && {
+      text: atLeast ? m.value.loadAtLeast(load.credits) : m.value.load(load.credits),
+      caps: load.caps ? m.value.caps(load.caps.min, load.caps.max) : m.value.capsUnknown,
+    },
+    meter: meter(load),
+    tone: toneOf(rowIssues),
+    issues: rowIssues,
+    tiles: row.tiles.map((tile) => tileView(tile, name)),
+  };
+}
+const rows = computed(() => board.value.map(rowView));
 
 // ---------- Actions ----------
 const announcement = ref('');
@@ -286,7 +333,7 @@ const query = ref('');
 const addTarget = ref('');
 const addTargetTerm = computed(() => board.value.find((row) => termKey(row.term) === addTarget.value)?.term ?? board.value[0]?.term ?? null);
 const unplaced = computed(() => {
-  const placed = new Set(board.value.flatMap((row) => row.tiles.map((tile) => tile.placement.courseCode)));
+  const placed = placedCodes(board.value);
   return [...catalog.value.values()].filter(({ course }) => !placed.has(course.code));
 });
 const shown = computed(() => unplaced.value.filter(({ course }) => matches(query.value, course.code, course.nameVi, course.nameEn)));
@@ -461,7 +508,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
               >
                 <span class="k">{{ course.code }}</span>
                 <span class="nm">
-                  {{ courseName(course) }}
+                  {{ courseName(course, locale.lang) }}
                   <span v-if="transcriptCodes.has(course.code)" class="mark" data-test="in-transcript"><Icon name="file" size="sm" />{{ m.inTranscript }}</span>
                 </span>
                 <span class="cr">{{ m.credits(course.credits) }}</span>
@@ -481,78 +528,78 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 
           <div class="rows" role="list" :aria-label="m.termsLabel">
             <section
-              v-for="(row, r) in board"
-              :key="termKey(row.term)"
+              v-for="(row, r) in rows"
+              :key="row.key"
               role="listitem"
-              :class="['trow', rowTone(row.term), { 'drop-target': dropRow === termKey(row.term) || lifted?.target === r, stale: !fresh }]"
-              :aria-labelledby="`term-${termKey(row.term)}`"
-              :data-test="`term-${termKey(row.term)}`"
-              @dragover="overRow($event, row.term)"
+              :class="['trow', row.tone, { 'drop-target': dropRow === row.key || lifted?.target === r, stale: !fresh }]"
+              :aria-labelledby="`term-${row.key}`"
+              :data-test="`term-${row.key}`"
+              @dragover="overRow($event, row.row.term)"
               @dragleave="leaveRow"
-              @drop.prevent="dropOnRow(row.term)"
+              @drop.prevent="dropOnRow(row.row.term)"
             >
               <div class="trow-h">
                 <div class="tname">
-                  <h3 :id="`term-${termKey(row.term)}`">{{ nameOf(row.term) }}</h3>
-                  <span v-if="rowLoad(row.term)?.kind === 'summer'" class="chip info">{{ m.summer }}</span>
+                  <h3 :id="`term-${row.key}`">{{ row.name }}</h3>
+                  <span v-if="row.summer" class="chip info">{{ m.summer }}</span>
                 </div>
-                <div v-if="rowLoad(row.term)" class="tload" data-test="load">
-                  <b>{{ loadText(row.term, rowLoad(row.term)!.credits) }}</b>
-                  <span class="t3"> · {{ rowLoad(row.term)!.caps ? m.caps(rowLoad(row.term)!.caps!.min, rowLoad(row.term)!.caps!.max) : m.capsUnknown }}</span>
+                <div v-if="row.load" class="tload" data-test="load">
+                  <b>{{ row.load.text }}</b>
+                  <span class="t3"> · {{ row.load.caps }}</span>
                 </div>
-                <div v-if="meter(row.term)" class="tmeter" aria-hidden="true">
-                  <span class="track"><i class="fill" :style="{ width: `${meter(row.term)!.fill}%` }" /></span>
-                  <span v-if="meter(row.term)!.min !== null" class="tick" :style="{ left: `${meter(row.term)!.min}%` }" />
-                  <span class="tick max" :style="{ left: `${meter(row.term)!.max}%` }" />
+                <div v-if="row.meter" class="tmeter" aria-hidden="true">
+                  <span class="track"><i class="fill" :style="{ width: `${row.meter.fill}%` }" /></span>
+                  <span v-if="row.meter.min !== null" class="tick" :style="{ left: `${row.meter.min}%` }" />
+                  <span class="tick max" :style="{ left: `${row.meter.max}%` }" />
                 </div>
               </div>
-              <ul v-if="rowIssues(row.term).length" class="row-issues">
-                <li v-for="(issue, i) in rowIssues(row.term)" :key="i" :class="['ri', issue.kind]" :data-test="`row-issue-${issue.kind}`">
+              <ul v-if="row.issues.length" class="row-issues">
+                <li v-for="(issue, i) in row.issues" :key="i" :class="['ri', issue.kind]" :data-test="`row-issue-${issue.kind}`">
                   <Icon :name="KIND_STYLE[issue.kind].icon" size="sm" />
                   <span><span class="sr-only">{{ m.kinds[issue.kind] }}: </span>{{ m.issue[issue.code](issue, ctx) }} <span class="cite">{{ issue.citation }}</span></span>
                 </li>
               </ul>
               <ul class="tiles">
                 <li
-                  v-for="tile in row.tiles"
-                  :id="`tile-${tile.key}`"
-                  :key="tile.key"
-                  :class="tileClass(tile)"
+                  v-for="t in row.tiles"
+                  :id="`tile-${t.tile.key}`"
+                  :key="t.tile.key"
+                  :class="[t.classes, { lifted: lifted?.key === t.tile.key }]"
                   tabindex="0"
                   draggable="true"
-                  :aria-label="m.tileLabel(tileTitle(tile), nameOf(row.term))"
-                  :aria-describedby="`tile-${tile.key}-body`"
+                  :aria-label="t.label"
+                  :aria-describedby="`tile-${t.tile.key}-body`"
                   aria-roledescription="draggable"
-                  :data-test="`tile-${tile.placement.courseCode ?? 'slot'}`"
-                  @keydown="onTileKey($event, tile, r)"
-                  @blur="onTileBlur(tile)"
-                  @dragstart="startDrag($event, { key: tile.key })"
+                  :data-test="`tile-${t.tile.placement.courseCode ?? 'slot'}`"
+                  @keydown="onTileKey($event, t.tile, r)"
+                  @blur="onTileBlur(t.tile)"
+                  @dragstart="startDrag($event, { key: t.tile.key })"
                   @dragend="endDrag"
                 >
-                  <div :id="`tile-${tile.key}-body`" class="ptile-body">
+                  <div :id="`tile-${t.tile.key}-body`" class="ptile-body">
                     <span class="top">
-                      <span class="k">{{ tileTitle(tile) }}</span>
-                      <span v-if="tileCredits(tile) !== null" class="cr">{{ m.credits(tileCredits(tile)!) }}</span>
+                      <span class="k">{{ t.title }}</span>
+                      <span v-if="t.credits !== null" class="cr">{{ m.credits(t.credits) }}</span>
                     </span>
-                    <span v-if="tileInfo(tile)" class="nm">{{ courseName(tileInfo(tile)!.course) }}</span>
-                    <ul v-if="issues?.byTile.get(tile.key)?.length" class="tile-issues">
-                      <li v-for="(issue, i) in [...tileIssues(tile, 'violation'), ...tileIssues(tile, 'flag')]" :key="i" :class="['ti', issue.kind]" :data-test="`tile-issue-${issue.kind}`">
+                    <span v-if="t.name" class="nm">{{ t.name }}</span>
+                    <ul v-if="t.issues.length || t.unknowns.length" class="tile-issues">
+                      <li v-for="(issue, i) in t.issues" :key="i" :class="['ti', issue.kind]" :data-test="`tile-issue-${issue.kind}`">
                         <Icon :name="KIND_STYLE[issue.kind].icon" size="sm" />
                         <span><span class="sr-only">{{ m.kinds[issue.kind] }}: </span>{{ m.issue[issue.code](issue, ctx) }} <span class="cite">{{ issue.citation }}</span></span>
                       </li>
-                      <li v-if="tileUnknowns(tile).length" class="ti unknown" data-test="tile-issue-unknown">
-                        <Icon name="info" size="sm" /><span>{{ m.unknownWhat(tileUnknowns(tile)) }}</span>
+                      <li v-if="t.unknowns.length" class="ti unknown" data-test="tile-issue-unknown">
+                        <Icon name="info" size="sm" /><span>{{ m.unknownWhat(t.unknowns) }}</span>
                       </li>
                     </ul>
                   </div>
                   <div class="ptile-acts">
-                    <button class="btn sm ghost icon-only" type="button" :disabled="r === 0" :aria-label="m.moveEarlier(tileTitle(tile))" :title="m.moveEarlier(tileTitle(tile))" data-test="earlier" @click="moveBy(tile, -1)">
+                    <button class="btn sm ghost icon-only" type="button" :disabled="r === 0" :aria-label="m.moveEarlier(t.title)" :title="m.moveEarlier(t.title)" data-test="earlier" @click="moveBy(t.tile, -1)">
                       <Icon name="up" size="sm" />
                     </button>
-                    <button class="btn sm ghost icon-only" type="button" :disabled="r === board.length - 1" :aria-label="m.moveLater(tileTitle(tile))" :title="m.moveLater(tileTitle(tile))" data-test="later" @click="moveBy(tile, 1)">
+                    <button class="btn sm ghost icon-only" type="button" :disabled="r === rows.length - 1" :aria-label="m.moveLater(t.title)" :title="m.moveLater(t.title)" data-test="later" @click="moveBy(t.tile, 1)">
                       <Icon name="down" size="sm" />
                     </button>
-                    <button class="btn sm ghost icon-only" type="button" :aria-label="m.remove(tileTitle(tile))" :title="m.remove(tileTitle(tile))" data-test="remove" @click="remove(tile)">
+                    <button class="btn sm ghost icon-only" type="button" :aria-label="m.remove(t.title)" :title="m.remove(t.title)" data-test="remove" @click="remove(t.tile)">
                       <Icon name="x" size="sm" />
                     </button>
                   </div>
@@ -562,7 +609,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
             </section>
           </div>
           <button v-if="board.length" class="btn add-row" type="button" data-test="add-row" @click="addRow">
-            <Icon name="plus" size="sm" />{{ m.addTerm(nameOf(withNextRow(board).at(-1)!.term)) }}
+            <Icon name="plus" size="sm" />{{ m.addTerm(nameOf(nextTerm(board[board.length - 1]!.term))) }}
           </button>
         </div>
 

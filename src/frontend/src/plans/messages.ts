@@ -27,7 +27,6 @@ interface PlannerMessages {
   openSettings: string;
   curriculum: (code: string) => string;
   updated: (when: string) => string;
-  open: string;
   rename: string;
   copy: string;
   delete: string;
@@ -140,7 +139,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     openSettings: 'Mở Cài đặt',
     curriculum: (c) => `CTĐT ${c}`,
     updated: (when) => `Sửa lần cuối ${when}`,
-    open: 'Mở',
     rename: 'Đổi tên',
     copy: 'Tạo bản sao',
     delete: 'Xóa',
@@ -262,7 +260,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     openSettings: 'Open Settings',
     curriculum: (c) => `Curriculum ${c}`,
     updated: (when) => `Last changed ${when}`,
-    open: 'Open',
     rename: 'Rename',
     copy: 'Copy',
     delete: 'Delete',

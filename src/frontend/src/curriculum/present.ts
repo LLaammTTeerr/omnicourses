@@ -1,8 +1,12 @@
 import { GROUP_IDS, type GroupId } from '../groups.js';
+import type { Lang } from '../locale.js';
 import type { RequirementGroup } from './api.js';
 
 // How the explorer shows curriculum data: colours, order and search. Presentation only. None of it decides what a
 // student must take or has passed; that is the rule engine's (AGENTS.md hard rule 1).
+
+/** A course's name in the language on screen; in Vietnamese when it has no English name. */
+export const courseName = (course: { nameVi: string; nameEn: string | null }, lang: Lang): string => (lang === 'en' && course.nameEn) || course.nameVi;
 
 /** Lower case without Vietnamese diacritics, so "hoc may" finds "Học máy" (as the prototype searches). */
 export function fold(text: string): string {

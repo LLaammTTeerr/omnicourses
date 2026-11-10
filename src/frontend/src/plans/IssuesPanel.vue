@@ -16,8 +16,6 @@ const emit = defineEmits<{ retry: []; focusTile: [key: number] }>();
 const locale = useLocale();
 const m = useMessages(PLANNER_MESSAGES);
 
-const STYLE = KIND_STYLE;
-
 const issues = computed(() => props.attached?.report.issues ?? []);
 const ofKind = (kind: PlanIssueKind) => issues.value.filter((issue) => issue.kind === kind);
 const where = (issue: PlanIssue) => (issue.term ? termName(issue.term, locale.lang) : m.value.wholePlan);
@@ -43,8 +41,8 @@ const tileOf = (issue: PlanIssue) => props.attached?.tileOf.get(issue);
 
     <template v-if="attached">
       <div class="issue-counts" :class="{ stale: !fresh }" data-test="issue-counts">
-        <span v-for="kind in ISSUE_KINDS_SHOWN" :key="kind" :class="['chip', STYLE[kind].tone]">
-          <Icon :name="STYLE[kind].icon" size="sm" />{{ m.kindsPlural[kind](ofKind(kind).length) }}
+        <span v-for="kind in ISSUE_KINDS_SHOWN" :key="kind" :class="['chip', KIND_STYLE[kind].tone]">
+          <Icon :name="KIND_STYLE[kind].icon" size="sm" />{{ m.kindsPlural[kind](ofKind(kind).length) }}
         </span>
       </div>
 
@@ -54,7 +52,7 @@ const tileOf = (issue: PlanIssue) => props.attached?.tileOf.get(issue);
         <h3 class="issues-kind">{{ m.kindHeadings[kind] }}</h3>
         <ul class="issue-list">
           <li v-for="(issue, i) in ofKind(kind)" :key="i" :class="['issue', kind]" :data-test="`issue-${kind}`">
-            <span class="ic" aria-hidden="true"><Icon :name="STYLE[kind].icon" size="sm" /></span>
+            <span class="ic" aria-hidden="true"><Icon :name="KIND_STYLE[kind].icon" size="sm" /></span>
             <div>
               <p>
                 <span class="sr-only">{{ m.kinds[kind] }}: </span>
