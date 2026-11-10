@@ -108,7 +108,12 @@ async function confirmDelete(): Promise<void> {
   const plan = deleting.value;
   if (!plan) return;
   const done = await attempt('Deleting the plan', async () => {
-    await auth.authed((token) => deletePlan(token, plan.id));
+    try {
+      await auth.authed((token) => deletePlan(token, plan.id));
+    } catch (e) {
+      // Already gone: an earlier deletion that timed out here may have gone through on the server.
+      if (statusOf(e) !== 404) throw e;
+    }
     plans.value = plans.value.filter((p) => p.id !== plan.id);
     toast.show(m.value.deleted(plan.name));
   });

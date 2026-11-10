@@ -273,6 +273,18 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(w.find('dialog[open]').exists()).toBe(false);
   });
 
+  // A deletion that timed out here may still have gone through on the server, so a retry finds no plan.
+  it('takes a plan that is already gone (404) out of the list instead of asking to try again', async () => {
+    const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: status(404, { statusCode: 404, message: 'No plan with this id' }) });
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(names(w)).toEqual(['Kế hoạch thử']);
+    expect(useToast().message).toBe('Đã xóa Nhẹ tải thử.');
+  });
+
   it('lets no other action start while a copy runs, so its failure is not said in another dialog', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let answer!: (response: Response) => void;
