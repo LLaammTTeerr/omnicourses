@@ -290,6 +290,11 @@ describe('degree audit', () => {
     ]);
   });
 
+  it('gives every differing transcript figure once, smallest first', () => {
+    const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 5, 3, term(2024, 1)), graded('ZZA1', 3, 4, term(2024, 2)), graded('ZZA1', 5, 8, term(2025, 1))]);
+    expect(audit.warnings).toMatchObject([{ code: 'credits_differ', courseCode: 'ZZA1', transcriptCredits: [3, 5], curriculumCredits: 4 }]);
+  });
+
   it('warns about two completed attempts in one term', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 8), graded('ZZA1', 4, 3)]);
     expect(statusOf(audit, 'a-bb', 'ZZA1')).toBe('failed');
