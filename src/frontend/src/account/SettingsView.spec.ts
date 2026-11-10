@@ -144,6 +144,27 @@ describe('SettingsView', () => {
     expect(router.currentRoute.value.name).toBe('settings');
   });
 
+  it('keeps the dialog open while the deletion is out, and says a wrong password there', async () => {
+    let answer!: (response: Response) => void;
+    const { w } = await render({ 'DELETE /users/me': () => new Promise<Response>((resolve) => (answer = resolve)) });
+    const dialog = await openDeletion(w);
+    await dialog.get('#delete-password').setValue('zz-wrong-password');
+    await dialog.get('form').trigger('submit');
+    await flushPromises();
+    expect(dialog.findAll('button').find((b) => b.text() === 'Giữ lại')!.attributes('disabled')).toBeDefined();
+    // Escape reaches the dialog as a cancel event; a browser without `closedby` may then close it anyway.
+    await dialog.trigger('cancel');
+    dialog.element.removeAttribute('open');
+    dialog.element.dispatchEvent(new Event('close'));
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+
+    answer(status(403, { message: 'Wrong password' })());
+    await flushPromises();
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Mật khẩu không đúng.');
+    expect(useAuth().signedIn).toBe(true);
+  });
+
   it('signs out here and says when the deletion completes', async () => {
     const { w, fetch } = await render({ 'DELETE /users/me': () => Response.json({ purgeAfter: '2026-12-09T08:00:00.000Z' }, { status: 202 }) });
     const dialog = await openDeletion(w);

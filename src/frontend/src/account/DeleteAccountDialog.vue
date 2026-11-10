@@ -58,7 +58,8 @@ async function confirm(): Promise<void> {
 </script>
 
 <template>
-  <ModalDialog :open="open" role="alertdialog" labelledby="delete-title" describedby="delete-body" @close="emit('close')">
+  <!-- Busy: Keep is disabled and Escape is refused, so a wrong password is said in the dialog, not lost. -->
+  <ModalDialog :open="open" role="alertdialog" labelledby="delete-title" describedby="delete-body" :busy="busy" @close="emit('close')">
     <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
     <h2 id="delete-title">{{ m.deleteDialogTitle }}</h2>
     <p id="delete-body" class="t2">{{ m.deleteDialogBody }}</p>
@@ -79,7 +80,7 @@ async function confirm(): Promise<void> {
       </div>
       <p v-if="error" id="delete-error" class="callout bad small" role="alert"><Icon name="alert" size="sm" /><span>{{ error }}</span></p>
       <div class="acts">
-        <button class="btn" type="button" @click="emit('close')">{{ m.keep }}</button>
+        <button class="btn" type="button" :disabled="busy" @click="emit('close')">{{ m.keep }}</button>
         <button class="btn danger" type="submit" :disabled="!password || busy">
           <Icon name="trash" size="sm" />{{ busy ? m.deleting : m.delete }}
         </button>
