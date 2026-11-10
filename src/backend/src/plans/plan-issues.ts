@@ -33,6 +33,11 @@ export const PLAN_ISSUE_CODES = [
   'placed_twice',
   /** The transcript already has the course passed before this term: a grade improvement (Điều 14.2). */
   'already_passed',
+  /**
+   * The transcript has the course in progress in an earlier term, and the plan assumes it passes, so
+   * placing it again is a grade improvement, or a retake if it fails (Điều 14).
+   */
+  'already_in_progress',
   /** No requirement group of the plan's curriculum lists the course, so it counts toward nothing (Điều 15.1). */
   'not_in_curriculum',
   /** The catalog has no such course any more, so its credits are unknown and left out of the load. */

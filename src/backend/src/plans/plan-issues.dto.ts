@@ -24,7 +24,7 @@ export class PlanIssueDto implements PlanIssue {
   @ApiProperty({
     enum: PLAN_ISSUE_CODES,
     description:
-      'prerequisite_not_met, not_offered, placed_twice, requirement_not_covered: violations. load_below_minimum, load_above_maximum (a petition allows them, Điều 7.2.b), already_passed (a grade improvement, Điều 14.2), not_in_curriculum: flags. prerequisites_not_recorded, offering_terms_not_recorded, caps_not_checked, credits_not_recorded, load_not_checked (a course of the term has unknown credits, so the load is at least `credits`): the data is not recorded, so the rule is neither passed nor failed.',
+      'prerequisite_not_met, not_offered, placed_twice, requirement_not_covered: violations. load_below_minimum, load_above_maximum (a petition allows them, Điều 7.2.b), already_passed (a grade improvement, Điều 14.2), already_in_progress (in progress in an earlier term; the plan assumes it passes), not_in_curriculum: flags. prerequisites_not_recorded, offering_terms_not_recorded, caps_not_checked, credits_not_recorded, load_not_checked (a course of the term has unknown credits, so the load is at least `credits`): the data is not recorded, so the rule is neither passed nor failed.',
   })
   code!: PlanIssueCode;
 

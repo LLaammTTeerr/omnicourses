@@ -280,6 +280,19 @@ describe('checkPlan', () => {
       ]);
     });
 
+    it('flags a course in progress before the term, which the plan assumes passes, and not one passed too', () => {
+      const report = check([at(term(2025, 2), course('ZZA1'), course('ZZC1'), course('ZZC2'))], { transcript: [ungraded('ZZA1', 4, 'in_progress', term(2025, 1))] });
+      expect(termIssues(report.issues)).toEqual([
+        expect.objectContaining({ code: 'already_in_progress', kind: 'flag', term: term(2025, 2), position: 0, courseCode: 'ZZA1', citation: IMPROVEMENT_CITATION }),
+      ]);
+      expect(report.issues[0].message).toBe('ZZA1 is in progress before 2025–2026 term 2, and the plan assumes it passes. Taking it again is a grade improvement, or a retake if it fails.');
+
+      // Passed, then in progress again (an improvement under way): already passed, flagged once.
+      const improving = check([at(term(2025, 2), course('ZZA1'), course('ZZC1'), course('ZZC2'))], {
+        transcript: [graded('ZZA1', 4, 6, term(2024, 1)), ungraded('ZZA1', 4, 'in_progress', term(2025, 1))],
+      });
+      expect(codes(termIssues(improving.issues))).toEqual(['already_passed']);
+    });
   });
 
   describe('courses outside the curriculum', () => {

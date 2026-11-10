@@ -131,7 +131,8 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
         );
       }
 
-      if (standingBefore(code, term)?.passed) {
+      const standing = standingBefore(code, term);
+      if (standing?.passed) {
         placementIssues.push(
           issue({
             ...where,
@@ -139,6 +140,16 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
             kind: 'flag',
             citation: IMPROVEMENT_CITATION,
             message: `${code} is already passed. Taking it again is a grade improvement, and the last grade becomes official even if it is lower.`,
+          }),
+        );
+      } else if (standing?.inProgress) {
+        placementIssues.push(
+          issue({
+            ...where,
+            code: 'already_in_progress',
+            kind: 'flag',
+            citation: IMPROVEMENT_CITATION,
+            message: `${code} is in progress before ${label}, and the plan assumes it passes. Taking it again is a grade improvement, or a retake if it fails.`,
           }),
         );
       }
