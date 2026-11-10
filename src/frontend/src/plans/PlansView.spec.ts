@@ -157,6 +157,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await flushPromises();
     const keep = w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!;
     expect(keep.attributes('disabled')).toBeDefined();
+    expect(w.get('dialog[open] [role="status"]').text()).toBe('Đang xử lý…');
     // Escape reaches the dialog as a cancel event.
     await w.get('dialog[open]').trigger('cancel');
     await flushPromises();
@@ -177,6 +178,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await flushPromises();
     const cancel = w.findAll('dialog[open] button').find((b) => b.text() === 'Hủy')!;
     expect(cancel.attributes('disabled')).toBeDefined();
+    expect(w.get('dialog[open] [role="status"]').text()).toBe('Đang xử lý…');
     await w.get('dialog[open]').trigger('cancel');
     await flushPromises();
     expect(w.find('dialog[open]').exists()).toBe(true);

@@ -153,6 +153,7 @@ describe('SettingsView', () => {
     await dialog.get('form').trigger('submit');
     await flushPromises();
     expect(dialog.findAll('button').find((b) => b.text() === 'Giữ lại')!.attributes('disabled')).toBeDefined();
+    expect(dialog.get('[role="status"]').text()).toBe('Đang xử lý…');
     // Escape reaches the dialog as a cancel event; a browser without `closedby` may then close it anyway.
     await dialog.trigger('cancel');
     closeNatively(dialog.element);
