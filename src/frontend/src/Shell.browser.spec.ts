@@ -38,13 +38,19 @@ const CURRICULUM = {
 const PROGRAMS = { programs: [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, cohortYears: [2024, 2025] }] };
 // The widest the audit gets: a long group name, a long course name, and the synthetic fixture's every section.
 const BASE_AUDIT = degreeAudit();
+const LONG_GROUP_ID = '00000000-0000-4000-8000-000000000a09';
 const AUDIT = degreeAudit({
   groups: [
     ...BASE_AUDIT.groups,
-    auditGroup('00000000-0000-4000-8000-000000000a09', LONG_GROUP, {
+    auditGroup(LONG_GROUP_ID, LONG_GROUP, {
       courses: [auditCourse('ZZ777', { nameVi: LONG, countsTowardTotal: false, countsTowardGpa: false, status: 'counted_in_other_group', countedInGroupId: BASE_AUDIT.groups[0]!.id })],
     }),
   ],
+  // The long group has a minimum of its own, so the API lists it as a condition: its chip and missing line are drawn.
+  graduation: {
+    ...BASE_AUDIT.graduation,
+    unmet: [{ id: `group:${LONG_GROUP_ID}`, description: `Requirement group "${LONG_GROUP}"`, citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.b', status: 'not_met' }, ...BASE_AUDIT.graduation.unmet],
+  },
 });
 const SESSIONS = [
   session({ current: true }),
@@ -196,6 +202,9 @@ describe('the new screens at a phone width and on a desktop', () => {
     // 6 px in from the sheet's left edge, level with the middle of the links: inside the sheet, beside its content.
     await sheet.click({ position: { x: 6, y: Math.round(list.top - box.top + list.height / 2) } });
     expect(dialog.open).toBe(true);
+    // A tap above the sheet, on the backdrop, still closes it.
+    await sheet.click({ position: { x: 20, y: -200 } });
+    await expect.poll(() => dialog.open).toBe(false);
   });
 
   it('scrolls a linked group below the phone top bar, not under it', async () => {

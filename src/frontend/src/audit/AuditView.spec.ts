@@ -160,7 +160,9 @@ describe('AuditView (F3, ADR 0013)', () => {
         courses: [course('ZZ301', { status: 'counted_in_other_group', result: 'graded', grade: 7, countedInGroupId: GROUP_A })],
       }),
     ];
-    const { w } = await render(degreeAudit({ groups, graduation: { ...base.graduation, unmet: [], met: [] } }));
+    const met = [{ id: `group:${GROUP_A}`, description: 'Requirement group "Kiến thức Computer Science (A): tự chọn"', citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.b', status: 'met' as const }];
+    const { w } = await render(degreeAudit({ groups, graduation: { ...base.graduation, unmet: [], met } }));
+    expect(section(w, GROUP_A).get('[data-test="group-state"]').text()).toBe('✓ Đã đạt');
     expect(section(w, GROUP_A).text()).toContain('4 TC dư tính cho Tự chọn Computer Science (C)');
     expect(section(w, GROUP_C).text()).toContain('+4 TC dư từ nhóm khác');
     expect(rowsOf(w, GROUP_C)[0]).toEqual(['ZZ301', 'Học phần thử ZZ301', '4', 'Tính ở nhóm khác · Tính ở nhóm Kiến thức Computer Science (A): tự chọn', '7']);
