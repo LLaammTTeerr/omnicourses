@@ -21,13 +21,6 @@ export class HttpError extends Error {
   }
 }
 
-/** A public read: no token is sent (ADR 0010). */
-export async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`);
-  if (!res.ok) throw new HttpError(path, res.status);
-  return res.json() as Promise<T>;
-}
-
 export interface RequestOptions {
   body?: unknown;
   /** The session token (ADR 0002), sent as `Authorization: Bearer`. */
@@ -81,6 +74,11 @@ export async function send(method: string, path: string, { body, token, signal, 
 export async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
   const res = await send(method, path, { ...options, timeout: options.timeout === undefined ? REQUEST_TIMEOUT_MS : options.timeout });
   return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+/** A public read: no token is sent (ADR 0010). It times out like any JSON call. */
+export function getJson<T>(path: string): Promise<T> {
+  return request<T>('GET', path);
 }
 
 export function fetchHealth(): Promise<Health> {

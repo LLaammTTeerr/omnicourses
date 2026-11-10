@@ -35,7 +35,7 @@ describe('HomeView in a real browser', () => {
 
     await expect.element(page.getByRole('heading', { level: 1, name: 'Biết chính xác còn thiếu gì để tốt nghiệp.' })).toBeVisible();
     await expect.element(page.getByText('Checking API…')).toBeVisible();
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/health`);
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/health`, expect.objectContaining({ method: 'GET', headers: {} }));
 
     respond(Response.json(HEALTHY));
 

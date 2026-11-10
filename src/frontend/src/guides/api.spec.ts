@@ -85,7 +85,7 @@ describe('fetchGuide', () => {
   it('asks for the id escaped and gives the guide', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ id: 'a b' }));
     await expect(fetchGuide('a b')).resolves.toEqual({ id: 'a b' });
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/guides/a%20b`);
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/guides/a%20b`, expect.objectContaining({ method: 'GET', headers: {} }));
   });
 
   it('gives null when no published guide has the id', async () => {
