@@ -4156,7 +4156,7 @@
               "not_taken",
               "counted_in_other_group"
             ],
-            "description": "counted_in_other_group: the course is passed or in progress but counts in another group (a course counts once, ADR 0013)"
+            "description": "counted_in_other_group: the course is passed and counts in another group (a course counts once, ADR 0013). A failed or in-progress course keeps its own status in every group that lists it."
           },
           "result": {
             "type": [
@@ -4185,7 +4185,8 @@
               "string",
               "null"
             ],
-            "format": "uuid"
+            "format": "uuid",
+            "description": "The group a passed or in-progress course counts its credits in, when that is another group"
           }
         },
         "required": [
@@ -4253,7 +4254,7 @@
               "number",
               "null"
             ],
-            "description": "requiredCredits − passed − overflowIn − inProgress, at least 0"
+            "description": "requiredCredits − passed − overflowIn − inProgress, at least 0; 0 once met"
           },
           "met": {
             "type": "boolean",

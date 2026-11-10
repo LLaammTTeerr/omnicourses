@@ -66,12 +66,14 @@ function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRe
     const record = records.get(course.code);
     const own = statusOf(record);
     const countedIn = placed.get(course.code)!.group.id;
-    const elsewhere = record !== undefined && own !== 'not_taken' && countedIn !== group.id;
-    if (!elsewhere && course.countsTowardTotal && record) {
+    const here = countedIn === group.id;
+    if (here && course.countsTowardTotal && record) {
       const credits = creditsOf(course, recordCredits(record));
       if (own === 'passed') passed += credits;
       else if (own === 'in_progress') inProgress += credits;
     }
+    // Its credits count once, in its placement. Only a passed course shows as counted elsewhere: a failed or
+    // in-progress one keeps its own status, since a compulsory group that lists it still needs it passed (ADR 0013).
     return {
       code: course.code,
       nameVi: course.nameVi,
@@ -79,10 +81,10 @@ function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRe
       credits: course.credits,
       countsTowardTotal: course.countsTowardTotal,
       countsTowardGpa: course.countsTowardGpa,
-      status: elsewhere ? 'counted_in_other_group' : own,
+      status: !here && own === 'passed' ? 'counted_in_other_group' : own,
       result: record?.official?.result ?? null,
       grade: record?.official?.grade ?? null,
-      countedInGroupId: elsewhere ? countedIn : null,
+      countedInGroupId: !here && (own === 'passed' || own === 'in_progress') ? countedIn : null,
     };
   });
   return { group, required, passed, inProgress, courses };
@@ -121,7 +123,9 @@ export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<strin
       overflowInCredits: into,
       overflowOutCredits: overflowOut.get(t.group.id) ?? 0,
       overflowToGroupId: t.group.overflowToGroupId,
-      remainingCredits: t.required === null ? null : Math.max(0, t.required - t.passed - into - t.inProgress),
+      // A met group needs nothing more, even when its credits fall short of its total (fewer transcript credits, or a
+      // passed course counted in another group): a compulsory group is met by its courses, not its credits.
+      remainingCredits: t.required === null ? null : met ? 0 : Math.max(0, t.required - t.passed - into - t.inProgress),
       met,
       courses: t.courses,
     };
