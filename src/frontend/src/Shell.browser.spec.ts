@@ -133,7 +133,7 @@ describe('the new screens at a phone width and on a desktop', () => {
     await expect.element(tabs.getByRole('link', { name: 'Cài đặt' })).toBeVisible();
     // Four tabs fit side by side at 400 px.
     const links = [...(tabs.element() as HTMLElement).querySelectorAll('a')];
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['Bảng điểm', 'Chương trình', 'Hướng dẫn', 'Cài đặt']);
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(new Set(links.map((a) => Math.round(a.getBoundingClientRect().top))).size).toBe(1);
     await expect.element(page.getByRole('complementary')).not.toBeInTheDocument();
   });
