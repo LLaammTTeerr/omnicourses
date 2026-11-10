@@ -318,6 +318,25 @@ describe('checkPlan', () => {
   });
 
   describe('coverage with the plan completed (Điều 17.3.b)', () => {
+    it('names a failed course in every compulsory group that lists it, not only the one it counts in', () => {
+      const rules = zzCurriculum({
+        groups: [group('p', 'compulsory', 8, [fixtureCourse('ZZP1', 4), fixtureCourse('ZZF1', 4)]), group('q', 'compulsory', 8, [fixtureCourse('ZZQ1', 4), fixtureCourse('ZZF1', 4)])],
+        combinedMinimums: [],
+        totalCreditsMin: 12,
+      });
+      const report = check([at(term(2025, 1), course('ZZP1'), course('ZZQ1'))], {
+        rules,
+        transcript: [graded('ZZF1', 4, 3)],
+        prerequisites: { ZZP1: [], ZZQ1: [] },
+        offering: { ZZP1: [1], ZZQ1: [1] },
+      });
+      const groups = report.issues.filter((i) => i.code === 'requirement_not_covered' && i.requirementGroupId !== null);
+      expect(groups.map((i) => [i.requirementGroupId, i.missingCourseCodes])).toEqual([
+        ['p', ['ZZF1']],
+        ['q', ['ZZF1']],
+      ]);
+    });
+
     it('reports each group, combined minimum and the total still short, after the term issues', () => {
       const report = check([at(term(2025, 1), course('ZZA1'), course('ZZB1'), course('ZZT2'))]);
       const coverage = report.issues.filter((i) => i.code === 'requirement_not_covered');

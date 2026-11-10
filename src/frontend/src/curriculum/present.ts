@@ -21,7 +21,10 @@ export function matches(query: string, ...texts: (string | null)[]): boolean {
 
 // The API gives a group only its printed heading and kind, so the colour comes from the heading's subject. The first
 // rule that matches wins; an unknown heading falls back on its kind.
-const COLOUR_RULES: [RegExp, GroupId | ((group: RequirementGroup) => GroupId)][] = [
+/** What the colour depends on: a curriculum group and a degree audit group both have it. */
+type Heading = Pick<RequirementGroup, 'name' | 'kind'>;
+
+const COLOUR_RULES: [RegExp, GroupId | ((group: Heading) => GroupId)][] = [
   [/non computer science/, 'gen'],
   [/tot nghiep|graduation|thesis|khoa luan/, 'thesis'],
   [/physics|vat ly/, 'phys'],
@@ -32,7 +35,7 @@ const COLOUR_RULES: [RegExp, GroupId | ((group: RequirementGroup) => GroupId)][]
 ];
 
 /** The design colour and glyph of a requirement group (groups.ts), from its printed heading. */
-export function groupColour(group: RequirementGroup): GroupId {
+export function groupColour(group: Heading): GroupId {
   const name = fold(group.name);
   for (const [pattern, colour] of COLOUR_RULES) {
     if (pattern.test(name)) return typeof colour === 'function' ? colour(group) : colour;
@@ -41,7 +44,7 @@ export function groupColour(group: RequirementGroup): GroupId {
 }
 
 /** Groups in the design's order of colours, compulsory before elective, then by heading. */
-export function orderGroups(groups: readonly RequirementGroup[]): RequirementGroup[] {
-  const rank = (group: RequirementGroup) => GROUP_IDS.indexOf(groupColour(group));
+export function orderGroups<T extends Heading>(groups: readonly T[]): T[] {
+  const rank = (group: T) => GROUP_IDS.indexOf(groupColour(group));
   return [...groups].sort((a, b) => rank(a) - rank(b) || (a.kind === b.kind ? 0 : a.kind === 'compulsory' ? -1 : 1) || a.name.localeCompare(b.name, 'vi'));
 }

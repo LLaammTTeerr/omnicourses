@@ -49,6 +49,13 @@ describe('request', () => {
     await expect(request('POST', '/things')).rejects.toMatchObject({ status: 502, details: [] });
   });
 
+  it('keeps the code of the error body, such as the reason for a 409', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({ statusCode: 409, code: 'onboarding_required', message: 'Finish onboarding' }, { status: 409 }));
+    await expect(request('GET', '/things')).rejects.toMatchObject({ status: 409, code: 'onboarding_required', details: ['Finish onboarding'] });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({ message: 'Conflict', code: 7 }, { status: 409 }));
+    await expect(request('GET', '/things')).rejects.toMatchObject({ code: null });
+  });
+
   it('has no status when the request got no answer', () => {
     expect(statusOf(new TypeError('Failed to fetch'))).toBeNull();
   });

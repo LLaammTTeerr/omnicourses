@@ -53,11 +53,11 @@ describe('SignInView (F1, issue #13)', () => {
     expect(router.currentRoute.value.fullPath).toBe('/settings');
   });
 
-  it('opens the transcript when nothing asked for another page', async () => {
+  it('opens the dashboard when nothing asked for another page', async () => {
     mockApi({ 'POST /auth/sign-in': () => Response.json(authResult()) });
     const { w, router } = await render();
     await fill(w, 'zz-student@example.com', 'zz-password-1');
-    expect(router.currentRoute.value.fullPath).toBe('/transcript');
+    expect(router.currentRoute.value.fullPath).toBe('/dashboard');
   });
 
   it.each([

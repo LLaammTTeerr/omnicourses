@@ -10,6 +10,8 @@ import {
   type RouterScrollBehavior,
 } from 'vue-router';
 import SettingsView from './account/SettingsView.vue';
+import AuditView from './audit/AuditView.vue';
+import DashboardView from './audit/DashboardView.vue';
 import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
 import SignInView from './auth/SignInView.vue';
 import SignUpView from './auth/SignUpView.vue';
@@ -52,6 +54,8 @@ const routes: RouteRecordRaw[] = [
   { path: '/guides', name: 'guides', component: GuidesView, meta: { layout: 'auto', keepAlive: true } },
   { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
   { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
+  { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { layout: 'app', auth: 'required' } },
+  { path: '/audit', name: 'audit', component: AuditView, meta: { layout: 'app', auth: 'required' } },
   { path: '/explorer', name: 'explorer', component: ExplorerView, meta: { layout: 'app', auth: 'required' } },
   // Nested, so the sidebar's Plans link stays marked while a plan is open.
   {

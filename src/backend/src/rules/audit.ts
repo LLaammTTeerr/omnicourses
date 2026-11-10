@@ -162,15 +162,19 @@ function warnings(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMa
         code: 'not_in_curriculum',
         courseCode: record.code,
         message: 'No requirement group of the curriculum lists this course, and no course equivalence is recorded, so it counts toward nothing.',
+        transcriptCredits: null,
+        curriculumCredits: null,
       });
       continue;
     }
-    const differing = unique(record.attempts.filter((a) => a.credits !== place.course.credits).map((a) => String(a.credits)));
+    const differing = [...new Set(record.attempts.filter((a) => a.credits !== place.course.credits).map((a) => a.credits))].sort((x, y) => x - y);
     if (differing.length) {
       list.push({
         code: 'credits_differ',
         courseCode: record.code,
         message: `The transcript gives ${differing.join(', ')} credits and the curriculum ${place.course.credits}; the audit counts the smaller number.`,
+        transcriptCredits: differing,
+        curriculumCredits: place.course.credits,
       });
     }
     if (record.sameTermAttempts) {
@@ -178,6 +182,8 @@ function warnings(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMa
         code: 'same_term_attempts',
         courseCode: record.code,
         message: 'Several completed attempts in the same term: which was last is unknown, so the worse result counts.',
+        transcriptCredits: null,
+        curriculumCredits: null,
       });
     }
   }

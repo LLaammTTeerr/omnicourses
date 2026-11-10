@@ -43,10 +43,14 @@ export const NOT_CHECKED_CONDITIONS: readonly GraduationCondition[] = [
 
 const status = (met: boolean): GraduationCondition['status'] => (met ? 'met' : 'not_met');
 
-/** Every condition: each group, each combined minimum, the cohort total, then the unchecked ones. */
+/**
+ * Every condition: each group, each combined minimum, the cohort total, then the unchecked ones. An elective group
+ * with no minimum of its own is no condition: its rule is the combined minimum it adds to (ADR 0013).
+ */
 export function graduationStatus(groups: readonly GroupCoverage[], combined: readonly CombinedMinimumCoverage[], credits: CreditSummary): GraduationStatus {
+  const ruled = groups.filter((g) => g.kind === 'compulsory' || g.requiredCredits !== null);
   const conditions: GraduationCondition[] = [
-    ...groups.map((g) => ({
+    ...ruled.map((g) => ({
       id: `group:${g.id}`,
       description: `Requirement group "${g.name}"`,
       citation: ARTICLE_17_3_B,

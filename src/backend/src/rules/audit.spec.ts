@@ -27,7 +27,8 @@ describe('degree audit', () => {
       expect(audit.combinedMinimums.map((m) => [m.credits, m.creditsMin, m.met, m.remainingCredits])).toEqual([[12, 12, true, 0]]);
       expect(audit.graduation.status).toBe('done');
       expect(audit.graduation.unmet).toEqual([]);
-      expect(audit.graduation.met.map((c) => c.id)).toEqual(['group:a-bb', 'group:a-tc', 'group:b', 'group:c', 'group:non', 'group:tn', 'combined:bc', 'total_credits']);
+      // C has no minimum of its own, so it is no condition: its rule is the combined minimum B + C.
+      expect(audit.graduation.met.map((c) => c.id)).toEqual(['group:a-bb', 'group:a-tc', 'group:b', 'group:non', 'group:tn', 'combined:bc', 'total_credits']);
     });
 
     it('counts credits: Thể dục is accumulated but outside the total (Điều 11.4, the curriculum)', () => {
@@ -89,6 +90,8 @@ describe('degree audit', () => {
     expect(groupOf(audit, 'c')).toMatchObject({ met: true, remainingCredits: null });
     expect(audit.combinedMinimums[0]).toMatchObject({ credits: 0, remainingCredits: 12, met: false });
     expect(audit.graduation.status).toBe('not_yet');
+    // ...so C is never listed as a condition met with nothing taken.
+    expect(audit.graduation.met).toEqual([]);
     expect(audit.graduation.unmet.map((c) => c.id)).toEqual(['group:a-bb', 'group:a-tc', 'group:b', 'group:non', 'group:tn', 'combined:bc', 'total_credits']);
   });
 
@@ -165,6 +168,30 @@ describe('degree audit', () => {
       expect(groupOf(audit, 'z').passedCredits).toBe(4);
       expect(groupOf(audit, 'y')).toMatchObject({ passedCredits: 0, met: false });
       expect(audit.credits.towardTotal).toBe(8);
+    });
+
+    it('shows a failed or in-progress course with its own status in each group, so every compulsory group still names it', () => {
+      const twice = zzCurriculum({
+        groups: [
+          group('p', 'compulsory', 12, [course('ZZP1', 4), course('ZZF1', 4), course('ZZI1', 4)]),
+          group('q', 'compulsory', 12, [course('ZZQ1', 4), course('ZZF1', 4), course('ZZI1', 4)]),
+        ],
+        combinedMinimums: [],
+        totalCreditsMin: 16,
+      });
+      const audit = degreeAudit(twice, [graded('ZZP1', 4, 8), graded('ZZQ1', 4, 8), graded('ZZF1', 4, 3), ungraded('ZZI1', 4, 'in_progress')]);
+      const shared = (id: string) => groupOf(audit, id).courses.filter((c) => c.code !== 'ZZP1' && c.code !== 'ZZQ1').map((c) => [c.code, c.status, c.countedInGroupId]);
+      expect(shared('p')).toEqual([
+        ['ZZF1', 'failed', null],
+        ['ZZI1', 'in_progress', null],
+      ]);
+      // Group p sorts first, so the in-progress credits count there; group q still needs both courses passed.
+      expect(shared('q')).toEqual([
+        ['ZZF1', 'failed', null],
+        ['ZZI1', 'in_progress', 'p'],
+      ]);
+      expect(groupOf(audit, 'p')).toMatchObject({ passedCredits: 4, inProgressCredits: 4, met: false });
+      expect(groupOf(audit, 'q')).toMatchObject({ passedCredits: 4, inProgressCredits: 0, met: false });
     });
 
     it('shows a course not taken as not taken in each group', () => {
@@ -253,19 +280,25 @@ describe('degree audit', () => {
 
   it('counts the smaller credit number when the transcript and the catalog disagree, and warns', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 3, 8), graded('ZZA2', 5, 6)]);
-    expect(groupOf(audit, 'a-bb').passedCredits).toBe(7);
+    // Every course is passed, so the group is met and nothing remains, though its credits are 7 of 8.
+    expect(groupOf(audit, 'a-bb')).toMatchObject({ passedCredits: 7, requiredCredits: 8, met: true, remainingCredits: 0 });
     // (8·3 + 6·4) / 7 = 6.857…
     expect(audit.gpa.average).toBe(6.86);
-    expect(audit.warnings.map((w) => [w.code, w.courseCode])).toEqual([
-      ['credits_differ', 'ZZA1'],
-      ['credits_differ', 'ZZA2'],
+    expect(audit.warnings.map((w) => [w.code, w.courseCode, w.transcriptCredits, w.curriculumCredits])).toEqual([
+      ['credits_differ', 'ZZA1', [3], 4],
+      ['credits_differ', 'ZZA2', [5], 4],
     ]);
+  });
+
+  it('gives every differing transcript figure once, smallest first', () => {
+    const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 5, 3, term(2024, 1)), graded('ZZA1', 3, 4, term(2024, 2)), graded('ZZA1', 5, 8, term(2025, 1))]);
+    expect(audit.warnings).toMatchObject([{ code: 'credits_differ', courseCode: 'ZZA1', transcriptCredits: [3, 5], curriculumCredits: 4 }]);
   });
 
   it('warns about two completed attempts in one term', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 8), graded('ZZA1', 4, 3)]);
     expect(statusOf(audit, 'a-bb', 'ZZA1')).toBe('failed');
-    expect(audit.warnings.map((w) => w.code)).toEqual(['same_term_attempts']);
+    expect(audit.warnings).toMatchObject([{ code: 'same_term_attempts', transcriptCredits: null, curriculumCredits: null }]);
   });
 
   it('checks no cap and no total when the curriculum does not record them', () => {
