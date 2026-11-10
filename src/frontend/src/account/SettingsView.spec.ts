@@ -7,7 +7,7 @@ import { session } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { closeNatively, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SettingsView from './SettingsView.vue';
 
@@ -154,8 +154,7 @@ describe('SettingsView', () => {
     expect(dialog.findAll('button').find((b) => b.text() === 'Giữ lại')!.attributes('disabled')).toBeDefined();
     // Escape reaches the dialog as a cancel event; a browser without `closedby` may then close it anyway.
     await dialog.trigger('cancel');
-    dialog.element.removeAttribute('open');
-    dialog.element.dispatchEvent(new Event('close'));
+    closeNatively(dialog.element);
     await flushPromises();
     expect(w.find('dialog[open]').exists()).toBe(true);
 

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
+import { hang } from './testing/fetch.js';
 
 describe('Health against the contract', () => {
   it('has the fields of HealthDto', () => {
@@ -56,12 +57,6 @@ describe('request', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({ message: 'Conflict', code: 7 }, { status: 409 }));
     await expect(request('GET', '/things')).rejects.toMatchObject({ code: null });
   });
-
-  // A fetch that answers only when its signal aborts, as a hung connection does.
-  const hang = () =>
-    vi.spyOn(globalThis, 'fetch').mockImplementation(
-      (_input, init) => new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal!.reason))),
-    );
 
   it('fails a call that gets no answer in time, with no status', async () => {
     hang();

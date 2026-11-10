@@ -4,7 +4,7 @@ import { RouterView, type Router } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { useToast } from '../shell/toast.js';
-import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import { OTHER_ID, PLAN_ID, plan, report, summary } from './testing/fixtures.js';
 
@@ -186,13 +186,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
-  // A browser without `closedby` still closes a busy <dialog> on a second Escape (see
-  // ModalDialog.browser.spec.ts). jsdom has no close watcher, so these close it as such a browser does.
-  const closeNatively = (dialog: Element) => {
-    dialog.removeAttribute('open');
-    dialog.dispatchEvent(new Event('close'));
-  };
-
   it('brings the delete dialog back when the browser closes it during the deletion, and says there if it fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let answer!: (response: Response) => void;
@@ -233,10 +226,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     // The request's timeout, fired by the test instead of after 30 seconds.
     const timer = new AbortController();
     vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timer.signal);
-    const { w } = await render({
-      [`DELETE /plans/${OTHER_ID}`]: (init: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(init.signal!.reason))),
-    });
+    const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: hung });
     await card(w, 1).get('[data-test="delete"]').trigger('click');
     await flushPromises();
     await w.get('[data-test="confirm-delete"]').trigger('click');
