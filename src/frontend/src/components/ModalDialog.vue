@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 
 // A modal on the native <dialog>: the browser traps focus inside, makes the page behind it inert, closes it on
 // Escape and gives focus back to the button that opened it. The parent owns `open`; Escape or `close` emits it.
@@ -19,6 +19,15 @@ function sync(open: boolean): void {
 // After the render, so showModal finds the content and focuses its first control (or the one with autofocus).
 watch(() => props.open, sync, { flush: 'post' });
 onMounted(() => sync(props.open));
+
+// The browser closed the dialog (Escape) and the parent was told. A parent that keeps `open` true (a request still
+// out) gets the dialog shown again: Chrome lets a page prevent only one Escape per user activation, so `cancel`
+// alone cannot hold it open, and `open` would no longer change for the watch above to show it.
+function closed(): void {
+  if (!props.open) return;
+  emit('close');
+  void nextTick(() => sync(props.open));
+}
 </script>
 
 <template>
@@ -28,7 +37,7 @@ onMounted(() => sync(props.open));
     :role="role"
     :aria-labelledby="labelledby"
     :aria-describedby="describedby"
-    @close="open && emit('close')"
+    @close="closed"
     @cancel.prevent="emit('close')"
   >
     <slot v-if="open" />

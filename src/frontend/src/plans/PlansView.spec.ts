@@ -186,6 +186,48 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
+  // A second Escape closes a <dialog> whatever the page does (Chrome's close watchers; see
+  // ModalDialog.browser.spec.ts). jsdom has no close watcher, so these close it as the browser does.
+  const closeNatively = (dialog: Element) => {
+    dialog.removeAttribute('open');
+    dialog.dispatchEvent(new Event('close'));
+  };
+
+  it('brings the delete dialog back when the browser closes it during the deletion, and says there if it fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let answer!: (response: Response) => void;
+    const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 1).get('[data-test="delete"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="confirm-delete"]').trigger('click');
+    await flushPromises();
+    closeNatively(w.get('dialog[open]').element);
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+    answer(status(503)());
+    await flushPromises();
+    const dialog = w.get('dialog[open]');
+    expect(dialog.get('[role="alert"]').text()).toBe('Chưa thực hiện được. Hãy thử lại.');
+    expect(names(w)).toEqual(['Kế hoạch thử', 'Nhẹ tải thử']);
+  });
+
+  it('brings the name dialog back when the browser closes it during its request', async () => {
+    let answer!: (response: Response) => void;
+    const { w } = await render({ [`PATCH /plans/${PLAN_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await card(w, 0).get('[data-test="rename"]').trigger('click');
+    await flushPromises();
+    await w.get('dialog[open] input').setValue('Đổi tên thử');
+    await w.get('dialog[open] form').trigger('submit');
+    await flushPromises();
+    closeNatively(w.get('dialog[open]').element);
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(true);
+    answer(Response.json({ ...plan(), name: 'Đổi tên thử' }));
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
+  });
+
   it('loads the student’s program itself, with a retry, when the answers were not loaded before', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let failures = 2;
