@@ -424,7 +424,7 @@ These B0 cases carry to B1 ([B0 report §5](report-b0.md#5-cases-carried-to-b1))
 | Cases | On B1 |
 | --- | --- |
 | UI-01a–p | Run as written once the sign-in and sign-up screens (#13) merge. While #13 is open, as it is on 5 November, they stay **not run: feature not merged**. When #13 lands, update the labels and make UI-01i exact: it names where the token is kept, in memory or Session Storage, as #13 decides. |
-| UI-01q | "On the B0 commit" becomes **on the B1 commit**: run `npm run test:browser` on the B1 candidate, and Thắng's real-API sign-in journey passes. Record the frontend and backend commits. While #13 is open: **not run: feature not merged**. |
+| UI-01q | "On the B0 commit" becomes **on the B1 commit**: run `npm run test:browser` on the B1 candidate, and it passes, `src/auth/SignIn.browser.spec.ts` included: a valid sign-in, a wrong password with its 401 message, and the 401 of an ended session. Record the frontend commit. The browser suite starts no backend, so it mocks the API ([browser-tests.md](browser-tests.md)); the sign-in screen against the real auth API is UI-01a–p, run on the server. |
 | DB-01f | Written out below. |
 | DEP-01a–f | Run on staging. DEP-01f checks the **`B1`** tag instead of `B0`: the commit of the `B1` tag, the commit of the deploy run and the commit this report tests are the same. Without staging they stay **blocked: no server yet** (§1). |
 | SESS-01l | Nothing to change: still not run by hand, by design (sessions last 7 days). The check in its place, every `expiresAt` in SESS-01c–e about 7 days ahead, runs with them. |
