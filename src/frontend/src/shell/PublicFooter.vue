@@ -6,6 +6,7 @@ import { REGULATION_URL, SHELL_MESSAGES } from './messages.js';
 
 const m = useMessages(SHELL_MESSAGES);
 const guides = useMessages({ vi: 'Hướng dẫn', en: 'Guides' });
+const privacy = useMessages({ vi: 'Quyền riêng tư', en: 'Privacy' });
 </script>
 
 <template>
@@ -13,6 +14,7 @@ const guides = useMessages({ vi: 'Hướng dẫn', en: 'Guides' });
     <span>{{ m.footer }}</span>
     <span>
       <RouterLink :to="{ name: 'guides' }">{{ guides }}</RouterLink> ·
+      <RouterLink :to="{ name: 'privacy' }">{{ privacy }}</RouterLink> ·
       <ExternalLink :href="REGULATION_URL">{{ m.regulation }}</ExternalLink>
     </span>
   </footer>

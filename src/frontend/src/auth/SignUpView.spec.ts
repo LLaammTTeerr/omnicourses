@@ -84,6 +84,22 @@ describe('SignUpView (F1, issue #13)', () => {
     expect(w.get('#sign-up-password').attributes('aria-describedby')).toBe('sign-up-password-strength');
   });
 
+  it('links the privacy notice beside the consent box, in a new tab so the form keeps what was typed (TC-B1-USER-01p)', async () => {
+    mockApi({});
+    const { w } = await render();
+    await fill(w, { consent: false });
+    const link = w.get('.box [data-test="privacy-link"]');
+    expect(link.attributes('href')).toBe('/privacy');
+    expect(link.attributes('target')).toBe('_blank');
+    // Outside the label: following the link must not tick the consent box.
+    expect(link.element.closest('label')).toBeNull();
+    expect(link.text()).toBe('Đọc thông báo quyền riêng tư (mở ở tab mới)');
+    useLocale().set('en');
+    await nextTick();
+    expect(link.text()).toBe('Read the privacy notice (opens in a new tab)');
+    expect((w.get('#sign-up-consent').element as HTMLInputElement).checked).toBe(false);
+  });
+
   it('says when the email already has an account, with a way to sign in that keeps the redirect (409)', async () => {
     mockApi({ 'POST /auth/sign-up': status(409, { message: 'Email already registered' }) });
     const { w } = await render('/sign-up?redirect=/settings');

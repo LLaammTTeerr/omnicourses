@@ -22,6 +22,7 @@ import GuidesView from './guides/GuidesView.vue';
 import OnboardingView from './onboarding/OnboardingView.vue';
 import PlanEditorView from './plans/PlanEditorView.vue';
 import PlansView from './plans/PlansView.vue';
+import PrivacyView from './privacy/PrivacyView.vue';
 import { useOnboarding } from './onboarding/store.js';
 import TranscriptView from './transcript/TranscriptView.vue';
 import HomeView from './views/HomeView.vue';
@@ -53,6 +54,8 @@ const routes: RouteRecordRaw[] = [
   // The guide list stays alive while a guide is open, so Back finds the same search and scroll position.
   { path: '/guides', name: 'guides', component: GuidesView, meta: { layout: 'auto', keepAlive: true } },
   { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
+  // Readable signed out: sign-up links it beside the consent box (UC-01 step 2).
+  { path: '/privacy', name: 'privacy', component: PrivacyView, meta: { layout: 'auto' } },
   { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { layout: 'app', auth: 'required' } },
   { path: '/audit', name: 'audit', component: AuditView, meta: { layout: 'app', auth: 'required' } },
