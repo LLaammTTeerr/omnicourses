@@ -81,7 +81,6 @@ interface PlannerMessages {
   goTo: string;
   /** A citation that links to the regulation, as a short label and its tooltip. */
   sourceTitle: (citation: string) => string;
-  issuesSub: string;
   noIssuesTitle: string;
   newTag: string;
   goneTag: string;
@@ -136,7 +135,6 @@ interface PlannerMessages {
   inProgress: string;
   locked: string;
   takenBefore: (grade: string) => string;
-  hasViolation: string;
   // Drag preview and the issues panel
   dropChecking: string;
   dropOk: string;
@@ -240,7 +238,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     binHint: 'Thả vào đây, môn quay về danh sách học phần',
     goTo: 'Đến môn',
     sourceTitle: (c) => `Mở quy chế: ${c}`,
-    issuesSub: 'Cập nhật ngay khi bạn kéo thả.',
     noIssuesTitle: 'Không có vi phạm',
     newTag: 'Mới',
     goneTag: 'Sẽ hết',
@@ -291,7 +288,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     inProgress: 'Đang học',
     locked: 'Đang học, không đổi được',
     takenBefore: (g) => `Đã học trước · điểm ${g}`,
-    hasViolation: 'Có vi phạm',
     dropChecking: 'Đang kiểm tra…',
     dropOk: 'Hợp lệ',
     dropLoad: (c, max) => `${c}/${max} tín chỉ`,
@@ -423,7 +419,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     binHint: 'Drop here and the course goes back to the course list',
     goTo: 'Go to course',
     sourceTitle: (c) => `Open the regulation: ${c}`,
-    issuesSub: 'Updates as you drag and drop.',
     noIssuesTitle: 'No violations',
     newTag: 'New',
     goneTag: 'Goes away',
@@ -474,7 +469,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     inProgress: 'In progress',
     locked: 'In progress, cannot be moved',
     takenBefore: (g) => `Taken before · grade ${g}`,
-    hasViolation: 'Has a violation',
     dropChecking: 'Checking…',
     dropOk: 'Valid',
     dropLoad: (c, max) => `${c}/${max} credits`,
