@@ -200,7 +200,8 @@ function undo(): void {
 function onWindowKey(event: KeyboardEvent): void {
   if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z' || event.shiftKey) return;
   const target = event.target as HTMLElement | null;
-  if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+  // A text box or an editable element keeps its own undo.
+  if (target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
   event.preventDefault();
   undo();
 }
@@ -764,7 +765,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
     </div>
 
     <template v-else-if="plan">
-      <PlanTabs :id="plan.id" ref="tabs" />
+      <PlanTabs :id="plan.id" ref="tabs" :name="plan.name" />
       <StatusStrip :attached="issues" :fresh="fresh" :save-state="saveState" />
       <p class="small t3">{{ m.curriculum(plan.curriculum.code) }}</p>
       <p v-if="saveError" class="callout bad" role="alert" data-test="save-error"><Icon name="alert" /><span>{{ saveError }}</span></p>

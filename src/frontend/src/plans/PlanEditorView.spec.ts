@@ -614,6 +614,49 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(strip.get('[data-test="save-state"]').text()).toBe('Đã lưu');
     });
 
+    it('copies the plan for a what-if even when the list of plans could not be loaded', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const copy = plan(SAVED, { id: OTHER_ID, name: 'What-if: Kế hoạch thử' });
+      let body: unknown;
+      const { w, router } = await render({
+        routes: {
+          'GET /plans': status(500),
+          [`POST /plans/${PLAN_ID}/duplicate`]: (init: RequestInit) => ((body = sentBody(init)), Response.json(copy)),
+          [`GET /plans/${OTHER_ID}`]: copy,
+          [`GET /plans/${OTHER_ID}/issues`]: report(),
+        },
+      });
+      expect(w.find('[data-test="plan-tabs"]').exists()).toBe(false);
+      await w.get('[data-test="what-if"]').trigger('click');
+      await flushPromises();
+      expect(body).toEqual({ name: 'What-if: Kế hoạch thử' });
+      expect(router.currentRoute.value.params.id).toBe(OTHER_ID);
+    });
+
+    it('says every checkable requirement is met when the engine says so and nothing is placed', async () => {
+      const { w } = await render({
+        routes: { [`GET /plans/${PLAN_ID}`]: plan([]) },
+        reports: [report({ coverage: { groups: [], combinedMinimums: [], totalRequired: 20, totalCredits: 20, totalRemaining: 0, graduation: 'done' } })],
+      });
+      expect(w.get('[data-test="estimate"]').text()).toBe('Hợp lệĐủ các yêu cầu kiểm tra được');
+      expect(w.get('[data-test="estimate"]').classes()).not.toContain('bad');
+    });
+
+    it('leaves Ctrl+Z to an editable element that has the focus', async () => {
+      const { w } = await render();
+      await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+      await flushPromises();
+      const editable = document.createElement('div');
+      editable.setAttribute('contenteditable', 'true');
+      document.body.append(editable);
+      const event = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true });
+      editable.dispatchEvent(event);
+      await flushPromises();
+      expect(event.defaultPrevented).toBe(false);
+      expect(rowCodes(w)[1]).toBe('HK2 2026–2027: ZZ101');
+      editable.remove();
+    });
+
     it('collapses the issues panel, and keeps it collapsed on the next visit', async () => {
       const first = await render();
       const toggle = first.w.get('[data-test="issues-toggle"]');

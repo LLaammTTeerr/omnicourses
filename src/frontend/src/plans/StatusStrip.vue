@@ -27,7 +27,8 @@ const lastTerm = computed(() => {
   const filled = props.attached?.board.filter((row) => row.tiles.length > 0) ?? [];
   return filled.at(-1)?.term ?? null;
 });
-const graduates = computed(() => report.value?.coverage.graduation === 'done' && placementViolations.value === 0 && lastTerm.value !== null);
+/** The engine finds every checkable requirement met and no violation in a term; the plan then ends in its last term. */
+const graduates = computed(() => report.value?.coverage.graduation === 'done' && placementViolations.value === 0);
 const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
   const colour = groupColour(group);
   return { colour, glyph: GROUPS.find((g) => g.id === colour)!.glyph };
@@ -40,7 +41,8 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
       <span class="est-ic" aria-hidden="true"><Icon :name="graduates ? 'cap' : 'alert'" /></span>
       <div>
         <small>{{ placementViolations ? m.invalid(placementViolations) : m.valid }}</small>
-        <b v-if="graduates">{{ m.expectedGraduation }}: {{ termName(lastTerm!, locale.lang) }}</b>
+        <b v-if="graduates && lastTerm">{{ m.expectedGraduation }}: {{ termName(lastTerm, locale.lang) }}</b>
+        <b v-else-if="graduates">{{ m.graduation.done }}</b>
         <b v-else>{{ m.notYetGraduation }}</b>
       </div>
     </div>

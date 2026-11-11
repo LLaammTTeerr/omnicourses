@@ -102,6 +102,7 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
 
   it('words every issue code of the contract in both languages', () => {
     for (const lang of ['vi', 'en'] as const) expect(Object.keys(PLANNER_MESSAGES[lang].issue).sort()).toEqual(contractEnum('PlanIssueDto', 'code'));
+    for (const lang of ['vi', 'en'] as const) expect(Object.keys(PLANNER_MESSAGES[lang].issueTitle).sort()).toEqual(contractEnum('PlanIssueDto', 'code'));
   });
 });
 

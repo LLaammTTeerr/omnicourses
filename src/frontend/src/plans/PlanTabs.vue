@@ -10,8 +10,9 @@ import { duplicatePlan, fetchPlans, type PlanSummary } from './api.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
 // The student's plans as tabs above the editor (UC-05 A6), to switch between them and copy the one open. Renaming
-// and deleting stay on the plans list, behind its confirmation. A failed load shows no tabs: the editor still works.
-const props = defineProps<{ id: string }>();
+// and deleting stay on the plans list, behind its confirmation. A failed load shows no tabs: the editor still works,
+// and so does a copy, which needs only the plan open (`id`, `name`), not the list.
+const props = defineProps<{ id: string; name: string }>();
 const auth = useAuth();
 const router = useRouter();
 const toast = useToast();
@@ -31,11 +32,11 @@ watch(() => props.id, load, { immediate: true });
 
 /** A copy of the plan open, opened at once; `name` defaults to the list's "Copy of …". */
 async function copy(name?: string): Promise<void> {
-  const current = plans.value.find((p) => p.id === props.id);
-  if (busy.value || !current) return;
+  if (busy.value) return;
   busy.value = true;
+  const { id } = props;
   try {
-    const made = await auth.authed((token) => duplicatePlan(token, current.id, name ?? m.value.copyName(current.name)));
+    const made = await auth.authed((token) => duplicatePlan(token, id, name ?? m.value.copyName(props.name)));
     toast.show(m.value.copied(made.name));
     await router.push({ name: 'plan', params: { id: made.id } });
   } catch (e) {
