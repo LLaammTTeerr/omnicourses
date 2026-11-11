@@ -89,6 +89,17 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     expect(contractEnum('PlanCoverageDto', 'graduation')).toEqual(['done', 'not_yet']);
   });
 
+  it('words the change a drag preview would make to the violations, in both languages', () => {
+    expect([0, 1, 2, -1, -3].map(PLANNER_MESSAGES.vi.previewDelta)).toEqual(['số vi phạm không đổi', 'thêm 1 vi phạm', 'thêm 2 vi phạm', 'bớt 1 vi phạm', 'bớt 3 vi phạm']);
+    expect([0, 1, 2, -1, -3].map(PLANNER_MESSAGES.en.previewDelta)).toEqual([
+      'same number of violations',
+      '1 more violation',
+      '2 more violations',
+      '1 fewer violation',
+      '3 fewer violations',
+    ]);
+  });
+
   it('words every issue code of the contract in both languages', () => {
     for (const lang of ['vi', 'en'] as const) expect(Object.keys(PLANNER_MESSAGES[lang].issue).sort()).toEqual(contractEnum('PlanIssueDto', 'code'));
   });

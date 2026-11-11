@@ -274,7 +274,10 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     dropOk: 'Hợp lệ',
     dropLoad: (c, max) => `${c}/${max} tín chỉ`,
     previewOf: (c, term) => `Xem trước: ${c} → ${term}`,
-    previewDelta: (d) => (d === 0 ? 'số vi phạm không đổi' : d > 0 ? `thêm ${d} vi phạm` : `bớt ${-d} vi phạm`),
+    previewDelta: (d) => {
+      if (d === 0) return 'số vi phạm không đổi';
+      return d > 0 ? `thêm ${d} vi phạm` : `bớt ${-d} vi phạm`;
+    },
     collapse: 'Thu gọn bảng kiểm tra',
     expand: 'Mở bảng kiểm tra',
     groupsShort: (n) => `${n} nhóm còn thiếu`,
@@ -445,7 +448,12 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     dropOk: 'Valid',
     dropLoad: (c, max) => `${c}/${max} credits`,
     previewOf: (c, term) => `Preview: ${c} → ${term}`,
-    previewDelta: (d) => (d === 0 ? 'same number of violations' : d > 0 ? `${d} more ${d === 1 ? 'violation' : 'violations'}` : `${-d} fewer ${d === -1 ? 'violation' : 'violations'}`),
+    previewDelta: (d) => {
+      if (d === 0) return 'same number of violations';
+      const n = Math.abs(d);
+      const noun = n === 1 ? 'violation' : 'violations';
+      return d > 0 ? `${n} more ${noun}` : `${n} fewer ${noun}`;
+    },
     collapse: 'Collapse the plan check',
     expand: 'Open the plan check',
     groupsShort: (n) => `${n} ${n === 1 ? 'group' : 'groups'} still short`,
