@@ -93,6 +93,17 @@ export class PlansService {
     return this.get(userId, planId);
   }
 
+  /**
+   * One of the student's plans with another board in place of its saved one, for the rule engine to
+   * check before anything is saved (the planner's drag preview). The board is validated as a save
+   * would be; nothing is written.
+   */
+  async withBoard(userId: string, planId: string, terms: BoardTerm[]): Promise<PlanDto> {
+    const plan = await this.get(userId, planId);
+    await this.checkBoard(plan.curriculum.id, terms);
+    return { ...plan, terms };
+  }
+
   /** Deletes the plan and its placements. */
   async delete(userId: string, planId: string): Promise<void> {
     const { affected } = await this.plans.delete({ id: planId, userId });

@@ -922,6 +922,59 @@
         "tags": [
           "plans"
         ]
+      },
+      "post": {
+        "operationId": "PlansController_previewIssues",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBoardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rule engine's check of the plan with the board sent in place of its saved one, as GET /plans/{id}/issues reports it. Nothing is saved: the planner asks this while a course is dragged, to show what each term would say.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanIssuesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A term or placement is invalid, as for PUT /plans/{id}/placements."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
       }
     },
     "/api/plans/{id}/duplicate": {
@@ -5181,6 +5234,21 @@
           "coverage"
         ]
       },
+      "PlanBoardDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
+      },
       "RenamePlanDto": {
         "type": "object",
         "properties": {
@@ -5206,21 +5274,6 @@
             "description": "The copy's name. Left out: the original's name; the UI words any \"copy of\"."
           }
         }
-      },
-      "PlanBoardDto": {
-        "type": "object",
-        "properties": {
-          "terms": {
-            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlanTermDto"
-            }
-          }
-        },
-        "required": [
-          "terms"
-        ]
       },
       "AdminErrorDto": {
         "type": "object",

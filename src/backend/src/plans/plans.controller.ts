@@ -64,6 +64,21 @@ export class PlansController {
     return this.issues.issuesFor(user.id, plan);
   }
 
+  @Post(':id/issues')
+  @HttpCode(200)
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({
+    type: PlanIssuesDto,
+    description:
+      "The rule engine's check of the plan with the board sent in place of its saved one, as GET /plans/{id}/issues reports it. Nothing is saved: the planner asks this while a course is dragged, to show what each term would say.",
+  })
+  @ApiBadRequestResponse({ description: 'A term or placement is invalid, as for PUT /plans/{id}/placements.' })
+  @ApiNotFoundResponse({ description: NOT_FOUND })
+  async previewIssues(@CurrentUser() user: User, @PlanId() id: string, @Body() dto: PlanBoardDto): Promise<PlanIssuesDto> {
+    const plan = await this.plans.withBoard(user.id, id, dto.terms);
+    return this.issues.issuesFor(user.id, plan);
+  }
+
   @Patch(':id')
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: PlanDto, description: 'The renamed plan.' })

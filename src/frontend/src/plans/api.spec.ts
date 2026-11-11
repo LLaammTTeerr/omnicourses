@@ -8,6 +8,7 @@ import {
   fetchPlan,
   fetchPlanIssues,
   fetchPlans,
+  previewPlanIssues,
   PLACEMENT_KINDS,
   PLAN_ISSUE_CODES,
   PLAN_ISSUE_KINDS,
@@ -107,6 +108,7 @@ describe('plan requests', () => {
     await expect(deletePlan('zz-token', PLAN_ID)).resolves.toBeUndefined();
     await savePlacements('zz-token', PLAN_ID, terms);
     await fetchPlanIssues('zz-token', PLAN_ID);
+    await previewPlanIssues('zz-token', PLAN_ID, terms);
     const calls = fetch.mock.calls.map(([url, init]) => [init?.method, String(url).slice(API_URL.length), init?.body === undefined ? undefined : JSON.parse(String(init.body))]);
     expect(calls).toEqual([
       ['GET', '/plans', undefined],
@@ -117,6 +119,7 @@ describe('plan requests', () => {
       ['DELETE', `/plans/${PLAN_ID}`, undefined],
       ['PUT', `/plans/${PLAN_ID}/placements`, { terms }],
       ['GET', `/plans/${PLAN_ID}/issues`, undefined],
+      ['POST', `/plans/${PLAN_ID}/issues`, { terms }],
     ]);
     for (const [, init] of fetch.mock.calls) expect(init).toMatchObject({ headers: { Authorization: 'Bearer zz-token' } });
   });

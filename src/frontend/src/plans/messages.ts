@@ -96,6 +96,44 @@ interface PlannerMessages {
   added: (code: string, term: string) => string;
   removed: (code: string) => string;
   liftCancelled: (code: string) => string;
+  // Toolbar, tabs, status strip
+  undo: string;
+  undone: (what: string) => string;
+  nothingToUndo: string;
+  whatIf: string;
+  whatIfName: (name: string) => string;
+  whatIfHint: string;
+  plansLabel: string;
+  copyTab: string;
+  statusLabel: string;
+  valid: string;
+  invalid: (n: number) => string;
+  expectedGraduation: string;
+  notYetGraduation: string;
+  coverageTitle: (group: string, credits: number, required: number | null) => string;
+  // Tray, past terms, current term, tiles
+  allGroups: string;
+  groupFilter: string;
+  slotNotChosen: string;
+  addSlot: (group: string, term: string) => string;
+  slotsTitle: string;
+  pastTitle: string;
+  pastTerms: (n: number, first: string, last: string) => string;
+  accumulated: string;
+  inProgress: string;
+  locked: string;
+  takenBefore: (grade: string) => string;
+  hasViolation: string;
+  // Drag preview and the issues panel
+  dropChecking: string;
+  dropOk: string;
+  dropLoad: (credits: number, max: number) => string;
+  previewOf: (code: string, term: string) => string;
+  previewDelta: (delta: number) => string;
+  collapse: string;
+  expand: string;
+  groupsShort: (n: number) => string;
+  issueTitle: Record<PlanIssueCode, string>;
   // Issues
   issuesTitle: string;
   issuesLead: string;
@@ -164,7 +202,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     deleting: 'Đang xóa…',
     allPlans: 'Mọi kế hoạch',
     editorLead: 'Thêm môn từ chương trình, chuyển môn giữa các học kỳ. Mỗi thay đổi được lưu ngay và rule engine kiểm tra lại kế hoạch.',
-    keyboardHint: 'Bàn phím: chọn một môn, Space để nhấc, mũi tên lên xuống để chọn học kỳ, Enter để thả, Esc để hủy, Delete để bỏ.',
+    keyboardHint: 'Bàn phím: Space nhấc · ↑↓ chọn học kỳ · Enter thả · Esc hủy · Delete bỏ · Ctrl+Z hoàn tác',
     notFound: 'Không có kế hoạch này trong các kế hoạch của bạn.',
     saved: 'Đã lưu',
     saving: 'Đang lưu…',
@@ -206,6 +244,56 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     added: (c, term) => `Đã thêm ${c} vào ${term}.`,
     removed: (c) => `Đã bỏ ${c} khỏi kế hoạch.`,
     liftCancelled: (c) => `Đã hủy chuyển ${c}.`,
+    undo: 'Hoàn tác',
+    undone: (what) => `Đã hoàn tác: ${what}`,
+    nothingToUndo: 'Không còn gì để hoàn tác.',
+    whatIf: 'What-if',
+    whatIfName: (name) => `What-if: ${name}`,
+    whatIfHint: 'Thử thay đổi trên một bản sao. Kế hoạch này giữ nguyên.',
+    plansLabel: 'Các kế hoạch',
+    copyTab: 'Bản sao',
+    statusLabel: 'Tình trạng kế hoạch',
+    valid: 'Hợp lệ',
+    invalid: (n) => `Chưa hợp lệ · ${n} vi phạm`,
+    expectedGraduation: 'Tốt nghiệp dự kiến',
+    notYetGraduation: 'Chưa đủ để tốt nghiệp',
+    coverageTitle: (g, c, r) => (r === null ? `${g}: ${c} tín chỉ` : `${g}: ${c}/${r} tín chỉ`),
+    allGroups: 'Tất cả',
+    groupFilter: 'Lọc theo nhóm',
+    slotNotChosen: 'Chưa chọn môn',
+    addSlot: (g, term) => `Giữ chỗ cho ${g} ở ${term}`,
+    slotsTitle: 'Giữ chỗ tự chọn',
+    pastTitle: 'Đã học',
+    pastTerms: (n, first, last) => `${n} học kỳ · ${first} → ${last}`,
+    accumulated: 'tín chỉ tích lũy',
+    inProgress: 'Đang học',
+    locked: 'Đang học, không đổi được',
+    takenBefore: (g) => `Đã học trước · điểm ${g}`,
+    hasViolation: 'Có vi phạm',
+    dropChecking: 'Đang kiểm tra…',
+    dropOk: 'Hợp lệ',
+    dropLoad: (c, max) => `${c}/${max} tín chỉ`,
+    previewOf: (c, term) => `Xem trước: ${c} → ${term}`,
+    previewDelta: (d) => (d === 0 ? 'số vi phạm không đổi' : d > 0 ? `thêm ${d} vi phạm` : `bớt ${-d} vi phạm`),
+    collapse: 'Thu gọn bảng kiểm tra',
+    expand: 'Mở bảng kiểm tra',
+    groupsShort: (n) => `${n} nhóm còn thiếu`,
+    issueTitle: {
+      prerequisite_not_met: 'Thiếu môn tiên quyết',
+      prerequisites_not_recorded: 'Chưa có môn tiên quyết',
+      not_offered: 'Không mở ở học kỳ này',
+      offering_terms_not_recorded: 'Chưa có học kỳ mở môn',
+      load_below_minimum: 'Dưới mức tín chỉ tối thiểu',
+      load_above_maximum: 'Vượt mức tín chỉ tối đa',
+      caps_not_checked: 'Chưa kiểm tra giới hạn tín chỉ',
+      load_not_checked: 'Chưa rõ số tín chỉ của học kỳ',
+      placed_twice: 'Xếp hai lần',
+      already_passed: 'Đã đạt trước đó',
+      already_in_progress: 'Đang học ở học kỳ trước',
+      not_in_curriculum: 'Ngoài chương trình',
+      credits_not_recorded: 'Không còn trong danh mục',
+      requirement_not_covered: 'Nhóm còn thiếu',
+    },
     issuesTitle: 'Kiểm tra kế hoạch',
     issuesLead: 'Do rule engine tính theo quy chế đào tạo, không do AI.',
     noIssues: 'Rule engine không thấy vấn đề nào.',
@@ -285,7 +373,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     deleting: 'Deleting…',
     allPlans: 'All plans',
     editorLead: 'Add courses from your curriculum and move them between terms. Each change is saved at once and the rule engine checks the plan again.',
-    keyboardHint: 'Keyboard: focus a course, Space to lift it, Up and Down arrows to pick a term, Enter to drop, Escape to cancel, Delete to remove.',
+    keyboardHint: 'Keyboard: Space lifts · ↑↓ picks a term · Enter drops · Esc cancels · Delete removes · Ctrl+Z undoes',
     notFound: 'This plan is not among your plans.',
     saved: 'Saved',
     saving: 'Saving…',
@@ -327,6 +415,56 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     added: (c, term) => `Added ${c} to ${term}.`,
     removed: (c) => `Removed ${c} from the plan.`,
     liftCancelled: (c) => `Cancelled moving ${c}.`,
+    undo: 'Undo',
+    undone: (what) => `Undone: ${what}`,
+    nothingToUndo: 'Nothing left to undo.',
+    whatIf: 'What-if',
+    whatIfName: (name) => `What-if: ${name}`,
+    whatIfHint: 'Try a change on a copy. This plan stays as it is.',
+    plansLabel: 'Plans',
+    copyTab: 'Copy',
+    statusLabel: 'Plan status',
+    valid: 'Valid',
+    invalid: (n) => `Not valid yet · ${n} ${n === 1 ? 'violation' : 'violations'}`,
+    expectedGraduation: 'Expected graduation',
+    notYetGraduation: 'Not enough to graduate yet',
+    coverageTitle: (g, c, r) => (r === null ? `${g}: ${c} credits` : `${g}: ${c}/${r} credits`),
+    allGroups: 'All',
+    groupFilter: 'Filter by group',
+    slotNotChosen: 'No course chosen',
+    addSlot: (g, term) => `Hold a slot for ${g} in ${term}`,
+    slotsTitle: 'Elective slots',
+    pastTitle: 'Taken',
+    pastTerms: (n, first, last) => `${n} ${n === 1 ? 'term' : 'terms'} · ${first} → ${last}`,
+    accumulated: 'credits accumulated',
+    inProgress: 'In progress',
+    locked: 'In progress, cannot be moved',
+    takenBefore: (g) => `Taken before · grade ${g}`,
+    hasViolation: 'Has a violation',
+    dropChecking: 'Checking…',
+    dropOk: 'Valid',
+    dropLoad: (c, max) => `${c}/${max} credits`,
+    previewOf: (c, term) => `Preview: ${c} → ${term}`,
+    previewDelta: (d) => (d === 0 ? 'same number of violations' : d > 0 ? `${d} more ${d === 1 ? 'violation' : 'violations'}` : `${-d} fewer ${d === -1 ? 'violation' : 'violations'}`),
+    collapse: 'Collapse the plan check',
+    expand: 'Open the plan check',
+    groupsShort: (n) => `${n} ${n === 1 ? 'group' : 'groups'} still short`,
+    issueTitle: {
+      prerequisite_not_met: 'Prerequisite missing',
+      prerequisites_not_recorded: 'Prerequisites not recorded',
+      not_offered: 'Not taught this term',
+      offering_terms_not_recorded: 'Offering terms not recorded',
+      load_below_minimum: 'Below the minimum load',
+      load_above_maximum: 'Above the maximum load',
+      caps_not_checked: 'Credit caps not checked',
+      load_not_checked: 'Term load unknown',
+      placed_twice: 'Placed twice',
+      already_passed: 'Already passed',
+      already_in_progress: 'In progress earlier',
+      not_in_curriculum: 'Outside the curriculum',
+      credits_not_recorded: 'No longer in the catalog',
+      requirement_not_covered: 'Requirement short',
+    },
     issuesTitle: 'Plan check',
     issuesLead: 'Computed by the rule engine from the training regulation, not by AI.',
     noIssues: 'The rule engine found nothing.',

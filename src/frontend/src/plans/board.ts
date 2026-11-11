@@ -104,6 +104,13 @@ export function addCourse(board: Board, code: string, to: Term, key: number): Bo
   );
 }
 
+/** Holds credits for a requirement group in a row, before a course is chosen (a slot, ADR 0014). */
+export function addSlot(board: Board, groupId: string, credits: number, to: Term, key: number): Board {
+  return board.map((row) =>
+    termKey(row.term) === termKey(to) ? { ...row, tiles: [...row.tiles, { key, placement: { kind: 'slot', courseCode: null, requirementGroupId: groupId, credits } }] } : row,
+  );
+}
+
 export function removeTile(board: Board, key: number): Board {
   if (!findTile(board, key)) return board;
   return board.map((row) => (row.tiles.some((tile) => tile.key === key) ? { ...row, tiles: row.tiles.filter((tile) => tile.key !== key) } : row));
@@ -165,4 +172,33 @@ export function attachIssues(board: Board, report: PlanIssues): AttachedIssues {
   }
   const loads = new Map(report.terms.map((load) => [termKey(load.term), load]));
   return { board, report, byTile, tileOf, byTerm, loads, plan };
+}
+
+/** What is being dragged or lifted: a tile of the board, or a course of the tray. */
+export type Moving = { key: number } | { code: string } | { slot: string; credits: number };
+
+/** The key a course of the tray gets on a board made only to preview it: no tile of a real board has it. */
+export const PREVIEW_KEY = -1;
+
+/** The board as it would be with `what` dropped on the row of `to`, for the rule engine to check before a drop. */
+export function boardWith(board: Board, what: Moving, to: Term): Board {
+  if ('key' in what) return moveTile(board, what.key, to);
+  if ('code' in what) return addCourse(board, what.code, to, PREVIEW_KEY);
+  return addSlot(board, what.slot, what.credits, to, PREVIEW_KEY);
+}
+
+/** How a row would take a drop, from the engine's report on the board with the drop made: its tile's issues and the row's. */
+export interface DropVerdict {
+  /** violation: the drop breaks a rule. flag: allowed, worth a look. null: nothing reported. */
+  kind: 'violation' | 'flag' | null;
+  /** The issues about the dropped tile, then about its row, violations first. Unknowns are left out. */
+  issues: PlanIssue[];
+  load: PlanTermLoad | null;
+}
+
+export function dropVerdict(attached: AttachedIssues, key: number, to: Term): DropVerdict {
+  const all = [...(attached.byTile.get(key) ?? []), ...(attached.byTerm.get(termKey(to)) ?? [])].filter((i) => i.kind !== 'unknown');
+  const issues = [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')];
+  const kind = issues[0]?.kind === 'violation' ? 'violation' : issues.length ? 'flag' : null;
+  return { kind, issues, load: attached.loads.get(termKey(to)) ?? null };
 }

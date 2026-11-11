@@ -147,4 +147,27 @@ describe('Plan issues API (e2e)', () => {
     await http().get(`/api/plans/${plan.id}/issues`).expect(401);
     await http().get(`/api/plans/${plan.id}/issues`).set(owner).expect(200);
   });
+
+  it('checks a board that is not saved (POST), without changing the saved plan', async () => {
+    const auth = await student();
+    // Saved: 1 in 2032-1, 4 credits. 1 is taught in term 1 only.
+    const plan = await newPlan(auth, [{ term: { year: 2032, number: 1 }, placements: [course(code(1))] }]);
+    // The preview: 1 moved to 2032-2, where it is not taught.
+    const board = { terms: [{ term: { year: 2032, number: 2 }, placements: [course(code(1))] }] };
+    const { body } = await http().post(`/api/plans/${plan.id}/issues`).set(auth).send(board).expect(200);
+    expect(body.planId).toBe(plan.id);
+    expect(body.terms).toEqual([{ term: { year: 2032, number: 2 }, kind: 'main', credits: 4, caps: { min: 10, max: 22 } }]);
+    expect(body.issues.find((i: { code: string }) => i.code === 'not_offered')).toMatchObject({ courseCode: code(1), term: { year: 2032, number: 2 }, position: 0, offeredTermNumbers: [1] });
+
+    // Nothing was saved: the plan and its own check still have 1 in 2032-1.
+    const saved = (await http().get(`/api/plans/${plan.id}`).set(auth).expect(200)).body;
+    expect(saved.terms.map((t: { term: { year: number; number: number } }) => `${t.term.year}-${t.term.number}`)).toEqual(['2032-1']);
+    const own = (await http().get(`/api/plans/${plan.id}/issues`).set(auth).expect(200)).body;
+    expect(own.issues.some((i: { code: string }) => i.code === 'not_offered')).toBe(false);
+
+    // A board a save would refuse is refused here too; another student's plan is a 404.
+    await http().post(`/api/plans/${plan.id}/issues`).set(auth).send({ terms: [{ term: { year: 2032, number: 1 }, placements: [course('ZZNOSUCH1')] }] }).expect(400);
+    await http().post(`/api/plans/${plan.id}/issues`).set(await student()).send(board).expect(404);
+    await http().post(`/api/plans/${plan.id}/issues`).send(board).expect(401);
+  });
 });

@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import type { Term } from '../terms.js';
-import { addCourse, attachIssues, boardBody, boardOf, moveTile, nextTerm, placedCodes, removeTile, rowsFor, sameTiles, termsBetween, withNextRow, type Board } from './board.js';
+import {
+  addCourse,
+  addSlot,
+  attachIssues,
+  boardBody,
+  boardOf,
+  boardWith,
+  dropVerdict,
+  moveTile,
+  nextTerm,
+  placedCodes,
+  PREVIEW_KEY,
+  removeTile,
+  rowsFor,
+  sameTiles,
+  termsBetween,
+  withNextRow,
+  type Board,
+} from './board.js';
 import { course, issue, report } from './testing/fixtures.js';
 
 const t = (year: number, number: 1 | 2 | 3): Term => ({ year, number });
@@ -87,5 +105,37 @@ describe('attaching the report', () => {
     const moved = moveTile(board, 0, t(2026, 2));
     expect(moved[1]!.tiles[0]!.key).toBe(0);
     expect(attached.byTile.get(0)).toHaveLength(1);
+  });
+});
+
+describe('the drag preview', () => {
+  const start = (): Board => boardOf([{ term: t(2026, 1), placements: [course('ZZ101')] }], [t(2026, 1), t(2026, 2)], keys());
+
+  it('builds the board a drop would make: a tile moved, a course or a slot added, without touching the board on screen', () => {
+    const board = start();
+    expect(codes(boardWith(board, { key: 0 }, t(2026, 2)))).toEqual(['2026-1: ', '2026-2: ZZ101']);
+    const added = boardWith(board, { code: 'ZZ102' }, t(2026, 2));
+    expect(added[1]!.tiles).toEqual([{ key: PREVIEW_KEY, placement: course('ZZ102') }]);
+    expect(boardWith(board, { code: 'ZZ101' }, t(2026, 2))).toBe(board);
+    expect(boardBody(boardWith(board, { slot: 'g-elec', credits: 4 }, t(2026, 2)))[1]).toEqual({
+      term: t(2026, 2),
+      placements: [{ kind: 'slot', courseCode: null, requirementGroupId: 'g-elec', credits: 4 }],
+    });
+    expect(codes(board)).toEqual(['2026-1: ZZ101', '2026-2: ']);
+    expect(codes(addSlot(board, 'g-elec', 3, t(2026, 1), 7))).toEqual(['2026-1: ZZ101 slot', '2026-2: ']);
+  });
+
+  it('reads how a row takes the drop from the report on that board: the tile’s issues and the row’s, unknowns left out', () => {
+    const board = boardWith(start(), { code: 'ZZ102' }, t(2026, 2));
+    const load = { term: t(2026, 2), kind: 'main' as const, credits: 4, caps: { min: 10, max: 22 } };
+    const flag = issue({ code: 'load_below_minimum', kind: 'flag', term: t(2026, 2), credits: 4, limit: 10 });
+    const bad = issue({ code: 'not_offered', kind: 'violation', term: t(2026, 2), position: 0, courseCode: 'ZZ102' });
+    const unknown = issue({ code: 'prerequisites_not_recorded', kind: 'unknown', term: t(2026, 2), position: 0, courseCode: 'ZZ102' });
+    const other = issue({ code: 'prerequisite_not_met', kind: 'violation', term: t(2026, 1), position: 0, courseCode: 'ZZ101' });
+
+    const worst = dropVerdict(attachIssues(board, report({ terms: [load], issues: [other, flag, unknown, bad] })), PREVIEW_KEY, t(2026, 2));
+    expect(worst).toEqual({ kind: 'violation', issues: [bad, flag], load });
+    expect(dropVerdict(attachIssues(board, report({ terms: [load], issues: [flag, unknown] })), PREVIEW_KEY, t(2026, 2)).kind).toBe('flag');
+    expect(dropVerdict(attachIssues(board, report({ issues: [other, unknown] })), PREVIEW_KEY, t(2026, 2))).toEqual({ kind: null, issues: [], load: null });
   });
 });

@@ -1,0 +1,81 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import { groupColour } from '../curriculum/present.js';
+import { GROUPS, groupClass } from '../groups.js';
+import { useLocale, useMessages } from '../locale.js';
+import Icon from '../shell/Icon.vue';
+import { termName } from '../terms.js';
+import type { PlanGroupCoverage } from './api.js';
+import type { AttachedIssues } from './board.js';
+import { PLANNER_MESSAGES } from './messages.js';
+
+// The plan at a glance (the prototype's status strip): whether the rule engine finds a violation in a term, the term
+// the plan ends in when the engine says every checkable requirement would be met, each requirement group's credits
+// with the plan completed, and the save state. Every figure is read from the engine's report; nothing is judged here.
+const props = defineProps<{
+  attached: AttachedIssues | null;
+  fresh: boolean;
+  saveState: 'saved' | 'saving' | 'failed';
+}>();
+const locale = useLocale();
+const m = useMessages(PLANNER_MESSAGES);
+
+const report = computed(() => props.attached?.report ?? null);
+/** Violations about a term or a course. Coverage shortfalls show in the groups beside. */
+const placementViolations = computed(() => report.value?.issues.filter((i) => i.kind === 'violation' && i.term !== null).length ?? 0);
+const lastTerm = computed(() => {
+  const filled = props.attached?.board.filter((row) => row.tiles.length > 0) ?? [];
+  return filled.at(-1)?.term ?? null;
+});
+const graduates = computed(() => report.value?.coverage.graduation === 'done' && placementViolations.value === 0 && lastTerm.value !== null);
+const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
+  const colour = groupColour(group);
+  return { colour, glyph: GROUPS.find((g) => g.id === colour)!.glyph };
+};
+</script>
+
+<template>
+  <section class="card status-strip" :aria-label="m.statusLabel" data-test="status-strip">
+    <div v-if="report" class="est" :class="{ bad: !graduates, stale: !fresh }" data-test="estimate">
+      <span class="est-ic" aria-hidden="true"><Icon :name="graduates ? 'cap' : 'alert'" /></span>
+      <div>
+        <small>{{ placementViolations ? m.invalid(placementViolations) : m.valid }}</small>
+        <b v-if="graduates">{{ m.expectedGraduation }}: {{ termName(lastTerm!, locale.lang) }}</b>
+        <b v-else>{{ m.notYetGraduation }}</b>
+      </div>
+    </div>
+    <ul v-if="report" class="cov" :class="{ stale: !fresh }" data-test="strip-coverage">
+      <li
+        v-for="g in report.coverage.groups"
+        :key="g.id"
+        :class="[groupClass(glyphOf(g).colour), { miss: !g.met }]"
+        :title="m.coverageTitle(g.name, g.credits, g.requiredCredits)"
+        data-test="strip-group"
+      >
+        <span class="glyph" aria-hidden="true">{{ glyphOf(g).glyph }}</span>
+        <span class="sr-only">{{ m.coverageTitle(g.name, g.credits, g.requiredCredits) }}</span>
+        <span aria-hidden="true"><b class="num">{{ g.credits }}</b><template v-if="g.requiredCredits !== null">/{{ g.requiredCredits }}</template></span>
+      </li>
+    </ul>
+    <span class="chip" :class="{ bad: saveState === 'failed', ok: saveState === 'saved' }" role="status" data-test="save-state">
+      <Icon :name="saveState === 'failed' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
+      {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : m.notSaved }}
+    </span>
+  </section>
+</template>
+
+<style>
+.status-strip { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 12px 16px; }
+.status-strip .est { display: flex; align-items: center; gap: 10px; }
+.status-strip .est-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: color-mix(in oklab, var(--ok) 15%, var(--surface)); color: color-mix(in oklab, var(--ok) 75%, var(--ink)); }
+.status-strip .est.bad .est-ic { background: color-mix(in oklab, var(--bad) 14%, var(--surface)); color: color-mix(in oklab, var(--bad) 80%, var(--ink)); }
+.status-strip .est small { display: block; font-size: 12px; color: var(--ink-3); }
+.status-strip .est b { font-size: 15px; }
+.status-strip .cov { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
+.status-strip .cov li { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--c-soft); color: var(--c-ink); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.status-strip .cov li.miss { outline: 1.5px dashed color-mix(in oklab, var(--bad) 60%, transparent); }
+.status-strip .cov .glyph { font: 700 11px var(--mono); }
+.status-strip .num { font-weight: 750; }
+.status-strip .stale { opacity: 0.55; }
+.status-strip > .chip { margin-left: auto; }
+</style>

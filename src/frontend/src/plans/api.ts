@@ -177,3 +177,7 @@ export const deletePlan = (token: string, id: string) => request<void>('DELETE',
 export const savePlacements = (token: string, id: string, terms: PlanTerm[]) => request<Plan>('PUT', `${path(id)}/placements`, { token, body: { terms } });
 
 export const fetchPlanIssues = (token: string, id: string) => request<PlanIssues>('GET', `${path(id)}/issues`, { token });
+
+/** The rule engine's report on `terms` in place of the saved board; nothing is saved (the drag preview). */
+export const previewPlanIssues = (token: string, id: string, terms: PlanTerm[], signal?: AbortSignal) =>
+  request<PlanIssues>('POST', `${path(id)}/issues`, { token, body: { terms }, signal });
