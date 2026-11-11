@@ -35,12 +35,15 @@ describe('dragging near the edge of the window', () => {
       [0, -14],
       [0, -14],
     ]);
+    // Away from the edges the loop rests until the pointer moves again.
     s.move(400);
     queued.shift()!();
     expect(scroll).toHaveBeenCalledTimes(2);
+    expect(queued).toHaveLength(0);
+    s.move(795);
+    expect(queued).toHaveLength(1);
     s.stop();
     expect(cancelled).toEqual([1]);
-    expect(queued).toHaveLength(1);
     queued.shift()!();
     expect(scroll).toHaveBeenCalledTimes(2);
   });

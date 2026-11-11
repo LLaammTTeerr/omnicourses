@@ -56,8 +56,8 @@ export function edgeScroller(
   let id: number | null = null;
   const tick = () => {
     id = null;
-    if (y === null) return;
-    edgeScroll(y);
+    // Away from the edges the loop rests; the next `move` starts it again.
+    if (y === null || edgeScroll(y) === 0) return;
     id = frame(tick);
   };
   return {
