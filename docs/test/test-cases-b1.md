@@ -237,6 +237,23 @@ Sources: Vision §6 Performance; test plan §5, [Coverage and speed](test-plan.m
 
 **When a page counts as loaded.** For a page load, the clock starts at navigation start (`performance.timeOrigin`). For an in-app open, it starts at the click. It stops at the first frame where every expected value of that page (see Fixture) is on screen and no loading indicator is left (`aria-busy="true"` or a spinner). The script reads the values themselves, not a flag the app sets. Hoà gives each expected figure a stable selector (§6 item 6).
 
+**Selectors (Hoà, 11 November 2026).** Both pages use `data-test`, the attribute every screen test already uses. While the audit loads, `[data-test="loading"]` carries `aria-busy="true"`; it is gone once the figures are drawn.
+
+| Figure | Dashboard (`/dashboard`) | Audit (`/audit`) |
+| --- | --- | --- |
+| Graduation status | `graduation-status` | `graduation-status` |
+| Credits toward the total, of the total | `credits-toward-total` | `credits-toward-total` |
+| Credits remaining | `credits-remaining` | `credits-remaining` |
+| Credits in progress | `credits-in-progress` | `credits-in-progress` |
+| Credits accumulated | `credits-accumulated` | `credits-accumulated` |
+| Average, accumulated average | `gpa-average`, `gpa-accumulated-average` | `gpa-average`, `gpa-accumulated-average` |
+| 4-point average | | `gpa-four-point` |
+| Classification | `gpa-classification` | `gpa-classification` |
+| A requirement group | `[data-test="group"][data-group="<id>"]`, its credits in `group-credits` | `[data-test="group"][data-group="<id>"]`, each course in `course-<code>` |
+| A term | | `term-<year>-<number>`, with `term-credits`, `term-passed`, `term-average` and `term-cumulative` inside |
+
+The text is the formatted figure as shown, for example `8 / 20 TC` or `7,75` in Vietnamese.
+
 **Running.** A Playwright script in Chrome, headed and in the foreground, saved with its raw output in `docs/test/evidence/b1/`. For every series, record each duration, then the median, p95 and maximum. Warm-ups are recorded but not counted. For every timed run, also save the server time of each API request (DevTools **Timing**, "Waiting for server response") so Triết and Hoà can find a slow part. These diagnostic times never pass or fail a run. The pages only read, so the fixture stays as loaded; check its checksum again after the last series.
 
 | ID | Do this | Expect |

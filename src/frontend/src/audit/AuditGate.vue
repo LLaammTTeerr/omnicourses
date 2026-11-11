@@ -26,7 +26,7 @@ const noTranscript = computed(() => audit.value !== null && audit.value.terms.le
 </script>
 
 <template>
-  <p v-if="status === 'loading'" class="t3" role="status">{{ m.loading }}</p>
+  <p v-if="status === 'loading'" class="t3" role="status" aria-busy="true" data-test="loading">{{ m.loading }}</p>
   <template v-else-if="status === 'failed'">
     <div v-if="statusOf(error) !== 401" class="callout bad" role="alert" data-test="load-failed">
       <Icon name="alert" />
