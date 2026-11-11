@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import SelectMenu from '../components/SelectMenu.vue';
 import { useLocale, useMessages } from '../locale.js';
 import { parseTermKey, termKey, termName } from '../terms.js';
 import { NO_INTERNSHIP } from './api.js';
@@ -21,6 +22,7 @@ const internship = defineModel<string>('internship', { required: true });
 const locale = useLocale();
 const m = useMessages(GOAL_MESSAGES);
 const terms = computed(() => goalTermChoices([parseTermKey(graduation.value), parseTermKey(internship.value)]));
+const termOptions = computed(() => terms.value.map((term) => ({ value: termKey(term), label: termName(term, locale.lang) })));
 const creditsCheck = computed(() => creditsProblem(credits.value));
 const shows = (field: Field) => props.fields.includes(field);
 const id = (field: Field) => `${props.idPrefix}-${field}`;
@@ -32,16 +34,14 @@ const creditsErrors = computed(() => (creditsCheck.value ? [m.value.creditsProbl
   <div class="goal-fields">
     <label v-if="shows('graduation')" class="field">
       <span>{{ m.graduation }}</span>
-      <select
+      <SelectMenu
         :id="id('graduation')"
         v-model="graduation"
-        class="select"
+        class="goal-select"
+        :options="[{ value: '', label: m.notSure }, ...termOptions]"
         :aria-invalid="errorsOf('graduation').length > 0 || undefined"
         :aria-describedby="`${id('graduation')}-hint ${id('graduation')}-error`"
-      >
-        <option value="">{{ m.notSure }}</option>
-        <option v-for="term in terms" :key="termKey(term)" :value="termKey(term)">{{ termName(term, locale.lang) }}</option>
-      </select>
+      />
       <small :id="`${id('graduation')}-hint`" class="hint">{{ m.graduationHint }}</small>
       <small v-if="errorsOf('graduation').length" :id="`${id('graduation')}-error`" class="field-error" role="alert">{{ errorsOf('graduation').join(' ') }}</small>
     </label>
@@ -66,17 +66,14 @@ const creditsErrors = computed(() => (creditsCheck.value ? [m.value.creditsProbl
 
     <label v-if="shows('internship')" class="field">
       <span>{{ m.internship }}</span>
-      <select
+      <SelectMenu
         :id="id('internship')"
         v-model="internship"
-        class="select"
+        class="goal-select"
+        :options="[{ value: '', label: m.notAnswered }, { value: NO_INTERNSHIP, label: m.noInternship }, ...termOptions]"
         :aria-invalid="errorsOf('internship').length > 0 || undefined"
         :aria-describedby="`${id('internship')}-hint ${id('internship')}-error`"
-      >
-        <option value="">{{ m.notAnswered }}</option>
-        <option :value="NO_INTERNSHIP">{{ m.noInternship }}</option>
-        <option v-for="term in terms" :key="termKey(term)" :value="termKey(term)">{{ termName(term, locale.lang) }}</option>
-      </select>
+      />
       <small :id="`${id('internship')}-hint`" class="hint">{{ m.internshipHint }}</small>
       <small v-if="errorsOf('internship').length" :id="`${id('internship')}-error`" class="field-error" role="alert">{{ errorsOf('internship').join(' ') }}</small>
     </label>
@@ -85,7 +82,7 @@ const creditsErrors = computed(() => (creditsCheck.value ? [m.value.creditsProbl
 
 <style>
 .goal-fields { display: grid; gap: 18px; }
-.goal-fields .select { max-width: 320px; }
+.goal-fields .goal-select { max-width: 320px; }
 .goal-fields .field > span, .goal-fields .field > label { font-weight: 650; font-size: 13.5px; }
 .goal-fields .hint { font-weight: 400; }
 .credits-row { display: flex; align-items: center; gap: 10px; }

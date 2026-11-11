@@ -7,6 +7,7 @@ import { setup } from '../testing/signed-in.js';
 import { NOT_STARTED, type Onboarding } from './api.js';
 import StudySettings from './StudySettings.vue';
 import { onboarding } from './testing/fixtures.js';
+import { chooseOption } from '../testing/select.js';
 
 const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced', cohortYears: [2024, 2025] }];
 
@@ -24,7 +25,7 @@ async function render(saved: Onboarding, routes: Record<string, unknown> = {}) {
   return { w: wrapper, fetch };
 }
 
-const value = (w: VueWrapper, selector: string) => (w.get(selector).element as HTMLInputElement | HTMLSelectElement).value;
+const value = (w: VueWrapper, selector: string) => (w.get(selector).element as HTMLInputElement).value;
 
 describe('StudySettings (UC-01 A9)', () => {
   beforeEach(() => {
@@ -39,14 +40,14 @@ describe('StudySettings (UC-01 A9)', () => {
 
   it('shows the saved answers and saves the whole object, still finished', async () => {
     const { w, fetch } = await render(onboarding());
-    const [program, cohort] = w.findAll('.study-program select');
-    expect((program!.element as HTMLSelectElement).value).toBe('APCS');
-    expect((cohort!.element as HTMLSelectElement).value).toBe('2024');
-    expect(value(w, '#study-graduation')).toBe('2027-2');
+    const [program, cohort] = w.findAll('.study-program [role="combobox"]');
+    expect(program!.text()).toBe('Chương trình Tiên tiến thử');
+    expect(cohort!.text()).toBe('Khóa 2024');
+    expect(w.get('#study-graduation').text()).toBe('HK2 2027–2028');
     expect(value(w, '#study-credits')).toBe('18');
-    expect(value(w, '#study-internship')).toBe('none');
+    expect(w.get('#study-internship').text()).toBe('Không thực tập');
 
-    await cohort!.setValue('2025');
+    await chooseOption(cohort!, 'Khóa 2025');
     await w.get('#study-credits').setValue('');
     await w.get('form').trigger('submit');
     await flushPromises();

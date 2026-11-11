@@ -4,6 +4,7 @@ import type { CourseDetail, Curriculum, CurriculumCourse, Program, RequirementGr
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import ExplorerView from './ExplorerView.vue';
+import { chooseOption } from '../testing/select.js';
 
 // A synthetic curriculum: made-up codes and names, the group headings of the real APCS tables.
 const course = (code: string, nameVi: string, credits = 4, nameEn: string | null = null): CurriculumCourse => ({
@@ -164,7 +165,7 @@ describe('ExplorerView (F4)', () => {
 
   it('switches to another cohort of the program', async () => {
     const { w, fetch } = await render({ 'GET /programs/APCS/curricula/2025': { ...CURRICULUM, cohortYear: 2025, nameVi: 'CTĐT thử khóa 2025' } });
-    await w.findAll('.head-actions select')[1]!.setValue('2025');
+    await chooseOption(w.findAll('.head-actions [role="combobox"]')[1]!, 'Khóa 2025');
     await flushPromises();
     expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(expect.stringContaining('/programs/APCS/curricula/2025'));
     expect(w.get('[data-test="summary"]').text()).toContain('CTĐT thử khóa 2025');

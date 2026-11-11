@@ -3,6 +3,7 @@ import { computed, ref, shallowRef } from 'vue';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
+import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
@@ -92,15 +93,11 @@ usePageTitle(() => m.value.title);
       <div class="head-actions">
         <label class="field">
           <span>{{ m.program }}</span>
-          <select class="select" :value="selection?.program" @change="pickProgram(($event.target as HTMLSelectElement).value)">
-            <option v-for="choice in choices" :key="choice.code" :value="choice.code">{{ programName(choice) }}</option>
-          </select>
+          <SelectMenu :model-value="selection?.program" :options="choices.map((choice) => ({ value: choice.code, label: programName(choice) }))" @update:model-value="pickProgram" />
         </label>
         <label class="field">
           <span>{{ m.cohort }}</span>
-          <select class="select" :value="selection?.cohort" @change="pickCohort(Number(($event.target as HTMLSelectElement).value))">
-            <option v-for="year in cohorts" :key="year" :value="year">{{ m.cohortOption(year) }}</option>
-          </select>
+          <SelectMenu :model-value="selection?.cohort" :options="cohorts.map((year) => ({ value: year, label: m.cohortOption(year) }))" @update:model-value="pickCohort" />
         </label>
       </div>
     </header>
