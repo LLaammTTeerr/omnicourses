@@ -1,20 +1,48 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { edgeScroll, play, snapshot } from './flip.js';
+import { edgeScroll, edgeScroller, play, snapshot } from './flip.js';
 
 describe('dragging near the edge of the window', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('scrolls up near the top and down near the bottom, faster closer to the edge, and not in between', () => {
     const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
-    expect(edgeScroll(0, 800)).toBe(-20);
-    expect(edgeScroll(60, 800)).toBe(-5);
+    expect(edgeScroll(0, 800)).toBe(-16);
+    expect(edgeScroll(60, 800)).toBe(-4);
     expect(edgeScroll(400, 800)).toBe(0);
-    expect(edgeScroll(790, 800)).toBe(18);
+    expect(edgeScroll(790, 800)).toBe(14);
     expect(scroll.mock.calls).toEqual([
-      [0, -20],
-      [0, -5],
-      [0, 18],
+      [0, -16],
+      [0, -4],
+      [0, 14],
     ]);
+  });
+
+  it('scrolls once a frame from the last pointer position until the drag stops, with one loop however many events come', () => {
+    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
+    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(800);
+    const queued: (() => void)[] = [];
+    const cancelled: number[] = [];
+    const s = edgeScroller(
+      (step) => queued.push(step),
+      (id) => cancelled.push(id),
+    );
+    s.move(0);
+    s.move(10);
+    expect(queued).toHaveLength(1);
+    queued.shift()!();
+    queued.shift()!();
+    expect(scroll.mock.calls).toEqual([
+      [0, -14],
+      [0, -14],
+    ]);
+    s.move(400);
+    queued.shift()!();
+    expect(scroll).toHaveBeenCalledTimes(2);
+    s.stop();
+    expect(cancelled).toEqual([1]);
+    expect(queued).toHaveLength(1);
+    queued.shift()!();
+    expect(scroll).toHaveBeenCalledTimes(2);
   });
 });
 

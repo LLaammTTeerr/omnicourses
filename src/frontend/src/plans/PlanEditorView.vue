@@ -41,7 +41,7 @@ import {
   type Row,
   type Tile,
 } from './board.js';
-import { edgeScroll, play, snapshot } from './flip.js';
+import { edgeScroller, play, snapshot } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
 import PlanTabs from './PlanTabs.vue';
@@ -653,6 +653,7 @@ function startDrag(event: DragEvent, what: Moving): void {
   previewAll(what);
 }
 function endDrag(): void {
+  scroller.stop();
   dragging.value = null;
   dropRow.value = null;
   if (!lifted.value) {
@@ -690,8 +691,9 @@ function dropOnList(): void {
   const found = findTile(board.value, what.key);
   if (found) remove(found.row.tiles[found.index]!);
 }
+const scroller = edgeScroller();
 function onWindowDragOver(event: DragEvent): void {
-  if (dragging.value) edgeScroll(event.clientY);
+  if (dragging.value) scroller.move(event.clientY);
 }
 
 // ---------- The issues panel, open or collapsed (kept for the next visit) ----------
@@ -726,6 +728,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onWindowKey);
   window.removeEventListener('dragover', onWindowDragOver);
+  scroller.stop();
   stopPreview();
 });
 

@@ -199,6 +199,8 @@ export interface DropVerdict {
 export function dropVerdict(attached: AttachedIssues, key: number, to: Term): DropVerdict {
   const all = [...(attached.byTile.get(key) ?? []), ...(attached.byTerm.get(termKey(to)) ?? [])].filter((i) => i.kind !== 'unknown');
   const issues = [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')];
-  const kind = issues[0]?.kind === 'violation' ? 'violation' : issues.length ? 'flag' : null;
-  return { kind, issues, load: attached.loads.get(termKey(to)) ?? null };
+  const load = attached.loads.get(termKey(to)) ?? null;
+  const first = issues[0];
+  if (!first) return { kind: null, issues, load };
+  return { kind: first.kind === 'violation' ? 'violation' : 'flag', issues, load };
 }

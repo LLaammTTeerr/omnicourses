@@ -37,8 +37,38 @@ export function play(root: ParentNode | null, before: Snapshot): void {
  */
 export function edgeScroll(clientY: number, viewport = window.innerHeight, edge = 80): number {
   let by = 0;
-  if (clientY < edge) by = -Math.ceil((edge - clientY) / 4);
-  else if (clientY > viewport - edge) by = Math.ceil((clientY - viewport + edge) / 4);
+  if (clientY < edge) by = -Math.ceil((edge - clientY) / 5);
+  else if (clientY > viewport - edge) by = Math.ceil((clientY - viewport + edge) / 5);
   if (by) window.scrollBy(0, by);
   return by;
+}
+
+/**
+ * Scrolls once per animation frame while a drag is held near an edge, as the prototype does, so the page glides at a
+ * steady pace instead of jumping on each `dragover`, which a browser fires at its own rate. `move` records where the
+ * pointer is; `stop` ends the loop when the drag does.
+ */
+export function edgeScroller(
+  frame: (step: () => void) => number = (step) => requestAnimationFrame(step),
+  cancel: (id: number) => void = (id) => cancelAnimationFrame(id),
+) {
+  let y: number | null = null;
+  let id: number | null = null;
+  const tick = () => {
+    id = null;
+    if (y === null) return;
+    edgeScroll(y);
+    id = frame(tick);
+  };
+  return {
+    move(clientY: number): void {
+      y = clientY;
+      if (id === null) id = frame(tick);
+    },
+    stop(): void {
+      y = null;
+      if (id !== null) cancel(id);
+      id = null;
+    },
+  };
 }
