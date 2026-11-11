@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef } from 'vue';
+import { computed, nextTick, ref, shallowRef, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
@@ -76,6 +77,30 @@ const open = shallowRef<{ course: Course; group: { id: GroupId; name: string } }
 function openCourse(course: Course, group: RequirementGroup, colour: GroupId): void {
   open.value = { course, group: { id: colour, name: group.name } };
 }
+
+// `?course=CODE` (the planner's "Taken" tags): the course is brought into view, focused, and glows once. A search or
+// a group filter that hides it is cleared first.
+const route = useRoute();
+watch(
+  () => [route.query.course, curriculum.status.value] as const,
+  async ([code, status]) => {
+    if (typeof code !== 'string' || status !== 'loaded') return;
+    if (!groups.value.some(({ group }) => group.courses.some((course) => course.code === code))) return;
+    query.value = '';
+    only.value = null;
+    await nextTick();
+    const el = document.querySelector<HTMLElement>(`[data-test="course-${CSS.escape(code)}"]`);
+    if (!el) return;
+    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView?.({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+    el.focus({ preventScroll: true });
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true });
+  },
+  { immediate: true },
+);
 
 usePageTitle(() => m.value.title);
 </script>

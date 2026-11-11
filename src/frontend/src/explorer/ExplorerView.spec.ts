@@ -64,7 +64,7 @@ const DETAIL: CourseDetail = {
 
 let wrapper: VueWrapper | undefined;
 
-async function render(routes: Record<string, unknown> = {}) {
+async function render(routes: Record<string, unknown> = {}, path = '/explorer') {
   const fetch = mockApi({
     'GET /programs': { programs: PROGRAMS },
     'GET /programs/APCS/curricula/2024': CURRICULUM,
@@ -74,7 +74,7 @@ async function render(routes: Record<string, unknown> = {}) {
     'GET /courses/ZZ414': DETAIL,
     ...routes,
   });
-  const app = await setup('/explorer');
+  const app = await setup(path);
   wrapper = mount(ExplorerView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch };
@@ -107,6 +107,13 @@ describe('ExplorerView (F4)', () => {
     expect(elective!.classes()).toContain('g-elec');
     expect(elective!.text()).toContain('Tự chọn · tối thiểu 12 TC');
     expect(w.get('[data-test="course-ZZ102"]').text()).toContain('3 TC');
+  });
+
+  it('brings the course named by ?course= into view, focused and glowing (the planner’s Taken tags link here)', async () => {
+    const { w } = await render({}, '/explorer?course=ZZ102');
+    const tile = w.get('[data-test="course-ZZ102"]');
+    expect(document.activeElement).toBe(tile.element);
+    expect(tile.classes()).toContain('flash');
   });
 
   it('finds courses typed without diacritics, by name, English name or code', async () => {
