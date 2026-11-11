@@ -4,6 +4,36 @@ One page for everything school related at HCMUS: degree audit, curriculum explor
 
 Course project, Elements of Software Engineering, 5 Oct – 13 Dec 2026. The repository is maintained by LamTer (Project Lead).
 
+## Live demo and status
+
+| Environment | URL                                     | Deploys                                                                    |
+| ----------- | --------------------------------------- | -------------------------------------------------------------------------- |
+| Production  | https://omnicourses.lamter.cc           | Every merge to `main`, once CI passes on the merged commit                 |
+| Staging     | https://stag-omnicourses.lamter.cc      | Every push to the `staging` branch; serves the API docs at `/api/docs`     |
+
+**To try it:** open the sign-in page and follow *Create an account*. Any email works, since there is no email verification step yet. Then onboard with **APCS, cohort 2024 or 2025**, the curricula seeded so far. Enter made-up courses and grades only, never your real transcript. For a ready-made demo account, ask the Project Lead; no shared password is published here, because this repository is public.
+
+Feature status as of 2026-11-11. Feature numbers and names follow the [Vision](report/assignments/PA2/Vision.tex).
+
+| Feature                           | Status          | Notes                                                                                                                  |
+| --------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| F1 Account and onboarding         | Live            | Sign-up, sign-in, onboarding (program, cohort, goals) and settings, including account export and deletion             |
+| F2 Transcript import              | Live            | Courses are entered by hand; the deterministic PDF reader comes in a later release                                     |
+| F3 Degree audit dashboard         | Live            | Dashboard and degree audit screens (#79), from the rule engine's `GET /api/users/me/audit`                             |
+| F4 Curriculum explorer            | Live            | Programs, a cohort's requirement groups and courses                                                                    |
+| F5 Semester roadmap planner       | Live            | Plans list, plan editor and plan checks from the rule engine (#78, #80, #81)                                           |
+| F6 AI plan generator              | Planned         |                                                                                                                        |
+| F7 What-if simulator              | Planned         |                                                                                                                        |
+| F8 AI academic advisor chat       | In review #77   | The advisor API with its topic gate and answer guard; the chat screen is planned                                      |
+| F9 Plan export and sharing        | Planned         |                                                                                                                        |
+| F10 Notifications                 | Planned         |                                                                                                                        |
+| F11 Quicklinks and guides         | Live            | Guide pages are open without signing in; the first guides stay drafts until they are checked on the school portals     |
+| F12 Curriculum administration     | Live (API)      | Admin API for requirement groups, catalog courses, prerequisites, offering terms and access grants (#74); no screens yet |
+
+**Known gap:** no prerequisites or offering terms are recorded yet, so the planner's checks for them show *Not recorded yet* instead of passing or failing a course.
+
+Release notes are in the changelogs, [backend](src/backend/CHANGELOG.md) and [frontend](src/frontend/CHANGELOG.md), written by the Release workflow (see [Versioning](#versioning)).
+
 ## Stack
 
 All versions are pinned exactly, matching the Software Development Plan v1.0 (§4.3.3).
