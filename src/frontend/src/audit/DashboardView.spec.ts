@@ -118,6 +118,30 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'unmet')).toContain('Không còn điều kiện nào chưa đạt.');
   });
 
+  it('gives each figure PERF-01 times its own selector, and marks the load as busy', async () => {
+    mockApi({ 'GET /users/me/audit': degreeAudit() });
+    const app = await setup('/dashboard');
+    wrapper = mount(DashboardView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
+    expect(wrapper.get('[data-test="loading"]').attributes('aria-busy')).toBe('true');
+    await flushPromises();
+    const w = wrapper;
+    expect(w.find('[aria-busy="true"]').exists()).toBe(false);
+    expect(text(w, 'graduation-status')).toBe('Chưa đủ điều kiện tốt nghiệp');
+    expect(text(w, 'credits-toward-total')).toBe('8 / 20 TC');
+    expect(text(w, 'credits-remaining')).toBe('còn 12 TC');
+    expect(text(w, 'credits-in-progress')).toBe('4 TC đang học');
+    expect(text(w, 'credits-accumulated')).toBe('9 TC tích lũy');
+    expect(text(w, 'gpa-accumulated-average')).toBe('8');
+    expect(text(w, 'gpa-classification')).toBe('Giỏi');
+    expect(text(w, 'gpa-average')).toBe('7,75');
+    const groups = w.findAll('[data-test="group"]');
+    expect(groups.length).toBeGreaterThan(0);
+    for (const g of groups) {
+      expect(g.attributes('data-group')).toBeTruthy();
+      expect(g.get('[data-test="group-credits"]').text()).not.toBe('');
+    }
+  });
+
   it('switches to English', async () => {
     const { w } = await render();
     useLocale().set('en');
