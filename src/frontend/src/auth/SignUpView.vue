@@ -2,6 +2,7 @@
 import { computed, nextTick, reactive, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { statusOf } from '../api.js';
+import ExternalLink from '../components/ExternalLink.vue';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -146,6 +147,10 @@ usePageTitle(() => m.value.signUp);
           />
           <span><b>{{ m.consent }}</b><br /><span id="sign-up-consent-detail" class="small t2">{{ m.consentDetail }}</span></span>
         </label>
+        <!-- Outside the label, so a click opens the notice instead of ticking the box; a new tab keeps what was typed. -->
+        <p class="small privacy-link">
+          <ExternalLink class="link" :href="router.resolve({ name: 'privacy' }).href" data-test="privacy-link">{{ m.privacyLink }}</ExternalLink>
+        </p>
         <small v-if="errors.consent" id="sign-up-consent-error" class="field-error">{{ errors.consent }}</small>
       </div>
       <p v-if="failure" class="callout bad small" role="alert" data-test="failure">
@@ -171,3 +176,10 @@ usePageTitle(() => m.value.signUp);
     </template>
   </AuthFrame>
 </template>
+
+<style scoped>
+/* Lined up with the consent text: the checkbox's 20 px plus the label's 10 px gap. */
+.privacy-link {
+  margin: 6px 0 0 30px;
+}
+</style>

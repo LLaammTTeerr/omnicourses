@@ -44,6 +44,13 @@ describe('App shell', () => {
     expect(student.w.get('.side .me').text()).toContain('Sinh viên thử');
   });
 
+  it('frames the privacy notice with the public header for a visitor, and links it from the footer', async () => {
+    const { w } = await render('/privacy', false);
+    expect(w.find('.pub-head').exists()).toBe(true);
+    expect(w.get('#main h1').text()).toBe('Quyền riêng tư');
+    expect(w.get('.pub-foot a[href="/privacy"]').text()).toBe('Quyền riêng tư');
+  });
+
   it('shows sign-in without any header', async () => {
     const { w } = await render('/sign-in', false);
     expect(w.find('.pub-head').exists()).toBe(false);

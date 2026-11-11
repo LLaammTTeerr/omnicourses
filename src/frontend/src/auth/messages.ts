@@ -37,6 +37,7 @@ interface AuthMessages {
   consent: string;
   consentDetail: string;
   consentRequired: string;
+  privacyLink: string;
   signUp: string;
   signingUp: string;
   emailTaken: string;
@@ -82,6 +83,7 @@ export const AUTH_MESSAGES: Record<Lang, AuthMessages> = {
     consent: 'Tôi đồng ý cho OmniCourse xử lý dữ liệu học tập của tôi',
     consentDetail: 'Bảng điểm và những gì bạn nhập. Lưu đến khi bạn xóa tài khoản. Xuất hoặc xóa bất cứ lúc nào. Căn cứ Luật 91/2025/QH15.',
     consentRequired: 'Cần đồng ý xử lý dữ liệu để tạo tài khoản.',
+    privacyLink: 'Đọc thông báo quyền riêng tư',
     signUp: 'Tạo tài khoản',
     signingUp: 'Đang tạo tài khoản…',
     emailTaken: 'Email này đã có tài khoản.',
@@ -125,6 +127,7 @@ export const AUTH_MESSAGES: Record<Lang, AuthMessages> = {
     consent: 'I agree that OmniCourse processes my study data',
     consentDetail: 'Your transcript and what you enter. Kept until you delete your account. Export or delete it at any time. Under Law 91/2025/QH15.',
     consentRequired: 'You need to agree to the processing of your data to create an account.',
+    privacyLink: 'Read the privacy notice',
     signUp: 'Create account',
     signingUp: 'Creating your account…',
     emailTaken: 'This email already has an account.',
