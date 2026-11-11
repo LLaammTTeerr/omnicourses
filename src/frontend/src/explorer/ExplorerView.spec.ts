@@ -116,6 +116,14 @@ describe('ExplorerView (F4)', () => {
     expect(tile.classes()).toContain('flash');
   });
 
+  it('shows the linked course once: a later cohort switch keeps the student’s own search', async () => {
+    const { w } = await render({ 'GET /programs/APCS/curricula/2025': { ...CURRICULUM, cohortYear: 2025 } }, '/explorer?course=ZZ102');
+    await w.get('input[type="search"]').setValue('zz101');
+    await chooseOption(w.findAll('.head-actions [role="combobox"]')[1]!, 'Khóa 2025');
+    await flushPromises();
+    expect((w.get('input[type="search"]').element as HTMLInputElement).value).toBe('zz101');
+  });
+
   it('finds courses typed without diacritics, by name, English name or code', async () => {
     const { w } = await render();
     const search = w.get('input[type="search"]');

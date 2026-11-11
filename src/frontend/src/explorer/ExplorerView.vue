@@ -80,12 +80,15 @@ function openCourse(course: Course, group: RequirementGroup, colour: GroupId): v
 
 // `?course=CODE` (the planner's "Taken" tags): the course is brought into view, focused, and glows once. A search or
 // a group filter that hides it is cleared first.
+// Once per link: a later program or cohort switch must not clear the student's own search again.
 const route = useRoute();
+let shownCourse: string | null = null;
 watch(
   () => [route.query.course, curriculum.status.value] as const,
   async ([code, status]) => {
-    if (typeof code !== 'string' || status !== 'loaded') return;
+    if (typeof code !== 'string' || code === shownCourse || status !== 'loaded') return;
     if (!groups.value.some(({ group }) => group.courses.some((course) => course.code === code))) return;
+    shownCourse = code;
     query.value = '';
     only.value = null;
     await nextTick();
