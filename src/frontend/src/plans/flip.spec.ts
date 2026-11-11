@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { edgeScroll, edgeScroller, play, snapshot } from './flip.js';
+import { edgeScroll, play, snapshot } from './flip.js';
 
 describe('dragging near the edge of the window', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -15,37 +15,6 @@ describe('dragging near the edge of the window', () => {
       [0, -4],
       [0, 14],
     ]);
-  });
-
-  it('scrolls once a frame from the last pointer position until the drag stops, with one loop however many events come', () => {
-    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
-    vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(800);
-    const queued: (() => void)[] = [];
-    const cancelled: number[] = [];
-    const s = edgeScroller(
-      (step) => queued.push(step),
-      (id) => cancelled.push(id),
-    );
-    s.move(0);
-    s.move(10);
-    expect(queued).toHaveLength(1);
-    queued.shift()!();
-    queued.shift()!();
-    expect(scroll.mock.calls).toEqual([
-      [0, -14],
-      [0, -14],
-    ]);
-    // Away from the edges the loop rests until the pointer moves again.
-    s.move(400);
-    queued.shift()!();
-    expect(scroll).toHaveBeenCalledTimes(2);
-    expect(queued).toHaveLength(0);
-    s.move(795);
-    expect(queued).toHaveLength(1);
-    s.stop();
-    expect(cancelled).toEqual([1]);
-    queued.shift()!();
-    expect(scroll).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -69,6 +38,19 @@ describe('tiles gliding to their new place', () => {
     expect(calls.get('a')).toEqual({ transform: 'translate(0px, -50px)' });
     expect(calls.has('b')).toBe(false);
     expect(calls.get('c')).toEqual({ opacity: 0, transform: 'scale(.92)' });
+  });
+
+  it('lands a dropped tile from where the ghost was, with a little spring', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<span data-flip="a"></span>';
+    const a = root.querySelector<HTMLElement>('[data-flip]')!;
+    a.getBoundingClientRect = () => ({ left: 100, top: 200 }) as DOMRect;
+    let frames: Keyframe[] = [];
+    let options: KeyframeAnimationOptions = {};
+    a.animate = ((f: Keyframe[], o: KeyframeAnimationOptions) => ((frames = f), (options = o), {})) as unknown as HTMLElement['animate'];
+    play(root, new Map(), { flip: 'a', rect: { left: 40, top: 20 } as DOMRect });
+    expect(frames[0]).toMatchObject({ transform: 'translate(-60px, -180px) scale(1.05)' });
+    expect(options.easing).toBe('cubic-bezier(.3, 1.25, .4, 1)');
   });
 
   it('does nothing when the student asks for reduced motion', () => {

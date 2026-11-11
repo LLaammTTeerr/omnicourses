@@ -54,7 +54,7 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
         :title="m.coverageTitle(g.name, g.credits, g.requiredCredits)"
         data-test="strip-group"
       >
-        <span class="glyph" aria-hidden="true">{{ glyphOf(g).glyph }}</span>
+        <span class="glyph sm" aria-hidden="true">{{ glyphOf(g).glyph }}</span>
         <span class="sr-only">{{ m.coverageTitle(g.name, g.credits, g.requiredCredits) }}</span>
         <span aria-hidden="true"><b class="num">{{ g.credits }}</b><template v-if="g.requiredCredits !== null">/{{ g.requiredCredits }}</template></span>
       </li>
@@ -67,17 +67,19 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
 </template>
 
 <style>
-.status-strip { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 12px 16px; }
-.status-strip .est { display: flex; align-items: center; gap: 10px; }
-.status-strip .est-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: color-mix(in oklab, var(--ok) 15%, var(--surface)); color: color-mix(in oklab, var(--ok) 75%, var(--ink)); }
-.status-strip .est.bad .est-ic { background: color-mix(in oklab, var(--bad) 14%, var(--surface)); color: color-mix(in oklab, var(--bad) 80%, var(--ink)); }
-.status-strip .est small { display: block; font-size: 12px; color: var(--ink-3); }
-.status-strip .est b { font-size: 15px; }
-.status-strip .cov { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
-.status-strip .cov li { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; background: var(--c-soft); color: var(--c-ink); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.status-strip .cov li.miss { outline: 1.5px dashed color-mix(in oklab, var(--bad) 60%, transparent); }
-.status-strip .cov .glyph { font: 700 11px var(--mono); }
+.status-strip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 14px 18px; }
+.status-strip .est { display: flex; gap: 12px; align-items: center; }
+.status-strip .est-ic { width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--ok); color: #fff; border: 1px solid var(--edge); transition: background 0.25s; }
+.status-strip .est.bad .est-ic { background: var(--bad); }
+.status-strip .est b { font: 700 20px var(--display); display: block; letter-spacing: -0.02em; }
+.status-strip .est small { font-size: 12.5px; color: var(--ink-3); }
+.status-strip .cov { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.status-strip .cov li {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 4px; border-radius: 10px; background: var(--surface-2);
+  font-size: 12.5px; font-weight: 650; font-variant-numeric: tabular-nums; cursor: default; transition: background 0.2s, color 0.2s;
+}
+.status-strip .cov li.miss { background: color-mix(in oklab, var(--bad) 14%, var(--surface)); color: color-mix(in oklab, var(--bad) 80%, var(--ink)); }
 .status-strip .num { font-weight: 750; }
 .status-strip .stale { opacity: 0.55; }
-.status-strip > .chip { margin-left: auto; }
+@media (max-width: 900px) { .status-strip { grid-template-columns: 1fr; } .status-strip > .chip { justify-self: start; } }
 </style>

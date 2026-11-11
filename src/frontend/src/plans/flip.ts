@@ -13,11 +13,28 @@ export function snapshot(root: ParentNode | null): Snapshot {
   return rects;
 }
 
+/** A tile just dropped: it lands from where the dragged copy was, with a little spring. */
+export interface Lift {
+  flip: string;
+  rect: DOMRect;
+}
+
 /** Plays each tile from its place in `before` to its place now; a tile that was not on screen fades in. */
-export function play(root: ParentNode | null, before: Snapshot): void {
+export function play(root: ParentNode | null, before: Snapshot, lift?: Lift): void {
   if (!root || reducedMotion()) return;
   root.querySelectorAll<HTMLElement>('[data-flip]').forEach((el) => {
     if (typeof el.animate !== 'function') return;
+    if (lift && el.dataset.flip === lift.flip) {
+      const now = el.getBoundingClientRect();
+      el.animate(
+        [
+          { transform: `translate(${lift.rect.left - now.left}px, ${lift.rect.top - now.top}px) scale(1.05)`, boxShadow: 'var(--shadow-lg)', zIndex: 5 },
+          { transform: 'none', boxShadow: 'none', zIndex: 5 },
+        ],
+        { duration: 440, easing: 'cubic-bezier(.3, 1.25, .4, 1)' },
+      );
+      return;
+    }
     const was = before.get(el.dataset.flip!);
     if (!was) {
       el.animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
@@ -41,34 +58,4 @@ export function edgeScroll(clientY: number, viewport = window.innerHeight, edge 
   else if (clientY > viewport - edge) by = Math.ceil((clientY - viewport + edge) / 5);
   if (by) window.scrollBy(0, by);
   return by;
-}
-
-/**
- * Scrolls once per animation frame while a drag is held near an edge, as the prototype does, so the page glides at a
- * steady pace instead of jumping on each `dragover`, which a browser fires at its own rate. `move` records where the
- * pointer is; `stop` ends the loop when the drag does.
- */
-export function edgeScroller(
-  frame: (step: () => void) => number = (step) => requestAnimationFrame(step),
-  cancel: (id: number) => void = (id) => cancelAnimationFrame(id),
-) {
-  let y: number | null = null;
-  let id: number | null = null;
-  const tick = () => {
-    id = null;
-    // Away from the edges the loop rests; the next `move` starts it again.
-    if (y === null || edgeScroll(y) === 0) return;
-    id = frame(tick);
-  };
-  return {
-    move(clientY: number): void {
-      y = clientY;
-      if (id === null) id = frame(tick);
-    },
-    stop(): void {
-      y = null;
-      if (id !== null) cancel(id);
-      id = null;
-    },
-  };
 }

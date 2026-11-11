@@ -68,13 +68,14 @@ defineExpose({ copy });
 </template>
 
 <style>
-.plan-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--edge); width: fit-content; max-width: 100%; }
+.plan-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .plan-tabs a, .plan-tabs .add {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 14px; border-radius: 9px; border: 0; background: none;
-  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink-2); text-decoration: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; border: 1px solid var(--edge); background: var(--surface); padding: 7px 14px;
+  border-radius: 12px; font: inherit; font-weight: 650; font-size: 14px; color: var(--ink); text-decoration: none; cursor: pointer; transition: background 0.15s, border-color 0.15s;
 }
-.plan-tabs a:hover, .plan-tabs .add:hover { color: var(--ink); background: var(--surface); }
-.plan-tabs a.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
-.plan-tabs .add { color: var(--ink-3); }
-.plan-tabs a:focus-visible, .plan-tabs .add:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+.plan-tabs a:hover { border-color: var(--edge-strong); }
+.plan-tabs a.on { background: var(--acc-bg); color: var(--acc-ink); box-shadow: var(--acc-shadow); border-color: transparent; }
+.plan-tabs .add { border-style: dashed; background: transparent; color: var(--ink-2); }
+.plan-tabs .add:hover { color: var(--ink); border-color: var(--ink-3); }
+.plan-tabs a:focus-visible, .plan-tabs .add:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
 </style>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { fetchAudit, type DegreeAudit } from '../audit/api.js';
 import { useAuth } from '../auth/store.js';
+import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
@@ -41,7 +42,8 @@ import {
   type Row,
   type Tile,
 } from './board.js';
-import { edgeScroller, play, snapshot } from './flip.js';
+import { pointerDrag, type DropTarget } from './drag.js';
+import { play, snapshot, type Lift } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
 import PlanTabs from './PlanTabs.vue';
@@ -61,6 +63,7 @@ const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
 const toast = useToast();
+const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
 
 const plan = shallowRef<Plan | null>(null);
@@ -165,21 +168,21 @@ async function save(): Promise<void> {
 
 // ---------- Changes, their animation and undo ----------
 const boardEl = ref<HTMLElement | null>(null);
-/** Runs a change of the board, then lets each tile glide from where it was (flip.ts). */
-function animate(fn: () => void): void {
+/** Runs a change of the board, then lets each tile glide from where it was (flip.ts); a dropped one lands from the ghost. */
+function animate(fn: () => void, lift?: Lift): void {
   const before = snapshot(boardEl.value);
   fn();
-  void nextTick(() => play(boardEl.value, before));
+  void nextTick(() => play(boardEl.value, before, lift));
 }
 
 /** The boards before each change, newest last, with what the change was, for Undo (Ctrl+Z). */
 const history = shallowRef<{ board: Board; said: string }[]>([]);
 const HISTORY_MAX = 50;
 
-function change(next: Board, said?: string, undoing = false): void {
+function change(next: Board, said?: string, undoing = false, lift?: Lift): void {
   if (next === board.value) return;
   if (!undoing) history.value = [...history.value.slice(1 - HISTORY_MAX), { board: board.value, said: said ?? '' }];
-  animate(() => (board.value = next));
+  animate(() => (board.value = next), lift);
   saveError.value = null;
   if (said) announce(said);
   void save();
@@ -239,6 +242,7 @@ const loaded = useAsyncLoad(
     );
     // A later load owns the editor now; useAsyncLoad drops this answer too.
     if (mine !== opened) return found;
+    drag.stop();
     endDrag();
     lifted.value = null;
     const start = boardOf(found.terms, rowsFor(found.terms, currentTermNow(), target), newKey);
@@ -277,6 +281,7 @@ const catalog = computed(() => {
 });
 const groupNames = computed(() => new Map(requirementGroups.value.map((g) => [g.id, g])));
 const shortName = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.short[locale.lang];
+const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
 // A neutral mark on the courses of the student's saved transcript, as in the explorer: whether one counts as passed
 // is the engine's call (it flags a placed one as already_passed). No transcript, or none loaded, shows no marks.
 const transcriptCodes = useTranscriptCodes('the planner');
@@ -416,6 +421,9 @@ interface TileView {
   group: string | null;
   slot: boolean;
   taken: string | null;
+  colour: GroupId | null;
+  /** The tile's issues in words, for its tooltip. */
+  tip: string;
   classes: string[];
   bad: boolean;
   /** Violations, then flags. */
@@ -430,10 +438,20 @@ interface RowView {
   now: boolean;
   load: { text: string; caps: string; credits: number; max: number | null; delta: number } | null;
   meter: { fill: number; from: number; to: number; min: number | null; minLabel: number | null; max: number; maxLabel: number } | null;
+  /** The meter's colour, from the engine's load issues for this row (with the drop made, while one is previewed). */
+  cap: 'under' | 'over' | 'ok' | '';
   tone: string;
   drop: { tone: string; reason: string } | null;
+  /** The dashed tile where a drop would land, while the pointer is over this row. */
+  placeholder: { title: string; credits: number | null; colour: GroupId | null } | null;
   issues: PlanIssue[];
   tiles: TileView[];
+}
+
+function capOf(issues: readonly PlanIssue[], credits: number): RowView['cap'] {
+  if (issues.some((i) => i.code === 'load_above_maximum')) return 'over';
+  if (issues.some((i) => i.code === 'load_below_minimum')) return 'under';
+  return credits > 0 ? 'ok' : '';
 }
 
 const toneOf = (issues: readonly PlanIssue[]) => {
@@ -451,6 +469,9 @@ function tileView(tile: Tile, termName: string): TileView {
   const title = tileTitle(tile);
   const grade = p.courseCode ? gradeOf.value.get(p.courseCode) : undefined;
   const tone = toneOf(all);
+  const shown = [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')];
+  const unknowns = all.filter((i) => i.kind === 'unknown').map((i) => i.code);
+  const tip = [...shown.map((i) => `${m.value.kinds[i.kind]}: ${m.value.issue[i.code](i, ctx.value)}`), ...(unknowns.length ? [m.value.unknownWhat(unknowns)] : [])].join('\n');
   return {
     tile,
     title,
@@ -460,10 +481,12 @@ function tileView(tile: Tile, termName: string): TileView {
     group: colour ? shortName(colour) : null,
     slot: p.kind === 'slot',
     taken: grade === undefined ? null : m.value.takenBefore(gradeText(grade)),
+    colour,
+    tip,
     classes: ['ptile', colour ? groupClass(colour) : 'g-none', p.kind === 'slot' ? 'slot' : '', tone],
     bad: tone === 'has-violation',
-    issues: [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')],
-    unknowns: all.filter((i) => i.kind === 'unknown').map((i) => i.code),
+    issues: shown,
+    unknowns,
   };
 }
 
@@ -524,8 +547,10 @@ function rowView(row: Row): RowView {
       delta: previewed ? load.credits - baseCredits : 0,
     },
     meter: meter(load, baseCredits),
+    cap: capOf(previewed ? (hoverPreview.value?.attached?.byTerm.get(key) ?? []) : rowIssues, load?.credits ?? 0),
     tone: toneOf(rowIssues),
     drop: dropOf(key),
+    placeholder: dropRow.value === key && movingInfo.value && !(moving.value && homeOf(moving.value) && termKey(homeOf(moving.value)!) === key) ? movingInfo.value : null,
     issues: rowIssues,
     tiles: row.tiles.map((tile) => tileView(tile, name)),
   };
@@ -587,22 +612,59 @@ const slotOffers = computed(() =>
     }),
 );
 
-function add(code: string, to: Term | null = addTargetTerm.value): void {
-  if (!to) return;
-  change(addCourse(board.value, code, to, newKey()), m.value.added(code, nameOf(to)));
+/** Adds a course to a term; `from` is where its dragged copy was, so the tile lands from there. Returns its key. */
+function add(code: string, to: Term | null = addTargetTerm.value, from?: DOMRect): number | null {
+  if (!to) return null;
+  const key = newKey();
+  change(addCourse(board.value, code, to, key), m.value.added(code, nameOf(to)), false, from && { flip: `tile-${key}`, rect: from });
+  return key;
 }
-function addSlotTo(groupId: string, credits: number, to: Term | null = addTargetTerm.value): void {
-  if (!to) return;
+function addSlotTo(groupId: string, credits: number, to: Term | null = addTargetTerm.value, from?: DOMRect): number | null {
+  if (!to) return null;
+  const key = newKey();
   const said = m.value.added(m.value.slot(groupNames.value.get(groupId)?.name ?? m.value.slotGroupUnknown), nameOf(to));
-  change(addSlot(board.value, groupId, credits, to, newKey()), said);
+  change(addSlot(board.value, groupId, credits, to, key), said, false, from && { flip: `tile-${key}`, rect: from });
+  return key;
 }
 
-/** An empty row is not stored (ADR 0014): adding one saves nothing, and a report of the board still describes it. */
-function addRow(): void {
+/**
+ * An empty row is not stored (ADR 0014): adding one saves nothing, and a report of the board still describes it.
+ * The page then scrolls by the new row's height, so the button stays under the pointer for the next click.
+ */
+async function addRow(event?: MouseEvent): Promise<void> {
+  const button = event?.currentTarget as HTMLElement | undefined;
+  const top = button?.getBoundingClientRect().top;
   const before = board.value;
   const next = withNextRow(before);
   board.value = next;
   if (saved.value === before) saved.value = next;
+  await nextTick();
+  if (!button || top === undefined) return;
+  const by = button.getBoundingClientRect().top - top;
+  if (by > 0) window.scrollBy({ top: by, behavior: reducedMotion() ? 'auto' : 'smooth' });
+}
+const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Brings a tile into view and makes it shake and glow for a moment, so the eye finds it. */
+async function jumpTo(key: number): Promise<void> {
+  await nextTick();
+  const el = document.getElementById(`tile-${key}`);
+  if (!el) return;
+  if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' });
+  el.focus({ preventScroll: true });
+  ring(el, 'flash');
+}
+/** Plays a one-off animation class on an element again, even if it just played. */
+function ring(el: HTMLElement, cls: 'flash' | 'shake'): void {
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+}
+
+/** A passed course in the "Taken" strip: its place in the curriculum explorer. */
+function showInExplorer(code: string): void {
+  void router.push({ name: 'explorer', query: { course: code } });
 }
 
 /** Brings a row into view as the keyboard picks it, as dragging near the edge does for the pointer. */
@@ -655,61 +717,90 @@ function onTileBlur(tile: Tile): void {
   if (lifted.value?.key === tile.key) dropLifted();
 }
 
-// Drag and drop, for a pointer: a tile, a course or a slot of the tray onto a row, or a tile back onto the tray to
-// remove it. Near the top or bottom of the window the page scrolls.
+// Drag and drop with the pointer (drag.ts, as in the prototype): a tile, a course or a slot of the tray onto a row,
+// or a placed tile onto the tray or the bin to take it out of the plan. The ghost leans as it moves, the wheel scrolls
+// the page meanwhile, and near the top or bottom of the window the page scrolls by itself.
 const dragging = shallowRef<Moving | null>(null);
-const dropRow = ref<string | null>(null);
-function startDrag(event: DragEvent, what: Moving): void {
-  dragging.value = what;
-  moving.value = what;
-  lifted.value = null;
-  event.dataTransfer?.setData('text/plain', 'key' in what ? String(what.key) : 'code' in what ? what.code : what.slot);
-  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
-  previewAll(what);
+const over = ref<DropTarget | null>(null);
+const dropRow = computed(() => (over.value?.startsWith('row:') ? over.value.slice(4) : null));
+const draggingPlaced = computed(() => !!dragging.value && 'key' in dragging.value);
+
+const drag = pointerDrag<Moving>({
+  begin(what) {
+    dragging.value = what;
+    moving.value = what;
+    lifted.value = null;
+    previewAll(what);
+  },
+  over(target) {
+    over.value = target;
+  },
+  accepts(what, target) {
+    if (target === 'pool' || target === 'bin') return 'key' in what;
+    const home = homeOf(what);
+    return !home || `row:${termKey(home)}` !== target;
+  },
+  drop(what, target, from) {
+    const verdict = target.startsWith('row:') ? (previews.value.get(target.slice(4))?.verdict ?? null) : null;
+    endDrag();
+    const key = dropOn(what, target, from);
+    // A drop that breaks a rule still lands (ADR 0012); the tile shakes once it has landed, so the student sees it.
+    if (key !== null && verdict?.kind === 'violation') {
+      void nextTick(() => {
+        const el = document.getElementById(`tile-${key}`);
+        if (el) setTimeout(() => ring(el, 'shake'), 420);
+      });
+    }
+  },
+  cancel() {
+    endDrag();
+  },
+});
+function grab(event: PointerEvent, what: Moving): void {
+  drag.down(event, event.currentTarget as HTMLElement, what);
 }
 function endDrag(): void {
-  scroller.stop();
   dragging.value = null;
-  dropRow.value = null;
+  over.value = null;
   if (!lifted.value) {
     moving.value = null;
     stopPreview();
   }
 }
-function overRow(event: DragEvent, term: Term): void {
-  if (!dragging.value) return;
-  event.preventDefault();
-  dropRow.value = termKey(term);
-}
-function leaveRow(event: DragEvent): void {
-  // Crossing into a tile of the same row is not leaving it.
-  if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) dropRow.value = null;
-}
-function dropOnRow(term: Term): void {
-  const what = dragging.value;
-  endDrag();
-  if (!what) return;
-  if ('code' in what) add(what.code, term);
-  else if ('slot' in what) addSlotTo(what.slot, what.credits, term);
-  else {
-    const found = findTile(board.value, what.key);
-    if (found) change(moveTile(board.value, what.key, term), m.value.moved(tileTitle(found.row.tiles[found.index]!), nameOf(term)));
+/** Applies a drop; returns the key of the tile it placed or moved, if any. */
+function dropOn(what: Moving, target: DropTarget, from: DOMRect): number | null {
+  if (target === 'pool' || target === 'bin') {
+    const found = 'key' in what ? findTile(board.value, what.key) : undefined;
+    if (found) remove(found.row.tiles[found.index]!);
+    return null;
   }
-}
-function overList(event: DragEvent): void {
-  if (dragging.value && 'key' in dragging.value) event.preventDefault();
-}
-function dropOnList(): void {
-  const what = dragging.value;
-  endDrag();
-  if (!what || !('key' in what)) return;
+  const term = board.value.find((row) => `row:${termKey(row.term)}` === target)?.term;
+  if (!term) return null;
+  if ('code' in what) return add(what.code, term, from);
+  if ('slot' in what) return addSlotTo(what.slot, what.credits, term, from);
   const found = findTile(board.value, what.key);
-  if (found) remove(found.row.tiles[found.index]!);
+  if (!found) return null;
+  change(moveTile(board.value, what.key, term), m.value.moved(tileTitle(found.row.tiles[found.index]!), nameOf(term)), false, { flip: `tile-${what.key}`, rect: from });
+  return what.key;
 }
-const scroller = edgeScroller();
-function onWindowDragOver(event: DragEvent): void {
-  if (dragging.value) scroller.move(event.clientY);
-}
+
+/** What the placeholder in the row under the pointer shows: the course, its credits and its group colour. */
+const movingInfo = computed<{ title: string; credits: number | null; colour: GroupId | null } | null>(() => {
+  const what = moving.value;
+  if (!what) return null;
+  if ('code' in what) {
+    const info = catalog.value.get(what.code);
+    return { title: what.code, credits: info?.course.credits ?? null, colour: info?.colour ?? null };
+  }
+  if ('slot' in what) {
+    const group = groupNames.value.get(what.slot);
+    return { title: movingTitle(what), credits: what.credits, colour: group ? groupColour(group) : null };
+  }
+  const found = findTile(board.value, what.key);
+  if (!found) return null;
+  const view = tileView(found.row.tiles[found.index]!, '');
+  return { title: view.title, credits: view.credits, colour: view.colour };
+});
 
 // ---------- The issues panel, open or collapsed (kept for the next visit) ----------
 const RAIL_KEY = 'oc-planner-rail';
@@ -736,14 +827,10 @@ function whatIf(): void {
   if (plan.value) void tabs.value?.copy(m.value.whatIfName(plan.value.name));
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', onWindowKey);
-  window.addEventListener('dragover', onWindowDragOver);
-});
+onMounted(() => window.addEventListener('keydown', onWindowKey));
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onWindowKey);
-  window.removeEventListener('dragover', onWindowDragOver);
-  scroller.stop();
+  drag.stop();
   stopPreview();
 });
 
@@ -760,8 +847,8 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
         <p class="small t3 kbd-hint" data-test="keyboard-hint">{{ m.keyboardHint }}</p>
       </div>
       <div v-if="plan" class="head-actions">
-        <button class="btn" type="button" :disabled="history.length === 0" title="Ctrl+Z" data-test="undo" @click="undo"><Icon name="left" size="sm" />{{ m.undo }}</button>
-        <button class="btn" type="button" :title="m.whatIfHint" data-test="what-if" @click="whatIf"><Icon name="copy" size="sm" />{{ m.whatIf }}</button>
+        <button class="btn" type="button" :disabled="history.length === 0" :title="`${m.undo} (Ctrl+Z)`" data-test="undo" @click="undo"><Icon name="undo" size="sm" />{{ m.undo }}</button>
+        <button class="btn" type="button" :title="m.whatIfHint" data-test="what-if" @click="whatIf"><Icon name="fork" size="sm" />{{ m.whatIf }}</button>
       </div>
     </header>
 
@@ -786,7 +873,13 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 
       <div class="planner-layout" :class="{ 'rail-mini': collapsed }">
         <div ref="boardEl" class="planner-main" :class="{ dragging: !!moving }">
-          <section class="card tray" aria-labelledby="tray-title" data-test="tray" :class="{ 'drop-ok': dragging && 'key' in dragging }" @dragover="overList" @drop.prevent="dropOnList">
+          <section
+            class="card tray"
+            :class="{ 'ok-drop': draggingPlaced, over: draggingPlaced && over === 'pool' }"
+            aria-labelledby="tray-title"
+            :data-drop="draggingPlaced ? 'pool' : undefined"
+            data-test="tray"
+          >
             <div class="tray-head">
               <h2 id="tray-title">{{ m.courses }}</h2>
               <span v-if="curriculum.status.value === 'loaded'" class="chip">{{ m.coursesCount(unplaced.length) }}</span>
@@ -801,9 +894,10 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   :data-test="`pool-group-${g}`"
                   @click="poolGroup = poolGroup === g ? '' : g"
                 >
-                  {{ shortName(g) }}
+                  <span class="glyph xs" aria-hidden="true">{{ glyphOf(g) }}</span>{{ shortName(g) }}
                 </button>
               </div>
+              <p v-if="draggingPlaced" class="drop-reason tray-reason"><Icon name="trash" size="sm" /><span>{{ m.dropToRemove }}</span></p>
             </div>
             <div class="tray-tools">
               <label class="search">
@@ -813,12 +907,9 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
               </label>
               <label class="field add-to">
                 <span>{{ m.addTo }}</span>
-                <select v-model="addTarget" class="select" data-test="add-to">
-                  <option v-for="row in board" :key="termKey(row.term)" :value="termKey(row.term)">{{ nameOf(row.term) }}</option>
-                </select>
+                <SelectMenu v-model="addTarget" :options="board.map((row) => ({ value: termKey(row.term), label: nameOf(row.term) }))" data-test="add-to" />
               </label>
             </div>
-            <p v-if="dragging && 'key' in dragging" class="small t2">{{ m.dropToRemove }}</p>
             <p v-if="curriculum.status.value === 'loading'" class="t3">{{ m.loading }}</p>
             <div v-else-if="curriculum.status.value === 'failed'" class="callout warn small" role="alert">
               <Icon name="alert" size="sm" />
@@ -833,12 +924,11 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
               <li
                 v-for="{ course, colour } in shown"
                 :key="course.code"
-                :class="['pcourse', groupClass(colour)]"
-                draggable="true"
+                :class="['pcourse', groupClass(colour), { 'dragging-src': dragging && 'code' in dragging && dragging.code === course.code }]"
                 :data-flip="`pool-${course.code}`"
                 :data-test="`pool-${course.code}`"
-                @dragstart="startDrag($event, { code: course.code })"
-                @dragend="endDrag"
+                aria-roledescription="draggable"
+                @pointerdown="grab($event, { code: course.code })"
               >
                 <span class="top">
                   <span class="k">{{ course.code }}</span>
@@ -850,7 +940,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span v-if="transcriptCodes.has(course.code)" class="mark" data-test="in-transcript"><Icon name="file" size="sm" />{{ m.inTranscript }}</span>
                 </span>
                 <button
-                  class="btn sm ghost icon-only add-btn"
+                  class="add-btn"
                   type="button"
                   :aria-label="m.add(course.code, addTargetTerm ? nameOf(addTargetTerm) : '')"
                   :title="m.add(course.code, addTargetTerm ? nameOf(addTargetTerm) : '')"
@@ -868,10 +958,9 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   v-for="s in slotOffers"
                   :key="s.group.id"
                   :class="['pcourse', 'slot', groupClass(s.colour)]"
-                  draggable="true"
+                  aria-roledescription="draggable"
                   data-test="slot-offer"
-                  @dragstart="startDrag($event, { slot: s.group.id, credits: s.credits })"
-                  @dragend="endDrag"
+                  @pointerdown="grab($event, { slot: s.group.id, credits: s.credits })"
                 >
                   <span class="top">
                     <span class="k">{{ shortName(s.colour) }}</span>
@@ -880,7 +969,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span class="nm">{{ s.group.name }}</span>
                   <span class="sub"><span class="glabel">{{ m.slotNotChosen }}</span></span>
                   <button
-                    class="btn sm ghost icon-only add-btn"
+                    class="add-btn"
                     type="button"
                     :aria-label="m.addSlot(s.group.name, addTargetTerm ? nameOf(addTargetTerm) : '')"
                     :title="m.addSlot(s.group.name, addTargetTerm ? nameOf(addTargetTerm) : '')"
@@ -901,21 +990,21 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
               <p class="tload"><b class="num">{{ past.accumulated }}</b> {{ m.accumulated }}</p>
             </div>
             <ul class="codes">
-              <li v-for="c in past.courses" :key="c.code" :class="['chip', 'c', groupClass(c.colour)]" :title="c.name">{{ c.code }}</li>
+              <li v-for="c in past.courses" :key="c.code">
+                <button :class="['code', 'c', groupClass(c.colour)]" type="button" :title="`${c.name}\n${m.showInExplorer(c.code)}`" :data-test="`past-${c.code}`" @click="showInExplorer(c.code)">{{ c.code }}</button>
+              </li>
             </ul>
           </section>
 
-          <div class="rows" role="list" :aria-label="m.termsLabel">
+          <TransitionGroup name="row" tag="div" class="rows" role="list" :aria-label="m.termsLabel" data-drop-gap>
             <section
               v-for="(row, r) in rows"
               :key="row.key"
               role="listitem"
-              :class="['trow', row.tone, row.drop?.tone, { 'drop-target': dropRow === row.key || lifted?.target === r, stale: !fresh, now: row.now }]"
+              :class="['trow', row.tone, row.drop?.tone, { over: dropRow === row.key || lifted?.target === r, 'drop-target': lifted?.target === r, stale: !fresh, now: row.now }]"
               :aria-labelledby="`term-${row.key}`"
+              :data-drop="`row:${row.key}`"
               :data-test="`term-${row.key}`"
-              @dragover="overRow($event, row.row.term)"
-              @dragleave="leaveRow"
-              @drop.prevent="dropOnRow(row.row.term)"
             >
               <div class="trow-l">
                 <div class="tname">
@@ -923,100 +1012,103 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span v-if="row.summer" class="chip info">{{ m.summer }}</span>
                   <span v-if="row.now" class="chip info" data-test="now"><Icon name="lock" size="sm" />{{ m.inProgress }}</span>
                 </div>
-                <div v-if="row.load" class="tload" data-test="load">
-                  <b>{{ row.load.text }}</b>
+                <div v-if="row.load" class="tload" :class="{ up: row.load.delta > 0, down: row.load.delta < 0 }" data-test="load">
+                  <b :key="row.load.credits" class="pop">{{ row.load.text }}</b>
                   <span class="t3"> · {{ row.load.caps }}</span>
                   <span v-if="row.load.delta" :class="['delta', row.load.delta > 0 ? 'up' : 'down']" data-test="load-delta">{{ row.load.delta > 0 ? '+' : '−' }}{{ Math.abs(row.load.delta) }}</span>
                 </div>
-                <div v-if="row.meter" class="tmeter" aria-hidden="true">
+                <div v-if="row.meter" :class="['cap', row.cap, { preview: !!row.load?.delta }]" aria-hidden="true">
                   <span class="track">
                     <i class="fill" :style="{ width: `${row.meter.fill}%` }" />
-                    <i v-if="row.load?.delta" :class="['pre', { minus: row.load.delta < 0 }]" :style="{ left: `${row.meter.from}%`, width: `${row.meter.to - row.meter.from}%` }" />
+                    <i :class="['pre', { minus: (row.load?.delta ?? 0) < 0 }]" :style="{ left: `${row.meter.from}%`, width: `${row.meter.to - row.meter.from}%` }" />
                   </span>
                   <span v-if="row.meter.min !== null" class="tick" :style="{ left: `${row.meter.min}%` }"><em>{{ row.meter.minLabel }}</em></span>
                   <span class="tick max" :style="{ left: `${row.meter.max}%` }"><em>{{ row.meter.maxLabel }}</em></span>
                 </div>
                 <p v-if="row.drop?.reason" class="drop-reason" role="status" data-test="drop-reason">
-                  <Icon :name="row.drop.tone === 'ok-drop' ? 'check' : row.drop.tone === 'checking' ? 'info' : 'alert'" size="sm" /><span>{{ row.drop.reason }}</span>
+                  <Icon :name="row.drop.tone === 'ok-drop' ? 'check' : row.drop.tone === 'checking' ? 'refresh' : 'alert'" size="sm" /><span>{{ row.drop.reason }}</span>
                 </p>
-              </div>
-              <div class="trow-r">
                 <ul v-if="row.issues.length" class="row-issues">
-                  <li v-for="(issue, i) in row.issues" :key="i" :class="['ri', issue.kind]" :data-test="`row-issue-${issue.kind}`">
-                    <Icon :name="KIND_STYLE[issue.kind].icon" size="sm" />
-                    <span><span class="sr-only">{{ m.kinds[issue.kind] }}: </span>{{ m.issue[issue.code](issue, ctx) }} <span class="cite">{{ issue.citation }}</span></span>
-                  </li>
-                </ul>
-                <ul class="tiles">
-                  <template v-if="row.now">
-                    <li v-for="c in inProgressNow" :key="`now-${c.code}`" :class="['ptile', 'locked', groupClass(c.colour)]" :data-test="`now-${c.code}`">
-                      <div class="ptile-body">
-                        <span class="top">
-                          <span class="k">{{ c.code }}</span>
-                          <span v-if="c.credits !== null" class="cr">{{ m.credits(c.credits) }}</span>
-                        </span>
-                        <span v-if="c.name" class="nm">{{ c.name }}</span>
-                        <span class="sub"><Icon name="lock" size="sm" />{{ m.locked }}</span>
-                      </div>
-                    </li>
-                  </template>
                   <li
-                    v-for="t in row.tiles"
-                    :id="`tile-${t.tile.key}`"
-                    :key="t.tile.key"
-                    :class="[t.classes, { lifted: lifted?.key === t.tile.key, 'dragging-src': dragging && 'key' in dragging && dragging.key === t.tile.key }]"
-                    tabindex="0"
-                    draggable="true"
-                    :aria-label="t.label"
-                    :aria-describedby="`tile-${t.tile.key}-body`"
-                    aria-roledescription="draggable"
-                    :data-flip="`tile-${t.tile.key}`"
-                    :data-test="`tile-${t.tile.placement.courseCode ?? 'slot'}`"
-                    @keydown="onTileKey($event, t.tile, r)"
-                    @blur="onTileBlur(t.tile)"
-                    @dragstart="startDrag($event, { key: t.tile.key })"
-                    @dragend="endDrag"
+                    v-for="(issue, i) in row.issues"
+                    :key="i"
+                    :class="['ri', issue.kind]"
+                    :title="`${m.issue[issue.code](issue, ctx)}\n${issue.citation}`"
+                    :data-test="`row-issue-${issue.kind}`"
                   >
-                    <span v-if="t.bad" class="flag-badge" :title="m.hasViolation" aria-hidden="true">!</span>
-                    <div :id="`tile-${t.tile.key}-body`" class="ptile-body">
-                      <span class="top">
-                        <span class="k">{{ t.title }}</span>
-                        <span v-if="t.credits !== null" class="cr">{{ m.credits(t.credits) }}</span>
-                      </span>
-                      <span v-if="t.name" class="nm">{{ t.name }}</span>
-                      <span v-else-if="t.slot" class="nm t3">{{ m.slotNotChosen }}</span>
-                      <span v-if="t.group || t.taken" class="sub">
-                        <span v-if="t.group" class="glabel" data-test="tile-group">{{ t.group }}</span>
-                        <span v-if="t.taken" class="taken" data-test="tile-taken">{{ t.taken }}</span>
-                      </span>
-                      <ul v-if="t.issues.length || t.unknowns.length" class="tile-issues">
-                        <li v-for="(issue, i) in t.issues" :key="i" :class="['ti', issue.kind]" :data-test="`tile-issue-${issue.kind}`">
-                          <Icon :name="KIND_STYLE[issue.kind].icon" size="sm" />
-                          <span><span class="sr-only">{{ m.kinds[issue.kind] }}: </span>{{ m.issue[issue.code](issue, ctx) }} <span class="cite">{{ issue.citation }}</span></span>
-                        </li>
-                        <li v-if="t.unknowns.length" class="ti unknown" data-test="tile-issue-unknown">
-                          <Icon name="info" size="sm" /><span>{{ m.unknownWhat(t.unknowns) }}</span>
-                        </li>
-                      </ul>
-                    </div>
-                    <div class="ptile-acts">
-                      <button class="btn sm ghost icon-only" type="button" :disabled="r === 0" :aria-label="m.moveEarlier(t.title)" :title="m.moveEarlier(t.title)" data-test="earlier" @click="moveBy(t.tile, -1)">
-                        <Icon name="up" size="sm" />
-                      </button>
-                      <button class="btn sm ghost icon-only" type="button" :disabled="r === rows.length - 1" :aria-label="m.moveLater(t.title)" :title="m.moveLater(t.title)" data-test="later" @click="moveBy(t.tile, 1)">
-                        <Icon name="down" size="sm" />
-                      </button>
-                      <button class="btn sm ghost icon-only" type="button" :aria-label="m.remove(t.title)" :title="m.remove(t.title)" data-test="remove" @click="remove(t.tile)">
-                        <Icon name="x" size="sm" />
-                      </button>
-                    </div>
+                    <Icon :name="KIND_STYLE[issue.kind].icon" size="sm" />
+                    <span aria-hidden="true">{{ m.issueTitle[issue.code] }}</span>
+                    <span class="sr-only">{{ m.kinds[issue.kind] }}: {{ m.issue[issue.code](issue, ctx) }} {{ issue.citation }}</span>
                   </li>
-                  <li v-if="row.tiles.length === 0 && !row.now" class="drop-hint">{{ m.dropHere }}</li>
                 </ul>
               </div>
+              <ul class="tiles">
+                <template v-if="row.now">
+                  <li v-for="c in inProgressNow" :key="`now-${c.code}`" :class="['ptile', 'locked', groupClass(c.colour)]" :data-test="`now-${c.code}`">
+                    <div class="ptile-body">
+                      <span class="top">
+                        <span class="k">{{ c.code }}</span>
+                        <span v-if="c.credits !== null" class="cr">{{ m.credits(c.credits) }}</span>
+                      </span>
+                      <span v-if="c.name" class="nm">{{ c.name }}</span>
+                      <span class="sub"><Icon name="lock" size="sm" />{{ m.locked }}</span>
+                    </div>
+                  </li>
+                </template>
+                <li
+                  v-for="t in row.tiles"
+                  :id="`tile-${t.tile.key}`"
+                  :key="t.tile.key"
+                  :class="[t.classes, { lifted: lifted?.key === t.tile.key, 'dragging-src': dragging && 'key' in dragging && dragging.key === t.tile.key }]"
+                  tabindex="0"
+                  :title="t.tip || undefined"
+                  :aria-label="t.label"
+                  :aria-describedby="`tile-${t.tile.key}-body`"
+                  aria-roledescription="draggable"
+                  :data-flip="`tile-${t.tile.key}`"
+                  :data-test="`tile-${t.tile.placement.courseCode ?? 'slot'}`"
+                  @keydown="onTileKey($event, t.tile, r)"
+                  @blur="onTileBlur(t.tile)"
+                  @pointerdown="grab($event, { key: t.tile.key })"
+                >
+                  <span v-if="t.bad" class="flag-badge" aria-hidden="true">!</span>
+                  <div :id="`tile-${t.tile.key}-body`" class="ptile-body">
+                    <span class="top">
+                      <span class="k">{{ t.title }}</span>
+                      <span v-if="t.credits !== null" class="cr">{{ m.credits(t.credits) }}</span>
+                    </span>
+                    <span v-if="t.name" class="nm">{{ t.name }}</span>
+                    <span v-else-if="t.slot" class="nm t3">{{ m.slotNotChosen }}</span>
+                    <span v-if="t.group" class="sub"><span class="glabel" data-test="tile-group">{{ t.group }}</span></span>
+                    <span v-if="t.taken" class="rt" data-test="tile-taken"><Icon name="refresh" size="sm" />{{ t.taken }}</span>
+                    <ul v-if="t.issues.length || t.unknowns.length" class="sr-only">
+                      <li v-for="(issue, i) in t.issues" :key="i" :data-test="`tile-issue-${issue.kind}`">
+                        {{ m.kinds[issue.kind] }}: {{ m.issue[issue.code](issue, ctx) }} {{ issue.citation }}
+                      </li>
+                      <li v-if="t.unknowns.length" data-test="tile-issue-unknown">{{ m.unknownWhat(t.unknowns) }}</li>
+                    </ul>
+                  </div>
+                  <div class="ptile-acts">
+                    <button type="button" :disabled="r === 0" :aria-label="m.moveEarlier(t.title)" :title="m.moveEarlier(t.title)" data-test="earlier" @click="moveBy(t.tile, -1)">
+                      <Icon name="up" size="sm" />
+                    </button>
+                    <button type="button" :disabled="r === rows.length - 1" :aria-label="m.moveLater(t.title)" :title="m.moveLater(t.title)" data-test="later" @click="moveBy(t.tile, 1)">
+                      <Icon name="down" size="sm" />
+                    </button>
+                    <button type="button" class="rm" :aria-label="m.remove(t.title)" :title="m.remove(t.title)" data-test="remove" @click="remove(t.tile)">
+                      <Icon name="x" size="sm" />
+                    </button>
+                  </div>
+                </li>
+                <li v-if="row.placeholder" :class="['tile-ph', row.placeholder.colour ? groupClass(row.placeholder.colour) : 'g-none']" aria-hidden="true" data-test="placeholder">
+                  <span class="k">{{ row.placeholder.title }}</span>
+                  <span v-if="row.placeholder.credits !== null" class="cr">+{{ m.credits(row.placeholder.credits) }}</span>
+                </li>
+                <li v-else-if="row.tiles.length === 0 && !row.now" class="drop-hint">{{ m.dropHere }}</li>
+              </ul>
             </section>
-          </div>
-          <button v-if="board.length" class="btn add-row" type="button" data-test="add-row" @click="addRow">
+          </TransitionGroup>
+          <button v-if="board.length" class="add-row" type="button" data-test="add-row" @click="addRow">
             <Icon name="plus" size="sm" />{{ m.addTerm(nameOf(nextTerm(board[board.length - 1]!.term))) }}
           </button>
         </div>
@@ -1029,11 +1121,18 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
           :collapsed="collapsed"
           :preview="panelPreview"
           @retry="retryCheck"
-          @focus-tile="focusTile"
+          @focus-tile="jumpTo"
           @toggle="toggleRail"
         />
       </div>
     </template>
+
+    <Transition name="bin">
+      <div v-if="draggingPlaced" class="drop-bin" :class="{ over: over === 'bin' }" data-drop="bin" data-test="drop-bin">
+        <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
+        <span><b>{{ m.binLabel }}</b><small>{{ m.binHint }}</small></span>
+      </div>
+    </Transition>
 
     <p class="sr-only" aria-live="polite" data-test="announcer">{{ announcement }}</p>
   </div>
@@ -1044,126 +1143,211 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .planner-page .page-head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
 .planner-page .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .planner-page .kbd-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.planner-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; transition: grid-template-columns 0.2s; }
-.planner-layout.rail-mini { grid-template-columns: minmax(0, 1fr) 56px; }
+.planner-layout { --rail: 340px; display: grid; grid-template-columns: minmax(0, 1fr) var(--rail); gap: 18px; align-items: start; transition: grid-template-columns 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.planner-layout.rail-mini { --rail: 60px; }
 .planner-main { display: grid; gap: 14px; min-width: 0; }
-.planner-layout .issues-panel { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
-.tray { display: grid; gap: 10px; }
-.tray.drop-ok { outline: 2px dashed var(--info); }
+.planner-layout .issues-panel { position: sticky; top: 20px; max-height: calc(100vh - 40px); }
+
+/* The course list (the prototype's "Kho môn") */
+.tray { position: relative; padding: 14px 16px 16px; display: grid; gap: 12px; transition: background 0.2s, box-shadow 0.2s, border-color 0.2s; }
 .tray-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .tray-head h2 { font-size: 17px; }
 .pool-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
-.pool-chips .chip { cursor: pointer; border: 1px solid transparent; font: inherit; font-size: 12.5px; }
-.pool-chips .chip[aria-pressed='true'] { border-color: var(--ink-2); }
+.pool-chips .chip { cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 650; padding-left: 4px; transition: background 0.15s, color 0.15s, box-shadow 0.15s; }
+.pool-chips .chip:not(.soft) { padding-left: 10px; }
+.pool-chips .chip[aria-pressed='true'] { background: var(--acc-bg); color: var(--acc-ink); }
+.pool-chips .chip.soft[aria-pressed='true'] { background: var(--c); color: var(--on); }
+.pool-chips .chip.soft[aria-pressed='true'] .glyph { background: color-mix(in oklab, var(--on) 22%, transparent); color: var(--on); }
 .tray-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 .tray-tools .search { position: relative; flex: 1 1 240px; display: block; }
 .tray-tools .search .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
 .tray-tools .search .input { padding-left: 36px; }
 .tray-tools .add-to { flex: 0 1 220px; }
-.tray-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; }
-.pcourse {
-  position: relative; display: grid; gap: 3px; padding: 9px 34px 9px 16px; border-radius: 12px; border: 1px solid var(--edge);
-  background: var(--surface); box-shadow: var(--shadow-sm); cursor: grab; min-width: 0;
-}
-.pcourse::before { content: ''; position: absolute; left: 6px; top: 9px; bottom: 9px; width: 4px; border-radius: 4px; background: var(--c); }
-.pcourse.slot { border-style: dashed; background: transparent; box-shadow: none; }
-.pcourse .top, .ptile .top { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
-.pcourse .k, .ptile .k { font: 700 12px var(--mono); color: var(--c-ink, var(--ink)); }
-.pcourse .nm { font-size: 13px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-.pcourse .cr, .ptile .cr { font-size: 11.5px; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--c, var(--surface-3)); color: var(--on, var(--ink)); white-space: nowrap; }
-.pcourse .sub, .ptile .sub { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 11.5px; color: var(--ink-3); }
-.pcourse .mark { display: inline-flex; align-items: center; gap: 4px; }
-.pcourse .mark .icon, .ptile .sub .icon { width: 12px; height: 12px; }
-.pcourse .add-btn { position: absolute; right: 4px; top: 4px; }
+.tray-list { list-style: none; margin: 0; padding: 4px 4px 4px 2px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; max-height: 330px; overflow-y: auto; }
+.tray .tray-reason { position: absolute; z-index: 2; top: 10px; right: 12px; max-width: calc(100% - 24px); box-shadow: var(--shadow-sm); }
+.tray.over .tray-reason { display: flex; }
 .slot-offers { display: grid; gap: 6px; }
-.slot-offers h3 { text-transform: uppercase; letter-spacing: 0.04em; }
+.slot-offers h3 { font-weight: 650; }
+
+/* Course tiles, as in the prototype: white with a bar in the group colour, a pill for the credits */
+.pcourse, .ptile {
+  position: relative; display: grid; gap: 4px; align-content: start; min-width: 0; padding: 9px 11px 9px 15px; border-radius: 10px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--edge-strong); text-align: left;
+  user-select: none; -webkit-user-select: none; cursor: grab;
+  transition: opacity 0.2s, box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+.pcourse::before, .ptile::before { content: ''; position: absolute; left: 4px; top: 8px; bottom: 8px; width: 3px; border-radius: 4px; background: var(--c, var(--edge-strong)); }
+.pcourse:hover, .ptile:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); border-color: color-mix(in oklab, var(--c, var(--ink-3)) 45%, var(--edge-strong)); }
+.pcourse:active, .ptile:active { cursor: grabbing; }
+.pcourse .top, .ptile .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pcourse .k, .ptile .k, .tile-ph .k { font: 700 12px var(--mono); letter-spacing: 0.02em; opacity: 0.9; }
+.pcourse .cr, .ptile .cr { font: 650 11.5px var(--display); padding: 1px 7px; border-radius: 999px; background: var(--c, var(--surface-3)); color: var(--on, var(--ink)); white-space: nowrap; }
+.pcourse .nm, .ptile .nm { font-weight: 650; font-size: 13.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.pcourse .sub, .ptile .sub { font-size: 12px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pcourse .sub .icon, .ptile .sub .icon, .ptile .rt .icon { width: 13px; height: 13px; }
+.pcourse .mark { display: inline-flex; align-items: center; gap: 4px; }
+.pcourse { padding-right: 34px; }
+.pcourse .add-btn {
+  position: absolute; right: 6px; bottom: 6px; width: 26px; height: 26px; display: grid; place-items: center; padding: 0;
+  border: 0; border-radius: 8px; background: var(--c-soft); color: var(--c-ink); cursor: pointer; opacity: 0.85; transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.pcourse .add-btn:hover { background: var(--c); color: var(--on); transform: scale(1.08); opacity: 1; }
+.pcourse.slot, .ptile.slot { background: var(--surface-2); color: var(--ink-2); border-style: dashed; box-shadow: none; }
+.pcourse.slot::before, .ptile.slot::before { display: none; }
+.pcourse.slot .cr, .ptile.slot .cr { background: var(--surface-3); color: var(--ink); }
+.ptile.locked { cursor: default; border-color: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+.ptile.locked::before { display: none; }
+.ptile.locked:hover { transform: none; box-shadow: inset 0 0 0 2px var(--c); }
+.ptile.locked .k { color: var(--c-ink); opacity: 1; }
+.ptile.locked .sub { color: var(--c-ink); font-weight: 600; }
+.ptile.has-violation { outline: 2px solid var(--bad); outline-offset: 2px; }
+.ptile.has-flag { outline: 2px dashed var(--warn); outline-offset: 2px; }
+.ptile .rt { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: color-mix(in oklab, var(--warn) 78%, var(--ink)); }
+.flag-badge {
+  position: absolute; top: -9px; right: -9px; z-index: 1; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--bad); color: #fff; border: 1px solid var(--edge); font: 700 12px var(--display); animation: badge-in 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.ptile.lifted { outline: 2px solid var(--info); outline-offset: 2px; transform: translateY(-3px) scale(1.02); box-shadow: var(--shadow-lg); }
+.pcourse.dragging-src, .ptile.dragging-src { opacity: 0.3; transform: none; box-shadow: none; }
+.ptile-body { display: grid; gap: 4px; min-width: 0; }
+.ptile-acts {
+  position: absolute; right: 6px; bottom: 6px; display: flex; gap: 2px; padding: 2px; border-radius: 9px;
+  background: var(--surface); border: 1px solid var(--edge); box-shadow: var(--shadow-sm); opacity: 0; transform: translateY(3px);
+  transition: opacity 0.15s, transform 0.15s; pointer-events: none;
+}
+.ptile:hover .ptile-acts, .ptile:focus-within .ptile-acts, .ptile.lifted .ptile-acts { opacity: 1; transform: none; pointer-events: auto; }
+.ptile-acts button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--ink-2); cursor: pointer; }
+.ptile-acts button:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+.ptile-acts button.rm:hover { background: color-mix(in oklab, var(--bad) 12%, var(--surface)); color: var(--bad); }
+.ptile-acts button:disabled { opacity: 0.35; cursor: default; }
+@media (hover: none) { .ptile-acts { opacity: 1; transform: none; pointer-events: auto; } }
+
+/* The dragged copy and the place it would land */
+.ghost-tile {
+  position: fixed; left: 0; top: 0; z-index: 95; margin: 0; list-style: none; pointer-events: none; box-shadow: var(--shadow-lg);
+  will-change: transform; transform-origin: 40% 50%; animation: lift 0.2s ease-out;
+}
+.ghost-tile .ptile-acts, .ghost-tile .add-btn { display: none; }
+@keyframes lift { from { box-shadow: var(--shadow-sm); } }
+body.dragging, body.dragging * { cursor: grabbing !important; }
+.tile-ph {
+  align-self: stretch; min-height: 64px; border-radius: 10px; border: 2px dashed var(--c, var(--ink-3)); background: var(--c-air, var(--surface-2));
+  display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; color: var(--c-ink, var(--ink-2));
+  animation: ph-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tile-ph .cr { font: 700 16px var(--display); letter-spacing: -0.01em; }
+@keyframes ph-in { from { opacity: 0; transform: scale(0.85); } }
+
+/* Term rows: the term, its load and meter on the left, its tiles on the right */
 .rows { display: grid; gap: 10px; }
 .trow {
-  border: 1px solid var(--edge); border-radius: 14px; background: var(--surface); padding: 12px 14px;
-  display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 10px 16px; transition: opacity 0.15s, border-color 0.15s;
+  position: relative; display: grid; grid-template-columns: 228px minmax(0, 1fr); gap: 20px; align-items: start;
+  padding: 14px 16px; background: var(--surface); border: 1px solid var(--edge); border-radius: 14px;
+  transition: opacity 0.2s, filter 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.25s;
 }
-.trow-l { display: grid; gap: 6px; align-content: start; min-width: 0; }
-.trow-r { display: grid; gap: 8px; min-width: 0; align-content: start; }
+.trow-l { display: grid; gap: 8px; align-content: start; min-width: 0; }
 .trow.past { background: var(--surface-2); }
-.trow.past .codes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; align-content: start; }
-.trow.past .codes .chip { font: 600 11.5px var(--mono); }
-.trow.now { border-color: color-mix(in oklab, var(--info) 45%, var(--edge)); }
-.trow.has-violation { border-color: color-mix(in oklab, var(--bad) 55%, var(--edge)); }
-.trow.has-flag { border-color: color-mix(in oklab, var(--warn) 55%, var(--edge)); }
-.trow.drop-target { outline: 2px dashed var(--info); outline-offset: 2px; }
-.planner-main.dragging .trow.ok-drop { border-color: var(--ok); background: color-mix(in oklab, var(--ok) 6%, var(--surface)); }
-.planner-main.dragging .trow.warn-drop { border-color: var(--warn); }
-.planner-main.dragging .trow.bad-drop { border-color: var(--bad); background: color-mix(in oklab, var(--bad) 5%, var(--surface)); }
-.planner-main.dragging .trow.bad-drop:not(.drop-target) { opacity: 0.5; }
-.trow.stale .tload, .trow.stale .tmeter, .trow.stale .row-issues, .trow.stale .tile-issues { opacity: 0.55; }
-.tname { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.tname h3 { font-size: 15px; }
-.tload { font-size: 13px; font-variant-numeric: tabular-nums; }
-.tload b { font-size: 18px; font-weight: 750; }
-.tload .delta { margin-left: 6px; font-weight: 750; font-size: 13px; }
-.tload .delta.up { color: color-mix(in oklab, var(--info) 80%, var(--ink)); }
+.trow.past .codes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
+.trow.past .code { border: 0; cursor: pointer; padding: 2px 7px; transition: transform 0.15s, box-shadow 0.15s; }
+.trow.past .code:hover { transform: translateY(-1px); box-shadow: 0 2px 0 color-mix(in oklab, var(--c) 45%, transparent); }
+.trow.now { background: color-mix(in oklab, var(--info) 6%, var(--surface)); }
+.trow.has-violation { border-color: color-mix(in oklab, var(--bad) 45%, var(--edge)); }
+.trow.has-flag { border-color: color-mix(in oklab, var(--warn) 45%, var(--edge)); }
+.tname { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.tname h3 { font: 700 15.5px var(--display); letter-spacing: -0.01em; }
+.tload { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.tload b { display: inline-block; font: 700 20px var(--display); color: var(--ink); letter-spacing: -0.02em; transition: color 0.2s, transform 0.2s; }
+.tload.up b { color: var(--info); transform: translateY(-1px); }
+.tload.down b { color: var(--ink-3); }
+.tload .delta { margin-left: 6px; font-weight: 750; font-size: 13px; animation: rise 0.2s ease-out; }
+.tload .delta.up { color: var(--info); }
 .tload .delta.down { color: var(--ink-3); }
-.tmeter { position: relative; height: 22px; }
-.tmeter .track { position: relative; display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
-.tmeter .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ok); transition: width 0.2s; }
-.tmeter .pre { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(45deg, var(--info), var(--info) 4px, color-mix(in oklab, var(--info) 55%, transparent) 4px, color-mix(in oklab, var(--info) 55%, transparent) 8px); }
-.tmeter .pre.minus { background: var(--surface-3); outline: 1px dashed var(--ink-3); }
-.trow.has-flag .tmeter .fill { background: var(--warn); }
-.trow.has-violation .tmeter .fill { background: var(--bad); }
-.tmeter .tick { position: absolute; top: -3px; height: 14px; width: 2px; background: var(--ink-3); border-radius: 2px; }
-.tmeter .tick em { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font: 600 10.5px var(--mono); font-style: normal; color: var(--ink-3); }
-.drop-reason { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; line-height: 1.35; margin: 0; }
-.drop-reason .icon { flex: none; width: 13px; height: 13px; margin-top: 1px; }
-.trow.ok-drop .drop-reason { color: color-mix(in oklab, var(--ok) 80%, var(--ink)); }
-.trow.bad-drop .drop-reason { color: color-mix(in oklab, var(--bad) 82%, var(--ink)); font-weight: 600; }
-.trow.warn-drop .drop-reason { color: color-mix(in oklab, var(--warn) 78%, var(--ink)); }
-.trow.checking .drop-reason { color: var(--ink-3); }
-.row-issues, .tile-issues { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.ri, .ti { display: flex; gap: 6px; align-items: flex-start; font-size: 12.5px; line-height: 1.35; }
-.ri .icon, .ti .icon { flex: none; margin-top: 1px; width: 14px; height: 14px; }
-.ri.violation, .ti.violation { color: color-mix(in oklab, var(--bad) 82%, var(--ink)); font-weight: 600; }
-.ri.flag, .ti.flag { color: color-mix(in oklab, var(--warn) 78%, var(--ink)); }
-.ri.unknown, .ti.unknown { color: var(--ink-3); font-style: italic; }
-.ri .cite, .ti .cite { font: 500 11px var(--mono); color: var(--ink-3); }
-.tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-.ptile {
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 10px 6px 10px 16px; border-radius: 12px;
-  border: 1px solid var(--edge); background: var(--surface); box-shadow: var(--shadow-sm); cursor: grab;
+.tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; align-content: start; min-width: 0; }
+.drop-hint { border: 1px dashed var(--edge-strong); border-radius: 12px; padding: 18px 12px; text-align: center; color: var(--ink-3); font-size: 12.5px; grid-column: 1 / -1; }
+.add-row {
+  display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; border: 1px dashed var(--edge-strong); border-radius: 14px; background: transparent; cursor: pointer;
+  font: inherit; font-weight: 650; color: var(--ink-2); padding: 16px; transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.ptile::before { content: ''; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 4px; border-radius: 4px; background: var(--c, var(--edge-strong)); }
-.ptile.slot { border-style: dashed; background: transparent; box-shadow: none; }
-.ptile.locked { cursor: default; background: var(--surface-2); box-shadow: none; grid-template-columns: minmax(0, 1fr); }
-.ptile.has-violation { border: 2px solid var(--bad); }
-.ptile.has-flag { border: 2px dashed var(--warn); }
-.ptile.lifted { outline: 3px solid var(--info); outline-offset: 2px; transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-.ptile.dragging-src { opacity: 0.4; }
-.flag-badge {
-  position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 999px; display: grid; place-items: center;
-  background: var(--bad); color: #fff; font: 800 12px var(--mono); box-shadow: var(--shadow-sm);
+.add-row:hover { background: var(--surface); color: var(--ink); border-color: var(--edge-strong); }
+.row-enter-active { transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.row-enter-from { opacity: 0; transform: translateY(-10px) scale(0.99); }
+
+/* Credit meter: ticks at the minimum and the maximum; a pulsing segment for what a drop would add or take away */
+.cap { position: relative; padding-bottom: 16px; margin-top: 2px; }
+.cap .track { display: block; position: relative; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.cap .fill, .cap .pre { position: absolute; top: 0; bottom: 0; left: 0; transition: width 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), left 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.25s; }
+.cap .fill { border-radius: 999px; background: var(--ink-3); animation: grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.cap.ok .fill, .cap.ok .pre:not(.minus) { background: var(--ok); }
+.cap.under .fill, .cap.under .pre:not(.minus) { background: var(--warn); }
+.cap.over .fill, .cap.over .pre:not(.minus) { background: var(--bad); }
+.cap .pre { width: 0; border-radius: 0 999px 999px 0; background: var(--ok); opacity: 0.5; }
+.cap.preview .pre { animation: pre-pulse 0.9s ease-in-out infinite alternate; }
+.cap .pre.minus { background: var(--ink-3); opacity: 0.22; animation: none; }
+.cap .tick { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; border-radius: 2px; background: var(--edge-strong); }
+.cap .tick.max { background: var(--ink-3); }
+.cap .tick em { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font: 600 10.5px var(--font); font-style: normal; color: var(--ink-3); }
+@keyframes grow { from { width: 0; } }
+@keyframes pre-pulse { from { opacity: 0.35; } to { opacity: 0.75; } }
+
+/* Each row while a course is dragged: green or red with the engine's reason, shown on the row under the pointer */
+.drop-reason {
+  display: none; align-items: flex-start; gap: 6px; margin: 0; padding: 6px 10px; border-radius: 10px;
+  font-size: 12px; font-weight: 650; line-height: 1.4; background: var(--surface-2); color: var(--ink-2);
 }
-.ptile-body { display: grid; gap: 4px; min-width: 0; }
-.ptile .nm { font-weight: 600; font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
-.ptile .taken { color: color-mix(in oklab, var(--warn) 75%, var(--ink)); }
-.ptile-acts { display: flex; flex-direction: column; gap: 2px; opacity: 0; transition: opacity 0.12s; }
-.ptile:hover .ptile-acts, .ptile:focus-within .ptile-acts, .ptile.lifted .ptile-acts { opacity: 1; }
-.ptile-acts .btn.sm.icon-only { width: 28px; min-height: 26px; }
-@media (hover: none) { .ptile-acts { opacity: 1; } }
-.drop-hint { border: 1px dashed var(--edge-strong); border-radius: 12px; padding: 14px; text-align: center; color: var(--ink-3); font-size: 13px; }
-.add-row { justify-self: start; }
+.drop-reason .icon { flex: none; width: 14px; height: 14px; margin-top: 1px; }
+.trow.over .drop-reason { display: flex; animation: rise 0.2s ease-out; }
+.trow.checking .drop-reason .icon { animation: spin 0.9s linear infinite; }
+.trow.ok-drop, .tray.ok-drop { border-color: color-mix(in oklab, var(--ok) 40%, var(--edge)); background: color-mix(in oklab, var(--ok) 3%, var(--surface)); box-shadow: 0 0 0 2px color-mix(in oklab, var(--ok) 22%, transparent); }
+.trow.warn-drop { border-color: color-mix(in oklab, var(--warn) 45%, var(--edge)); box-shadow: 0 0 0 2px color-mix(in oklab, var(--warn) 20%, transparent); }
+.trow.bad-drop { border-color: color-mix(in oklab, var(--bad) 35%, var(--edge)); box-shadow: 0 0 0 2px color-mix(in oklab, var(--bad) 18%, transparent); }
+.trow.over.ok-drop, .tray.over.ok-drop { background: color-mix(in oklab, var(--ok) 6%, var(--surface)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ok) 30%, transparent), var(--shadow-lg); }
+.trow.over.warn-drop { background: color-mix(in oklab, var(--warn) 6%, var(--surface)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--warn) 28%, transparent), var(--shadow-lg); }
+.trow.over.bad-drop { background: color-mix(in oklab, var(--bad) 5%, var(--surface)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--bad) 28%, transparent), var(--shadow-lg); }
+.trow.ok-drop .drop-reason, .tray.ok-drop .drop-reason { background: color-mix(in oklab, var(--ok) 14%, var(--surface)); color: color-mix(in oklab, var(--ok) 80%, var(--ink)); }
+.trow.warn-drop .drop-reason { background: color-mix(in oklab, var(--warn) 14%, var(--surface)); color: color-mix(in oklab, var(--warn) 78%, var(--ink)); }
+.trow.bad-drop .drop-reason { background: color-mix(in oklab, var(--bad) 12%, var(--surface)); color: color-mix(in oklab, var(--bad) 85%, var(--ink)); }
+.trow.home { opacity: 0.85; }
+.trow.stale .tload, .trow.stale .cap, .trow.stale .row-issues { opacity: 0.55; }
+@keyframes rise { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* A term's own issues: a short title each, the words in the tooltip */
+.row-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.ri { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 12px; font-weight: 650; cursor: help; }
+.ri .icon { width: 13px; height: 13px; }
+.ri.violation { background: color-mix(in oklab, var(--bad) 12%, var(--surface)); color: color-mix(in oklab, var(--bad) 82%, var(--ink)); }
+.ri.flag { background: color-mix(in oklab, var(--warn) 14%, var(--surface)); color: color-mix(in oklab, var(--warn) 76%, var(--ink)); }
+.ri.unknown { background: transparent; border: 1px dashed var(--edge-strong); color: var(--ink-3); }
+
+/* The bin: drop a placed course on it to send it back to the course list */
+.drop-bin {
+  position: fixed; left: 50%; bottom: 24px; z-index: 96; transform: translateX(-50%); display: flex; align-items: center; gap: 12px;
+  padding: 12px 22px 12px 12px; border-radius: 18px; background: var(--surface); border: 2px dashed var(--edge-strong); box-shadow: var(--shadow-lg);
+  color: var(--ink-2); transition: transform 0.22s cubic-bezier(0.3, 1.4, 0.5, 1), background 0.2s, border-color 0.2s, color 0.2s;
+}
+.drop-bin .ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--surface-2); color: var(--ink-2); transition: background 0.2s, color 0.2s; }
+.drop-bin b { display: block; font-size: 14.5px; color: var(--ink); }
+.drop-bin small { display: block; font-size: 12px; color: var(--ink-3); }
+.drop-bin.over { transform: translateX(-50%) scale(1.08); border-color: var(--bad); border-style: solid; background: color-mix(in oklab, var(--bad) 8%, var(--surface)); }
+.drop-bin.over .ic { background: var(--bad); color: #fff; animation: wiggle 0.5s ease-in-out; }
+.drop-bin.over b { color: color-mix(in oklab, var(--bad) 85%, var(--ink)); }
+.bin-enter-active, .bin-leave-active { transition: opacity 0.22s, transform 0.28s cubic-bezier(0.3, 1.3, 0.5, 1); }
+.bin-enter-from, .bin-leave-to { opacity: 0; transform: translate(-50%, 40px) scale(0.9); }
+@keyframes wiggle { 20% { transform: rotate(-12deg); } 40% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } 80% { transform: rotate(3deg); } }
+@keyframes badge-in { from { transform: scale(0); } }
+
 .num { font-weight: 750; font-variant-numeric: tabular-nums; }
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .planner-layout, .planner-layout.rail-mini { grid-template-columns: minmax(0, 1fr); }
-  .planner-layout .issues-panel { position: static; max-height: none; }
+  .planner-layout .issues-panel { position: static; max-height: none; order: -1; }
 }
 @media (max-width: 760px) {
-  .trow { grid-template-columns: minmax(0, 1fr); }
+  .trow { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; }
 }
 @media (max-width: 620px) {
-  .tiles { grid-template-columns: 1fr; }
+  .tiles, .tray-list { grid-template-columns: 1fr; }
   .tray-tools .add-to { flex: 1 1 100%; }
   .planner-page .kbd-hint { white-space: normal; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .trow, .tmeter .fill, .ptile-acts, .planner-layout { transition: none; }
+  .drop-bin { bottom: 16px; }
 }
 </style>

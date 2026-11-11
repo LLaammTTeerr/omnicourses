@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RouterView } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { PlanIssues, PlanTerm } from './api.js';
 import { course, CURRICULUM, ELECTIVE_GROUP, issue, OTHER_ID, plan, PLAN_ID, report, summary } from './testing/fixtures.js';
@@ -93,6 +94,26 @@ const rowCodes = (w: VueWrapper) =>
 const row = (w: VueWrapper, key: string) => w.get(`[data-test="term-${key}"]`);
 const tile = (w: VueWrapper, code: string) => w.get(`[data-test="tile-${code}"]`);
 
+// The pointer drag (drag.ts): press, move over a target, release. jsdom lays nothing out, so `elementFromPoint`
+// answers with the element the test points at.
+let under: Element | null = null;
+Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => under });
+const pointer = (type: string, x: number) => new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 300, button: 0 });
+async function press(from: { element: Element }): Promise<void> {
+  under = null;
+  from.element.dispatchEvent(pointer('pointerdown', 10));
+  await flushPromises();
+}
+async function hover(target: { element: Element } | null): Promise<void> {
+  under = target?.element ?? null;
+  window.dispatchEvent(pointer('pointermove', 60));
+  await flushPromises();
+}
+async function release(): Promise<void> {
+  window.dispatchEvent(pointer('pointerup', 60));
+  await flushPromises();
+}
+
 describe('PlanEditorView (F5, UC-05)', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -134,9 +155,17 @@ describe('PlanEditorView (F5, UC-05)', () => {
     // The list holds the issues about a term or a course, each with a short title; the group still short is counted
     // under the coverage and shown in the status strip.
     expect(panel.get('[data-test="issue-counts"]').text()).toBe('1 vi phạm1 cần xem lại1 chưa ghi nhận');
-    expect(panel.findAll('[data-test="issue-violation"]').map((li) => li.text())).toEqual([
-      'Vi phạm: Thiếu môn tiên quyếtZZ102 cần học xong ZZ101 ở một học kỳ trước.HK1 2026–2027 · Nguồn: QĐ 1175/QĐ-KHTN Điều 3.1.c',
-    ]);
+    const card = panel.get('[data-test="issue-violation"]');
+    expect(panel.findAll('[data-test="issue-violation"]')).toHaveLength(1);
+    expect(card.get('b').text()).toBe('Vi phạm: Thiếu môn tiên quyết');
+    expect(card.get('[data-test="issue-text"]').text()).toBe('ZZ102 cần học xong ZZ101 ở một học kỳ trước.');
+    expect(card.get('.vfoot .chip').text()).toBe('HK1 2026–2027');
+    // The source: a link to the regulation, labelled by its clause, the whole citation in its title and for readers.
+    const source = card.get('[data-test="citation"]');
+    expect(source.attributes('href')).toContain('Quy-che-dao-tao');
+    expect(source.attributes('title')).toBe('Mở quy chế: QĐ 1175/QĐ-KHTN Điều 3.1.c');
+    expect(source.text()).toBe('Nguồn: QĐ 1175/QĐ-KHTN Điều 3.1.cĐiều 3.1.c');
+    expect(card.get('[data-test="go-to"]').text()).toBe('Đến môn');
     expect(panel.get('[data-test="groups-short"]').text()).toBe('1 nhóm còn thiếu');
     const strip = w.get('[data-test="status-strip"]');
     expect(strip.get('[data-test="estimate"]').text()).toBe('Chưa hợp lệ · 1 vi phạmChưa đủ để tốt nghiệp');
@@ -166,7 +195,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
     });
     const term = row(w, '2026-1');
     expect(term.get('[data-test="load"]').text()).toBe('Ít nhất 4 TC · 10–22 TC');
-    expect(term.get('[data-test="row-issue-unknown"]').text()).toBe(
+    expect(term.get('[data-test="row-issue-unknown"] .sr-only').text()).toBe(
       'Chưa ghi nhận: Có môn chưa rõ số tín chỉ, nên học kỳ này có ít nhất 4 TC; chưa kiểm tra giới hạn tín chỉ. QĐ 1175/QĐ-KHTN Điều 7.2',
     );
     expect(tile(w, 'ZZ101').get('[data-test="tile-issue-flag"]').text()).toContain(
@@ -179,7 +208,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.find('[data-test="load"]').exists()).toBe(false);
     expect(w.find('.tmeter').exists()).toBe(false);
     expect(w.findAll('.has-violation, .has-flag')).toHaveLength(0);
-    expect(w.get('[data-test="no-issues"]').text()).toBe('Rule engine không thấy vấn đề nào.');
+    expect(w.get('[data-test="no-issues"]').text()).toBe('Không có vi phạmRule engine không thấy vấn đề nào.');
   });
 
   it('adds a course found by search to the chosen term, saves the board and checks it again', async () => {
@@ -190,7 +219,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.findAll('[data-test="in-transcript"]')).toHaveLength(1);
     await w.get('#course-search').setValue('giai thuat');
     expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual(['ZZ201']);
-    await w.get('[data-test="add-to"]').setValue('2026-2');
+    await chooseOption(w.get('[data-test="add-to"]'), 'HK2 2026–2027');
     await w.get('[data-test="add-ZZ201"]').trigger('click');
     await flushPromises();
     expect(sent).toEqual([
@@ -256,16 +285,46 @@ describe('PlanEditorView (F5, UC-05)', () => {
 
   it('places a course dragged from the list, and removes a tile dragged back to it', async () => {
     const { w, sent } = await render();
-    await w.get('[data-test="pool-ZZ414"]').trigger('dragstart');
-    await row(w, '2027-1').trigger('dragover');
-    await row(w, '2027-1').trigger('drop');
-    await flushPromises();
+    await press(w.get('[data-test="pool-ZZ414"]'));
+    await hover(row(w, '2027-1'));
+    // The course left behind fades; the row under the pointer shows where it would land.
+    expect(w.get('[data-test="pool-ZZ414"]').classes()).toContain('dragging-src');
+    expect(row(w, '2027-1').get('[data-test="placeholder"]').text()).toBe('ZZ414+4 TC');
+    // A course from the list has nowhere to go back to: no bin.
+    expect(w.find('[data-test="drop-bin"]').exists()).toBe(false);
+    await release();
     expect(rowCodes(w)[3]).toBe('HK1 2027–2028: ZZ414');
-    await tile(w, 'ZZ414').trigger('dragstart');
-    await w.get('[data-test="tray"]').trigger('drop');
-    await flushPromises();
+    await press(tile(w, 'ZZ414'));
+    await hover(null);
+    await hover(w.get('[data-test="tray"]'));
+    await release();
     expect(rowCodes(w)[3]).toBe('HK1 2027–2028:');
     expect(sent).toHaveLength(2);
+    expect(document.querySelector('.ghost-tile')).toBeNull();
+  });
+
+  it('sends a placed course back to the list when it is dropped on the bin that shows while it is held', async () => {
+    const { w, sent } = await render();
+    await press(tile(w, 'ZZ102'));
+    expect(w.find('[data-test="drop-bin"]').exists()).toBe(false);
+    await hover(null);
+    await hover(w.get('[data-test="drop-bin"]'));
+    expect(w.get('[data-test="drop-bin"]').classes()).toContain('over');
+    await release();
+    expect(rowCodes(w)[0]).toBe('HK1 2026–2027: ZZ101');
+    expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toContain('ZZ102');
+    expect(w.find('[data-test="drop-bin"]').exists()).toBe(false);
+    expect(sent).toHaveLength(1);
+  });
+
+  it('puts a course back where it was when it is released over nothing', async () => {
+    const { w, sent } = await render();
+    await press(tile(w, 'ZZ101'));
+    await hover(null);
+    await release();
+    expect(rowCodes(w)[0]).toBe('HK1 2026–2027: ZZ101 ZZ102');
+    expect(sent).toHaveLength(0);
+    expect(document.body.classList.contains('dragging')).toBe(false);
   });
 
   it('marks the issues as being re-checked until the new report arrives', async () => {
@@ -331,6 +390,26 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(rowCodes(w).at(-1)).toBe('HK3 2027–2028:');
     expect(sent).toHaveLength(0);
     expect(w.find('[data-test="checking"]').exists()).toBe(false);
+  });
+
+  it('scrolls the page by the height of a term it adds, so the button stays under the pointer', async () => {
+    const { w } = await render();
+    const button = w.get('[data-test="add-row"]');
+    const tops = [500, 620];
+    button.element.getBoundingClientRect = () => ({ top: tops.shift() ?? 620 }) as DOMRect;
+    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
+    await button.trigger('click');
+    await flushPromises();
+    expect(scroll).toHaveBeenCalledWith(expect.objectContaining({ top: 120 }));
+  });
+
+  it('takes the student from an issue to its course, which glows and takes the focus', async () => {
+    const { w } = await render();
+    await w.get('[data-test="issue-violation"] [data-test="go-to"]').trigger('click');
+    await flushPromises();
+    const zz102 = tile(w, 'ZZ102');
+    expect(document.activeElement).toBe(zz102.element);
+    expect(zz102.classes()).toContain('flash');
   });
 
   it('never writes this plan’s board into another plan opened in the same editor', async () => {
@@ -731,8 +810,8 @@ describe('PlanEditorView (F5, UC-05)', () => {
           });
         },
       });
-      await w.get('[data-test="pool-ZZ201"]').trigger('dragstart');
-      await flushPromises();
+      await press(w.get('[data-test="pool-ZZ201"]'));
+      await hover(null);
       // One check per row, none saved.
       expect(previewed.map((terms) => `${termOf(terms, 'ZZ201')!.year}-${termOf(terms, 'ZZ201')!.number}`)).toEqual(['2026-1', '2026-2', '2026-3', '2027-1', '2027-2']);
       expect(sent).toHaveLength(0);
@@ -744,14 +823,16 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(row(w, '2026-1').get('[data-test="drop-reason"]').text()).toBe('Hợp lệ · 11/22 tín chỉ');
 
       // Over a row: every row shows the load of the board with the drop made, and the panel previews the change.
-      await row(w, '2026-2').trigger('dragover');
+      await hover(row(w, '2026-2'));
       expect(row(w, '2026-2').get('[data-test="load-delta"]').text()).toBe('+3');
       expect(w.get('[data-test="issues-preview"]').text()).toBe('Xem trước: ZZ201 → HK2 2026–2027 · thêm 1 vi phạm' + 'Không mở ở học kỳ nàyZZ201 không mở ở HK2; chỉ mở HK1, 3.');
 
       // The drop is still the student's choice: a rule broken is reported, never refused (ADR 0012).
-      await row(w, '2026-2').trigger('drop');
-      await flushPromises();
+      await release();
       expect(rowCodes(w)[1]).toBe('HK2 2026–2027: ZZ201');
+      // It lands, then shakes once: the rule it breaks is in the panel.
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      expect(tile(w, 'ZZ201').classes()).toContain('shake');
       expect(w.find('.bad-drop').exists()).toBe(false);
       expect(w.find('[data-test="issues-preview"]').exists()).toBe(false);
     });
@@ -798,6 +879,10 @@ describe('PlanEditorView (F5, UC-05)', () => {
       // Passed (ZZ414) and in progress (ZZ201) are not offered again; the course failed before shows its grade.
       expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual([]);
       expect(tile(w, 'ZZ102').get('[data-test="tile-taken"]').text()).toBe('Đã học trước · điểm 3,5');
+      // Each course taken is a tag that opens it in the curriculum explorer.
+      await past.get('[data-test="past-ZZ414"]').trigger('click');
+      await flushPromises();
+      expect(w.vm.$router.currentRoute.value).toMatchObject({ name: 'explorer', query: { course: 'ZZ414' } });
     });
 
     it('labels each tile with its group, badges one with a violation, and filters the tray by group', async () => {

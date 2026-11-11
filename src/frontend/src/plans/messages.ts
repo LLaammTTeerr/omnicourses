@@ -74,6 +74,19 @@ interface PlannerMessages {
   noMatch: string;
   inTranscript: string;
   dropToRemove: string;
+  /** The bin shown while a placed course is dragged: dropped there, it goes back to the course list. */
+  binLabel: string;
+  binHint: string;
+  /** The jump from an issue to its course on the board. */
+  goTo: string;
+  /** A citation that links to the regulation, as a short label and its tooltip. */
+  sourceTitle: (citation: string) => string;
+  issuesSub: string;
+  noIssuesTitle: string;
+  newTag: string;
+  goneTag: string;
+  /** A passed course in the "Taken" strip opens the curriculum explorer at it. */
+  showInExplorer: (code: string) => string;
   dropHere: string;
   addTerm: (term: string) => string;
   termsLabel: string;
@@ -223,6 +236,15 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     noMatch: 'Không có môn nào khớp.',
     inTranscript: 'Trong bảng điểm',
     dropToRemove: 'Thả một môn vào đây để bỏ khỏi kế hoạch.',
+    binLabel: 'Bỏ khỏi lộ trình',
+    binHint: 'Thả vào đây, môn quay về danh sách học phần',
+    goTo: 'Đến môn',
+    sourceTitle: (c) => `Mở quy chế: ${c}`,
+    issuesSub: 'Cập nhật ngay khi bạn kéo thả.',
+    noIssuesTitle: 'Không có vi phạm',
+    newTag: 'Mới',
+    goneTag: 'Sẽ hết',
+    showInExplorer: (c) => `Xem ${c} trong chương trình đào tạo`,
     dropHere: 'Thả môn vào đây',
     addTerm: (term) => `Thêm ${term}`,
     termsLabel: 'Các học kỳ',
@@ -397,6 +419,15 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     noMatch: 'No course matches.',
     inTranscript: 'In your transcript',
     dropToRemove: 'Drop a course here to remove it from the plan.',
+    binLabel: 'Remove from the plan',
+    binHint: 'Drop here and the course goes back to the course list',
+    goTo: 'Go to course',
+    sourceTitle: (c) => `Open the regulation: ${c}`,
+    issuesSub: 'Updates as you drag and drop.',
+    noIssuesTitle: 'No violations',
+    newTag: 'New',
+    goneTag: 'Goes away',
+    showInExplorer: (c) => `Show ${c} in the curriculum`,
     dropHere: 'Drop a course here',
     addTerm: (term) => `Add ${term}`,
     termsLabel: 'Terms',
