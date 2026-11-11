@@ -136,6 +136,16 @@ describe('plan requests', () => {
     for (const [, init] of fetch.mock.calls) expect(init).toMatchObject({ headers: { Authorization: 'Bearer zz-token' } });
   });
 
+  it('lets a drag preview be cancelled with its signal', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
+    const controller = new AbortController();
+    await previewPlanIssues('zz-token', PLAN_ID, [], controller.signal);
+    const signal = fetch.mock.calls[0]![1]!.signal!;
+    expect(signal.aborted).toBe(false);
+    controller.abort();
+    expect(signal.aborted).toBe(true);
+  });
+
   it('escapes the id in the path', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
     await fetchPlan('zz-token', 'a/b');

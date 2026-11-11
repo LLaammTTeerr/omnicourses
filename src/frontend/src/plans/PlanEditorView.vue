@@ -148,6 +148,7 @@ async function save(): Promise<void> {
   } catch (e) {
     if (mine !== opened) return;
     animate(() => (board.value = saved.value));
+    forgetUnsaved();
     // A lifted tile's target row may be gone, or the tile may be back in another row.
     lifted.value = null;
     const code = statusOf(e);
@@ -182,6 +183,19 @@ function change(next: Board, said?: string, undoing = false): void {
   saveError.value = null;
   if (said) announce(said);
   void save();
+}
+
+/**
+ * After a failed save the board is back at the last saved one: the changes made since are gone, so Undo forgets them
+ * too. They are the newest entries, down to the one that holds the saved board.
+ */
+function forgetUnsaved(): void {
+  const kept = [...history.value];
+  while (kept.length) {
+    const last = kept.pop()!;
+    if (sameTiles(last.board, saved.value)) break;
+  }
+  history.value = kept;
 }
 
 function undo(): void {

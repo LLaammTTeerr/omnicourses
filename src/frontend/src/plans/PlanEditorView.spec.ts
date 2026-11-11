@@ -657,6 +657,34 @@ describe('PlanEditorView (F5, UC-05)', () => {
       editable.remove();
     });
 
+    it('forgets a change that could not be saved, so Undo goes back to a change that was kept', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      let fail = false;
+      const { w, sent } = await render({
+        routes: {
+          [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+            const { terms } = sentBody(init) as { terms: PlanTerm[] };
+            if (fail) return new Response(null, { status: 503 });
+            sent.push(terms);
+            return Response.json(plan(terms));
+          },
+        },
+      });
+      await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+      await flushPromises();
+      fail = true;
+      await tile(w, 'ZZ102').get('[data-test="later"]').trigger('click');
+      await flushPromises();
+      expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ102', 'HK2 2026–2027: ZZ101']);
+
+      fail = false;
+      await w.get('[data-test="undo"]').trigger('click');
+      await flushPromises();
+      expect(w.get('[data-test="announcer"]').text()).toBe('Đã hoàn tác: Đã chuyển ZZ101 tới HK2 2026–2027.');
+      expect(sent.at(-1)).toEqual(SAVED);
+      expect(w.get('[data-test="undo"]').attributes('disabled')).toBeDefined();
+    });
+
     it('collapses the issues panel, and keeps it collapsed on the next visit', async () => {
       const first = await render();
       const toggle = first.w.get('[data-test="issues-toggle"]');
