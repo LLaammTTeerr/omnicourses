@@ -29,9 +29,10 @@ const m = useMessages(PLANNER_MESSAGES);
 const issues = computed(() => props.attached?.report.issues ?? []);
 const placed = computed(() => issues.value.filter((issue) => issue.term !== null));
 const ofKind = (kind: PlanIssueKind) => placed.value.filter((issue) => issue.kind === kind);
-const short = computed(() => issues.value.filter((issue) => issue.term === null && issue.kind === 'violation').length);
 const where = (issue: PlanIssue) => (issue.term ? termName(issue.term, locale.lang) : m.value.wholePlan);
 const coverage = computed(() => props.attached?.report.coverage ?? null);
+/** Groups and combined minimums the engine finds short; the cohort total shows beside them on its own. */
+const short = computed(() => [...(coverage.value?.groups ?? []), ...(coverage.value?.combinedMinimums ?? [])].filter((g) => !g.met).length);
 const tileOf = (issue: PlanIssue) => props.attached?.tileOf.get(issue);
 
 /** An issue's identity across two reports: its code, course and term (positions move when a tile does). */

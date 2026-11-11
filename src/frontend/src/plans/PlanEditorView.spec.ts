@@ -546,6 +546,16 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(useAuth().signedIn).toBe(false);
   });
   describe('the prototype gaps (#89)', () => {
+    it('counts only the groups still short, not a cohort total still short', async () => {
+      // Every group met, the cohort total 12 credits short: the total shows beside the coverage, and no group is short.
+      const totalShort = report({
+        issues: [issue({ code: 'requirement_not_covered', kind: 'violation', credits: 8, limit: 20, citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.b' })],
+        coverage: { ...REPORT.coverage, groups: [{ ...REPORT.coverage.groups[0]!, credits: 4, remainingCredits: 0, met: true }] },
+      });
+      const { w } = await render({ reports: [totalShort] });
+      expect(w.find('[data-test="groups-short"]').exists()).toBe(false);
+    });
+
     const t1 = { year: 2026, number: 1 } as const;
     const t2 = { year: 2026, number: 2 } as const;
     const termOf = (terms: PlanTerm[], code: string) => terms.find((t) => t.placements.some((p) => p.courseCode === code))?.term;
