@@ -13,15 +13,15 @@ Course project, Elements of Software Engineering, 5 Oct – 13 Dec 2026. The rep
 
 **To try it:** open the sign-in page and follow *Create an account*. Any email works, since there is no email verification step yet. Then onboard with **APCS, cohort 2024 or 2025**, the curricula seeded so far. Enter made-up courses and grades only, never your real transcript. For a ready-made demo account, ask the Project Lead; no shared password is published here, because this repository is public.
 
-Feature status as of 2026-11-10. Feature numbers and names follow the [Vision](report/assignments/PA2/Vision.tex).
+Feature status as of 2026-11-11. Feature numbers and names follow the [Vision](report/assignments/PA2/Vision.tex).
 
 | Feature                           | Status          | Notes                                                                                                                  |
 | --------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | F1 Account and onboarding         | Live            | Sign-up, sign-in, onboarding (program, cohort, goals) and settings, including account export and deletion             |
 | F2 Transcript import              | Live            | Courses are entered by hand; the deterministic PDF reader comes in a later release                                     |
-| F3 Degree audit dashboard         | Live (API)      | `GET /api/users/me/audit` from the rule engine; the dashboard and audit screens are in review in #79                   |
+| F3 Degree audit dashboard         | Live            | Dashboard and degree audit screens (#79), from the rule engine's `GET /api/users/me/audit`                             |
 | F4 Curriculum explorer            | Live            | Programs, a cohort's requirement groups and courses                                                                    |
-| F5 Semester roadmap planner       | Live            | Plans list, plan editor and plan checks from the rule engine (#78, #80); a dialog fix is in review in #81              |
+| F5 Semester roadmap planner       | Live            | Plans list, plan editor and plan checks from the rule engine (#78, #80, #81)                                           |
 | F6 AI plan generator              | Planned         |                                                                                                                        |
 | F7 What-if simulator              | Planned         |                                                                                                                        |
 | F8 AI academic advisor chat       | In review #77   | The advisor API with its topic gate and answer guard; the chat screen is planned                                      |
