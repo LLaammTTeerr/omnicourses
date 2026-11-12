@@ -157,6 +157,7 @@ interface PlannerMessages {
   takenBefore: (grade: string) => string;
   // Drag preview and the issues panel
   dropChecking: string;
+  dropFailed: string;
   /** A drop the engine could not fully check: never worded as a pass (#80). */
   dropUnknown: (what: string) => string;
   previewOf: (code: string, term: string) => string;
@@ -324,6 +325,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     locked: 'Đang học, không đổi được',
     takenBefore: (g) => `Đã học trước · điểm ${g}`,
     dropChecking: 'Đang kiểm tra…',
+    dropFailed: 'Không xem trước được. Trỏ vào hàng này để thử lại.',
     dropUnknown: (what) => `Chưa kiểm tra được: ${what}`,
     previewOf: (c, term) => `Xem trước: ${c} → ${term}`,
     previewDelta: (d) => {
@@ -519,6 +521,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     locked: 'In progress, cannot be moved',
     takenBefore: (g) => `Taken before · grade ${g}`,
     dropChecking: 'Checking…',
+    dropFailed: 'No preview. Point at this row to try again.',
     dropUnknown: (what) => `Not checked: ${what}`,
     previewOf: (c, term) => `Preview: ${c} → ${term}`,
     previewDelta: (d) => {

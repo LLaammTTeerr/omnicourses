@@ -119,6 +119,8 @@ function retryCheck(): void {
 const fresh = computed(() => issues.value !== null && sameTiles(issues.value.board, board.value));
 
 // ---------- Saving ----------
+/** How long a save waits after each 429 before sending again; after the last one it fails as any error does. */
+const SAVE_RETRY_MS = [2000, 5000, 10000];
 const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
 const saveError = ref<string | null>(null);
 
@@ -133,6 +135,7 @@ async function save(): Promise<void> {
   if (mine.saving) return;
   mine.saving = true;
   saveState.value = 'saving';
+  let waits = 0;
   try {
     for (;;) {
       const sending = board.value;
@@ -144,7 +147,17 @@ async function save(): Promise<void> {
       // drop it. The loop checks again when it ends.
       ++checkCall;
       if (issuesStatus.value === 'loading') issuesStatus.value = 'idle';
-      const updated = await auth.authed((token) => savePlacements(token, mine.id, boardBody(sending)));
+      let updated: Plan;
+      try {
+        updated = await auth.authed((token) => savePlacements(token, mine.id, boardBody(sending)));
+      } catch (e) {
+        // 429: too many requests, not a refusal. Keep the board, wait, and send the board on screen again.
+        if (statusOf(e) !== 429 || waits >= SAVE_RETRY_MS.length) throw e;
+        await new Promise((resolve) => setTimeout(resolve, SAVE_RETRY_MS[waits++]));
+        if (mine !== opened) return;
+        continue;
+      }
+      waits = 0;
       if (mine !== opened) return;
       plan.value = updated;
       saved.value = sending;
@@ -551,7 +564,9 @@ function dropOf(key: string): RowView['drop'] {
   const p = previews.value.get(key);
   if (!p) return null;
   if (p.status === 'loading') return { tone: 'checking', reason: m.value.dropChecking };
-  if (p.status === 'failed' || !p.verdict) return null;
+  // No colour would read as "no problem": say the preview is missing. Pointing at the row asks again.
+  if (p.status === 'failed') return { tone: 'failed-drop', reason: m.value.dropFailed };
+  if (!p.verdict) return null;
   const v = p.verdict;
   // A load against the caps is shown by the bar alone; only another rule gets words.
   const first = v.issues.find((i) => !BAR_CODES.has(i.code));
@@ -1106,7 +1121,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span class="tick max" :style="{ left: `${row.meter.max}%` }"><em>{{ row.meter.maxLabel }}</em></span>
                 </div>
                 <p v-if="row.drop?.reason" class="drop-reason" data-test="drop-reason">
-                  <Icon :name="row.drop.tone === 'ok-drop' ? 'check' : row.drop.tone === 'checking' ? 'refresh' : row.drop.tone === 'unknown-drop' ? 'info' : 'alert'" size="sm" /><span>{{ row.drop.reason }}</span>
+                  <Icon :name="row.drop.tone === 'ok-drop' ? 'check' : row.drop.tone === 'checking' || row.drop.tone === 'failed-drop' ? 'refresh' : row.drop.tone === 'unknown-drop' ? 'info' : 'alert'" size="sm" /><span>{{ row.drop.reason }}</span>
                 </p>
                 <ul v-if="row.issues.length" class="row-issues">
                   <li
@@ -1414,6 +1429,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .trow.unknown-drop .drop-reason { background: color-mix(in oklab, var(--info) 12%, var(--surface)); color: color-mix(in oklab, var(--info) 80%, var(--ink)); }
 .trow.bad-drop .drop-reason { background: color-mix(in oklab, var(--bad) 12%, var(--surface)); color: color-mix(in oklab, var(--bad) 85%, var(--ink)); }
 .trow.home { opacity: 0.85; }
+.trow.failed-drop .drop-reason { background: var(--surface-2); color: var(--ink-3); }
 .trow.stale .tload, .trow.stale .cap, .trow.stale .row-issues { opacity: 0.55; }
 @keyframes rise { from { opacity: 0; transform: translateY(-4px); } }
 @keyframes spin { to { transform: rotate(360deg); } }

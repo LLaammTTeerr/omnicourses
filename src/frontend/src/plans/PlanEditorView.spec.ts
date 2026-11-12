@@ -378,6 +378,33 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.get('[data-test="save-state"]').text()).toBe('Chưa lưu');
   });
 
+  it('keeps the board and sends it again when a save is rate limited (429), never putting the change back', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
+    vi.setSystemTime(NOW);
+    let puts = 0;
+    const { w, sent } = await render({
+      routes: {
+        [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+          const { terms } = sentBody(init) as { terms: PlanTerm[] };
+          sent.push(terms);
+          return ++puts <= 2 ? new Response(null, { status: 429 }) : Response.json(plan(terms));
+        },
+      },
+    });
+    await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+    await flushPromises();
+    expect(sent).toHaveLength(1);
+    expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ102', 'HK2 2026–2027: ZZ101']);
+    expect(w.get('[data-test="save-state"]').text()).not.toBe('Chưa lưu');
+    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(5000);
+    await flushPromises();
+    expect(sent).toHaveLength(3);
+    expect(sent[2]).toEqual(sent[0]);
+    expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ102', 'HK2 2026–2027: ZZ101']);
+    expect(w.find('[data-test="save-error"]').exists()).toBe(false);
+  });
+
   it('shows the server’s reason when it refuses a board (400)', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render({ routes: { [`PUT /plans/${PLAN_ID}/placements`]: status(400, { message: ['courseCode is not in the catalog'] }) } });
@@ -1043,6 +1070,9 @@ describe('PlanEditorView (F5, UC-05)', () => {
       const { w, previewed } = await render({ previews: () => (busy ? 429 : report()) });
       await press(w.get('[data-test="pool-ZZ201"]'));
       await hover(null);
+      // No colour would read as "no problem": the row says its preview is missing.
+      expect(row(w, '2026-2').classes()).toContain('failed-drop');
+      expect(row(w, '2026-2').get('[data-test="drop-reason"]').text()).toBe('Không xem trước được. Trỏ vào hàng này để thử lại.');
       const first = previewed.length;
       busy = false;
       await hover(row(w, '2026-2'));
