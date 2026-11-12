@@ -120,7 +120,8 @@ export function structuredFrom(text: string, engineFacts: string[] = []): ModelA
   }
   const passageIds = [...new Set([...text.matchAll(/\[\[([^\]]{0,120})\]\]/g)].map((m) => m[1].trim()))].slice(0, 5);
   const explanation = rest.replace(/\s+/g, ' ').trim();
-  return { refusal, passageIds, engineFacts, explanation: /\p{L}/u.test(explanation.replace(/\[\[[^\]]*\]\]/g, '')) ? explanation : null };
+  // Only a reply of citations and punctuation has no explanation; an emoji or a symbol is one (b2-09).
+  return { refusal, passageIds, engineFacts, explanation: /[^\s\p{P}]/u.test(explanation.replace(/\[\[[^\]]*\]\]/g, '')) ? explanation : null };
 }
 
 /** The model's final message for an answer. */

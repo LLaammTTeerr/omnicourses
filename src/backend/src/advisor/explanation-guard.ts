@@ -24,7 +24,8 @@ import { cleanInput, fold, lower, words } from './retrieval/text.js';
 // - a word about secrets, identity data, contact channels or acting (password, OTP, MSSV, Zalo,
 //   registered…);
 // - the internal marker, an 8-word run of the system prompt, or a tool name;
-// - a sentence with no word the regulation or the handbook knows (a poem, a joke);
+// - a sentence with no word the regulation or the handbook knows (a poem, a joke), or a function word
+//   of another language (the lists above read English and Vietnamese only);
 // - more than 600 characters or 4 sentences, or a citation of a passage the answer does not show.
 // A rejected explanation is dropped; the passages and facts the answer picked are still shown.
 
@@ -42,6 +43,7 @@ export type ExplanationReason =
   | 'time'
   | 'credential'
   | 'action'
+  | 'language'
   | 'off_topic';
 
 export interface ExplanationInput {
@@ -91,7 +93,22 @@ const QUOTATION = /["“”„«»「」『』‹›＂‘‚]|(?:^|[\s(])'(?=\p
 /** Letters, combining marks, digits (reported as numbers), spaces and plain punctuation only. */
 const MARKUP = /[^\p{L}\p{M}\p{N}\s.,;:!?()'’\-–—]/u;
 /** A chat role label ("SYSTEM:", "assistant :") at the start of a sentence: text written to pass for another speaker. */
-const ROLE_LABEL = /(?:^|[.!?]\s+)(?:system|assistant|developer|user|tool|human|ai|hệ thống|trợ lý)\s*:/iu;
+const ROLE_LABEL = /(?<![\p{L}\p{N}])(?:system|assistant|developer|user|tool|human|ai|hệ thống|trợ lý)\s*:/iu;
+/**
+ * The answer is in Vietnamese or English: a function word of another Latin-script language (French,
+ * Spanish, Portuguese, Italian, German, Dutch, Indonesian), matched as written, means the explanation
+ * is in a language the person, claim and time lists do not read. Words that are also English or
+ * Vietnamese (die, do, as, con, la, le, tu, em, ton, para, mit…) are left out.
+ */
+const FOREIGN = words$([
+  'est', 'es', 'au', 'sont', 'vous', 'nous', 'les', 'des', 'une', 'avec', 'pour', 'dans', 'pas', 'cette', 'peut', 'êtes', 'tes', 'votre', 'mais', 'aux', 'qui',
+  'el', 'los', 'las', 'usted', 'ustedes', 'puede', 'puedes', 'está', 'eres', 'pero', 'del', 'una', 'tú', 'ya', 'también',
+  'você', 'não', 'pode', 'são', 'uma', 'muito', 'já',
+  'il', 'della', 'sei', 'puoi', 'anche', 'molto', 'perché', 'è',
+  'der', 'das', 'und', 'ist', 'nicht', 'für', 'ein', 'eine', 'dich', 'dir', 'darfst', 'kannst', 'bist', 'sind', 'auch',
+  'het', 'een', 'niet', 'je', 'jij', 'kunt',
+  'anda', 'kamu', 'tidak', 'bisa', 'yang', 'sudah', 'boleh',
+]);
 const HOST = /(?<![\p{L}\p{N}])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?[.。．｡](?=[\p{L}\p{N}]))+\p{L}[\p{L}\p{N}-]*/gu;
 const NOT_A_HOST = new Set(['e.g', 'i.e', 'tp.hcm', 'v.v', 'th.s', 'pgs.ts', 'gs.ts', 'a.m', 'p.m', 'đhqg-hcm']);
 const DEFANGED_HOST = words$(['dot (?:com|vn|net|org|edu|io|me|site|top|xyz|info|app|link)', 'chấm (?:com|vn|net|org|edu)', 'cham (?:com|vn|net|org|edu)', 'www', 'https?', 'hxxps?']);
@@ -219,6 +236,7 @@ export function guardExplanation(input: ExplanationInput): ExplanationVerdict {
   if (TIME_EN.test(rest) || TIME_VI.test(rest) || (plain && TIME_VI_PLAIN.test(restFolded))) reasons.add('time');
   if (CREDENTIAL.test(rest) || CREDENTIAL.test(restFolded)) reasons.add('credential');
   if (ACTION.test(rest)) reasons.add('action');
+  if (FOREIGN.test(lowered)) reasons.add('language');
 
   // Every sentence must be about the sources: a word the regulation or the handbook knows, or one
   // that names a source ("this clause", "the handbook passage").

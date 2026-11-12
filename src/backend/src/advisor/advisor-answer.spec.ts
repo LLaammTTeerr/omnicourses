@@ -93,7 +93,8 @@ describe('assembling the answer', () => {
     const shown = a.segments.map((s) => s.text).join('\n');
     if (partial.explanation) expect(shown).not.toContain(partial.explanation);
     expect(shown).not.toContain(HARM);
-    expect(a.segments.filter((s) => s.kind === 'passage').map((s) => s.citation!.id)).toEqual(['refusal' in partial || 'engineFacts' in partial ? [ID] : [ID]][0]);
+    // What the server can vouch for is still shown.
+    expect(a.segments.filter((s) => s.kind === 'passage').map((s) => s.citation!.id)).toEqual([ID]);
   });
 
   it('shows a passage once, however often it is picked', () => {
