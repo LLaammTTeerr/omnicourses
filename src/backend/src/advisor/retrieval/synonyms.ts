@@ -6,11 +6,14 @@ import { type Token, tokens } from './text.js';
 // Add an entry with a labelled question in retrieval.spec.ts that needs it.
 const ENTRIES: [phrases: string[], regulation: string][] = [
   // Credits and load
+  [['student', 'students'], 'sinh viên'],
+  [['count toward', 'count towards', 'counts toward', 'counts towards', 'counted toward', 'counted towards', 'count in', 'counts in', 'counted in', 'count for'], 'được tính bao gồm'],
+  [['total'], 'tổng số'],
   [['credit', 'credits', 'credit hours', 'tc', 'tchi'], 'tín chỉ'],
   [['course load', 'study load', 'workload', 'load'], 'khối lượng tín chỉ'],
   [['maximum', 'max', 'at most', 'upper limit', 'cap', 'limit', 'how many'], 'tối đa'],
   [['minimum', 'min', 'at least', 'lower limit', 'fewest'], 'tối thiểu'],
-  [['register', 'registration', 'enrol', 'enroll', 'enrollment', 'enrolment', 'sign up', 'dkhp', 'take'], 'đăng ký học phần'],
+  [['register', 'registered', 'registering', 'registration', 'enrol', 'enroll', 'enrollment', 'enrolment', 'sign up', 'dkhp', 'take'], 'đăng ký học phần'],
   [['term', 'terms', 'semester', 'semesters', 'hk'], 'học kỳ'],
   [['summer', 'summer term', 'ky he', 'hoc ky he'], 'học kỳ hè'],
   [['main term', 'regular term', 'regular semester'], 'học kỳ chính'],
@@ -46,8 +49,9 @@ const ENTRIES: [phrases: string[], regulation: string][] = [
   [['degree', 'diploma', 'certificate'], 'bằng tốt nghiệp'],
   [['thesis', 'capstone', 'final project', 'graduation project', 'kltn'], 'khóa luận tốt nghiệp đồ án tốt nghiệp'],
   [['internship', 'thuc tap'], 'thực tập tốt nghiệp'],
-  [['warning', 'academic warning', 'probation', 'academic probation'], 'cảnh báo học tập'],
-  [['expelled', 'expulsion', 'dismissed', 'dismissal', 'kicked out', 'duoi hoc', 'bi duoi'], 'buộc thôi học'],
+  [['warning', 'warnings', 'warned', 'academic warning', 'academic warnings', 'probation', 'academic probation'], 'cảnh báo học tập'],
+  [['expelled', 'expulsion', 'dismissed', 'dismissal', 'kicked out', 'get kicked out', 'duoi hoc', 'bi duoi'], 'buộc thôi học'],
+  [['academic reasons', 'academic grounds', 'poor grades', 'low grades', 'bad grades'], 'kết quả học tập'],
   [['drop out', 'dropout', 'quit', 'withdraw from school', 'leave school'], 'thôi học'],
   [['leave of absence', 'take a break', 'gap', 'gap year', 'pause my studies', 'defer my studies', 'nghi hoc', 'nghi tam thoi'], 'nghỉ học tạm thời bảo lưu'],
   // Typed without diacritics, or as students say it: "học vượt để ra trường sớm" (Điều 2.7.a, 6.4.a).
