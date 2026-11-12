@@ -62,9 +62,14 @@ export class AdvisorService {
     // Passwords, student IDs, emails, phones and birth dates never reach the provider (hard rule 3),
     // in the question or in the history the browser sends back.
     const redacted = input.messages.map((m) => redactPersonalData(cleanInput(m.content)));
-    const messages: ChatMessage[] = input.messages.map((m, i) => ({ role: m.role, content: redacted[i].text }));
     const notice = redacted.some((r) => r.redacted) ? REDACTION_NOTICE[language] : undefined;
     const consented = await this.consent.hasConsented(userId);
+    // Without consent (never given, or withdrawn mid-conversation) the provider gets only the
+    // student's own turns: an earlier answer may quote their record (grades, courses), which may
+    // leave the server only with consent (ADR 0003, ADR 0015).
+    const messages: ChatMessage[] = input.messages
+      .map((m, i) => ({ role: m.role, content: redacted[i].text }))
+      .filter((m) => consented || m.role === 'user');
     const decision = gate(
       this.index,
       messages.filter((m) => m.role === 'user').map((m) => m.content),

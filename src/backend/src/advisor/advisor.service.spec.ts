@@ -113,4 +113,19 @@ describe('AdvisorService', () => {
     const { advisor } = advisorFor({ llm });
     expect(summary(await collect(advisor.ask(TEST_USER_ID, ask('How many credits can I take in a term?')))).text).toBe(answer);
   });
+  it('sends only the student’s own turns without consent, so no earlier answer about their record leaves the server', async () => {
+    const messages = [
+      { role: 'user' as const, content: 'What happens if I fail a compulsory course? Check my record.' },
+      { role: 'assistant' as const, content: 'Your record shows MTH00003 with a grade of 4.5 [[qd-1175-2021/d14/k1/b]].' },
+      { role: 'user' as const, content: 'And how does improving a grade work?' },
+    ];
+    for (const consented of [false, true]) {
+      const llm = new FakeLlmService().replyChat({ text: 'I found no clause about that; please ask the academic affairs office.' });
+      const { advisor } = advisorFor({ llm, consented });
+      await collect(advisor.ask(TEST_USER_ID, { language: 'en', messages }));
+      const sent = llm.chatCalls[0].messages;
+      expect(sent.map((m) => m.role)).toEqual(consented ? ['user', 'assistant', 'user'] : ['user', 'user']);
+      expect(JSON.stringify(sent).includes('MTH00003')).toBe(consented);
+    }
+  });
 });
