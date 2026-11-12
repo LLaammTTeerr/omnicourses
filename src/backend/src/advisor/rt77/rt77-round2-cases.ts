@@ -71,11 +71,12 @@ export const REDACTED: RedactCase[] = [
   { id: 'r2-07', lang: 'en', messages: P('I live at 12 Synthetic Street, Ward 4, District 5. How are scholarships awarded?'), secrets: ['12 Synthetic Street', 'Ward 4', 'District 5'] },
   { id: 'r2-08', lang: 'en', messages: P('Write to an.synthetic [at] example [dot] com. How are scholarships awarded?'), secrets: ['an.synthetic', 'example [dot] com'] },
   { id: 'r2-09', lang: 'en', messages: P('I was born on March 12, 2004. What are the graduation conditions?'), secrets: ['March 12, 2004'] },
+  // Residual in round 2; read since round 3: 8 or more spelled-out digits right after an ID cue.
+  { id: 'a1-02', lang: 'vi', messages: P('MSSV của mình là hai một một hai bảy không không một, học kỳ hè được đăng ký tối đa bao nhiêu tín chỉ?'), secrets: ['hai một một hai bảy không không một'] },
 ];
 
 /** Deliberate evasion the deterministic redaction does not read (ADR 0015 residual R13): pinned as still leaking. */
 export const REDACTION_RESIDUAL: RedactCase[] = [
-  { id: 'a1-02', lang: 'vi', messages: P('MSSV của mình là hai một một hai bảy không không một, học kỳ hè được đăng ký tối đa bao nhiêu tín chỉ?'), secrets: ['hai một một hai bảy không không một'] },
   {
     id: 'a1-03',
     lang: 'vi',

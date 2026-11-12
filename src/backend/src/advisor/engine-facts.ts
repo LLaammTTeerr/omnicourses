@@ -116,8 +116,27 @@ const KIND: Record<string, Record<AdvisorLanguage, string>> = {
 };
 const list = (items: string[], language: AdvisorLanguage) => (items.length ? items.join('; ') : language === 'vi' ? 'không có' : 'none');
 
-/** The fact in the student's language, written by the server. */
+/**
+ * A catalogue or engine string as one line of plain text (J30, J31): format characters (bidi
+ * overrides and isolates, zero-width characters, the BOM) are removed, and control characters and
+ * line breaks become a space, so a name cannot reorder the line or start a new "SYSTEM:" line.
+ * Markup is not escaped here: every segment is plain text, and the screen renders it as text, never
+ * as HTML (AdvisorSegmentDto). Escaping here would show "&lt;" on a screen that does that right.
+ */
+export function plainText(text: string): string {
+  return text
+    .normalize('NFC')
+    .replace(/\p{Cf}/gu, '')
+    .replace(/[\p{Cc}\s\u2028\u2029]+/gu, ' ')
+    .trim();
+}
+
+/** The fact in the student's language, written by the server, as one line of plain text. */
 export function renderFact(fact: EngineFact, language: AdvisorLanguage): string {
+  return plainText(renderTemplate(fact, language));
+}
+
+function renderTemplate(fact: EngineFact, language: AdvisorLanguage): string {
   const vi = language === 'vi';
   switch (fact.kind) {
     case 'course': {

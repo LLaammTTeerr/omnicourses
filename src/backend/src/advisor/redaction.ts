@@ -11,7 +11,11 @@ import { foldKeepingLength } from './retrieval/text.js';
 // zero-width space removed), "раssword" (Cyrillic р, а). What they find is cut from the text itself.
 // Deterministic and dependency-free; nothing here is logged, not even a count.
 //
-// Not read (ADR 0015 residual R13): digits spelled out in words, an ID split across messages, a name.
+// Digits spelled out in words are read only right after an ID cue, as a run of 8 or more ("MSSV hai
+// một một hai bảy không không một"): alone, the Vietnamese digit words are common words (năm, sáu, tư).
+// Not read (ADR 0015 residual R13): spelled-out digits with no ID cue (a phone number read out), compound
+// number words ("hai mươi mốt", "twenty-one"), fewer than 8 digit words beside typed groups, an ID
+// split across messages, a name.
 
 export const PLACEHOLDERS = {
   password: '[password removed]',
@@ -54,6 +58,12 @@ const QUOTED = `["'“‘]([^"'”’\\n]{1,64})["'”’]`;
 const BARE = `([^\\s"'“”‘’]{1,64})`;
 /** Digits typed with single spaces, dots or dashes between them: "2 1 1 2 7 0 0 1", "21-12-70-01", "0792 0400 1234". */
 const DIGITS = (min: number, max: number) => `(\\d(?:[\\s.\\-/]?\\d){${min - 1},${max - 1}})(?![\\d]|[.,]\\d)`;
+/**
+ * A run of 8 to 20 digits spelled out in Vietnamese or English words, folded ("hai mot mot hai bay
+ * khong khong mot", "two-one-one-two-seven-oh-oh-one"); a typed digit may stand among them.
+ */
+const DIGIT_WORD = '(?:khong|linh|le|mot|hai|ba|bon|tu|nam|lam|sau|bay|tam|chin|zero|oh|o|one|two|three|four|five|six|seven|eight|nine|\\d)(?![\\p{L}\\p{N}])';
+const SPELLED_DIGITS = `(${DIGIT_WORD}(?:[\\s,-]+${DIGIT_WORD}){7,19})`;
 const MONTH = 'january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec';
 const DATE =
   `\\d{1,2}\\s*[/.-]\\s*\\d{1,2}\\s*[/.-]\\s*\\d{2,4}|\\d{4}\\s*[/.-]\\s*\\d{1,2}\\s*[/.-]\\s*\\d{1,2}` +
@@ -99,6 +109,8 @@ const RULES: Rule[] = [
   { kind: 'dateOfBirth', pattern: g(`${cue(DOB_CUE)}(?:\\s+(?:la|is|on|in|vao|ngay|nam|:)(?!${L}))?\\s*:?\\s*(${DATE})(?![\\d])`) },
   { kind: 'nationalId', pattern: g(`${cue(NATIONAL_ID_CUE)}${filler(4)}(?:${ID_SEPARATOR})?\\s*${DIGITS(9, 12)}`) },
   { kind: 'studentId', pattern: g(`${cue(ID_CUE)}\\s*(?:(?:cua)\\s+\\S+\\s*)?(?:${ID_SEPARATOR})?\\s*${DIGITS(5, 12)}`) },
+  { kind: 'nationalId', pattern: g(`${cue(NATIONAL_ID_CUE)}${filler(4)}(?:${ID_SEPARATOR})?\\s*${SPELLED_DIGITS}`) },
+  { kind: 'studentId', pattern: g(`${cue(ID_CUE)}${filler(4)}(?:${ID_SEPARATOR})?\\s*${SPELLED_DIGITS}`) },
   { kind: 'phone', pattern: g(`(?<![\\d.,])((?:\\(\\s*\\+?84\\s*\\)|\\+?84|0)(?:[\\s./-]?\\d){9,10})(?![\\d]|[.,]\\d)`) },
   { kind: 'nationalId', pattern: g(`(?<![\\d.,/-])(\\d{12})(?![\\d]|[.,]\\d)`) },
   { kind: 'studentId', pattern: g(`(?<![\\d.,/-])(\\d{8,10})(?![\\d]|[.,]\\d)`) },

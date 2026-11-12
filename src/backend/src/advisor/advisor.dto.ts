@@ -98,7 +98,12 @@ export class AdvisorSegmentDto {
   })
   kind!: SegmentKind;
 
-  @ApiProperty({ description: 'Plain text' })
+  @ApiProperty({
+    description:
+      'Plain text, for every kind: render it as text (a text node, `{{ }}` in Vue), never as HTML or Markdown, and never auto-linked. ' +
+      'An `engine` segment carries catalogue and engine strings (course and group names, condition descriptions, plan messages) as one line with ' +
+      'control, bidi and zero-width characters removed; `<`, `>` and `&` are kept as typed, not escaped. A `passage` keeps its line breaks.',
+  })
   text!: string;
 
   @ApiProperty({ type: AdvisorCitationDto, nullable: true, description: 'The passage a `passage` segment shows; null for the other kinds' })
@@ -109,8 +114,10 @@ export class AdvisorAnswerDto {
   @ApiProperty({
     enum: ['answered', 'partial', 'replaced', 'off_topic', 'needs_consent'],
     description:
-      '`answered`: everything the model picked was checked and is shown. `partial`: something was dropped (an unknown id, or the explanation), the rest is shown. ' +
-      '`replaced`: nothing could be checked; a fixed notice and the passages retrieved for the question are shown. `off_topic`, `needs_consent`: a fixed reply without a model call.',
+      '`answered`: everything the model picked was checked and is shown. `partial`: something was dropped (an unknown id, the explanation, a refusal notice that ' +
+      'contradicted what is shown, or facts from the record after consent was withdrawn), the rest is shown. ' +
+      '`replaced`: nothing could be checked, or the model called too many tools; a fixed notice and the passages retrieved for the question are shown. ' +
+      '`off_topic`, `needs_consent`: a fixed reply without a model call.',
   })
   outcome!: AdvisorOutcome;
 

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { AI_REASONS, AiUnavailableError } from '../ai/ai-unavailable.error.js';
 import type { ChatMessage } from '../ai/llm.service.js';
 import { LlmService } from '../ai/llm.service.js';
 import { AdvisorConsentService } from './advisor-consent.service.js';
@@ -15,6 +16,11 @@ import { gate } from './topic-gate.js';
 export const CLAUSE_INDEX = Symbol('CLAUSE_INDEX');
 /** Makes the per-request internal marker; tests pass a fixed one. */
 export const ADVISOR_CANARY = Symbol('ADVISOR_CANARY');
+/**
+ * Tool calls per question (ADR 0015, R18): a faithful answer needs at most a few searches, the audit
+ * and a course or two. Past it the gateway ends the call and the student gets the fallback.
+ */
+export const ADVISOR_MAX_TOOL_CALLS = 8;
 
 export interface AskInput {
   language: AdvisorLanguage;
@@ -69,23 +75,49 @@ export class AdvisorService {
     evidence.addClauses(decision.hits.map((h) => h.clause));
     const canary = this.makeCanary();
     const instructions = buildInstructions({ language, consented, clauses: [...evidence.clauses.values()], canary });
-    const tools = advisorTools({ index: this.index, records: this.records, audits: this.audits, planIssues: this.planIssues, courses: this.courses }, userId, consented, evidence);
+    const stillConsented = () => this.consent.hasConsented(userId);
+    const tools = advisorTools(
+      { index: this.index, records: this.records, audits: this.audits, planIssues: this.planIssues, courses: this.courses },
+      userId,
+      consented,
+      evidence,
+      stillConsented,
+    );
 
     let text = '';
     // Text deltas are dropped: only the final message is read, and only as a JSON answer.
-    const events = this.llm.chat({ context: { userId, feature: 'advisor' }, instructions, messages, tools })[Symbol.asyncIterator]();
+    const events = this.llm.chat({ context: { userId, feature: 'advisor' }, instructions, messages, tools, maxToolCalls: ADVISOR_MAX_TOOL_CALLS })[Symbol.asyncIterator]();
     // A closed tab ends the model request at its next event, even inside a long tool turn (an async
     // generator queues return() behind the pending next()). The call still counts toward the cap (ADR 0003).
     const stop = () => void events.return?.()?.catch(() => undefined);
     signal?.addEventListener('abort', stop, { once: true });
+    let toolLimit = false;
     try {
       if (signal?.aborted) stop();
       for (let r = await events.next(); !r.done && !signal?.aborted; r = await events.next()) if (r.value.type === 'done') text = r.value.text;
+    } catch (error) {
+      // A tool loop is the model's fault, not an outage: the student gets the safe fallback, and the
+      // call still counts (the gateway does not release it). Every other failure stays a 503.
+      if (!(error instanceof AiUnavailableError && error.reason === AI_REASONS.toolLimit)) throw error;
+      toolLimit = true;
     } finally {
       signal?.removeEventListener('abort', stop);
     }
     if (signal?.aborted) text = '';
-    const result = assembleAnswer({ text, language, evidence, index: this.index, canary, instructions, toolNames: tools.map((t) => t.name), lead });
+    // Read again: consent withdrawn while the model ran drops the record's facts (J35).
+    const stillConsentedNow = consented && (await stillConsented());
+    const result = assembleAnswer({
+      text,
+      language,
+      evidence,
+      index: this.index,
+      canary,
+      instructions,
+      toolNames: tools.map((t) => t.name),
+      lead,
+      consented: stillConsentedNow,
+      toolLimit,
+    });
     // Fixed codes only, never the answer (AGENTS.md hard rule 3).
     if (result.reasons.length) this.logger.warn(`Advisor answer ${result.outcome}: ${result.reasons.join(',')}`);
     return result;

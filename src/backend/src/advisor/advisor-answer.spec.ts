@@ -15,7 +15,7 @@ function assemble(text: string) {
   evidence.addClauses([index.get(ID)!, index.get('qd-1175-2021/d7/k2/a')!]);
   evidence.addFacts(courseFacts(SYNTHETIC_COURSE));
   const instructions = buildInstructions({ language: 'en', consented: true, clauses: [...evidence.clauses.values()], canary: 'OC-x' });
-  return assembleAnswer({ text, language: 'en', evidence, index, canary: 'OC-x', instructions, toolNames: [] });
+  return assembleAnswer({ text, language: 'en', evidence, index, canary: 'OC-x', instructions, toolNames: [], consented: true });
 }
 
 describe('the model’s JSON answer', () => {

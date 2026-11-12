@@ -37,9 +37,15 @@ export interface ToolDeps {
 }
 
 const SEARCH_LIMIT = 5;
+/** What a record tool returns once the student has withdrawn consent: nothing from the record. */
+export const CONSENT_WITHDRAWN = { error: 'The student has withdrawn consent: their record is not available.', factIds: [] } as const;
 
-/** The tools for one request. Without consent only the regulation search and the course catalogue (UC-08 A1). */
-export function advisorTools(deps: ToolDeps, userId: string, consented: boolean, evidence: TurnEvidence): ChatTool<any>[] {
+/**
+ * The tools for one request. Without consent only the regulation search and the course catalogue
+ * (UC-08 A1). With it, each record tool asks `stillConsented` again before it reads anything: a
+ * student may withdraw consent while the model runs (J35), and then nothing of the record is read.
+ */
+export function advisorTools(deps: ToolDeps, userId: string, consented: boolean, evidence: TurnEvidence, stillConsented: () => Promise<boolean>): ChatTool<any>[] {
   const tool = <A>(name: string, description: string, schema: z.ZodType<A>, handler: (args: A) => Promise<unknown>): ChatTool<A> => ({ name, description, schema, handler });
 
   const tools: ChatTool<any>[] = [
@@ -73,6 +79,7 @@ export function advisorTools(deps: ToolDeps, userId: string, consented: boolean,
       "The signed-in student's own pseudonymous record (program, cohort, courses with credits, results, grades and terms) and the rule engine's degree audit. Takes no arguments: it always reads the signed-in student. Put the \"factIds\" you want shown in \"engineFacts\".",
       z.strictObject({}),
       async () => {
+        if (!(await stillConsented())) return CONSENT_WITHDRAWN;
         const [record, audit] = await Promise.all([deps.records.recordFor(userId), deps.audits.auditFor(userId)]);
         return { record, audit, factIds: evidence.addFacts(auditFacts(record, audit)) };
       },
@@ -82,6 +89,7 @@ export function advisorTools(deps: ToolDeps, userId: string, consented: boolean,
       "The rule engine's violations for the signed-in student's plans: credit caps, prerequisites, offering terms, uncovered requirements. Takes no arguments. Put the \"factIds\" you want shown in \"engineFacts\".",
       z.strictObject({}),
       async () => {
+        if (!(await stillConsented())) return CONSENT_WITHDRAWN;
         const issues = await deps.planIssues.issuesFor(userId);
         return { issues, factIds: evidence.addFacts(planFacts(issues)) };
       },

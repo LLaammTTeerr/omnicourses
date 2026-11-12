@@ -101,6 +101,8 @@ export const HANDBOOK_QUESTIONS: LabelledQuestion[] = [
   { lang: 'vi', question: 'Đối tượng nào được miễn giảm học phí?', expected: ['ho-tro-sinh-vien/p1/p1', 'ho-tro-sinh-vien/p1/p2'] },
   { lang: 'vi', question: 'tro cap xa hoi cho sinh vien', expected: ['ho-tro-sinh-vien/p2'] },
   { lang: 'en', question: 'Who can get a tuition fee waiver?', expected: ['ho-tro-sinh-vien/p1/p1', 'ho-tro-sinh-vien/p1/p2'] },
+  // Round 3 (L15): a plural the synonym table did not know.
+  { lang: 'en', question: 'Which office handles tuition fee exemptions?', expected: ['ho-tro-sinh-vien/p1/p1', 'ho-tro-sinh-vien/p1/p2'] },
   // Graduation award
   { lang: 'vi', question: 'Điều kiện khen thưởng tốt nghiệp loại xuất sắc', expected: ['khen-thuong-ky-luat/d6/k2', 'khen-thuong-ky-luat/d6/k1'] },
   { lang: 'en', question: 'What do I need to get a graduation award?', expected: ['khen-thuong-ky-luat/d6/k1', 'khen-thuong-ky-luat/d6/k2'] },

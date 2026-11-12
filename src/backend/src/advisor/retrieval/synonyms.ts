@@ -59,7 +59,7 @@ const ENTRIES: [phrases: string[], regulation: string][] = [
   [['how long', 'time limit', 'maximum time', 'deadline to finish', 'years to finish', 'finish early', 'extend', 'extension', 'study duration'], 'thời gian tối đa hoàn thành khoá học'],
   [['transfer', 'switch program', 'change program', 'change major', 'chuyen nganh'], 'chuyển chương trình chuyển trường'],
   [['exchange', 'exchange student'], 'trao đổi sinh viên'],
-  [['credit transfer', 'recognition', 'recognised', 'recognized', 'exemption', 'exempt', 'waive', 'mien mon'], 'công nhận chuyển đổi tín chỉ miễn học'],
+  [['credit transfer', 'recognition', 'recognised', 'recognized', 'exemption', 'exemptions', 'exempt', 'waive', 'mien mon'], 'công nhận chuyển đổi tín chỉ miễn học'],
   [['cheating', 'cheat', 'plagiarism', 'misconduct', 'discipline', 'thi ho'], 'gian lận kỷ luật vi phạm'],
   [['tuition', 'fee', 'fees'], 'học phí'],
   [['foreign language', 'english requirement', 'language requirement', 'ielts', 'toeic'], 'chuẩn trình độ ngoại ngữ'],
@@ -83,7 +83,13 @@ const ENTRIES: [phrases: string[], regulation: string][] = [
   [['disciplinary warning', 'formal warning'], 'cảnh cáo'],
   [['suspension', 'suspended'], 'đình chỉ'],
   [['award', 'awards', 'reward', 'commendation', 'prize'], 'khen thưởng'],
-  [['tuition waiver', 'fee waiver', 'tuition exemption', 'fee exemption', 'tuition reduction', 'mien giam hoc phi', 'mghp'], 'miễn giảm học phí'],
+  [
+    [
+      'tuition waiver', 'tuition waivers', 'fee waiver', 'fee waivers', 'tuition exemption', 'tuition exemptions', 'fee exemption', 'fee exemptions',
+      'tuition reduction', 'tuition reductions', 'fee reduction', 'fee reductions', 'mien giam hoc phi', 'mghp',
+    ],
+    'miễn giảm học phí',
+  ],
   [['social allowance', 'social subsidy', 'tcxh', 'tro cap'], 'trợ cấp xã hội'],
   [['ethnic minority', 'ethnic minorities'], 'dân tộc thiểu số'],
   [['disability', 'disabled', 'disabilities'], 'khuyết tật'],
