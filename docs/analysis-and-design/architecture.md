@@ -113,7 +113,7 @@ C4Container
 **Protocols.**
 
 - **SPA → API:** JSON over HTTPS. A signed-in request carries `Authorization: Bearer <token>`, where the token is 32 random bytes the server stores only as a SHA-256 hash ([ADR 0002](adr/0002-authentication-and-sessions.md)). Bearer, not cookies, so no CSRF defence is needed while the SPA and API sit on different origins; CORS allows only `CORS_ORIGIN`.
-- **F8 advisor stream:** `POST` answered with `text/event-stream`. The SPA reads it with `fetch`, because `EventSource` cannot send the bearer header ([ADR 0003](adr/0003-language-model-scope.md)). The helper `streamChat` in `ai/sse.ts` already exists.
+- **F8 advisor:** `POST /api/advisor/ask` answers JSON (`AdvisorAnswerDto`) once the whole answer is checked: typed segments (engine facts, passages, the model's explanation, notices) and a badge ([ADR 0015](adr/0015-advisor-harness.md), option A). The helper `streamChat` in `ai/sse.ts` stays for a feature that may stream ([ADR 0003](adr/0003-language-model-scope.md)), read with `fetch` because `EventSource` cannot send the bearer header.
 - **API → OpenRouter:** HTTPS through the `openai` SDK with OpenRouter's `baseURL`.
 - **API, CLI → Database:** SQL through `pg`; the API uses TypeORM repositories and transactions.
 

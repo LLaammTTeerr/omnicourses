@@ -66,11 +66,17 @@ const goal = await this.llm.structured({
   schema: PlanningGoalSchema,          // zod; .nullable(), not .optional()
 });
 
-@Post('ask')                           // F8: stream with streamChat, read it with fetch
-ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response) {   // AskDto: @IsIn(['user', 'assistant']) on role
-  return streamChat(res, this.llm.chat({ context: { userId: user.id, feature: 'advisor' }, instructions, messages: dto.messages, tools }));
+@Post('ask')                           // F8: tools, then a JSON final message the server checks
+@HttpCode(200)
+async ask(@CurrentUser() user: User, @Body() dto: AskDto): Promise<AdvisorAnswerDto> {   // AskDto: @IsIn(['user', 'assistant']) on role
+  let final = '';
+  for await (const e of this.llm.chat({ context: { userId: user.id, feature: 'advisor' }, instructions, messages: dto.messages, tools }))
+    if (e.type === 'done') final = e.text;   // never show text deltas: they are unchecked
+  return assembleAnswer({ text: final, evidence, … });   // ids checked, facts templated, explanation guarded, badge added
 }
 ```
+
+- F8 shows no word the model wrote until the whole answer is checked ([ADR 0015](docs/analysis-and-design/adr/0015-advisor-harness.md), option A): the model picks passages and engine facts by id, the server renders them, and its own explanation is shown only after the explanation guard, next to the badge. `streamChat` (`ai/sse.ts`) streams `chat()` for a feature that may show raw model text; none does today.
 
 - Every failure is `AiUnavailableError` → **503 `ai_unavailable`**. Give each AI screen a manual path. Document it with `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`.
 - A tool handler gets only the arguments the model wrote. Build the tools per request and close over the signed-in `user`; never take a user id from the arguments.
