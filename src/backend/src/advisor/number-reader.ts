@@ -1,4 +1,4 @@
-// The number reader (ADR 0015): numbers written out in words, Roman numerals and CJK numerals, as
+// The number reader (ADR 0016): numbers written out in words, Roman numerals and CJK numerals, as
 // digits. Deterministic. The explanation guard rejects any number it finds (option A: every number
 // the student sees comes from a passage or an engine fact, never from the model's words).
 

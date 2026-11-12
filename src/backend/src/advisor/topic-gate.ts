@@ -1,7 +1,7 @@
 import type { ClauseHit, ClauseIndex } from './retrieval/clause-index.js';
 import { words } from './retrieval/text.js';
 
-// The topic gate (ADR 0015): a deterministic check before any model call. A question that matches
+// The topic gate (ADR 0016): a deterministic check before any model call. A question that matches
 // no clause well and is not about the student's own record, plan or a course gets a fixed reply,
 // costs nothing and does not count toward the daily cap. It saves money; it is not the security
 // boundary (an attack can always borrow regulation words): the prompt and the output guard are.

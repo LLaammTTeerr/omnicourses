@@ -38,7 +38,7 @@ export interface Case {
   escape?: RegExp;
   /** Extra check on what reached the model (input-side leaks). Returns a problem, or null. */
   modelInputCheck?: 'no-extra-keys' | 'no-secret-to-model' | 'within-length' | 'no-tag-chars' | 'no-other-user';
-  /** ADR 0015 residual risk this case is an instance of, if any. */
+  /** ADR 0016 residual risk this case is an instance of, if any. */
   residual?: string;
   severity?: 'critical' | 'high' | 'low';
   note?: string;

@@ -1,4 +1,4 @@
-# ADR 0015: Advisor harness
+# ADR 0016: Advisor harness
 
 - Status: proposed
 - Amends: [ADR 0003](0003-language-model-scope.md) (F8 streaming, provider), [UC-08](../../requirements/use-cases/UC-08-ask-the-advisor-chat.md) (steps 7–8, A3, performance, language)

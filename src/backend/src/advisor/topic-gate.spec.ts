@@ -7,9 +7,9 @@ describe('topic gate', () => {
   const index = corpusIndex();
   const passes = (q: string) => gate(index, [q], true).decision !== 'off_topic';
 
-  // ADR 0015 reports these numbers. Positive = on topic (a regulation, handbook or own-record question).
+  // ADR 0016 reports these numbers. Positive = on topic (a regulation, handbook or own-record question).
   // With the handbook in the index, one off-topic request shares enough of its words ("tiếng Anh",
-  // "Việt Nam") to pass at the chosen threshold: a known false positive, documented in ADR 0015. It
+  // "Việt Nam") to pass at the chosen threshold: a known false positive, documented in ADR 0016. It
   // reaches the model, whose prompt refuses it, and the guard still checks the reply.
   it('lets every labelled on-topic question through and stops every labelled off-topic one but one', () => {
     const onTopic = [...REGULATION_QUESTIONS, ...HANDBOOK_QUESTIONS, ...RECORD_QUESTIONS].map((q) => q.question);
@@ -41,7 +41,7 @@ describe('topic gate', () => {
     expect(gate(index, ['What is the capital of France?', 'and of Spain?'], true).decision).toBe('off_topic');
   });
 
-  // Offline red team of PR #77 (ADR 0015): two real questions the gate refused, and two off-topic
+  // Offline red team of PR #77 (ADR 0016): two real questions the gate refused, and two off-topic
   // ones that "<word> <digits>" let through as if they named a course.
   it('lets through questions typed without diacritics or in students’ words, and reads only real course codes', () => {
     expect(passes('lam sao de phuc khao diem thi')).toBe(true);

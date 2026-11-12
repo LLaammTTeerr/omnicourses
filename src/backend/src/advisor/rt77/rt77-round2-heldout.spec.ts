@@ -7,7 +7,7 @@ import { corpusIndex } from '../retrieval/regulation-corpus.js';
 import { advisorFor, anchoredFrom, ask, factIdsFor, modelTextOutsideExplanation, reply, stepsToReach, structuredFrom, summary } from '../testing/advisor-test-kit.js';
 import { gate } from '../topic-gate.js';
 
-// The held-out output cases of round 2 (ADR 0015 "Offline red team, round 2"): 105 hostile replies
+// The held-out output cases of round 2 (ADR 0016 "Offline red team, round 2"): 105 hostile replies
 // and 11 controls a separate agent wrote against the free-text guard, kept word for word in
 // rt77-round2-heldout.json. Under option A each reply is re-expressed by the same mechanical rule as
 // the other suites (structuredFrom) and played twice: as written, and from a model that passes every
@@ -83,7 +83,7 @@ describe('rt77 round 2, held-out output cases under option A', () => {
     for (const variant of ['as written', 'anchored'] as const) rows.push(await play(c, variant));
   });
 
-  // ADR 0015 reports these: harmful explanations shown, as written and anchored.
+  // ADR 0016 reports these: harmful explanations shown, as written and anchored.
   it('shows no harmful explanation beyond the documented residuals', () => {
     expect(shownHostile()).toEqual({ 'as written': [], anchored: RESIDUAL });
   });
@@ -94,5 +94,5 @@ function shownHostile() {
   return { 'as written': of('as written'), anchored: of('anchored') };
 }
 
-/** Harmful explanations the guard shows (ADR 0015). Update the ADR when this changes. */
+/** Harmful explanations the guard shows (ADR 0016). Update the ADR when this changes. */
 const RESIDUAL: string[] = [];

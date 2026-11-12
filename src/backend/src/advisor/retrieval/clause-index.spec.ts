@@ -31,7 +31,7 @@ describe('regulation and handbook retrieval', () => {
     expect(index.get('so-tay-2024-2025/phong-ban/p3')?.article).toBeNull();
   });
 
-  // ADR 0015 reports these numbers; the labelled sets are in labelled-questions.ts.
+  // ADR 0016 reports these numbers; the labelled sets are in labelled-questions.ts.
   it.each([
     ['regulation', REGULATION_QUESTIONS],
     ['handbook', HANDBOOK_QUESTIONS],

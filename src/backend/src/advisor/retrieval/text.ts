@@ -1,4 +1,4 @@
-// Text normalisation for the advisor's retrieval, topic gate and output guard (ADR 0015).
+// Text normalisation for the advisor's retrieval, topic gate and output guard (ADR 0016).
 // Deterministic and dependency-free: the same functions read a clause, a question and a reply.
 
 // Letters from other scripts that look like Latin ones, folded so "іgnore" (Cyrillic і) reads as

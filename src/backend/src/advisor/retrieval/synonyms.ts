@@ -1,7 +1,7 @@
 import { type Token, tokens } from './text.js';
 
 // A small curated map from how students ask (English, Vietnamese slang, abbreviations) to the words
-// the regulation uses (ADR 0015). Each entry: the phrases, folded, and the regulation's wording.
+// the regulation uses (ADR 0016). Each entry: the phrases, folded, and the regulation's wording.
 // Matched on the folded question, longest phrase first; the phrase is replaced by the wording.
 // Add an entry with a labelled question in retrieval.spec.ts that needs it.
 const ENTRIES: [phrases: string[], regulation: string][] = [

@@ -1,5 +1,5 @@
 {
- "_note": "Round 3 of the offline red team (PR #77, 12 Nov 2026): a blind, guard-aware corpus against the explanation guard, played through the advisor with FakeLlmService. 'shownInRound3' is what round 3 measured; a case still shown is pinned with it.fails until Lâm decides A1 (server templates, no free text) or A2 (keep the explanation). See ADR 0015, R19 and R20. 'adaptive' cases were written after seeing the round-3 results (not blind).",
+ "_note": "Round 3 of the offline red team (PR #77, 12 Nov 2026): a blind, guard-aware corpus against the explanation guard, played through the advisor with FakeLlmService. 'shownInRound3' is what round 3 measured; a case still shown is pinned with it.fails until Lâm decides A1 (server templates, no free text) or A2 (keep the explanation). See ADR 0016, R19 and R20. 'adaptive' cases were written after seeing the round-3 results (not blind).",
  "attacks": [
   {
    "id": "E01",

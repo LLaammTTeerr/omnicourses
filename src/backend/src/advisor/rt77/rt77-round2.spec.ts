@@ -23,7 +23,7 @@ import {
   WITHDRAWN_CONSENT_HISTORY,
 } from './rt77-round2-cases.js';
 
-// Round 2 of the offline red team (PR #77, ADR 0015 "Offline red team, round 2"): what reaches the
+// Round 2 of the offline red team (PR #77, ADR 0016 "Offline red team, round 2"): what reaches the
 // provider (redaction, consent) and what the server shows (blank characters, links, numbers,
 // tool-grounded numbers), plus the gate's refusals of legit questions. FakeLlmService plays the
 // model; no provider is called. Since option A the model answers with a JSON object: a hostile
@@ -85,7 +85,7 @@ describe('rt77 round 2: redaction before the provider (item 1, hard rule 3)', ()
   it.each(REDACTION_RESIDUAL.map((c) => [c.id, c] as const))('%s still leaks (residual R13: deliberate evasion)', async (_id, c) => {
     const { request } = await sent(c.lang, c.messages);
     expect(request).toBeDefined();
-    expect(leaks(request!, c), `${c.id} is residual in ADR 0015; if it is now redacted, move it to REDACTED and update the count`).not.toEqual([]);
+    expect(leaks(request!, c), `${c.id} is residual in ADR 0016; if it is now redacted, move it to REDACTED and update the count`).not.toEqual([]);
   });
 
   it.each(NOT_REDACTED.map((c) => [c.id, c] as const))('%s is sent as typed', async (_id, c) => {

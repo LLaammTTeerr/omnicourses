@@ -17,7 +17,7 @@ export const CLAUSE_INDEX = Symbol('CLAUSE_INDEX');
 /** Makes the per-request internal marker; tests pass a fixed one. */
 export const ADVISOR_CANARY = Symbol('ADVISOR_CANARY');
 /**
- * Tool calls per question (ADR 0015, R18): a faithful answer needs at most a few searches, the audit
+ * Tool calls per question (ADR 0016, R18): a faithful answer needs at most a few searches, the audit
  * and a course or two. Past it the gateway ends the call and the student gets the fallback.
  */
 export const ADVISOR_MAX_TOOL_CALLS = 8;
@@ -27,7 +27,7 @@ export interface AskInput {
   messages: ChatMessage[];
 }
 
-// F8 advisor (UC-08, ADR 0015): topic gate → prompt with retrieved clauses → gateway chat with
+// F8 advisor (UC-08, ADR 0016): topic gate → prompt with retrieved clauses → gateway chat with
 // read-only tools → the model's JSON answer → ids checked, passages and facts rendered by the server,
 // explanation guarded. Conversation content is never stored or logged.
 @Injectable()
@@ -59,7 +59,7 @@ export class AdvisorService {
     const consented = await this.consent.hasConsented(userId);
     // Without consent (never given, or withdrawn mid-conversation) the provider gets only the
     // student's own turns: an earlier answer may quote their record (grades, courses), which may
-    // leave the server only with consent (ADR 0003, ADR 0015).
+    // leave the server only with consent (ADR 0003, ADR 0016).
     const messages: ChatMessage[] = input.messages
       .map((m, i) => ({ role: m.role, content: redacted[i].text }))
       .filter((m) => consented || m.role === 'user');

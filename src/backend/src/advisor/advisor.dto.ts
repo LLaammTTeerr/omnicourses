@@ -6,7 +6,7 @@ import { type AdvisorOutcome, type AnswerReason, type SegmentKind } from './advi
 import { PROMPT_VERSION, type AdvisorLanguage } from './advisor-prompt.js';
 import { cleanInput } from './retrieval/text.js';
 
-/** Limits on a request (ADR 0015). History lives in the browser, so the client sends it each time. */
+/** Limits on a request (ADR 0016). History lives in the browser, so the client sends it each time. */
 export const ADVISOR_LIMITS = {
   messages: 20,
   userMessageLength: 2000,
@@ -49,7 +49,7 @@ export class AskDto {
 /**
  * Checks a validated request as a whole; throws 400. Lengths are measured on the text as cleaned
  * (NFKC, no invisible characters), which is what reaches the model: NFKC can make a character 18
- * times longer (U+FDFA), so a check on the raw text would not bound the cost (ADR 0015).
+ * times longer (U+FDFA), so a check on the raw text would not bound the cost (ADR 0016).
  */
 export function checkConversation(dto: AskDto): void {
   if (dto.messages.at(-1)?.role !== 'user') throw new BadRequestException('The last message must be the student’s question');
@@ -126,7 +126,7 @@ export class AdvisorAnswerDto {
 
   @ApiProperty({
     example: 'AI explanation, not an official decision; your audit is the source',
-    description: 'Always present, in the request language. The screen must show it with every answer (ADR 0015).',
+    description: 'Always present, in the request language. The screen must show it with every answer (ADR 0016).',
   })
   badge!: string;
 

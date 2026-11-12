@@ -1,6 +1,6 @@
 import { foldKeepingLength } from './retrieval/text.js';
 
-// Redaction of what a student types before it reaches the AI provider (ADR 0015, AGENTS.md hard rule
+// Redaction of what a student types before it reaches the AI provider (ADR 0016, AGENTS.md hard rule
 // 3). A student may paste a portal password, a verification code, a student ID, a national ID
 // number, an email address, a phone number, a home address or a date of birth; none of them helps
 // answer a study-rule question, and none may leave the server. Each is replaced by a placeholder; the
@@ -13,7 +13,7 @@ import { foldKeepingLength } from './retrieval/text.js';
 //
 // Digits spelled out in words are read only right after an ID cue, as a run of 8 or more ("MSSV hai
 // một một hai bảy không không một"): alone, the Vietnamese digit words are common words (năm, sáu, tư).
-// Not read (ADR 0015 residual R13): spelled-out digits with no ID cue (a phone number read out), compound
+// Not read (ADR 0016 residual R13): spelled-out digits with no ID cue (a phone number read out), compound
 // number words ("hai mươi mốt", "twenty-one"), fewer than 8 digit words beside typed groups, an ID
 // split across messages, a name.
 

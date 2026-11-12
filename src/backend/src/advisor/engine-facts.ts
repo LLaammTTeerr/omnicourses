@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { AdvisorLanguage } from './advisor-prompt.js';
 
-// Engine facts (ADR 0015, option A). What the advisor states about a course, the student's record or
+// Engine facts (ADR 0016, option A). What the advisor states about a course, the student's record or
 // the rule engine's results is written by the server, from data it holds, in fixed Vietnamese and
 // English templates. A tool result lists the ids of its facts; the model picks facts by id and never
 // supplies a word or a number of their text (hard rule 1). A result of an unknown shape gives no fact.

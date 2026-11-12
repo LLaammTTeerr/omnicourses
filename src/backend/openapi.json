@@ -2622,7 +2622,7 @@
         },
         "responses": {
           "200": {
-            "description": "The checked answer as typed segments, with the badge the screen must show (ADR 0015, option A). Nothing the model writes is sent before the whole answer is checked, so the route answers JSON, not a stream. Off-topic questions get a fixed reply without a model call, which does not count toward the daily limit.",
+            "description": "The checked answer as typed segments, with the badge the screen must show (ADR 0016, option A). Nothing the model writes is sent before the whole answer is checked, so the route answers JSON, not a stream. Off-topic questions get a fixed reply without a model call, which does not count toward the daily limit.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6234,7 +6234,7 @@
           "badge": {
             "type": "string",
             "example": "AI explanation, not an official decision; your audit is the source",
-            "description": "Always present, in the request language. The screen must show it with every answer (ADR 0015)."
+            "description": "Always present, in the request language. The screen must show it with every answer (ADR 0016)."
           },
           "reasons": {
             "description": "Fixed codes for what was dropped and why; never content",

@@ -151,7 +151,7 @@ describe('AdvisorService', () => {
     expect(answer.outcome).toBe('replaced');
   });
 
-  // Hard rule 3 (ADR 0015): what the student types is redacted before the provider sees it, in the
+  // Hard rule 3 (ADR 0016): what the student types is redacted before the provider sees it, in the
   // question and in the history, and the answer starts with a notice not to share such data.
   it('never sends a typed password, student ID, email or phone to the provider, and says so', async () => {
     const llm = new FakeLlmService().replyChat(reply({ passageIds: ['qd-1175-2021/d7/k2/b'] }));

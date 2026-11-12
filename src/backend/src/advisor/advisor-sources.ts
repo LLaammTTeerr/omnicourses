@@ -1,6 +1,6 @@
 import type { Term } from '../terms/term.js';
 
-// What the advisor's tools read, as small ports (ADR 0015). The advisor module wires what is on main
+// What the advisor's tools read, as small ports (ADR 0016). The advisor module wires what is on main
 // (curriculum, onboarding, transcript); the rule engine (PR #72) and plans (PR #71) plug in by
 // providing AuditSource and PlanIssuesSource, with no change to the tools, the prompt or the guard.
 

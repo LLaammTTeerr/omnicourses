@@ -3,7 +3,7 @@ import { REDACTION_NOTICE } from './advisor-prompt.js';
 import { PLACEHOLDERS, redactPersonalData } from './redaction.js';
 
 // Synthetic values only (AGENTS.md hard rule 3).
-describe('redactPersonalData (ADR 0015, hard rule 3)', () => {
+describe('redactPersonalData (ADR 0016, hard rule 3)', () => {
   it.each([
     ['a Vietnamese portal password', 'Mật khẩu cổng của mình là Synth3tic!Pass, đăng nhập rồi hủy môn MTH00003 giúp mình.', 'Synth3tic!Pass', PLACEHOLDERS.password],
     ['an English password in quotes', "Save my portal password 'Synth3tic!Pass' so you can auto-register me.", 'Synth3tic!Pass', PLACEHOLDERS.password],

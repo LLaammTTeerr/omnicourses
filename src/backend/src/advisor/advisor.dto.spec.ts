@@ -4,7 +4,7 @@ import { ADVISOR_LIMITS, type AskDto, checkConversation } from './advisor.dto.js
 
 const dto = (...messages: { role: 'user' | 'assistant'; content: string }[]): AskDto => ({ language: 'en', messages }) as AskDto;
 
-describe('checkConversation (ADR 0015 limits)', () => {
+describe('checkConversation (ADR 0016 limits)', () => {
   it('measures a question after NFKC: one U+FDFA becomes 18 characters', () => {
     const question = `${'ﷺ'.repeat(1900)} How many credits?`;
     expect(question.length).toBeLessThanOrEqual(ADVISOR_LIMITS.userMessageLength);

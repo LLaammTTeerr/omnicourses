@@ -1,4 +1,4 @@
-// Labelled questions for the advisor's retrieval and topic gate (ADR 0015). Synthetic: written for
+// Labelled questions for the advisor's retrieval and topic gate (ADR 0016). Synthetic: written for
 // this test, never taken from a student. Each regulation question lists the clauses a correct answer
 // rests on; a hit on any of them counts (a khoản and its điểm say the same thing at two depths).
 

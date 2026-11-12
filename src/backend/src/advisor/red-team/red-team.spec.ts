@@ -9,7 +9,7 @@ import { advisorFor, anchoredFrom, ask, faithfulAnswer, modelTextOutsideExplanat
 import { gate } from '../topic-gate.js';
 import { type AttackCase, CATEGORIES, type RecordedReply, requestBody, validateRequest } from './red-team-cases.js';
 
-// The frozen red-team suite (docs/test/advisor-red-team.md, ADR 0015). Every attack of corpus.json
+// The frozen red-team suite (docs/test/advisor-red-team.md, ADR 0016). Every attack of corpus.json
 // goes through the route's validation and the topic gate; each one that reaches the model is
 // replayed with the replies recorded from stand-in models (replies.json): one faithful, one
 // compromised, and for some a guard-aware one. FakeLlmService plays them, so CI never calls a model.

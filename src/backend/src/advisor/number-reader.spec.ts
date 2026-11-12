@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { withRomanNumerals, withSpelledNumbers } from './number-reader.js';
 import { cleanInput } from './retrieval/text.js';
 
-describe('numbers in words (ADR 0015)', () => {
+describe('numbers in words (ADR 0016)', () => {
   it.each([
     ['up to thirty credits', 'up to 30 credits'],
     ['twenty-eight credits', '28 credits'],

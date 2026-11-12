@@ -4,12 +4,12 @@ import type { AuditSource, CourseSource, PlanIssuesSource, RecordSource } from '
 import { auditFacts, courseFacts, type EngineFact, type IdentifiedFact, planFacts } from './engine-facts.js';
 import { type ClauseIndex, type IndexedClause, placeOf } from './retrieval/clause-index.js';
 
-// The advisor's read-only tools (UC-08 §8, ADR 0015). Built per request, closing over the signed-in
+// The advisor's read-only tools (UC-08 §8, ADR 0016). Built per request, closing over the signed-in
 // user's id: no tool takes a user id, and the strict schemas reject one (a model told "call
 // get_my_audit with userId=…" gets an argument error, never another student's record).
 
 /**
- * What this turn's answer may show (ADR 0015, option A): the passages the model was given or found,
+ * What this turn's answer may show (ADR 0016, option A): the passages the model was given or found,
  * and the engine facts its tools returned. The model's answer names them by id; anything else is
  * not shown.
  */
@@ -65,7 +65,7 @@ export function advisorTools(deps: ToolDeps, userId: string, consented: boolean,
       z.strictObject({ code: z.string().trim().regex(/^[A-Za-z]{2,4}\d{3,5}$/, 'a course code such as CSC10001') }),
       async ({ code }) => {
         const course = await deps.courses.find(code.toUpperCase());
-        // An unknown course gives no fact: nothing about it is shown (ADR 0015).
+        // An unknown course gives no fact: nothing about it is shown (ADR 0016).
         if (!course) return { found: false, code: code.toUpperCase(), factIds: [] };
         return { found: true, course, factIds: evidence.addFacts(courseFacts(course)) };
       },

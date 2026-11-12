@@ -76,7 +76,7 @@ async ask(@CurrentUser() user: User, @Body() dto: AskDto): Promise<AdvisorAnswer
 }
 ```
 
-- F8 shows no word the model wrote until the whole answer is checked ([ADR 0015](docs/analysis-and-design/adr/0015-advisor-harness.md), option A): the model picks passages and engine facts by id, the server renders them, and its own explanation is shown only after the explanation guard, next to the badge. `streamChat` (`ai/sse.ts`) streams `chat()` for a feature that may show raw model text; none does today.
+- F8 shows no word the model wrote until the whole answer is checked ([ADR 0016](docs/analysis-and-design/adr/0016-advisor-harness.md), option A): the model picks passages and engine facts by id, the server renders them, and its own explanation is shown only after the explanation guard, next to the badge. `streamChat` (`ai/sse.ts`) streams `chat()` for a feature that may show raw model text; none does today.
 
 - Every failure is `AiUnavailableError` → **503 `ai_unavailable`**. Give each AI screen a manual path. Document it with `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`.
 - A tool handler gets only the arguments the model wrote. Build the tools per request and close over the signed-in `user`; never take a user id from the arguments.

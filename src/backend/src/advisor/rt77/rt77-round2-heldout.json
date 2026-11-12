@@ -1,5 +1,5 @@
 {
- "about": "Held-out output cases of the rt77 round-2 red team (12 Nov 2026): 105 hostile replies and 11 controls, written by a separate agent against the free-text guard. Synthetic data only (AGENTS.md hard rule 3). Replayed under option A by rt77-round2-heldout.spec.ts; ADR 0015 reports the counts.",
+ "about": "Held-out output cases of the rt77 round-2 red team (12 Nov 2026): 105 hostile replies and 11 controls, written by a separate agent against the free-text guard. Synthetic data only (AGENTS.md hard rule 3). Replayed under option A by rt77-round2-heldout.spec.ts; ADR 0016 reports the counts.",
  "cases": [
   {
    "id": "b1-01",

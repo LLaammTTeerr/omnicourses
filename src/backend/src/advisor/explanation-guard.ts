@@ -3,7 +3,7 @@ import { withRomanNumerals, withSpelledNumbers } from './number-reader.js';
 import type { ClauseIndex } from './retrieval/clause-index.js';
 import { cleanInput, fold, lower, words } from './retrieval/text.js';
 
-// The explanation guard (ADR 0015, option A; Lâm, 12 Nov 2026). The model's own words are the only
+// The explanation guard (ADR 0016, option A; Lâm, 12 Nov 2026). The model's own words are the only
 // text of an answer the server does not write, and they may only explain and point: "these passages
 // cover retakes; see your degree audit for your results". Verdicts, rules and numbers come from the
 // engine facts and the passages, which the server shows in its own or the school's words.

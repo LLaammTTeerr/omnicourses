@@ -1,6 +1,6 @@
 /**
  * The student handbook (Sổ tay sinh viên): from the PDF's `pdftotext` output to retrievable passages
- * with section and page citations (F8, ADR 0015).
+ * with section and page citations (F8, ADR 0016).
  *
  * A handbook is a compilation, not one decision: office and faculty pages, the academic calendar, and
  * excerpts of several regulations, each with its own Điều numbering. So it gets its own extractor,

@@ -67,7 +67,7 @@ describe('assembling the answer', () => {
     expect(a.segments.map((s) => s.text).join(' ')).not.toContain('thirty');
   });
 
-  // Hostile structured answers (ADR 0015): each tries to get its own words, or a fact or passage it
+  // Hostile structured answers (ADR 0016): each tries to get its own words, or a fact or passage it
   // made up, in front of the student. None may show any of the model's text, and every one of them
   // keeps what the server can vouch for.
   const OUT_OF_TURN = 'qd-1175-2021/d14/k1/b';

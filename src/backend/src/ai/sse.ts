@@ -12,7 +12,7 @@ import type { ChatEvent } from './llm.service.js';
  * failure becomes an `error` event and the stream ends.
  *
  * A feature may stream its own events (the advisor holds the model's text back
- * and sends a vetted answer, ADR 0015): each is sent under its `type`.
+ * and sends a vetted answer, ADR 0016): each is sent under its `type`.
  */
 export async function streamChat(res: Response, events: AsyncIterable<ChatEvent | { type: string }>): Promise<void> {
   const iterator = events[Symbol.asyncIterator]();

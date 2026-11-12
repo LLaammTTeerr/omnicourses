@@ -10,7 +10,7 @@ import { FIXED_REPLIES, REDACTION_NOTICE } from '../src/advisor/advisor-prompt.j
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
-// rt77: HTTP-level red-team checks of the advisor (PR #77, ADR 0015 "Offline red team"). The real
+// rt77: HTTP-level red-team checks of the advisor (PR #77, ADR 0016 "Offline red team"). The real
 // route, ValidationPipe, gateway, cost guard and PostgreSQL; only the provider is scripted (no
 // network, no key). Synthetic data only. Set RT77_E2E_OUT to a file path to write the results.
 
@@ -36,7 +36,7 @@ class ScriptedModel extends ModelClient {
   }
 }
 
-/** The model's final message under option A: a JSON answer (ADR 0015). */
+/** The model's final message under option A: a JSON answer (ADR 0016). */
 const answer = (a: object) => JSON.stringify({ refusal: null, passageIds: [], engineFacts: [], explanation: null, ...a });
 const explanationShown = (res: request.Response) => (res.body.segments ?? []).some((s: { kind: string }) => s.kind === 'explanation');
 

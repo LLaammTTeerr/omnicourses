@@ -1,6 +1,6 @@
 # Student handbook passages
 
-The student handbook (Sổ tay sinh viên) as passages the F8 advisor retrieves and cites next to the regulation clauses in `../regulations` ([ADR 0015](../../../../../docs/analysis-and-design/adr/0015-advisor-harness.md)). This folder holds data and its extractor only.
+The student handbook (Sổ tay sinh viên) as passages the F8 advisor retrieves and cites next to the regulation clauses in `../regulations` ([ADR 0016](../../../../../docs/analysis-and-design/adr/0016-advisor-harness.md)). This folder holds data and its extractor only.
 
 | File | Written by | What it is |
 | --- | --- | --- |

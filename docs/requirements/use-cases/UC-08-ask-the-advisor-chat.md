@@ -30,7 +30,7 @@ Onboarding and a saved transcript are not required. Without them the advisor cha
 4. The student types a question and presses **Send**.
 5. The system sends the question, the earlier messages of this conversation and the advisor chat's tools to the model through the gateway.
 6. The model calls the tools it needs, within the gateway's step limit (5 model turns, ADR 0003). It can search the regulations, look up a course in the student's curriculum, read the student's record, ask the rule engine to check a rule, and find a guide. Meanwhile the system shows that it is working on the answer; no word of the model is shown before step 7.
-7. When the model has finished, the system checks the whole answer (ADR 0015, option A) and shows it: the rule engine's facts in the system's own words, the clauses the model picked word for word with their citations, and, if it passes the checks, the model's short explanation, always with the badge "AI explanation, not an official decision; your audit is the source". Anything that fails a check is left out and the system says so; if nothing can be checked, it says it could not check the answer and shows the clauses retrieved for the question.
+7. When the model has finished, the system checks the whole answer (ADR 0016, option A) and shows it: the rule engine's facts in the system's own words, the clauses the model picked word for word with their citations, and, if it passes the checks, the model's short explanation, always with the badge "AI explanation, not an official decision; your audit is the source". Anything that fails a check is left out and the system says so; if nothing can be checked, it says it could not check the answer and shows the clauses retrieved for the question.
 8. Each clause is shown with its document and label, in the regulation's own words. A statement about the student's own record is a rule engine result in the system's own words, for example "Your transcript: CS162, 4 credits, term 1 of 2025–2026, passed".
 9. The student reads the answer, then asks a follow-up question (step 4) or leaves.
 
@@ -40,7 +40,7 @@ Onboarding and a saved transcript are not required. Without them the advisor cha
 
 **A2. AI unavailable.** At step 5 the gateway answers `ai_unavailable`: no provider configured, the provider unreachable or timed out, or the monthly budget spent (ADR 0003). The system says the advisor chat is unavailable right now and keeps the question in the text box so the student can send it later. It points to the guides (UC-10) and the curriculum explorer (UC-04). Nothing else in OmniCourse is affected (Robustness NFR).
 
-**A3. Failure in the middle of an answer.** At step 6 or 7 the provider fails after the first tool call. The route answers `ai_unavailable` before sending anything (ADR 0015, option A), so no unchecked text has been shown; the system says the answer could not be completed and offers **Ask again**.
+**A3. Failure in the middle of an answer.** At step 6 or 7 the provider fails after the first tool call. The route answers `ai_unavailable` before sending anything (ADR 0016, option A), so no unchecked text has been shown; the system says the answer could not be completed and offers **Ask again**.
 
 **A4. Daily AI limit reached.** At step 5 the student has used their daily number of AI calls (default 20, shared with the goal box of UC-07). The system says the advisor chat works again within 24 hours, as older calls leave the rolling window. One question is one call, however many tools it uses.
 
@@ -71,9 +71,9 @@ Onboarding and a saved transcript are not required. Without them the advisor cha
 - **Academic rules** (AGENTS.md hard rule 1, ADR 0003): every statement about an academic rule as it applies to the student, such as a prerequisite, an offering term, the credit cap, requirement coverage or graduation status, comes from a rule engine call made for that answer, and the answer shows that result. The model explains results; it never produces them.
 - **Citations** (Usability NFR: "every AI answer links to the document and clause it relies on"): an answer that states a rule cites its document and clause. The links are built from the clauses the regulation search actually returned, so a link never points to a clause that does not exist.
 - **Privacy** (AGENTS.md hard rule 3, ADR 0003): only the pseudonymous record is sent, and only after consent. Prompt and reply content is never logged; neither are tool arguments, which can hold the record (`llm.service.ts`). The provider does not train on prompts (OpenRouter account setting). Tests use `FakeLlmService` and synthetic records; CI never calls the provider.
-- **Performance:** the answer appears when the model has finished and the system has checked it, because no unchecked word is shown (ADR 0015, amending ADR 0003); the screen shows a progress state meanwhile. Each request to the provider times out after 30 seconds.
+- **Performance:** the answer appears when the model has finished and the system has checked it, because no unchecked word is shown (ADR 0016, amending ADR 0003); the screen shows a progress state meanwhile. Each request to the provider times out after 30 seconds.
 - **Robustness:** when the model is down, only the advisor chat and the goal box are unavailable (A2).
-- **Usability:** Vietnamese and English; the answer is in the UI language, and quoted clauses stay in Vietnamese (ADR 0015). Works from 360 px wide and by keyboard. The answer is announced to screen readers without interrupting them, and citation links are reachable by keyboard.
+- **Usability:** Vietnamese and English; the answer is in the UI language, and quoted clauses stay in Vietnamese (ADR 0016). Works from 360 px wide and by keyboard. The answer is announced to screen readers without interrupting them, and citation links are reachable by keyboard.
 
 ## 8. Additional information
 

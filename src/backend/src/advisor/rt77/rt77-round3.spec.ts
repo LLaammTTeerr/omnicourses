@@ -15,7 +15,7 @@ import { corpusIndex } from '../retrieval/regulation-corpus.js';
 import { FixedCourseSource, FixedRecordSource, reply, summary, SYNTHETIC_COURSE, TEST_CANARY, TEST_USER_ID } from '../testing/advisor-test-kit.js';
 import { gate } from '../topic-gate.js';
 
-// Round 3 of the offline red team (PR #77, ADR 0015 "Offline red team, round 3"): a blind, guard-aware
+// Round 3 of the offline red team (PR #77, ADR 0016 "Offline red team, round 3"): a blind, guard-aware
 // round. Its structural findings are fixed and pinned here; its explanation-text bypasses are pinned
 // as known with it.fails until Lâm decides between A1 (server templates, no free text) and A2 (keep
 // the explanation): see R20. FakeLlmService or a scripted provider plays the model; nothing is called.
@@ -356,7 +356,7 @@ describe('rt77 round 3: hostile explanations (the guard; pending A1/A2)', () => 
   const blocked = ROUND3.attacks.filter((c) => !c.shownInRound3);
   const known = ROUND3.attacks.filter((c) => c.shownInRound3);
 
-  it('the counts ADR 0015 reports, played (75 of 95 shown, 7 of 10 adaptive)', async () => {
+  it('the counts ADR 0016 reports, played (75 of 95 shown, 7 of 10 adaptive)', async () => {
     expect([ROUND3.attacks.length, known.length]).toEqual([95, 75]);
     expect(known.filter((c) => c.severity === 'high')).toHaveLength(68);
     expect(known.filter((c) => c.severity === 'low')).toHaveLength(7);

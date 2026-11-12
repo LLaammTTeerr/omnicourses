@@ -5,7 +5,7 @@ import { type EngineFact, renderFact } from './engine-facts.js';
 import { type ExplanationReason, guardExplanation } from './explanation-guard.js';
 import type { ClauseIndex, IndexedClause } from './retrieval/clause-index.js';
 
-// The advisor's answer (ADR 0015, option A; Lâm, 12 Nov 2026). The model returns a JSON object that
+// The advisor's answer (ADR 0016, option A; Lâm, 12 Nov 2026). The model returns a JSON object that
 // picks passages and engine facts by id and may add a short explanation. The server checks every id
 // against this turn's evidence, shows each passage word for word and each fact in its own fixed
 // wording, guards the explanation, and assembles typed segments. The only text the model writes that

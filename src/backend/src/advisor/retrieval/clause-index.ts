@@ -3,7 +3,7 @@ import type { RegulationDocument } from '../regulations/regulation.js';
 import { expandSynonyms } from './synonyms.js';
 import { type Term, termsOf, tokens } from './text.js';
 
-// In-memory BM25 over the advisor's sources (ADR 0015): the regulation clauses and the student
+// In-memory BM25 over the advisor's sources (ADR 0016): the regulation clauses and the student
 // handbook's passages. A few hundred of each fit in memory and index in milliseconds at boot: no
 // vector store, no extra service, and the same input always gives the same ranking, so retrieval is
 // unit-tested like any other code.

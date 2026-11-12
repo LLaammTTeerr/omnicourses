@@ -12,7 +12,7 @@ import { AdvisorService, CLAUSE_INDEX } from './advisor.service.js';
 import { CatalogCourseSource, StudentRecordSource } from './main-sources.js';
 import { corpusIndex } from './retrieval/regulation-corpus.js';
 
-// F8 advisor chat (UC-08, ADR 0015). The rule engine (PR #72) and plans (PR #71) connect by
+// F8 advisor chat (UC-08, ADR 0016). The rule engine (PR #72) and plans (PR #71) connect by
 // replacing UnavailableAuditSource and UnavailablePlanIssuesSource below.
 @Module({
   imports: [AiModule, CurriculumModule, OnboardingModule, TranscriptModule, TypeOrmModule.forFeature([AdvisorConsent])],

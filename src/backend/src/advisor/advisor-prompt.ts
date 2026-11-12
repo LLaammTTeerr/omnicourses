@@ -1,6 +1,6 @@
 import { type IndexedClause, placeOf } from './retrieval/clause-index.js';
 
-// The advisor's system prompt (F8, ADR 0015). Versioned: change PROMPT_VERSION with any wording
+// The advisor's system prompt (F8, ADR 0016). Versioned: change PROMPT_VERSION with any wording
 // change, so a red-team result and a usage report can name the prompt they ran against.
 // 2026-11-12.1: option A (Lâm, 12 Nov). The model answers with a JSON object that picks passages and
 // engine facts by id; the server shows them in its own words. The model's prose is a short explanation.
@@ -47,7 +47,7 @@ export const FIXED_REPLIES: Record<
 };
 
 /**
- * Sent with every answer, and the screen must show it next to the answer (ADR 0015, Lâm 12 Nov:
+ * Sent with every answer, and the screen must show it next to the answer (ADR 0016, Lâm 12 Nov:
  * option A). The engine facts and the passages are the source; the AI's words are not.
  */
 export const ADVISOR_BADGE: Record<AdvisorLanguage, string> = {

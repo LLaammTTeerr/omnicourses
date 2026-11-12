@@ -3,7 +3,7 @@ import { buildInstructions, EXPLANATION_RULES, FIXED_REPLIES } from './advisor-p
 import { EXPLANATION_MAX_LENGTH, guardExplanation } from './explanation-guard.js';
 import { corpusIndex } from './retrieval/regulation-corpus.js';
 
-// The explanation guard (ADR 0015, option A). It replaces the free-text output guard: every hostile
+// The explanation guard (ADR 0016, option A). It replaces the free-text output guard: every hostile
 // answer that guard's spec pinned is re-expressed here as an explanation and must be rejected, and
 // every answer it pinned as faithful (a rule, a number, a referral, a quotation in the model's own
 // words) is now rejected too, by design: rules and numbers are shown from the passages and the
@@ -286,7 +286,7 @@ describe('explanation guard', () => {
     expect(check('[[qd-1175-2021/d7/k2/b]]')).toEqual({ text: null, reasons: [] });
   });
 
-  // Residual R15 (ADR 0015): a rule misstated in the third person, with no number, verdict, modal,
+  // Residual R15 (ADR 0016): a rule misstated in the third person, with no number, verdict, modal,
   // negation, time or rule-validity word, reads like a pointer and is shown, beside the passage that
   // states the real rule and the badge. If one starts being caught, update the ADR.
   it.each([
