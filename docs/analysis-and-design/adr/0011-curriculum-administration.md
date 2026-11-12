@@ -1,6 +1,6 @@
 # ADR 0011: Curriculum administration and program-scoped permissions
 
-- Status: proposed; not authorization to implement. Scope, audit and prerequisite decisions recorded on 9 November 2026; review findings below still open. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now))
+- Status: accepted (Lâm, Project Lead, 12 November 2026, on Discord). Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now)). Acceptance records the scope exception and the audit deferral below and closes the prerequisite storage gate; [Implementation notes (12 November 2026)](#implementation-notes-12-november-2026) describe what `main` does where it differs from the text
 - Date: 2026-11-03
 - Owner: Thắng (F12)
 - Deciders: Lâm (Project Lead), Triết (curriculum schema and rule engine)
@@ -8,7 +8,7 @@
 
 ## Context
 
-F12 needs an API to create and edit programs, cohorts, courses, prerequisites and requirement groups, with administration rights scoped per program. [UC-11](../../requirements/use-cases/UC-11-maintain-curriculum.md) separates program administration, shared catalog maintenance and access management. The [test plan](../../test/test-plan.md#b2-checks) places this work in B2 and requires this ADR before code, after [PR #23](https://github.com/LLaammTTeerr/omnicourses/pull/23) merges. #23 merged on 3 November 2026 as `900b1b8`, after this ADR was first written; its migration is byte-identical to the inspected `700213a` below. This change is documentation only.
+F12 needs an API to create and edit programs, cohorts, courses, prerequisites and requirement groups, with administration rights scoped per program. [UC-11](../../requirements/use-cases/UC-11-maintain-curriculum.md) separates program administration, shared catalog maintenance and access management. The [test plan](../../test/test-plan.md#b2-checks) places this work in B2 and requires this ADR before code, after [PR #23](https://github.com/LLaammTTeerr/omnicourses/pull/23) merges. #23 is no longer open: it merged on 3 November 2026 as `900b1b8`, after this ADR was first written, and its migration is byte-identical to the inspected `700213a` below. The first F12 writes then merged in [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74) (`4a97fa7`).
 
 The inspected [#23 migration at `700213a`](https://github.com/LLaammTTeerr/omnicourses/blob/700213a224fb0486449e83008060d186c751081e/src/backend/src/database/migrations/1792912952302-create-curriculum-course-schema.ts) defines `programs`, `curriculums`, `requirement_groups`, `courses` and `requirement_group_courses`. A curriculum is unique by `(program_id, cohort_year)`; a course is shared across curricula. It supplies no prerequisite or offering-term storage, entities or read/validation interface. Its [ADR 0005](https://github.com/LLaammTTeerr/omnicourses/blob/700213a224fb0486449e83008060d186c751081e/docs/analysis-and-design/adr/0005-curriculum-cohort-and-course-catalog.md) still mentions a link-level `compulsory` column that the migration removed. F12 must reconcile the merged schema and ADR rather than restore that column.
 
@@ -22,13 +22,15 @@ This ADR proposes **program-scoped grants within the current HCMUS deployment**,
 
 **Decided (Lâm, 9 November 2026):** accepted for B2 and B3. OmniCourse serves one school (HCMUS), so a school level would add a boundary with nothing on the other side of it. The Security NFR's per-school clause is recorded as a known exception in the B2/B3 acceptance evidence; a second school needs a new ADR first.
 
+**Accepted (Lâm, 12 November 2026):** program-scoped grants plus the two global permissions replace the Vision's school-scoped administration. This is a deliberate exception to Vision §6 Security, not a claim that its per-school clause passes.
+
 ### Open from review (Thắng, 9 November 2026)
 
-These block acceptance; Thắng revises this ADR for them:
+Thắng's review listed three findings. At acceptance (12 November 2026) each is answered from `main` as it stands; where `main` has a gap, it is stated, not filled in:
 
-1. **Catalog read path for program administrators.** No curriculum or catalog read route exists on `main`. Define the endpoints, their permission (including whether ordinary students may use them), fields, filtering and pagination.
-2. **Rejecting unknown and immutable PATCH fields.** The global `ValidationPipe` uses `whitelist: true` without `forbidNonWhitelisted`, so such fields are silently dropped today. Name the per-route mechanism and its stable `400` response for the admin DTOs.
-3. **Field contracts outside courses.** Create/PATCH fields, normalization and null rules for programs, curricula (including `curriculums.code`) and requirement groups.
+1. **Catalog read path for program administrators.** *Answered, with a gap.* `main` has the F4 read routes from [#65](https://github.com/LLaammTTeerr/omnicourses/pull/65) (`src/backend/src/curriculum/curriculum.controller.ts`), open to every signed-in user, ordinary students included: `GET /api/programs` (every program with its cohorts), `GET /api/programs/:program/curricula/:cohort` (the curriculum and its requirement groups with their UUIDs, and each course with `prerequisites` and `offeringTerms`, `null` when not recorded) and `GET /api/courses/:code` (one catalog course by exact code, with every group linking it). #74 added `GET /api/admin/programs`: only the programs the caller holds a program grant for, with their cohorts' curriculum IDs. None of these filters or paginates. **Gap:** no route lists or searches the shared catalog, for administrators or anyone else, so a program administrator links a course by a code they already know. A catalog listing/search route needs its permission, fields, filtering and pagination added here before it is built.
+2. **Rejecting unknown and immutable PATCH fields.** *Closed by #74.* Admin request bodies use `@StrictBody()` (`src/backend/src/curriculum-admin/strict-body.ts`), a custom parameter decorator the global pipe skips, validated by a route pipe with `whitelist` and `forbidNonWhitelisted`: an unknown, identifier or gated field (a credit total) answers `400 validation_failed` naming it. It covers requirement-group `POST`/`PATCH`, prerequisites and offering-terms `PUT`, and catalog `POST`/`PATCH`; the membership, access and `DELETE` routes take no body. The global `ValidationPipe` (`src/backend/src/bootstrap.ts`) still uses `whitelist: true` without `forbidNonWhitelisted` for every other route. The e2e test "rejects malformed codes, unknown fields and a gated credit total" (`src/backend/test/curriculum-admin.e2e-spec.ts`) proves it.
+3. **Field contracts outside courses.** *Answered for requirement groups; open for programs and curricula.* Requirement groups (`curriculum-admin.dto.ts`): `name` required, nonempty, at most 255 characters and unique within the curriculum; `kind` one of the stored kinds, refused on `PATCH` while the group stores a credit total; `officialNotes` nullable, blank stored as null; `curriculumId` and the totals are not accepted. No route on `main` creates or edits a program or a curriculum, so their field contract is not yet written. `curriculums.code` (`varchar(50) NOT NULL`, no uniqueness constraint in #23's migration) is written only by the seeds (`APCS2024`, `APCS2025`) and is read-only in `GET /api/admin/programs`; its format, uniqueness and immutability must be added here with the first program/cohort write route.
 
 ## Decisions
 
@@ -42,7 +44,7 @@ These block acceptance; Thắng revises this ADR for them:
 | **Manual entry and CSV confirmation use the same transactional write/validation services.** F12 checks data shape and references; the rule engine decides academic consistency. | Independent CSV rules; row-by-row partial imports; duplicated academic rules or model calls. | UC-11 step 4 and A3/A7; TC-B2-ADM-05/07; AGENTS.md hard rule 1 and ADR 0003. |
 | **Use `csv-parse` exactly `6.1.0` for CSV parsing when implementation is unblocked.** This ADR records the library choice; no dependency is installed by this documentation change. | Splitting on commas; a browser-focused parser for a server-only import; installing the full CSV package. | The [tagged package](https://github.com/adaltas/node-csv/blob/csv-parse@6.1.0/packages/csv-parse/package.json) exports ESM and TypeScript types; the [parser documentation](https://csv.js.org/parse/) covers quotes/escaping and line breaks with no runtime dependencies. These support the CSV contract below without academic interpretation. |
 | **Refuse deletion of referenced curriculum/catalog data.** Unlinking one course from one group is a separate operation. | Relying on every schema cascade as permission to delete; deleting catalog courses with their groups; adding archival/versioning without a reader contract. | UC-11 A5/A8; TC-B2-ADM-04. #23 cascades group membership, which must not erase data still needed by another saved record. |
-| **Code follows #23's merge and this design's review. Prerequisites/offering terms additionally require Triết's storage, read and validation handoff.** | Implementing against an unmerged migration; inventing prerequisite semantics from course names or suggested study terms. | UC-11 §8; test-plan §8; #23 has no related tables. Basic CRUD does not complete the requested prerequisite API. |
+| **Code follows #23's merge and this design's review. Prerequisites/offering terms additionally require Triết's storage, read and validation handoff.** | Implementing against an unmerged migration; inventing prerequisite semantics from course names or suggested study terms. | UC-11 §8; test-plan §8; #23 has no related tables. Basic CRUD does not complete the requested prerequisite API. *Both gates are closed: #23 merged as `900b1b8`, and #74 built prerequisite/offering storage under the amendment below.* |
 
 ## Permission and storage contract
 
@@ -67,15 +69,17 @@ Account export includes only the recipient's grant rows. Purging a recipient rem
 
 ### Audit trail: open before curriculum/catalog writes
 
-Neither #23's `updated_at` nor grant attribution records who changed a curriculum or catalog row. **Lâm and Triết must decide whether B2 requires a change-history log or explicitly defers it before those mutations are implemented.** No audit trail is claimed by this proposal. If included, the reviewed contract must define recorded operations and before/after fields, transaction failure behavior, read permissions and retention; Thắng adds the storage and acceptance cases here before coding. If deferred, record the missing history in B2's acceptance evidence.
+Neither #23's `updated_at` nor grant attribution records who changed a curriculum or catalog row. **Lâm and Triết must decide whether B2 requires a change-history log or explicitly defers it before those mutations are implemented.** No audit trail is claimed by this ADR. If included, the reviewed contract must define recorded operations and before/after fields, transaction failure behavior, read permissions and retention; Thắng adds the storage and acceptance cases here before coding. If deferred, record the missing history in B2's acceptance evidence.
 
 **Decided (Lâm, 9 November 2026): deferred until after B3.** Curriculum and catalog writes may be implemented without a change-history log. B2's acceptance evidence records the missing history, and nothing in B2 or B3 may claim an audit trail.
+
+**Decided (Lâm, 12 November 2026), superseding the line above: deferred to B3.** This is an explicit deferral: B2 has no logging contract and no change-history log, and B2's acceptance evidence records the missing history. If B3 builds the log, its contract (recorded operations, before/after fields, transaction failure behavior, read permission and retention) is added to this ADR first, under the actor rule below; until a log ships, nothing may claim an audit trail.
 
 A retained log describes shared curriculum/catalog changes, not a student's owned record. Its actor reference must be nullable `actor_id uuid REFERENCES users(id) ON DELETE SET NULL`, never `user_id`; account purge detaches the actor and preserves the change record. Do not duplicate actor names, email, student identifiers or credentials into the log payload. This does not change the recipient-owned grant tables above. Export/purge tests must prove the log is not exported as the actor's owned data and survives actor purge with `actor_id = NULL`.
 
 ### Bootstrap and recovery
 
-Propose `npm run admin:bootstrap -w src/backend -- --user-id <existing-user-uuid>` as an operator-only command, implemented after the dependency gates. It is not an HTTP endpoint, migration default, sign-up option or currently available command. The Project Lead invokes it in a trusted deployment shell against the intended database.
+`npm run admin:bootstrap -w src/backend -- --user-id <existing-user-uuid>` is an operator-only command, built in #74 (`src/backend/src/curriculum-admin/bootstrap-cli.ts`). It is not an HTTP endpoint, migration default or sign-up option. The Project Lead invokes it in a trusted deployment shell against the intended database.
 
 The command runs in one transaction under the F12 write lock, verifies that the target account exists and is active, and grants only `access_manager`, with `granted_by = NULL`. It refuses when any active access manager already exists; two concurrent attempts cannot both succeed. Subsequent grants use the authenticated API. The same zero-active-manager check permits controlled recovery if account deletion removes or disables the last manager; recovery is not an override of an existing active manager.
 
@@ -83,7 +87,7 @@ The grant API rejects revoking the last active access manager with `409 last_acc
 
 ## Write boundary and API outline
 
-All routes below are **proposed**, behind `/api/admin`, and require the existing bearer authentication. The implementation supplies validated request/response DTOs with `@ApiProperty`, `@ApiBearerAuth()` and documented errors in OpenAPI 3.2.0. Controller names and internal helper names are implementation choices; authority checks and transaction boundaries are not.
+All routes below are the accepted outline, behind `/api/admin`, and require the existing bearer authentication. Not all of them exist yet: the [implementation notes](#implementation-notes-12-november-2026) list which ones `main` serves. The implementation supplies validated request/response DTOs with `@ApiProperty`, `@ApiBearerAuth()` and documented errors in OpenAPI 3.2.0. Controller names and internal helper names are implementation choices; authority checks and transaction boundaries are not.
 
 | Routes under `/api/admin` | Permission and behavior |
 | --- | --- |
@@ -94,7 +98,7 @@ All routes below are **proposed**, behind `/api/admin`, and require the existing
 | `GET /access/programs`; `GET /access/users/:userId/grants`; `PUT, DELETE /access/users/:userId/programs/:programId`; `PUT, DELETE /access/users/:userId/global/:permission` | Access-manager grant. Program selection and exact user-ID grant lookup; no general export of the user directory. Recipients copy their own ID from the planned account screen below. |
 | `POST /catalog/imports/preview`, `POST /catalog/imports/confirm`; `POST /programs/:programId/cohorts/:curriculumId/imports/preview`, `POST .../imports/confirm` | Catalog grant for course rows; program grant for group links. Same CSV and confirmation contract below. Imports cannot create programs or grants. |
 
-Program `code`, curriculum `program_id` and `cohort_year`, group `curriculum_id`, and catalog course `code` are immutable after creation through these routes. Ordinary PATCH requests whitelist editable attributes and explicitly reject attempted identifier/parent changes rather than silently ignoring them. A new cohort is a new curriculum record. A course-code correction needs a separate reviewed migration, including plain-string consumers such as transcripts and plans.
+Program `code`, curriculum `program_id` and `cohort_year`, group `curriculum_id`, and catalog course `code` are immutable after creation through these routes. `curriculums.code` is not yet covered (see review finding 3 above). Ordinary PATCH requests whitelist editable attributes and explicitly reject attempted identifier/parent changes rather than silently ignoring them. A new cohort is a new curriculum record. A course-code correction needs a separate reviewed migration, including plain-string consumers such as transcripts and plans.
 
 The B2 account screen must display a read-only **User ID** with a **Copy** action, using `id` from the existing authenticated `GET /api/users/me` response (`UserDto.id`). The recipient gives that ID to the access manager, who enters it in the grant form. The ID is an identifier, not a credential or authority to grant access. This screen field is a planned UI handoff to Hoà/Thắng, not an existing feature; it must be available before the grant-management UI is accepted. No email-search endpoint or user-directory listing is added.
 
@@ -116,7 +120,7 @@ Normalize course codes by trimming and uppercasing, then require `^[A-Z0-9]{2,20
 
 **B2 totals are gated fields, not accepted everywhere.** Once Triết supplies their meanings and validation, cohort POST/PATCH may accept `totalCreditsMin` (`curriculums.total_credits_min`); requirement-group POST/PATCH may accept `creditsTotal` and `creditsTotalMin` (the corresponding group columns). Validate supplied values as nonnegative integers or explicit null where the reviewed contract permits unknown values. Before that handoff, those fields are rejected with `400 validation_failed`; creation leaves them null and unrelated edits preserve stored values. Reads may show existing totals. Catalog, group-link and CSV routes never accept total fields. Creating or changing links still needs final-state group-total validation, even though its input has no totals. B2 completion depends on those handoffs; the date alone does not enable the fields or satisfy the tests.
 
-Every write sets `updated_at` in the same statement or save: entities use `@UpdateDateColumn`, and raw SQL sets `"updated_at" = now()`, the pattern `users` and `guide_texts` already follow. No trigger is added.
+A write to a row that has an `updated_at` column sets it in the same statement or save: entities use `@UpdateDateColumn` (TypeORM sets it on `update()` and `save()`, as the group and catalog `PATCH` do), and raw SQL sets `"updated_at" = now()` (the prerequisite-list upsert), the pattern `users` and `guide_texts` already follow. No trigger is added. Group-course links, prerequisite rows and offering-term rows have only `created_at`: they are inserted or deleted, never updated.
 
 Reject unsupported fields and nonexistent references before saving. Reconcile #23's nullable period fields and missing nonnegative-total constraints with this contract in a follow-up migration, never by editing an applied migration. Resolve ADR 0005's stale compulsory-link description: the inspected schema has only group `kind`, not a second source on each link.
 
@@ -170,6 +174,14 @@ The prerequisite API remains part of the requested F12 work. It is **blocked, no
 | Rule-engine and impact interfaces | Typed final-state validation, group-total semantics, source/revision identity, deterministic findings and complete impact/reference queries. **Manual group-link PUT/DELETE and CSV group-link preview/confirmation wait for this interface**, as do total-field editing and any affected shared-course correction. TC-B2-ADM-07's group-total checks cannot pass, and full administration cannot be accepted for 29 November, without it. Missing rules block affected writes; prerequisite/offering checks additionally wait for their storage handoff. | Triết; academic examples reviewed with Thắng. |
 | Read and regression contracts | Curriculum read API, saved-plan consumers and reference checks; test fixtures proving new cohorts preserve original plan placements and audit results. | Triết and Hoà; Thắng/Dũng test. |
 
+**Gate status at acceptance (12 November 2026):**
+
+- **#23 merged and inspected again:** closed (`900b1b8`).
+- **ADR 0011 reviewed and accepted:** closed by Lâm's acceptance, with the scope exception and the B3 audit deferral above.
+- **Prerequisite/offering-term storage:** closed by #74. Migration `1794230000000-create-curriculum-admin.ts` adds `course_prerequisite_lists`, `course_prerequisites` and `course_offering_terms`, keyed by curriculum. `prerequisite-cycle.ts` refuses cycles on write with `400 prerequisite_cycle`. The routes are `PUT`/`DELETE …/cohorts/:curriculumId/courses/:courseCode/prerequisites` and `…/offering-terms`.
+- **Rule-engine and impact interfaces:** still open for group totals. Membership writes run with structural checks only (amendment below), and credit totals stay read-only.
+- **Read and regression contracts:** the curriculum read API exists (#65; review finding 1 above). The cohort-preservation regression fixtures were not checked for this acceptance.
+
 After those handoffs, add concrete prerequisite/offering request and response DTOs and route cases to this ADR before implementing them. Their mutations require the stored program grant, current checks and transaction behavior above. Offering terms follow [ADR 0009](0009-term-encoding.md) as amended by [ADR 0012](0012-credit-caps-by-training-type.md): term numbers 1, 2 and 3, where 3 is a third main term in a Tiên tiến, Liên kết or Chất lượng cao program and the summer term only in a đại trà program, plus `term_year` when year-specific. A suggested study term is not an offering. No academic decision is delegated to a model.
 
 *The paragraphs above are superseded for prerequisites and offering terms by the amendment below.*
@@ -188,12 +200,35 @@ Implement in dependency order: grants/bootstrap and program/cohort writes; group
 | **Cycles are refused when written.** `PUT …/prerequisites` replaces the course's list and answers `400 prerequisite_cycle` with the cycle, e.g. `["A", "C", "B", "A"]`, if the curriculum's graph would contain one; nothing is saved. | Accepting the data and leaving the cycle to the rule engine. | A cycle makes every course in it impossible, so it is a data error, like a code outside the curriculum; the prototype refuses it on save. The check is a pure graph function (`prerequisite-cycle.ts`); whether a student meets a prerequisite stays with the rule engine (AGENTS.md hard rule 1). |
 | **Offering terms are term numbers 1–3 only,** `term_number smallint CHECK (term_number IN (1, 2, 3))`. Whether 3 is a main or a summer term follows the program's training type (ADR 0012). No `term_year` yet. | Year-specific offerings; a stored term kind. | ADR 0009/0012. No source gives year-specific offerings; `term_year` is an additive column when one does. |
 
-**What this PR implements, under `/api/admin`:** `GET /programs` (the caller's editable programs and cohorts); requirement-group `POST`, `PATCH` (name, kind, notes) and `DELETE` (refused while it links courses); membership `PUT`/`DELETE …/requirement-groups/:groupId/courses/:courseCode` (unlinking is refused while a rule of the curriculum names the course, `409 referenced_item`); `PUT`/`DELETE …/cohorts/:curriculumId/courses/:courseCode/prerequisites` and `…/offering-terms`; catalog `POST`, `PATCH`, `DELETE /catalog/courses/:courseCode` (delete only an unreferenced course, transcript rows included); access `GET /access/programs`, `GET /access/users/:userId/grants`, `PUT`/`DELETE /access/users/:userId/programs/:programId` and `…/global/:permission`; and `npm run admin:bootstrap -w src/backend -- --user-id <uuid>`. Grant tables, the single advisory write lock, `409 last_access_manager` and the bootstrap/recovery rule are as specified above.
+**What #74 implements, under `/api/admin`:** `GET /programs` (the caller's editable programs and cohorts); requirement-group `POST`, `PATCH` (name, kind, notes) and `DELETE` (refused while it links courses); membership `PUT`/`DELETE …/requirement-groups/:groupId/courses/:courseCode` (unlinking is refused while a rule of the curriculum names the course, `409 referenced_item`); `PUT`/`DELETE …/cohorts/:curriculumId/courses/:courseCode/prerequisites` and `…/offering-terms`; catalog `POST`, `PATCH`, `DELETE /catalog/courses/:courseCode` (delete only an unreferenced course, transcript rows included); access `GET /access/programs`, `GET /access/users/:userId/grants`, `PUT`/`DELETE /access/users/:userId/programs/:programId` and `…/global/:permission`; and `npm run admin:bootstrap -w src/backend -- --user-id <uuid>`. Grant tables, the single advisory write lock, `409 last_access_manager` and the bootstrap/recovery rule are as specified above.
 
 - **Shared-catalog review without a separate preview route.** `PATCH /catalog/courses/:code` on a course linked to any curriculum answers `409 impact_confirmation_required` with `affectedCurricula` and a `reviewVersion` (a hash of the current values, the proposed values and the affected curricula). Sending the same change with `confirmImpact: <reviewVersion>` saves it; any difference answers `409 impact_changed` with the new list. This is the confirmation flag the scope change asked for, kept safe against a stale review as this ADR requires. A course no curriculum links is saved directly.
 - **Unknown fields (open item 2, closed).** Admin request bodies use `@StrictBody()`, a custom parameter decorator the global pipe skips, validated with `forbidNonWhitelisted`: an unknown, identifier or gated field answers `400 validation_failed` instead of being dropped.
 - **Membership writes go ahead with structural checks only.** Codes, ownership and references are checked; group-total final-state validation still waits for the rule-engine interface, and credit totals stay read-only (`400`) until then.
-- **Still partial:** program and cohort creation/editing, CSV import, the audit log (deferred past B3 above) and the account screen's User ID field. F12 remains **partial**.
+- **Still partial:** program and cohort creation/editing, CSV import, the audit log (deferred to B3 by the 12 November decision above) and the account screen's User ID field. F12 remains **partial**.
+
+### Implementation notes (12 November 2026)
+
+What `main` serves under `/api/admin` (`src/backend/src/curriculum-admin/*.controller.ts`), against the outline above:
+
+| Outline | On `main` |
+| --- | --- |
+| `GET /programs` | Built: the caller's editable programs and cohorts. |
+| `POST /programs`, `PATCH /programs/:programId`, cohort `GET`/`POST`/`PATCH` | Not built. Programs and cohorts enter through the seeds. |
+| Requirement groups `GET` | Not built. Groups are read through `GET /api/programs/:program/curricula/:cohort`. |
+| Requirement groups `POST`, `PATCH`, `DELETE`; membership `PUT`, `DELETE` | Built. |
+| Prerequisites and offering terms `PUT`, `DELETE` | Built (amendment). |
+| Catalog `POST`, `PATCH`, `DELETE /catalog/courses/:courseCode` | Built. |
+| Catalog `GET /catalog/courses`, `GET /catalog/courses/:courseCode`, `POST …/preview` | Not built. The `PATCH` answers `409 impact_confirmation_required` instead of a preview route (amendment). Courses are read through `GET /api/courses/:code`. |
+| Access `GET /programs`, `GET /users/:userId/grants`, `PUT`/`DELETE` program and global grants | Built. |
+| CSV import preview/confirm, catalog and group links | Not built. `csv-parse` is not installed, and the 7 MiB import body limit is not configured. |
+| `admin:bootstrap` | Built (`bootstrap-cli.ts`). |
+
+Other differences from the text:
+
+- Besides the codes in the response table, the write services answer `403 account_deletion_pending` when the caller's account is waiting for deletion, and `400 prerequisite_cycle` with the cycle (`admin-errors.ts`).
+- The administration screens and the account screen's **User ID** field are not built; no frontend route calls `/api/admin`.
+- The amendment says the curriculum PDFs print no prerequisites. Since then, [#75](https://github.com/LLaammTTeerr/omnicourses/pull/75) extracted the "Prior-course" lines of the APCS course-description booklet into `src/backend/src/database/seeds/apcs-prerequisites.ts`. That file is not loaded: no seed writes `course_prerequisites` or `course_offering_terms`.
 
 ## Verification required with implementation
 
@@ -207,12 +242,12 @@ These are acceptance obligations, not tests executed by this documentation chang
 | TC-B2-ADM-06 | No sign-up/onboarding grants; controlled and concurrent bootstrap; access-manager delegation of all three roles; last-active-manager protection and zero-manager recovery; completed revocation blocks the next write; recipient purge removes only owned grants; granter purge preserves others' grants; export omits others' rows and all credentials. The later account screen copies the signed-in user's own `UserDto.id`. |
 | TC-B2-ADM-07 | Quoted commas/newlines/BOM; exact headers; decoded-byte, escaped-JSON and record-limit boundaries above, preserving unrelated route limits; row-numbered missing/duplicate/invalid values; cross-program group names; file with one bad row saves nothing; cancel saves nothing; changed input, source revision or impact invalidates confirmation; revoked permissions refuse it; injected failure rolls back every row; repeat import creates no duplicates. |
 
-B3 TC-B3-ADM-01 still requires entering a second program/cohort through the later administration UI. Service tests cannot substitute for that check. Add prerequisite/offering tests to these parents only after the schema/rule handoff gives reviewed expected outcomes.
+B3 TC-B3-ADM-01 still requires entering a second program/cohort through the later administration UI. Service tests cannot substitute for that check. #74 added prerequisite/offering tests (`prerequisite-cycle.spec.ts`, `curriculum-admin.e2e-spec.ts`) under the amendment; add them to these parents in the test plan.
 
 ## Consequences
 
 The shared catalog remains a deliberate global boundary. Program membership stays isolated, while a confirmed catalog correction may change several curricula's computed results. The single F12 write lock favors a small, reviewable correctness contract over parallel administration throughput; refine it only with evidence of contention and equivalent concurrency tests.
 
-For B2, the catalog maintainer alone confirms shared impact. Affected program administrators receive no automatic notification and do not approve the correction. Adding that notification is a separate F10 handoff; neither an audit trail nor notification delivery is implied by this proposal.
+For B2, the catalog maintainer alone confirms shared impact. Affected program administrators receive no automatic notification and do not approve the correction. Adding that notification is a separate F10 handoff; neither an audit trail nor notification delivery is implied by this ADR.
 
 Grant rows integrate with account export/purge without special export code. Bootstrap and deployment access remain operator responsibilities. School isolation, cohort-specific course attributes, identifier migrations and archival need separate accepted designs. No new dependencies, migrations, API routes or product behavior are added by this ADR-only change.
