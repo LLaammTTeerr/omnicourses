@@ -162,7 +162,7 @@ describe('Plan issues API (e2e)', () => {
     // Nothing was saved.
     expect((await http().get(`/api/plans/${plan.id}`).set(auth).expect(200)).body.terms).toEqual(plan.terms);
     // A drop the board refuses (the course is already placed), a target twice, no target, another student's plan.
-    const send = (body: unknown, as = auth) => http().post(`/api/plans/${plan.id}/issues/drops`).set(as).send(body);
+    const send = (body: object, as = auth) => http().post(`/api/plans/${plan.id}/issues/drops`).set(as).send(body);
     await send({ terms: plan.terms, placement: course(code(2)), targets }).expect(400);
     await send({ terms: plan.terms, placement: course(code(1)), targets: [targets[0], targets[0]] }).expect(400);
     await send({ terms: plan.terms, placement: course(code(1)), targets: [] }).expect(400);
