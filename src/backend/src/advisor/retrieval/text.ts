@@ -12,6 +12,8 @@ const HOMOGLYPHS: Record<string, string> = {
   ɑ: 'a', ɐ: 'a', ɒ: 'a', ɛ: 'e', ɔ: 'o', ı: 'i', ɩ: 'i', ɪ: 'i', ʋ: 'v', ʏ: 'y', ѵ: 'v', ԛ: 'q', ԝ: 'w',
   ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p',
   ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ᴢ: 'z',
+  // Armenian letters that look like Latin ones ("Yօu").
+  օ: 'o', ս: 'u', հ: 'h', ո: 'n', ց: 'g', զ: 'q', Օ: 'O', Ս: 'S',
 };
 const HOMOGLYPH_PATTERN = new RegExp(`[${Object.keys(HOMOGLYPHS).join('')}]`, 'gu');
 
@@ -23,16 +25,27 @@ function asciiDigit(digit: string): string {
 }
 
 /**
- * Cleans text a student typed before anything reads it: NFKC (full-width letters become ASCII,
- * decomposed Vietnamese is composed), digits of every script as ASCII digits, and no invisible
- * format characters (zero-width, bidi overrides, tag characters). Sent to the model as cleaned;
- * meaning is unchanged.
+ * Characters that render as a blank but are neither whitespace (\s) nor format characters: the
+ * Braille blank, the Hangul fillers (NFKC turns U+3164 and U+FFA0 into U+1160), the Khmer inherent
+ * vowels. Read as a space, so "You⠀are⠀eligible" is three words to every check.
+ */
+const BLANK = /[\u2800\u115F\u1160\u3164\uFFA0\u17B4\u17B5]/gu;
+/** Invisible marks that attach to nothing a reader sees: the combining grapheme joiner and the variation selectors. */
+const INVISIBLE_MARK = /[\u034F\uFE00-\uFE0F\u{E0100}-\u{E01EF}]/gu;
+
+/**
+ * Cleans text before anything reads it, a student's message or the model's answer: NFKC
+ * (full-width letters become ASCII, decomposed Vietnamese is composed), digits of every script as
+ * ASCII digits, no invisible format characters (zero-width, bidi overrides, tag characters) or
+ * invisible marks, and blank characters as spaces. Sent to the model as cleaned; meaning is unchanged.
  */
 export function cleanInput(text: string): string {
   return text
     .normalize('NFKC')
     .replace(/(?![0-9])\p{Nd}/gu, asciiDigit)
-    .replace(/\p{Cf}/gu, '');
+    .replace(/\p{Cf}/gu, '')
+    .replace(INVISIBLE_MARK, '')
+    .replace(BLANK, ' ');
 }
 
 /** Lower case, cleaned, homoglyphs to Latin; Vietnamese diacritics kept. */

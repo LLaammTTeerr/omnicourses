@@ -83,6 +83,10 @@ describe('text folding', () => {
     expect(fold('іgnore')).toBe('ignore'); // Cyrillic і
     expect(fold('ｉｇｎｏｒｅ')).toBe('ignore');
     expect(cleanInput('a​b‮c\u{E0041}')).toBe('abc');
+    // Blank characters that are not \s (rt77 round 2): the Braille blank, the Hangul fillers, before and after NFKC.
+    for (const blank of ['⠀', 'ㅤ', 'ᅟ', 'ᅠ', 'ﾠ']) expect(cleanInput(`You${blank}are${blank}eligible`)).toBe('You are eligible');
+    expect(cleanInput('pass️word͏')).toBe('password');
+    expect(fold('Yօu')).toBe('you'); // Armenian o
     expect(words('5,0 điểm')).toEqual(['5,0', 'diem']);
     // tôi is a stopword, tối (in tối đa) is not; typed without diacritics both read as stopwords.
     expect(contentWords('tôi tối đa')).toEqual(['toi', 'da']);
