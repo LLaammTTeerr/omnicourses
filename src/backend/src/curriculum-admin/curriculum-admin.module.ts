@@ -16,5 +16,7 @@ import { CurriculumAdminService } from './curriculum-admin.service.js';
   imports: [CurriculumModule, TypeOrmModule.forFeature([ProgramAdminGrant, GlobalAdminGrant])],
   controllers: [CurriculumAdminController, CatalogAdminController, AccessAdminController],
   providers: [AdminWriteService, CurriculumAdminService, CatalogAdminService, AccessAdminService],
+  // Other program-scoped writers (the academic calendar, ADR 0016) check grants through it.
+  exports: [AdminWriteService],
 })
 export class CurriculumAdminModule {}
