@@ -7,7 +7,7 @@ import { AiUsage } from './ai-usage.entity.js';
 import { GatewayLlmService } from './gateway-llm.service.js';
 import { LlmService } from './llm.service.js';
 import { ModelClient } from './model-client.js';
-import { OpenRouterModelClient } from './openrouter-model.client.js';
+import { OpenAiCompatibleModelClient } from './openai-compatible-model.client.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([AiUsage])],
@@ -17,7 +17,7 @@ import { OpenRouterModelClient } from './openrouter-model.client.js';
     {
       provide: ModelClient,
       inject: [AI_CONFIG],
-      useFactory: ({ apiKey, timeoutMs }: AiConfig): ModelClient | null => (apiKey ? new OpenRouterModelClient(apiKey, timeoutMs) : null),
+      useFactory: ({ apiKey, ...settings }: AiConfig): ModelClient | null => (apiKey ? new OpenAiCompatibleModelClient(apiKey, settings) : null),
     },
     AiCostGuard,
     { provide: LlmService, useClass: GatewayLlmService },

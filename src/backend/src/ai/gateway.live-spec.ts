@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { aiConfig, loadEnvFiles } from '../config/env.js';
 import { type CostGuard, GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent } from './llm.service.js';
-import { OpenRouterModelClient } from './openrouter-model.client.js';
+import { OpenAiCompatibleModelClient } from './openai-compatible-model.client.js';
 
 // One smoke test per operation against the real provider: `npm run test:live -w src/backend`.
 // Synthetic input only (AGENTS.md hard rule 3).
@@ -25,11 +25,11 @@ const creditCapTool = (calls: string[]) => ({
   },
 });
 
-describe.skipIf(!configured)('AI gateway against OpenRouter (live)', () => {
+describe.skipIf(!configured)('AI gateway against the configured provider (live)', () => {
   let llm: GatewayLlmService;
 
   beforeAll(() => {
-    llm = new GatewayLlmService(new OpenRouterModelClient(config.apiKey ?? '', config.timeoutMs), noGuard, config);
+    llm = new GatewayLlmService(new OpenAiCompatibleModelClient(config.apiKey ?? '', config), noGuard, config);
   });
 
   it('structured() returns a reply that passes the schema', async () => {

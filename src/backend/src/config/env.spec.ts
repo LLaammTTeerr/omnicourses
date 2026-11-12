@@ -44,6 +44,25 @@ describe('settings', () => {
     expect(port()).toBe(4000);
   });
 
+  it('defaults the AI provider to OpenRouter and accepts only allowlisted base URLs', () => {
+    expect(aiConfig()).toMatchObject({ provider: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1', maxOutputTokens: 8192 });
+    vi.stubEnv('AI_BASE_URL', ' https://api.anthropic.com/v1/ ');
+    expect(aiConfig()).toMatchObject({ provider: 'anthropic', baseUrl: 'https://api.anthropic.com/v1/' });
+    // No SSRF: any other host, scheme or path refuses to boot instead of sending the key there.
+    for (const url of ['https://evil.example/v1', 'http://api.anthropic.com/v1/', 'https://api.anthropic.com/v1/../x', 'http://169.254.169.254/']) {
+      vi.stubEnv('AI_BASE_URL', url);
+      expect(() => aiConfig()).toThrow(/AI_BASE_URL must be one of/);
+    }
+  });
+
+  it('reads the key from AI_API_KEY, falling back to OPENROUTER_API_KEY', () => {
+    vi.stubEnv('AI_API_KEY', '');
+    vi.stubEnv('OPENROUTER_API_KEY', 'old-name');
+    expect(aiConfig().apiKey).toBe('old-name');
+    vi.stubEnv('AI_API_KEY', 'new-name');
+    expect(aiConfig().apiKey).toBe('new-name');
+  });
+
   // '' would read as 0 (a 0 ms timeout, purge at once, a random port) and a typo as NaN (a cap that never triggers).
   it.each(['', ' ', 'abc', '0', '-1', '1.5'])('falls back to the defaults when a number is %j', (value) => {
     vi.stubEnv('AI_TIMEOUT_MS', value);

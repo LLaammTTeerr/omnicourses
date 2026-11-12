@@ -54,9 +54,16 @@ export class FakeLlmService extends LlmService {
     let text = '';
     for (const step of script) {
       if ('tool' in step) {
+        // Like the real gateway: a call to a tool that was not offered, or with arguments its schema
+        // rejects, is reported back as a failed tool result and the handler never runs.
         const tool = request.tools?.find((t) => t.name === step.tool);
-        if (!tool) throw new Error(`FakeLlmService: the request has no tool ${step.tool}`);
-        const args = tool.schema.parse(step.args);
+        const parsed = tool?.schema.safeParse(step.args);
+        if (!tool || !parsed?.success) {
+          yield { type: 'tool_call', name: step.tool, args: step.args };
+          yield { type: 'tool_result', name: step.tool, ok: false };
+          continue;
+        }
+        const args = parsed.data;
         yield { type: 'tool_call', name: step.tool, args };
         const ok = await tool.handler(args).then(
           () => true,

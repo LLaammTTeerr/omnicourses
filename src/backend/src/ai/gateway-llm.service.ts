@@ -9,6 +9,9 @@ import { logErrorName } from './log-error-name.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelToolCall, ModelUsage } from './model-client.js';
 
 const DEFAULT_MAX_STEPS = 5;
+export const DEFAULT_MAX_TOOL_CALLS = 8;
+/** Tool results added to one chat's prompt, in characters; past it the chat ends like a tool limit. */
+export const MAX_TOOL_RESULT_CHARS = 200_000;
 
 /**
  * What the gateway needs of the cost guard; the live test passes one that never caps.
@@ -45,7 +48,8 @@ function clientMessages(messages: ChatMessage[]): ModelMessage[] {
     .map((m) => ({ role: m.role, content: m.content }));
 }
 
-type ParsedToolCall = { args: unknown; run: () => Promise<{ ok: boolean; content: string }> };
+type ToolResult = { ok: boolean; content: string };
+type ParsedToolCall = { args: unknown; key?: string; run: () => Promise<ToolResult> };
 
 const toolError = (error: string) => ({ ok: false, content: JSON.stringify({ error }) });
 
@@ -66,6 +70,7 @@ function parseToolCall(tools: ChatTool<any>[], call: ModelToolCall): ParsedToolC
   if (!parsed.success) return failed(raw, `Invalid arguments: ${z.prettifyError(parsed.error)}`);
   return {
     args: parsed.data,
+    key: `${tool.name}\u0000${JSON.stringify(parsed.data ?? null)}`,
     run: async () => {
       try {
         return { ok: true, content: JSON.stringify((await tool.handler(parsed.data)) ?? null) };
@@ -102,7 +107,7 @@ export class GatewayLlmService extends LlmService {
     let usageId: string | undefined;
     try {
       usageId = await this.guard.reserve(request.context, model);
-      // response_format is only a preference on OpenRouter, so a reply can still
+      // response_format is only a preference on some providers, so a reply can still
       // miss the schema: one retry, then give up.
       for (let attempt = 1; attempt <= 2; attempt++) {
         const reply = await client.complete({ model, messages, jsonSchema });
@@ -129,6 +134,11 @@ export class GatewayLlmService extends LlmService {
     const tools = request.tools ?? [];
     const modelTools = tools.map((t) => ({ name: t.name, description: t.description, parameters: toModelSchema(t.schema) }));
     const maxSteps = request.maxSteps ?? DEFAULT_MAX_STEPS;
+    const maxToolCalls = request.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS;
+    // Within one chat an identical call reuses the first result: the handler runs once.
+    const results = new Map<string, Promise<ToolResult>>();
+    let toolCalls = 0;
+    let toolChars = 0;
     const messages: ModelMessage[] = [{ role: 'system', content: request.instructions }, ...clientMessages(request.messages)];
     const usage: ModelUsage = { inputTokens: 0, outputTokens: 0 };
     const started = Date.now();
@@ -155,13 +165,26 @@ export class GatewayLlmService extends LlmService {
           yield { type: 'done', text: end.content };
           return;
         }
+        // A loop (the same call 200 times a turn) would run handlers and grow the prompt without
+        // bound under one counted call: every call counts, unknown or invalid ones too, and a turn
+        // that would pass the cap runs none of them.
+        toolCalls += end.toolCalls.length;
+        if (toolCalls > maxToolCalls) throw new AiUnavailableError(AI_REASONS.toolLimit);
         messages.push({ role: 'assistant', content: end.content, toolCalls: end.toolCalls });
         for (const call of end.toolCalls) {
           const parsed = parseToolCall(tools, call);
           yield { type: 'tool_call', name: call.name, args: parsed.args };
-          const result = await parsed.run();
-          yield { type: 'tool_result', name: call.name, ok: result.ok };
-          messages.push({ role: 'tool', toolCallId: call.id, content: result.content });
+          let result: Promise<ToolResult>;
+          if (parsed.key === undefined) result = parsed.run();
+          else {
+            result = results.get(parsed.key) ?? parsed.run();
+            results.set(parsed.key, result);
+          }
+          const { ok, content } = await result;
+          toolChars += content.length;
+          if (toolChars > MAX_TOOL_RESULT_CHARS) throw new AiUnavailableError(AI_REASONS.toolLimit);
+          yield { type: 'tool_result', name: call.name, ok };
+          messages.push({ role: 'tool', toolCallId: call.id, content });
         }
       }
     } catch (error) {

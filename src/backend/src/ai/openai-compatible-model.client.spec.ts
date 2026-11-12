@@ -1,12 +1,12 @@
 import OpenAI from 'openai';
 import { Logger } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { toAiUnavailable, toSdkMessages, toStreamParams } from './openrouter-model.client.js';
+import { sdkOptions, toAiUnavailable, toSdkMessages, toStreamParams } from './openai-compatible-model.client.js';
 
 const apiError = (status: number, body?: Record<string, unknown>) =>
   new OpenAI.APIError(status, body, 'provider said something with the prompt in it', new Headers());
 
-describe('OpenRouterModelClient', () => {
+describe('OpenAiCompatibleModelClient', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it.each([
@@ -27,18 +27,18 @@ describe('OpenRouterModelClient', () => {
   it('logs status, code and type of a provider error, never its message', () => {
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     toAiUnavailable(apiError(400, { code: 'model_not_found', type: 'invalid_request_error', message: 'the prompt was: graduate by 2028' }));
-    expect(warn).toHaveBeenCalledWith('OpenRouter error: status=400 code=model_not_found type=invalid_request_error');
+    expect(warn).toHaveBeenCalledWith('Model provider error: status=400 code=model_not_found type=invalid_request_error');
     toAiUnavailable(apiError(500));
-    expect(warn).toHaveBeenLastCalledWith('OpenRouter error: status=500 code=- type=-');
+    expect(warn).toHaveBeenLastCalledWith('Model provider error: status=500 code=- type=-');
     expect(JSON.stringify(warn.mock.calls)).not.toContain('prompt');
   });
 
   it('logs a timeout and an unexpected error by kind only', () => {
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     toAiUnavailable(new OpenAI.APIConnectionTimeoutError());
-    expect(warn).toHaveBeenLastCalledWith('OpenRouter error: timeout');
+    expect(warn).toHaveBeenLastCalledWith('Model provider error: timeout');
     toAiUnavailable(new TypeError('prompt text could be in here'));
-    expect(warn).toHaveBeenLastCalledWith('OpenRouter error: TypeError');
+    expect(warn).toHaveBeenLastCalledWith('Model provider error: TypeError');
     expect(JSON.stringify(warn.mock.calls)).not.toContain('prompt');
   });
 
@@ -55,6 +55,21 @@ describe('OpenRouterModelClient', () => {
     expect(params).not.toHaveProperty('tools');
     expect(params).not.toHaveProperty('tool_choice');
     expect(params.stream_options).toEqual({ include_usage: true });
+  });
+
+  it('sends an explicit output cap, which Anthropic requires', () => {
+    expect(toStreamParams({ model: 'm', messages: [], tools: [] }, 2048).max_tokens).toBe(2048);
+  });
+
+  it('points the SDK at the configured provider and sends the OpenRouter header only to OpenRouter', () => {
+    const settings = { timeoutMs: 1000, maxOutputTokens: 100 };
+    expect(sdkOptions('k', { ...settings, provider: 'openrouter', baseUrl: 'https://openrouter.ai/api/v1' })).toMatchObject({
+      baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: { 'X-Title': 'OmniCourse' },
+    });
+    const anthropic = sdkOptions('k', { ...settings, provider: 'anthropic', baseUrl: 'https://api.anthropic.com/v1/' });
+    expect(anthropic).toMatchObject({ baseURL: 'https://api.anthropic.com/v1/', timeout: 1000, maxRetries: 1 });
+    expect(anthropic).not.toHaveProperty('defaultHeaders');
   });
 
   it('converts tool calls and tool results to the OpenAI wire format', () => {

@@ -1,6 +1,6 @@
 // The gateway's internal port to a model provider. GatewayLlmService holds the
 // logic (tool loop, parsing, cap, usage) and talks only to this, so it is tested
-// with a scripted client; OpenRouterModelClient is the one real adapter.
+// with a scripted client; OpenAiCompatibleModelClient is the one real adapter.
 
 export interface ModelUsage {
   inputTokens: number;

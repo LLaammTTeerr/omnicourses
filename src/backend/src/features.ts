@@ -1,4 +1,5 @@
 import { AccountModule } from './account/account.module.js';
+import { AdvisorModule } from './advisor/advisor.module.js';
 import { AiModule } from './ai/ai.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -12,4 +13,4 @@ import { TranscriptModule } from './transcript/transcript.module.js';
 import { UsersModule } from './users/users.module.js';
 
 // The app and the OpenAPI contract both load this list.
-export const FEATURE_MODULES = [HealthModule, UsersModule, AuthModule, AccountModule, AiModule, TranscriptModule, GuidesModule, CurriculumModule, OnboardingModule, AuditModule, PlansModule, CurriculumAdminModule];
+export const FEATURE_MODULES = [HealthModule, UsersModule, AuthModule, AccountModule, AiModule, TranscriptModule, GuidesModule, CurriculumModule, OnboardingModule, AuditModule, PlansModule, CurriculumAdminModule, AdvisorModule];
