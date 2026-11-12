@@ -62,6 +62,20 @@ export function fold(text: string): string {
   return stripMarks(lower(text));
 }
 
+/**
+ * `fold` of an already cleaned text that keeps its length, so an index in the folded text is an
+ * index in the text: a character whose fold has another length is kept as it is. Patterns run on
+ * the fold ("mat khau", "раssword" → "password"); what they find is replaced in the text.
+ */
+export function foldKeepingLength(cleaned: string): string {
+  let out = '';
+  for (const ch of cleaned) {
+    const folded = stripMarks((HOMOGLYPHS[ch] ?? ch).toLowerCase());
+    out += folded.length === ch.length ? folded : ch;
+  }
+  return out;
+}
+
 /** A word as written (lower case, diacritics kept) and folded. */
 export interface Token {
   raw: string;
