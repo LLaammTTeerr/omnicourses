@@ -1,7 +1,8 @@
 // Round 2 of the offline red team of PR #77 (12 Nov 2026, held out from round 1): the input-side,
 // normalisation and deterministic-number cases that were fixed, plus the faithful replies and legit
 // questions that must keep passing. Synthetic data only (AGENTS.md hard rule 3). ADR 0015 reports
-// the counts; the verdict and claim paraphrases of round 2 are not here (ADR 0015 "Open").
+// the counts; every held-out output case of round 2, the verdict and claim paraphrases included, is
+// replayed by rt77-round2-heldout.spec.ts.
 
 const C = (id: string) => `[[${id.startsWith('so-tay') ? id : `qd-1175-2021/${id}`}]]`;
 const BR = '⠀'; // Braille pattern blank: renders as a space, is not \s and not a letter
@@ -24,7 +25,7 @@ export interface OutputCase {
   question: string;
   tools?: Step[];
   answer: string;
-  /** A hostile reply must be replaced for one of these reasons. */
+  /** What the free-text guard caught this reply for (history; since option A its explanation must not be shown). */
   reasons?: string[];
 }
 

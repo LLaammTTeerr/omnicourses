@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { ChatRequest } from '../../ai/llm.service.js';
-import { type FakeChatStep, FakeLlmService } from '../../ai/testing/fake-llm.service.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { FakeLlmService } from '../../ai/testing/fake-llm.service.js';
+import type { ModelAnswer } from '../advisor-answer.js';
 import { REDACTION_NOTICE } from '../advisor-prompt.js';
 import { validateRequest } from '../red-team/red-team-cases.js';
 import { corpusIndex } from '../retrieval/regulation-corpus.js';
 import { cleanInput } from '../retrieval/text.js';
-import { advisorFor, collect, summary, TEST_USER_ID } from '../testing/advisor-test-kit.js';
+import { advisorFor, anchoredFrom, ask, faithfulAnswer, factIdsFor, modelTextOutsideExplanation, reply, stepsToReach, structuredFrom, summary } from '../testing/advisor-test-kit.js';
 import { gate } from '../topic-gate.js';
 import {
   FAITHFUL,
@@ -21,12 +24,16 @@ import {
 } from './rt77-round2-cases.js';
 
 // Round 2 of the offline red team (PR #77, ADR 0015 "Offline red team, round 2"): what reaches the
-// provider (redaction, consent) and what the deterministic guard reads (blank characters, links,
-// numbers, tool-grounded numbers), plus the gate's refusals of legit questions. FakeLlmService
-// plays the model; no provider is called.
+// provider (redaction, consent) and what the server shows (blank characters, links, numbers,
+// tool-grounded numbers), plus the gate's refusals of legit questions. FakeLlmService plays the
+// model; no provider is called. Since option A the model answers with a JSON object: a hostile
+// reply is re-expressed by structuredFrom (and again by anchoredFrom, passing every id check) and
+// must not have its explanation shown; a faithful reply is a faithful model's answer with its
+// blind explanation (faithful-explanations.json) and must have its passages and facts shown.
 
 const index = corpusIndex();
-const DEFLECT = { text: 'I found no clause about that; please ask the academic affairs office.' };
+const DEFLECT = reply({ refusal: 'no_source' });
+const EXPLANATIONS: Record<string, string | null> = JSON.parse(readFileSync(join(__dirname, 'faithful-explanations.json'), 'utf8'));
 
 /** What one request sends to the provider, or undefined if it never got there. */
 async function sent(lang: 'vi' | 'en', messages: { role: string; content: string }[], consented = true) {
@@ -34,7 +41,7 @@ async function sent(lang: 'vi' | 'en', messages: { role: string; content: string
   if (!v.ok) throw new Error(`invalid request: ${v.errors.join('; ')}`);
   const llm = new FakeLlmService().replyChat(DEFLECT);
   const { advisor } = advisorFor({ llm, consented });
-  const run = summary(await collect(advisor.ask(TEST_USER_ID, { language: lang, messages: v.messages })));
+  const run = summary(await ask(advisor, lang, v.messages));
   return { request: llm.chatCalls[0] as ChatRequest | undefined, run };
 }
 
@@ -43,24 +50,28 @@ const leaks = (request: ChatRequest, c: RedactCase) => {
   return c.secrets.filter((s) => text.includes(JSON.stringify(cleanInput(s)).slice(1, -1)) || text.includes(JSON.stringify(s).slice(1, -1)));
 };
 
-/** Plays one scripted model reply through the advisor; a citation outside the gate's hits is fetched by a search first. */
-async function play(c: OutputCase, consented = true) {
-  const g = gate(index, [c.question], consented);
+/** Plays one model answer through the advisor; a passage outside the gate's hits is fetched by a search first. */
+async function play(c: OutputCase, final: (inTurn: Set<string>, best: string | undefined) => { answer: ModelAnswer; steps: { tool: string; args: unknown }[] }) {
+  const g = gate(index, [c.question], true);
   expect(g.decision, `${c.id}: the question must reach the model`).toBe('answer');
-  const hitIds = new Set(g.hits.map((h) => h.clause.id));
-  const steps: FakeChatStep[] = [];
-  for (const id of new Set([...c.answer.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1]))) {
-    if (hitIds.has(id)) continue;
-    const clause = index.get(id);
-    expect(clause, `${c.id}: ${id} is a real clause`).toBeDefined();
-    const query = clause!.text.replace(/\s+/g, ' ').trim().slice(0, 200);
-    expect(index.search(query, 5).hits.some((h) => h.clause.id === id), `${c.id}: the search finds ${id}`).toBe(true);
-    steps.push({ tool: 'search_regulations', args: { query } });
-  }
-  steps.push(...(c.tools ?? []), { text: c.answer });
-  const { advisor } = advisorFor({ llm: new FakeLlmService().replyChat(...steps), consented });
-  return summary(await collect(advisor.ask(TEST_USER_ID, { language: c.lang, messages: [{ role: 'user', content: c.question }] })));
+  const cited = [...c.answer.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1]);
+  for (const id of cited) expect(index.get(id), `${c.id}: ${id} is a real clause`).toBeDefined();
+  const reach = stepsToReach([c.question], cited);
+  const inTurn = new Set([...g.hits.map((h) => h.clause.id), ...reach.flatMap((s) => index.search((s.args as { query: string }).query, 5).hits.map((h) => h.clause.id))]);
+  for (const id of cited) expect(inTurn.has(id), `${c.id}: the search finds ${id}`).toBe(true);
+  const { answer, steps } = final(inTurn, g.hits[0]?.clause.id);
+  const { advisor } = advisorFor({ llm: new FakeLlmService().replyChat(...steps, reply(answer)) });
+  const a = await ask(advisor, c.lang, [{ role: 'user', content: c.question }]);
+  expect(modelTextOutsideExplanation(a, c.lang), c.id).toEqual([]);
+  return { ...summary(a), picked: answer };
 }
+
+/** A hostile reply as written, and from a model that passes every id check. */
+const hostile = (c: OutputCase, anchored: boolean) => (inTurn: Set<string>, best: string | undefined) => {
+  const facts = factIdsFor(c.tools);
+  const answer = structuredFrom(c.answer, facts);
+  return { answer: anchored ? { ...anchoredFrom(answer, inTurn, best), engineFacts: facts } : answer, steps: [...stepsToReach([c.question], [...c.answer.matchAll(/\[\[([^\]]+)\]\]/g)].map((m) => m[1])), ...(c.tools ?? [])] };
+};
 
 describe('rt77 round 2: redaction before the provider (item 1, hard rule 3)', () => {
   it.each(REDACTED.map((c) => [c.id, c] as const))('%s reaches the model without the secret', async (_id, c) => {
@@ -108,16 +119,20 @@ describe('rt77 round 2: consent (item 2)', () => {
   });
 });
 
-describe('rt77 round 2: the guard reads what the student would see (items 3–6)', () => {
-  it.each(HOSTILE.map((c) => [c.id, c] as const))('%s is replaced', async (_id, c) => {
-    const run = await play(c);
-    expect(run.outcome, run.text).toBe('replaced');
-    expect(run.reasons.filter((r) => c.reasons!.includes(r)), `${c.id}: ${run.reasons.join(',')}`).not.toEqual([]);
+describe('rt77 round 2: what the student would see (items 3–6)', () => {
+  // `reasons` names what the free-text guard caught at the time; the explanation guard now does.
+  it.each(HOSTILE.map((c) => [c.id, c] as const))('%s is not shown', async (_id, c) => {
+    for (const anchored of [false, true]) {
+      const run = await play(c, hostile(c, anchored));
+      expect(run.explanation, `${c.id}${anchored ? ' anchored' : ''}: ${run.reasons.join(',')}`).toBeNull();
+    }
   });
 
   it.each([...FAITHFUL, ...FAITHFUL_EXTRA].map((c) => [c.id, c] as const))('faithful %s is shown', async (_id, c) => {
-    const run = await play(c);
-    expect(run.outcome, run.reasons.join(',')).toBe('answered');
+    const run = await play(c, () => faithfulAnswer({ legacy: c.answer, userTurns: [c.question], consented: true, steps: c.tools, explanation: EXPLANATIONS[`r2/${c.id}`] ?? null }));
+    expect(['answered', 'partial'], run.reasons.join(',')).toContain(run.outcome);
+    expect(run.passages).toEqual(run.picked.passageIds);
+    expect(run.facts).toHaveLength(run.picked.engineFacts.length);
   });
 });
 
