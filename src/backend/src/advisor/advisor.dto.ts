@@ -2,7 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsNotEmpty, IsString, MaxLength, ValidateNested } from 'class-validator';
-import type { AdvisorLanguage } from './advisor-prompt.js';
+import { type AdvisorOutcome, type AnswerReason, type SegmentKind } from './advisor-answer.js';
+import { PROMPT_VERSION, type AdvisorLanguage } from './advisor-prompt.js';
 import { cleanInput } from './retrieval/text.js';
 
 /** Limits on a request (ADR 0015). History lives in the browser, so the client sends it each time. */
@@ -71,4 +72,60 @@ export class AdvisorConsentDto {
 
   @ApiProperty({ type: String, format: 'date-time', nullable: true, description: 'When the student consented; null without consent' })
   consentedAt!: string | null;
+}
+
+export class AdvisorCitationDto {
+  @ApiProperty({ example: 'qd-1175-2021/d7/k2/b', description: 'The passage id' })
+  id!: string;
+
+  @ApiProperty({ example: 'Điều 7.2.b', description: 'The citation as a student reads it' })
+  label!: string;
+
+  @ApiProperty({ example: 'QĐ 1175/QĐ-KHTN', description: 'The document' })
+  document!: string;
+
+  @ApiProperty({ type: [Number], description: 'Printed page numbers' })
+  pages!: number[];
+}
+
+export class AdvisorSegmentDto {
+  @ApiProperty({
+    enum: ['engine', 'passage', 'explanation', 'notice'],
+    description:
+      '`engine`: a fact about a course, the student’s record or the rule engine’s result, written by the server in fixed wording. ' +
+      '`passage`: a regulation or handbook passage, word for word (Vietnamese); render it as plain text, never as HTML or auto-linked, since the handbook prints some non-HCMUS links. ' +
+      '`explanation`: the only model-written text; render it next to `badge`. `notice`: a fixed server text (refusal, redaction, “could not check”).',
+  })
+  kind!: SegmentKind;
+
+  @ApiProperty({ description: 'Plain text' })
+  text!: string;
+
+  @ApiProperty({ type: AdvisorCitationDto, nullable: true, description: 'The passage a `passage` segment shows; null for the other kinds' })
+  citation!: AdvisorCitationDto | null;
+}
+
+export class AdvisorAnswerDto {
+  @ApiProperty({
+    enum: ['answered', 'partial', 'replaced', 'off_topic', 'needs_consent'],
+    description:
+      '`answered`: everything the model picked was checked and is shown. `partial`: something was dropped (an unknown id, or the explanation), the rest is shown. ' +
+      '`replaced`: nothing could be checked; a fixed notice and the passages retrieved for the question are shown. `off_topic`, `needs_consent`: a fixed reply without a model call.',
+  })
+  outcome!: AdvisorOutcome;
+
+  @ApiProperty({ type: [AdvisorSegmentDto], description: 'The answer, in order: notices (redaction, refusal), engine facts, passages, then the explanation, or a last notice that it was withheld' })
+  segments!: AdvisorSegmentDto[];
+
+  @ApiProperty({
+    example: 'AI explanation, not an official decision; your audit is the source',
+    description: 'Always present, in the request language. The screen must show it with every answer (ADR 0015).',
+  })
+  badge!: string;
+
+  @ApiProperty({ type: [String], description: 'Fixed codes for what was dropped and why; never content' })
+  reasons!: AnswerReason[];
+
+  @ApiProperty({ example: PROMPT_VERSION, description: 'The system prompt the answer ran against' })
+  promptVersion!: string;
 }

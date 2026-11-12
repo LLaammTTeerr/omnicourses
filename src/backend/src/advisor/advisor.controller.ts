@@ -1,12 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, Post, Put, Res } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiOkResponse, ApiProduces, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AiUnavailableDto } from '../ai/ai-unavailable.error.js';
-import { streamChat } from '../ai/sse.js';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
 import { User } from '../users/user.entity.js';
 import { AdvisorConsentService } from './advisor-consent.service.js';
-import { AdvisorConsentDto, AskDto, checkConversation } from './advisor.dto.js';
+import { AdvisorAnswerDto, AdvisorConsentDto, AskDto, checkConversation } from './advisor.dto.js';
 import { AdvisorService } from './advisor.service.js';
 
 // F8 advisor chat (UC-08, ADR 0015). Only the signed-in student's own consent and record: no route
@@ -22,19 +21,22 @@ export class AdvisorController {
 
   @Post('ask')
   @HttpCode(200)
-  @ApiProduces('text/event-stream')
   @ApiOkResponse({
+    type: AdvisorAnswerDto,
     description:
-      'A `text/event-stream`, read with fetch (ADR 0003). Events: `tool_call` {name}, `tool_result` {name, ok}, then the vetted answer as ' +
-      '`text` {delta}, `citations` {clauses: [{id, label, document, text}]}, `verdict` {outcome: answered | replaced | off_topic | ' +
-      'needs_consent, reasons, promptVersion} and `done` {text}; or `error` {code: ai_unavailable, message} if the provider fails mid-answer. ' +
+      'The checked answer as typed segments, with the badge the screen must show (ADR 0015, option A). Nothing the model writes is sent before the whole answer is checked, so the route answers JSON, not a stream. ' +
       'Off-topic questions get a fixed reply without a model call, which does not count toward the daily limit.',
   })
   @ApiBadRequestResponse({ description: 'A role other than user or assistant, a message too long (counted after NFKC) or with no visible text, too many messages, or no question last' })
   @ApiServiceUnavailableResponse({ type: AiUnavailableDto, description: 'No provider, provider down, or the daily AI limit is reached' })
-  async ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response): Promise<void> {
+  async ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res({ passthrough: true }) res: Response): Promise<AdvisorAnswerDto> {
     checkConversation(dto);
-    await streamChat(res, this.advisor.ask(user.id, { language: dto.language, messages: dto.messages }));
+    // A closed tab stops the model call; the call still counts toward the cap (ADR 0003).
+    const aborted = new AbortController();
+    res.on('close', () => {
+      if (!res.writableEnded) aborted.abort();
+    });
+    return this.advisor.ask(user.id, { language: dto.language, messages: dto.messages }, aborted.signal);
   }
 
   @Get('consent')

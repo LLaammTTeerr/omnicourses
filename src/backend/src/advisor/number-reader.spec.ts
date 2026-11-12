@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nearest, qualifiersOf, sameRule, withRomanNumerals, withSpelledNumbers } from './guard-numbers.js';
+import { withRomanNumerals, withSpelledNumbers } from './number-reader.js';
 import { cleanInput } from './retrieval/text.js';
 
 describe('numbers in words (ADR 0015)', () => {
@@ -54,17 +54,5 @@ describe('numbers in words (ADR 0015)', () => {
 
   it('reads digits of every script as ASCII', () => {
     expect(cleanInput('٣٠ credits, ३० credits, ３０ credits')).toBe('30 credits, 30 credits, 30 credits');
-  });
-});
-
-describe('the rule a number belongs to (ADR 0015)', () => {
-  const q = (text: string) => nearest([qualifiersOf(text)]);
-  it('keeps a main-term number off a summer rule, and a double-programme number off everyone', () => {
-    expect(sameRule(q('tối đa 25 tín chỉ trong học kỳ hè'), q('học kỳ chính: tối đa là 25 tín chỉ'))).toBe(false);
-    expect(sameRule(q('every student may take 37 credits'), q('sinh viên học cùng lúc hai chương trình, tối đa 37'))).toBe(false);
-    expect(sameRule(q('plus 12 extra credits'), q('học kỳ hè là 12 tín chỉ'))).toBe(false);
-    expect(sameRule(q('at most 12 credits in a summer term'), q('tối đa trong học kỳ hè là 12 tín chỉ'))).toBe(true);
-    expect(sameRule(q('the cap is 22 credits'), q('chương trình tiên tiến: tối đa là 22 tín chỉ'))).toBe(true);
-    expect(sameRule(q('the minimum is 10'), q('tối đa là 10'))).toBe(false);
   });
 });

@@ -2622,7 +2622,14 @@
         },
         "responses": {
           "200": {
-            "description": "A `text/event-stream`, read with fetch (ADR 0003). Events: `tool_call` {name}, `tool_result` {name, ok}, then the vetted answer as `text` {delta}, `citations` {clauses: [{id, label, document, text}]}, `verdict` {outcome: answered | replaced | off_topic | needs_consent, reasons, promptVersion} and `done` {text}; or `error` {code: ai_unavailable, message} if the provider fails mid-answer. Off-topic questions get a fixed reply without a model call, which does not count toward the daily limit."
+            "description": "The checked answer as typed segments, with the badge the screen must show (ADR 0015, option A). Nothing the model writes is sent before the whole answer is checked, so the route answers JSON, not a stream. Off-topic questions get a fixed reply without a model call, which does not count toward the daily limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvisorAnswerDto"
+                }
+              }
+            }
           },
           "400": {
             "description": "A role other than user or assistant, a message too long (counted after NFKC) or with no visible text, too many messages, or no question last"
@@ -2633,7 +2640,7 @@
           "503": {
             "description": "No provider, provider down, or the daily AI limit is reached",
             "content": {
-              "text/event-stream": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AiUnavailableDto"
                 }
@@ -6133,6 +6140,121 @@
         "required": [
           "language",
           "messages"
+        ]
+      },
+      "AdvisorCitationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "qd-1175-2021/d7/k2/b",
+            "description": "The passage id"
+          },
+          "label": {
+            "type": "string",
+            "example": "Điều 7.2.b",
+            "description": "The citation as a student reads it"
+          },
+          "document": {
+            "type": "string",
+            "example": "QĐ 1175/QĐ-KHTN",
+            "description": "The document"
+          },
+          "pages": {
+            "description": "Printed page numbers",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "document",
+          "pages"
+        ]
+      },
+      "AdvisorSegmentDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "engine",
+              "passage",
+              "explanation",
+              "notice"
+            ],
+            "description": "`engine`: a fact about a course, the student’s record or the rule engine’s result, written by the server in fixed wording. `passage`: a regulation or handbook passage, word for word (Vietnamese); render it as plain text, never as HTML or auto-linked, since the handbook prints some non-HCMUS links. `explanation`: the only model-written text; render it next to `badge`. `notice`: a fixed server text (refusal, redaction, “could not check”)."
+          },
+          "text": {
+            "type": "string",
+            "description": "Plain text"
+          },
+          "citation": {
+            "description": "The passage a `passage` segment shows; null for the other kinds",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdvisorCitationDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "text",
+          "citation"
+        ]
+      },
+      "AdvisorAnswerDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "answered",
+              "partial",
+              "replaced",
+              "off_topic",
+              "needs_consent"
+            ],
+            "description": "`answered`: everything the model picked was checked and is shown. `partial`: something was dropped (an unknown id, or the explanation), the rest is shown. `replaced`: nothing could be checked; a fixed notice and the passages retrieved for the question are shown. `off_topic`, `needs_consent`: a fixed reply without a model call."
+          },
+          "segments": {
+            "description": "The answer, in order: notices (redaction, refusal), engine facts, passages, then the explanation, or a last notice that it was withheld",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdvisorSegmentDto"
+            }
+          },
+          "badge": {
+            "type": "string",
+            "example": "AI explanation, not an official decision; your audit is the source",
+            "description": "Always present, in the request language. The screen must show it with every answer (ADR 0015)."
+          },
+          "reasons": {
+            "description": "Fixed codes for what was dropped and why; never content",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "promptVersion": {
+            "type": "string",
+            "example": "advisor-2026-11-12.1",
+            "description": "The system prompt the answer ran against"
+          }
+        },
+        "required": [
+          "outcome",
+          "segments",
+          "badge",
+          "reasons",
+          "promptVersion"
         ]
       },
       "AiUnavailableDto": {

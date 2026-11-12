@@ -1,7 +1,6 @@
-import { stripMarks } from './retrieval/text.js';
-
-// Numbers for the output guard (ADR 0015): numbers written out in words, and the rule a number
-// belongs to. Deterministic; the same functions read an answer and a clause.
+// The number reader (ADR 0015): numbers written out in words, Roman numerals and CJK numerals, as
+// digits. Deterministic. The explanation guard rejects any number it finds (option A: every number
+// the student sees comes from a passage or an engine fact, never from the model's words).
 
 /** `(?<!letter)(a|b)(?!letter)`: \b knows only ASCII letters, and Vietnamese has many more. */
 const word = (alternatives: string): string => `(?<!\\p{L})(?:${alternatives})(?!\\p{L})`;
@@ -233,108 +232,4 @@ export function withSpelledNumbers(lowered: string): string {
   let result = text;
   for (const n of out.reverse()) result = `${result.slice(0, n.at)}${n.value}${result.slice(n.end)}`;
   return result;
-}
-
-// ── The rule a number belongs to ──────────────────────────────────────────────
-// A number counts as grounded only where the cited clause states it for the same rule: "25" of the
-// main-term cap does not ground "25 credits in a summer term", and "37" of the double-programme cap
-// does not ground "every student may take 37". Each side of a number has a few qualifiers, read from
-// its own phrase first, then its sentence (in a clause: its line, then the clause's heading). They
-// must not conflict, and an answer must not widen a rule (a qualifier the source has and the answer
-// drops: two programmes; "every student" for a rule of one programme) or adjust it ("plus 12 extra").
-
-export interface Qualifiers {
-  term: Set<string>;
-  programme: Set<string>;
-  bound: Set<string>;
-  double: boolean;
-  delta: boolean;
-  universal: boolean;
-}
-
-const SETS: Record<'term' | 'programme' | 'bound', Record<string, string>> = {
-  term: {
-    summer: 'hè|summer|kỳ he|ky he|hoc ky he',
-    main: 'học kỳ chính|kỳ chính|hoc ky chinh|ky chinh|main terms?|main semesters?|regular terms?|regular semesters?',
-  },
-  programme: {
-    special: 'tiên tiến|liên kết|chất lượng cao|tien tien|lien ket|chat luong cao|advanced|joint|high-quality|high quality|apcs|clc',
-    standard: 'đại trà|dai tra|standard programmes?|standard programs?|standard',
-  },
-  bound: {
-    max: 'tối đa|toi da|maximum|max|at most|up to|cap|caps|không vượt quá|khong vuot qua|not exceed|no more than|upper limit',
-    min: 'tối thiểu|toi thieu|minimum|min|at least|no fewer than|no less than|lower limit',
-  },
-};
-const DOUBLE = 'hai chương trình|hai chuong trinh|cùng lúc hai|cung luc hai|two programmes|two programs|double|second major|second degree|song ngành|song nganh|hai ngành|hai nganh';
-const DELTA = 'plus|extra|additional|thêm|cộng|bonus|on top';
-const UNIVERSAL = 'every student|all students|any student|every programme|every program|any programme|any program|everyone|mọi sinh viên|tất cả sinh viên|bất kỳ sinh viên|moi sinh vien|tat ca sinh vien';
-
-export function qualifiersOf(text: string): Qualifiers {
-  const pick = (kind: keyof typeof SETS) => new Set(Object.entries(SETS[kind]).filter(([, alt]) => has(text, alt)).map(([k]) => k));
-  return { term: pick('term'), programme: pick('programme'), bound: pick('bound'), double: has(text, DOUBLE), delta: has(text, DELTA), universal: has(text, UNIVERSAL) };
-}
-
-/** Qualifiers of the nearest level that states each one: a phrase, then its wider context. */
-export function nearest(levels: Qualifiers[]): Qualifiers {
-  const first = (k: 'term' | 'programme' | 'bound') => levels.find((l) => l[k].size > 0)?.[k] ?? new Set<string>();
-  return {
-    term: first('term'),
-    programme: first('programme'),
-    bound: first('bound'),
-    double: levels.some((l) => l.double),
-    delta: levels[0]?.delta ?? false,
-    universal: levels.some((l) => l.universal),
-  };
-}
-
-const conflict = (a: Set<string>, b: Set<string>): boolean => a.size > 0 && b.size > 0 && ![...a].some((x) => b.has(x));
-
-/** Whether an answer's number may rest on a clause's same number. */
-export function sameRule(answer: Qualifiers, source: Qualifiers): boolean {
-  if (conflict(answer.term, source.term) || conflict(answer.programme, source.programme) || conflict(answer.bound, source.bound)) return false;
-  if (source.double !== answer.double) return false;
-  if (answer.delta && !source.delta) return false;
-  if (answer.universal && (source.programme.size > 0 || source.double)) return false;
-  return true;
-}
-
-/** Phrases of a line: split at a comma, semicolon or colon followed by a space (not "5,0"), or a dash between spaces. */
-export function phrases(line: string): { text: string; at: number }[] {
-  const out: { text: string; at: number }[] = [];
-  let start = 0;
-  for (const m of line.matchAll(/[,;:](?=\s|$)|\s[-–—]\s/g)) {
-    out.push({ text: line.slice(start, m.index), at: start });
-    start = m.index + m[0].length;
-  }
-  out.push({ text: line.slice(start), at: start });
-  return out;
-}
-
-/** Folds lower-case text without changing its length, so an index in one is an index in the other. */
-export function foldSameLength(lowered: string): string {
-  return lowered.replace(/[^\x00-\x7f]/gu, (ch) => {
-    const folded = stripMarks(ch);
-    return folded.length === ch.length ? folded : ' '.repeat(ch.length);
-  });
-}
-
-/** Every number of a text with its index: "5,0" and "5.0" are 5; "-1" after a space is negative. */
-export function numbersAt(text: string): { value: number; at: number }[] {
-  return [...text.matchAll(/(?:(?<![^\s(])-)?(?<![\d.,])\d+(?:[.,]\d+)?/g)].map((m) => ({ value: Number(m[0].replace(',', '.')), at: m.index }));
-}
-
-/** The qualifiers of the number at `at` in a clause text (lower case, numbers as digits). */
-export function sourceQualifiers(text: string, at: number): Qualifiers {
-  const lines = text.split('\n');
-  let offset = 0;
-  for (const line of lines) {
-    if (at <= offset + line.length) {
-      const inLine = at - offset;
-      const phrase = phrases(line).filter((p) => p.at <= inLine).at(-1)!;
-      return nearest([qualifiersOf(phrase.text), qualifiersOf(line), qualifiersOf(lines[0])]);
-    }
-    offset += line.length + 1;
-  }
-  return nearest([qualifiersOf(text)]);
 }
