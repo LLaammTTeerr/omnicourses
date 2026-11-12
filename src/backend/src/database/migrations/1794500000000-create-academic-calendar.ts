@@ -8,7 +8,7 @@ export class CreateAcademicCalendar1794500000000 implements MigrationInterface {
 
   async up(q: QueryRunner): Promise<void> {
     await q.query(`
-      CREATE TABLE "academic_calendar_events" (
+      CREATE TABLE "academic_calendar" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "program_id" uuid NOT NULL,
         "academic_year" smallint NOT NULL,
@@ -24,21 +24,21 @@ export class CreateAcademicCalendar1794500000000 implements MigrationInterface {
         "updated_by" uuid,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         "updated_at" timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT "academic_calendar_events_pkey" PRIMARY KEY ("id"),
-        CONSTRAINT "academic_calendar_events_program_id_fkey" FOREIGN KEY ("program_id") REFERENCES "programs" ("id") ON DELETE RESTRICT,
-        CONSTRAINT "academic_calendar_events_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL,
-        CONSTRAINT "academic_calendar_events_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL,
-        CONSTRAINT "ck_academic_calendar_events_kind" CHECK ("kind" IN ('term_start', 'term_end', 'registration', 'add_drop', 'exam_period', 'holiday', 'other')),
-        CONSTRAINT "ck_academic_calendar_events_term" CHECK ("term" IN (1, 2, 3)),
-        CONSTRAINT "ck_academic_calendar_events_academic_year" CHECK ("academic_year" BETWEEN 2000 AND 2100),
-        CONSTRAINT "ck_academic_calendar_events_range" CHECK ("ends_on" >= "starts_on"),
-        CONSTRAINT "ck_academic_calendar_events_source_url" CHECK ("source_url" LIKE 'https://%')
+        CONSTRAINT "academic_calendar_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "academic_calendar_program_id_fkey" FOREIGN KEY ("program_id") REFERENCES "programs" ("id") ON DELETE RESTRICT,
+        CONSTRAINT "academic_calendar_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users" ("id") ON DELETE SET NULL,
+        CONSTRAINT "academic_calendar_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "users" ("id") ON DELETE SET NULL,
+        CONSTRAINT "ck_academic_calendar_kind" CHECK ("kind" IN ('term_start', 'term_end', 'registration', 'add_drop', 'exam_period', 'holiday', 'other')),
+        CONSTRAINT "ck_academic_calendar_term" CHECK ("term" IN (1, 2, 3)),
+        CONSTRAINT "ck_academic_calendar_academic_year" CHECK ("academic_year" BETWEEN 2000 AND 2100),
+        CONSTRAINT "ck_academic_calendar_range" CHECK ("ends_on" >= "starts_on"),
+        CONSTRAINT "ck_academic_calendar_source_url" CHECK ("source_url" LIKE 'https://%')
       )
     `);
-    await q.query(`CREATE INDEX "ix_academic_calendar_events_program_starts_on" ON "academic_calendar_events" ("program_id", "starts_on")`);
+    await q.query(`CREATE INDEX "ix_academic_calendar_program_starts_on" ON "academic_calendar" ("program_id", "starts_on")`);
   }
 
   async down(q: QueryRunner): Promise<void> {
-    await q.query(`DROP TABLE "academic_calendar_events"`);
+    await q.query(`DROP TABLE "academic_calendar"`);
   }
 }
