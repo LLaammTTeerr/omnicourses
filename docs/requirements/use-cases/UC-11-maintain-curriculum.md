@@ -3,7 +3,7 @@
 - Feature: F12 Curriculum administration
 - Owner: Thắng
 - Status: draft for PA2; describes work still to be built
-- Scope: manual entry/editing and deterministic CSV bulk entry (Lâm, 1 November 2026; [test-plan handoff](../../test/test-plan.md#b2-checks)). The CSV API/format is proposed in [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md). Curriculum PDF import is excluded by accepted [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md); any proposal to restore it needs a separate scope decision.
+- Scope: manual entry/editing and deterministic CSV bulk entry (Lâm, 1 November 2026; [test-plan handoff](../../test/test-plan.md#b2-checks)). The CSV API/format is specified in accepted [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md). Curriculum PDF import is excluded by accepted [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md); any proposal to restore it needs a separate scope decision.
 
 ## 1. Brief description
 
@@ -85,7 +85,7 @@ A catalog correction applies to every linked curriculum. If the intended value d
 
 ### A9. Bulk entry from CSV
 
-At step 2, the administrator chooses a CSV template for either shared catalog courses or course links within the selected program and cohort. A catalog maintainer can enter the catalog directly under A8; a program administrator can import links only for their granted program. The file cannot create programs, cohorts, groups or permissions. The proposed columns, input limits and API contract are in [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md#csv-contract-and-uc-11-handoff).
+At step 2, the administrator chooses a CSV template for either shared catalog courses or course links within the selected program and cohort. A catalog maintainer can enter the catalog directly under A8; a program administrator can import links only for their granted program. The file cannot create programs, cohorts, groups or permissions. The columns, input limits and API contract are in accepted [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md#csv-contract-and-uc-11-handoff).
 
 The system parses the CSV deterministically and previews the normalized rows, inserts, updates and unchanged records. It validates every row and the proposed final state using the same checks as manual entry. Errors identify the CSV record number and field; any bad row blocks the whole file. The administrator corrects the file and previews it again. A model is never called.
 
@@ -141,9 +141,9 @@ The Project Lead provisions the first access manager through a controlled setup 
 | Does the proposed permission model fit deployment and the curriculum API? | Thắng implements the three permissions above and the controlled first-access-manager setup; review those boundaries before coding. | Thắng owns; Lâm and Triết review |
 | How do we represent course values that differ by cohort? | The current catalog cannot do this. Use A8 only for corrections intended for every linked curriculum; design course versions before allowing cohort-specific values. | Triết and Hoà |
 | Can we delete data that other records use? | Refuse deletions that break those links. Remove a course from a group separately from deleting the course. Decide whether old data should be archived. | Triết |
-| Must B2 retain who changed curriculum/catalog data? | Explicitly open in ADR 0011 before those writes: decide logging or B2 deferral, then define fields, retention and read access if logging. A retained shared log uses nullable `actor_id ... ON DELETE SET NULL`, not recipient-owned `user_id`. | Lâm and Triết; Thắng implements |
+| Must B2 retain who changed curriculum/catalog data? | Decided (Lâm, 12 November 2026): deferred to B3, with no logging contract in B2 ([ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md#audit-trail-open-before-curriculumcatalog-writes)). A B3 log defines fields, retention and read access first, and uses nullable `actor_id ... ON DELETE SET NULL`, not recipient-owned `user_id`. | Lâm and Triết; Thắng implements |
 
-Proposed [ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md) now records the permission tables, bootstrap/recovery, write routes, deletion policy, CSV contract and explicit school-scoping amendment. It remains subject to Lâm/Triết review and Hoà's scope alignment. Code follows #23's merge; prerequisites/offering terms also wait for Triết's separate storage and rule-engine interfaces. Academic rules remain in those reviewed designs.
+[ADR 0011](../../analysis-and-design/adr/0011-curriculum-administration.md), accepted by Lâm on 12 November 2026, records the permission tables, bootstrap/recovery, write routes, deletion policy, CSV contract and the school-scoping exception. #23 merged as `900b1b8`; #74 built the grants, bootstrap, group/link/catalog writes and per-curriculum prerequisites and offering terms. Program/cohort writes, CSV import and group-total validation are not built yet. Academic rules remain in those reviewed designs.
 
 ### Examples to test
 
@@ -156,8 +156,8 @@ IDs follow `TC-<build>-<area>-<number>`. Dũng expands each example into cases w
 | TC-B2-ADM-03 | A program administrator adds a second cohort and links an existing course. | Both cohorts exist; the first cohort's membership stays intact; no duplicate catalog course appears. | F12; UC-11 A1; ADR 0005 (#23) |
 | TC-B2-ADM-04 | Remove one of a course's group links, then attempt to delete the still-linked course. | The other group link and course remain; catalog deletion is refused while referenced. | F12; UC-11 A5, A8; ADR 0005 (#23) |
 | TC-B2-ADM-05 | Submit invalid codes or links; cancel; fail a save or lose its response; change course links during impact review. | Validate canonical codes; save nothing on rejection/cancel; no partial save; check an unknown result; require renewed impact review. | F12; UC-11 A3, A6–A8; ADR 0007 (#29) |
-| TC-B2-ADM-06 | Bootstrap the first access manager, delegate each of the three roles, revoke access, and export/purge grant recipients and granters. | No sign-up privilege; last-active-manager protection and controlled recovery; current grants govern every write; owned grants export/purge while other users' grants and shared curriculum data survive. | F12; UC-11 §8; ADRs 0002, 0004 and proposed 0011 |
-| TC-B2-ADM-07 | Preview and confirm synthetic CSV courses/group links, including bad rows, changed impact, revoked access and repeated import. | Row-numbered errors block the whole file; confirmation rechecks current state and saves atomically; repeated data creates no duplicates. | F12; UC-11 A9; proposed ADR 0011; test-plan CSV handoff |
+| TC-B2-ADM-06 | Bootstrap the first access manager, delegate each of the three roles, revoke access, and export/purge grant recipients and granters. | No sign-up privilege; last-active-manager protection and controlled recovery; current grants govern every write; owned grants export/purge while other users' grants and shared curriculum data survive. | F12; UC-11 §8; ADRs 0002, 0004 and 0011 |
+| TC-B2-ADM-07 | Preview and confirm synthetic CSV courses/group links, including bad rows, changed impact, revoked access and repeated import. | Row-numbered errors block the whole file; confirmation rechecks current state and saves atomically; repeated data creates no duplicates. | F12; UC-11 A9; ADR 0011; test-plan CSV handoff |
 
 ### Sources
 

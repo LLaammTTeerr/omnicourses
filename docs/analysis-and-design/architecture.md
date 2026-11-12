@@ -56,7 +56,7 @@ C4Context
 
 - A **signed-out reader** can read guides ([ADR 0010](adr/0010-public-pages-and-guide-content.md)) and, once F9 ships, open a shared plan. An advisor needs no account.
 - A **student** signs in for everything that uses their own data: transcript, degree audit, plans, the goal box and the advisor.
-- A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), proposed). Until F12 ships, curriculum data enters only through reviewed seed files.
+- A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), accepted). F12's API (#74) edits requirement groups, course links, prerequisites, offering terms and catalog courses; programs and cohorts still enter only through reviewed seed files, and the administration screens are not built.
 
 **External systems.**
 
@@ -183,7 +183,7 @@ Every request from the single-page app passes the throttler guard, then the auth
 
 - `npm run db:migrate -w src/backend` applies pending migrations from `migrations/index.ts`, each in its own transaction.
 - `npm run db:seed -w src/backend` calls each feature's `seed(dataSource, options)` in order: curriculum data first, then guides. It inserts only what is missing. `--guide-fixtures` adds the synthetic test guides and is refused when `NODE_ENV=production`.
-- `npm run admin:bootstrap` (planned, [ADR 0011](adr/0011-curriculum-administration.md)) grants the first access manager from a trusted shell; it is never an HTTP route.
+- `npm run admin:bootstrap` (built in #74, [ADR 0011](adr/0011-curriculum-administration.md)) grants the first access manager from a trusted shell; it is never an HTTP route.
 
 ### 4.2 Planned components and the rule engine
 
@@ -249,7 +249,7 @@ Black lines are calls into the rule engine, purple lines calls to the AI gateway
 | `advisor` | F8 advisor chat | Dũng | B3 | [ADR 0003](adr/0003-language-model-scope.md), UC-08 |
 | `sharing` | F9 export and sharing | Dũng | B2 | [ADR 0010](adr/0010-public-pages-and-guide-content.md), UC-09 |
 | `notifications` | F10 notifications | Dũng | B2 | Vision F10, UC-12; delivery contract open |
-| `curriculum-admin` | F12 curriculum administration | Thắng | B2 | [ADR 0011](adr/0011-curriculum-administration.md) (proposed) |
+| `curriculum-admin` | F12 curriculum administration | Thắng | B2 | [ADR 0011](adr/0011-curriculum-administration.md) (accepted) |
 
 **The rule engine is the only authority on academic rules** (AGENTS.md hard rule 1). Prerequisites, offering terms, credit caps (by the program's training type, [ADR 0012](adr/0012-credit-caps-by-training-type.md): 10–22 in every term for APCS and CLC, 14–25 in a main term and at most 12 in summer for đại trà; a load outside them is flagged, not blocked), requirement coverage and graduation status are computed only in `src/rules/`. The folder name matters: `vitest.config.mts` already holds `src/rules/**` to 80 % statement coverage (Vision NFR), so engine code placed anywhere else escapes the gate. The engine is deterministic, has no side effects and imports neither `ai` nor any feature that calls it.
 
@@ -374,7 +374,7 @@ Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy
 | [0008 Real-browser test provider](adr/0008-browser-testing.md) | proposed | SPA browser tests (Vitest browser mode, Playwright Chromium); CI frontend job |
 | [0009 Term encoding](adr/0009-term-encoding.md) | proposed | `terms/`; `transcript`, `plans`, offering terms, `plan-generator` |
 | [0010 Public pages and guide content](adr/0010-public-pages-and-guide-content.md) | accepted | `guides`, `sharing`; the public routes allow-list and its e2e test; guides as content files plus seed |
-| [0011 Curriculum administration](adr/0011-curriculum-administration.md) | proposed; not authorization to implement | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
+| [0011 Curriculum administration](adr/0011-curriculum-administration.md) | accepted (Lâm, 12 Nov 2026); amended 9 Nov | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
 | [0012 Credit caps by training type](adr/0012-credit-caps-by-training-type.md) | accepted; amends 0009 | `rules` (caps per training type, a training-type column on `programs`), `terms/`, `plans`, `plan-generator` |
 
 
@@ -394,8 +394,8 @@ This is the first version of the document. It describes the backend and frontend
 
 | # | Question or risk | Owner | Source |
 | --- | --- | --- | --- |
-| 1 | ADR 0011 is proposed and gated. Its narrowing of "administrator rights per school and per program" to per-program grants needs Lâm's and Hoà's acceptance. | Lâm, Hoà | ADR 0011; Vision §6 Security |
-| 2 | Audit trail for curriculum and catalog changes: decide before those writes are built whether B2 needs a change log or defers it. | Lâm, Triết | ADR 0011 |
+| 1 | Resolved 12 Nov 2026: Lâm accepted ADR 0011. Its per-program grants replace "administrator rights per school and per program" as a deliberate exception to the Vision. | Lâm, Hoà | ADR 0011; Vision §6 Security |
+| 2 | Resolved 12 Nov 2026: the curriculum and catalog change log is deferred to B3 (Lâm). B2 has no logging contract and claims no audit trail. | Lâm, Triết | ADR 0011 |
 | 3 | Production and staging run on one shared host (§7): one machine, no failover. The nightly backup and the restore rehearsal are not set up yet. | Lâm | `deploy/README.md`; Vision NFR Recovery |
 | 4 | The `RulesService` interface is not merged, and seven planned components depend on it. A late change ripples to every caller (risk R9). | Triết | SDP R1, R9; ADR 0006 |
 | 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
