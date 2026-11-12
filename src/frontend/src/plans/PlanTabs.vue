@@ -54,9 +54,10 @@ async function attempt(what: string, action: () => Promise<void>): Promise<boole
   }
 }
 
-/** A copy of the plan open, opened at once (What-if). */
-async function copy(name: string): Promise<void> {
+/** A copy of the plan open, opened at once (What-if). The name is cut to the API's 100 characters (code points). */
+async function copy(full: string): Promise<void> {
   if (busy.value) return;
+  const name = Array.from(full).slice(0, 100).join('');
   const { id } = props;
   const done = await attempt('Copying the plan', async () => {
     const made = await auth.authed((token) => duplicatePlan(token, id, name));

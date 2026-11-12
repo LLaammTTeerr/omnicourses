@@ -192,6 +192,25 @@ export const savePlacements = (token: string, id: string, terms: PlanTerm[]) => 
 
 export const fetchPlanIssues = (token: string, id: string) => request<PlanIssues>('GET', `${path(id)}/issues`, { token });
 
+/** One placement tried on several terms: `terms` is the board without it (a moved tile taken out first). */
+export interface PlanDropPreview {
+  terms: PlanTerm[];
+  placement: Placement;
+  targets: Term[];
+}
+export interface PlanDropReport {
+  term: Term;
+  issues: PlanIssues;
+}
+export interface PlanDropReports {
+  /** One per target, in the order sent. */
+  reports: PlanDropReport[];
+}
+
+/** The drag preview in one request: the engine's report on the board with the placement at the end of each target. */
+export const previewPlanDrops = (token: string, id: string, body: PlanDropPreview, signal?: AbortSignal) =>
+  request<PlanDropReports>('POST', `${path(id)}/issues/drops`, { token, body, signal });
+
 /** The rule engine's report on `terms` in place of the saved board; nothing is saved (the drag preview). */
 export const previewPlanIssues = (token: string, id: string, terms: PlanTerm[], signal?: AbortSignal) =>
   request<PlanIssues>('POST', `${path(id)}/issues`, { token, body: { terms }, signal });

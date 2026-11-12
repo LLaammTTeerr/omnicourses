@@ -104,6 +104,30 @@ export class PlanBoardDto {
   terms!: PlanTermDto[];
 }
 
+/** One placement dropped on each of several terms of a board: the planner's drag preview, in one request. */
+export class PlanDropPreviewDto {
+  @ApiProperty({ type: [PlanTermDto], description: `The board without the placement (a moved course is taken out of its term first). ${BOARD_DESCRIPTION}` })
+  @IsArray()
+  @ArrayMaxSize(MAX_BOARD_TERMS)
+  @ValidateNested({ each: true })
+  @Type(() => PlanTermDto)
+  terms!: PlanTermDto[];
+
+  @ApiProperty({ type: PlanPlacementDto, description: 'What is dropped. It is added at the end of each target term in turn.' })
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => PlanPlacementDto)
+  placement!: PlanPlacementDto;
+
+  @ApiProperty({ type: [TermDto], description: `The terms to try it in, each once, at most ${MAX_BOARD_TERMS}.` })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_BOARD_TERMS)
+  @ValidateNested({ each: true })
+  @Type(() => TermDto)
+  targets!: TermDto[];
+}
+
 export class CreatePlanDto {
   @PlanName()
   name!: string;

@@ -2,33 +2,31 @@
 import { computed } from 'vue';
 import { groupColour } from '../curriculum/present.js';
 import { GROUPS, groupClass } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
+import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
-import { termName } from '../terms.js';
 import type { PlanGroupCoverage } from './api.js';
 import type { AttachedIssues } from './board.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-// The plan at a glance (the prototype's status strip): whether the rule engine finds a violation in a term, the term
-// the plan ends in when the engine says every checkable requirement would be met, each requirement group's credits
-// with the plan completed, and the save state. Every figure is read from the engine's report; nothing is judged here.
+// The plan at a glance (the prototype's status strip): how many violations the rule engine finds in the terms and how
+// many rules it could not check, its graduation status as it reports it, each requirement group's credits with the
+// plan completed, and the save state. Every figure is read from the engine's report; nothing is judged here (AGENTS.md
+// hard rule 1). No graduation term is shown: the engine does not report one yet, and the client must not guess it.
+// An unknown is never worded as a pass (#80): with none found, the strip says "no violation found", not "valid".
 const props = defineProps<{
   attached: AttachedIssues | null;
   fresh: boolean;
   saveState: 'saved' | 'saving' | 'failed';
 }>();
-const locale = useLocale();
 const m = useMessages(PLANNER_MESSAGES);
 
 const report = computed(() => props.attached?.report ?? null);
 /** Violations about a term or a course. Coverage shortfalls show in the groups beside. */
 const placementViolations = computed(() => report.value?.issues.filter((i) => i.kind === 'violation' && i.term !== null).length ?? 0);
-const lastTerm = computed(() => {
-  const filled = props.attached?.board.filter((row) => row.tiles.length > 0) ?? [];
-  return filled.at(-1)?.term ?? null;
-});
-/** The engine finds every checkable requirement met and no violation in a term; the plan then ends in its last term. */
-const graduates = computed(() => report.value?.coverage.graduation === 'done' && placementViolations.value === 0);
+/** Rules the engine could not check for lack of data. */
+const unknowns = computed(() => report.value?.issues.filter((i) => i.kind === 'unknown').length ?? 0);
+/** The engine's own graduation status. */
+const graduation = computed(() => report.value?.coverage.graduation ?? null);
 const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
   const colour = groupColour(group);
   return { colour, glyph: GROUPS.find((g) => g.id === colour)!.glyph };
@@ -37,13 +35,11 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
 
 <template>
   <section class="card status-strip" :aria-label="m.statusLabel" data-test="status-strip">
-    <div v-if="report" class="est" :class="{ bad: !graduates, stale: !fresh }" data-test="estimate">
-      <span class="est-ic" aria-hidden="true"><Icon :name="graduates ? 'cap' : 'alert'" /></span>
+    <div v-if="report && graduation" class="est" :class="{ bad: graduation !== 'done', stale: !fresh }" data-test="estimate">
+      <span class="est-ic" aria-hidden="true"><Icon :name="graduation === 'done' ? 'cap' : 'alert'" /></span>
       <div>
-        <small>{{ placementViolations ? m.invalid(placementViolations) : m.valid }}</small>
-        <b v-if="graduates && lastTerm">{{ m.expectedGraduation }}: {{ termName(lastTerm, locale.lang) }}</b>
-        <b v-else-if="graduates">{{ m.graduation.done }}</b>
-        <b v-else>{{ m.notYetGraduation }}</b>
+        <small>{{ placementViolations ? m.invalid(placementViolations) : unknowns ? m.noViolationUnknown(unknowns) : m.noViolation }}</small>
+        <b>{{ m.graduation[graduation] }}</b>
       </div>
     </div>
     <ul v-if="report" class="cov" :class="{ stale: !fresh }" data-test="strip-coverage">

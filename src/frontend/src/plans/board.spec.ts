@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Term } from '../terms.js';
+import type { PlanIssue } from './api.js';
 import {
   addCourse,
   addSlot,
@@ -11,6 +12,7 @@ import {
   moveTile,
   nextTerm,
   placedCodes,
+  placementOf,
   PREVIEW_KEY,
   removeTile,
   rowsFor,
@@ -125,17 +127,34 @@ describe('the drag preview', () => {
     expect(codes(addSlot(board, 'g-elec', 3, t(2026, 1), 7))).toEqual(['2026-1: ZZ101 slot', '2026-2: ']);
   });
 
-  it('reads how a row takes the drop from the report on that board: the tile’s issues and the row’s, unknowns left out', () => {
+  it('reads how a row takes the drop: the tile’s and the row’s issues, new violations elsewhere, and unknowns, never as a pass', () => {
     const board = boardWith(start(), { code: 'ZZ102' }, t(2026, 2));
     const load = { term: t(2026, 2), kind: 'main' as const, credits: 4, caps: { min: 10, max: 22 } };
     const flag = issue({ code: 'load_below_minimum', kind: 'flag', term: t(2026, 2), credits: 4, limit: 10 });
     const bad = issue({ code: 'not_offered', kind: 'violation', term: t(2026, 2), position: 0, courseCode: 'ZZ102' });
     const unknown = issue({ code: 'prerequisites_not_recorded', kind: 'unknown', term: t(2026, 2), position: 0, courseCode: 'ZZ102' });
     const other = issue({ code: 'prerequisite_not_met', kind: 'violation', term: t(2026, 1), position: 0, courseCode: 'ZZ101' });
+    // The board without the drop already had `other`.
+    const before = attachIssues(start(), report({ issues: [other] }));
+    const verdict = (issues: PlanIssue[], terms = [load]) => dropVerdict(attachIssues(board, report({ terms, issues })), PREVIEW_KEY, t(2026, 2), before);
 
-    const worst = dropVerdict(attachIssues(board, report({ terms: [load], issues: [other, flag, unknown, bad] })), PREVIEW_KEY, t(2026, 2));
-    expect(worst).toEqual({ kind: 'violation', issues: [bad, flag], load });
-    expect(dropVerdict(attachIssues(board, report({ terms: [load], issues: [flag, unknown] })), PREVIEW_KEY, t(2026, 2)).kind).toBe('flag');
-    expect(dropVerdict(attachIssues(board, report({ issues: [other, unknown] })), PREVIEW_KEY, t(2026, 2))).toEqual({ kind: null, issues: [], load: null });
+    expect(verdict([other, flag, unknown, bad])).toEqual({ kind: 'violation', issues: [bad, flag, unknown], load });
+    expect(verdict([flag, unknown]).kind).toBe('flag');
+    // An unknown is its own verdict: the engine could not check, which is not a pass (#80).
+    expect(verdict([other, unknown], [])).toEqual({ kind: 'unknown', issues: [unknown], load: null });
+    expect(verdict([other], [])).toEqual({ kind: null, issues: [], load: null });
+    // A violation the drop adds in another term counts: moving a prerequisite after the course that needs it.
+    const elsewhere = issue({ code: 'not_offered', kind: 'violation', term: t(2026, 1), position: 0, courseCode: 'ZZ101' });
+    expect(verdict([other, elsewhere, flag])).toEqual({ kind: 'violation', issues: [elsewhere, flag], load });
+    // With no report on the board before, nothing elsewhere is taken as new.
+    expect(dropVerdict(attachIssues(board, report({ issues: [elsewhere] })), PREVIEW_KEY, t(2026, 2), null).kind).toBeNull();
+  });
+
+  it('gives the placement a drop adds, for each kind of thing moved', () => {
+    const board = start();
+    expect(placementOf(board, { code: 'ZZ102' })).toEqual({ kind: 'course', courseCode: 'ZZ102', requirementGroupId: null, credits: null });
+    expect(placementOf(board, { slot: 'g-elec', credits: 4 })).toEqual({ kind: 'slot', courseCode: null, requirementGroupId: 'g-elec', credits: 4 });
+    expect(placementOf(board, { key: board[0]!.tiles[0]!.key })).toEqual(board[0]!.tiles[0]!.placement);
+    expect(placementOf(board, { key: 999 })).toBeNull();
   });
 });

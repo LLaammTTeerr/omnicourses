@@ -187,20 +187,38 @@ export function boardWith(board: Board, what: Moving, to: Term): Board {
   return addSlot(board, what.slot, what.credits, to, PREVIEW_KEY);
 }
 
-/** How a row would take a drop, from the engine's report on the board with the drop made: its tile's issues and the row's. */
+/** What is dropped, as the placement it would add. */
+export function placementOf(board: Board, what: Moving): Placement | null {
+  if ('code' in what) return { kind: 'course', courseCode: what.code, requirementGroupId: null, credits: null };
+  if ('slot' in what) return { kind: 'slot', courseCode: null, requirementGroupId: what.slot, credits: what.credits };
+  const found = findTile(board, what.key);
+  return found ? found.row.tiles[found.index]!.placement : null;
+}
+
+/** An issue's identity across two reports: its code, course, term and group (positions move when a tile does). */
+export const issueId = (i: PlanIssue) => [i.code, i.courseCode ?? '', i.term ? termKey(i.term) : '', i.requirementGroupId ?? ''].join('|');
+
+/** How a row would take a drop, from the engine's report on the board with the drop made. */
 export interface DropVerdict {
-  /** violation: the drop breaks a rule. flag: allowed, worth a look. null: nothing reported. */
-  kind: 'violation' | 'flag' | null;
-  /** The issues about the dropped tile, then about its row, violations first. Unknowns are left out. */
+  /**
+   * violation: the drop breaks a rule, here or in a term elsewhere. flag: allowed, worth a look. unknown: the engine
+   * could not check a rule for lack of data, which never reads as a pass (#80). null: the engine reports nothing.
+   */
+  kind: 'violation' | 'flag' | 'unknown' | null;
+  /** Violations about the dropped tile or its row, then new ones elsewhere, then flags, then unknowns. */
   issues: PlanIssue[];
   load: PlanTermLoad | null;
 }
 
-export function dropVerdict(attached: AttachedIssues, key: number, to: Term): DropVerdict {
-  const all = [...(attached.byTile.get(key) ?? []), ...(attached.byTerm.get(termKey(to)) ?? [])].filter((i) => i.kind !== 'unknown');
-  const issues = [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')];
+/**
+ * The verdict on a drop. `before` is the report on the board without it: a violation the drop adds in another term
+ * (moving a prerequisite after the course that needs it flags that course) counts too.
+ */
+export function dropVerdict(attached: AttachedIssues, key: number, to: Term, before: AttachedIssues | null): DropVerdict {
+  const mine = [...(attached.byTile.get(key) ?? []), ...(attached.byTerm.get(termKey(to)) ?? [])];
+  const had = new Set(before?.report.issues.filter((i) => i.kind === 'violation').map(issueId) ?? []);
+  const elsewhere = before ? attached.report.issues.filter((i) => i.kind === 'violation' && i.term !== null && !mine.includes(i) && !had.has(issueId(i))) : [];
+  const issues = [...mine.filter((i) => i.kind === 'violation'), ...elsewhere, ...mine.filter((i) => i.kind === 'flag'), ...mine.filter((i) => i.kind === 'unknown')];
   const load = attached.loads.get(termKey(to)) ?? null;
-  const first = issues[0];
-  if (!first) return { kind: null, issues, load };
-  return { kind: first.kind === 'violation' ? 'violation' : 'flag', issues, load };
+  return { kind: issues[0]?.kind ?? null, issues, load };
 }

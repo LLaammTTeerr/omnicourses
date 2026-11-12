@@ -2,10 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
-import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, toBoard, toRows } from './plan-board.js';
+import { TermDto } from '../terms/term.dto.js';
+import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, Placement, toBoard, toRows, withPlacement } from './plan-board.js';
 import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
-import { TermDto } from '../terms/term.dto.js';
 import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
 
 /** The answer for a plan that is missing or someone else's: the same, so it reveals nothing. */
@@ -106,6 +106,21 @@ export class PlansService {
     const plan = await this.get(userId, planId);
     await this.checkBoard(plan.curriculum.id, terms);
     return { ...plan, terms };
+  }
+
+  /**
+   * The boards of a drag preview: `placement` dropped on each target in turn, each board checked as a save would
+   * check it. The references are checked once, on the board with the placement in the first target.
+   */
+  async dropBoards(userId: string, planId: string, terms: BoardTerm[], placement: Placement, targets: TermDto[]): Promise<{ plan: PlanDto; boards: BoardTerm[][] }> {
+    const seen = new Set(targets.map((t) => `${t.year}-${t.number}`));
+    if (seen.size !== targets.length) throw new BadRequestException('A target term is listed twice');
+    const plan = await this.get(userId, planId);
+    const boards = targets.map((to) => withPlacement(terms, placement, to));
+    const problems = [...new Set(boards.flatMap(boardProblems))];
+    if (problems.length) throw new BadRequestException(problems);
+    await this.checkBoard(plan.curriculum.id, boards[0]!);
+    return { plan, boards };
   }
 
   /** Deletes the plan and its placements. */

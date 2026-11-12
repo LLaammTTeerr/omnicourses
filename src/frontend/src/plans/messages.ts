@@ -72,6 +72,7 @@ interface PlannerMessages {
   allPlaced: string;
   noMatch: string;
   inTranscript: string;
+  passedMark: string;
   dropToRemove: string;
   /** The bin shown while a placed course is dragged: dropped there, it goes back to the course list. */
   binLabel: string;
@@ -81,6 +82,9 @@ interface PlannerMessages {
   /** A citation that links to the regulation, as a short label and its tooltip. */
   sourceTitle: (citation: string) => string;
   noIssuesTitle: string;
+  noTermViolations: string;
+  groupsStillShort: (n: number) => string;
+  unknownsLeft: (n: number) => string;
   newTag: string;
   goneTag: string;
   /** A passed course in the "Taken" strip opens the curriculum explorer at it. */
@@ -133,10 +137,11 @@ interface PlannerMessages {
   previewEmpty: string;
   openPlan: (name: string) => string;
   statusLabel: string;
-  valid: string;
   invalid: (n: number) => string;
-  expectedGraduation: string;
-  notYetGraduation: string;
+  /** No violation, and every rule checked. */
+  noViolation: string;
+  /** No violation, but `n` rules the engine could not check: not a pass (#80). */
+  noViolationUnknown: (n: number) => string;
   coverageTitle: (group: string, credits: number, required: number | null) => string;
   // Tray, past terms, current term, tiles
   allGroups: string;
@@ -152,6 +157,8 @@ interface PlannerMessages {
   takenBefore: (grade: string) => string;
   // Drag preview and the issues panel
   dropChecking: string;
+  /** A drop the engine could not fully check: never worded as a pass (#80). */
+  dropUnknown: (what: string) => string;
   previewOf: (code: string, term: string) => string;
   previewDelta: (delta: number) => string;
   collapse: string;
@@ -245,12 +252,16 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     allPlaced: 'Mọi môn của chương trình đã được xếp.',
     noMatch: 'Không có môn nào khớp.',
     inTranscript: 'Trong bảng điểm',
+    passedMark: 'Đã đạt',
     dropToRemove: 'Thả một môn vào đây để bỏ khỏi kế hoạch.',
     binLabel: 'Bỏ khỏi lộ trình',
     binHint: 'Thả vào đây, môn quay về danh sách học phần',
     goTo: 'Đến môn',
     sourceTitle: (c) => `Mở quy chế: ${c}`,
     noIssuesTitle: 'Không có vi phạm',
+    noTermViolations: 'Không có vi phạm trong các học kỳ',
+    groupsStillShort: (n) => `Nhưng còn ${n} nhóm thiếu tín chỉ, xem bên dưới.`,
+    unknownsLeft: (n) => `Còn ${n} mục chưa kiểm tra được, xem bên dưới.`,
     newTag: 'Mới',
     goneTag: 'Sẽ hết',
     showInExplorer: (c) => `Xem ${c} trong chương trình đào tạo`,
@@ -297,10 +308,9 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     previewEmpty: 'Chưa xếp môn nào',
     openPlan: (name) => `Mở ${name}`,
     statusLabel: 'Tình trạng kế hoạch',
-    valid: 'Hợp lệ',
     invalid: (n) => `Chưa hợp lệ · ${n} vi phạm`,
-    expectedGraduation: 'Tốt nghiệp dự kiến',
-    notYetGraduation: 'Chưa đủ để tốt nghiệp',
+    noViolation: 'Không thấy vi phạm',
+    noViolationUnknown: (n) => `Không thấy vi phạm · ${n} mục chưa kiểm tra được`,
     coverageTitle: (g, c, r) => (r === null ? `${g}: ${c} tín chỉ` : `${g}: ${c}/${r} tín chỉ`),
     allGroups: 'Tất cả',
     groupFilter: 'Lọc theo nhóm',
@@ -314,6 +324,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     locked: 'Đang học, không đổi được',
     takenBefore: (g) => `Đã học trước · điểm ${g}`,
     dropChecking: 'Đang kiểm tra…',
+    dropUnknown: (what) => `Chưa kiểm tra được: ${what}`,
     previewOf: (c, term) => `Xem trước: ${c} → ${term}`,
     previewDelta: (d) => {
       if (d === 0) return 'số vi phạm không đổi';
@@ -436,12 +447,16 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     allPlaced: 'Every course of the curriculum is placed.',
     noMatch: 'No course matches.',
     inTranscript: 'In your transcript',
+    passedMark: 'Passed',
     dropToRemove: 'Drop a course here to remove it from the plan.',
     binLabel: 'Remove from the plan',
     binHint: 'Drop here and the course goes back to the course list',
     goTo: 'Go to course',
     sourceTitle: (c) => `Open the regulation: ${c}`,
     noIssuesTitle: 'No violations',
+    noTermViolations: 'No violation in the terms',
+    groupsStillShort: (n) => `But ${n} ${n === 1 ? 'group is' : 'groups are'} still short of credits, see below.`,
+    unknownsLeft: (n) => `${n} ${n === 1 ? 'rule' : 'rules'} could not be checked, see below.`,
     newTag: 'New',
     goneTag: 'Goes away',
     showInExplorer: (c) => `Show ${c} in the curriculum`,
@@ -488,10 +503,9 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     previewEmpty: 'No courses placed yet',
     openPlan: (name) => `Open ${name}`,
     statusLabel: 'Plan status',
-    valid: 'Valid',
     invalid: (n) => `Not valid yet · ${n} ${n === 1 ? 'violation' : 'violations'}`,
-    expectedGraduation: 'Expected graduation',
-    notYetGraduation: 'Not enough to graduate yet',
+    noViolation: 'No violation found',
+    noViolationUnknown: (n) => `No violation found · ${n} not checked`,
     coverageTitle: (g, c, r) => (r === null ? `${g}: ${c} credits` : `${g}: ${c}/${r} credits`),
     allGroups: 'All',
     groupFilter: 'Filter by group',
@@ -505,6 +519,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     locked: 'In progress, cannot be moved',
     takenBefore: (g) => `Taken before · grade ${g}`,
     dropChecking: 'Checking…',
+    dropUnknown: (what) => `Not checked: ${what}`,
     previewOf: (c, term) => `Preview: ${c} → ${term}`,
     previewDelta: (d) => {
       if (d === 0) return 'same number of violations';

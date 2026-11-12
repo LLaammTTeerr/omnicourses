@@ -47,6 +47,7 @@ interface Options {
 async function render({ routes = {}, reports = [REPORT], previews = () => report() }: Options = {}) {
   const sent: PlanTerm[][] = [];
   const previewed: PlanTerm[][] = [];
+  let previewRequests = 0;
   let checks = 0;
   const fetch = mockApi({
     [`GET /plans/${PLAN_ID}`]: plan(SAVED),
@@ -60,11 +61,20 @@ async function render({ routes = {}, reports = [REPORT], previews = () => report
       sent.push(terms);
       return Response.json(plan(terms));
     },
-    [`POST /plans/${PLAN_ID}/issues`]: (init: RequestInit) => {
-      const { terms } = sentBody(init) as { terms: PlanTerm[] };
-      previewed.push(terms);
-      const answer = previews(terms);
-      return typeof answer === 'number' ? new Response(null, { status: answer }) : Response.json(answer);
+    // The drag preview: one request per drag, a board per target (the placement at the end of that term).
+    [`POST /plans/${PLAN_ID}/issues/drops`]: (init: RequestInit) => {
+      const { terms, placement, targets } = sentBody(init) as { terms: PlanTerm[]; placement: PlanTerm['placements'][number]; targets: PlanTerm['term'][] };
+      previewRequests++;
+      const reports = [];
+      for (const target of targets) {
+        const same = (t: PlanTerm) => t.term.year === target.year && t.term.number === target.number;
+        const board = terms.some(same) ? terms.map((t) => (same(t) ? { term: t.term, placements: [...t.placements, placement] } : t)) : [...terms, { term: target, placements: [placement] }];
+        previewed.push(board);
+        const answer = previews(board);
+        if (typeof answer === 'number') return new Response(null, { status: answer });
+        reports.push({ term: target, issues: answer });
+      }
+      return Response.json({ reports });
     },
     [`GET /plans/${PLAN_ID}/issues`]: () => {
       const answer = reports[Math.min(checks++, reports.length - 1)]!;
@@ -75,7 +85,7 @@ async function render({ routes = {}, reports = [REPORT], previews = () => report
   const app = await setup(`/plans/${PLAN_ID}`);
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
-  return { w: wrapper, fetch, sent, previewed, checks: () => checks, router: app.router };
+  return { w: wrapper, fetch, sent, previewed, previewRequests: () => previewRequests, checks: () => checks, router: app.router };
 }
 
 /** A request the test answers when it chooses: `answer` resolves the oldest call still open. */
@@ -212,6 +222,16 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.find('.tmeter').exists()).toBe(false);
     expect(w.findAll('.has-violation, .has-flag')).toHaveLength(0);
     expect(w.get('[data-test="no-issues"]').text()).toBe('Không có vi phạmRule engine không thấy vấn đề nào.');
+  });
+
+  it('never says "no problem" while a group is short or a rule could not be checked', async () => {
+    const shortGroup = { id: 'g-elec', name: 'Tự chọn thử', kind: 'elective' as const, requiredCredits: 4, credits: 0, remainingCredits: 4, met: false };
+    const { w } = await render({ reports: [report({ coverage: { ...REPORT.coverage, groups: [shortGroup] } })] });
+    expect(w.get('[data-test="no-issues"]').text()).toBe('Không có vi phạm trong các học kỳNhưng còn 1 nhóm thiếu tín chỉ, xem bên dưới.');
+    wrapper!.unmount();
+    const unknown = issue({ code: 'offering_terms_not_recorded', kind: 'unknown', term: { year: 2026, number: 1 }, position: 0, courseCode: 'ZZ101' });
+    const again = await render({ reports: [report({ issues: [unknown] })] });
+    expect(again.w.get('[data-test="no-issues"]').text()).toBe('Không có vi phạmCòn 1 mục chưa kiểm tra được, xem bên dưới.');
   });
 
   it('adds a course found by search to the chosen term, saves the board and checks it again', async () => {
@@ -690,20 +710,23 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(rowCodes(w)[1]).toBe('HK2 2026–2027:');
     });
 
-    it('shows the expected graduation term once the engine finds every checkable requirement met and no violation', async () => {
+    it('shows the engine’s graduation status as it reports it, guesses no graduation term, and never calls an unknown a pass', async () => {
       const { w } = await render({
         reports: [
           report({
             terms: [{ term: t1, kind: 'main', credits: 8, caps: { min: 10, max: 22 } }],
+            issues: [issue({ code: 'offering_terms_not_recorded', kind: 'unknown', term: t1, position: 0, courseCode: 'ZZ101' })],
             coverage: { groups: [{ id: 'g-core', name: 'Kiến thức Computer Science (A): bắt buộc', kind: 'compulsory', requiredCredits: 8, credits: 8, remainingCredits: 0, met: true }], combinedMinimums: [], totalRequired: 8, totalCredits: 8, totalRemaining: 0, graduation: 'done' },
           }),
         ],
       });
       const strip = w.get('[data-test="status-strip"]');
-      expect(strip.get('[data-test="estimate"]').text()).toBe('Hợp lệTốt nghiệp dự kiến: HK1 2026–2027');
+      expect(strip.get('[data-test="estimate"]').text()).toBe('Không thấy vi phạm · 1 mục chưa kiểm tra đượcĐủ các yêu cầu kiểm tra được');
       expect(strip.get('[data-test="strip-group"]').text()).toBe('</>Kiến thức Computer Science (A): bắt buộc: 8/8 tín chỉ8/8');
       expect(strip.get('[data-test="strip-group"]').classes()).toEqual(['g-core']);
       expect(strip.get('[data-test="save-state"]').text()).toBe('Đã lưu');
+      // Its colour follows the engine's status alone.
+      expect(strip.get('[data-test="estimate"]').classes()).not.toContain('bad');
     });
 
     it('copies the plan for a what-if even when the list of plans could not be loaded', async () => {
@@ -730,7 +753,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
         routes: { [`GET /plans/${PLAN_ID}`]: plan([]) },
         reports: [report({ coverage: { groups: [], combinedMinimums: [], totalRequired: 20, totalCredits: 20, totalRemaining: 0, graduation: 'done' } })],
       });
-      expect(w.get('[data-test="estimate"]').text()).toBe('Hợp lệĐủ các yêu cầu kiểm tra được');
+      expect(w.get('[data-test="estimate"]').text()).toBe('Không thấy vi phạmĐủ các yêu cầu kiểm tra được');
       expect(w.get('[data-test="estimate"]').classes()).not.toContain('bad');
     });
 
@@ -796,7 +819,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
     });
 
     it('asks the engine about each row when a course is dragged, and colours each row by its answer before the drop', async () => {
-      const { w, previewed, sent } = await render({
+      const { w, previewed, previewRequests, sent } = await render({
         // The engine says ZZ201 is not taught in term 2, and ZZ102 still misses its prerequisite.
         previews: (terms) => {
           const at = termOf(terms, 'ZZ201')!;
@@ -815,7 +838,8 @@ describe('PlanEditorView (F5, UC-05)', () => {
       });
       await press(w.get('[data-test="pool-ZZ201"]'));
       await hover(null);
-      // One check per row, none saved.
+      // One request for the whole drag (the rate limit counts requests), a check per row in it, none saved.
+      expect(previewRequests()).toBe(1);
       expect(previewed.map((terms) => `${termOf(terms, 'ZZ201')!.year}-${termOf(terms, 'ZZ201')!.number}`)).toEqual(['2026-1', '2026-2', '2026-3', '2027-1', '2027-2']);
       expect(sent).toHaveLength(0);
 
@@ -846,17 +870,77 @@ describe('PlanEditorView (F5, UC-05)', () => {
       const { w, previewed } = await render({ previews: () => report({ issues: [issue({ code: 'prerequisite_not_met', kind: 'violation', term: t2, position: 0, courseCode: 'ZZ102', missingCourseCodes: ['ZZ101'] })] }) });
       const zz102 = tile(w, 'ZZ102');
       await zz102.trigger('keydown', { key: ' ' });
-      expect(previewed).toHaveLength(0);
+      await flushPromises();
+      // Lifting asks about every other row at once; its own row is not asked about.
+      expect(previewed).toHaveLength(4);
+      expect(previewed[0]).toEqual([{ term: t1, placements: [course('ZZ101')] }, { term: t2, placements: [course('ZZ102')] }]);
       expect(row(w, '2026-1').find('[data-test="drop-reason"]').exists()).toBe(false);
       await zz102.trigger('keydown', { key: 'ArrowDown' });
       await flushPromises();
-      expect(previewed).toEqual([[{ term: t1, placements: [course('ZZ101')] }, { term: t2, placements: [course('ZZ102')] }]]);
+      expect(previewed).toHaveLength(4);
       expect(row(w, '2026-2').get('[data-test="drop-reason"]').text()).toBe('ZZ102 cần học xong ZZ101 ở một học kỳ trước.');
       await zz102.trigger('keydown', { key: 'Escape' });
       expect(w.find('[data-test="drop-reason"]').exists()).toBe(false);
     });
 
-    it('shows the terms taken, the courses in progress now (locked), and leaves passed courses out of the tray', async () => {
+    it('calls an unknown "not checked", names a new violation in another term, and draws the load the drop would make', async () => {
+      const t3 = { year: 2026, number: 3 };
+      const { w } = await render({
+        previews: (terms) => {
+          const at = termOf(terms, 'ZZ201')!;
+          const loads = terms.map((t) => ({ term: t.term, kind: 'main' as const, credits: t.term.number === at.number && t.term.year === at.year ? (at.number === 1 ? 11 : 3) : 8, caps: { min: 10, max: 22 } }));
+          // Term 2: the engine cannot tell whether ZZ201 is taught then. Term 3: ZZ201 there breaks a rule on ZZ101 in term 1.
+          if (at.number === 2) return report({ terms: loads, issues: [issue({ code: 'offering_terms_not_recorded', kind: 'unknown', term: at, position: 0, courseCode: 'ZZ201' })] });
+          if (at.number === 3) return report({ terms: loads, issues: [issue({ code: 'prerequisite_not_met', kind: 'violation', term: t1, position: 0, courseCode: 'ZZ101', missingCourseCodes: ['ZZ100'] })] });
+          return report({ terms: loads });
+        },
+      });
+      await press(w.get('[data-test="pool-ZZ201"]'));
+      await hover(null);
+      // Unknown is neither a pass nor a fail: its own tone and words.
+      expect(row(w, '2026-2').classes()).toContain('unknown-drop');
+      expect(row(w, '2026-2').classes()).not.toContain('ok-drop');
+      expect(row(w, '2026-2').get('[data-test="drop-reason"]').text()).toBe('Chưa kiểm tra được: ZZ201: chưa ghi nhận học kỳ mở môn.');
+      // A drop that breaks a rule elsewhere on the board is a bad drop, and says which.
+      expect(row(w, `${t3.year}-${t3.number}`).classes()).toContain('bad-drop');
+      expect(row(w, '2026-3').get('[data-test="drop-reason"]').text()).toBe('ZZ101 cần học xong ZZ100 ở một học kỳ trước.');
+
+      // Over term 1: the load goes 8 → 11 of a 22 cap; the meter (28 wide: the cap plus 6) fills to 8 and pulses to 11.
+      await hover(row(w, '2026-1'));
+      expect(row(w, '2026-1').get('[data-test="load-delta"]').text()).toBe('+3');
+      const cap = row(w, '2026-1').get('.cap');
+      expect(cap.classes()).toContain('preview');
+      expect(parseFloat(cap.get('.fill').attributes('style')!.match(/width: ([\d.]+)%/)![1]!)).toBeCloseTo((8 / 28) * 100, 3);
+      const pre = cap.get('.pre').attributes('style')!;
+      expect(parseFloat(pre.match(/left: ([\d.]+)%/)![1]!)).toBeCloseTo((8 / 28) * 100, 3);
+      expect(parseFloat(pre.match(/width: ([\d.]+)%/)![1]!)).toBeCloseTo((3 / 28) * 100, 3);
+
+      // Over term 3: the panel counts the change and lists the new violation for a screen reader.
+      await hover(row(w, '2026-3'));
+      expect(w.findAll('[data-test="preview-new"]').map((n) => n.text())).toEqual(['Thiếu môn tiên quyếtZZ101 cần học xong ZZ100 ở một học kỳ trước.']);
+      await release();
+    });
+
+    it('ignores a drag preview that answers after the drag it was for has ended', async () => {
+      const answers = held();
+      const { w } = await render({ routes: { [`POST /plans/${PLAN_ID}/issues/drops`]: () => answers.respond() } });
+      await press(w.get('[data-test="pool-ZZ201"]'));
+      await hover(null);
+      expect(row(w, '2026-2').classes()).toContain('checking');
+      await release();
+      // A new drag of another course starts before the first answer arrives.
+      await press(w.get('[data-test="pool-ZZ414"]'));
+      await hover(null);
+      answers.answer(Response.json({ reports: [{ term: t2, issues: report({ issues: [issue({ code: 'not_offered', kind: 'violation', term: t2, position: 0, courseCode: 'ZZ201', offeredTermNumbers: [1] })] }) }] }));
+      await flushPromises();
+      // The rows still wait for the answer about ZZ414; nothing about ZZ201 is painted on them.
+      expect(w.find('.bad-drop').exists()).toBe(false);
+      expect(row(w, '2026-2').classes()).toContain('checking');
+      expect(w.findAll('[data-test="drop-reason"]').some((r) => r.text().includes('ZZ201'))).toBe(false);
+      await release();
+    });
+
+    it('shows the terms taken, the courses in progress now (locked), and keeps passed courses in the tray, marked', async () => {
       const audit = {
         credits: { accumulated: 9, towardTotal: 8, inProgressTowardTotal: 4, totalRequired: 20, remaining: 12, yearLevel: 1 },
         terms: [
@@ -881,8 +965,10 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(row(w, '2026-1').get('[data-test="now-ZZ201"]').text()).toBe('ZZ2013 TCGiải thuật thửĐang học, không đổi được');
       expect(row(w, '2026-1').find('[data-test="now-ZZ201"]').attributes('draggable')).toBeUndefined();
       expect(row(w, '2026-2').find('[data-test="now"]').exists()).toBe(false);
-      // Passed (ZZ414) and in progress (ZZ201) are not offered again; the course failed before shows its grade.
-      expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual([]);
+      // A passed course (ZZ414) stays in the tray, marked: the engine allows a retake (already_passed is a flag).
+      // The course in progress (ZZ201) is not offered; the course failed before shows its grade.
+      expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual(['ZZ414']);
+      expect(w.get('[data-test="pool-ZZ414"] [data-test="passed"]').text()).toBe('Đã đạt');
       expect(tile(w, 'ZZ102').get('[data-test="tile-taken"]').text()).toBe('Đã học trước · điểm 3,5');
       // Each course taken is a tag that opens it in the curriculum explorer.
       await past.get('[data-test="past-ZZ414"]').trigger('click');

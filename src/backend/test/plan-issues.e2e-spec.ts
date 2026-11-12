@@ -148,6 +148,28 @@ describe('Plan issues API (e2e)', () => {
     await http().get(`/api/plans/${plan.id}/issues`).set(owner).expect(200);
   });
 
+  it('checks one drop on several terms in one request (the drag preview), in the order sent', async () => {
+    const auth = await student();
+    const plan = await newPlan(auth, [{ term: { year: 2032, number: 1 }, placements: [course(code(2))] }]);
+    // 1 dropped on 2032-1 (taught there) and on 2032-2 (not taught there, and a term not saved yet).
+    const targets = [{ year: 2032, number: 2 }, { year: 2032, number: 1 }];
+    const { body } = await http().post(`/api/plans/${plan.id}/issues/drops`).set(auth).send({ terms: plan.terms, placement: course(code(1)), targets }).expect(200);
+    expect(body.reports.map((r: { term: unknown }) => r.term)).toEqual(targets);
+    const notOffered = (r: { issues: { issues: { code: string; courseCode: string | null }[] } }) => r.issues.issues.some((i) => i.code === 'not_offered' && i.courseCode === code(1));
+    expect(body.reports.map(notOffered)).toEqual([true, false]);
+    // 1 sits after 2 in 2032-1: the report's position for it is 1, as the planner draws the drop.
+    expect(body.reports[1].issues.terms).toEqual([{ term: { year: 2032, number: 1 }, kind: 'main', credits: 8, caps: { min: 10, max: 22 } }]);
+    // Nothing was saved.
+    expect((await http().get(`/api/plans/${plan.id}`).set(auth).expect(200)).body.terms).toEqual(plan.terms);
+    // A drop the board refuses (the course is already placed), a target twice, no target, another student's plan.
+    const send = (body: unknown, as = auth) => http().post(`/api/plans/${plan.id}/issues/drops`).set(as).send(body);
+    await send({ terms: plan.terms, placement: course(code(2)), targets }).expect(400);
+    await send({ terms: plan.terms, placement: course(code(1)), targets: [targets[0], targets[0]] }).expect(400);
+    await send({ terms: plan.terms, placement: course(code(1)), targets: [] }).expect(400);
+    await send({ terms: plan.terms, placement: course('ZZNOSUCH1'), targets }).expect(400);
+    await send({ terms: plan.terms, placement: course(code(1)), targets }, await student()).expect(404);
+  });
+
   it('checks a board that is not saved (POST), without changing the saved plan', async () => {
     const auth = await student();
     // Saved: 1 in 2032-1, 4 credits. 1 is taught in term 1 only.

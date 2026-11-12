@@ -147,10 +147,11 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
             </div>
           </li>
         </TransitionGroup>
-        <div v-else class="rail-empty" data-test="no-issues">
-          <Icon name="check" />
-          <b>{{ m.noIssuesTitle }}</b>
-          <span>{{ m.noIssues }}</span>
+        <!-- No card: say what is still open below (groups short, rules not checked), never "no problem" over them. -->
+        <div v-else class="rail-empty" :class="{ open: short > 0 }" data-test="no-issues">
+          <Icon :name="short ? 'info' : 'check'" />
+          <b>{{ short ? m.noTermViolations : m.noIssuesTitle }}</b>
+          <span>{{ short ? m.groupsStillShort(short) : ofKind('unknown').length ? m.unknownsLeft(ofKind('unknown').length) : m.noIssues }}</span>
         </div>
 
         <details v-if="ofKind('unknown').length" class="unknowns" :class="{ stale: !fresh }" data-test="unknowns">

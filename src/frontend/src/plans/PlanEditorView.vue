@@ -16,7 +16,7 @@ import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import { currentTerm, termKey, termName, vietnamDate, type Term } from '../terms.js';
-import { fetchPlan, fetchPlanIssues, previewPlanIssues, savePlacements, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
+import { fetchPlan, fetchPlanIssues, previewPlanDrops, savePlacements, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
 import {
   addCourse,
   addSlot,
@@ -30,6 +30,7 @@ import {
   moveTile,
   nextTerm,
   placedCodes,
+  placementOf,
   PREVIEW_KEY,
   removeTile,
   rowsFor,
@@ -371,43 +372,56 @@ let previewOf: Moving | null = null;
 
 const homeOf = (what: Moving) => ('key' in what ? findTile(board.value, what.key)?.row.term : undefined);
 
-/** Asks the engine about the drop of `what` on `term`, once per row while the same thing moves. */
-function previewRow(what: Moving, term: Term): void {
+/**
+ * Asks the engine about the drop of `what` on each of `terms` it has no answer for yet, in one request
+ * (POST /plans/{id}/issues/drops): a drag costs one request against the rate limit, not one per row.
+ */
+function previewRows(what: Moving, terms: readonly Term[]): void {
   if (previewOf !== what) {
     previewAbort?.abort();
     previewAbort = new AbortController();
     previewOf = what;
     previews.value = new Map();
   }
-  const key = termKey(term);
+  const snapshot = board.value;
   const home = homeOf(what);
-  const had = previews.value.get(key);
-  if ((had && had.status !== 'failed') || (home && termKey(home) === key)) return;
-  const next = boardWith(board.value, what, term);
-  if (next === board.value) return;
-  const tileKey = 'key' in what ? what.key : PREVIEW_KEY;
-  const set = (value: RowPreview) => {
+  const todo = terms.filter((term) => {
+    const had = previews.value.get(termKey(term));
+    return !(had && had.status !== 'failed') && !(home && termKey(home) === termKey(term)) && boardWith(snapshot, what, term) !== snapshot;
+  });
+  const placement = placementOf(snapshot, what);
+  if (!todo.length || !placement) return;
+  const setAll = (value: (term: Term) => RowPreview) => {
     if (previewOf !== what) return;
-    previews.value = new Map(previews.value).set(key, value);
+    const next = new Map(previews.value);
+    for (const term of todo) next.set(termKey(term), value(term));
+    previews.value = next;
   };
-  set({ status: 'loading', attached: null, verdict: null });
+  setAll(() => ({ status: 'loading', attached: null, verdict: null }));
+  const tileKey = 'key' in what ? what.key : PREVIEW_KEY;
+  const without = 'key' in what ? removeTile(snapshot, what.key) : snapshot;
+  const before = issues.value;
   const { signal } = previewAbort!;
   const { id } = opened;
   auth
-    .authed((token) => previewPlanIssues(token, id, boardBody(next), signal))
-    .then((report) => {
-      const attached = attachIssues(next, report);
-      set({ status: 'done', attached, verdict: dropVerdict(attached, tileKey, term) });
+    .authed((token) => previewPlanDrops(token, id, { terms: boardBody(without), placement, targets: todo }, signal))
+    .then(({ reports }) => {
+      const byTerm = new Map(reports.map((r) => [termKey(r.term), r.issues]));
+      setAll((term) => {
+        const report = byTerm.get(termKey(term));
+        if (!report) return { status: 'failed', attached: null, verdict: null };
+        const attached = attachIssues(boardWith(snapshot, what, term), report);
+        return { status: 'done', attached, verdict: dropVerdict(attached, tileKey, term, before) };
+      });
     })
     .catch((e) => {
       if (signal.aborted) return;
       if (statusOf(e) !== 401) console.error('Previewing a drop failed:', e);
-      set({ status: 'failed', attached: null, verdict: null });
+      setAll(() => ({ status: 'failed', attached: null, verdict: null }));
     });
 }
-function previewAll(what: Moving): void {
-  for (const row of board.value) previewRow(what, row.term);
-}
+const previewRow = (what: Moving, term: Term) => previewRows(what, [term]);
+const previewAll = (what: Moving) => previewRows(what, board.value.map((row) => row.term));
 function stopPreview(): void {
   previewAbort?.abort();
   previewAbort = null;
@@ -541,8 +555,11 @@ function dropOf(key: string): RowView['drop'] {
   const v = p.verdict;
   // A load against the caps is shown by the bar alone; only another rule gets words.
   const first = v.issues.find((i) => !BAR_CODES.has(i.code));
-  if (v.issues.length === 0) return { tone: 'ok-drop', reason: '' };
-  return { tone: v.kind === 'violation' ? 'bad-drop' : 'warn-drop', reason: first ? m.value.issue[first.code](first, ctx.value) : '' };
+  if (!v.kind) return { tone: 'ok-drop', reason: '' };
+  const tone = v.kind === 'violation' ? 'bad-drop' : v.kind === 'flag' ? 'warn-drop' : 'unknown-drop';
+  if (!first) return { tone, reason: '' };
+  const text = m.value.issue[first.code](first, ctx.value);
+  return { tone, reason: first.kind === 'unknown' ? m.value.dropUnknown(text) : text };
 }
 
 function rowView(row: Row): RowView {
@@ -623,7 +640,7 @@ const addTargetTerm = computed(() => board.value.find((row) => termKey(row.term)
 const unplaced = computed(() => {
   const placed = placedCodes(board.value);
   const now = new Set(inProgressNow.value.map((c) => c.code));
-  return [...catalog.value.values()].filter(({ course }) => !placed.has(course.code) && !now.has(course.code) && !passedCodes.value.has(course.code));
+  return [...catalog.value.values()].filter(({ course }) => !placed.has(course.code) && !now.has(course.code));
 });
 const poolGroups = computed(() => [...new Set(unplaced.value.map((c) => c.colour))]);
 const shown = computed(() =>
@@ -735,6 +752,7 @@ function onTileKey(event: KeyboardEvent, tile: Tile, rowIndex: number): void {
   if (event.key === ' ') {
     lifted.value = { key: tile.key, target: rowIndex };
     moving.value = { key: tile.key };
+    previewAll(moving.value);
     announce(m.value.lifted(title, nameOf(board.value[rowIndex]!.term)));
   } else if (event.key === 'Delete') {
     remove(tile);
@@ -757,6 +775,13 @@ const dragging = shallowRef<Moving | null>(null);
 const over = ref<DropTarget | null>(null);
 const dropRow = computed(() => (over.value?.startsWith('row:') ? over.value.slice(4) : null));
 const draggingPlaced = computed(() => !!dragging.value && 'key' in dragging.value);
+// Only the target row's verdict is read out, once it is known: every row showing one at a time would be a chorus.
+watch(
+  () => (hoverKey.value ? (dropOf(hoverKey.value)?.reason ?? '') : ''),
+  (reason) => {
+    if (reason && reason !== m.value.dropChecking) announce(reason);
+  },
+);
 // A row whose preview failed (the network, a busy server) asks again when the pointer comes over it.
 watch(
   () => (dragging.value ? over.value : null),
@@ -991,7 +1016,8 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                 <span class="nm" :title="courseName(course, locale.lang)">{{ courseName(course, locale.lang) }}</span>
                 <span class="sub">
                   <span class="glabel">{{ shortName(colour) }}</span>
-                  <span v-if="transcriptCodes.has(course.code)" class="mark" data-test="in-transcript"><Icon name="file" size="sm" />{{ m.inTranscript }}</span>
+                  <span v-if="passedCodes.has(course.code)" class="mark passed" data-test="passed"><Icon name="check" size="sm" />{{ m.passedMark }}</span>
+                  <span v-else-if="transcriptCodes.has(course.code)" class="mark" data-test="in-transcript"><Icon name="file" size="sm" />{{ m.inTranscript }}</span>
                 </span>
                 <button
                   class="add-btn"
@@ -1079,8 +1105,8 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span v-if="row.meter.min !== null" class="tick" :style="{ left: `${row.meter.min}%` }"><em>{{ row.meter.minLabel }}</em></span>
                   <span class="tick max" :style="{ left: `${row.meter.max}%` }"><em>{{ row.meter.maxLabel }}</em></span>
                 </div>
-                <p v-if="row.drop?.reason" class="drop-reason" role="status" data-test="drop-reason">
-                  <Icon :name="row.drop.tone === 'ok-drop' ? 'check' : row.drop.tone === 'checking' ? 'refresh' : 'alert'" size="sm" /><span>{{ row.drop.reason }}</span>
+                <p v-if="row.drop?.reason" class="drop-reason" data-test="drop-reason">
+                  <Icon :name="row.drop.tone === 'ok-drop' ? 'check' : row.drop.tone === 'checking' ? 'refresh' : row.drop.tone === 'unknown-drop' ? 'info' : 'alert'" size="sm" /><span>{{ row.drop.reason }}</span>
                 </p>
                 <ul v-if="row.issues.length" class="row-issues">
                   <li
@@ -1383,6 +1409,9 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .trow.over.bad-drop { background: color-mix(in oklab, var(--bad) 5%, var(--surface)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--bad) 28%, transparent), var(--shadow-lg); }
 .trow.ok-drop .drop-reason, .tray.ok-drop .drop-reason { background: color-mix(in oklab, var(--ok) 14%, var(--surface)); color: color-mix(in oklab, var(--ok) 80%, var(--ink)); }
 .trow.warn-drop .drop-reason { background: color-mix(in oklab, var(--warn) 14%, var(--surface)); color: color-mix(in oklab, var(--warn) 78%, var(--ink)); }
+.trow.unknown-drop { border-color: color-mix(in oklab, var(--info) 35%, var(--edge)); box-shadow: 0 0 0 2px color-mix(in oklab, var(--info) 16%, transparent); }
+.trow.over.unknown-drop { background: color-mix(in oklab, var(--info) 5%, var(--surface)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--info) 26%, transparent), var(--shadow-lg); }
+.trow.unknown-drop .drop-reason { background: color-mix(in oklab, var(--info) 12%, var(--surface)); color: color-mix(in oklab, var(--info) 80%, var(--ink)); }
 .trow.bad-drop .drop-reason { background: color-mix(in oklab, var(--bad) 12%, var(--surface)); color: color-mix(in oklab, var(--bad) 85%, var(--ink)); }
 .trow.home { opacity: 0.85; }
 .trow.stale .tload, .trow.stale .cap, .trow.stale .row-issues { opacity: 0.55; }
