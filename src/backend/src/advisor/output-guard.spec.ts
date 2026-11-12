@@ -243,6 +243,17 @@ describe('output guard', () => {
     expect(check('Your transcript shows CSC10001 graded 9.5.', { tool: { grade: 8.5 } }).reasons).toContain('ungrounded_number');
   });
 
+  it('lets a tool number ground only a sentence about that course or the student’s record (rt77 round 2)', () => {
+    const record = { courses: [{ code: 'MTH00003', credits: 3, grade: 4.5, term: { year: 2024, number: 1 } }] };
+    expect(check('Theo hồ sơ của bạn, MTH00003 có điểm 4,5.', { tool: record, language: 'vi' }).status).toBe('passed');
+    expect(check('MTH00003 carries 3 credits.', { tool: record }).status).toBe('passed');
+    // The same numbers stated as a rule
+    expect(check('A course grade of 4.5 or more counts as a pass, so your MTH00003 is done.', { tool: record }).reasons).toContain('ungrounded_number');
+    expect(check('Theo quy chế, học phần đạt khi điểm từ 4,5 trở lên, nên MTH00003 của bạn đã đạt.', { tool: record, language: 'vi' }).reasons).toContain('ungrounded_number');
+    expect(check('Each course may be retaken at most 3 times.', { tool: record }).reasons).toContain('ungrounded_number');
+    expect(check('Students of cohort 2024 have a credit load of 3 courses.', { tool: record }).reasons).toContain('ungrounded_number');
+  });
+
   it('reads "5,0" and "5.0" as the same number, and ignores the digits of labels and course codes', () => {
     const verdict = check('Học phần có điểm từ 5,0 trở lên là đạt, theo Điều 11 khoản 4 [[qd-1175-2021/d11/k4]].', { context: ['d11/k4'], language: 'vi' });
     expect(verdict.status).toBe('passed');

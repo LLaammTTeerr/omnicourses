@@ -335,10 +335,29 @@ export function maskPersonalData(text: string): string {
     .replace(/(?<![\d.,])\d{8,10}(?!\d|[.,]\d)/g, '[…]');
 }
 
-/** Numbers of a text as the guard reads them: lower case, numbers in words as digits, labels and codes blanked. */
+/** A course code as a word without digits ("CSC10001" → "cscbaaab"), so its digits are no number but the code can still be found. */
+export const codeWord = (code: string): string => code.replace(/\s/g, '').toLowerCase().replace(/\d/g, (d) => 'abcdefghij'[Number(d)]);
+
+/** Numbers of a text as the guard reads them: lower case, numbers in words as digits, labels blanked, codes as words. */
 function readNumbers(text: string): { spelled: string; numbers: { value: number; at: number }[] } {
-  const spelled = withSpelledNumbers(lower(withRomanNumerals(text.replace(COURSE_CODE, ' '))));
+  const spelled = withSpelledNumbers(lower(withRomanNumerals(text.replace(COURSE_CODE, codeWord))));
   return { spelled, numbers: numbersAt(withoutReferences(foldSameLength(spelled))) };
+}
+
+/** Words that make a phrase about the student's own record: "your record shows…", "MTH00003 của bạn…". */
+const OWN_RECORD = /(?<!\p{L})(you|your|yours|u|ban|em|cau|record|transcript|audit|ho so|bang diem|ket qua hoc tap)(?!\p{L})/u;
+
+/**
+ * Whether a number a tool returned grounds this one: only where the sentence, up to the end of the
+ * number's phrase, is about that course (its code) or, for a record or plan tool, the student's own
+ * record. "A student is dismissed after 4 warnings, and CSC10001 is core" does not get 4 from
+ * CSC10001's credits; "a grade of 4.5 passes" does not get 4.5 from the student's grade.
+ */
+function groundedByTool(value: number, scope: string, evidence: TurnEvidence): boolean {
+  const folded = stripMarks(scope);
+  return evidence.tools.some(
+    (t) => t.ok && t.name !== 'search_regulations' && t.numbers.has(value) && ([...t.codes].some((c) => folded.includes(codeWord(c))) || (t.record && OWN_RECORD.test(folded))),
+  );
 }
 
 /** Clause texts as numbers are read there: lower case, numbers in words as digits. */
@@ -355,12 +374,10 @@ function numbersOfClause(c: IndexedClause) {
 
 /** The numbers of an answer that no cited clause states for the same rule and no tool returned. */
 function ungroundedNumbers(claimText: string, cited: IndexedClause[], evidence: TurnEvidence): boolean {
-  const fromTools = new Set(evidence.tools.filter((t) => t.ok && t.name !== 'search_regulations').flatMap((t) => [...t.numbers]));
   const { spelled, numbers } = readNumbers(claimText);
   // Arithmetic is computing, which only the engine does: "25 + 12".
   if (/\d\s*[+×*=]\s*\d/.test(withoutReferences(foldSameLength(spelled)))) return true;
   for (const n of numbers) {
-    if (fromTools.has(n.value)) continue;
     const sentenceStart = Math.max(...['.', '!', '?', '\n'].map((c) => lastBoundary(spelled, c, n.at))) + 1;
     const nextEnd = spelled.slice(n.at).search(/(?<!\d)[.!?](?!\d)|\n/);
     const sentence = spelled.slice(sentenceStart, nextEnd < 0 ? undefined : n.at + nextEnd);
@@ -370,7 +387,7 @@ function ungroundedNumbers(claimText: string, cited: IndexedClause[], evidence: 
       const clause = numbersOfClause(c);
       return clause.numbers.some((s) => s.value === n.value && sameRule(answer, sourceQualifiers(clause.spelled, s.at)));
     });
-    if (!sourced) return true;
+    if (!sourced && !groundedByTool(n.value, sentence.slice(0, phrase.at + phrase.text.length), evidence)) return true;
   }
   return false;
 }

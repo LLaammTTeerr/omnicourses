@@ -17,7 +17,11 @@ export interface EngineGraduation {
 /** What this turn's answer may rest on: the clauses the model saw and what its tools returned. */
 export class TurnEvidence {
   readonly clauses = new Map<string, IndexedClause>();
-  readonly tools: { name: string; ok: boolean; numbers: Set<number>; engine: boolean; graduation?: EngineGraduation }[] = [];
+  /**
+   * Tool results. `codes` are the course codes a result is about and `record` marks the student's own
+   * record or plan: a number from a result grounds only a sentence about one of them (output guard).
+   */
+  readonly tools: { name: string; ok: boolean; numbers: Set<number>; codes: Set<string>; record: boolean; engine: boolean; graduation?: EngineGraduation }[] = [];
 
   addClauses(clauses: IndexedClause[]): void {
     for (const c of clauses) this.clauses.set(c.id, c);
@@ -35,6 +39,8 @@ export class TurnEvidence {
       name,
       ok: ok && found,
       numbers: numbersIn(withoutIdentifiers(json)),
+      codes: new Set((json.match(COURSE_CODE_IN_RESULT) ?? []).map((c) => c.replace(/\s/g, '').toUpperCase())),
+      record: name.startsWith('get_my_'),
       engine: json.includes('"engine":"available"'),
       graduation: graduationOf(result),
     });
@@ -61,9 +67,11 @@ export function numbersIn(text: string): Set<number> {
   return new Set((text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => Number(n.replace(',', '.'))));
 }
 
+const COURSE_CODE_IN_RESULT = /(?<![A-Za-z0-9])[A-Za-z]{2,4}\s?\d{3,5}(?![A-Za-z0-9])/g;
+
 /** A tool result without course codes (CSC10001) and uuids, whose digits are not numbers of a rule. */
 function withoutIdentifiers(json: string): string {
-  return json.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ' ').replace(/(?<![A-Za-z0-9])[A-Za-z]{2,4}\s?\d{3,5}(?![A-Za-z0-9])/g, ' ');
+  return json.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ' ').replace(COURSE_CODE_IN_RESULT, ' ');
 }
 
 /**
