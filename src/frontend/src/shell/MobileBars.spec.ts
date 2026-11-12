@@ -55,8 +55,8 @@ describe('the phone tab bar', () => {
     expect(sheet(w).attributes('aria-labelledby')).toBe('more-title');
     expect(sheet(w).get('#more-title').text()).toBe('Thêm');
     const links = sheet(w).findAll('a');
-    expect(links.map((a) => a.text())).toEqual(['Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
-    expect(links.map((a) => a.attributes('href'))).toEqual(['/transcript', '/guides', '/settings']);
+    expect(links.map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
+    expect(links.map((a) => a.attributes('href'))).toEqual(['/calendar', '/transcript', '/guides', '/settings']);
   });
 
   it('closes on Escape, on the close button and on the backdrop', async () => {
