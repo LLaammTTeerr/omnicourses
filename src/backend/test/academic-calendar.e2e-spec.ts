@@ -63,7 +63,7 @@ describe('Academic calendar API (e2e)', () => {
     if (db?.isInitialized && programA) {
       const programs = [programA, programB].filter(Boolean);
       const users = [adminA, adminB, manager, student, newcomer].map((u) => u.userId);
-      await db.query('DELETE FROM academic_calendar_events WHERE program_id = ANY($1)', [programs]);
+      await db.query('DELETE FROM academic_calendar WHERE program_id = ANY($1)', [programs]);
       await db.query('DELETE FROM program_admin_grants WHERE user_id = ANY($1) OR program_id = ANY($2)', [users, programs]);
       await db.query('DELETE FROM global_admin_grants WHERE user_id = ANY($1)', [users]);
       await db.query('DELETE FROM onboarding_answers WHERE user_id = ANY($1)', [users]);
@@ -74,7 +74,7 @@ describe('Academic calendar API (e2e)', () => {
 
   it('maps the table exactly as migration 1794500000000 creates it', async () => {
     const { upQueries } = await db.driver.createSchemaBuilder().log();
-    expect(upQueries.map((q) => q.query).filter((q) => q.includes('"academic_calendar_events"'))).toEqual([]);
+    expect(upQueries.map((q) => q.query).filter((q) => q.includes('"academic_calendar"'))).toEqual([]);
   });
 
   it('refuses every route without a token', async () => {
@@ -214,6 +214,7 @@ describe('Academic calendar API (e2e)', () => {
         { ...valid, title: 'x'.repeat(256) },
         { ...valid, sourceUrl: 'http://example.edu.vn/a' },
         { ...valid, sourceUrl: 'javascript:alert(1)' },
+        { ...valid, sourceUrl: 'HTTPS://example.edu.vn/a' },
         { ...valid, notes: 'x'.repeat(2001) },
         { kind: 'term_start', startsOn: '2026-09-07', title: 'no year' },
       ];
@@ -270,7 +271,7 @@ describe('Academic calendar API (e2e)', () => {
       await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [leaving.userId, programA]);
       const event = (await as(leaving.token).post(events(programA), { ...valid, kind: 'term_end', startsOn: '2027-01-15', title: 'Kết thúc học kỳ 1' }).expect(201)).body as Event;
       await db.query('DELETE FROM users WHERE id = $1', [leaving.userId]);
-      const [row] = await db.query('SELECT created_by, updated_by FROM academic_calendar_events WHERE id = $1', [event.id]);
+      const [row] = await db.query('SELECT created_by, updated_by FROM academic_calendar WHERE id = $1', [event.id]);
       expect(row).toEqual({ created_by: null, updated_by: null });
     });
   });

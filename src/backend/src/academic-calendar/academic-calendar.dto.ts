@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 import { trimString } from '../common/transforms.js';
 import { TERM_NUMBERS } from '../terms/term.js';
 import { CALENDAR_EVENT_KINDS, type CalendarEventKind } from './academic-calendar-event.entity.js';
@@ -17,6 +17,8 @@ const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && v
 const ifFilled = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null && value !== '');
 
 const httpsUrl = IsUrl({ protocols: ['https'], require_protocol: true, require_tld: true }, { message: 'sourceUrl must be an https:// link' });
+// IsUrl accepts HTTPS:// too; the database CHECK (LIKE 'https://%') does not, so require lowercase here.
+const lowercaseScheme = Matches(/^https:\/\//, { message: 'sourceUrl must start with https://' });
 
 const KIND_DOC = 'term_start, term_end: first and last day of a term; registration: course registration window; add_drop: add/drop window; exam_period: final exams; holiday: no classes; other: anything else';
 
@@ -151,6 +153,7 @@ export class CreateCalendarEventDto {
   @ifFilled
   @MaxLength(2048)
   @httpsUrl
+  @lowercaseScheme
   sourceUrl?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2000 })
@@ -208,6 +211,7 @@ export class UpdateCalendarEventDto {
   @ifFilled
   @MaxLength(2048)
   @httpsUrl
+  @lowercaseScheme
   sourceUrl?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2000 })
