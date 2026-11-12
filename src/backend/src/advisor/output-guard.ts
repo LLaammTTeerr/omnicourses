@@ -2,7 +2,7 @@ import { domainToUnicode } from 'node:url';
 import { type AdvisorLanguage, FIXED_REPLIES } from './advisor-prompt.js';
 import type { TurnEvidence } from './advisor-tools.js';
 import { abolishedRule, namedStandingClaim, type StandingClaim, standingClaims } from './guard-claims.js';
-import { foldSameLength, nearest, numbersAt, phrases, qualifiersOf, sameRule, sourceQualifiers, withSpelledNumbers } from './guard-numbers.js';
+import { foldSameLength, nearest, numbersAt, phrases, qualifiersOf, sameRule, sourceQualifiers, withRomanNumerals, withSpelledNumbers } from './guard-numbers.js';
 import type { ClauseIndex, IndexedClause } from './retrieval/clause-index.js';
 import { cleanInput, fold, lower, stripMarks, words } from './retrieval/text.js';
 
@@ -140,15 +140,30 @@ const CODE_LINE =
 const DOCUMENT = /\b(thong tu|nghi dinh|quyet dinh|luat|decree|circular|decision|law)\s*(so\s*)?(\d+)/g;
 const ARTICLE = /\b(dieu|article|art)\s*\.?\s*(\d+)/g;
 
+/**
+ * Blanks a list label ("1. ", "2) ") when it numbers a list: 1, or one more than the label before.
+ * "30. that is the figure" after "maximum, in credits:" is the number 30, not a label.
+ */
+function listLabel(): (m: string, n: string) => string {
+  let next = 1;
+  return (m, n) => {
+    const value = Number(n);
+    if (value !== 1 && value !== next) return m;
+    next = value + 1;
+    return ' '.repeat(m.length);
+  };
+}
+
 /** Blanks labels and codes whose digits are not rule numbers ("Điều 7, khoản 2", [[ids]], page 87), keeping the text's length. */
 function withoutReferences(folded: string): string {
   const blank = (m: string) => ' '.repeat(m.length);
   return folded
     .replace(/\[\[[^\]]*\]\]/g, blank)
-    .replace(/\b(dieu|article|art|khoan|clause)\s*\.?\s*\d+(\s*\.\s*\d+)?[a-z]?\b/g, blank)
+    // "khoản 30 tín chỉ" is a number of credits, not a label.
+    .replace(/\b(dieu|article|art|khoan|clause)\s*\.?\s*\d+(\s*\.\s*\d+)?[a-z]?\b(?!\s*(tin chi|tc|credits?|courses?|subjects?|terms?|semesters?|hoc phan|mon|hoc ky|tuan|weeks?|percent|%))/g, blank)
     .replace(/\b(diem|point)\s+[a-g]\b/g, blank)
     .replace(/\b(cau|question|buoc|step|part)\s*\d+\b/g, blank)
-    .replace(/^\s*\d{1,2}[.)]\s+(?=[a-z])/gm, blank)
+    .replace(/^\s*(\d{1,2})[.)]\s+(?=[a-z])/gm, listLabel())
     .replace(/\b(qd|quyet dinh)\s*(so\s*)?1175(\s*\/\s*(qd-khtn|qd-dhkhtn|2021))?\b/g, blank)
     .replace(/\b(so tay|handbook)(\s+(sinh vien|sv|student))?(\s+(nam hoc|nh))?\s*\d{4}\s*[-–]\s*\d{4}\b/g, blank)
     .replace(/\b(trang|tr|page|pages|p)\s*\.?\s*\d{1,3}(\s*[-–]\s*\d{1,3})?\b/g, blank);
@@ -322,7 +337,7 @@ export function maskPersonalData(text: string): string {
 
 /** Numbers of a text as the guard reads them: lower case, numbers in words as digits, labels and codes blanked. */
 function readNumbers(text: string): { spelled: string; numbers: { value: number; at: number }[] } {
-  const spelled = withSpelledNumbers(lower(text.replace(COURSE_CODE, ' ')));
+  const spelled = withSpelledNumbers(lower(withRomanNumerals(text.replace(COURSE_CODE, ' '))));
   return { spelled, numbers: numbersAt(withoutReferences(foldSameLength(spelled))) };
 }
 

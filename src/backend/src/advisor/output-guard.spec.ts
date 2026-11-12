@@ -55,6 +55,11 @@ describe('output guard', () => {
     ['a number in a sentence with no rule word', '5,0', 'ungrounded_number'],
     ['a spelled-out grade', 'Năm phẩy không.', 'ungrounded_number'],
     ['a folded "mức" that is not a section label', 'Quy chế cho phép mức 40 tín chỉ [[qd-1175-2021/d7/k2/b]].', 'ungrounded_number'],
+    // rt77 round 2: numbers hidden as labels or written another way
+    ['a list label that numbers no list', 'Summer-term maximum, in credits:\n30. that is the figure [[qd-1175-2021/d7/k2/b]]', 'ungrounded_number'],
+    ['a clause label before a unit', 'Mỗi học kỳ hè được đăng ký tối đa khoản 30 tín chỉ [[qd-1175-2021/d7/k2/b]].', 'ungrounded_number'],
+    ['a Roman numeral', 'Summer-term maximum: XXV credits [[qd-1175-2021/d7/k2/b]].', 'ungrounded_number'],
+    ['a negative number in words', 'A main term may hold negative one credits [[qd-1175-2021/d7/k2/a]].', 'ungrounded_number'],
     ['a fabricated quotation of a real clause', 'Điều 7 ghi: "sinh viên năm cuối được đăng ký không giới hạn số tín chỉ" [[qd-1175-2021/d7/k2/b]]', 'misquote'],
     ['a graduation verdict', 'You are eligible to graduate.', 'status_claim'],
     ['a bare yes', 'YES', 'status_claim'],
