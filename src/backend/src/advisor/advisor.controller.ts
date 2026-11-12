@@ -30,7 +30,7 @@ export class AdvisorController {
       'needs_consent, reasons, promptVersion} and `done` {text}; or `error` {code: ai_unavailable, message} if the provider fails mid-answer. ' +
       'Off-topic questions get a fixed reply without a model call, which does not count toward the daily limit.',
   })
-  @ApiBadRequestResponse({ description: 'A role other than user or assistant, a message too long, too many messages, or no question last' })
+  @ApiBadRequestResponse({ description: 'A role other than user or assistant, a message too long (counted after NFKC) or with no visible text, too many messages, or no question last' })
   @ApiServiceUnavailableResponse({ type: AiUnavailableDto, description: 'No provider, provider down, or the daily AI limit is reached' })
   async ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response): Promise<void> {
     checkConversation(dto);

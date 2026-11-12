@@ -8,26 +8,41 @@ const HOMOGLYPHS: Record<string, string> = {
   А: 'A', В: 'B', Е: 'E', К: 'K', М: 'M', Н: 'H', О: 'O', Р: 'P', С: 'C', Т: 'T', Х: 'X', І: 'I', Ј: 'J', Ѕ: 'S',
   α: 'a', ο: 'o', ρ: 'p', ν: 'v', ι: 'i', κ: 'k', τ: 't', υ: 'u', χ: 'x', Α: 'A', Β: 'B', Ε: 'E', Ι: 'I', Κ: 'K', Μ: 'M',
   Ν: 'N', Ο: 'O', Ρ: 'P', Τ: 'T', Χ: 'X', Υ: 'Y', Ζ: 'Z',
+  // Latin letters NFKC keeps apart: IPA and small capitals ("pɑssword", "ᴘᴀssword").
+  ɑ: 'a', ɐ: 'a', ɒ: 'a', ɛ: 'e', ɔ: 'o', ı: 'i', ɩ: 'i', ɪ: 'i', ʋ: 'v', ʏ: 'y', ѵ: 'v', ԛ: 'q', ԝ: 'w',
+  ᴀ: 'a', ʙ: 'b', ᴄ: 'c', ᴅ: 'd', ᴇ: 'e', ꜰ: 'f', ɢ: 'g', ʜ: 'h', ᴊ: 'j', ᴋ: 'k', ʟ: 'l', ᴍ: 'm', ɴ: 'n', ᴏ: 'o', ᴘ: 'p',
+  ʀ: 'r', ꜱ: 's', ᴛ: 't', ᴜ: 'u', ᴠ: 'v', ᴡ: 'w', ᴢ: 'z',
 };
 const HOMOGLYPH_PATTERN = new RegExp(`[${Object.keys(HOMOGLYPHS).join('')}]`, 'gu');
 
+/** A decimal digit of any script as its ASCII digit: "٣٠" is "30". Each script's digits are ten in a row. */
+function asciiDigit(digit: string): string {
+  let start = digit.codePointAt(0)!;
+  while (/\p{Nd}/u.test(String.fromCodePoint(start - 1))) start--;
+  return String(((digit.codePointAt(0)! - start) % 10 + 10) % 10);
+}
+
 /**
  * Cleans text a student typed before anything reads it: NFKC (full-width letters become ASCII,
- * decomposed Vietnamese is composed) and no invisible format characters (zero-width, bidi
- * overrides, tag characters). Sent to the model as cleaned; meaning is unchanged.
+ * decomposed Vietnamese is composed), digits of every script as ASCII digits, and no invisible
+ * format characters (zero-width, bidi overrides, tag characters). Sent to the model as cleaned;
+ * meaning is unchanged.
  */
 export function cleanInput(text: string): string {
-  return text.normalize('NFKC').replace(/\p{Cf}/gu, '');
+  return text
+    .normalize('NFKC')
+    .replace(/(?![0-9])\p{Nd}/gu, asciiDigit)
+    .replace(/\p{Cf}/gu, '');
 }
 
 /** Lower case, cleaned, homoglyphs to Latin; Vietnamese diacritics kept. */
-function lower(text: string): string {
+export function lower(text: string): string {
   return cleanInput(text)
     .replace(HOMOGLYPH_PATTERN, (c) => HOMOGLYPHS[c])
     .toLowerCase();
 }
 
-const stripMarks = (text: string): string => text.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/gu, 'd').normalize('NFC');
+export const stripMarks = (text: string): string => text.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/gu, 'd').normalize('NFC');
 
 /** Folds text for matching: cleaned, homoglyphs to Latin, no diacritics, đ → d, lower case. */
 export function fold(text: string): string {

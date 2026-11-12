@@ -2625,7 +2625,7 @@
             "description": "A `text/event-stream`, read with fetch (ADR 0003). Events: `tool_call` {name}, `tool_result` {name, ok}, then the vetted answer as `text` {delta}, `citations` {clauses: [{id, label, document, text}]}, `verdict` {outcome: answered | replaced | off_topic | needs_consent, reasons, promptVersion} and `done` {text}; or `error` {code: ai_unavailable, message} if the provider fails mid-answer. Off-topic questions get a fixed reply without a model call, which does not count toward the daily limit."
           },
           "400": {
-            "description": "A role other than user or assistant, a message too long, too many messages, or no question last"
+            "description": "A role other than user or assistant, a message too long (counted after NFKC) or with no visible text, too many messages, or no question last"
           },
           "401": {
             "description": "Missing, expired or revoked token"
