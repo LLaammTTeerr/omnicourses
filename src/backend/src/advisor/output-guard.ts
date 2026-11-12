@@ -1,3 +1,4 @@
+import { domainToUnicode } from 'node:url';
 import { type AdvisorLanguage, FIXED_REPLIES } from './advisor-prompt.js';
 import type { TurnEvidence } from './advisor-tools.js';
 import { abolishedRule, namedStandingClaim, type StandingClaim, standingClaims } from './guard-claims.js';
@@ -248,8 +249,31 @@ const NOT_A_HOST = new Set(['e.g', 'i.e', 'tp.hcm', 'v.v', 'th.s', 'pgs.ts', 'gs
 const DANGEROUS_SCHEME = /(?<![\p{L}\p{N}])(javascript|vbscript|livescript)\s*:|(?<![\p{L}\p{N}])data\s*:\s*[a-z]+\/[a-z]/iu;
 const ADDRESS = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s<>"'()[\]]+|(?<![\p{L}\p{N}@._-])(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z][a-z0-9-]*[a-z0-9](?![\p{L}\p{N}-])(?:\/[^\s<>"'()[\]]*)?/giu;
 
+// Hosts in other scripts. NFKC (cleanInput) already made full-width and small full stops '.'; the
+// ideographic ones stay, so they are read as dots too. A host with a letter outside the Latin script
+// (a Cyrillic or Greek lookalike: "portal.hсmus.edu.vn", a host in another script, mixed script), a
+// Latin host with diacritics before an ASCII top-level domain ("hcmüs.edu.vn"), or a punycode label
+// that decodes to anything but ASCII is never official; ASCII hosts go on to the allowlist.
+const IDEOGRAPHIC_DOT = /[\u3002\uFF61\uFF0E\uFE52\u2024]/gu;
+const ANY_SCRIPT_HOST = /(?<![\p{L}\p{N}@._-])(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?\.)+\p{L}[\p{L}\p{N}-]*\p{L}(?![\p{L}\p{N}-])/gu;
+const NON_LATIN_LETTER = /(?!\p{Script=Latin})\p{L}/u;
+const NON_ASCII = /[^\x00-\x7f]/;
+
+function foreignHost(plain: string): boolean {
+  for (const [host] of plain.matchAll(ANY_SCRIPT_HOST)) {
+    if (!NON_ASCII.test(host)) {
+      if (/(^|\.)xn--/i.test(host) && NON_ASCII.test(domainToUnicode(host.toLowerCase()) || 'xn--')) return true;
+      continue;
+    }
+    if (NON_LATIN_LETTER.test(host)) return true;
+    if (!NON_ASCII.test(host.split('.').at(-1)!)) return true;
+  }
+  return false;
+}
+
 const defang = (text: string): string =>
   text
+    .replace(IDEOGRAPHIC_DOT, '.')
     .replace(/\s*[[({]\s*(\.|dot)\s*[\])}]\s*/gi, '.')
     .replace(/\s+dot\s+(?=[a-z]{2,}\b)/gi, '.')
     .replace(/\[:\]/g, ':')
@@ -257,7 +281,7 @@ const defang = (text: string): string =>
 
 function unlistedLink(text: string, cited: IndexedClause[]): boolean {
   const plain = defang(text.replace(/\[\[[^\]]*\]\]/g, ' '));
-  if (DANGEROUS_SCHEME.test(plain)) return true;
+  if (DANGEROUS_SCHEME.test(plain) || foreignHost(plain)) return true;
   for (const [raw] of plain.matchAll(ADDRESS)) {
     const url = raw.replace(/[.,;:!?]+$/u, '');
     const host = url.replace(/^[a-z][a-z0-9+.-]*:/i, '').replace(/^\/\//, '').split(/[/?#:]/)[0].toLowerCase();
