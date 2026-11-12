@@ -6,6 +6,7 @@ import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import type { TranscriptRow } from './api.js';
+import { chooseOption } from '../testing/select.js';
 
 // Synthetic rows only (AGENTS.md hard rule 3).
 const SAVED: TranscriptRow[] = [
@@ -65,13 +66,13 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(code.attributes('aria-invalid')).toBe('true');
     // The words under the row describe each field it names, so a screen reader hears what to fix.
     expect(document.getElementById(code.attributes('aria-describedby')!)?.textContent?.trim()).toBe(w.get('[data-test="problems-2"]').text());
-    expect(row(w, 2).find('select').attributes('aria-describedby')).toBeUndefined();
+    expect(row(w, 2).find('[role="combobox"]').attributes('aria-describedby')).toBeUndefined();
     expect(saveButton(w).attributes('disabled')).toBeDefined();
 
     await row(w, 2).get('input.code-input').setValue('zz103');
     await row(w, 2).findAll('input')[1]!.setValue('Môn thử ba');
     await row(w, 2).get('input[inputmode="numeric"]').setValue('2');
-    await row(w, 2).findAll('select')[1]!.setValue('graded');
+    await chooseOption(row(w, 2).findAll('[role="combobox"]')[1]!, 'Có điểm');
     expect(w.get('[data-test="problems-2"]').text()).toBe('Cần sửa: điểm (0–10, một chữ số thập phân)');
     await row(w, 2).get('input[inputmode="decimal"]').setValue('7,5');
     expect(summary(w)).toBe('3 dòng · sẵn sàng lưu');
@@ -83,7 +84,7 @@ describe('TranscriptView (F2, UC-02)', () => {
     const { w, fetch } = await render({
       'PUT /users/me/transcript': (init: RequestInit) => Response.json(sentBody(init)),
     });
-    await row(w, 1).findAll('select')[1]!.setValue('pass');
+    await chooseOption(row(w, 1).findAll('[role="combobox"]')[1]!, 'Đạt');
     await row(w, 0).get('input.code-input').setValue(' zz101 ');
     await saveButton(w).trigger('click');
     await flushPromises();
@@ -100,12 +101,12 @@ describe('TranscriptView (F2, UC-02)', () => {
 
   it('picks the term and academic year in one choice', async () => {
     const { w, fetch } = await render({ 'PUT /users/me/transcript': (init: RequestInit) => Response.json(sentBody(init)) });
-    const term = row(w, 0).get('select');
+    const term = row(w, 0).get('[role="combobox"]');
     expect(term.attributes('aria-label')).toBe('Học kỳ, dòng 1 (ZZ101)');
-    expect((term.element as HTMLSelectElement).selectedOptions[0]!.text).toBe('HK1 2024–2025');
-    await term.setValue('2023-3');
+    expect(term.text()).toBe('HK1 2024–2025');
+    await chooseOption(term, 'HK3 2023–2024');
     // Term 3 is a main term in APCS, not summer (ADR 0009, amended 9 November 2026).
-    expect((term.element as HTMLSelectElement).selectedOptions[0]!.text).toBe('HK3 2023–2024');
+    expect(term.text()).toBe('HK3 2023–2024');
     await saveButton(w).trigger('click');
     await flushPromises();
     const put = fetch.mock.calls.find(([, init]) => init?.method === 'PUT')!;

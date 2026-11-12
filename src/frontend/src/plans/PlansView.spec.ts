@@ -6,17 +6,17 @@ import { onboarding } from '../onboarding/testing/fixtures.js';
 import { useToast } from '../shell/toast.js';
 import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import { OTHER_ID, PLAN_ID, plan, report, summary } from './testing/fixtures.js';
+import { listItem, OTHER_ID, PLAN_ID, plan, report } from './testing/fixtures.js';
 
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
-const MAIN = summary();
-const LIGHT = summary({ id: OTHER_ID, name: 'Nhẹ tải thử' });
+const MAIN = listItem();
+const LIGHT = listItem({ id: OTHER_ID, name: 'Nhẹ tải thử', preview: { termCount: 0, courseCount: 0, slotCount: 0, firstTerm: null, lastTerm: null } });
 
 async function render(routes: Record<string, unknown> = {}, options: Parameters<typeof setup>[1] = {}) {
   const fetch = mockApi({ 'GET /plans': { plans: [MAIN, LIGHT] }, ...routes });
-  const app = await setup('/plans', options);
+  const app = await setup('/plans/all', options);
   router = app.router;
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
   await flushPromises();
@@ -43,6 +43,20 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Kế hoạch thử', 'Nhẹ tải thử']);
     expect(card(w, 0).text()).toContain('CTĐT APCS2024');
     expect(card(w, 0).get('a').attributes('href')).toBe(`/plans/${PLAN_ID}`);
+  });
+
+  it('shows what each plan holds, and opens it from a click anywhere on its card but its buttons', async () => {
+    const { w } = await render({ [`GET /plans/${PLAN_ID}`]: plan(), [`GET /plans/${PLAN_ID}/issues`]: report(), 'GET /programs/APCS/curricula/2024': status(404) });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(card(w, 0).get('[data-test="plan-span"]').text()).toBe('HK1 2026–2027 → HK3 2026–2027');
+    expect(card(w, 0).get('[data-test="plan-counts"]').text()).toBe('2 học kỳ · 2 môn · 1 chỗ tự chọn');
+    expect(card(w, 1).find('[data-test="plan-span"]').exists()).toBe(false);
+    expect(card(w, 1).get('[data-test="plan-counts"]').text()).toBe('Chưa xếp môn nào');
+    await card(w, 0).get('[data-test="rename"]').trigger('click');
+    expect(router.currentRoute.value.name).toBe('plan-list');
+    await card(w, 0).get('[data-test="plan-counts"]').trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe(`/plans/${PLAN_ID}`);
   });
 
   it('says so when there is no plan yet', async () => {
@@ -133,7 +147,8 @@ describe('PlansView (F5, UC-05 A6)', () => {
     const { w, fetch } = await render({ [`DELETE /plans/${OTHER_ID}`]: status(204) });
     await card(w, 1).get('[data-test="delete"]').trigger('click');
     await flushPromises();
-    expect(w.get('dialog[open]').text()).toContain('Xóa Nhẹ tải thử?');
+    expect(w.get('dialog[open] h2').text()).toBe('Xóa kế hoạch này?');
+    expect(w.get('dialog[open] [data-test="delete-name"]').text()).toBe('Nhẹ tải thử');
     await w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!.trigger('click');
     await flushPromises();
     expect(calls(fetch, 'DELETE')).toHaveLength(0);
@@ -233,7 +248,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     });
     // A page to go back to.
     await router.push('/guides');
-    await router.push('/plans');
+    await router.push('/plans/all');
     await flushPromises();
     await card(w, 1).get('[data-test="delete"]').trigger('click');
     await flushPromises();
@@ -241,7 +256,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await flushPromises();
     router.back();
     await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe('/plans');
+    expect(router.currentRoute.value.fullPath).toBe('/plans/all');
     expect(w.find('dialog[open]').exists()).toBe(true);
 
     answer(status(503)());
@@ -328,7 +343,7 @@ describe('PlansView (F5, UC-05 A6)', () => {
     let body: unknown;
     const long = `${'x'.repeat(87)}😀yy`;
     const { w } = await render({
-      'GET /plans': { plans: [summary({ name: long })] },
+      'GET /plans': { plans: [listItem({ name: long })] },
       [`POST /plans/${PLAN_ID}/duplicate`]: (init: RequestInit) => {
         body = sentBody(init);
         return Response.json(plan([], { id: '00000000-0000-4000-8000-0000000000a3', name: 'Bản sao' }), { status: 201 });

@@ -3,6 +3,7 @@ import { computed, reactive, ref, shallowRef } from 'vue';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
+import SelectMenu from '../components/SelectMenu.vue';
 import { fetchPrograms } from '../curriculum/api.js';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
@@ -87,15 +88,11 @@ async function save(): Promise<void> {
       <div class="study-program">
         <label class="field">
           <span>{{ m.program }}</span>
-          <select class="select" :value="program" @change="pickProgram(($event.target as HTMLSelectElement).value)">
-            <option v-for="choice in choices" :key="choice.code" :value="choice.code">{{ programName(choice) }}</option>
-          </select>
+          <SelectMenu :model-value="program" :options="choices.map((choice) => ({ value: choice.code, label: programName(choice) }))" @update:model-value="pickProgram" />
         </label>
         <label class="field">
           <span>{{ m.cohort }}</span>
-          <select v-model.number="cohort" class="select">
-            <option v-for="year in cohorts" :key="year" :value="year">{{ m.cohortOption(year) }}</option>
-          </select>
+          <SelectMenu v-model="cohort" :options="cohorts.map((year) => ({ value: year, label: m.cohortOption(year) }))" />
         </label>
       </div>
       <GoalFields v-model:graduation="goal.graduation" v-model:credits="goal.credits" v-model:internship="goal.internship" id-prefix="study" :errors="goalErrors" />

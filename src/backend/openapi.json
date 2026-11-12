@@ -922,6 +922,114 @@
         "tags": [
           "plans"
         ]
+      },
+      "post": {
+        "operationId": "PlansController_previewIssues",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBoardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rule engine's check of the plan with the board sent in place of its saved one, as GET /plans/{id}/issues reports it. Nothing is saved: the planner asks this while a course is dragged, to show what each term would say.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanIssuesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A term or placement is invalid, as for PUT /plans/{id}/placements."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}/issues/drops": {
+      "post": {
+        "operationId": "PlansController_previewDrops",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanDropPreviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rule engine's check of the board sent with the placement dropped on each target term, one report per target, as POST /plans/{id}/issues reports one board. Nothing is saved. The planner asks this once when a course is picked up, instead of once per term, so a drag costs one request against the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDropReportsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A term, placement or target is invalid, or a board with the drop would be refused by PUT /plans/{id}/placements."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
       }
     },
     "/api/plans/{id}/duplicate": {
@@ -4770,7 +4878,53 @@
           "cohortYear"
         ]
       },
-      "PlanSummaryDto": {
+      "PlanPreviewDto": {
+        "type": "object",
+        "properties": {
+          "termCount": {
+            "type": "number",
+            "description": "Terms with at least one placement."
+          },
+          "courseCount": {
+            "type": "number",
+            "description": "Placements of a course."
+          },
+          "slotCount": {
+            "type": "number",
+            "description": "Placements of an elective slot (a course of a group, not chosen yet)."
+          },
+          "firstTerm": {
+            "description": "The earliest term with a placement; null for an empty plan.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastTerm": {
+            "description": "The latest term with a placement; null for an empty plan.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "termCount",
+          "courseCount",
+          "slotCount",
+          "firstTerm",
+          "lastTerm"
+        ]
+      },
+      "PlanListItemDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -4797,6 +4951,9 @@
             "type": "string",
             "format": "date-time",
             "description": "Last rename or change of placements."
+          },
+          "preview": {
+            "$ref": "#/components/schemas/PlanPreviewDto"
           }
         },
         "required": [
@@ -4804,7 +4961,8 @@
           "name",
           "curriculum",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "preview"
         ]
       },
       "PlanListDto": {
@@ -4814,7 +4972,7 @@
             "description": "Oldest first.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PlanSummaryDto"
+              "$ref": "#/components/schemas/PlanListItemDto"
             }
           }
         },
@@ -5316,6 +5474,83 @@
           "coverage"
         ]
       },
+      "PlanBoardDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
+      },
+      "PlanDropPreviewDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "description": "The board without the placement (a moved course is taken out of its term first). One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          },
+          "placement": {
+            "description": "What is dropped. It is added at the end of each target term in turn.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanPlacementDto"
+              }
+            ]
+          },
+          "targets": {
+            "description": "The terms to try it in, each once, at most 30.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermDto"
+            }
+          }
+        },
+        "required": [
+          "terms",
+          "placement",
+          "targets"
+        ]
+      },
+      "PlanDropReportDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/TermDto"
+          },
+          "issues": {
+            "$ref": "#/components/schemas/PlanIssuesDto"
+          }
+        },
+        "required": [
+          "term",
+          "issues"
+        ]
+      },
+      "PlanDropReportsDto": {
+        "type": "object",
+        "properties": {
+          "reports": {
+            "description": "One per target, in the order sent.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanDropReportDto"
+            }
+          }
+        },
+        "required": [
+          "reports"
+        ]
+      },
       "RenamePlanDto": {
         "type": "object",
         "properties": {
@@ -5341,21 +5576,6 @@
             "description": "The copy's name. Left out: the original's name; the UI words any \"copy of\"."
           }
         }
-      },
-      "PlanBoardDto": {
-        "type": "object",
-        "properties": {
-          "terms": {
-            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlanTermDto"
-            }
-          }
-        },
-        "required": [
-          "terms"
-        ]
       },
       "AdminErrorDto": {
         "type": "object",

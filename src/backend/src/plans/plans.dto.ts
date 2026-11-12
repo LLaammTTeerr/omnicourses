@@ -104,6 +104,30 @@ export class PlanBoardDto {
   terms!: PlanTermDto[];
 }
 
+/** One placement dropped on each of several terms of a board: the planner's drag preview, in one request. */
+export class PlanDropPreviewDto {
+  @ApiProperty({ type: [PlanTermDto], description: `The board without the placement (a moved course is taken out of its term first). ${BOARD_DESCRIPTION}` })
+  @IsArray()
+  @ArrayMaxSize(MAX_BOARD_TERMS)
+  @ValidateNested({ each: true })
+  @Type(() => PlanTermDto)
+  terms!: PlanTermDto[];
+
+  @ApiProperty({ type: PlanPlacementDto, description: 'What is dropped. It is added at the end of each target term in turn.' })
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => PlanPlacementDto)
+  placement!: PlanPlacementDto;
+
+  @ApiProperty({ type: [TermDto], description: `The terms to try it in, each once, at most ${MAX_BOARD_TERMS}.` })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_BOARD_TERMS)
+  @ValidateNested({ each: true })
+  @Type(() => TermDto)
+  targets!: TermDto[];
+}
+
 export class CreatePlanDto {
   @PlanName()
   name!: string;
@@ -180,7 +204,30 @@ export class PlanDto extends PlanSummaryDto {
   terms!: PlanTermDto[];
 }
 
+/** What the plans list shows of each plan without opening it. */
+export class PlanPreviewDto {
+  @ApiProperty({ description: 'Terms with at least one placement.' })
+  termCount!: number;
+
+  @ApiProperty({ description: 'Placements of a course.' })
+  courseCount!: number;
+
+  @ApiProperty({ description: 'Placements of an elective slot (a course of a group, not chosen yet).' })
+  slotCount!: number;
+
+  @ApiProperty({ type: TermDto, nullable: true, description: 'The earliest term with a placement; null for an empty plan.' })
+  firstTerm!: TermDto | null;
+
+  @ApiProperty({ type: TermDto, nullable: true, description: 'The latest term with a placement; null for an empty plan.' })
+  lastTerm!: TermDto | null;
+}
+
+export class PlanListItemDto extends PlanSummaryDto {
+  @ApiProperty({ type: PlanPreviewDto })
+  preview!: PlanPreviewDto;
+}
+
 export class PlanListDto {
-  @ApiProperty({ type: [PlanSummaryDto], description: 'Oldest first.' })
-  plans!: PlanSummaryDto[];
+  @ApiProperty({ type: [PlanListItemDto], description: 'Oldest first.' })
+  plans!: PlanListItemDto[];
 }
