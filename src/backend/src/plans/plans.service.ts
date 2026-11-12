@@ -5,7 +5,8 @@ import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, toBoard, toRows } from './plan-board.js';
 import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
-import { PlanDto, PlanSummaryDto } from './plans.dto.js';
+import { TermDto } from '../terms/term.dto.js';
+import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
 
 /** The answer for a plan that is missing or someone else's: the same, so it reveals nothing. */
 const notFound = () => new NotFoundException('No plan with this id');
@@ -23,10 +24,13 @@ export class PlansService {
     private readonly curriculum: CurriculumService,
   ) {}
 
-  /** The student's plans, oldest first. */
-  async list(userId: string): Promise<PlanSummaryDto[]> {
+  /** The student's plans, oldest first, each with a preview of its placements. */
+  async list(userId: string): Promise<PlanListItemDto[]> {
     const rows = await this.plans.find({ where: { userId }, relations: { curriculum: { program: true } }, order: { createdAt: 'ASC', id: 'ASC' } });
-    return rows.map(summary);
+    const placements = await this.placements.find({ where: { userId }, select: { planId: true, termYear: true, termNumber: true, courseCode: true } });
+    const byPlan = new Map<string, PlanPlacement[]>();
+    for (const p of placements) byPlan.set(p.planId, [...(byPlan.get(p.planId) ?? []), p]);
+    return rows.map((plan) => ({ ...summary(plan), preview: preview(byPlan.get(plan.id) ?? []) }));
   }
 
   /** One of the student's plans with its placements, or a 404. */
@@ -131,6 +135,13 @@ export class PlansService {
 async function insertBoard(tx: EntityManager, planId: string, userId: string, terms: readonly BoardTerm[]): Promise<void> {
   const rows = toRows(planId, userId, terms);
   if (rows.length) await tx.insert(PlanPlacement, rows);
+}
+
+function preview(rows: readonly PlanPlacement[]): PlanPreviewDto {
+  const terms = [...new Set(rows.map((r) => r.termYear * 10 + r.termNumber))].sort((a, b) => a - b);
+  const term = (n: number | undefined) => (n === undefined ? null : { year: Math.floor(n / 10), number: (n % 10) as TermDto['number'] });
+  const courseCount = rows.filter((r) => r.courseCode !== null).length;
+  return { termCount: terms.length, courseCount, slotCount: rows.length - courseCount, firstTerm: term(terms[0]), lastTerm: term(terms.at(-1)) };
 }
 
 function summary(plan: Plan): PlanSummaryDto {

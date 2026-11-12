@@ -1,5 +1,5 @@
 import type { Curriculum, CurriculumCourse, RequirementGroup } from '../../curriculum/api.js';
-import type { Plan, PlanIssue, PlanIssues, PlanSummary, PlanTerm } from '../api.js';
+import type { Plan, PlanIssue, PlanIssues, PlanListItem, PlanSummary, PlanTerm } from '../api.js';
 
 // Synthetic plans, curricula and reports: made-up codes (ZZ…) and names, never a real student's data.
 
@@ -12,6 +12,12 @@ const CURRICULUM_REF = { id: '00000000-0000-4000-8000-0000000000c1', code: 'APCS
 
 export function summary(overrides: Partial<PlanSummary> = {}): PlanSummary {
   return { id: PLAN_ID, name: 'Kế hoạch thử', curriculum: CURRICULUM_REF, createdAt: '2026-11-01T03:00:00.000Z', updatedAt: '2026-11-02T03:00:00.000Z', ...overrides };
+}
+
+/** A plan as the list shows it: two courses and a slot over HK1 → HK3 2026–2027 by default. */
+export function listItem(overrides: Partial<PlanListItem> = {}): PlanListItem {
+  const preview = { termCount: 2, courseCount: 2, slotCount: 1, firstTerm: { year: 2026, number: 1 as const }, lastTerm: { year: 2026, number: 3 as const } };
+  return { ...summary(), preview, ...overrides };
 }
 
 export const course = (code: string) => ({ kind: 'course' as const, courseCode: code, requirementGroupId: null, credits: null });

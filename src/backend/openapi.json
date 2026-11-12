@@ -4688,7 +4688,53 @@
           "cohortYear"
         ]
       },
-      "PlanSummaryDto": {
+      "PlanPreviewDto": {
+        "type": "object",
+        "properties": {
+          "termCount": {
+            "type": "number",
+            "description": "Terms with at least one placement."
+          },
+          "courseCount": {
+            "type": "number",
+            "description": "Placements of a course."
+          },
+          "slotCount": {
+            "type": "number",
+            "description": "Placements of an elective slot (a course of a group, not chosen yet)."
+          },
+          "firstTerm": {
+            "description": "The earliest term with a placement; null for an empty plan.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastTerm": {
+            "description": "The latest term with a placement; null for an empty plan.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "termCount",
+          "courseCount",
+          "slotCount",
+          "firstTerm",
+          "lastTerm"
+        ]
+      },
+      "PlanListItemDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -4715,6 +4761,9 @@
             "type": "string",
             "format": "date-time",
             "description": "Last rename or change of placements."
+          },
+          "preview": {
+            "$ref": "#/components/schemas/PlanPreviewDto"
           }
         },
         "required": [
@@ -4722,7 +4771,8 @@
           "name",
           "curriculum",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "preview"
         ]
       },
       "PlanListDto": {
@@ -4732,7 +4782,7 @@
             "description": "Oldest first.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PlanSummaryDto"
+              "$ref": "#/components/schemas/PlanListItemDto"
             }
           }
         },

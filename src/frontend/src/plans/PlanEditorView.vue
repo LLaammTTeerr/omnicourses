@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
@@ -45,6 +45,8 @@ import {
 import { pointerDrag, type DropTarget } from './drag.js';
 import { play, snapshot, type Lift } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
+import { rememberLastPlan } from './last-plan.js';
+import { isLocked, setLocked } from './lock.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
 import PlanTabs from './PlanTabs.vue';
 import { KIND_STYLE, strongest } from './present.js';
@@ -180,7 +182,7 @@ const history = shallowRef<{ board: Board; said: string }[]>([]);
 const HISTORY_MAX = 50;
 
 function change(next: Board, said?: string, undoing = false, lift?: Lift): void {
-  if (next === board.value) return;
+  if (next === board.value || locked.value) return;
   if (!undoing) history.value = [...history.value.slice(1 - HISTORY_MAX), { board: board.value, said: said ?? '' }];
   animate(() => (board.value = next), lift);
   saveError.value = null;
@@ -215,12 +217,26 @@ function undo(): void {
 }
 
 function onWindowKey(event: KeyboardEvent): void {
-  if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z' || event.shiftKey) return;
+  if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z' || event.shiftKey || locked.value) return;
   const target = event.target as HTMLElement | null;
   // A text box or an editable element keeps its own undo.
   if (target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
   event.preventDefault();
   undo();
+}
+
+// ---------- Lock: the plan cannot change until it is unlocked (kept per plan on this browser) ----------
+const locked = ref(false);
+function toggleLock(): void {
+  if (!plan.value) return;
+  locked.value = !locked.value;
+  setLocked(plan.value.id, locked.value);
+  if (locked.value) {
+    drag.stop();
+    endDrag();
+    dropLifted();
+  }
+  announce(locked.value ? m.value.lockedNote : m.value.unlock);
 }
 
 // ---------- Loading ----------
@@ -247,6 +263,8 @@ const loaded = useAsyncLoad(
     lifted.value = null;
     const start = boardOf(found.terms, rowsFor(found.terms, currentTermNow(), target), newKey);
     plan.value = found;
+    locked.value = isLocked(found.id);
+    rememberLastPlan(found.id);
     board.value = start;
     saved.value = start;
     addTarget.value = termKey(start.find((row) => compareTerms(row.term, currentTermNow()) >= 0)?.term ?? start[0]!.term);
@@ -363,7 +381,8 @@ function previewRow(what: Moving, term: Term): void {
   }
   const key = termKey(term);
   const home = homeOf(what);
-  if (previews.value.has(key) || (home && termKey(home) === key)) return;
+  const had = previews.value.get(key);
+  if ((had && had.status !== 'failed') || (home && termKey(home) === key)) return;
   const next = boardWith(board.value, what, term);
   if (next === board.value) return;
   const tileKey = 'key' in what ? what.key : PREVIEW_KEY;
@@ -583,9 +602,17 @@ function moveBy(tile: Tile, step: -1 | 1): void {
   void focusTile(tile.key);
 }
 
-function remove(tile: Tile): void {
+/**
+ * Takes a tile out of the plan. From its button or the Delete key, focus goes to the tile beside it in the same term
+ * (or the course search when the term is now empty) without scrolling, so the page stays where the student was; a
+ * drop on the tray or the bin leaves the focus alone.
+ */
+function remove(tile: Tile, moveFocus = true): void {
+  const found = findTile(board.value, tile.key);
+  const beside = found ? (found.row.tiles[found.index + 1] ?? found.row.tiles[found.index - 1]) : undefined;
   change(removeTile(board.value, tile.key), m.value.removed(tileTitle(tile)));
-  void nextTick(() => document.getElementById('course-search')?.focus());
+  if (!moveFocus) return;
+  void nextTick(() => (document.getElementById(beside ? `tile-${beside.key}` : 'course-search') as HTMLElement | null)?.focus({ preventScroll: true }));
 }
 
 const query = ref('');
@@ -637,6 +664,7 @@ function addSlotTo(groupId: string, credits: number, to: Term | null = addTarget
  * The page then scrolls by the new row's height, so the button stays under the pointer for the next click.
  */
 async function addRow(event?: MouseEvent): Promise<void> {
+  if (locked.value) return;
   const button = event?.currentTarget as HTMLElement | undefined;
   const top = button?.getBoundingClientRect().top;
   const before = board.value;
@@ -681,7 +709,7 @@ async function revealRow(index: number): Promise<void> {
 
 // Keyboard moves (UC-05 A1): Space lifts the focused tile, the arrows pick a row, Enter or Space drops, Escape cancels.
 function onTileKey(event: KeyboardEvent, tile: Tile, rowIndex: number): void {
-  if (event.target !== event.currentTarget) return;
+  if (event.target !== event.currentTarget || locked.value) return;
   const title = tileTitle(tile);
   const current = lifted.value?.key === tile.key ? lifted.value : null;
   if (current) {
@@ -729,6 +757,15 @@ const dragging = shallowRef<Moving | null>(null);
 const over = ref<DropTarget | null>(null);
 const dropRow = computed(() => (over.value?.startsWith('row:') ? over.value.slice(4) : null));
 const draggingPlaced = computed(() => !!dragging.value && 'key' in dragging.value);
+// A row whose preview failed (the network, a busy server) asks again when the pointer comes over it.
+watch(
+  () => (dragging.value ? over.value : null),
+  (target) => {
+    const what = moving.value;
+    const row = target?.startsWith('row:') ? board.value.find((r) => `row:${termKey(r.term)}` === target) : undefined;
+    if (what && row) previewRow(what, row.term);
+  },
+);
 
 const drag = pointerDrag<Moving>({
   begin(what) {
@@ -762,6 +799,7 @@ const drag = pointerDrag<Moving>({
   },
 });
 function grab(event: PointerEvent, what: Moving): void {
+  if (locked.value) return;
   drag.down(event, event.currentTarget as HTMLElement, what);
 }
 function endDrag(): void {
@@ -776,7 +814,7 @@ function endDrag(): void {
 function dropOn(what: Moving, target: DropTarget, from: DOMRect): number | null {
   if (target === 'pool' || target === 'bin') {
     const found = 'key' in what ? findTile(board.value, what.key) : undefined;
-    if (found) remove(found.row.tiles[found.index]!);
+    if (found) remove(found.row.tiles[found.index]!, false);
     return null;
   }
   const term = board.value.find((row) => `row:${termKey(row.term)}` === target)?.term;
@@ -846,13 +884,23 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
   <div class="page planner-page">
     <header class="page-head">
       <div>
-        <p class="crumbs"><RouterLink :to="{ name: 'plans' }">{{ m.allPlans }}</RouterLink></p>
+        <RouterLink class="back-link" :to="{ name: 'plan-list' }" data-test="back-to-list"><Icon name="left" size="sm" />{{ m.backToList }}</RouterLink>
         <h1>{{ plan?.name ?? m.title }}</h1>
         <p>{{ m.editorLead }}</p>
-        <p class="small t3 kbd-hint" data-test="keyboard-hint">{{ m.keyboardHint }}</p>
+        <p class="sr-only" data-test="keyboard-hint">{{ m.keyboardHint }}</p>
       </div>
       <div v-if="plan" class="head-actions">
-        <button class="btn" type="button" :disabled="history.length === 0" :title="`${m.undo} (Ctrl+Z)`" data-test="undo" @click="undo"><Icon name="undo" size="sm" />{{ m.undo }}</button>
+        <button
+          :class="['btn', { 'lock-on': locked }]"
+          type="button"
+          :aria-pressed="locked"
+          :title="m.lockHint"
+          data-test="lock"
+          @click="toggleLock"
+        >
+          <Icon :name="locked ? 'lock' : 'unlock'" size="sm" />{{ locked ? m.unlock : m.lock }}
+        </button>
+        <button class="btn" type="button" :disabled="history.length === 0 || locked" :title="`${m.undo} (Ctrl+Z)`" data-test="undo" @click="undo"><Icon name="undo" size="sm" />{{ m.undo }}</button>
         <button class="btn" type="button" :title="m.whatIfHint" data-test="what-if" @click="whatIf"><Icon name="fork" size="sm" />{{ m.whatIf }}</button>
       </div>
     </header>
@@ -862,7 +910,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
       <Icon name="alert" />
       <div v-if="statusOf(loaded.error.value) === 404">
         <p>{{ m.notFound }}</p>
-        <RouterLink class="btn sm" :to="{ name: 'plans' }">{{ m.allPlans }}</RouterLink>
+        <RouterLink class="btn sm" :to="{ name: 'plan-list' }">{{ m.allPlans }}</RouterLink>
       </div>
       <div v-else>
         <p>{{ m.loadFailed }}</p>
@@ -871,13 +919,14 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
     </div>
 
     <template v-else-if="plan">
-      <PlanTabs :id="plan.id" ref="tabs" :name="plan.name" />
+      <PlanTabs :id="plan.id" ref="tabs" :name="plan.name" :curriculum="plan.curriculum" />
+      <p v-if="locked" class="callout info small lock-note" role="status" data-test="locked-note"><Icon name="lock" size="sm" /><span>{{ m.lockedNote }}</span></p>
       <StatusStrip :attached="issues" :fresh="fresh" :save-state="saveState" />
       <p class="small t3">{{ m.curriculum(plan.curriculum.code) }}</p>
       <p v-if="saveError" class="callout bad" role="alert" data-test="save-error"><Icon name="alert" /><span>{{ saveError }}</span></p>
 
       <div class="planner-layout" :class="{ 'rail-mini': collapsed }">
-        <div ref="boardEl" class="planner-main" :class="{ dragging: !!moving }">
+        <div ref="boardEl" class="planner-main" :class="{ dragging: !!moving, 'is-locked': locked }">
           <section
             class="card tray"
             :class="{ 'ok-drop': draggingPlaced, over: draggingPlaced && over === 'pool' }"
@@ -1147,6 +1196,16 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 
 <style>
 .planner-page { max-width: 1480px; }
+.back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 650; font-size: 14px; color: var(--ink-2); text-decoration: none; }
+.back-link:hover { color: var(--ink); }
+.btn.lock-on { background: color-mix(in oklab, var(--info) 12%, var(--surface)); border-color: color-mix(in oklab, var(--info) 45%, var(--edge)); color: color-mix(in oklab, var(--info) 80%, var(--ink)); }
+.lock-note { display: flex; align-items: center; gap: 8px; }
+/* Locked: nothing to grab, add or remove. */
+.planner-main.is-locked .pcourse, .planner-main.is-locked .ptile { cursor: default; }
+.planner-main.is-locked .pcourse:hover, .planner-main.is-locked .ptile:hover { transform: none; box-shadow: none; }
+.planner-main.is-locked .ptile-acts, .planner-main.is-locked .add-btn, .planner-main.is-locked .add-row { display: none; }
+.planner-page .page-head > div:first-child { min-width: 0; flex: 1 1 320px; }
+.planner-page .page-head h1 { overflow-wrap: anywhere; }
 .planner-page .page-head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
 .planner-page .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .planner-page .kbd-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

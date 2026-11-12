@@ -4,14 +4,14 @@ import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
-import ModalDialog from '../components/ModalDialog.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
+import { termName } from '../terms.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { useToast } from '../shell/toast.js';
-import { createPlan, deletePlan, duplicatePlan, fetchPlans, renamePlan, type PlanSummary } from './api.js';
+import { createPlan, deletePlan, duplicatePlan, fetchPlans, renamePlan, type PlanListItem, type PlanSummary } from './api.js';
+import DeletePlanDialog from './DeletePlanDialog.vue';
 import { PLANNER_MESSAGES } from './messages.js';
 import PlanNameDialog from './PlanNameDialog.vue';
 
@@ -23,9 +23,8 @@ const locale = useLocale();
 const toast = useToast();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 
-const plans = ref<PlanSummary[]>([]);
+const plans = ref<PlanListItem[]>([]);
 const { status, reload } = useAsyncLoad('the plans', async () => {
   plans.value = (await auth.authed(fetchPlans)).plans;
 });
@@ -72,7 +71,7 @@ async function saveName(name: string): Promise<void> {
   if (target) {
     const done = await attempt('Renaming the plan', async () => {
       const renamed = await auth.authed((token) => renamePlan(token, target.id, name));
-      plans.value = plans.value.map((plan) => (plan.id === renamed.id ? renamed : plan));
+      plans.value = plans.value.map((plan) => (plan.id === renamed.id ? { ...plan, ...renamed } : plan));
       toast.show(m.value.renamed(renamed.name));
     });
     if (done) naming.value = null;
@@ -93,7 +92,8 @@ async function copy(plan: PlanSummary): Promise<void> {
   const name = Array.from(m.value.copyName(plan.name)).slice(0, 100).join('');
   const done = await attempt('Copying the plan', async () => {
     const copied = await auth.authed((token) => duplicatePlan(token, plan.id, name));
-    plans.value = [...plans.value, copied];
+    const source = plans.value.find((p) => p.id === plan.id);
+    plans.value = [...plans.value, { ...copied, preview: source!.preview }];
     toast.show(m.value.copied(copied.name));
   });
   if (!done && dialogError.value) toast.show(dialogError.value);
@@ -124,6 +124,20 @@ async function confirmDelete(): Promise<void> {
 // back. Stay until its request answers, so the result is said. A 401 has signed the student out, who may leave; a
 // create closes its dialog before opening the new plan.
 onBeforeRouteLeave(() => !(busy.value && (naming.value !== null || deleting.value !== null)) || !auth.signedIn);
+
+/** The plan at a glance: the terms it spans and what it holds. */
+function previewOf(plan: PlanListItem): { span: string | null; counts: string } {
+  const p = plan.preview;
+  if (!p.firstTerm || !p.lastTerm) return { span: null, counts: m.value.previewEmpty };
+  const lang = locale.lang;
+  return { span: m.value.previewSpan(termName(p.firstTerm, lang), termName(p.lastTerm, lang)), counts: m.value.previewCounts(p.termCount, p.courseCount, p.slotCount) };
+}
+
+/** A click anywhere on a card opens the plan, except on its buttons. */
+function openCard(event: MouseEvent, plan: PlanSummary): void {
+  if ((event.target as Element).closest('button, a')) return;
+  void router.push({ name: 'plan', params: { id: plan.id } });
+}
 
 usePageTitle(() => m.value.title);
 </script>
@@ -166,9 +180,11 @@ usePageTitle(() => m.value.title);
       <p class="small t2">{{ m.emptyHint }}</p>
     </div>
     <ul v-else class="plan-list">
-      <li v-for="plan in plans" :key="plan.id" class="card plan-card" data-test="plan">
+      <li v-for="plan in plans" :key="plan.id" class="card plan-card" data-test="plan" @click="openCard($event, plan)">
         <div class="plan-card-main">
-          <RouterLink class="plan-name" :to="{ name: 'plan', params: { id: plan.id } }">{{ plan.name }}</RouterLink>
+          <RouterLink class="plan-name" :to="{ name: 'plan', params: { id: plan.id } }" :title="plan.name">{{ plan.name }}</RouterLink>
+          <p v-if="previewOf(plan).span" class="plan-span" data-test="plan-span"><Icon name="cap" size="sm" />{{ previewOf(plan).span }}</p>
+          <p class="plan-counts" data-test="plan-counts">{{ previewOf(plan).counts }}</p>
           <p class="small t3">{{ m.curriculum(plan.curriculum.code) }} · {{ m.updated(formatDateTime(plan.updatedAt, locale.lang)) }}</p>
         </div>
         <!-- One action at a time: they share `busy` and `dialogError`, so a copy's failure cannot show in another's dialog. -->
@@ -192,36 +208,26 @@ usePageTitle(() => m.value.title);
       @save="saveName"
     />
 
-    <!-- Busy: Keep is disabled and Escape is refused, since the deletion would still go through. -->
-    <ModalDialog
-      :open="deleting !== null"
-      role="alertdialog"
-      labelledby="delete-plan-title"
-      describedby="delete-plan-body"
-      :busy="busy"
-      :busy-text="shell.working"
-      @close="deleting = null"
-    >
-      <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
-      <h2 id="delete-plan-title">{{ m.deleteTitle(deleting?.name ?? '') }}</h2>
-      <p id="delete-plan-body" class="t2">{{ m.deleteBody }}</p>
-      <p v-if="dialogError" class="callout bad small" role="alert"><Icon name="alert" size="sm" /><span>{{ dialogError }}</span></p>
-      <div class="acts">
-        <button class="btn" type="button" autofocus :disabled="busy" @click="deleting = null">{{ m.keep }}</button>
-        <button class="btn danger" type="button" data-test="confirm-delete" :disabled="busy" @click="confirmDelete">
-          <Icon name="trash" size="sm" />{{ busy ? m.deleting : m.delete }}
-        </button>
-      </div>
-    </ModalDialog>
+    <DeletePlanDialog :open="deleting !== null" :name="deleting?.name ?? ''" :busy="busy" :error="dialogError" @close="deleting = null" @confirm="confirmDelete" />
   </div>
 </template>
 
 <style>
 .plans-page .empty { text-align: center; display: grid; gap: 4px; }
-.plan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.plan-card { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
-.plan-card-main { min-width: 0; display: grid; gap: 4px; }
-.plan-name { font-weight: 700; font-size: 16.5px; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
-.plan-name:hover { text-decoration: underline; }
-.plan-card-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.plan-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+.plan-card {
+  display: grid; grid-template-rows: 1fr auto; gap: 14px; cursor: pointer; min-width: 0;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.plan-card:hover { border-color: var(--edge-strong); box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+.plan-card:has(.plan-name:focus-visible) { outline: 2px solid var(--info); outline-offset: 2px; }
+.plan-card-main { min-width: 0; display: grid; gap: 6px; align-content: start; }
+.plan-name {
+  font: 700 17px var(--display); color: var(--ink); text-decoration: none; overflow-wrap: anywhere; outline: none;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+.plan-span { display: flex; align-items: center; gap: 6px; font-weight: 650; font-size: 14px; color: var(--ink-2); }
+.plan-span .icon { color: var(--ink-3); }
+.plan-counts { font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.plan-card-acts { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--edge); }
 </style>

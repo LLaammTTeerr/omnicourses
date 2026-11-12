@@ -718,7 +718,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
           [`GET /plans/${OTHER_ID}/issues`]: report(),
         },
       });
-      expect(w.find('[data-test="plan-tabs"]').exists()).toBe(false);
+      expect(w.findAll('[data-test="plan-tab"]')).toHaveLength(0);
       await w.get('[data-test="what-if"]').trigger('click');
       await flushPromises();
       expect(body).toEqual({ name: 'What-if: Kế hoạch thử' });
@@ -909,6 +909,103 @@ describe('PlanEditorView (F5, UC-05)', () => {
       await flushPromises();
       expect(sent[0]![0]).toEqual({ term: t1, placements: [course('ZZ101'), course('ZZ102'), { kind: 'slot', courseCode: null, requirementGroupId: ELECTIVE_GROUP, credits: 4 }] });
       expect(tile(w, 'slot').text()).toContain('Chưa chọn môn');
+    });
+  });
+
+  describe('lock, plans tabs and the page staying put (UC-05 A6)', () => {
+    beforeEach(() => localStorage.clear());
+
+    it('locks the plan against changes, for this plan, until it is unlocked', async () => {
+      const { w, sent } = await render();
+      const lock = w.get('[data-test="lock"]');
+      await lock.trigger('click');
+      expect(lock.attributes('aria-pressed')).toBe('true');
+      expect(w.get('[data-test="locked-note"]').text()).toContain('Kế hoạch đang khóa');
+      // No drag, no Delete key, no undo, no new term.
+      await press(tile(w, 'ZZ101'));
+      await hover(row(w, '2026-2'));
+      await release();
+      await tile(w, 'ZZ101').trigger('keydown', { key: 'Delete' });
+      await w.get('[data-test="add-row"]').trigger('click');
+      await flushPromises();
+      expect(rowCodes(w)[0]).toBe('HK1 2026–2027: ZZ101 ZZ102');
+      expect(rowCodes(w)).toHaveLength(5);
+      expect(sent).toHaveLength(0);
+      expect(w.get('[data-test="undo"]').attributes('disabled')).toBeDefined();
+      // Kept for this plan: a reload opens it locked.
+      wrapper!.unmount();
+      const again = await render();
+      expect(again.w.get('[data-test="lock"]').attributes('aria-pressed')).toBe('true');
+      await again.w.get('[data-test="lock"]').trigger('click');
+      await tile(again.w, 'ZZ101').trigger('keydown', { key: 'Delete' });
+      await flushPromises();
+      expect(rowCodes(again.w)[0]).toBe('HK1 2026–2027: ZZ102');
+    });
+
+    it('keeps the page where it is when a course is removed: focus goes to the course beside it, without scrolling', async () => {
+      const { w } = await render();
+      const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+      await tile(w, 'ZZ101').get('[data-test="remove"]').trigger('click');
+      await flushPromises();
+      expect(document.activeElement).toBe(tile(w, 'ZZ102').element);
+      expect(focus).toHaveBeenLastCalledWith({ preventScroll: true });
+    });
+
+    it('asks again for a row whose preview failed when the pointer comes over it', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      let busy = true;
+      const { w, previewed } = await render({ previews: () => (busy ? 429 : report()) });
+      await press(w.get('[data-test="pool-ZZ201"]'));
+      await hover(null);
+      const first = previewed.length;
+      busy = false;
+      await hover(row(w, '2026-2'));
+      await flushPromises();
+      expect(previewed.length).toBe(first + 1);
+      expect(row(w, '2026-2').classes()).toContain('ok-drop');
+      await release();
+    });
+
+    it('makes a new plan from the tabs, named in a dialog, on the curriculum of the plan open', async () => {
+      const made = plan([], { id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', name: 'Thử nhẹ' });
+      let body: unknown;
+      const { w, router } = await render({
+        routes: {
+          'POST /plans': (init: RequestInit) => ((body = sentBody(init)), Response.json(made, { status: 201 })),
+          [`GET /plans/${made.id}`]: made,
+          [`GET /plans/${made.id}/issues`]: report(),
+        },
+      });
+      await w.get('[data-test="new-plan"]').trigger('click');
+      await flushPromises();
+      const dialog = w.get('dialog[open]');
+      await dialog.get('input').setValue('Thử nhẹ');
+      await dialog.get('form').trigger('submit');
+      await flushPromises();
+      expect(body).toEqual({ name: 'Thử nhẹ', programCode: 'APCS', cohortYear: 2024 });
+      expect(router.currentRoute.value.params.id).toBe(made.id);
+    });
+
+    it('deletes the plan open from the trash button beside its tab, after asking, then opens another', async () => {
+      let deleted = false;
+      const other = plan([], { id: OTHER_ID, name: 'Kế hoạch khác' });
+      const { w, router } = await render({
+        routes: {
+          [`DELETE /plans/${PLAN_ID}`]: () => ((deleted = true), new Response(null, { status: 204 })),
+          [`GET /plans/${OTHER_ID}`]: other,
+          [`GET /plans/${OTHER_ID}/issues`]: report(),
+        },
+      });
+      expect(w.findAll('[data-test="delete-plan"]')).toHaveLength(1);
+      await w.get('[data-test="delete-plan"]').trigger('click');
+      await flushPromises();
+      expect(w.get('dialog[open] [data-test="delete-name"]').text()).toBe('Kế hoạch thử');
+      expect(deleted).toBe(false);
+      await w.get('[data-test="confirm-delete"]').trigger('click');
+      await flushPromises();
+      expect(deleted).toBe(true);
+      expect(router.currentRoute.value.params.id).toBe(OTHER_ID);
+      expect(w.get('[data-test="back-to-list"]').attributes('href')).toBe('/plans/all');
     });
   });
 });

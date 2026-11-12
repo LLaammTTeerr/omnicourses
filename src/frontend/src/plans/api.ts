@@ -47,9 +47,23 @@ export interface Plan extends PlanSummary {
   terms: PlanTerm[];
 }
 
+/** What the plans list shows of a plan without opening it. */
+export interface PlanPreview {
+  termCount: number;
+  courseCount: number;
+  /** Elective slots: credits held for a group before a course is chosen. */
+  slotCount: number;
+  firstTerm: Term | null;
+  lastTerm: Term | null;
+}
+
+export interface PlanListItem extends PlanSummary {
+  preview: PlanPreview;
+}
+
 export interface PlanList {
   /** Oldest first. */
-  plans: PlanSummary[];
+  plans: PlanListItem[];
 }
 
 export interface CreatePlanBody {

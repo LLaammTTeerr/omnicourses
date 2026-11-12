@@ -46,7 +46,6 @@ interface PlannerMessages {
   renameTitle: string;
   save: string;
   cancel: string;
-  deleteTitle: (name: string) => string;
   deleteBody: string;
   keep: string;
   deleting: string;
@@ -119,7 +118,20 @@ interface PlannerMessages {
   whatIfName: (name: string) => string;
   whatIfHint: string;
   plansLabel: string;
-  copyTab: string;
+  /** The plan made for a student who has none, the first time the planner opens. */
+  defaultPlanName: string;
+  opening: string;
+  backToList: string;
+  lock: string;
+  unlock: string;
+  lockHint: string;
+  lockedNote: string;
+  deletePlan: (name: string) => string;
+  deletePlanTitle: string;
+  previewSpan: (first: string, last: string) => string;
+  previewCounts: (terms: number, courses: number, slots: number) => string;
+  previewEmpty: string;
+  openPlan: (name: string) => string;
   statusLabel: string;
   valid: string;
   invalid: (n: number) => string;
@@ -208,7 +220,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     renameTitle: 'Đổi tên kế hoạch',
     save: 'Lưu',
     cancel: 'Hủy',
-    deleteTitle: (name) => `Xóa ${name}?`,
     deleteBody: 'Kế hoạch và mọi môn đã xếp trong đó sẽ bị xóa. Không thể hoàn tác.',
     keep: 'Giữ lại',
     deleting: 'Đang xóa…',
@@ -272,7 +283,19 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Thử thay đổi trên một bản sao. Kế hoạch này giữ nguyên.',
     plansLabel: 'Các kế hoạch',
-    copyTab: 'Bản sao',
+    defaultPlanName: 'Kế hoạch mặc định',
+    opening: 'Đang mở kế hoạch…',
+    backToList: 'Danh sách kế hoạch',
+    lock: 'Khóa',
+    unlock: 'Mở khóa',
+    lockHint: 'Khóa kế hoạch để không lỡ tay thay đổi',
+    lockedNote: 'Kế hoạch đang khóa: không kéo, thêm hay bỏ môn được. Bấm Mở khóa để sửa.',
+    deletePlan: (name) => `Xóa ${name}`,
+    deletePlanTitle: 'Xóa kế hoạch này?',
+    previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
+    previewCounts: (terms, courses, slots) => [`${terms} học kỳ`, `${courses} môn`, ...(slots ? [`${slots} chỗ tự chọn`] : [])].join(' · '),
+    previewEmpty: 'Chưa xếp môn nào',
+    openPlan: (name) => `Mở ${name}`,
     statusLabel: 'Tình trạng kế hoạch',
     valid: 'Hợp lệ',
     invalid: (n) => `Chưa hợp lệ · ${n} vi phạm`,
@@ -388,7 +411,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     renameTitle: 'Rename the plan',
     save: 'Save',
     cancel: 'Cancel',
-    deleteTitle: (name) => `Delete ${name}?`,
     deleteBody: 'The plan and every course placed in it are deleted. This cannot be undone.',
     keep: 'Keep it',
     deleting: 'Deleting…',
@@ -452,7 +474,19 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Try a change on a copy. This plan stays as it is.',
     plansLabel: 'Plans',
-    copyTab: 'Copy',
+    defaultPlanName: 'Default plan',
+    opening: 'Opening your plan…',
+    backToList: 'Plan list',
+    lock: 'Lock',
+    unlock: 'Unlock',
+    lockHint: 'Lock the plan so nothing changes by accident',
+    lockedNote: 'This plan is locked: no dragging, adding or removing. Unlock it to edit.',
+    deletePlan: (name) => `Delete ${name}`,
+    deletePlanTitle: 'Delete this plan?',
+    previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
+    previewCounts: (terms, courses, slots) => [`${terms} ${terms === 1 ? 'term' : 'terms'}`, `${courses} ${courses === 1 ? 'course' : 'courses'}`, ...(slots ? [`${slots} elective ${slots === 1 ? 'slot' : 'slots'}`] : [])].join(' · '),
+    previewEmpty: 'No courses placed yet',
+    openPlan: (name) => `Open ${name}`,
     statusLabel: 'Plan status',
     valid: 'Valid',
     invalid: (n) => `Not valid yet · ${n} ${n === 1 ? 'violation' : 'violations'}`,
