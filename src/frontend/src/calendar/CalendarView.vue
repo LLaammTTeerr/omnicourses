@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
+import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import ExternalLink from '../components/ExternalLink.vue';
@@ -19,7 +20,14 @@ const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(CALENDAR_MESSAGES);
 
-const { status, data, reload } = useAsyncLoad('the academic calendar', () => auth.authed(fetchAcademicCalendar));
+// 404: an API without the calendar route yet (the request names no program, so it is never an unknown one). There
+// are no school dates to show, which the page says, rather than an error.
+const { status, data, reload } = useAsyncLoad('the academic calendar', () =>
+  auth.authed(fetchAcademicCalendar).catch((e: unknown) => {
+    if (statusOf(e) === 404) return null;
+    throw e;
+  }),
+);
 const events = computed(() => data.value?.events ?? []);
 const program = computed(() => data.value?.program ?? null);
 
@@ -298,7 +306,7 @@ usePageTitle(() => m.value.title);
 
         <div v-else>
           <h2>{{ m.upcoming }}</h2>
-          <div v-if="!program" class="cal-empty" data-test="no-program">
+          <div v-if="data && !program" class="cal-empty" data-test="no-program">
             <p>{{ m.noProgram }}</p>
             <RouterLink class="btn sm" :to="{ name: 'onboarding' }">{{ m.finishOnboarding }}</RouterLink>
           </div>

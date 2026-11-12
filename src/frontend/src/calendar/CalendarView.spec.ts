@@ -158,6 +158,14 @@ describe('CalendarView (F10 school dates)', () => {
     expect(w.text()).toContain(`quản trị chương trình ${PROGRAM.code}`);
   });
 
+  it('says there are no school dates yet while the API has no calendar route (404), not that loading failed', async () => {
+    const { w } = await render(status(404, { message: 'Cannot GET /api/academic-calendar', statusCode: 404 }));
+    expect(w.find('[role="alert"]').exists()).toBe(false);
+    expect(text(w, 'no-dates')).toContain('Chưa có lịch của trường');
+    expect(w.find('[data-test="no-program"]').exists()).toBe(false);
+    expect(w.findAll('[data-test="event"]')).toHaveLength(0);
+  });
+
   it('sends a student with no program to pick one', async () => {
     const { w } = await render({ program: null, events: [] });
     expect(text(w, 'no-program')).toContain('Bạn chưa chọn chương trình');
