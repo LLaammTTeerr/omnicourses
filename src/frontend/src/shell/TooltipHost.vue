@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
 <style>
 .app-tooltip {
   position: fixed; z-index: 130; pointer-events: none; max-width: min(320px, calc(100vw - 16px));
-  padding: 7px 10px; border-radius: 9px; background: var(--ink); color: var(--on-ink);
+  padding: 7px 10px; border-radius: 9px; background: #fff; color: #14161c; border: 1px solid rgba(16, 24, 40, 0.22);
   font: 600 12.5px/1.4 var(--font); letter-spacing: 0; white-space: pre-line; text-align: left;
   box-shadow: var(--shadow-lg); transform: translate(-50%, -100%); animation: tip-in 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -120,9 +120,11 @@ onBeforeUnmount(() => {
 .app-tooltip::after {
   content: ''; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px; margin-left: -4px;
   background: inherit; transform: rotate(45deg); border-radius: 1px;
+  border: solid rgba(16, 24, 40, 0.22); border-width: 0 1px 1px 0;
 }
-.app-tooltip.below::after { bottom: auto; top: -4px; }
-:root[data-theme='dark'] .app-tooltip { background: #2a3040; color: var(--ink); border: 1px solid var(--edge-strong); }
+.app-tooltip.below::after { bottom: auto; top: -5px; border-width: 1px 0 0 1px; }
+.app-tooltip:not(.below)::after { bottom: -5px; }
+/* White with black words in both themes; the outline sets it apart from a white page. */
 @keyframes tip-in { from { opacity: 0; transform: translate(-50%, calc(-100% + 4px)) scale(0.96); } }
 @keyframes tip-in-below { from { opacity: 0; transform: translate(-50%, -4px) scale(0.96); } }
 </style>

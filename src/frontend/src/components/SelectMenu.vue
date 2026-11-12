@@ -198,7 +198,7 @@ onBeforeUnmount(() => {
 .ui-select-list {
   position: fixed; z-index: 120; margin: 0; padding: 5px; list-style: none; max-height: min(300px, 50vh); overflow-y: auto;
   max-width: min(420px, calc(100vw - 24px)); background: var(--surface); border: 1px solid var(--edge); border-radius: 12px;
-  box-shadow: var(--shadow-lg); transform-origin: top center; animation: ui-select-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: var(--shadow-lg); transform-origin: top center; animation: ui-select-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .ui-select-list.up { transform: translateY(-100%); transform-origin: bottom center; animation-name: ui-select-in-up; }
 .ui-select-list li {
@@ -211,6 +211,9 @@ onBeforeUnmount(() => {
 .ui-select-list li[aria-disabled='true'] { color: var(--ink-3); cursor: not-allowed; }
 :root[data-theme='dark'] .ui-select-list { background: var(--surface-2); border-color: var(--edge-strong); }
 :root[data-theme='dark'] .ui-select-list li.active { background: var(--surface-3); }
-@keyframes ui-select-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
-@keyframes ui-select-in-up { from { opacity: 0; transform: translateY(calc(-100% + 4px)) scale(0.98); } }
+/* It drops down: the list unrolls from its top edge (from its bottom edge when it opens upward). */
+@keyframes ui-select-in { from { opacity: 0.4; clip-path: inset(0 0 100% 0 round 12px); transform: translateY(-6px); } to { opacity: 1; clip-path: inset(0 0 0 0 round 12px); } }
+@keyframes ui-select-in-up { from { opacity: 0.4; clip-path: inset(100% 0 0 0 round 12px); transform: translateY(calc(-100% + 6px)); } to { opacity: 1; clip-path: inset(0 0 0 0 round 12px); transform: translateY(-100%); } }
+.ui-select-list li { animation: ui-select-item 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes ui-select-item { from { opacity: 0; transform: translateY(-4px); } }
 </style>
