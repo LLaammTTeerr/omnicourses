@@ -33,6 +33,15 @@ export const FIXED_REPLIES: Record<
   },
 };
 
+/**
+ * Put before the answer when the harness removed a password, student ID, email, phone number or date
+ * of birth from the student's messages (redaction.ts, hard rule 3). Not part of the prompt; no digits.
+ */
+export const REDACTION_NOTICE: Record<AdvisorLanguage, string> = {
+  vi: 'Mình đã xoá mật khẩu, mã số sinh viên, email, số điện thoại hoặc ngày sinh khỏi tin nhắn của bạn trước khi gửi cho nhà cung cấp AI. Đừng chia sẻ những thông tin này ở đây: OmniCourse không bao giờ cần chúng.',
+  en: 'I removed a password, student ID, email address, phone number or date of birth from your message before it went to the AI provider. Please never share these here: OmniCourse never needs them.',
+};
+
 export interface PromptInput {
   language: AdvisorLanguage;
   /** Whether the student consented to sending their record (UC-08 A1). */

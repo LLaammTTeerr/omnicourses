@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AiUnavailableError } from '../ai/ai-unavailable.error.js';
 import { FakeLlmService } from '../ai/testing/fake-llm.service.js';
-import { FIXED_REPLIES } from './advisor-prompt.js';
+import { FIXED_REPLIES, REDACTION_NOTICE } from './advisor-prompt.js';
 import { advisorFor, collect, summary, TEST_CANARY, TEST_USER_ID } from './testing/advisor-test-kit.js';
 
 const ask = (content: string, language: 'vi' | 'en' = 'en') => ({ language, messages: [{ role: 'user' as const, content }] });
@@ -87,5 +87,30 @@ describe('AdvisorService', () => {
     const llm = new FakeLlmService().failWith('The AI provider timed out');
     const { advisor } = advisorFor({ llm });
     await expect(collect(advisor.ask(TEST_USER_ID, ask('How many credits can I take in a term?')))).rejects.toThrow(AiUnavailableError);
+  });
+
+  // Hard rule 3 (ADR 0015): what the student types is redacted before the provider sees it, in the
+  // question and in the history, and the answer starts with a notice not to share such data.
+  it('never sends a typed password, student ID, email or phone to the provider, and says so', async () => {
+    const answer = 'An Advanced Program student may register at most 22 credits in a main term [[qd-1175-2021/d7/k2/b]].';
+    const llm = new FakeLlmService().replyChat({ text: answer });
+    const { advisor } = advisorFor({ llm });
+    const messages = [
+      { role: 'user' as const, content: 'My email is synthetic.student@example.com' },
+      { role: 'assistant' as const, content: 'Noted.' },
+      { role: 'user' as const, content: 'My MSSV is 21127001 and portal password is Synth3tic!Pass. How many credits can I take in a term? Phone 0900000000.' },
+    ];
+    const run = summary(await collect(advisor.ask(TEST_USER_ID, { language: 'en', messages })));
+    const sent = JSON.stringify(llm.chatCalls[0].messages);
+    for (const secret of ['synthetic.student@example.com', '21127001', 'Synth3tic!Pass', '0900000000']) expect(sent).not.toContain(secret);
+    expect(run.text).toBe(`${REDACTION_NOTICE.en}\n\n${answer}`);
+    expect(run.outcome).toBe('answered');
+  });
+
+  it('adds no notice when nothing was redacted', async () => {
+    const answer = 'An Advanced Program student may register at most 22 credits in a main term [[qd-1175-2021/d7/k2/b]].';
+    const llm = new FakeLlmService().replyChat({ text: answer });
+    const { advisor } = advisorFor({ llm });
+    expect(summary(await collect(advisor.ask(TEST_USER_ID, ask('How many credits can I take in a term?')))).text).toBe(answer);
   });
 });

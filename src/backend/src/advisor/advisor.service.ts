@@ -3,10 +3,11 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type { ChatMessage } from '../ai/llm.service.js';
 import { LlmService } from '../ai/llm.service.js';
 import { AdvisorConsentService } from './advisor-consent.service.js';
-import { type AdvisorLanguage, buildInstructions, FIXED_REPLIES, PROMPT_VERSION } from './advisor-prompt.js';
+import { type AdvisorLanguage, buildInstructions, FIXED_REPLIES, PROMPT_VERSION, REDACTION_NOTICE } from './advisor-prompt.js';
 import { AuditSource, CourseSource, PlanIssuesSource, RecordSource } from './advisor-sources.js';
 import { advisorTools, TurnEvidence } from './advisor-tools.js';
 import { guardAnswer, type GuardReason } from './output-guard.js';
+import { redactPersonalData } from './redaction.js';
 import type { ClauseIndex, IndexedClause } from './retrieval/clause-index.js';
 import { cleanInput } from './retrieval/text.js';
 import { gate } from './topic-gate.js';
@@ -58,7 +59,11 @@ export class AdvisorService {
    */
   async *ask(userId: string, input: AskInput): AsyncGenerator<AdvisorEvent> {
     const { language } = input;
-    const messages: ChatMessage[] = input.messages.map((m) => ({ role: m.role, content: cleanInput(m.content) }));
+    // Passwords, student IDs, emails, phones and birth dates never reach the provider (hard rule 3),
+    // in the question or in the history the browser sends back.
+    const redacted = input.messages.map((m) => redactPersonalData(cleanInput(m.content)));
+    const messages: ChatMessage[] = input.messages.map((m, i) => ({ role: m.role, content: redacted[i].text }));
+    const notice = redacted.some((r) => r.redacted) ? REDACTION_NOTICE[language] : undefined;
     const consented = await this.consent.hasConsented(userId);
     const decision = gate(
       this.index,
@@ -66,11 +71,11 @@ export class AdvisorService {
       consented,
     );
     if (decision.decision === 'off_topic') {
-      yield* this.reply(FIXED_REPLIES.offTopic[language], 'off_topic', [], []);
+      yield* this.reply(FIXED_REPLIES.offTopic[language], 'off_topic', [], [], notice);
       return;
     }
     if (decision.decision === 'needs_consent') {
-      yield* this.reply(FIXED_REPLIES.needsConsent[language], 'needs_consent', [], []);
+      yield* this.reply(FIXED_REPLIES.needsConsent[language], 'needs_consent', [], [], notice);
       return;
     }
 
@@ -91,10 +96,12 @@ export class AdvisorService {
     const verdict = guardAnswer({ answer, language, evidence, index: this.index, canary, instructions, toolNames: tools.map((t) => t.name) });
     // Fixed codes only, never the answer (AGENTS.md hard rule 3).
     if (verdict.status === 'replaced') this.logger.warn(`Advisor answer replaced: ${verdict.reasons.join(',')}`);
-    yield* this.reply(verdict.text, verdict.status === 'passed' ? 'answered' : 'replaced', verdict.reasons, verdict.citations);
+    yield* this.reply(verdict.text, verdict.status === 'passed' ? 'answered' : 'replaced', verdict.reasons, verdict.citations, notice);
   }
 
-  private *reply(text: string, outcome: AdvisorOutcome, reasons: GuardReason[], citations: IndexedClause[]): Generator<AdvisorEvent> {
+  /** The vetted events of one answer, after the redaction notice if something was removed. */
+  private *reply(answer: string, outcome: AdvisorOutcome, reasons: GuardReason[], citations: IndexedClause[], notice?: string): Generator<AdvisorEvent> {
+    const text = notice ? `${notice}\n\n${answer}` : answer;
     for (const delta of text.split(/(?<= )/)) yield { type: 'text', delta };
     yield {
       type: 'citations',
