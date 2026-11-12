@@ -297,3 +297,54 @@ describe('output guard', () => {
     for (const id of ['d1/k1', 'd7/k2/b', 'd17/k3']) expect(clause(id).text).not.toMatch(/<\/?(reference_clauses|clause)/);
   });
 });
+
+describe('output guard: permission to register or take a course (hard rule 1)', () => {
+  const cite = '[[qd-1175-2021/d7/k2/b]]';
+  it.each([
+    `Yes, you can register for them ${cite}.`,
+    `Yes, you can take both courses next term ${cite}.`,
+    `You can enrol now ${cite}.`,
+    `You can take those next term ${cite}.`,
+    `You can register for both of them ${cite}.`,
+    `You can take them together ${cite}.`,
+    `You can take the advanced course next term ${cite}.`,
+    `Yes, you can register ${cite}.`,
+    `Yes, you may take Data Structures next term ${cite}.`,
+    `You will be able to register for both ${cite}.`,
+    `Bạn có thể đăng ký môn đó rồi ${cite}.`,
+    `Bạn đăng ký được hết rồi ${cite}.`,
+  ])('replaces a cited permission addressed to the student: %s', (answer) => {
+    expect(check(answer)).toMatchObject({ status: 'replaced', reasons: expect.arrayContaining(['status_claim']) });
+  });
+
+  // Faithful phrasings that state the rule or how to do something; none of them may be over-blocked.
+  const wide = ['d7/k1/a', 'd7/k2/a', 'd7/k2/b', 'd7/k2/c', 'd14/k1/b', 'd16/k1', 'd16/k1/b', 'd17/k3', 'd18/k1', 'd3/k1/c', 'd11/k4'];
+  const record = { record: { courses: [{ code: 'CSC10001', grade: 8.5 }, { code: 'MTH00003', grade: 4.5 }] }, audit: { engine: 'unavailable', reason: 'not connected' } };
+  it.each([
+    'You can register on the school portal during the registration period [[qd-1175-2021/d7/k1/a]].',
+    'You can register online through the portal [[qd-1175-2021/d7/k1/a]].',
+    'You register for courses on the portal of the academic affairs office or your faculty [[qd-1175-2021/d7/k1/a]].',
+    'If you are in a standard programme, you can take at most 25 credits in a main term [[qd-1175-2021/d7/k2/b]].',
+    'You can take at most 25 credits this term if you are in a standard programme [[qd-1175-2021/d7/k2/b]].',
+    'For a standard programme the cap is 25 credits per main term [[qd-1175-2021/d7/k2/b]]; whether that is your programme, I cannot confirm.',
+    'You can take a course again to improve your grade [[qd-1175-2021/d14/k1/b]].',
+    'A compulsory course graded below 5.0 must be retaken [[qd-1175-2021/d14/k1/b]].',
+    'You must retake a compulsory course if your grade is below 5.0 [[qd-1175-2021/d14/k1/b]].',
+    'Bạn phải đăng ký học lại học phần bắt buộc có điểm dưới 5,0 [[qd-1175-2021/d14/k1/b]].',
+    'Sinh viên được xét tốt nghiệp khi có đủ các điều kiện [[qd-1175-2021/d17/k3]]. Mình không xác nhận được bạn đã đủ hay chưa; bạn hỏi Phòng Đào tạo nhé.',
+    'Khi đủ điều kiện, bạn sẽ được công nhận tốt nghiệp trong thời hạn 3 tháng [[qd-1175-2021/d18/k1]].',
+    'A prerequisite must be passed before you can register for the course that requires it [[qd-1175-2021/d3/k1/c]].',
+    'Going above the maximum needs a request approved by the faculty and the rector [[qd-1175-2021/d7/k2/b]].',
+    'Muốn đăng ký vượt số tín chỉ tối đa, bạn cần có đơn đề nghị, được Khoa đồng ý và Hiệu trưởng chấp thuận [[qd-1175-2021/d7/k2/b]].',
+    'A course graded 5.0 or more is passed, and its credits count as accumulated [[qd-1175-2021/d11/k4]].',
+    'You are put on academic warning if your term average is below 3.0 [[qd-1175-2021/d16/k1/b]].',
+    'Students taking two programmes may register up to 37 credits in a main term and 15 in summer [[qd-1175-2021/d7/k2/c]].',
+    'Your record shows CSC10001 with 8.5 and MTH00003 with 4.5; the engine is not connected, so I cannot say whether you must retake MTH00003 [[qd-1175-2021/d14/k1/b]].',
+    'Bạn có thể xem điểm trên cổng thông tin của Trường hoặc hỏi Phòng Đào tạo [[qd-1175-2021/d7/k1/a]].',
+    'The summer cap is 12 credits [[qd-1175-2021/d7/k2/b]].',
+    'Trong học kỳ hè, bạn được đăng ký tối đa 12 tín chỉ [[qd-1175-2021/d7/k2/b]].',
+    'Đối với chương trình đại trà, tối thiểu là 14 tín chỉ mỗi học kỳ [[qd-1175-2021/d7/k2/a]].',
+  ])('passes a faithful rule or how-to: %s', (answer) => {
+    expect(check(answer, { context: wide, tool: record })).toMatchObject({ status: 'passed', reasons: [] });
+  });
+});
