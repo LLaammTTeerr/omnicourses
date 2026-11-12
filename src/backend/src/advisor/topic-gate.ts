@@ -31,8 +31,11 @@ const RECORD_WORDS = new Set([
   'graduate', 'graduation', 'graduating', 'plan', 'plans', 'roadmap', 'transcript', 'record', 'audit', 'retake', 'prerequisite', 'prerequisites',
   'requirement', 'requirements', 'program', 'programme', 'major', 'cohort', 'thesis', 'internship', 'schedule',
 ]);
-/** An HCMUS course code: letters then digits, e.g. CSC10001, CS163, MTH00003. */
-export const COURSE_CODE = /\b[A-Z]{2,4}\s?\d{3,5}\b/i;
+/**
+ * An HCMUS course code: letters then digits, e.g. CSC10001, CS163, MTH00003, csc10001. A space is
+ * allowed only in capitals ("CS 163"): "of 500" and "in 2024" are words and numbers, not codes.
+ */
+export const COURSE_CODE = /(?<![A-Za-z0-9])(?:[A-Za-z]{2,4}\d{3,5}|[A-Z]{2,4}\s\d{3,5})(?![A-Za-z0-9])/;
 
 export type GateDecision =
   /** Call the model. */

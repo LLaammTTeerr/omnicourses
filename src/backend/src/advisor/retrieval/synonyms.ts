@@ -50,6 +50,8 @@ const ENTRIES: [phrases: string[], regulation: string][] = [
   [['expelled', 'expulsion', 'dismissed', 'dismissal', 'kicked out', 'duoi hoc', 'bi duoi'], 'buộc thôi học'],
   [['drop out', 'dropout', 'quit', 'withdraw from school', 'leave school'], 'thôi học'],
   [['leave of absence', 'take a break', 'gap', 'gap year', 'pause my studies', 'defer my studies', 'nghi hoc', 'nghi tam thoi'], 'nghỉ học tạm thời bảo lưu'],
+  // Typed without diacritics, or as students say it: "học vượt để ra trường sớm" (Điều 2.7.a, 6.4.a).
+  [['hoc vuot', 'ra truong som', 'tot nghiep som', 'graduate early', 'graduating early', 'early graduation'], 'rút ngắn thời gian học học vượt'],
   [['how long', 'time limit', 'maximum time', 'deadline to finish', 'years to finish', 'finish early', 'extend', 'extension', 'study duration'], 'thời gian tối đa hoàn thành khoá học'],
   [['transfer', 'switch program', 'change program', 'change major', 'chuyen nganh'], 'chuyển chương trình chuyển trường'],
   [['exchange', 'exchange student'], 'trao đổi sinh viên'],
@@ -62,7 +64,7 @@ const ENTRIES: [phrases: string[], regulation: string][] = [
   // The student handbook (scholarships, conduct, exams, discipline, housing, support, calendar)
   [['scholarship', 'scholarships', 'merit scholarship', 'hb', 'hbkk'], 'học bổng khuyến khích học tập'],
   [['conduct score', 'conduct scores', 'conduct', 'training score', 'behaviour score', 'behavior score', 'drl', 'diem ren luyen'], 'điểm rèn luyện kết quả rèn luyện'],
-  [['appeal', 'appeal my grade', 're-mark', 'remark', 'remarking', 're-marking', 'regrade', 're-grade', 'recheck', 'review my exam'], 'phúc khảo'],
+  [['appeal', 'appeal my grade', 're-mark', 'remark', 'remarking', 're-marking', 'regrade', 're-grade', 'recheck', 'review my exam', 'phuc khao'], 'phúc khảo'],
   [['complaint', 'complain'], 'khiếu nại'],
   [['dormitory', 'dormitories', 'dorm', 'dorms', 'residence hall', 'student housing', 'ktx'], 'ký túc xá nội trú'],
   [['off-campus', 'off campus', 'rent a room', 'renting'], 'ngoại trú'],

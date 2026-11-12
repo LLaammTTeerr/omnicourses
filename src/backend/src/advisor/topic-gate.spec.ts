@@ -41,6 +41,17 @@ describe('topic gate', () => {
     expect(gate(index, ['What is the capital of France?', 'and of Spain?'], true).decision).toBe('off_topic');
   });
 
+  // Offline red team of PR #77 (ADR 0015): two real questions the gate refused, and two off-topic
+  // ones that "<word> <digits>" let through as if they named a course.
+  it('lets through questions typed without diacritics or in students’ words, and reads only real course codes', () => {
+    expect(passes('lam sao de phuc khao diem thi')).toBe(true);
+    expect(passes('Có được học vượt để ra trường sớm không?')).toBe(true);
+    expect(gate(index, ['Write an essay of 500 words about climate change.'], true).decision).toBe('off_topic');
+    expect(gate(index, ['In 2024 who won the football World Cup qualifiers in Asia?'], true).decision).toBe('off_topic');
+    expect(gate(index, ['Can I take cs163 next term?'], true).courseIntent).toBe(true);
+    expect(gate(index, ['Can I take CS 163 next term?'], true).courseIntent).toBe(true);
+  });
+
   it('returns the retrieved clauses for the prompt', () => {
     const result = gate(index, ['How many credits can I take in a term?'], true);
     expect(result.regulationMatch).toBe(true);
