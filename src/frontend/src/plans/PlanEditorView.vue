@@ -455,6 +455,9 @@ function capOf(issues: readonly PlanIssue[], credits: number): RowView['cap'] {
   return credits > 0 ? 'ok' : '';
 }
 
+/** Issues the credit bar already shows (over or under the caps): the row gives them no words of its own. */
+const BAR_CODES: ReadonlySet<PlanIssue['code']> = new Set(['load_above_maximum', 'load_below_minimum']);
+
 const toneOf = (issues: readonly PlanIssue[]) => {
   const kind = strongest(issues.filter((i) => i.kind !== 'unknown'));
   return kind ? `has-${kind}` : '';
@@ -517,10 +520,10 @@ function dropOf(key: string): RowView['drop'] {
   if (p.status === 'loading') return { tone: 'checking', reason: m.value.dropChecking };
   if (p.status === 'failed' || !p.verdict) return null;
   const v = p.verdict;
-  const first = v.issues[0];
-  if (first) return { tone: v.kind === 'violation' ? 'bad-drop' : 'warn-drop', reason: m.value.issue[first.code](first, ctx.value) };
-  const load = v.load;
-  return { tone: 'ok-drop', reason: load?.caps ? `${m.value.dropOk} · ${m.value.dropLoad(load.credits, load.caps.max)}` : m.value.dropOk };
+  // A load against the caps is shown by the bar alone; only another rule gets words.
+  const first = v.issues.find((i) => !BAR_CODES.has(i.code));
+  if (v.issues.length === 0) return { tone: 'ok-drop', reason: '' };
+  return { tone: v.kind === 'violation' ? 'bad-drop' : 'warn-drop', reason: first ? m.value.issue[first.code](first, ctx.value) : '' };
 }
 
 function rowView(row: Row): RowView {
@@ -1034,7 +1037,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <li
                     v-for="(issue, i) in row.issues"
                     :key="i"
-                    :class="['ri', issue.kind]"
+                    :class="['ri', issue.kind, { 'sr-only': BAR_CODES.has(issue.code) }]"
                     :title="`${m.issue[issue.code](issue, ctx)}\n${issue.citation}`"
                     :data-test="`row-issue-${issue.kind}`"
                   >

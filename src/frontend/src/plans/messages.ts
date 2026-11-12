@@ -140,8 +140,6 @@ interface PlannerMessages {
   takenBefore: (grade: string) => string;
   // Drag preview and the issues panel
   dropChecking: string;
-  dropOk: string;
-  dropLoad: (credits: number, max: number) => string;
   previewOf: (code: string, term: string) => string;
   previewDelta: (delta: number) => string;
   collapse: string;
@@ -293,8 +291,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     locked: 'Đang học, không đổi được',
     takenBefore: (g) => `Đã học trước · điểm ${g}`,
     dropChecking: 'Đang kiểm tra…',
-    dropOk: 'Hợp lệ',
-    dropLoad: (c, max) => `${c}/${max} tín chỉ`,
     previewOf: (c, term) => `Xem trước: ${c} → ${term}`,
     previewDelta: (d) => {
       if (d === 0) return 'số vi phạm không đổi';
@@ -475,8 +471,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     locked: 'In progress, cannot be moved',
     takenBefore: (g) => `Taken before · grade ${g}`,
     dropChecking: 'Checking…',
-    dropOk: 'Valid',
-    dropLoad: (c, max) => `${c}/${max} credits`,
     previewOf: (c, term) => `Preview: ${c} → ${term}`,
     previewDelta: (d) => {
       if (d === 0) return 'same number of violations';

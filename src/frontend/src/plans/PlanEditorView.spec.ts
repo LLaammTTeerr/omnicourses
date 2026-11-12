@@ -150,6 +150,8 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(term.classes()).toContain('has-flag');
     expect(term.get('[data-test="load"]').text()).toBe('8 / 22 TC · 10–22 TC');
     expect(term.get('[data-test="when"]').text()).toBe('Tháng 9 – 12/2026');
+    // The bar shows a load under the minimum: the chip is for screen readers only.
+    expect(term.get('[data-test="row-issue-flag"]').classes()).toContain('sr-only');
     expect(term.get('[data-test="row-issue-flag"]').text()).toContain('8 TC, dưới mức tối thiểu 10 TC. Được phép nếu có đơn được duyệt. QĐ 1175/QĐ-KHTN Điều 7.2.a');
 
     const panel = w.get('.issues-panel');
@@ -821,7 +823,9 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(row(w, '2026-2').get('[data-test="drop-reason"]').text()).toBe('ZZ201 không mở ở HK2; chỉ mở HK1, 3.');
       expect(row(w, '2027-2').classes()).toContain('bad-drop');
       expect(row(w, '2026-1').classes()).toContain('ok-drop');
-      expect(row(w, '2026-1').get('[data-test="drop-reason"]').text()).toBe('Hợp lệ · 11/22 tín chỉ');
+      // A drop that breaks no rule needs no words: the bar shows the new load.
+      expect(row(w, '2026-1').classes()).toContain('ok-drop');
+      expect(row(w, '2026-1').find('[data-test="drop-reason"]').exists()).toBe(false);
 
       // Over a row: every row shows the load of the board with the drop made, and the panel previews the change.
       await hover(row(w, '2026-2'));
