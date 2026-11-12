@@ -42,6 +42,9 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
     ghost: HTMLElement | null;
     dx: number;
     dy: number;
+    /** Half the ghost's size: the grab point eases to its middle, so the ghost ends centred under the pointer. */
+    cx: number;
+    cy: number;
     rot: number;
     vx: number;
     target: DropTarget | null;
@@ -70,9 +73,11 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
   }
   function loop(): void {
     if (!state?.on) return;
-    // The ghost leans into the way it moves, then settles.
+    // The ghost leans into the way it moves, then settles; the point it hangs from slides to its middle.
     state.rot += (Math.max(-8, Math.min(8, state.vx * 0.8)) - state.rot) * 0.18;
     state.vx *= 0.8;
+    state.dx += (state.cx - state.dx) * 0.25;
+    state.dy += (state.cy - state.dy) * 0.25;
     place();
     if (edgeScroll(state.y)) retarget();
     state.frame = requestAnimationFrame(loop);
@@ -92,7 +97,7 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
     ghost.classList.remove('dragging-src', 'lifted', 'flash');
     ghost.style.width = `${r.width}px`;
     document.body.append(ghost);
-    Object.assign(s, { on: true, ghost, dx: s.x - r.left, dy: s.y - r.top });
+    Object.assign(s, { on: true, ghost, dx: s.x - r.left, dy: s.y - r.top, cx: r.width / 2, cy: r.height / 2 });
     document.body.classList.add('dragging');
     document.getSelection()?.removeAllRanges();
     h.begin(s.what);
@@ -185,7 +190,7 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
       if (e.button > 0 || (e.target as Element | null)?.closest?.('button, a, input, select, textarea')) return;
       if (state) finish();
       const touch = (e as PointerEvent).pointerType === 'touch';
-      state = { what, el, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, touch, on: false, hold: null, ghost: null, dx: 0, dy: 0, rot: 0, vx: 0, target: null, frame: null };
+      state = { what, el, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, touch, on: false, hold: null, ghost: null, dx: 0, dy: 0, cx: 0, cy: 0, rot: 0, vx: 0, target: null, frame: null };
       if (touch) {
         state.hold = setTimeout(() => {
           begin();

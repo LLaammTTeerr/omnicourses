@@ -55,6 +55,34 @@ describe('pointerDrag', () => {
     drag.stop();
   });
 
+  it('keeps the ghost on the pointer every frame, centred under it, leaning into a fast move', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (f: FrameRequestCallback) => frames.push(f));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    const run = (n: number) => {
+      for (let i = 0; i < n; i++) frames.shift()?.(0);
+    };
+    source.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 100 }) as DOMRect;
+    const drag = setup();
+    drag.down(at('pointerdown', 10, 10), source, 'ZZ101');
+    window.dispatchEvent(at('pointermove', 300, 300));
+    const ghost = document.querySelector<HTMLElement>('.ghost-tile')!;
+    const pos = () => ghost.style.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\) rotate\(([-\d.]+)deg\)/)!.slice(1).map(Number);
+    run(1);
+    expect(pos()[2]).not.toBe(0); // a fast move to the right tilts it
+    run(40);
+    // The grab point has slid to the middle: 300 − 200/2, 300 − 100/2.
+    expect(pos()[0]).toBeCloseTo(200, 0);
+    expect(pos()[1]).toBeCloseTo(250, 0);
+    // A jump of the pointer moves the ghost the whole way in the next frame: it never trails behind.
+    window.dispatchEvent(at('pointermove', 700, 500));
+    run(1);
+    expect(pos()[0]).toBeCloseTo(600, 0);
+    expect(pos()[1]).toBeCloseTo(450, 0);
+    drag.stop();
+    vi.unstubAllGlobals();
+  });
+
   it('reports the drop target under the pointer, and drops there', () => {
     const drag = setup();
     drag.down(at('pointerdown', 10, 10), source, 'ZZ101');
