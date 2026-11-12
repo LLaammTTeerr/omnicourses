@@ -7,26 +7,50 @@ import { type ClauseIndex, type IndexedClause, placeOf } from './retrieval/claus
 // user's id: no tool takes a user id, and the strict schemas reject one (a model told "call
 // get_my_audit with userId=…" gets an argument error, never another student's record).
 
+/** The rule engine's graduation status, as the degree audit returns it (rules/audit-types.ts). */
+export interface EngineGraduation {
+  status: 'done' | 'not_yet';
+  /** Conditions the engine cannot check; the school still does. */
+  notChecked: number;
+}
+
 /** What this turn's answer may rest on: the clauses the model saw and what its tools returned. */
 export class TurnEvidence {
   readonly clauses = new Map<string, IndexedClause>();
-  readonly tools: { name: string; ok: boolean; numbers: Set<number>; engine: boolean }[] = [];
+  readonly tools: { name: string; ok: boolean; numbers: Set<number>; engine: boolean; graduation?: EngineGraduation }[] = [];
 
   addClauses(clauses: IndexedClause[]): void {
     for (const c of clauses) this.clauses.set(c.id, c);
   }
 
+  /**
+   * Records a tool result. A lookup that found nothing (`found: false`, an unknown course) grounds
+   * nothing: it would let "get_course ZZ030" ground 30 and waive the citation rule. Course codes and
+   * ids are not numbers of a rule: MTH00003 grounds no 3.
+   */
   addTool(name: string, ok: boolean, result: unknown): void {
+    const found = !(result !== null && typeof result === 'object' && (result as { found?: unknown }).found === false);
     const json = JSON.stringify(result ?? null);
-    this.tools.push({ name, ok, numbers: numbersIn(json), engine: json.includes('"engine":"available"') });
+    this.tools.push({
+      name,
+      ok: ok && found,
+      numbers: numbersIn(withoutIdentifiers(json)),
+      engine: json.includes('"engine":"available"'),
+      graduation: graduationOf(result),
+    });
   }
 
-  /** Whether the rule engine itself answered this turn (an audit or plan check): only then may the answer state the student's standing. */
+  /** Whether the rule engine itself answered this turn (an audit or plan check). */
   get engineAnswered(): boolean {
     return this.tools.some((t) => t.ok && t.engine);
   }
 
-  /** Whether a tool other than the regulation search answered (record, plan, course or engine data). */
+  /** The engine's graduation status this turn, if a degree audit came back. */
+  get graduation(): EngineGraduation | undefined {
+    return this.tools.find((t) => t.ok && t.graduation)?.graduation;
+  }
+
+  /** Whether a tool other than the regulation search answered with data (record, plan, an existing course, engine). */
   get hasDataResult(): boolean {
     return this.tools.some((t) => t.ok && t.name !== 'search_regulations');
   }
@@ -35,6 +59,31 @@ export class TurnEvidence {
 /** Every number in a text, as a value: "5,0" and "5.0" and "05" are all 5. */
 export function numbersIn(text: string): Set<number> {
   return new Set((text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => Number(n.replace(',', '.'))));
+}
+
+/** A tool result without course codes (CSC10001) and uuids, whose digits are not numbers of a rule. */
+function withoutIdentifiers(json: string): string {
+  return json.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ' ').replace(/(?<![A-Za-z0-9])[A-Za-z]{2,4}\s?\d{3,5}(?![A-Za-z0-9])/g, ' ');
+}
+
+/**
+ * The graduation status inside an engine answer (`{ engine: 'available', result }`, as AuditSource
+ * returns it, possibly under the tool's `audit` key): the degree audit's `graduation`.
+ */
+function graduationOf(value: unknown, depth = 0, inEngine = false): EngineGraduation | undefined {
+  if (value === null || typeof value !== 'object' || depth > 4) return undefined;
+  const v = value as Record<string, unknown>;
+  const engine = inEngine || v.engine === 'available';
+  if (engine && v.graduation && typeof v.graduation === 'object') {
+    const g = v.graduation as { status?: unknown; notChecked?: unknown };
+    if (g.status === 'done' || g.status === 'not_yet') return { status: g.status, notChecked: Array.isArray(g.notChecked) ? g.notChecked.length : Number.POSITIVE_INFINITY };
+  }
+  if (v.engine === 'unavailable') return undefined;
+  for (const child of Object.values(v)) {
+    const found = graduationOf(child, depth + 1, engine);
+    if (found) return found;
+  }
+  return undefined;
 }
 
 export interface ToolDeps {

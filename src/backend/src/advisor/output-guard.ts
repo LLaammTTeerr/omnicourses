@@ -1,27 +1,35 @@
 import { type AdvisorLanguage, FIXED_REPLIES } from './advisor-prompt.js';
-import { numbersIn, type TurnEvidence } from './advisor-tools.js';
+import type { TurnEvidence } from './advisor-tools.js';
+import { abolishedRule, namedStandingClaim, type StandingClaim, standingClaims } from './guard-claims.js';
+import { foldSameLength, nearest, numbersAt, phrases, qualifiersOf, sameRule, sourceQualifiers, withSpelledNumbers } from './guard-numbers.js';
 import type { ClauseIndex, IndexedClause } from './retrieval/clause-index.js';
-import { cleanInput, fold, words } from './retrieval/text.js';
+import { cleanInput, fold, lower, stripMarks, words } from './retrieval/text.js';
 
 // The output guard (ADR 0015): every model answer passes through it before the student sees a word.
 // It is deterministic, so the red-team suite replays recorded answers through it in CI.
 //
 // Policy, in order (the first match decides the fallback):
 // 1. The internal marker, an 8-word run of the system prompt, or a tool name → noDisclosure.
-// 2. A claim to have acted (registered, withdrawn, signed in, paid…), a request for a password, an
-//    OTP or identity data (name, student ID, date of birth…), a promise to store it, or a link that
-//    is not, exactly, in a passage the answer cites (the handbook's office pages) → cannotAct.
+// 2. A claim to have acted (registered, withdrawn, signed in, paid…, "now on your timetable", "đã được
+//    hủy"), any mention of a password, OTP or PIN that is not a warning ("never share", "đổi mật
+//    khẩu"), a request for identity data (name, student ID, date of birth…), a promise to store it,
+//    or a web address or domain (bare, defanged, protocol-relative, javascript:) that is not on an
+//    official HCMUS host (*.hcmus.edu.vn) and, exactly, in a passage the answer cites → cannotAct.
 // 3. Code (a fenced block or code-shaped lines) → offTopic.
 // 4. A citation [[id]] that is not a real clause or passage, or one the model was not given this
 //    turn; an "Điều N" / "Article N" outside the clauses it was given (in any of their documents); another legal document; a
-//    quotation followed by a citation whose words are not in the cited clause → ungrounded.
-// 5. A number (other than labels, course codes and list markers) that is not in a clause the answer
-//    cites or in a record, course or engine result of this turn → ungrounded. Numbers from the
-//    regulation search count only once cited.
-// 6. A verdict on the student's own standing (eligible, can graduate, meets the requirement, on
-//    probation, may register for CSC10002, a bare yes/no) with no rule-engine result this turn
-//    (hard rule 1) → ungrounded.
-// 7. An empty answer, or one with no valid citation and no data tool result, unless it is a short
+//    quotation (in any quote marks) whose words are not in the clause it cites → ungrounded.
+// 5. A number (digits of any script, or words: "thirty", "ba mươi") other than labels and course
+//    codes that is not in a clause the answer cites for the same rule (term, programme, bound) or
+//    in a record, existing course or engine result of this turn; or arithmetic → ungrounded.
+//    Numbers from the regulation search count only once cited.
+// 6. A verdict on the standing of the student (a "you/bạn/em/cậu" clause that says eligible, can
+//    graduate, meets the requirement, on probation, may register for CSC10002; a bare yes/no) that
+//    the rule engine's result this turn does not state, or on the standing of a named person (hard
+//    rule 1) → ungrounded. A hedge ("whether", "cannot confirm") covers only its own clause.
+// 7. A claim that a cap, prerequisite, approval or requirement is lifted or does not apply, in words
+//    no cited clause uses ("there is no credit cap", "không cần học lại") → ungrounded.
+// 8. An empty answer, or one with no valid citation and no data tool result, unless it is a short
 //    refusal or referral ("I found no clause…, ask the academic affairs office") → ungrounded.
 // A replaced answer is replaced whole: a partly wrong academic answer is not shown in part.
 // Student IDs, emails and phone numbers are masked in any answer that is shown.
@@ -40,6 +48,7 @@ export type GuardReason =
   | 'other_document'
   | 'misquote'
   | 'status_claim'
+  | 'abolished_rule'
   | 'ungrounded_number'
   | 'ungrounded_answer';
 
@@ -81,46 +90,76 @@ const ACTION_EN = new RegExp(
     /\b(withdrawal|registration|enrol?ment|request|application|payment|form|drop)\s+(has been\s+|have been\s+|was\s+|is\s+)?(successfully\s+)?(submitted|sent|filed|completed|processed|confirmed|done)\b/.source,
     // "You have been withdrawn from MTH00003."
     /\byou\s+(have been|'ve been|are now|were|have now been)\s+(successfully\s+)?(withdrawn|registered|enrolled|unenrolled|dropped|removed|signed up)\b/.source,
+    // "I went ahead and dropped MTH00003", "CSC10002 is now on your timetable", "Your withdrawal went through"
+    /\b(i|we)\s+(just\s+|already\s+)?(went ahead and|have gone ahead and|took care of|took the liberty|handled)\b/.source,
+    /\b(now|already)\s+(on|off|in|added to|removed from)\s+your\s+(timetable|schedule|registration|course list)\b/.source,
+    /\b(on|off)\s+your\s+(timetable|schedule)\s+now\b/.source,
+    /\b(added to|removed from|dropped from)\s+your\s+(timetable|schedule|registration)\b/.source,
+    /\b(withdrawal|registration|enrol?ment|request|application|payment|drop|cancellation|transfer)\s+(has\s+|have\s+)?(went|gone|go)\s+through\b/.source,
+    /^\s*(done|all set)\b[^\n]{0,80}([a-z]{2,4}\d{3,5}|timetable|schedule|registration|withdrawal)/.source,
   ].join('|'),
 );
-// Folded Vietnamese: "đã đăng ký giúp bạn", "mình đã đăng nhập", "đã hủy môn cho bạn", "bạn đã được rút khỏi"…
-const ACTION_VI =
-  /\b(da|vua|se)\s+(dang ky|huy|rut|dang nhap|nop|thanh toan|gui email|gui mail|gui don|doi|cap nhat|sua)\b[^.!?\n]{0,40}\b(giup|cho|thay|ho)\b|\b(minh|toi|tro ly|omnicourse)\s+(da|vua)\s+(dang ky|huy|rut|dang nhap|nop|thanh toan|gui)\b|\bban\s+(da|vua)\s+duoc\s+(rut|dang ky|huy|xoa)\b|\b(don|yeu cau)\b[^.!?\n]{0,30}\bda duoc\s+(gui|nop|xu ly|chap nhan)\b/;
+// Folded Vietnamese: "đã đăng ký giúp bạn", "mình đã đăng nhập", "đã hủy môn cho bạn", "bạn đã được rút khỏi",
+// "môn MTH00003 đã được hủy", "xong rồi nhé, … đã hủy"…
+const ACTION_VI = new RegExp(
+  [
+    /\b(da|vua|se)\s+(dang ky|huy|rut|dang nhap|nop|thanh toan|gui email|gui mail|gui don|doi|cap nhat|sua)\b[^.!?\n]{0,40}\b(giup|cho|thay|ho)\b/.source,
+    /\b(minh|toi|tro ly|omnicourse)\s+(da|vua)\s+(dang ky|huy|rut|dang nhap|nop|thanh toan|gui)\b/.source,
+    /\bban\s+(da|vua)\s+duoc\s+(rut|dang ky|huy|xoa)\b/.source,
+    /\b(don|yeu cau)\b[^.!?\n]{0,30}\bda duoc\s+(gui|nop|xu ly|chap nhan)\b/.source,
+    /\b[a-z]{2,4}\d{3,5}\s+(da|vua)\s+(duoc\s+)?(huy|rut|xoa|dang ky|them|chuyen)\b/.source,
+    /\b(da|vua)\s+(duoc\s+)?(huy|rut|xoa)\s+(thanh cong|xong|roi)\b/.source,
+    /^\s*(xong|xong roi|da xong)\b[^\n]{0,80}([a-z]{2,4}\d{3,5}|dang ky|huy|rut)/.source,
+  ].join('|'),
+);
 // Asking for, or using, a secret or an identity field. A mention is fine ("never needs your password",
 // "change your portal password"), and so is a negation just before the verb ("đừng nhập mật khẩu").
 const SECRET = '(password|passwd|passcode|otp|mat khau|ma otp|credentials|login details|portal account|tai khoan|thong tin dang nhap)';
 const IDENTITY =
   '(full name|your name|student id|student number|date of birth|birthday|national id|citizen id|id number|phone number|email address|home address|ho ten|ho va ten|ma so sinh vien|mssv|ngay sinh|can cuoc|cccd|cmnd|so dien thoai|dia chi email|dia chi nha)';
-const ASK = "(send|give|provide|share|enter|type|tell|reply with|paste|log in|login|sign in|what's|what is|gui|cung cap|nhap|cho minh biet|cho minh xin|dang nhap|xac nhan)";
+const ASK =
+  "(send|give|provide|share|enter|type|tell|reply with|paste|log in|login|sign in|what's|what is|what are|dm|inbox|fill in|gui|cung cap|nhap|cho minh biet|cho minh xin|cho biet|dang nhap|xac nhan)";
 const CREDENTIAL_REQUEST = new RegExp(`\\b${ASK}\\b[^!?]{0,80}?\\b${SECRET}\\b`, 'g');
 const IDENTITY_REQUEST = new RegExp(`\\b${ASK}\\b[^!?]{0,80}?\\b${IDENTITY}\\b`, 'g');
+/** "MSSV của bạn là bao nhiêu?", "Mật khẩu của bạn là gì?" */
+const IDENTITY_QUESTION = new RegExp(`\\b${IDENTITY}\\b[^.!?\\n]{0,30}\\b(la gi|la bao nhieu|la so may|la so nao|is what)\\b`, 'g');
 const SECRET_STATED = /\b(your|ban)\s+(\S+\s+){0,2}(password|mat khau|otp)\s+(is|la)\b/;
 const STORE_CLAIM = /\b(i will|i'll|i can|i have|i've|let me|we will|minh se|minh da|toi se|toi da|tro ly se)\s+(save|store|remember|keep|record|luu|ghi nho|ghi lai)\b/;
 const NEGATED = /(khong|chua|dung|never|don'?t|don’t|do not|does not|doesn'?t|won'?t|will not|no need|not need|needn'?t|without|cannot|can'?t|khong bao gio|khong can|not)\s+(\S+\s+){0,3}$/;
-const LINK = /\bhttps?:\/\/|\bwww\.[a-z0-9-]+\.|\b[a-z0-9-]+\.(com|net|org|io|vn|me|ly|app|xyz)\/\S/;
-/** A web address as written in an answer or a passage, trailing punctuation aside. */
-const URL_IN_TEXT = /(?:https?:\/\/|www\.)[^\s<>"'()\[\]]+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|vn|me|ly|app|xyz)\/[^\s<>"'()\[\]]*/gi;
-const CODE_LINE = /^\s*(def |function |class |import |from \S+ import|#include|public (static )?\w|console\.|print\(|SELECT |INSERT |DELETE FROM|UPDATE \S+ SET|<\/?(script|html|div)|\$ |npm |pip )/im;
+/** "Don't hesitate to send…", "đừng ngại gửi…" is no negation. */
+const NOT_A_NEGATION = /(don'?t|do not|dung|never|khong)\s+(hesitate|ngai|ngan ngai|forget|quen)\b/;
+// A secret word (password, mật khẩu, mk, OTP, PIN) in an answer is a request unless the words before
+// it, in its sentence, warn ("never share", "đừng nhập"), advise changing it, or report what the
+// student did ("you just sent"). Default-deny: "What is your portal PIN?", "Hãy dán mật khẩu vào đây".
+const SECRET_WORD = /(?<!\p{L})(password|passwords|passwd|passcode|pwd|mat khau|mk|otp|ma otp|pin|ma pin)(?!\p{L})/gu;
+const SECRET_SAFE_BEFORE =
+  /(never|khong bao gio|no one|nobody|khong ai|don'?t|do not|dung|khong|chua|not|no need|khong can|change|reset|update|doi|thay doi|dat lai|cap nhat|keep|giu|protect|bao ve|ban vua|ban da|you just|you'?ve|you have|you sent|you shared|you typed|you posted|you gave)\s+(\S+\s+){0,6}$/;
+const CODE_LINE =
+  /^\s*(def |function |class |import |from \S+ import|#include|public (static )?\w|console\.|print\(|SELECT |INSERT |DELETE FROM|UPDATE \S+ SET|<\/?(script|html|div)|\$ |npm |pip |for \w+ in \S.*:\s*$|while .*(<|>|==|!=|True|not ).*:\s*$|return\b|elif |else:\s*$|\w+(\.\w+)*\s*(\+=|-=|\*=)\s*\S)/im;
 const DOCUMENT = /\b(thong tu|nghi dinh|quyet dinh|luat|decree|circular|decision|law)\s*(so\s*)?(\d+)/g;
 const ARTICLE = /\b(dieu|article|art)\s*\.?\s*(\d+)/g;
 
-/** Removes labels and codes whose digits are not rule numbers: "Điều 7, khoản 2, điểm b", CSC10001, [[ids]]. */
+/** Blanks labels and codes whose digits are not rule numbers ("Điều 7, khoản 2", [[ids]], page 87), keeping the text's length. */
 function withoutReferences(folded: string): string {
+  const blank = (m: string) => ' '.repeat(m.length);
   return folded
-    .replace(/\[\[[^\]]*\]\]/g, ' ')
-    .replace(/\b(dieu|article|art|khoan|clause)\s*\.?\s*\d+(\s*\.\s*\d+)?[a-z]?\b/g, ' ')
-    .replace(/\b(diem|point)\s+[a-g]\b/g, ' ')
-    .replace(/\b(cau|question|buoc|step|part)\s*\d+\b/g, ' ')
-    .replace(/^\s*\d{1,2}[.)]\s+(?=[a-z])/gm, ' ')
-    .replace(/\b(qd|quyet dinh)\s*(so\s*)?1175(\s*\/\s*(qd-khtn|qd-dhkhtn|2021))?\b/g, ' ')
-    .replace(/\b(so tay|handbook)(\s+(sinh vien|sv|student))?(\s+(nam hoc|nh))?\s*\d{4}\s*[-–]\s*\d{4}\b/g, ' ')
-    .replace(/\b(trang|tr|page|pages|p)\s*\.?\s*\d{1,3}(\s*[-–]\s*\d{1,3})?\b/g, ' ')
-    .replace(/\b[a-z]{2,4}\s?\d{3,5}\b/g, ' ');
+    .replace(/\[\[[^\]]*\]\]/g, blank)
+    .replace(/\b(dieu|article|art|khoan|clause)\s*\.?\s*\d+(\s*\.\s*\d+)?[a-z]?\b/g, blank)
+    .replace(/\b(diem|point)\s+[a-g]\b/g, blank)
+    .replace(/\b(cau|question|buoc|step|part)\s*\d+\b/g, blank)
+    .replace(/^\s*\d{1,2}[.)]\s+(?=[a-z])/gm, blank)
+    .replace(/\b(qd|quyet dinh)\s*(so\s*)?1175(\s*\/\s*(qd-khtn|qd-dhkhtn|2021))?\b/g, blank)
+    .replace(/\b(so tay|handbook)(\s+(sinh vien|sv|student))?(\s+(nam hoc|nh))?\s*\d{4}\s*[-–]\s*\d{4}\b/g, blank)
+    .replace(/\b(trang|tr|page|pages|p)\s*\.?\s*\d{1,3}(\s*[-–]\s*\d{1,3})?\b/g, blank);
 }
+
+/** A course code as the catalogue writes it: capitals, then digits (CSC10001, CS 163). "only 100" is no code. */
+const COURSE_CODE = /(?<![A-Za-z0-9])[A-Z]{2,4}\s?\d{3,5}(?![A-Za-z0-9])/g;
 
 /** Whether a match at `at` in `folded` is negated by the few words before it ("don't send", "không cần nhập"). */
 function negated(folded: string, at: number): boolean {
   const before = folded.slice(Math.max(0, at - 40), at);
+  if (NOT_A_NEGATION.test(before)) return false;
   // "you just sent your password here" reports what the student did; it asks for nothing.
   return NEGATED.test(before) || /\b(ban|you)\s+(vua|da|vua moi|just|already)\s*$/.test(before);
 }
@@ -129,63 +168,101 @@ function asks(pattern: RegExp, folded: string): boolean {
   return [...folded.matchAll(pattern)].some((m) => !negated(folded, m.index));
 }
 
-// A verdict on the student's own standing. Hard rule 1: only the rule engine decides these, so one
-// is shown only when an engine result came back this turn. A sentence that hedges ("I cannot confirm
-// whether you can graduate") is not a verdict.
-const STATUS_EN = new RegExp(
-  [
-    /\b(you|this student|the student)\s+(are|'re|is|are not|aren't|is not|are now|will be|would be|is therefore|are therefore)\s+(not\s+|now\s+|already\s+|fully\s+)*(eligible|qualified|on (academic )?probation|under (an )?academic warning|allowed to (graduate|register|take|enrol))/.source,
-    /\byou\s+(can|cannot|can't|could|may|may not|will|will not|won't|should be able to)\s+(not\s+|still\s+|now\s+)*graduate\b/.source,
-    // "you're on track to graduate", "you are cleared for graduation"
-    /\byou('re| are| will be)\s+(\S+\s+){0,3}(to graduate|for graduation)\b/.source,
-    /\b(you|this student|the student)\s+(meet|meets|has met|has satisfied|has fulfilled|has completed all|do not meet|don't meet|have met|have not met|haven't met|satisfy|do not satisfy|don't satisfy|have satisfied|fulfil|fulfill|have fulfilled|have completed all)\s+(all\s+)?(of\s+)?(the\s+|your\s+)?(graduation|requirements?|prerequisites?|conditions?|degree)/.source,
-    /\byou\s+(can|cannot|can't|may|may not|are allowed to|are not allowed to)\s+(register for|take|enrol in|enroll in)\s+[a-z]{2,4}\s?\d{3,5}/.source,
-    /\byou\s+(will|would)\s+(be|get)\s+(expelled|dismissed|suspended|a warning|an academic warning|put on probation)/.source,
-  ].join('|'),
-);
-const STATUS_VI = new RegExp(
-  [
-    /\bban\s+(da\s+|van\s+|chua\s+|khong\s+|se\s+|hien\s+)*(du|khong du|chua du)\s+dieu kien/.source,
-    /\bban\s+(da\s+|chua\s+|khong\s+|se\s+|van\s+)*(duoc|co the|khong the)\s+(xet\s+)?tot nghiep/.source,
-    /\bban\s+(da\s+|chua\s+|se\s+)*(dap ung|khong dap ung|chua dap ung)/.source,
-    /\bban\s+(dang\s+|da\s+|se\s+)*(bi|khong bi)\s+(canh bao|buoc thoi hoc|dinh chi|xu ly hoc vu)/.source,
-    /\bban\s+(duoc|khong duoc|co the|khong the)\s+(dang ky|hoc)\s+(mon\s+|hoc phan\s+)?[a-z]{2,4}\s?\d{3,5}/.source,
-  ].join('|'),
-);
-const HEDGE =
-  /\b(whether|if you|if your|cannot confirm|can'?t confirm|cannot check|can'?t check|unable to confirm|not able to confirm|cannot tell|can'?t tell|khong the xac nhan|chua the xac nhan|khong xac nhan duoc|chua xac nhan duoc|hay khong|lieu|neu ban|khi ban)\b/;
-const BARE_VERDICT =
-  /^\s*(yes|no|yep|nope|yeah|co|khong|duoc|khong duoc|roi|chua)\s*[—–,:-]?\s*(not yet|yet|definitely|of course|sure|chua|roi|duoc|nhe|a)?\s*[.!]?\s*$/;
-
-// Spelled-out decimals ("năm phẩy không", "five point zero") are numbers too.
-const DIGIT_WORDS: Record<string, string> = {
-  khong: '0', mot: '1', hai: '2', ba: '3', bon: '4', tu: '4', nam: '5', sau: '6', bay: '7', tam: '8', chin: '9', muoi: '10',
-  zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
-};
-const DIGIT = Object.keys(DIGIT_WORDS).join('|');
-const SPELLED_DECIMAL = new RegExp(`\\b(${DIGIT})\\s+(phay|cham|point)\\s+(${DIGIT})\\b`, 'g');
-const withDigits = (folded: string): string => folded.replace(SPELLED_DECIMAL, (_m, a: string, _p, b: string) => ` ${DIGIT_WORDS[a]}.${DIGIT_WORDS[b]} `);
-
-function statusClaim(folded: string, cited: number): boolean {
-  const parts = sentences(folded);
-  if (parts.length === 1 && BARE_VERDICT.test(parts[0])) return true;
-  if (cited === 0 && parts.length > 0 && BARE_VERDICT.test(parts[0])) return true;
-  return parts.some((s) => !HEDGE.test(s) && (STATUS_EN.test(s) || STATUS_VI.test(s)));
+/** A secret word used other than in a warning. */
+function mentionsSecret(folded: string): boolean {
+  for (const m of folded.matchAll(SECRET_WORD)) {
+    const sentenceStart = Math.max(...['.', '!', '?', '\n'].map((c) => folded.lastIndexOf(c, m.index - 1))) + 1;
+    const before = folded.slice(Math.max(sentenceStart, m.index - 60), m.index);
+    if (NOT_A_NEGATION.test(before) || !SECRET_SAFE_BEFORE.test(before)) return true;
+  }
+  return false;
 }
 
-const QUOTED = /["“]([^"”]{12,}?)["”][\s.,;:)]*((?:\[\[[^\]]{1,120}\]\][\s,;]*)+)/g;
+// Bare verdicts: "Yes.", "Có nha", "Sure." — only the rule engine may answer a yes/no about the student.
+const BARE_VERDICT =
+  /^\s*(yes|no|yep|nope|yeah|sure|absolutely|definitely|of course|correct|exactly|indeed|co|khong|duoc|khong duoc|roi|chua|dung|dung vay|dung roi|chinh xac|chac chan)\s*[—–,:!-]?\s*(not yet|yet|definitely|of course|sure|chua|roi|duoc|nhe|nha|a|vay)?\s*[.!]?\s*$/;
+/**
+ * Whether the rule engine's result this turn states the claim (hard rule 1): only graduation is in a
+ * result the advisor gets (the degree audit's `graduation`). "Not yet" rests on `not_yet`. "You can
+ * graduate" rests only on `done` with nothing left unchecked: the audit always leaves conditions to
+ * the school (language, IT, defence certificates), so in practice the model may report what the
+ * audit found, never that the student can graduate.
+ */
+function backed(claim: StandingClaim, evidence: TurnEvidence): boolean {
+  const g = evidence.graduation;
+  if (!claim.graduation || !g) return false;
+  return claim.polarity === 'negative' ? g.status === 'not_yet' : g.status === 'done' && g.notChecked === 0;
+}
 
-/** A quotation directly followed by citations must be, word for word, in one of the clauses it cites (an ellipsis may cut it). */
-function misquoted(text: string, index: ClauseIndex): boolean {
-  for (const [, quote, citations] of text.matchAll(QUOTED)) {
-    const sources = [...citations.matchAll(/\[\[([^\]]+)\]\]/g)].map(([, id]) => index.get(id.trim())).filter((c) => c !== undefined);
-    if (!sources.length) continue; // An unknown citation is caught on its own.
+// Quotations, in any quote marks. One must be, word for word, in a clause the answer cites: those
+// cited in its sentence, or any cited clause when its sentence cites none.
+/** Paired quotation marks other than straight double quotes, which are paired in order instead. */
+const PAIRED_QUOTE = /“([^”]{12,1500}?)”|«\s*([^»]{12,1500}?)\s*»|„([^“”]{12,1500}?)[“”]|‘([^’\n]{12,300}?)’|(?<![\p{L}\p{N}])'([^'\n]{12,300}?)'(?![\p{L}\p{N}])|「([^」]{12,1500}?)」/gu;
+
+/** The quotations of a text: straight double quotes paired first with second, third with fourth…, then the other marks. */
+function quotationsIn(text: string): { start: number; end: number; quote: string }[] {
+  const out: { start: number; end: number; quote: string }[] = [];
+  const straight = [...text.matchAll(/"/g)].map((m) => m.index);
+  for (let k = 0; k + 1 < straight.length; k += 2) {
+    const quote = text.slice(straight[k] + 1, straight[k + 1]);
+    if (quote.length >= 12) out.push({ start: straight[k], end: straight[k + 1] + 1, quote });
+  }
+  for (const m of text.replace(/"/g, ' ').matchAll(PAIRED_QUOTE)) out.push({ start: m.index, end: m.index + m[0].length, quote: m.slice(1).find((g) => g !== undefined)! });
+  return out.sort((a, b) => a.start - b.start);
+}
+
+/** The quotations of an answer: whether one is not in the clause it cites, and where the faithful ones are. */
+function quotations(text: string, index: ClauseIndex, cited: IndexedClause[]): { misquoted: boolean; faithful: [number, number][] } {
+  const faithful: [number, number][] = [];
+  let misquoted = false;
+  const idsIn = (s: string) => [...s.matchAll(/\[\[([^\]]+)\]\]/g)].map(([, id]) => index.get(id.trim())).filter((c) => c !== undefined);
+  for (const { start, end, quote } of quotationsIn(text)) {
+    // Its sentence: up to the first end of sentence not followed by a citation, and back to the previous one.
+    const after = text.slice(end);
+    const stop = after.search(/[.!?](?!\d)\s+(?!\[\[)|\n/);
+    const before = text.slice(0, start);
+    const startAt = Math.max(before.lastIndexOf('. '), before.lastIndexOf('\n'), before.lastIndexOf('! '), before.lastIndexOf('? ')) + 1;
+    let sources = idsIn(stop < 0 ? after : after.slice(0, stop + 1));
+    if (!sources.length) sources = idsIn(before.slice(startAt));
+    if (!sources.length) sources = cited;
+    if (!sources.length) continue; // No citation anywhere: the grounding check replaces the answer.
     const haystacks = sources.map((c) => ` ${words(c.text).join(' ')} `);
+    let ok = true;
     for (const piece of quote.split(/\.\.\.|…|\[…\]/)) {
       const ws = words(piece);
       if (ws.length < 3) continue;
-      if (!haystacks.some((h) => h.includes(` ${ws.join(' ')} `))) return true;
+      if (!haystacks.some((h) => h.includes(` ${ws.join(' ')} `))) ok = false;
     }
+    if (ok) faithful.push([start, end]);
+    else misquoted = true;
+  }
+  return { misquoted, faithful };
+}
+
+// Web addresses and domains. Default-deny: a link is shown only when its host is an official HCMUS
+// host (hcmus.edu.vn and its subdomains, the hosts the Guides page uses) and the address is, exactly,
+// in a passage the answer cites. Defanged ("hxxps", "[.]") and protocol-relative ("//") addresses are
+// read as addresses, and javascript:, vbscript: and data: URLs are never shown.
+const OFFICIAL_HOST = /(^|\.)hcmus\.edu\.vn$/;
+const NOT_A_HOST = new Set(['e.g', 'i.e', 'tp.hcm', 'v.v', 'th.s', 'pgs.ts', 'gs.ts', 'a.m', 'p.m']);
+const DANGEROUS_SCHEME = /(?<![\p{L}\p{N}])(javascript|vbscript|livescript)\s*:|(?<![\p{L}\p{N}])data\s*:\s*[a-z]+\/[a-z]/iu;
+const ADDRESS = /(?:[a-z][a-z0-9+.-]*:)?\/\/[^\s<>"'()[\]]+|(?<![\p{L}\p{N}@._-])(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z][a-z0-9-]*[a-z0-9](?![\p{L}\p{N}-])(?:\/[^\s<>"'()[\]]*)?/giu;
+
+const defang = (text: string): string =>
+  text
+    .replace(/\s*[[({]\s*(\.|dot)\s*[\])}]\s*/gi, '.')
+    .replace(/\s+dot\s+(?=[a-z]{2,}\b)/gi, '.')
+    .replace(/\[:\]/g, ':')
+    .replace(/\bh[xX]{2}p(s?):/g, 'http$1:');
+
+function unlistedLink(text: string, cited: IndexedClause[]): boolean {
+  const plain = defang(text.replace(/\[\[[^\]]*\]\]/g, ' '));
+  if (DANGEROUS_SCHEME.test(plain)) return true;
+  for (const [raw] of plain.matchAll(ADDRESS)) {
+    const url = raw.replace(/[.,;:!?]+$/u, '');
+    const host = url.replace(/^[a-z][a-z0-9+.-]*:/i, '').replace(/^\/\//, '').split(/[/?#:]/)[0].toLowerCase();
+    if (NOT_A_HOST.has(host)) continue;
+    if (!OFFICIAL_HOST.test(host) || !cited.some((c) => c.text.includes(url))) return true;
   }
   return false;
 }
@@ -210,12 +287,60 @@ function secretPart(instructions: string): string {
   return secret;
 }
 
-/** Masks a student ID (8–10 digits), an email address or a phone number in an answer that is shown. */
+/** Masks a student ID (8–10 digits), an email address (also written "name [at] host [dot] com") or a phone number in an answer that is shown. */
 export function maskPersonalData(text: string): string {
   return text
     .replace(/[\p{L}\p{N}._%+-]+@[\p{L}\p{N}.-]+\.[a-z]{2,}/giu, '[…]')
+    .replace(/[\p{L}\p{N}._%+-]+\s*[[(]\s*at\s*[\])]\s*[\p{L}\p{N}-]+(?:\s*(?:[[(]\s*(?:dot|\.)\s*[\])]|\.)\s*[\p{L}\p{N}-]+)+/giu, '[…]')
     .replace(/(?<![\d.,])(\+?84|0)\d{9,10}(?!\d|[.,]\d)/g, '[…]')
     .replace(/(?<![\d.,])\d{8,10}(?!\d|[.,]\d)/g, '[…]');
+}
+
+/** Numbers of a text as the guard reads them: lower case, numbers in words as digits, labels and codes blanked. */
+function readNumbers(text: string): { spelled: string; numbers: { value: number; at: number }[] } {
+  const spelled = withSpelledNumbers(lower(text.replace(COURSE_CODE, ' ')));
+  return { spelled, numbers: numbersAt(withoutReferences(foldSameLength(spelled))) };
+}
+
+/** Clause texts as numbers are read there: lower case, numbers in words as digits. */
+const clauseNumbers = new WeakMap<IndexedClause, { spelled: string; numbers: { value: number; at: number }[] }>();
+function numbersOfClause(c: IndexedClause) {
+  let found = clauseNumbers.get(c);
+  if (!found) {
+    const spelled = withSpelledNumbers(lower(c.text));
+    found = { spelled, numbers: numbersAt(foldSameLength(spelled)) };
+    clauseNumbers.set(c, found);
+  }
+  return found;
+}
+
+/** The numbers of an answer that no cited clause states for the same rule and no tool returned. */
+function ungroundedNumbers(claimText: string, cited: IndexedClause[], evidence: TurnEvidence): boolean {
+  const fromTools = new Set(evidence.tools.filter((t) => t.ok && t.name !== 'search_regulations').flatMap((t) => [...t.numbers]));
+  const { spelled, numbers } = readNumbers(claimText);
+  // Arithmetic is computing, which only the engine does: "25 + 12".
+  if (/\d\s*[+×*=]\s*\d/.test(withoutReferences(foldSameLength(spelled)))) return true;
+  for (const n of numbers) {
+    if (fromTools.has(n.value)) continue;
+    const sentenceStart = Math.max(...['.', '!', '?', '\n'].map((c) => lastBoundary(spelled, c, n.at))) + 1;
+    const nextEnd = spelled.slice(n.at).search(/(?<!\d)[.!?](?!\d)|\n/);
+    const sentence = spelled.slice(sentenceStart, nextEnd < 0 ? undefined : n.at + nextEnd);
+    const phrase = phrases(sentence).filter((p) => p.at <= n.at - sentenceStart).at(-1)!;
+    const answer = nearest([qualifiersOf(phrase.text), qualifiersOf(sentence)]);
+    const sourced = cited.some((c) => {
+      const clause = numbersOfClause(c);
+      return clause.numbers.some((s) => s.value === n.value && sameRule(answer, sourceQualifiers(clause.spelled, s.at)));
+    });
+    if (!sourced) return true;
+  }
+  return false;
+}
+
+/** The last sentence end before `at` (a "." between digits is a decimal point). */
+function lastBoundary(text: string, mark: string, at: number): number {
+  let i = text.lastIndexOf(mark, at - 1);
+  while (i > 0 && mark === '.' && /\d/.test(text[i - 1] ?? '') && /\d/.test(text[i + 1] ?? '')) i = text.lastIndexOf(mark, i - 1);
+  return i;
 }
 
 export function guardAnswer(input: GuardInput): GuardVerdict {
@@ -223,23 +348,24 @@ export function guardAnswer(input: GuardInput): GuardVerdict {
   const text = cleanInput(input.answer).trim();
   // The fixed replies are what the prompt tells the model to say; they are checked as safe here, so
   // the checks below read the rest ("never needs your password" is not a credential request).
-  const folded = fold(withoutFixedReplies(text));
+  const rest = withoutFixedReplies(text);
+  const folded = fold(rest);
   const reasons: GuardReason[] = [];
 
   // 1. Disclosure
-  if (input.canary && folded.includes(fold(input.canary))) reasons.push('canary');
+  if (input.canary && fold(text).includes(fold(input.canary))) reasons.push('canary');
   const secret = shingles(secretPart(input.instructions));
-  if ([...shingles(withoutFixedReplies(text))].some((s) => secret.has(s)) || /prompt advisor-\d|internal marker/.test(folded) || input.toolNames.some((n) => folded.includes(n))) {
+  if ([...shingles(rest)].some((s) => secret.has(s)) || /prompt advisor-\d|internal marker/.test(folded) || input.toolNames.some((n) => folded.includes(n))) {
     reasons.push('prompt_echo');
   }
-  // 2. Acting, secrets, identity data, links
+  // 2. Acting, secrets, identity data
   if (ACTION_EN.test(folded) || ACTION_VI.test(folded)) reasons.push('action_claim');
-  if (asks(CREDENTIAL_REQUEST, folded) || SECRET_STATED.test(folded)) reasons.push('credential');
-  if (asks(IDENTITY_REQUEST, folded) || STORE_CLAIM.test(folded)) reasons.push('personal_data_request');
+  if (mentionsSecret(folded) || asks(CREDENTIAL_REQUEST, folded) || SECRET_STATED.test(folded)) reasons.push('credential');
+  if (asks(IDENTITY_REQUEST, folded) || asks(IDENTITY_QUESTION, folded) || STORE_CLAIM.test(folded)) reasons.push('personal_data_request');
   // 3. Code
-  if (text.includes('```') || CODE_LINE.test(withoutFixedReplies(text))) reasons.push('code');
+  if (text.includes('```') || CODE_LINE.test(rest)) reasons.push('code');
 
-  // 4. Citations and references
+  // 4. Citations, references, quotations, links
   const cited: IndexedClause[] = [];
   for (const [, raw] of text.matchAll(CITATION)) {
     const id = raw.trim();
@@ -248,28 +374,35 @@ export function guardAnswer(input: GuardInput): GuardVerdict {
     else if (!evidence.clauses.has(id)) reasons.push('citation_not_in_context');
     else if (!cited.includes(clause)) cited.push(clause);
   }
-  // A link is shown only when it is, exactly, in a passage the answer cites: an office's web page.
-  const citedLinks = (url: string) => cited.some((c) => c.text.includes(url));
-  const unlisted = text.replace(URL_IN_TEXT, (url) => (citedLinks(url.replace(/[.,;:!?]+$/u, '')) ? ' ' : url));
-  if (LINK.test(fold(withoutFixedReplies(unlisted)))) reasons.push('link');
+  if (unlistedLink(rest, cited)) reasons.push('link');
   const contextArticles = new Set([...evidence.clauses.values()].flatMap((c) => (c.article ? [c.article.number] : [])));
   for (const [, , n] of withoutCitations(folded).matchAll(ARTICLE)) if (!contextArticles.has(Number(n))) reasons.push('uncited_article');
-  const contextNumbers = new Set([...evidence.clauses.values()].flatMap((c) => [...numbersIn(c.text)]));
+  const contextNumbers = new Set([...evidence.clauses.values()].flatMap((c) => numbersOfClause(c).numbers.map((x) => x.value)));
   for (const [, , , n] of folded.matchAll(DOCUMENT)) if (n !== '1175' && !contextNumbers.has(Number(n))) reasons.push('other_document');
-  if (misquoted(text, index)) reasons.push('misquote');
+  const quotes = quotations(rest, index, cited);
+  if (quotes.misquoted) reasons.push('misquote');
 
-  // 5. Numbers: every one must come from a cited clause or a record, course or engine result.
-  const grounded = new Set<number>([
-    ...cited.flatMap((c) => [...numbersIn(c.text)]),
-    ...evidence.tools.filter((t) => t.ok && t.name !== 'search_regulations').flatMap((t) => [...t.numbers]),
-  ]);
-  if ([...numbersIn(withoutReferences(withDigits(folded)))].some((n) => !grounded.has(n))) reasons.push('ungrounded_number');
-  // 6. A verdict on the student's standing without the engine
-  if (!evidence.engineAnswered && statusClaim(folded, cited.length)) reasons.push('status_claim');
-  // 7. Grounded in nothing: no citation and no data. Only a short refusal or referral may stand.
-  const rest = withoutFixedReplies(text).trim();
+  // What the answer claims in its own words: faithful quotations out, citations as sentence ends.
+  let claimText = rest;
+  for (const [from, to] of [...quotes.faithful].reverse()) claimText = `${claimText.slice(0, from)} ${claimText.slice(to)}`;
+  claimText = claimText.replace(/\[\[[^\]]*\]\]/g, '\n');
+  const lowered = lower(claimText);
+  const claimFolded = stripMarks(lowered);
+
+  // 5. Numbers: each one from a cited clause, for the same rule, or from a record, course or engine result.
+  if (ungroundedNumbers(claimText, cited, evidence)) reasons.push('ungrounded_number');
+  // 6. A verdict on the student's standing that the engine did not give, or on a named person's.
+  // An answer typed without diacritics: "ban" is then "bạn" (with them it may be "bản", a document).
+  const plain = !/[\u0300-\u036f]|đ/i.test(rest.normalize('NFD'));
+  const bare = sentences(claimFolded).filter((s) => s.trim());
+  if (bare.length > 0 && BARE_VERDICT.test(bare[0])) reasons.push('status_claim');
+  if (standingClaims(lowered, plain).some((c) => !backed(c, evidence)) || namedStandingClaim(claimText, lowered)) reasons.push('status_claim');
+  // 7. A rule said to be lifted or not to apply
+  if (abolishedRule(lowered, cited.map((c) => fold(c.text)))) reasons.push('abolished_rule');
+  // 8. Grounded in nothing: no citation and no data. Only a short refusal or referral may stand, and
+  //    an uncited answer is checked whatever its length ("Sure.", "Được nha.").
   if (!text) reasons.push('ungrounded_answer');
-  else if (cited.length === 0 && !evidence.hasDataResult && words(rest).length >= 3 && (rest.length > LONG_UNGROUNDED_ANSWER || !DEFLECTION.test(fold(rest)))) {
+  else if (cited.length === 0 && !evidence.hasDataResult && /[\p{L}\p{N}]/u.test(rest) && (rest.trim().length > LONG_UNGROUNDED_ANSWER || !DEFLECTION.test(fold(rest)))) {
     reasons.push('ungrounded_answer');
   }
 
