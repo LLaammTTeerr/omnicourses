@@ -436,7 +436,8 @@ interface RowView {
   name: string;
   summer: boolean;
   now: boolean;
-  load: { text: string; caps: string; credits: number; max: number | null; delta: number } | null;
+  when: string;
+  load: { atLeast: boolean; caps: string; credits: number; max: number | null; delta: number } | null;
   meter: { fill: number; from: number; to: number; min: number | null; minLabel: number | null; max: number; maxLabel: number } | null;
   /** The meter's colour, from the engine's load issues for this row (with the drop made, while one is previewed). */
   cap: 'under' | 'over' | 'ok' | '';
@@ -539,8 +540,9 @@ function rowView(row: Row): RowView {
     name,
     summer: load?.kind === 'summer',
     now: compareTerms(row.term, currentTermNow()) === 0 && inProgressNow.value.length > 0,
+    when: m.value.termMonths(row.term),
     load: load && {
-      text: atLeast ? m.value.loadAtLeast(load.credits) : m.value.load(load.credits),
+      atLeast,
       caps: load.caps ? m.value.caps(load.caps.min, load.caps.max) : m.value.capsUnknown,
       credits: load.credits,
       max: load.caps?.max ?? null,
@@ -934,7 +936,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span class="k">{{ course.code }}</span>
                   <span class="cr">{{ m.credits(course.credits) }}</span>
                 </span>
-                <span class="nm">{{ courseName(course, locale.lang) }}</span>
+                <span class="nm" :title="courseName(course, locale.lang)">{{ courseName(course, locale.lang) }}</span>
                 <span class="sub">
                   <span class="glabel">{{ shortName(colour) }}</span>
                   <span v-if="transcriptCodes.has(course.code)" class="mark" data-test="in-transcript"><Icon name="file" size="sm" />{{ m.inTranscript }}</span>
@@ -1011,10 +1013,10 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <h3 :id="`term-${row.key}`">{{ row.name }}</h3>
                   <span v-if="row.summer" class="chip info">{{ m.summer }}</span>
                   <span v-if="row.now" class="chip info" data-test="now"><Icon name="lock" size="sm" />{{ m.inProgress }}</span>
+                  <small class="when" data-test="when">{{ row.when }}</small>
                 </div>
-                <div v-if="row.load" class="tload" :class="{ up: row.load.delta > 0, down: row.load.delta < 0 }" data-test="load">
-                  <b :key="row.load.credits" class="pop">{{ row.load.text }}</b>
-                  <span class="t3"> · {{ row.load.caps }}</span>
+                <div v-if="row.load" class="tload" :class="{ up: row.load.delta > 0, down: row.load.delta < 0 }" :title="row.load.caps" data-test="load">
+                  <template v-if="row.load.atLeast">{{ `${m.atLeast} ` }}</template><b :key="row.load.credits" class="pop">{{ row.load.credits }}</b>{{ m.ofCap(row.load.max) }}<span class="sr-only">{{ ` · ${row.load.caps}` }}</span>
                   <span v-if="row.load.delta" :class="['delta', row.load.delta > 0 ? 'up' : 'down']" data-test="load-delta">{{ row.load.delta > 0 ? '+' : '−' }}{{ Math.abs(row.load.delta) }}</span>
                 </div>
                 <div v-if="row.meter" :class="['cap', row.cap, { preview: !!row.load?.delta }]" aria-hidden="true">
@@ -1079,8 +1081,10 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                     </span>
                     <span v-if="t.name" class="nm">{{ t.name }}</span>
                     <span v-else-if="t.slot" class="nm t3">{{ m.slotNotChosen }}</span>
-                    <span v-if="t.group" class="sub"><span class="glabel" data-test="tile-group">{{ t.group }}</span></span>
-                    <span v-if="t.taken" class="rt" data-test="tile-taken"><Icon name="refresh" size="sm" />{{ t.taken }}</span>
+                    <span v-if="t.group || t.taken" class="sub">
+                      <span v-if="t.taken" class="rt" data-test="tile-taken"><Icon name="refresh" size="sm" />{{ t.taken }}</span>
+                      <span v-if="t.group" class="glabel" data-test="tile-group">{{ t.group }}</span>
+                    </span>
                     <ul v-if="t.issues.length || t.unknowns.length" class="sr-only">
                       <li v-for="(issue, i) in t.issues" :key="i" :data-test="`tile-issue-${issue.kind}`">
                         {{ m.kinds[issue.kind] }}: {{ m.issue[issue.code](issue, ctx) }} {{ issue.citation }}
@@ -1182,8 +1186,17 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .pcourse .top, .ptile .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .pcourse .k, .ptile .k, .tile-ph .k { font: 700 12px var(--mono); letter-spacing: 0.02em; opacity: 0.9; }
 .pcourse .cr, .ptile .cr { font: 650 11.5px var(--display); padding: 1px 7px; border-radius: 999px; background: var(--c, var(--surface-3)); color: var(--on, var(--ink)); white-space: nowrap; }
-.pcourse .nm, .ptile .nm { font-weight: 650; font-size: 13.5px; line-height: 1.3; overflow-wrap: anywhere; }
-.pcourse .sub, .ptile .sub { font-size: 12px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+/* One size for every card: two lines of name at most, one line under it. */
+.pcourse, .ptile, .tile-ph { height: var(--tile-h, 102px); }
+.pcourse, .ptile-body { grid-template-rows: auto minmax(0, 1fr) auto; }
+.ptile-body { height: 100%; }
+.pcourse .nm, .ptile .nm {
+  font-weight: 650; font-size: 13.5px; line-height: 1.3; overflow-wrap: anywhere; align-self: start;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+}
+.pcourse .sub, .ptile .sub { font-size: 12px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; }
+.pcourse .sub > *, .ptile .sub > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ptile .sub .rt { flex: none; max-width: 100%; }
 .pcourse .sub .icon, .ptile .sub .icon, .ptile .rt .icon { width: 13px; height: 13px; }
 .pcourse .mark { display: inline-flex; align-items: center; gap: 4px; }
 .pcourse { padding-right: 34px; }
@@ -1224,6 +1237,8 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 
 /* The dragged copy and the place it would land */
 .ghost-tile {
+  /* No transition: the tile's own hover easing would make the copy trail the pointer and smooth away its lean. */
+  transition: none !important;
   position: fixed; left: 0; top: 0; z-index: 95; margin: 0; list-style: none; pointer-events: none; box-shadow: var(--shadow-lg);
   will-change: transform; transform-origin: 40% 50%; animation: lift 0.2s ease-out;
 }
@@ -1255,6 +1270,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .trow.has-flag { border-color: color-mix(in oklab, var(--warn) 45%, var(--edge)); }
 .tname { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .tname h3 { font: 700 15.5px var(--display); letter-spacing: -0.01em; }
+.tname .when { flex-basis: 100%; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .tload { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .tload b { display: inline-block; font: 700 20px var(--display); color: var(--ink); letter-spacing: -0.02em; transition: color 0.2s, transform 0.2s; }
 .tload.up b { color: var(--info); transform: translateY(-1px); }

@@ -148,7 +148,8 @@ describe('PlanEditorView (F5, UC-05)', () => {
 
     const term = row(w, '2026-1');
     expect(term.classes()).toContain('has-flag');
-    expect(term.get('[data-test="load"]').text()).toBe('8 TC · 10–22 TC');
+    expect(term.get('[data-test="load"]').text()).toBe('8 / 22 TC · 10–22 TC');
+    expect(term.get('[data-test="when"]').text()).toBe('Tháng 9 – 12/2026');
     expect(term.get('[data-test="row-issue-flag"]').text()).toContain('8 TC, dưới mức tối thiểu 10 TC. Được phép nếu có đơn được duyệt. QĐ 1175/QĐ-KHTN Điều 7.2.a');
 
     const panel = w.get('.issues-panel');
@@ -194,7 +195,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
       ],
     });
     const term = row(w, '2026-1');
-    expect(term.get('[data-test="load"]').text()).toBe('Ít nhất 4 TC · 10–22 TC');
+    expect(term.get('[data-test="load"]').text()).toBe('Ít nhất 4 / 22 TC · 10–22 TC');
     expect(term.get('[data-test="row-issue-unknown"] .sr-only').text()).toBe(
       'Chưa ghi nhận: Có môn chưa rõ số tín chỉ, nên học kỳ này có ít nhất 4 TC; chưa kiểm tra giới hạn tín chỉ. QĐ 1175/QĐ-KHTN Điều 7.2',
     );

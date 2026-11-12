@@ -90,9 +90,12 @@ interface PlannerMessages {
   addTerm: (term: string) => string;
   termsLabel: string;
   credits: (n: number) => string;
-  load: (credits: number) => string;
-  /** A term with a course of unknown credits (load_not_checked): its load is a lower bound. */
-  loadAtLeast: (credits: number) => string;
+  /** After the load figure: "/ 22 TC", or the unit alone when the term has no cap on record. */
+  ofCap: (max: number | null) => string;
+  /** Before the load of a term with a course of unknown credits (load_not_checked): its load is a lower bound. */
+  atLeast: string;
+  /** The months a term runs, from the calendar the API uses (term 1 from September, 2 from January, 3 from June). */
+  termMonths: (term: { year: number; number: 1 | 2 | 3 }) => string;
   caps: (min: number | null, max: number) => string;
   capsUnknown: string;
   summer: string;
@@ -246,8 +249,9 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     addTerm: (term) => `Thêm ${term}`,
     termsLabel: 'Các học kỳ',
     credits: (n) => `${n} TC`,
-    load: (credits) => `${credits} TC`,
-    loadAtLeast: (credits) => `Ít nhất ${credits} TC`,
+    ofCap: (max) => (max === null ? ' TC' : ` / ${max} TC`),
+    atLeast: 'Ít nhất',
+    termMonths: ({ year, number }) => (number === 1 ? `Tháng 9 – 12/${year}` : number === 2 ? `Tháng 1 – 5/${year + 1}` : `Tháng 6 – 8/${year + 1}`),
     caps: (min, max) => (min === null ? `tối đa ${max} TC` : `${min}–${max} TC`),
     capsUnknown: 'chưa ghi nhận giới hạn TC',
     summer: 'Học kỳ hè',
@@ -427,8 +431,9 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     addTerm: (term) => `Add ${term}`,
     termsLabel: 'Terms',
     credits: (n) => `${n} cr`,
-    load: (credits) => `${credits} credits`,
-    loadAtLeast: (credits) => `At least ${credits} credits`,
+    ofCap: (max) => (max === null ? ' credits' : ` / ${max} credits`),
+    atLeast: 'At least',
+    termMonths: ({ year, number }) => (number === 1 ? `Sep – Dec ${year}` : number === 2 ? `Jan – May ${year + 1}` : `Jun – Aug ${year + 1}`),
     caps: (min, max) => (min === null ? `at most ${max}` : `${min}–${max}`),
     capsUnknown: 'credit caps not recorded',
     summer: 'Summer term',
