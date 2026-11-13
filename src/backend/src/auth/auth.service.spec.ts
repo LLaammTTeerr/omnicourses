@@ -6,7 +6,7 @@ import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService, hashToken } from './auth.service.js';
-import { Session } from './session.entity.js';
+import { Session, SESSION_USER_AGENT_MAX } from './session.entity.js';
 
 
 // Only the fields AuthService reads, so a new column doesn't break this spec.
@@ -73,6 +73,14 @@ describe('AuthService', () => {
       );
       const saved = sessions.save.mock.calls[0]![0] as Session;
       expect(saved.tokenHash).toBe(hashToken(result.token));
+    });
+
+    it('cuts a User-Agent longer than the column holds', async () => {
+      await service.signUp(
+        { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
+        'x'.repeat(SESSION_USER_AGENT_MAX + 100),
+      );
+      expect((sessions.save.mock.calls[0]![0] as Session).userAgent).toBe('x'.repeat(SESSION_USER_AGENT_MAX));
     });
 
     it('rejects an email that is already registered', async () => {
