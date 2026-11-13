@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink } from 'vue-router';
-import { statusOf } from '../api.js';
+import { reportFailure, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
@@ -76,13 +76,8 @@ async function save(): Promise<void> {
     savedState.value = snapshot(rows.value);
     toast.show(m.value.saved(saved.length));
   } catch (e) {
-    const code = statusOf(e);
-    if (code === 401) return; // App.vue takes the student to sign in.
-    if (code === 400) saveError.value = m.value.saveRefused;
-    else {
-      console.error('Saving the transcript failed:', e);
-      saveError.value = m.value.saveFailed;
-    }
+    if (statusOf(e) === 400) saveError.value = m.value.saveRefused;
+    else if (reportFailure('Saving the transcript', e)) saveError.value = m.value.saveFailed;
   } finally {
     saving.value = false;
   }

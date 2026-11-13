@@ -4,6 +4,7 @@ import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
+import LoadState from '../components/LoadState.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { termName } from '../terms.js';
 import { useOnboarding } from '../onboarding/store.js';
@@ -156,25 +157,12 @@ usePageTitle(() => m.value.title);
       </div>
     </header>
 
-    <div v-if="answers.status.value === 'failed'" class="callout warn" role="alert" data-test="program-failed">
-      <Icon name="alert" />
-      <div>
-        <p>{{ m.programFailed }}</p>
-        <button class="btn sm" type="button" @click="answers.reload">{{ m.retry }}</button>
-      </div>
-    </div>
+    <LoadState v-if="answers.status.value === 'failed'" status="failed" tone="warn" :failed="m.programFailed" :retry="m.retry" data-test="program-failed" @retry="answers.reload" />
     <p v-else-if="answers.status.value === 'loaded' && !program" class="callout warn" data-test="no-program">
       <Icon name="info" /><span>{{ m.noProgram }} <RouterLink class="link" :to="{ name: 'settings' }">{{ m.openSettings }}</RouterLink></span>
     </p>
 
-    <p v-if="status === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="status === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" />
-      <div>
-        <p>{{ m.loadFailed }}</p>
-        <button class="btn sm" type="button" @click="reload">{{ m.retry }}</button>
-      </div>
-    </div>
+    <LoadState v-if="status !== 'loaded'" :status="status" :loading="m.loading" :failed="m.loadFailed" :retry="m.retry" @retry="reload" />
     <div v-else-if="plans.length === 0" class="card empty" role="status" data-test="empty">
       <b>{{ m.empty }}</b>
       <p class="small t2">{{ m.emptyHint }}</p>

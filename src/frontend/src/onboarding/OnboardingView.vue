@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { HttpError, statusOf } from '../api.js';
+import { HttpError, reportFailure, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { afterSignIn } from '../auth/redirect.js';
 import { useAuth } from '../auth/store.js';
+import LoadState from '../components/LoadState.vue';
 import { fetchPrograms } from '../curriculum/api.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -80,10 +81,7 @@ async function save(finished: boolean): Promise<boolean> {
     return true;
   } catch (e) {
     if (statusOf(e) === 400 && e instanceof HttpError) apiErrors.value = errorsByField(e.details);
-    else if (statusOf(e) !== 401) {
-      console.error('Saving the onboarding answers failed:', e);
-      saveFailed.value = true;
-    }
+    else saveFailed.value = reportFailure('Saving the onboarding answers', e);
     return false;
   } finally {
     saving.value = false;
@@ -145,14 +143,7 @@ usePageTitle(() => m.value.title);
       </div>
     </div>
 
-    <p v-if="status === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="status === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" />
-      <div>
-        <p>{{ m.loadFailed }}</p>
-        <button class="btn sm" type="button" @click="reload">{{ m.retry }}</button>
-      </div>
-    </div>
+    <LoadState v-if="status !== 'loaded'" :status="status" :loading="m.loading" :failed="m.loadFailed" :retry="m.retry" @retry="reload" />
 
     <form v-else class="stack wizard-step" novalidate @submit.prevent="onNext">
       <div>

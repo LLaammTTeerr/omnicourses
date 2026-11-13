@@ -4,11 +4,13 @@ import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
+import LoadState from '../components/LoadState.vue';
 import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { replay, scrollToView } from '../motion.js';
 import { programChoices } from '../onboarding/answers.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
@@ -94,13 +96,9 @@ watch(
     await nextTick();
     const el = document.querySelector<HTMLElement>(`[data-test="course-${CSS.escape(code)}"]`);
     if (!el) return;
-    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView?.({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+    scrollToView(el, 'center');
     el.focus({ preventScroll: true });
-    el.classList.remove('flash');
-    void el.offsetWidth;
-    el.classList.add('flash');
-    el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true });
+    replay(el, 'flash');
   },
   { immediate: true },
 );
@@ -151,14 +149,14 @@ usePageTitle(() => m.value.title);
       </div>
     </div>
 
-    <p v-if="curriculum.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="curriculum.status.value === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" />
-      <div>
-        <p>{{ statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.loadFailed }}</p>
-        <button class="btn sm" type="button" @click="curriculum.reload">{{ m.retry }}</button>
-      </div>
-    </div>
+    <LoadState
+      v-if="curriculum.status.value !== 'loaded'"
+      :status="curriculum.status.value"
+      :loading="m.loading"
+      :failed="statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.loadFailed"
+      :retry="m.retry"
+      @retry="curriculum.reload"
+    />
     <template v-else>
       <section
         v-for="{ group, colour, courses } in shown"

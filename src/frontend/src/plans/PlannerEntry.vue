@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { reportFailure } from '../api.js';
 import { useAuth } from '../auth/store.js';
+import LoadState from '../components/LoadState.vue';
 import { useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
-import Icon from '../shell/Icon.vue';
 import { createPlan, fetchPlans } from './api.js';
 import { readLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
@@ -38,9 +38,7 @@ async function open(): Promise<void> {
     const made = await auth.authed((token) => createPlan(token, { name: m.value.defaultPlanName, programCode: answers.program!, cohortYear: answers.cohort! }));
     await router.replace({ name: 'plan', params: { id: made.id } });
   } catch (e) {
-    if (statusOf(e) === 401) return;
-    console.error('Opening the planner failed:', e);
-    failed.value = true;
+    failed.value = reportFailure('Opening the planner', e);
   }
 }
 onMounted(open);
@@ -50,14 +48,9 @@ usePageTitle(() => m.value.title);
 
 <template>
   <div class="page">
-    <div v-if="failed" class="callout bad" role="alert" data-test="entry-failed">
-      <Icon name="alert" />
-      <div>
-        <p>{{ m.loadFailed }}</p>
-        <button class="btn sm" type="button" @click="open">{{ m.retry }}</button>
-        <RouterLink class="btn sm ghost" :to="{ name: 'plan-list' }">{{ m.backToList }}</RouterLink>
-      </div>
-    </div>
+    <LoadState v-if="failed" status="failed" :failed="m.loadFailed" :retry="m.retry" data-test="entry-failed" @retry="open">
+      <template #actions><RouterLink class="btn sm ghost" :to="{ name: 'plan-list' }">{{ m.backToList }}</RouterLink></template>
+    </LoadState>
     <p v-else class="t3" role="status">{{ m.opening }}</p>
   </div>
 </template>

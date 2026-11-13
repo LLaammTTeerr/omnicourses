@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, shallowRef } from 'vue';
-import { HttpError, statusOf } from '../api.js';
+import { HttpError, reportFailure, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
@@ -61,10 +61,7 @@ async function save(): Promise<void> {
     toast.show(m.value.saved);
   } catch (e) {
     if (statusOf(e) === 400 && e instanceof HttpError) apiErrors.value = errorsByField(e.details);
-    else if (statusOf(e) !== 401) {
-      console.error('Saving the onboarding answers failed:', e);
-      saveFailed.value = true;
-    }
+    else saveFailed.value = reportFailure('Saving the onboarding answers', e);
   } finally {
     saving.value = false;
   }

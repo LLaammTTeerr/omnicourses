@@ -87,3 +87,18 @@ export function fetchHealth(): Promise<Health> {
 
 /** The HTTP status of a failed call, or null when the request never got an answer (offline, CORS, DNS). */
 export const statusOf = (e: unknown): number | null => (e instanceof HttpError ? e.status : null);
+
+/** True when the request was cancelled by its caller (an AbortController), not when it timed out. */
+const aborted = (e: unknown): boolean => e instanceof DOMException && e.name === 'AbortError';
+
+/**
+ * The one way a screen reports a failed call: the details go to the console, as "<what> failed:". Two failures are
+ * not reported. A 401: `auth.authed` has already signed the student out and App.vue takes them to sign in. An abort:
+ * the screen cancelled the call itself. A timeout is a failure like any other. Returns whether the screen should say
+ * it failed: false for those two.
+ */
+export function reportFailure(what: string, e: unknown): boolean {
+  if (statusOf(e) === 401 || aborted(e)) return false;
+  console.error(`${what} failed:`, e);
+  return true;
+}

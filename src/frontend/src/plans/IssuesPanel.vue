@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import LoadState from '../components/LoadState.vue';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { REGULATION_URL } from '../shell/messages.js';
@@ -94,13 +95,7 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
         <template v-else>{{ m.issuesLead }}</template>
       </p>
 
-      <div v-if="status === 'failed'" class="callout bad small" role="alert" data-test="issues-failed">
-        <Icon name="alert" size="sm" />
-        <div>
-          <p>{{ m.checkFailed }}</p>
-          <button class="btn sm" type="button" @click="emit('retry')">{{ m.retry }}</button>
-        </div>
-      </div>
+      <LoadState v-if="status === 'failed'" status="failed" small :failed="m.checkFailed" :retry="m.retry" data-test="issues-failed" @retry="emit('retry')" />
 
       <template v-if="attached">
         <div class="issue-counts" :class="{ stale: !fresh }" data-test="issue-counts">
