@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
+import { byText } from '../common/by-text.js';
 import { canonicalCourseCode } from '../common/course-code.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
 import { conflict, notFound, prerequisiteCycle, referencedItem, validationFailed } from './admin-errors.js';
@@ -15,8 +16,6 @@ import {
   UpdateRequirementGroupDto,
 } from './curriculum-admin.dto.js';
 import { findPrerequisiteCycle } from './prerequisite-cycle.js';
-
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 /** A course code from a path or body, canonical (UC-11 step 5), or a 400. */
 export function courseCodeOr400(input: string, field = 'courseCode'): string {

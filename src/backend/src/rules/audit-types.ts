@@ -164,8 +164,9 @@ export interface DegreeAudit {
   gpa: GpaSummary;
   /** Oldest first. */
   terms: TermSummary[];
-  /** By name. */
+  /** By name, then id. */
   groups: GroupCoverage[];
+  /** By name, then id. */
   combinedMinimums: CombinedMinimumCoverage[];
   /** By code. */
   unmatchedCourses: UnmatchedCourse[];

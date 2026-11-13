@@ -6,11 +6,8 @@ import { CombinedMinimum } from './combined-minimum.entity.js';
 import { Curriculum } from './curriculum.entity.js';
 import { RequirementGroupOverflow } from './requirement-group-overflow.entity.js';
 
-// Reads the rule engine's view of one curriculum (ADR 0013, `rules/inputs.ts`). It decides
-// nothing (AGENTS.md hard rule 1).
-
-/** Code-point order: the same on every machine, unlike a locale collation. */
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+// Reads the rule engine's view of one curriculum (ADR 0013, `rules/inputs.ts`), in no particular
+// order: the engine orders what it returns. It decides nothing (AGENTS.md hard rule 1).
 
 @Injectable()
 export class CurriculumRulesReader {
@@ -46,35 +43,29 @@ export class CurriculumRulesReader {
       cohortYear: row.cohortYear,
       curriculumCode: row.code,
       totalCreditsMin: row.totalCreditsMin,
-      groups: row.requirementGroups
-        .map((g) => ({
-          id: g.id,
-          name: g.name,
-          kind: g.kind,
-          creditsTotal: g.creditsTotal,
-          creditsTotalMin: g.creditsTotalMin,
-          overflowToGroupId: overflowTo.get(g.id) ?? null,
-          courses: g.courseLinks
-            .map((l) => ({
-              code: l.course.code,
-              nameVi: l.course.nameVi,
-              nameEn: l.course.nameEn,
-              credits: l.course.credits,
-              countsTowardTotal: l.countsTowardTotal,
-              countsTowardGpa: l.countsTowardGpa,
-            }))
-            .sort((a, b) => byText(a.code, b.code)),
-        }))
-        .sort((a, b) => byText(a.name, b.name) || byText(a.id, b.id)),
-      combinedMinimums: minimums
-        .map((m) => ({
-          id: m.id,
-          name: m.name,
-          creditsMin: m.creditsMin,
-          officialNotes: m.officialNotes,
-          groupIds: m.groupLinks.map((l) => l.requirementGroupId).sort(byText),
-        }))
-        .sort((a, b) => byText(a.name, b.name) || byText(a.id, b.id)),
+      groups: row.requirementGroups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        kind: g.kind,
+        creditsTotal: g.creditsTotal,
+        creditsTotalMin: g.creditsTotalMin,
+        overflowToGroupId: overflowTo.get(g.id) ?? null,
+        courses: g.courseLinks.map((l) => ({
+          code: l.course.code,
+          nameVi: l.course.nameVi,
+          nameEn: l.course.nameEn,
+          credits: l.course.credits,
+          countsTowardTotal: l.countsTowardTotal,
+          countsTowardGpa: l.countsTowardGpa,
+        })),
+      })),
+      combinedMinimums: minimums.map((m) => ({
+        id: m.id,
+        name: m.name,
+        creditsMin: m.creditsMin,
+        officialNotes: m.officialNotes,
+        groupIds: m.groupLinks.map((l) => l.requirementGroupId),
+      })),
     };
   }
 }

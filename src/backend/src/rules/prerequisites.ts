@@ -1,6 +1,7 @@
 // Prerequisites and offering terms. Neither the database nor the APCS PDFs record them yet
 // (ADR 0011, "Prerequisites, offering terms and implementation gates"): the checks take the data
 // as input, null meaning "not recorded", and never invent it. Pure functions.
+import { byText } from '../common/by-text.js';
 import type { Term } from '../terms/term.js';
 
 export type PrerequisiteCheck =
@@ -18,7 +19,7 @@ export type PrerequisiteCheck =
 export function checkPrerequisites(prerequisites: readonly string[] | null, passedCodes: ReadonlySet<string>): PrerequisiteCheck {
   if (prerequisites === null) return { status: 'not_recorded' };
   if (prerequisites.length === 0) return { status: 'none' };
-  const missing = [...new Set(prerequisites)].filter((code) => !passedCodes.has(code)).sort();
+  const missing = [...new Set(prerequisites)].filter((code) => !passedCodes.has(code)).sort(byText);
   return missing.length ? { status: 'not_met', missing } : { status: 'met' };
 }
 

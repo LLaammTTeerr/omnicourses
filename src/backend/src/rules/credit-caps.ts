@@ -41,6 +41,14 @@ export interface LoadCourse {
   excludedFromMinimum?: boolean;
 }
 
+/**
+ * Whether a course is left out of the đại trà minimum: Giáo dục quốc phòng, Giáo dục thể chất and
+ * general foreign language (Điều 7.2.a). The curriculum does not record which courses are general
+ * foreign language yet (ADR 0012), so this takes the courses outside the cohort total (GDTC,
+ * GDQP-AN). A course outside the curriculum (undefined) counts toward the minimum.
+ */
+export const isExcludedFromMinimum = (course: { countsTowardTotal: boolean } | undefined): boolean => course?.countsTowardTotal === false;
+
 export const CAP_RULES = ['below_minimum', 'above_maximum'] as const;
 export type CapRule = (typeof CAP_RULES)[number];
 

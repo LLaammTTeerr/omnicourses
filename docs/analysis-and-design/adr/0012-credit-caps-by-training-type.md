@@ -33,6 +33,6 @@ APCS is the Advanced Program (Chương trình Tiên tiến), and the seeded CLC 
 
 - Hard rule 1 in AGENTS.md, ADR 0009, GLOSSARY.md and the B1 test cases now state the caps per training type.
 - The `programs` table has no training-type column yet (migration `1792912952302`). The rule engine's PR adds one, with APCS as Tiên tiến and the CLC programs as Chất lượng cao, and later đại trà programs when their data is entered (F12).
-- The đại trà minimum leaves out Giáo dục quốc phòng, Giáo dục thể chất and general foreign language, so the engine needs to know which courses those are before it checks a đại trà minimum.
+- The đại trà minimum leaves out Giáo dục quốc phòng, Giáo dục thể chất and general foreign language, so the engine needs to know which courses those are before it checks a đại trà minimum. *Amended 13 November 2026:* until the curriculum records them, the engine decides it in one place, `isExcludedFromMinimum` in `rules/credit-caps.ts`, for the audit and the planner alike: a course outside the cohort total (GDTC, GDQP-AN) is left out, and general foreign language, which counts toward the total, is not yet. Recording that data changes this one function.
 - `terms/term.ts`, `terms/term.dto.ts` and `openapi.json` still describe number 3 as the summer term. They change with the rule engine, not in this documentation change.
 - Vision §4 and the PA1 Project Plan, under `report/`, keep the old caps: they are submitted assignments. This ADR supersedes that assumption.

@@ -321,3 +321,20 @@ describe('degree audit', () => {
     expect(short.terms[0].capViolations.map((v) => [v.rule, v.credits])).toEqual([['below_minimum', 12]]);
   });
 });
+
+describe('the order of the audit', () => {
+  it('is the engine’s own: groups and combined minimums by name, courses by code, whatever order the curriculum is read in', () => {
+    const rules = zzCurriculum();
+    const shuffled = {
+      ...rules,
+      groups: [...rules.groups].reverse().map((g) => ({ ...g, courses: [...g.courses].reverse() })),
+      combinedMinimums: rules.combinedMinimums.map((m) => ({ ...m, groupIds: [...m.groupIds].reverse() })),
+    };
+    const audit = degreeAudit(shuffled, zzGraduatingTranscript());
+    expect(audit).toEqual(degreeAudit(rules, zzGraduatingTranscript()));
+    expect(audit.groups.map((g) => g.name)).toEqual(['Group a-bb', 'Group a-tc', 'Group b', 'Group c', 'Group non', 'Group tn']);
+    expect(audit.groups.find((g) => g.id === 'c')!.courses.map((c) => c.code)).toEqual(['ZZC1', 'ZZC2', 'ZZC3']);
+    expect(audit.combinedMinimums[0]!.groupIds).toEqual(['b', 'c']);
+  });
+});
+

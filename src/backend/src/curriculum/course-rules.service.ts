@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { byText } from '../common/by-text.js';
 import type { CourseRules } from '../rules/inputs.js';
 import { type Term, termNumber } from '../terms/term.js';
 import { CourseOfferingTerm } from './course-offering-term.entity.js';
@@ -27,5 +28,3 @@ export class CourseRulesService {
     return { prerequisites, offeringTerms };
   }
 }
-
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CAP_CITATION } from './citations.js';
-import { checkTermLoad, creditCaps, PETITION_NOTE, termKind } from './credit-caps.js';
+import { checkTermLoad, creditCaps, isExcludedFromMinimum, PETITION_NOTE, termKind } from './credit-caps.js';
 
 const load = (...credits: number[]) => credits.map((c) => ({ credits: c }));
 
@@ -75,5 +75,16 @@ describe('credit caps (Điều 7.2)', () => {
 
   it('checks no cap when the training type is not recorded', () => {
     expect(checkTermLoad(null, 1, load(30))).toEqual({ kind: null, credits: 30, caps: null, violations: [] });
+  });
+});
+
+describe('isExcludedFromMinimum (Điều 7.2.a)', () => {
+  it('leaves out a course outside the cohort total, the GDTC and GDQP-AN of the seeded curricula', () => {
+    expect(isExcludedFromMinimum({ countsTowardTotal: false })).toBe(true);
+    expect(isExcludedFromMinimum({ countsTowardTotal: true })).toBe(false);
+  });
+
+  it('counts a course outside the curriculum toward the minimum', () => {
+    expect(isExcludedFromMinimum(undefined)).toBe(false);
   });
 });

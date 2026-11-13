@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { byText } from '../common/by-text.js';
 import { isCourseCode } from '../common/course-code.js';
 import { Course } from './course.entity.js';
 import type { CourseRules } from '../rules/inputs.js';
@@ -10,9 +11,6 @@ import { CourseDetailDto, CourseDto, CurriculumCourseDto, CurriculumDto, Program
 import { Program } from './program.entity.js';
 import { RequirementGroupCourse } from './requirement-group-course.entity.js';
 import type { RequirementGroup } from './requirement-group.entity.js';
-
-/** Code-point order: the same on every machine, unlike a locale collation. */
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 // Serves the curriculum data the seed or, later, F12 (ADR 0011) stored. It decides no
 // academic rule (AGENTS.md hard rule 1): the rule engine reads these shapes and decides.

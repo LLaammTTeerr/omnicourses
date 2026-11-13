@@ -1,3 +1,5 @@
+import { byText } from '../common/by-text.js';
+
 /** Course code → the codes it requires, within one curriculum. */
 export type PrerequisiteGraph = ReadonlyMap<string, readonly string[]>;
 
@@ -10,7 +12,7 @@ export type PrerequisiteGraph = ReadonlyMap<string, readonly string[]>;
  */
 export function findPrerequisiteCycle(graph: PrerequisiteGraph, course: string, prerequisites: readonly string[]): string[] | null {
   const next = (code: string): readonly string[] => (code === course ? prerequisites : (graph.get(code) ?? []));
-  const sorted = (codes: readonly string[]) => [...codes].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const sorted = (codes: readonly string[]) => [...codes].sort(byText);
 
   // Depth-first from course; the first path back to course is the cycle. Only cycles through
   // course are new: the graph had none before (every earlier write was checked the same way).

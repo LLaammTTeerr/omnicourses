@@ -1,6 +1,7 @@
 // What the rule engine reads (ADR 0013): plain data, no entity, so the rule functions stay pure,
 // a test builds an input by hand, and no feature folder decides the engine's shapes. The
 // curriculum module fills the curriculum inputs; the plans module stores boards of this shape.
+import { byText } from '../common/by-text.js';
 import type { RequirementGroupKind, TrainingType } from '../curriculum/curriculum-types.js';
 import type { Term } from '../terms/term.js';
 
@@ -42,9 +43,9 @@ export interface CurriculumRules {
   cohortYear: number;
   curriculumCode: string;
   totalCreditsMin: number | null;
-  /** By name, then id (code-point order). */
+  /** In any order: the engine orders what it returns (`inOrder`). */
   groups: CurriculumRuleGroup[];
-  /** By name, then id. */
+  /** In any order. */
   combinedMinimums: CurriculumRuleCombinedMinimum[];
 }
 
@@ -57,6 +58,20 @@ export interface CourseRules {
   prerequisites: Map<string, string[]>;
   /** Course code → the term numbers it is offered in, ascending; never empty. */
   offeringTerms: Map<string, Term['number'][]>;
+}
+
+/**
+ * The curriculum in the order the engine's results promise (`rules/audit-types.ts`): groups and
+ * combined minimums by name, then id, and each group's courses and each minimum's groups by code
+ * or id, all in code-point order. The engine never depends on the order its reader returns.
+ */
+export function inOrder(rules: CurriculumRules): CurriculumRules {
+  const byNameThenId = (a: { name: string; id: string }, b: { name: string; id: string }) => byText(a.name, b.name) || byText(a.id, b.id);
+  return {
+    ...rules,
+    groups: rules.groups.map((g) => ({ ...g, courses: [...g.courses].sort((a, b) => byText(a.code, b.code)) })).sort(byNameThenId),
+    combinedMinimums: rules.combinedMinimums.map((m) => ({ ...m, groupIds: [...m.groupIds].sort(byText) })).sort(byNameThenId),
+  };
 }
 
 // The board of a plan (ADR 0014): one row per term, placements in order.
