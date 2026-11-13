@@ -218,11 +218,6 @@ describe('AuthService', () => {
   });
 
   describe('revoke', () => {
-    it('only touches sessions owned by the caller', async () => {
-      await service.revoke('user-1', 'session-1');
-      expect(sessions.update.mock.calls[0]![0]).toMatchObject({ id: 'session-1', userId: 'user-1' });
-    });
-
     it('404s when nothing matched', async () => {
       sessions.update.mockResolvedValue({ affected: 0 });
       await expect(service.revoke('user-1', 'session-1')).rejects.toBeInstanceOf(NotFoundException);

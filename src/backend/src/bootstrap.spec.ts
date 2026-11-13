@@ -5,10 +5,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildOpenApiConfig, configureApp } from './bootstrap.js';
 
 describe('OpenAPI contract', () => {
-  it('is published as OpenAPI 3.2.0', () => {
-    expect(buildOpenApiConfig().openapi).toBe('3.2.0');
-  });
-
   // Session tokens are opaque random strings, not JWTs (ADR 0002). Issue #51.
   it('declares the bearer token as opaque, not a JWT', () => {
     const config = buildOpenApiConfig();

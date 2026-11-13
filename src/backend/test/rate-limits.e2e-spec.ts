@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bootApp } from './support/app.js';
+import { signedInUser } from './support/users.js';
 
 // ADR 0002: 10 requests a minute from one address on a route that takes a
 // password, 120 on every other route. Its own app, so no other file's calls count.
@@ -21,6 +22,18 @@ describe('Rate limits (e2e)', () => {
     // An empty body answers 400, but the throttler counts it before validation.
     for (let i = 0; i < 10; i++) await http().post('/api/auth/sign-in').send({}).expect(400);
     await http().post('/api/auth/sign-in').send({}).expect(429);
+  });
+
+  it('refuses the 11th sign-up within a minute', async () => {
+    for (let i = 0; i < 10; i++) await http().post('/api/auth/sign-up').send({}).expect(400);
+    await http().post('/api/auth/sign-up').send({}).expect(429);
+  });
+
+  it('refuses the 11th account deletion within a minute', async () => {
+    const { token } = await signedInUser(app);
+    const remove = () => http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password: 'wrong password!' });
+    for (let i = 0; i < 10; i++) await remove().expect(403);
+    await remove().expect(429);
   });
 
   it('refuses the 121st request within a minute on a route without a password', async () => {
