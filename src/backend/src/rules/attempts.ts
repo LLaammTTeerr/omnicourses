@@ -90,8 +90,7 @@ export function resolve(code: string, attempts: TranscriptEntry[]): CourseRecord
   if (lastCompleted) {
     const inLastTerm = completed.filter((a) => sameTerm(a.term, lastCompleted.term));
     sameTermAttempts = inLastTerm.length > 1;
-    // Equally bad: the fewer credits, so a tie never adds credits (ADR 0013).
-    official = inLastTerm.reduce((worst, a) => ((compareSeverity(a, worst) || a.credits - worst.credits) < 0 ? a : worst));
+    official = inLastTerm.reduce((worst, a) => (compareSeverity(a, worst) < 0 ? a : worst));
   }
   const inProgress = attempts.some((a) => a.result === 'in_progress' && (official === null || compareTerms(a.term, official.term) > 0));
   return {

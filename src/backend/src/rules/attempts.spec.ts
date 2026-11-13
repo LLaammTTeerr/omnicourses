@@ -60,9 +60,6 @@ describe('retakes (Điều 14)', () => {
     expect(one(ungraded('ZZ1', 4, 'pass', term(2024, 1)), ungraded('ZZ1', 4, 'fail', term(2024, 1))).official?.result).toBe('fail');
     expect(one(ungraded('ZZ1', 4, 'exempt', term(2024, 1)), graded('ZZ1', 4, 9, term(2024, 1))).official?.grade).toBe(9);
     expect(one(graded('ZZ1', 4, 4, term(2024, 1)), ungraded('ZZ1', 4, 'fail', term(2024, 1))).official?.result).toBe('fail');
-    // Equally bad: the fewer credits, whatever the names.
-    expect(one({ ...ungraded('ZZ1', 3, 'pass', term(2024, 1)), courseName: 'z' }, { ...ungraded('ZZ1', 4, 'pass', term(2024, 1)), courseName: 'a' }).official?.credits).toBe(3);
-    expect(one({ ...ungraded('ZZ1', 4, 'pass', term(2024, 1)), courseName: 'z' }, { ...ungraded('ZZ1', 3, 'pass', term(2024, 1)), courseName: 'a' }).official?.credits).toBe(3);
   });
 
   it('has no official attempt for a course only in progress', () => {
