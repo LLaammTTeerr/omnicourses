@@ -4,10 +4,11 @@ import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { SHELL_MESSAGES } from '../shell/messages.js';
+import { PLAN_NAME_MAX_LENGTH } from './api.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-// Asks for a plan's name, to create or rename one. The API trims it and allows 1 to 100 characters.
-const MAX_NAME = 100;
+// Asks for a plan's name, to create or rename one. The API trims it and allows 1 to PLAN_NAME_MAX_LENGTH characters.
+const MAX_NAME = PLAN_NAME_MAX_LENGTH;
 
 const props = defineProps<{ open: boolean; title: string; body?: string; submit: string; initial: string; busy: boolean; error: string | null }>();
 const emit = defineEmits<{ close: []; save: [name: string] }>();

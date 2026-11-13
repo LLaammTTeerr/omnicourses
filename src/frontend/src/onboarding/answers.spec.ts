@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Program } from '../curriculum/api.js';
 import { NOT_STARTED } from './api.js';
-import { creditsProblem, errorsByField, goalAnswers, goalDraft, goalTermChoices, programChoices, resumeStep } from './answers.js';
+import { creditsProblem, errorsByField, goalAnswers, goalDraft, goalTermChoices, resumeStep } from './answers.js';
 import { onboarding } from './testing/fixtures.js';
-
-const program = (code: string, cohortYears: number[]): Program => ({ code, nameVi: `Chương trình ${code}`, nameEn: null, faculty: null, trainingType: null, cohortYears });
 
 describe('creditsProblem (UC-01 §7: 1 or more, no upper limit)', () => {
   it.each(['', '  ', '1', '18', '40', '2147483647'])('accepts %j', (text) => {
@@ -46,20 +43,6 @@ describe('goalTermChoices', () => {
     expect(choices[0]).toEqual({ year: 2025, number: 2 });
     expect(choices[1]).toEqual({ year: 2026, number: 1 });
     expect(goalTermChoices([{ year: 2026, number: 1 }], now)).toHaveLength(goalTermChoices([], now).length);
-  });
-});
-
-describe('programChoices', () => {
-  it('offers APCS with the offered cohorts that have a curriculum, and lists the rest as not offered (A7)', () => {
-    const choices = programChoices([program('CLCZZ', [2025]), program('APCS', [2023, 2024, 2025])]);
-    expect(choices.map(({ code, cohorts, offered }) => ({ code, cohorts, offered }))).toEqual([
-      { code: 'APCS', cohorts: [2024, 2025], offered: true },
-      { code: 'CLCZZ', cohorts: [], offered: false },
-    ]);
-  });
-
-  it('still offers APCS when the program list could not say more', () => {
-    expect(programChoices([])).toEqual([{ code: 'APCS', program: null, cohorts: [2024, 2025], offered: true }]);
   });
 });
 

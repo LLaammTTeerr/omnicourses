@@ -6,12 +6,12 @@ import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import LoadState from '../components/LoadState.vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
+import { fetchCurriculum, type Course, type RequirementGroup } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
+import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { replay, scrollToView } from '../motion.js';
-import { programChoices } from '../onboarding/answers.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -31,8 +31,8 @@ const m = useMessages(EXPLORER_MESSAGES);
 
 // The student's program and cohort by default (UC-01), then whatever they pick. Only offered ones are listed: the
 // other curricula are seeded but not verified (B1 §6 item 1).
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
-const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
+const { choices: allChoices } = usePrograms();
+const choices = computed(() => allChoices.value.filter((choice) => choice.offered));
 const picked = ref<{ program: string; cohort: number } | null>(null);
 const selection = computed(() => {
   if (picked.value) return picked.value;
@@ -42,7 +42,7 @@ const selection = computed(() => {
   return first?.cohorts[0] ? { program: first.code, cohort: first.cohorts[0] } : null;
 });
 const cohorts = computed(() => choices.value.find((choice) => choice.code === selection.value?.program)?.cohorts ?? []);
-const programName = (choice: (typeof choices.value)[number]) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
+const programName = (choice: ProgramChoice) => nameOfProgram(choice, locale.lang);
 
 function pickProgram(code: string): void {
   const cohort = choices.value.find((choice) => choice.code === code)?.cohorts[0];
