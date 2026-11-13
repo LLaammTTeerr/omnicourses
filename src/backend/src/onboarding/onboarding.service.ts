@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term } from '../terms/term.js';
+import { Term, termFromColumns } from '../terms/term.js';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { NO_INTERNSHIP, OnboardingDto } from './onboarding.dto.js';
 
@@ -18,6 +18,11 @@ export class OnboardingService {
   /** The saved answers; every answer null and finished false before the first save. */
   async answersFor(userId: string): Promise<OnboardingDto> {
     return toOnboarding(await this.answers.findOneBy({ userId }));
+  }
+
+  /** The program and cohort the student finished onboarding with, or null (the degree audit's input). */
+  async programFor(userId: string): Promise<OnboardedProgram | null> {
+    return toProgram(await this.answers.findOneBy({ userId }));
   }
 
   /** Replaces every answer. finished_at keeps the first Finish; finished false clears it. */
@@ -57,10 +62,22 @@ export class OnboardingService {
   }
 }
 
+/** The read contract for other modules: the program and cohort, apart from the HTTP answers. */
+export interface OnboardedProgram {
+  programCode: string;
+  cohortYear: number;
+}
+
+/** Null until onboarding is finished with a program and cohort. */
+export function toProgram(row: OnboardingAnswers | null): OnboardedProgram | null {
+  if (!row || row.finishedAt === null || row.programCode === null || row.cohortYear === null) return null;
+  return { programCode: row.programCode, cohortYear: row.cohortYear };
+}
+
 type AnswerColumns = Omit<OnboardingAnswers, 'userId' | 'user' | 'finishedAt' | 'createdAt' | 'updatedAt'>;
 
 const term = (year: number | null, number: number | null): Term | null =>
-  year === null || number === null ? null : { year, number: number as Term['number'] };
+  year === null || number === null ? null : termFromColumns(year, number);
 
 export function toOnboarding(row: OnboardingAnswers | null): OnboardingDto {
   if (!row) {

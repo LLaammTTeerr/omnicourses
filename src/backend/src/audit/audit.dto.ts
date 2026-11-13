@@ -1,10 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import type { CodedErrorBody } from '../common/coded-error.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-types.js';
 import {
+  AUDIT_UNAVAILABLE_CODES,
   AUDIT_WARNING_CODES,
   CONDITION_STATUSES,
   COURSE_STATUSES,
+  GRADUATION_VERDICTS,
+  type AuditUnavailableCode,
   type AuditWarning,
   type AuditWarningCode,
   type CombinedMinimumCoverage,
@@ -16,12 +19,14 @@ import {
   type GpaSummary,
   type GraduationCondition,
   type GraduationStatus,
+  type GraduationVerdict,
   type GroupCoverage,
   type TermSummary,
   type UnmatchedCourse,
 } from '../rules/audit-types.js';
-import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
-import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
+import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type TermKind } from '../rules/credit-caps.js';
+import { CreditCapsDto } from '../rules/credit-caps.dto.js';
+import { CLASSIFICATIONS, type Classification, YEAR_LEVELS, type YearLevel } from '../rules/grades.js';
 import { TermDto } from '../terms/term.dto.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
@@ -170,8 +175,8 @@ export class CreditSummaryDto implements CreditSummary {
   @ApiProperty({ type: Number, nullable: true })
   remaining!: number | null;
 
-  @ApiProperty({ enum: [1, 2, 3, 4], description: 'Year of study from the accumulated credits (Điều 15.3)' })
-  yearLevel!: 1 | 2 | 3 | 4;
+  @ApiProperty({ enum: YEAR_LEVELS, description: 'Year of study from the accumulated credits (Điều 15.3)' })
+  yearLevel!: YearLevel;
 }
 
 export class GpaSummaryDto implements GpaSummary {
@@ -189,14 +194,6 @@ export class GpaSummaryDto implements GpaSummary {
 
   @ApiProperty()
   gradedCredits!: number;
-}
-
-export class CreditCapsDto implements CreditCaps {
-  @ApiProperty({ type: Number, nullable: true })
-  min!: number | null;
-
-  @ApiProperty()
-  max!: number;
 }
 
 export class CapViolationDto implements CapViolation {
@@ -266,8 +263,8 @@ export class GraduationConditionDto implements GraduationCondition {
 }
 
 export class GraduationStatusDto implements GraduationStatus {
-  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every condition the data can check is met; the notChecked ones still need the school' })
-  status!: 'done' | 'not_yet';
+  @ApiProperty({ enum: GRADUATION_VERDICTS, description: 'done: every condition the data can check is met; the notChecked ones still need the school' })
+  status!: GraduationVerdict;
 
   @ApiProperty({ type: [GraduationConditionDto] })
   met!: GraduationConditionDto[];
@@ -335,12 +332,12 @@ export class DegreeAuditDto implements DegreeAudit {
 }
 
 /** 409: the audit has no program and cohort to work from. */
-export class AuditUnavailableDto {
+export class AuditUnavailableDto implements CodedErrorBody {
   @ApiProperty({ example: 409 })
   statusCode!: number;
 
-  @ApiProperty({ enum: ['onboarding_required', 'curriculum_not_found'] })
-  code!: 'onboarding_required' | 'curriculum_not_found';
+  @ApiProperty({ enum: AUDIT_UNAVAILABLE_CODES })
+  code!: AuditUnavailableCode;
 
   @ApiProperty()
   message!: string;

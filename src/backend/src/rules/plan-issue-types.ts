@@ -1,14 +1,9 @@
-import type { TrainingType } from '../curriculum/program.entity.js';
-import type { RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
-import type { CreditCaps, TermKind } from '../rules/credit-caps.js';
+// The result of a plan check (F5, ADR 0014): plain types `checkPlan` returns. The HTTP DTOs in
+// `plans/plan-issues.dto.ts` implement them, so the contract and the engine cannot drift apart.
+import type { RequirementGroupKind, TrainingType } from '../curriculum/curriculum-types.js';
 import type { Term } from '../terms/term.js';
-import type { BoardTerm } from './plan-board.js';
-import type { PlanDto } from './plans.dto.js';
-
-// Seam between the plans module and the rule engine (ADR 0014): this module stores placements and
-// judges none of them (AGENTS.md hard rule 1). RulesService implements PlanIssuesProvider; the
-// pure checks are in `rules/plan-issues.ts`. GET /api/plans/{id}/issues serves the result, and it
-// is the check F5 runs live and ADR 0006's validate(plan).
+import type { GraduationVerdict } from './audit-types.js';
+import type { CreditCaps, TermKind } from './credit-caps.js';
 
 export const PLAN_ISSUE_CODES = [
   /** A prerequisite is neither passed nor placed in an earlier term (Điều 3.1.c). */
@@ -127,7 +122,7 @@ export interface PlanCoverage {
   totalCredits: number;
   totalRemaining: number | null;
   /** done: every requirement the data can check would be met. The school still checks the rest (Điều 17.3). */
-  graduation: 'done' | 'not_yet';
+  graduation: GraduationVerdict;
 }
 
 export interface PlanIssuesReport {
@@ -139,13 +134,3 @@ export interface PlanIssuesReport {
   issues: PlanIssue[];
   coverage: PlanCoverage;
 }
-
-export interface PlanIssuesProvider {
-  /** Every issue of the student's plan, checked against the plan's own curriculum. Never blocks saving (ADR 0012). */
-  issuesFor(userId: string, plan: PlanDto): Promise<PlanIssuesReport>;
-  /** The same check on several boards of one plan, the inputs read once: the planner's drag preview. */
-  issuesForBoards(userId: string, plan: PlanDto, boards: readonly BoardTerm[][]): Promise<PlanIssuesReport[]>;
-}
-
-/** Injection token for the provider the rules module registers. */
-export const PLAN_ISSUES_PROVIDER = Symbol('PlanIssuesProvider');

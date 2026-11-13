@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { OnboardingDto } from './onboarding.dto.js';
-import { toColumns, toOnboarding } from './onboarding.service.js';
+import { toColumns, toOnboarding, toProgram } from './onboarding.service.js';
 
 const row = (columns: Partial<OnboardingAnswers>): OnboardingAnswers =>
   ({ userId: '00000000-0000-4000-8000-000000000000', finishedAt: null, createdAt: new Date(), updatedAt: new Date(), ...columns }) as OnboardingAnswers;
@@ -38,5 +38,19 @@ describe('onboarding answers and their columns', () => {
   it('reads finished from finished_at (USER-01l)', () => {
     const dto: OnboardingDto = { program: 'APCS', cohort: 2024, targetGraduationTerm: null, creditsPerTerm: null, internshipTerm: null, finished: false };
     expect(toOnboarding(asRow(dto, null)).finished).toBe(false);
+  });
+});
+
+describe('the program and cohort other modules read', () => {
+  const finished: OnboardingDto = { program: 'ZZPROG', cohort: 2024, targetGraduationTerm: null, creditsPerTerm: null, internshipTerm: null, finished: true };
+
+  it('is the program and cohort once onboarding is finished', () => {
+    expect(toProgram(asRow(finished, new Date()))).toEqual({ programCode: 'ZZPROG', cohortYear: 2024 });
+  });
+
+  it('is null while onboarding is not finished, even with a program saved, and before the first save', () => {
+    expect(toProgram(asRow(finished, null))).toBeNull();
+    expect(toProgram(asRow({ ...finished, program: null, cohort: null }, new Date()))).toBeNull();
+    expect(toProgram(null)).toBeNull();
   });
 });

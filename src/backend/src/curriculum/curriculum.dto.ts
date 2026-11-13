@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TRAINING_TYPES, type TrainingType } from './program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from './requirement-group.entity.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from './curriculum-types.js';
 
 // Read shapes of the curriculum (F4, ADR 0005). They carry only what the database stores:
 // prerequisites and offering terms are null until F12 records them for a course of a

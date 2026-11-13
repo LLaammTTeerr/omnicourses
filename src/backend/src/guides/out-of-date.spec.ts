@@ -1,17 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { vietnamDate } from '../config/time.js';
+import { vietnamDate } from '../terms/calendar.js';
 import { addMonths, isOutOfDate } from './out-of-date.js';
-
-describe('vietnamDate', () => {
-  it('is the UTC date during the Vietnamese day', () => {
-    expect(vietnamDate(new Date('2026-11-13T05:00:00Z'))).toBe('2026-11-13');
-  });
-
-  it('is already the next day between 00:00 and 07:00 in Vietnam, while the UTC date is the day before', () => {
-    expect(vietnamDate(new Date('2026-11-12T17:00:00Z'))).toBe('2026-11-13');
-    expect(vietnamDate(new Date('2026-11-12T16:59:59Z'))).toBe('2026-11-12');
-  });
-});
 
 describe('addMonths', () => {
   it('adds and subtracts calendar months', () => {

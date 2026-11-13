@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { VietnamDay } from '../terms/calendar.js';
 import { goalTermWindow, isInGoalTermWindow, isOfferedCohort, OFFERED_PROGRAMS } from './onboarding-options.js';
 
 describe('offered programs (B1 §6 item 1)', () => {
@@ -21,7 +22,7 @@ describe('offered programs (B1 §6 item 1)', () => {
 });
 
 describe('goal term window (B1 §6 item 4)', () => {
-  const today = '2026-11-09';
+  const today = '2026-11-09' as VietnamDay;
 
   it('runs from the current term to term 3 eight academic years ahead', () => {
     expect(goalTermWindow(today)).toEqual({ first: { year: 2026, number: 1 }, last: { year: 2034, number: 3 } });
@@ -38,7 +39,7 @@ describe('goal term window (B1 §6 item 4)', () => {
   });
 
   it('moves with the date: in June the current term is term 3 of the year before', () => {
-    expect(isInGoalTermWindow({ year: 2026, number: 2 }, '2027-06-01')).toBe(false);
-    expect(isInGoalTermWindow({ year: 2026, number: 3 }, '2027-06-01')).toBe(true);
+    expect(isInGoalTermWindow({ year: 2026, number: 2 }, '2027-06-01' as VietnamDay)).toBe(false);
+    expect(isInGoalTermWindow({ year: 2026, number: 3 }, '2027-06-01' as VietnamDay)).toBe(true);
   });
 });

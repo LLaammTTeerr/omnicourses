@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
-// GET /api/plans/{id}/issues (ADR 0014) against PostgreSQL. A synthetic Tiên tiến curriculum
+// GET and POST /api/plans/{id}/issues and POST …/issues/drops (ADR 0014) against PostgreSQL. A synthetic Tiên tiến curriculum
 // (AGENTS.md hard rule 3), unique per run so reruns never collide. Expected values are worked out
 // by hand in the comments, not read from the code under test.
 const tag = randomBytes(3).toString('hex').toUpperCase();

@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { degreeAudit } from './audit.js';
 import type { DegreeAudit, GroupCoverage } from './audit-types.js';
-import { NOT_CHECKED_CONDITIONS } from './graduation.js';
 import { course, graded, group, term, ungraded, zzCurriculum, zzGraduatingTranscript } from './testing/fixtures.js';
 
 // Every expected number below is worked out by hand from the synthetic curriculum in
 // testing/fixtures.ts (total 38: A bb 8, A tc 4, B 4, B + C 12, Non 4, TN 10).
+
+/** Điều 17.3's conditions the data cannot show, written out by hand. */
+const NOT_CHECKED = [
+  { id: 'no_prosecution_or_suspension', description: 'Not being prosecuted, and not serving a suspension, at the time of graduation review', citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.a', status: 'not_checked' },
+  { id: 'defence_education_certificate', description: 'The Giáo dục quốc phòng - An ninh certificate (passing the courses is checked with their group)', citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.c', status: 'not_checked' },
+  { id: 'foreign_language_standard', description: "The school's foreign-language standard", citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.d', status: 'not_checked' },
+  { id: 'it_standard', description: 'The IT standard set by the curriculum', citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.e', status: 'not_checked' },
+  { id: 'study_time_limit', description: 'Finishing within the maximum study time', citation: 'QĐ 1175/QĐ-KHTN Điều 2.7', status: 'not_checked' },
+];
 
 const groupOf = (audit: DegreeAudit, id: string): GroupCoverage => audit.groups.find((g) => g.id === id)!;
 const statusOf = (audit: DegreeAudit, groupId: string, code: string) => groupOf(audit, groupId).courses.find((c) => c.code === code)!.status;
@@ -54,14 +62,7 @@ describe('degree audit', () => {
     });
 
     it('lists the conditions the data cannot check, never as met', () => {
-      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
-      expect(audit.graduation.notChecked.map((c) => c.id)).toEqual([
-        'no_prosecution_or_suspension',
-        'defence_education_certificate',
-        'foreign_language_standard',
-        'it_standard',
-        'study_time_limit',
-      ]);
+      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED);
     });
 
     it('has no unmatched course and no warning', () => {
@@ -321,3 +322,20 @@ describe('degree audit', () => {
     expect(short.terms[0].capViolations.map((v) => [v.rule, v.credits])).toEqual([['below_minimum', 12]]);
   });
 });
+
+describe('the order of the audit', () => {
+  it('is the engine’s own: groups and combined minimums by name, courses by code, whatever order the curriculum is read in', () => {
+    const rules = zzCurriculum();
+    const shuffled = {
+      ...rules,
+      groups: [...rules.groups].reverse().map((g) => ({ ...g, courses: [...g.courses].reverse() })),
+      combinedMinimums: rules.combinedMinimums.map((m) => ({ ...m, groupIds: [...m.groupIds].reverse() })),
+    };
+    const audit = degreeAudit(shuffled, zzGraduatingTranscript());
+    expect(audit).toEqual(degreeAudit(rules, zzGraduatingTranscript()));
+    expect(audit.groups.map((g) => g.name)).toEqual(['Group a-bb', 'Group a-tc', 'Group b', 'Group c', 'Group non', 'Group tn']);
+    expect(audit.groups.find((g) => g.id === 'c')!.courses.map((c) => c.code)).toEqual(['ZZC1', 'ZZC2', 'ZZC3']);
+    expect(audit.combinedMinimums[0]!.groupIds).toEqual(['b', 'c']);
+  });
+});
+

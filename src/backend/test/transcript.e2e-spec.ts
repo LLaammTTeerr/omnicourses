@@ -154,10 +154,11 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
       await blockedBy(pid);
 
-      // Sign-in inserts a session, whose foreign-key check needs a KEY SHARE lock on the user.
-      const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((res) => res.status);
-      const outcome = await Promise.race([signIn, new Promise((resolve) => setTimeout(() => resolve('still waiting'), 3000))]);
-      expect(outcome).toBe(200);
+      // Sign-in inserts a session, whose foreign-key check needs a KEY SHARE lock on the user. It
+      // finishes while the save still waits; were it blocked, it would wait for this transaction,
+      // which ends only after it, and the test would time out.
+      await http().post('/api/auth/sign-in').send({ email, password }).expect(200);
+      await blockedBy(pid);
     } finally {
       if (other.isTransactionActive) await other.rollbackTransaction();
       await other.release();

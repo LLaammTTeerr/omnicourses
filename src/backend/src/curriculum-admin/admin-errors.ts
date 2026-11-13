@@ -1,11 +1,12 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
+import { codedError, type CodedErrorBody } from '../common/coded-error.js';
 import type { PermissionKind } from './grant-scope.js';
 
-// Every F12 error carries a stable `code` (ADR 0011, "Validation, errors and removal"), the
-// same body shape as `ai_unavailable`, so a client branches on the code, not the message.
+// Every F12 error carries a stable `code` (ADR 0011, "Validation, errors and removal"): the
+// coded body of common/coded-error.ts, so a client branches on the code, not the message.
 
-export class AdminErrorDto {
+export class AdminErrorDto implements CodedErrorBody {
   @ApiProperty({ example: 409 })
   statusCode!: number;
 
@@ -54,19 +55,18 @@ export class ImpactConfirmationDto extends AdminErrorDto {
 }
 
 export const permissionRequired = (permission: PermissionKind) =>
-  new ForbiddenException({ statusCode: 403, code: 'permission_required', permission, message: `This needs the ${permission} permission` });
+  codedError(ForbiddenException, 'permission_required', `This needs the ${permission} permission`, { permission });
 
 export const accountDeletionPending = () =>
-  new ForbiddenException({ statusCode: 403, code: 'account_deletion_pending', message: 'An account waiting for deletion cannot administer curricula' });
+  codedError(ForbiddenException, 'account_deletion_pending', 'An account waiting for deletion cannot administer curricula');
 
-export const notFound = (message: string) => new NotFoundException({ statusCode: 404, code: 'not_found', message });
+export const notFound = (message: string) => codedError(NotFoundException, 'not_found', message);
 
-export const validationFailed = (message: string | string[]) => new BadRequestException({ statusCode: 400, code: 'validation_failed', message });
+export const validationFailed = (message: string | string[]) => codedError(BadRequestException, 'validation_failed', message);
 
 export const prerequisiteCycle = (cycle: string[]) =>
-  new BadRequestException({ statusCode: 400, code: 'prerequisite_cycle', cycle, message: `Prerequisite cycle: ${cycle.join(' → ')}` });
+  codedError(BadRequestException, 'prerequisite_cycle', `Prerequisite cycle: ${cycle.join(' → ')}`, { cycle });
 
-export const conflict = (code: string, message: string, extra: Record<string, unknown> = {}) =>
-  new ConflictException({ statusCode: 409, code, message, ...extra });
+export const conflict = (code: string, message: string, extra: Record<string, unknown> = {}) => codedError(ConflictException, code, message, extra);
 
 export const referencedItem = (message: string, references: string[]) => conflict('referenced_item', message, { references });

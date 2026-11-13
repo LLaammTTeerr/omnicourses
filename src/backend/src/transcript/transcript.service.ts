@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term } from '../terms/term.js';
+import { termFromColumns } from '../terms/term.js';
 import { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
 
@@ -43,7 +43,7 @@ function toEntry(row: TranscriptRow): TranscriptEntry {
     credits: row.credits,
     result: row.result,
     grade: row.grade,
-    term: { year: row.termYear, number: row.termNumber as Term['number'] },
+    term: termFromColumns(row.termYear, row.termNumber),
   };
 }
 

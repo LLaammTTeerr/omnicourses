@@ -1,6 +1,7 @@
 // Terms and credit caps (QĐ 1175/QĐ-KHTN Điều 6.4 and 7.2, ADR 0009 and ADR 0012). Pure functions.
-import type { TrainingType } from '../curriculum/program.entity.js';
+import type { TrainingType } from '../curriculum/curriculum-types.js';
 import type { Term } from '../terms/term.js';
+import { CAP_CITATION, PETITION_CITATION } from './citations.js';
 
 export const TERM_KINDS = ['main', 'summer'] as const;
 export type TermKind = (typeof TERM_KINDS)[number];
@@ -40,12 +41,18 @@ export interface LoadCourse {
   excludedFromMinimum?: boolean;
 }
 
+/**
+ * Whether a course is left out of the đại trà minimum: Giáo dục quốc phòng, Giáo dục thể chất and
+ * general foreign language (Điều 7.2.a). The curriculum does not record which courses are general
+ * foreign language yet (ADR 0012), so this takes the courses outside the cohort total (GDTC,
+ * GDQP-AN). A course outside the curriculum (undefined) counts toward the minimum.
+ */
+export const isExcludedFromMinimum = (course: { countsTowardTotal: boolean } | undefined): boolean => course?.countsTowardTotal === false;
+
 export const CAP_RULES = ['below_minimum', 'above_maximum'] as const;
 export type CapRule = (typeof CAP_RULES)[number];
 
-export const CAP_CITATION = 'QĐ 1175/QĐ-KHTN Điều 7.2';
-export const PETITION_NOTE =
-  'Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b).';
+export const PETITION_NOTE = `Allowed by a petition that the faculty supports and the Rector approves (${PETITION_CITATION}).`;
 
 /** A load outside the caps. It never blocks a plan (ADR 0012): the regulation allows it by petition. */
 export interface CapViolation {

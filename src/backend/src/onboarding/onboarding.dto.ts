@@ -1,10 +1,9 @@
 import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsObject, ValidateBy, ValidateIf, ValidateNested, ValidationOptions } from 'class-validator';
-import { vietnamDate } from '../config/time.js';
-import { termLabel } from '../terms/current-term.js';
+import { vietnamDate } from '../terms/calendar.js';
 import { TermDto } from '../terms/term.dto.js';
-import { Term, TERM_NUMBERS } from '../terms/term.js';
+import { isTerm, termLabel } from '../terms/term.js';
 import { goalTermWindow, isInGoalTermWindow, isOfferedCohort, OFFERED_COHORTS, OFFERED_PROGRAMS, YEARS_AHEAD } from './onboarding-options.js';
 
 /** internshipTerm when the student plans no internship: kept apart from null, which means not answered (B1 §6 item 3). */
@@ -15,12 +14,6 @@ export const NO_INTERNSHIP = 'none';
 const MAX_STORED_CREDITS = 2_147_483_647;
 const CREDITS_MESSAGE = 'creditsPerTerm must be a whole number of 1 or more';
 
-const isTermShape = (value: unknown): value is Term =>
-  typeof value === 'object' &&
-  value !== null &&
-  Number.isInteger((value as Term).year) &&
-  (TERM_NUMBERS as readonly unknown[]).includes((value as Term).number);
-
 /** A term from the current one up to YEARS_AHEAD academic years ahead (B1 §6 item 4), on today's Vietnam date. */
 function IsGoalTerm(options?: ValidationOptions): PropertyDecorator {
   return ValidateBy(
@@ -28,7 +21,7 @@ function IsGoalTerm(options?: ValidationOptions): PropertyDecorator {
       name: 'isGoalTerm',
       // A malformed term is reported by TermDto's own rules; this only places a well-formed one.
       validator: {
-        validate: (value: unknown) => !isTermShape(value) || isInGoalTermWindow(value, vietnamDate(new Date())),
+        validate: (value: unknown) => !isTerm(value) || isInGoalTermWindow(value, vietnamDate(new Date())),
         defaultMessage: (args) => {
           const { first, last } = goalTermWindow(vietnamDate(new Date()));
           return `${args?.property} must be from ${termLabel(first)} (the current term) to ${termLabel(last)}`;

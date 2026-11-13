@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attemptPasses, courseRecords, recordAsOf } from './attempts.js';
+import { attemptPasses, courseRecords, recordAsOf, recordBefore } from './attempts.js';
 import { graded, term, ungraded } from './testing/fixtures.js';
 
 const one = (...entries: Parameters<typeof courseRecords>[0]) => [...courseRecords(entries).values()][0];
@@ -76,9 +76,34 @@ describe('retakes (Điều 14)', () => {
     expect(recordAsOf(r, term(2023, 3))).toBeNull();
   });
 
+  it('resolves a course as it stood before a term began, without that term', () => {
+    const r = one(graded('ZZ1', 4, 3, term(2024, 1)), graded('ZZ1', 4, 7, term(2024, 2)));
+    expect(recordBefore(r, term(2024, 2))?.passed).toBe(false);
+    expect(recordBefore(r, term(2024, 3))?.passed).toBe(true);
+    expect(recordBefore(r, term(2024, 1))).toBeNull();
+  });
+
+  it('ranks a failed attempt without a grade below a failed grade, and a pass without a grade above a passing one', () => {
+    expect(one(ungraded('ZZ1', 4, 'fail', term(2024, 1)), graded('ZZ1', 4, 1, term(2024, 1))).official?.result).toBe('fail');
+    expect(one(graded('ZZ1', 4, 4.9, term(2024, 1)), graded('ZZ1', 4, 5, term(2024, 1))).official?.grade).toBe(4.9);
+    expect(one(ungraded('ZZ1', 4, 'pass', term(2024, 1)), graded('ZZ1', 4, 10, term(2024, 1))).official?.grade).toBe(10);
+  });
+
   it('takes the name from the latest attempt and sorts courses by code', () => {
     const records = courseRecords([graded('ZZ2', 4, 7), { ...graded('ZZ1', 4, 7, term(2025, 1)), courseName: 'New name' }, graded('ZZ1', 4, 7, term(2024, 1))]);
     expect([...records.keys()]).toEqual(['ZZ1', 'ZZ2']);
     expect(records.get('ZZ1')?.name).toBe('New name');
+  });
+
+  it('reads same-term attempts the same whatever order the transcript lists them in (ADR 0013)', () => {
+    const first = { ...ungraded('ZZ1', 3, 'in_progress', term(2024, 1)), courseName: 'Name A' };
+    const second = { ...ungraded('ZZ1', 4, 'in_progress', term(2024, 1)), courseName: 'Name B' };
+    for (const entries of [[first, second], [second, first]]) {
+      const r = one(...entries);
+      expect(r.name).toBe('Name B');
+      expect(r.attempts.map((a) => a.credits)).toEqual([3, 4]);
+    }
+    const failed = [{ ...ungraded('ZZ1', 3, 'fail', term(2024, 1)), courseName: 'Name A' }, { ...ungraded('ZZ1', 4, 'fail', term(2024, 1)), courseName: 'Name B' }];
+    expect(one(...failed).official?.credits).toBe(one(...[...failed].reverse()).official?.credits);
   });
 });

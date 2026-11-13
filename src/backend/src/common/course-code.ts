@@ -10,14 +10,17 @@ export const isCourseCode = (code: string): boolean => COURSE_CODE_PATTERN.test(
  * validates. Null when the result is still not a code; nothing else is dropped or guessed.
  */
 export function canonicalCourseCode(input: string): string | null {
-  const code = input.trim().toUpperCase();
+  const code = canonicalForm(input);
   return isCourseCode(code) ? code : null;
 }
+
+/** Trimmed and upper-cased, valid or not: the form canonicalCourseCode checks. */
+export const canonicalForm = (input: string): string => input.trim().toUpperCase();
 
 /**
  * Lenient, for transcribing a printed code: trims, upper-cases and drops spaces
  * and dashes. A code it cannot make valid (a dot) stays invalid, never guessed.
  */
 export function normalizePrintedCode(printed: string): string {
-  return printed.trim().toUpperCase().replace(/[\s\-‐-―]/g, '');
+  return canonicalForm(printed).replace(/[\s\-‐-―]/g, '');
 }

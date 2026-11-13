@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CatalogLookup } from './catalog-lookup.js';
 import { CombinedMinimum, CombinedMinimumGroup } from './combined-minimum.entity.js';
 import { CourseOfferingTerm } from './course-offering-term.entity.js';
 import { CoursePrerequisiteList } from './course-prerequisite-list.entity.js';
@@ -15,9 +16,9 @@ import { RequirementGroupCourse } from './requirement-group-course.entity.js';
 import { RequirementGroupOverflow } from './requirement-group-overflow.entity.js';
 import { RequirementGroup } from './requirement-group.entity.js';
 
-// Curriculum reads (F4, ADR 0005). Other modules (rule engine, onboarding, planner)
-// import this module and inject CurriculumService. The rule engine reads the rules it
-// applies through CurriculumRulesReader (ADR 0013).
+// Curriculum reads (F4, ADR 0005). The explorer reads through CurriculumService; the rule engine
+// reads the rules it applies through CurriculumRulesReader and CourseRulesService (ADR 0013);
+// the planner and the engine make their bulk lookups through CatalogLookup.
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -35,7 +36,7 @@ import { RequirementGroup } from './requirement-group.entity.js';
     ]),
   ],
   controllers: [CurriculumController],
-  providers: [CurriculumService, CurriculumRulesReader, CourseRulesService],
-  exports: [CurriculumService, CurriculumRulesReader, CourseRulesService],
+  providers: [CurriculumService, CurriculumRulesReader, CourseRulesService, CatalogLookup],
+  exports: [CurriculumService, CurriculumRulesReader, CourseRulesService, CatalogLookup],
 })
 export class CurriculumModule {}

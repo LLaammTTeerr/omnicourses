@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
@@ -129,6 +129,40 @@ describe('Plans API against PostgreSQL (e2e)', () => {
 
     const after = (await http().get(`/api/plans/${plan.id}`).set(auth).expect(200)).body;
     expect(after.terms).toEqual(next);
+  });
+
+  it('saves a plan while a row that references it is being inserted, and waits for another save of it before touching a placement', async () => {
+    const { auth } = await student();
+    const plan = await newPlan(auth, { terms: board() });
+    const put = (terms: unknown) => http().put(`/api/plans/${plan.id}/placements`).set(auth).send({ terms });
+    const other = db.createQueryRunner();
+    await other.connect();
+    try {
+      const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
+      // An insert that references the plan (a duplicate's rows, a share) holds a KEY SHARE lock on it.
+      await other.startTransaction();
+      await other.query('SELECT 1 FROM plans WHERE id = $1 FOR KEY SHARE', [plan.id]);
+      expect((await put([]).expect(200)).body.terms).toEqual([]);
+      await other.rollbackTransaction();
+
+      // Another save of the plan holds it: this save waits before it touches a placement, so two
+      // saves never interleave their rows.
+      await put(board()).expect(200);
+      await other.startTransaction();
+      await other.query('SELECT 1 FROM plans WHERE id = $1 FOR NO KEY UPDATE', [plan.id]);
+      const saving = put(board()).then((res) => res.status);
+      await vi.waitFor(async () => {
+        const [{ n }] = await db.query('SELECT count(*)::int AS n FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))', [pid]);
+        expect(n).toBeGreaterThan(0);
+      });
+      await other.query('SELECT 1 FROM plan_placements WHERE plan_id = $1 FOR UPDATE NOWAIT', [plan.id]);
+      await other.commitTransaction();
+      expect(await saving).toBe(200);
+    } finally {
+      if (other.isTransactionActive) await other.rollbackTransaction();
+      await other.release();
+    }
+    expect((await http().get(`/api/plans/${plan.id}`).set(auth).expect(200)).body.terms).toEqual(board());
   });
 
   it('empties a plan with an empty board', async () => {

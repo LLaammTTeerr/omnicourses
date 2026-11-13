@@ -1,24 +1,24 @@
-import { Body, Controller, Delete, Get, HttpCode, Inject, NotFoundException, Param, Patch, PipeTransform, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, PipeTransform, Post, Put } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { UUID_PATTERN } from '../common/uuid.js';
+import { type PlanRef, RulesService } from '../rules/rules.service.js';
 import { User } from '../users/user.entity.js';
 import { PlanDropReportsDto, PlanIssuesDto } from './plan-issues.dto.js';
-import { PLAN_ISSUES_PROVIDER, type PlanIssuesProvider } from './plan-issues.js';
 import { CreatePlanDto, DuplicatePlanDto, PlanBoardDto, PlanDropPreviewDto, PlanDto, PlanListDto, RenamePlanDto } from './plans.dto.js';
-import { PlansService } from './plans.service.js';
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { planNotFound, PlansService } from './plans.service.js';
 
 /** A malformed id is a 404 like any unknown plan: a 400 or a 500 would tell ids apart. */
 export class PlanIdPipe implements PipeTransform<string, string> {
   transform(value: string): string {
-    if (!UUID.test(value)) throw new NotFoundException('No plan with this id');
+    if (!UUID_PATTERN.test(value)) throw planNotFound();
     return value.toLowerCase();
   }
 }
 
 const NOT_FOUND = 'No plan with this id among the signed-in student’s plans (another student’s plan included).';
 const PlanId = () => Param('id', new PlanIdPipe());
+const ref = (plan: PlanDto): PlanRef => ({ planId: plan.id, curriculumId: plan.curriculum.id });
 
 // F5 plans (UC-05, ADR 0014), the signed-in student's own only.
 @ApiTags('plans')
@@ -27,7 +27,7 @@ const PlanId = () => Param('id', new PlanIdPipe());
 export class PlansController {
   constructor(
     private readonly plans: PlansService,
-    @Inject(PLAN_ISSUES_PROVIDER) private readonly issues: PlanIssuesProvider,
+    private readonly rules: RulesService,
   ) {}
 
   @Get()
@@ -61,7 +61,7 @@ export class PlansController {
   @ApiNotFoundResponse({ description: NOT_FOUND })
   async issuesOf(@CurrentUser() user: User, @PlanId() id: string): Promise<PlanIssuesDto> {
     const plan = await this.plans.get(user.id, id);
-    return this.issues.issuesFor(user.id, plan);
+    return this.rules.issuesFor(user.id, ref(plan), plan.terms);
   }
 
   @Post(':id/issues')
@@ -76,7 +76,7 @@ export class PlansController {
   @ApiNotFoundResponse({ description: NOT_FOUND })
   async previewIssues(@CurrentUser() user: User, @PlanId() id: string, @Body() dto: PlanBoardDto): Promise<PlanIssuesDto> {
     const plan = await this.plans.withBoard(user.id, id, dto.terms);
-    return this.issues.issuesFor(user.id, plan);
+    return this.rules.issuesFor(user.id, ref(plan), plan.terms);
   }
 
   @Post(':id/issues/drops')
@@ -91,7 +91,7 @@ export class PlansController {
   @ApiNotFoundResponse({ description: NOT_FOUND })
   async previewDrops(@CurrentUser() user: User, @PlanId() id: string, @Body() dto: PlanDropPreviewDto): Promise<PlanDropReportsDto> {
     const { plan, boards } = await this.plans.dropBoards(user.id, id, dto.terms, dto.placement, dto.targets);
-    const reports = await this.issues.issuesForBoards(user.id, plan, boards);
+    const reports = await this.rules.issuesForBoards(user.id, ref(plan), boards);
     return { reports: dto.targets.map((term, i) => ({ term, issues: reports[i]! })) };
   }
 

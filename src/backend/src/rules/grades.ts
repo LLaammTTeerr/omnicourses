@@ -14,37 +14,26 @@ export function isPassingGrade(grade: number): boolean {
   return toTenths(grade) >= PASSING_GRADE_TENTHS;
 }
 
-export const LETTER_GRADES = ['A+', 'A', 'B+', 'B', 'C', 'D+', 'D', 'F'] as const;
-export type LetterGrade = (typeof LETTER_GRADES)[number];
-
 /**
- * Điều 11.1: the 10-point grade converted to the 4-point scale and to a letter. Điều 11.2: both are
- * for reference only, never for recording or ranking. D+ and D have a 4-point value but are not
- * passing grades (Điều 11.4).
+ * Điều 11.1: the 10-point grade converted to the 4-point scale (A+ to F). Điều 11.2: for reference
+ * only, never for recording or ranking. D+ (4.0–4.9) and D (3.0–3.9) have a 4-point value but are
+ * not passing grades (Điều 11.4).
  */
-const CONVERSION: { fromTenths: number; fourPointTenths: number; letter: LetterGrade }[] = [
-  { fromTenths: 90, fourPointTenths: 40, letter: 'A+' },
-  { fromTenths: 80, fourPointTenths: 35, letter: 'A' },
-  { fromTenths: 70, fourPointTenths: 30, letter: 'B+' },
-  { fromTenths: 60, fourPointTenths: 25, letter: 'B' },
-  { fromTenths: 50, fourPointTenths: 20, letter: 'C' },
-  { fromTenths: 40, fourPointTenths: 15, letter: 'D+' },
-  { fromTenths: 30, fourPointTenths: 10, letter: 'D' },
-  { fromTenths: 0, fourPointTenths: 0, letter: 'F' },
+const CONVERSION: { fromTenths: number; fourPointTenths: number }[] = [
+  { fromTenths: 90, fourPointTenths: 40 },
+  { fromTenths: 80, fourPointTenths: 35 },
+  { fromTenths: 70, fourPointTenths: 30 },
+  { fromTenths: 60, fourPointTenths: 25 },
+  { fromTenths: 50, fourPointTenths: 20 },
+  { fromTenths: 40, fourPointTenths: 15 },
+  { fromTenths: 30, fourPointTenths: 10 },
+  { fromTenths: 0, fourPointTenths: 0 },
 ];
-
-function conversionOf(grade: number): (typeof CONVERSION)[number] {
-  const tenths = toTenths(grade);
-  return CONVERSION.find((c) => tenths >= c.fromTenths) ?? CONVERSION[CONVERSION.length - 1];
-}
 
 /** The 4-point value in tenths (Điều 11.1): 8.5 → 35, i.e. 3.5. */
 export function fourPointTenths(grade: number): number {
-  return conversionOf(grade).fourPointTenths;
-}
-
-export function letterGrade(grade: number): LetterGrade {
-  return conversionOf(grade).letter;
+  const tenths = toTenths(grade);
+  return (CONVERSION.find((c) => tenths >= c.fromTenths) ?? CONVERSION[CONVERSION.length - 1]).fourPointTenths;
 }
 
 export const CLASSIFICATIONS = ['excellent', 'very_good', 'good', 'fairly_good', 'average', 'weak', 'poor'] as const;
@@ -70,7 +59,10 @@ export function classify(numerator: number, denominator: number, cohortYear: num
  * Điều 15.3: the year of study from the credits accumulated since the start of the course,
  * with 38 credits per year in the standard plan.
  */
-export function yearLevel(accumulatedCredits: number): 1 | 2 | 3 | 4 {
+export const YEAR_LEVELS = [1, 2, 3, 4] as const;
+export type YearLevel = (typeof YEAR_LEVELS)[number];
+
+export function yearLevel(accumulatedCredits: number): YearLevel {
   if (accumulatedCredits < 38) return 1;
   if (accumulatedCredits < 76) return 2;
   if (accumulatedCredits < 114) return 3;

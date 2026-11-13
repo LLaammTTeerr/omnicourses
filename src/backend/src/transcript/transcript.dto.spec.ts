@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { MAX_TRANSCRIPT_ROWS, TranscriptDto } from './transcript.dto.js';
+import { TranscriptDto } from './transcript.dto.js';
 
 // Synthetic rows only (AGENTS.md hard rule 3).
 const row = (overrides: Record<string, unknown> = {}) => ({
@@ -66,8 +66,9 @@ describe('TranscriptDto validation', () => {
     expect(await errorsFor([row({ grade: 8.5, ...overrides })])).toEqual(['rows.0.result:isIn']);
   });
 
-  it(`rejects more than ${MAX_TRANSCRIPT_ROWS} rows`, async () => {
-    const rows = Array.from({ length: MAX_TRANSCRIPT_ROWS + 1 }, (_, i) => row({ courseCode: `C${i}` }));
-    expect(await errorsFor(rows)).toContain('rows:arrayMaxSize');
+  it('accepts 300 rows and rejects 301', async () => {
+    const rows = (n: number) => Array.from({ length: n }, (_, i) => row({ courseCode: `C${i}` }));
+    expect(await errorsFor(rows(300))).not.toContain('rows:arrayMaxSize');
+    expect(await errorsFor(rows(301))).toContain('rows:arrayMaxSize');
   });
 });

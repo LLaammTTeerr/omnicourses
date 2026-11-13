@@ -1,20 +1,21 @@
 // The degree audit (F3, ADR 0013): the student's transcript against their curriculum. One pure
 // function; RulesService loads the inputs.
-import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import { compareTerms } from '../terms/current-term.js';
-import type { Term } from '../terms/term.js';
+import { byText } from '../common/by-text.js';
+import { compareTerms, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { attemptPasses, courseRecords, isCompleted, recordAsOf, type CourseRecord } from './attempts.js';
 import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermSummary, UnmatchedCourse } from './audit-types.js';
-import { checkTermLoad } from './credit-caps.js';
-import { byText, combinedMinimumCoverage, creditsOf, groupCoverage, placements, recordCredits, type Placement } from './coverage.js';
+import { checkTermLoad, isExcludedFromMinimum } from './credit-caps.js';
+import { combinedMinimumCoverage, creditsOf, groupCoverage, placements, recordCredits, type Placement } from './coverage.js';
 import { fourPointAverage, weightedAverage, type WeightedGrade } from './gpa.js';
 import { classify, yearLevel } from './grades.js';
 import { graduationStatus } from './graduation.js';
+import { inOrder, type CurriculumRules } from './inputs.js';
 
 const unique = (codes: string[]) => [...new Set(codes)].sort(byText);
 
-export function degreeAudit(rules: CurriculumRules, transcript: readonly TranscriptEntry[]): DegreeAudit {
+export function degreeAudit(curriculum: CurriculumRules, transcript: readonly TranscriptEntry[]): DegreeAudit {
+  const rules = inOrder(curriculum);
   const records = courseRecords(transcript);
   const placed = placements(rules);
 
@@ -121,7 +122,7 @@ function termSummaries(
     const load = checkTermLoad(
       rules.trainingType,
       term.number,
-      rows.map((e) => ({ credits: e.credits, excludedFromMinimum: placed.get(e.courseCode)?.course.countsTowardTotal === false })),
+      rows.map((e) => ({ credits: e.credits, excludedFromMinimum: isExcludedFromMinimum(placed.get(e.courseCode)?.course) })),
     );
     return {
       term: { year: term.year, number: term.number },

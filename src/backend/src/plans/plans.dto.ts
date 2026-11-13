@@ -11,7 +11,6 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  Matches,
   Max,
   MaxLength,
   Min,
@@ -20,10 +19,12 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { COURSE_CODE_PATTERN } from '../common/course-code.js';
+import { CourseCodeField } from '../common/course-code.field.js';
 import { trimString } from '../common/transforms.js';
 import { TermDto } from '../terms/term.dto.js';
-import { BoardTerm, MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS, Placement, PLACEMENT_KINDS, PlacementKind } from './plan-board.js';
+import { TERM_YEAR_MAX, TERM_YEAR_MIN } from '../terms/term.js';
+import { BoardTerm, Placement, PLACEMENT_KINDS, PlacementKind } from '../rules/inputs.js';
+import { MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS } from './plan-board.js';
 
 const PlanName = () =>
   applyDecorators(
@@ -56,8 +57,7 @@ export class PlanPlacementDto implements Placement {
 
   @ApiProperty({ type: String, nullable: true, required: false, example: 'CSC10001', description: 'A catalog course code, exactly as stored. Set for a course, null for a slot.' })
   @ValidateIf(sentFor('course', 'courseCode'))
-  @IsString()
-  @Matches(COURSE_CODE_PATTERN, { message: 'courseCode must be 2–20 capital letters or digits' })
+  @CourseCodeField({ message: 'courseCode must be 2–20 capital letters or digits' })
   @ONLY_FOR('course')
   courseCode!: string | null;
 
@@ -139,8 +139,8 @@ export class CreatePlanDto {
 
   @ApiProperty({ example: 2024, description: 'The cohort of that curriculum.' })
   @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @Min(TERM_YEAR_MIN)
+  @Max(TERM_YEAR_MAX)
   cohortYear!: number;
 
   // A generated plan (UC-07 step 10) is saved with its placements in one request.

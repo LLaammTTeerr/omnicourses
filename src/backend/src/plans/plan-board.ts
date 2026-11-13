@@ -1,32 +1,17 @@
-import { Term } from '../terms/term.js';
+import type { BoardTerm, Placement } from '../rules/inputs.js';
+import { compareTerms, sameTerm, Term, termFromColumns, termKey } from '../terms/term.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
 // The board of a plan (ADR 0014): one row per term, placements in order. Pure functions, so the
 // shape checks are unit-tested without a database. None of them is an academic rule (AGENTS.md
 // hard rule 1): prerequisites, offering terms, credit caps and coverage are the rule engine's.
 
-export const PLACEMENT_KINDS = ['course', 'slot'] as const;
-export type PlacementKind = (typeof PLACEMENT_KINDS)[number];
-
-/** A course, or a slot holding credits for a requirement group until a course is chosen. */
-export interface Placement {
-  kind: PlacementKind;
-  courseCode: string | null;
-  requirementGroupId: string | null;
-  credits: number | null;
-}
-
-export interface BoardTerm {
-  term: Term;
-  placements: Placement[];
-}
+// The shapes, BoardTerm and Placement, are the rule engine's input (`rules/inputs.ts`).
 
 /** Upper bounds against oversized requests, far above any real plan (12 terms of about 8 courses for APCS). */
 export const MAX_BOARD_TERMS = 30;
 export const MAX_TERM_PLACEMENTS = 30;
 export const MAX_BOARD_PLACEMENTS = 300;
-
-const termKey = (t: Term) => `${t.year}-${t.number}`;
 
 /** Why a board cannot be stored as sent, or [] when its shape is sound. */
 export function boardProblems(terms: readonly BoardTerm[]): string[] {
@@ -59,9 +44,6 @@ export function withPlacement(terms: readonly BoardTerm[], placement: Placement,
   return terms.map((t) => (termKey(t.term) === key ? { term: t.term, placements: [...t.placements, placement] } : t));
 }
 
-export const courseCodesOf = (terms: readonly BoardTerm[]): string[] =>
-  terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'course' && p.courseCode !== null ? [p.courseCode] : [])));
-
 export const groupIdsOf = (terms: readonly BoardTerm[]): string[] =>
   terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'slot' && p.requirementGroupId !== null ? [p.requirementGroupId] : [])));
 
@@ -83,12 +65,12 @@ export function toRows(planId: string, userId: string, terms: readonly BoardTerm
 
 /** The board stored in these rows: terms oldest first, placements in position order. */
 export function toBoard(rows: readonly PlanPlacement[]): BoardTerm[] {
-  const sorted = [...rows].sort((a, b) => a.termYear - b.termYear || a.termNumber - b.termNumber || a.position - b.position);
+  const sorted = rows.map((row) => ({ row, term: termFromColumns(row.termYear, row.termNumber) })).sort((a, b) => compareTerms(a.term, b.term) || a.row.position - b.row.position);
   const terms: BoardTerm[] = [];
-  for (const row of sorted) {
+  for (const { row, term } of sorted) {
     let last = terms.at(-1);
-    if (!last || last.term.year !== row.termYear || last.term.number !== row.termNumber) {
-      last = { term: { year: row.termYear, number: row.termNumber as Term['number'] }, placements: [] };
+    if (!last || !sameTerm(last.term, term)) {
+      last = { term, placements: [] };
       terms.push(last);
     }
     last.placements.push(

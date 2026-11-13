@@ -1,11 +1,9 @@
 // Requirement coverage (F3, ADR 0013): for each requirement group of the curriculum, what the
 // transcript has passed, has in progress and still needs. Pure functions.
-import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
+import { byText } from '../common/by-text.js';
 import type { CourseRecord } from './attempts.js';
 import type { CombinedMinimumCoverage, CourseCoverage, CourseStatus, GroupCoverage } from './audit-types.js';
-
-/** Code-point order: the same on every machine. */
-export const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from './inputs.js';
 
 /** Where a curriculum course counts, and the link it counts through. */
 export interface Placement {

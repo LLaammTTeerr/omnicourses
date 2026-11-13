@@ -4,8 +4,7 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findUserTables } from '../src/account/account-export.js';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
-import { vietnamDate } from '../src/config/time.js';
-import { currentTerm } from '../src/terms/current-term.js';
+import { currentTerm, vietnamDate } from '../src/terms/calendar.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 

@@ -2,9 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { vietnamDate } from '../src/config/time.js';
+import { CLOCK } from '../src/common/clock.js';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
-import { GUIDES_CLOCK } from '../src/guides/guides.service.js';
 import { seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { bootApp } from './support/app.js';
@@ -12,7 +11,7 @@ import { signedInUser } from './support/users.js';
 
 // 12:00 on 13 November 2026 in Vietnam, the run day of GUIDE-01j.
 const NOW = new Date('2026-11-13T05:00:00Z');
-const TODAY = vietnamDate(NOW);
+const TODAY = '2026-11-13';
 const FIXTURES = guideFixtures(TODAY);
 const fixture = (id: string, lang: string) => FIXTURES.find((f) => f.id === id && f.lang === lang)!;
 
@@ -34,7 +33,7 @@ describe('Guides API (e2e)', () => {
   };
 
   beforeAll(async () => {
-    app = await bootApp((builder) => builder.overrideProvider(GUIDES_CLOCK).useValue(() => NOW));
+    app = await bootApp((builder) => builder.overrideProvider(CLOCK).useValue(() => NOW));
     db = app.get(DataSource);
     await seedGuides(db, [...GUIDE_FILES, ...FIXTURES]);
   });

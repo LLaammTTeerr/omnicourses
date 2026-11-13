@@ -9,7 +9,7 @@ import { PlansService } from './plans.service.js';
 
 // F5 plans (ADR 0014). Exports PlansService for the plan generator (UC-07 step 10) and, later,
 // a read-only method for the sharing module (ADR 0010). The rule engine judges the plans
-// (PLAN_ISSUES_PROVIDER from RulesModule); this module never does.
+// (RulesService from RulesModule); this module never does.
 @Module({
   imports: [TypeOrmModule.forFeature([Plan, PlanPlacement]), CurriculumModule, RulesModule],
   controllers: [PlansController],
