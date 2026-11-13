@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
+import { blankToNull } from '../common/transforms.js';
 import { Course } from '../curriculum/course.entity.js';
 import type { CourseDto } from '../curriculum/curriculum.dto.js';
 import { courseDto } from '../curriculum/curriculum.mappers.js';
 import { AffectedCurriculumDto, conflict, notFound, referencedItem } from './admin-errors.js';
+import { courseCodeOr400 } from './admin-params.js';
 import { AdminWriteService } from './admin-write.service.js';
 import { COURSE_FIELDS, type CourseField, CreateCourseDto, UpdateCourseDto } from './curriculum-admin.dto.js';
-import { courseCodeOr400 } from './curriculum-admin.service.js';
 
 type CourseValues = Pick<Course, CourseField>;
 
@@ -120,5 +121,3 @@ async function countOf(em: EntityManager, code: string, table: string, column: s
   const [{ n }] = await em.query(`SELECT count(*)::int AS "n" FROM "${table}" WHERE "${column}" = $1`, [code]);
   return n ? [`${n} ${words}`] : [];
 }
-
-const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);

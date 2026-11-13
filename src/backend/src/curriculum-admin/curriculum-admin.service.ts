@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { byText } from '../common/by-text.js';
-import { canonicalCourseCode } from '../common/course-code.js';
+import { blankToNull } from '../common/transforms.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
 import { conflict, notFound, prerequisiteCycle, referencedItem, validationFailed } from './admin-errors.js';
+import { courseCodeOr400 } from './admin-params.js';
 import { AdminWriteService } from './admin-write.service.js';
 import {
   AdminProgramDto,
@@ -16,13 +17,6 @@ import {
   UpdateRequirementGroupDto,
 } from './curriculum-admin.dto.js';
 import { findPrerequisiteCycle } from './prerequisite-cycle.js';
-
-/** A course code from a path or body, canonical (UC-11 step 5), or a 400. */
-export function courseCodeOr400(input: string, field = 'courseCode'): string {
-  const code = canonicalCourseCode(input);
-  if (!code) throw validationFailed(`${field}: "${input}" is not a course code (letters A-Z and digits, 2 to 20)`);
-  return code;
-}
 
 // Program-administrator writes (ADR 0011): requirement groups, their course links, and the
 // prerequisites and offering terms of a curriculum's courses. Every write runs under the F12
@@ -257,7 +251,6 @@ async function rulesNaming(em: EntityManager, curriculumId: string, code: string
   ];
 }
 
-const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
 
 function groupDto(g: RequirementGroup): RequirementGroupAdminDto {
   return {

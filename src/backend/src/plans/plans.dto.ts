@@ -11,7 +11,6 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  Matches,
   Max,
   MaxLength,
   Min,
@@ -20,7 +19,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { COURSE_CODE_PATTERN } from '../common/course-code.js';
+import { CourseCodeField } from '../common/course-code.field.js';
 import { trimString } from '../common/transforms.js';
 import { TermDto } from '../terms/term.dto.js';
 import { TERM_YEAR_MAX, TERM_YEAR_MIN } from '../terms/term.js';
@@ -58,8 +57,7 @@ export class PlanPlacementDto implements Placement {
 
   @ApiProperty({ type: String, nullable: true, required: false, example: 'CSC10001', description: 'A catalog course code, exactly as stored. Set for a course, null for a slot.' })
   @ValidateIf(sentFor('course', 'courseCode'))
-  @IsString()
-  @Matches(COURSE_CODE_PATTERN, { message: 'courseCode must be 2–20 capital letters or digits' })
+  @CourseCodeField({ message: 'courseCode must be 2–20 capital letters or digits' })
   @ONLY_FOR('course')
   courseCode!: string | null;
 
