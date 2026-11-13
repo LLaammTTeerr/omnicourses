@@ -1,4 +1,4 @@
-import type { ObjectLiteral, Repository } from 'typeorm';
+import type { FindOperator, ObjectLiteral, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import { CatalogLookup } from './catalog-lookup.js';
 import type { Course } from './course.entity.js';
@@ -10,33 +10,40 @@ const course = (code: string, credits = 4): Course =>
 
 describe('CatalogLookup: bulk reads for plans', () => {
   const repo = <T extends ObjectLiteral>(methods: Record<string, unknown>) => methods as unknown as Repository<T>;
-  function bulk(found: { curriculum?: Partial<Curriculum> | null; courses?: Course[] } = {}) {
-    const findOne = vi.fn().mockResolvedValue(found.curriculum === undefined ? { id: 'c1', requirementGroups: [{ id: 'g1' }, { id: 'g2' }] } : found.curriculum);
-    const find = vi.fn().mockResolvedValue(found.courses ?? []);
-    const svc = new CatalogLookup(repo<Curriculum>({ findOne }), repo<Course>({ find }));
-    return { svc, findOne, find };
+  const CATALOG = [course('ZZ001'), course('ZZ002', 3)];
+  // Each fake answers like the database: the curriculum of program ZZ, cohort 2030 only, an error
+  // for a cohort the integer column cannot hold, and the catalog rows whose code is in the list.
+  function bulk(found: { curriculum?: Partial<Curriculum> | null } = {}) {
+    const stored = found.curriculum === undefined ? { id: 'c1', requirementGroups: [{ id: 'g1' }, { id: 'g2' }] } : found.curriculum;
+    const findOne = async ({ where }: { where: { id?: string; cohortYear?: number; program?: { code: string } } }) => {
+      if (where.id !== undefined) return where.id === 'c1' ? stored : null;
+      if (!Number.isInteger(where.cohortYear)) throw new Error('invalid input syntax for type integer');
+      return where.program?.code === 'ZZ' && where.cohortYear === 2030 ? stored : null;
+    };
+    const find = vi.fn(async ({ where }: { where: { code: FindOperator<string[]> } }) => CATALOG.filter((c) => where.code.value.includes(c.code)));
+    return { svc: new CatalogLookup(repo<Curriculum>({ findOne }), repo<Course>({ find })), find };
   }
 
   it('finds the id of a cohort’s curriculum, or null', async () => {
     await expect(bulk().svc.curriculumIdOf('ZZ', 2030)).resolves.toBe('c1');
+    await expect(bulk().svc.curriculumIdOf('ZZ', 2031)).resolves.toBeNull();
+    await expect(bulk().svc.curriculumIdOf('ZY', 2030)).resolves.toBeNull();
     await expect(bulk({ curriculum: null }).svc.curriculumIdOf('ZZ', 2030)).resolves.toBeNull();
-    const { svc, findOne } = bulk();
-    await expect(svc.curriculumIdOf('ZZ', 2030.5)).resolves.toBeNull();
-    expect(findOne).not.toHaveBeenCalled();
+    await expect(bulk().svc.curriculumIdOf('ZZ', 2030.5)).resolves.toBeNull();
   });
 
-  it('answers which codes the catalog has in one query, never asking about a malformed or repeated code', async () => {
-    const { svc, find } = bulk({ courses: [course('ZZ001')] });
-    expect(await svc.knownCourseCodes(['ZZ001', 'ZZ002', 'ZZ001', 'zz003'])).toEqual(new Set(['ZZ001']));
+  it('answers which codes the catalog has, and their credits, in one query for the whole list', async () => {
+    const { svc, find } = bulk();
+    expect(await svc.knownCourseCodes(['ZZ001', 'ZZ009', 'ZZ001', 'zz002'])).toEqual(new Set(['ZZ001']));
     expect(find).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(find.mock.calls[0][0].where.code)).toContain('["ZZ001","ZZ002"]');
-    const none = bulk();
-    expect(await none.svc.knownCourseCodes(['bad code'])).toEqual(new Set());
-    expect(none.find).not.toHaveBeenCalled();
+    expect(await svc.courseCredits(['ZZ002', 'ZZ001', 'ZZ009', 'ZZ002'])).toEqual(new Map([['ZZ001', 4], ['ZZ002', 3]]));
+    expect(await svc.knownCourseCodes(['bad code'])).toEqual(new Set());
+    expect(await svc.courseCredits([])).toEqual(new Map());
   });
 
   it('lists the requirement group ids of a curriculum, none for an unknown one', async () => {
     expect(await bulk().svc.requirementGroupIds('c1')).toEqual(new Set(['g1', 'g2']));
-    expect(await bulk({ curriculum: null }).svc.requirementGroupIds('c9')).toEqual(new Set());
+    expect(await bulk().svc.requirementGroupIds('c9')).toEqual(new Set());
+    expect(await bulk({ curriculum: null }).svc.requirementGroupIds('c1')).toEqual(new Set());
   });
 });

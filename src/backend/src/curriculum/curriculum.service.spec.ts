@@ -43,7 +43,13 @@ const curriculum = {
 
 function service(overrides: { curriculum?: Curriculum | null; course?: Course | null; links?: RequirementGroupCourse[]; rules?: CourseRules } = {}) {
   const repo = <T extends ObjectLiteral>(methods: Record<string, unknown>) => methods as unknown as Repository<T>;
-  const findOne = vi.fn().mockResolvedValue(overrides.curriculum === undefined ? curriculum : overrides.curriculum);
+  // Answers like the database: the stored curriculum for its program and cohort only, and an error
+  // for a cohort the integer column cannot hold.
+  const stored = overrides.curriculum === undefined ? curriculum : overrides.curriculum;
+  const findOne = async ({ where }: { where: { cohortYear: number; program: { code: string } } }) => {
+    if (!Number.isInteger(where.cohortYear)) throw new Error('invalid input syntax for type integer');
+    return where.program.code === 'ZZ' && where.cohortYear === 2030 ? stored : null;
+  };
   const findOneBy = vi.fn().mockResolvedValue(overrides.course === undefined ? course('ZZ001') : overrides.course);
   const programs = repo<Program>({
     find: vi.fn().mockResolvedValue([
@@ -52,11 +58,8 @@ function service(overrides: { curriculum?: Curriculum | null; course?: Course | 
     ]),
   });
   const links = repo<RequirementGroupCourse>({ find: vi.fn().mockResolvedValue(overrides.links ?? []) });
-  const rulesFor = vi.fn().mockResolvedValue(overrides.rules ?? { prerequisites: new Map(), offeringTerms: new Map() });
+  const rulesFor = async (id: string) => (id === 'c1' && overrides.rules) || { prerequisites: new Map(), offeringTerms: new Map() };
   return {
-    findOne,
-    findOneBy,
-    rulesFor,
     svc: new CurriculumService(programs, repo<Curriculum>({ findOne }), repo<Course>({ findOneBy }), links, { rulesFor } as unknown as CourseRulesService),
   };
 }
@@ -72,9 +75,7 @@ describe('CurriculumService', () => {
   });
 
   it('returns a curriculum with its groups by name and each group’s courses by code', async () => {
-    const { svc, findOne } = service();
-    const result = await svc.getCurriculum('ZZ', 2030);
-    expect(findOne).toHaveBeenCalledWith(expect.objectContaining({ where: { cohortYear: 2030, program: { code: 'ZZ' } } }));
+    const result = await service().svc.getCurriculum('ZZ', 2030);
     expect(result.program).toEqual({ code: 'ZZ', nameVi: 'Chương trình thử', nameEn: 'Test program', faculty: null });
     expect(result.requirementGroups.map((g) => [g.name, g.kind, g.creditsTotal, g.creditsTotalMin, g.courses.map((c) => c.code)])).toEqual([
       ['Bắt buộc', 'compulsory', 8, null, ['ZZ001', 'ZZ002']],
@@ -104,9 +105,7 @@ describe('CurriculumService', () => {
 
   it('serves the rules recorded for this curriculum, in every group the course sits in', async () => {
     const rules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3] as Term['number'][]]]) };
-    const { svc, rulesFor } = service({ rules });
-    const result = await svc.getCurriculum('ZZ', 2030);
-    expect(rulesFor).toHaveBeenCalledWith('c1');
+    const result = await service({ rules }).svc.getCurriculum('ZZ', 2030);
     const rows = result.requirementGroups.flatMap((g) => g.courses.map((c) => [g.name, c.code, c.prerequisites, c.offeringTerms]));
     expect(rows).toEqual([
       ['Bắt buộc', 'ZZ001', [], null],
@@ -118,14 +117,15 @@ describe('CurriculumService', () => {
 
   it('answers null, then 404, for an unknown curriculum', async () => {
     const { svc } = service({ curriculum: null });
-    await expect(svc.findCurriculum('ZZ', 1999)).resolves.toBeNull();
-    await expect(svc.getCurriculum('ZZ', 1999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.findCurriculum('ZZ', 2030)).resolves.toBeNull();
+    await expect(svc.getCurriculum('ZZ', 2030)).rejects.toBeInstanceOf(NotFoundException);
+    // Another cohort, or another program, is not this curriculum.
+    await expect(service().svc.getCurriculum('ZZ', 2031)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service().svc.getCurriculum('ZY', 2030)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('never queries for a cohort that is not an integer', async () => {
-    const { svc, findOne } = service();
-    await expect(svc.findCurriculum('ZZ', 2030.5)).resolves.toBeNull();
-    expect(findOne).not.toHaveBeenCalled();
+  it('answers null for a cohort that is not a whole year, which the integer column cannot hold', async () => {
+    await expect(service().svc.findCurriculum('ZZ', 2030.5)).resolves.toBeNull();
   });
 
   it('returns a course with its memberships by program, cohort, then group', async () => {
@@ -149,13 +149,12 @@ describe('CurriculumService', () => {
     });
   });
 
-  it('gives 404 for an unknown course and does not query a malformed code', async () => {
+  it('gives 404 for an unknown course and null for a malformed code, though the catalog would find one', async () => {
     const unknown = service({ course: null });
     await expect(unknown.svc.getCourse('ZZ999')).rejects.toBeInstanceOf(NotFoundException);
     const malformed = service();
     await expect(malformed.svc.findCourse('csc10001')).resolves.toBeNull();
     await expect(malformed.svc.findCourse('CSC.10001')).resolves.toBeNull();
-    expect(malformed.findOneBy).not.toHaveBeenCalled();
   });
 });
 
