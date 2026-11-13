@@ -318,6 +318,21 @@ describe('checkPlan', () => {
   });
 
   describe('coverage with the plan completed (Điều 17.3.b)', () => {
+    it('counts the smaller of the transcript and curriculum credits for a course in progress the plan places in the same term, whatever its name', () => {
+      // The plan's own entry is named by its code; a transcript name that sorts after it, or before, changes nothing.
+      for (const courseName of ['đại số', 'Algebra']) {
+        for (const [transcriptCredits, counted] of [
+          [3, 3],
+          [5, 4],
+        ]) {
+          const report = check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZC1'))], {
+            transcript: [{ ...ungraded('ZZA1', transcriptCredits, 'in_progress', term(2025, 1)), courseName }],
+          });
+          expect(report.coverage.groups.find((g) => g.id === 'a-bb')?.credits).toBe(counted + 4);
+        }
+      }
+    });
+
     it('names a failed course in every compulsory group that lists it, not only the one it counts in', () => {
       const rules = zzCurriculum({
         groups: [group('p', 'compulsory', 8, [fixtureCourse('ZZP1', 4), fixtureCourse('ZZF1', 4)]), group('q', 'compulsory', 8, [fixtureCourse('ZZQ1', 4), fixtureCourse('ZZF1', 4)])],
