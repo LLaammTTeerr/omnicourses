@@ -25,7 +25,8 @@ export interface PlanRef {
 
 // The rule engine (ADR 0013): the only place OmniCourse decides an academic rule (AGENTS.md hard
 // rule 1). This service loads the inputs; every rule is a pure function in this folder, which
-// other modules (the planner, the advisor's tools) import directly.
+// other modules (the planner, the advisor's tools) import directly. engine-imports.spec.ts keeps
+// those files free of services and packages.
 @Injectable()
 export class RulesService {
   constructor(
