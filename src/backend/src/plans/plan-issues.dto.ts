@@ -1,9 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CreditCapsDto } from '../audit/audit.dto.js';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-types.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
-import { TermDto } from '../terms/term.dto.js';
 import {
   PLAN_ISSUE_CODES,
   PLAN_ISSUE_KINDS,
@@ -15,7 +13,8 @@ import {
   type PlanIssueKind,
   type PlanIssuesReport,
   type PlanTermLoad,
-} from './plan-issues.js';
+} from '../rules/plan-issue-types.js';
+import { TermDto } from '../terms/term.dto.js';
 
 // GET /api/plans/{id}/issues (ADR 0014). Each class implements the rule engine's result type, so
 // this contract cannot drift from what the engine returns.

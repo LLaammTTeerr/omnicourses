@@ -1,8 +1,10 @@
 import { NotFoundException } from '@nestjs/common';
 import type { ObjectLiteral, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
+import type { CourseRules } from '../rules/inputs.js';
+import type { Term } from '../terms/term.js';
 import type { Course } from './course.entity.js';
-import type { CourseRules, CourseRulesService } from './course-rules.service.js';
+import type { CourseRulesService } from './course-rules.service.js';
 import { CurriculumController } from './curriculum.controller.js';
 import type { Curriculum } from './curriculum.entity.js';
 import { CurriculumService } from './curriculum.service.js';
@@ -101,7 +103,7 @@ describe('CurriculumService', () => {
   });
 
   it('serves the rules recorded for this curriculum, in every group the course sits in', async () => {
-    const rules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3]]]) };
+    const rules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3] as Term['number'][]]]) };
     const { svc, rulesFor } = service({ rules });
     const result = await svc.getCurriculum('ZZ', 2030);
     expect(rulesFor).toHaveBeenCalledWith('c1');

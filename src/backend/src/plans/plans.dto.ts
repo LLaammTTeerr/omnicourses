@@ -24,7 +24,8 @@ import { COURSE_CODE_PATTERN } from '../common/course-code.js';
 import { trimString } from '../common/transforms.js';
 import { TermDto } from '../terms/term.dto.js';
 import { TERM_YEAR_MAX, TERM_YEAR_MIN } from '../terms/term.js';
-import { BoardTerm, MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS, Placement, PLACEMENT_KINDS, PlacementKind } from './plan-board.js';
+import { BoardTerm, Placement, PLACEMENT_KINDS, PlacementKind } from '../rules/inputs.js';
+import { MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS } from './plan-board.js';
 
 const PlanName = () =>
   applyDecorators(

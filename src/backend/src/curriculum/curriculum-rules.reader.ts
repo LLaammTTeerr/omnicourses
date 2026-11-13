@@ -1,57 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import type { CurriculumRules } from '../rules/inputs.js';
 import { CombinedMinimum } from './combined-minimum.entity.js';
 import { Curriculum } from './curriculum.entity.js';
-import type { TrainingType } from './program.entity.js';
 import { RequirementGroupOverflow } from './requirement-group-overflow.entity.js';
-import type { RequirementGroupKind } from './requirement-group.entity.js';
 
-// What the rule engine reads about one curriculum (ADR 0013): plain data, no entity, so the rule
-// functions stay pure and a test builds one by hand. It decides nothing (AGENTS.md hard rule 1).
-
-export interface CurriculumRuleCourse {
-  code: string;
-  nameVi: string;
-  nameEn: string | null;
-  /** Catalog credits. */
-  credits: number;
-  /** false: required but outside the cohort total (GDTC, GDQP-AN). */
-  countsTowardTotal: boolean;
-  /** false: left out of the GPA (QĐ 1175/QĐ-KHTN Điều 15.1.c). */
-  countsTowardGpa: boolean;
-}
-
-export interface CurriculumRuleGroup {
-  id: string;
-  name: string;
-  kind: RequirementGroupKind;
-  creditsTotal: number | null;
-  creditsTotalMin: number | null;
-  /** The group that this group's credits beyond its own minimum count toward, or null. */
-  overflowToGroupId: string | null;
-  courses: CurriculumRuleCourse[];
-}
-
-export interface CurriculumRuleCombinedMinimum {
-  id: string;
-  name: string;
-  creditsMin: number;
-  officialNotes: string | null;
-  groupIds: string[];
-}
-
-export interface CurriculumRules {
-  programCode: string;
-  trainingType: TrainingType | null;
-  cohortYear: number;
-  curriculumCode: string;
-  totalCreditsMin: number | null;
-  /** By name, then id (code-point order). */
-  groups: CurriculumRuleGroup[];
-  /** By name, then id. */
-  combinedMinimums: CurriculumRuleCombinedMinimum[];
-}
+// Reads the rule engine's view of one curriculum (ADR 0013, `rules/inputs.ts`). It decides
+// nothing (AGENTS.md hard rule 1).
 
 /** Code-point order: the same on every machine, unlike a locale collation. */
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);

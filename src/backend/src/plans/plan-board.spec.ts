@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, MAX_BOARD_PLACEMENTS, Placement, toBoard, toRows, withPlacement } from './plan-board.js';
+import { BoardTerm, courseCodesOf, Placement } from '../rules/inputs.js';
+import { boardProblems, groupIdsOf, MAX_BOARD_PLACEMENTS, toBoard, toRows, withPlacement } from './plan-board.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
 // Synthetic codes only (AGENTS.md hard rule 3).

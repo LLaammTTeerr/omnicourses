@@ -1,7 +1,6 @@
 // The result of the degree audit (F3, ADR 0013): plain types the pure functions return. The HTTP
 // DTOs in `audit/audit.dto.ts` implement them, so the contract and the engine cannot drift apart.
-import type { RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
-import type { TrainingType } from '../curriculum/program.entity.js';
+import type { RequirementGroupKind, TrainingType } from '../curriculum/curriculum-types.js';
 import type { Term } from '../terms/term.js';
 import type { TranscriptResult } from '../transcript/transcript-entry.js';
 import type { CapViolation, CreditCaps, TermKind } from './credit-caps.js';

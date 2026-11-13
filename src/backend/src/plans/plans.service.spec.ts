@@ -2,7 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { DataSource, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import type { CurriculumService } from '../curriculum/curriculum.service.js';
-import type { BoardTerm, Placement } from './plan-board.js';
+import type { BoardTerm, Placement } from '../rules/inputs.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 import type { Plan } from './plan.entity.js';
 import { PlanIdPipe } from './plans.controller.js';

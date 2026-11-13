@@ -1,16 +1,14 @@
 // Live validation of a plan (F5, UC-05 step 6, ADR 0014): the plan's placements against its own
 // curriculum, the student's transcript and the regulation. One pure function; RulesService loads
 // the inputs. It composes the engine's existing rules and decides nothing new about them.
-import type { CourseRules } from '../curriculum/course-rules.service.js';
-import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import type { BoardTerm } from '../plans/plan-board.js';
-import type { PlanCoverage, PlanIssue, PlanIssuesReport, PlanTermLoad } from '../plans/plan-issues.js';
 import { compareTerms, termLabel, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { isCompleted, resolve } from './attempts.js';
 import { degreeAudit } from './audit.js';
 import { CAP_CITATION, PETITION_NOTE, checkTermLoad, type LoadCourse } from './credit-caps.js';
 import { placements } from './coverage.js';
+import type { BoardTerm, CourseRules, CurriculumRuleGroup, CurriculumRules } from './inputs.js';
+import type { PlanCoverage, PlanIssue, PlanIssuesReport, PlanTermLoad } from './plan-issue-types.js';
 import { checkOfferingTerm, checkPrerequisites } from './prerequisites.js';
 
 export const PREREQUISITE_CITATION = 'QĐ 1175/QĐ-KHTN Điều 3.1.c';
@@ -171,7 +169,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
         );
       }
 
-      const offered = checkOfferingTerm((courseRules.offeringTerms.get(code) ?? null) as Term['number'][] | null, term);
+      const offered = checkOfferingTerm(courseRules.offeringTerms.get(code) ?? null, term);
       if (offered.status === 'not_recorded') {
         placementIssues.push(
           issue({ ...where, code: 'offering_terms_not_recorded', kind: 'unknown', citation: OFFERING_CITATION, message: `The offering terms of ${code} are not recorded for ${rules.curriculumCode}: unknown, not checked.` }),

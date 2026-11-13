@@ -1,3 +1,4 @@
+import type { BoardTerm, Placement } from '../rules/inputs.js';
 import { compareTerms, sameTerm, Term, termFromColumns, termKey } from '../terms/term.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
@@ -5,21 +6,7 @@ import type { PlanPlacement } from './plan-placement.entity.js';
 // shape checks are unit-tested without a database. None of them is an academic rule (AGENTS.md
 // hard rule 1): prerequisites, offering terms, credit caps and coverage are the rule engine's.
 
-export const PLACEMENT_KINDS = ['course', 'slot'] as const;
-export type PlacementKind = (typeof PLACEMENT_KINDS)[number];
-
-/** A course, or a slot holding credits for a requirement group until a course is chosen. */
-export interface Placement {
-  kind: PlacementKind;
-  courseCode: string | null;
-  requirementGroupId: string | null;
-  credits: number | null;
-}
-
-export interface BoardTerm {
-  term: Term;
-  placements: Placement[];
-}
+// The shapes, BoardTerm and Placement, are the rule engine's input (`rules/inputs.ts`).
 
 /** Upper bounds against oversized requests, far above any real plan (12 terms of about 8 courses for APCS). */
 export const MAX_BOARD_TERMS = 30;
@@ -56,9 +43,6 @@ export function withPlacement(terms: readonly BoardTerm[], placement: Placement,
   if (!terms.some((t) => termKey(t.term) === key)) return [...terms, { term: to, placements: [placement] }];
   return terms.map((t) => (termKey(t.term) === key ? { term: t.term, placements: [...t.placements, placement] } : t));
 }
-
-export const courseCodesOf = (terms: readonly BoardTerm[]): string[] =>
-  terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'course' && p.courseCode !== null ? [p.courseCode] : [])));
 
 export const groupIdsOf = (terms: readonly BoardTerm[]): string[] =>
   terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'slot' && p.requirementGroupId !== null ? [p.requirementGroupId] : [])));

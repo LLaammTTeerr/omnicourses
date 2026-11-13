@@ -1,13 +1,8 @@
 import { Check, Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { Curriculum } from './curriculum.entity.js';
+import type { TrainingType } from './curriculum-types.js';
 
-/**
- * The training type the regulation names (GLOSSARY): Tiên tiến (advanced), Liên kết (joint),
- * Chất lượng cao (high_quality), đại trà (standard). It sets the terms and the credit caps
- * (QĐ 1175/QĐ-KHTN Điều 6.4 and 7.2, ADR 0012).
- */
-export const TRAINING_TYPES = ['advanced', 'joint', 'high_quality', 'standard'] as const;
-export type TrainingType = (typeof TRAINING_TYPES)[number];
+export { TRAINING_TYPES, type TrainingType } from './curriculum-types.js';
 
 // Table `programs` of migration 1792912952302 (ADR 0005). Read-only here; F12 writes (ADR 0011).
 @Entity({ name: 'programs' })

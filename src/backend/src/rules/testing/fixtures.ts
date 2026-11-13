@@ -1,8 +1,8 @@
 // Synthetic curricula and transcripts for the rule engine's unit tests (AGENTS.md hard rule 3).
 // Course codes start with ZZ; nothing here is a real student record.
-import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../../curriculum/curriculum-rules.reader.js';
 import type { Term } from '../../terms/term.js';
 import type { TranscriptEntry, TranscriptResult } from '../../transcript/transcript-entry.js';
+import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../inputs.js';
 
 export function course(code: string, credits: number, flags: Partial<Pick<CurriculumRuleCourse, 'countsTowardTotal' | 'countsTowardGpa'>> = {}): CurriculumRuleCourse {
   return { code, nameVi: `Học phần ${code}`, nameEn: null, credits, countsTowardTotal: true, countsTowardGpa: true, ...flags };

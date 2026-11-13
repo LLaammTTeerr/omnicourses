@@ -17,7 +17,7 @@ function service(answers: OnboardingDto, curricula: Record<string, ReturnType<ty
   const transcript = { rowsFor: async () => zzGraduatingTranscript() } as unknown as TranscriptService;
   const onboarding = { answersFor: async () => answers } as unknown as OnboardingService;
   const courseRules = {
-    rulesFor: async (id: string) => (reads.push(`course-rules:${id}`), { prerequisites: new Map([['ZZB1', ['ZZX9']]]), offeringTerms: new Map<string, number[]>() }),
+    rulesFor: async (id: string) => (reads.push(`course-rules:${id}`), { prerequisites: new Map([['ZZB1', ['ZZX9']]]), offeringTerms: new Map() }),
   } as unknown as CourseRulesService;
   const catalog = { courseCredits: async (codes: string[]) => (reads.push(`credits:${codes.join(',')}`), new Map([['ZZX9', 3]])) } as unknown as CurriculumService;
   return { rules: new RulesService(reader, transcript, onboarding, courseRules, catalog), reads };

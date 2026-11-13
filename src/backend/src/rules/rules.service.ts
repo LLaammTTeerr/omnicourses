@@ -3,13 +3,14 @@ import { CourseRulesService } from '../curriculum/course-rules.service.js';
 import { CurriculumRulesReader } from '../curriculum/curriculum-rules.reader.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
-import { courseCodesOf, type BoardTerm } from '../plans/plan-board.js';
-import type { PlanIssuesProvider, PlanIssuesReport } from '../plans/plan-issues.js';
+import type { PlanIssuesProvider } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
 import { degreeAudit } from './audit.js';
 import type { DegreeAudit } from './audit-types.js';
 import { checkTermLoad, creditCaps, termKind } from './credit-caps.js';
+import { courseCodesOf, type BoardTerm } from './inputs.js';
+import type { PlanIssuesReport } from './plan-issue-types.js';
 import { checkPlan } from './plan-issues.js';
 import { checkOfferingTerm, checkPrerequisites } from './prerequisites.js';
 

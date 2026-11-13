@@ -12,11 +12,10 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Curriculum } from './curriculum.entity.js';
+import type { RequirementGroupKind } from './curriculum-types.js';
 import { RequirementGroupCourse } from './requirement-group-course.entity.js';
 
-/** ADR 0005: compulsory groups have a fixed credits_total, elective groups a credits_total_min. */
-export const REQUIREMENT_GROUP_KINDS = ['compulsory', 'elective'] as const;
-export type RequirementGroupKind = (typeof REQUIREMENT_GROUP_KINDS)[number];
+export { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from './curriculum-types.js';
 
 // Table `requirement_groups` of migration 1792912952302.
 @Entity({ name: 'requirement_groups' })

@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import type { BoardTerm, Placement } from '../plans/plan-board.js';
-import type { PlanIssue } from '../plans/plan-issues.js';
-import type { Term } from '../terms/term.js';
+import { type Term, termNumber } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { CAP_CITATION, PETITION_NOTE } from './credit-caps.js';
+import type { BoardTerm, CurriculumRules, Placement } from './inputs.js';
+import type { PlanIssue } from './plan-issue-types.js';
 import { checkPlan, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CITATION, OFFERING_CITATION, PLAN_MODEL_CITATION, PREREQUISITE_CITATION } from './plan-issues.js';
 import { course as fixtureCourse, graded, group, term, ungraded, zzCurriculum } from './testing/fixtures.js';
 
@@ -38,7 +37,7 @@ function check(terms: BoardTerm[], options: Options = {}) {
   return checkPlan({
     planId: 'plan-1',
     rules: options.rules ?? zzCurriculum(),
-    courseRules: { prerequisites: new Map(Object.entries(prerequisites)), offeringTerms: new Map(Object.entries(offering)) },
+    courseRules: { prerequisites: new Map(Object.entries(prerequisites)), offeringTerms: new Map(Object.entries(offering).map(([code, numbers]) => [code, numbers.map(termNumber)])) },
     transcript: options.transcript ?? [],
     terms,
     catalogCredits: new Map(Object.entries(options.catalog ?? {})),

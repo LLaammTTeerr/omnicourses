@@ -1,5 +1,5 @@
 // Terms and credit caps (QĐ 1175/QĐ-KHTN Điều 6.4 and 7.2, ADR 0009 and ADR 0012). Pure functions.
-import type { TrainingType } from '../curriculum/program.entity.js';
+import type { TrainingType } from '../curriculum/curriculum-types.js';
 import type { Term } from '../terms/term.js';
 
 export const TERM_KINDS = ['main', 'summer'] as const;
