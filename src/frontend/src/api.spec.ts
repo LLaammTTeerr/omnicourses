@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, failureWorthSaying, getJson, HttpError, reportFailure, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
+import { API_URL, failureWorthSaying, HttpError, reportFailure, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
@@ -88,22 +88,6 @@ describe('request', () => {
 
   it('has no status when the request got no answer', () => {
     expect(statusOf(new TypeError('Failed to fetch'))).toBeNull();
-  });
-});
-
-describe('getJson', () => {
-  afterEach(() => vi.restoreAllMocks());
-
-  it('sends no token (ADR 0010) and fails a read that gets no answer in time, like any JSON call', async () => {
-    hang();
-    const timeout = vi.spyOn(AbortSignal, 'timeout');
-    const timer = new AbortController();
-    timeout.mockReturnValue(timer.signal);
-    const pending = getJson('/guides').catch((e: unknown) => e);
-    expect(timeout).toHaveBeenCalledExactlyOnceWith(REQUEST_TIMEOUT_MS);
-    expect(vi.mocked(fetch).mock.calls[0]![1]).toMatchObject({ method: 'GET', headers: {} });
-    timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
-    expect(await pending).toMatchObject({ name: 'TimeoutError' });
   });
 });
 
