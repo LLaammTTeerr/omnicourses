@@ -44,3 +44,9 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
 }
+
+/**
+ * A deletion was requested and not cancelled (ADR 0004): such an account has no
+ * session, and signing in again before the deadline restores it.
+ */
+export const isPendingDeletion = (user: Pick<User, 'deletionRequestedAt'>): boolean => user.deletionRequestedAt != null;

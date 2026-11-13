@@ -85,25 +85,25 @@ describe('AccountService', () => {
 });
 
 describe('AccountPurgeService', () => {
-  const due = (...ids: string[]) => vi.fn(async () => ids.map((id) => ({ id })));
+  const due = (...ids: string[]) => vi.fn(async () => ids);
 
   // One account whose rows can't be deleted must not keep every other account past its deadline.
   it('purges each account on its own, so one failure does not block the rest', async () => {
     const users = {
-      find: due('u1', 'u2', 'u3'),
-      delete: vi.fn(async ({ id }: { id: string }) => (id === 'u2' ? Promise.reject(new Error('violates foreign key')) : { affected: 1 })),
+      findDueForPurge: due('u1', 'u2', 'u3'),
+      purgeIfDue: vi.fn(async (id: string) => (id === 'u2' ? Promise.reject(new Error('violates foreign key')) : true)),
     };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(2);
-    expect(users.delete).toHaveBeenCalledTimes(3);
+    expect(users.purgeIfDue).toHaveBeenCalledTimes(3);
   });
 
   it('does not count an account signed back in since it was found', async () => {
-    const users = { find: due('u1'), delete: vi.fn(async () => ({ affected: 0 })) };
+    const users = { findDueForPurge: due('u1'), purgeIfDue: vi.fn(async () => false) };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(0);
   });
 
   it('logs and survives a failed purge, so the next hour retries', async () => {
-    const users = { find: vi.fn(async () => Promise.reject(new Error('db down'))), delete: vi.fn() };
+    const users = { findDueForPurge: vi.fn(async () => Promise.reject(new Error('db down'))), purgeIfDue: vi.fn() };
     await expect(new AccountPurgeService(users as never).purge()).resolves.toBe(0);
   });
 });

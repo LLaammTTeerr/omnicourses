@@ -6,7 +6,7 @@ import { EntityManager, IsNull, MoreThan, QueryFailedError, Repository } from 't
 import { sessionTtlDays } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
 import { UserDto } from '../users/user.dto.js';
-import { User } from '../users/user.entity.js';
+import { isPendingDeletion, User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { Session } from './session.entity.js';
@@ -51,7 +51,7 @@ export class AuthService {
     // Signing in before the stored deadline is how a student undoes a deletion (ADR 0004).
     // After it, or if the purge got there first, the account is gone: same answer as
     // an unknown email, and no session (it would fail the foreign key anyway).
-    const accountRestored = user.deletionRequestedAt !== null;
+    const accountRestored = isPendingDeletion(user);
     if (accountRestored && !(await this.users.cancelDeletion(user.id, new Date()))) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -74,7 +74,7 @@ export class AuthService {
     });
     if (!session || session.revokedAt || session.expiresAt.getTime() <= Date.now()) return null;
     // Sessions are revoked when deletion is requested; this covers a race with that.
-    if (session.user.deletionRequestedAt) return null;
+    if (isPendingDeletion(session.user)) return null;
     return { user: session.user, session };
   }
 

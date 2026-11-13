@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, IsNull, MoreThan, Or, Repository } from 'typeorm';
+import { EntityManager, IsNull, LessThanOrEqual, MoreThan, Or, Repository } from 'typeorm';
 import { User } from './user.entity.js';
+
+// A pending deletion is cancellable before its stored deadline and due for the
+// purge from it on (ADR 0004). The two conditions are complements: change both.
+const cancellable = (now: Date) => Or(IsNull(), MoreThan(now));
+const due = (now: Date) => LessThanOrEqual(now);
 
 @Injectable()
 export class UsersService {
@@ -27,9 +32,25 @@ export class UsersService {
    */
   async cancelDeletion(userId: string, now: Date): Promise<boolean> {
     const result = await this.users.update(
-      { id: userId, purgeAfter: Or(IsNull(), MoreThan(now)) },
+      { id: userId, purgeAfter: cancellable(now) },
       { deletionRequestedAt: null, purgeAfter: null },
     );
+    return (result.affected ?? 0) > 0;
+  }
+
+  /** The accounts whose stored deletion deadline has passed. */
+  async findDueForPurge(now: Date): Promise<string[]> {
+    const rows = await this.users.find({ select: { id: true }, where: { purgeAfter: due(now) } });
+    return rows.map((row) => row.id);
+  }
+
+  /**
+   * Deletes the account if it is still due: false when a sign-in cancelled the
+   * deletion since findDueForPurge, or the row is already gone. Every user
+   * table cascades (ADR 0004).
+   */
+  async purgeIfDue(userId: string, now: Date): Promise<boolean> {
+    const result = await this.users.delete({ id: userId, purgeAfter: due(now) });
     return (result.affected ?? 0) > 0;
   }
 }
