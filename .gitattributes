@@ -2,3 +2,6 @@
 
 # pdftotext output is committed byte for byte: its sha256 is checked by a test.
 *.pdftotext.txt -text
+
+# Generated from src/backend/openapi.json (ADR 0018): collapsed in diffs.
+src/frontend/src/api-schema/** linguist-generated=true
