@@ -40,7 +40,7 @@ describe('Curriculum administration API (e2e)', () => {
   });
 
   const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
-  const [A, B, C, D, E] = ['A', 'B', 'C', 'D', 'E'].map((x) => `ZZ${suffix}${x}`);
+  const [A, B, C, D, E, F] = ['A', 'B', 'C', 'D', 'E', 'F'].map((x) => `ZZ${suffix}${x}`);
   const groupName = `zz-e2e ${suffix}`;
 
   let admin: { token: string; userId: string };
@@ -90,7 +90,7 @@ describe('Curriculum administration API (e2e)', () => {
 
   afterAll(async () => {
     if (db?.isInitialized) {
-      const codes = [A, B, C, D, E];
+      const codes = [A, B, C, D, E, F];
       await db.query('DELETE FROM course_prerequisite_lists WHERE course_code = ANY($1)', [codes]);
       await db.query('DELETE FROM course_offering_terms WHERE course_code = ANY($1)', [codes]);
       await db.query('DELETE FROM requirement_groups WHERE name = $1', [groupName]);
@@ -255,6 +255,22 @@ describe('Curriculum administration API (e2e)', () => {
     await as(admin.token).delete(`${groupPath()}/courses/${D}`).expect(204);
     await as(maintainer.token).delete(`/api/admin/catalog/courses/${E}`).expect(204);
     await as(maintainer.token).delete(`/api/admin/catalog/courses/${E}`).expect(404);
+  });
+
+  it('refuses to delete a catalog course that a saved plan places, which names it by plain code', async () => {
+    // F is in no curriculum, rule or transcript: only the plan refers to it (ADR 0011, TC-B2-ADM-04).
+    await as(maintainer.token).post('/api/admin/catalog/courses', { code: F, nameVi: `Học phần ${F}`, credits: 4 }).expect(201);
+    const student = await signedInUser(app);
+    try {
+      const [{ id: planId }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'zz-e2e') RETURNING id`, [student.userId, apcs2024]);
+      await db.query(`INSERT INTO plan_placements (plan_id, user_id, term_year, term_number, position, course_code) VALUES ($1, $2, 2025, 1, 0, $3)`, [planId, student.userId, F]);
+      const refused = await as(maintainer.token).delete(`/api/admin/catalog/courses/${F}`).expect(409);
+      expect(refused.body).toMatchObject({ code: 'referenced_item', references: ['1 saved plans place it'] });
+      await db.query('DELETE FROM plan_placements WHERE plan_id = $1', [planId]);
+      await as(maintainer.token).delete(`/api/admin/catalog/courses/${F}`).expect(204);
+    } finally {
+      await db.query('DELETE FROM users WHERE id = $1', [student.userId]);
+    }
   });
 
   it('renames a group, refuses a duplicate name, and deletes an empty group', async () => {
