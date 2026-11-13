@@ -70,7 +70,10 @@ export function classify(numerator: number, denominator: number, cohortYear: num
  * Điều 15.3: the year of study from the credits accumulated since the start of the course,
  * with 38 credits per year in the standard plan.
  */
-export function yearLevel(accumulatedCredits: number): 1 | 2 | 3 | 4 {
+export const YEAR_LEVELS = [1, 2, 3, 4] as const;
+export type YearLevel = (typeof YEAR_LEVELS)[number];
+
+export function yearLevel(accumulatedCredits: number): YearLevel {
   if (accumulatedCredits < 38) return 1;
   if (accumulatedCredits < 76) return 2;
   if (accumulatedCredits < 114) return 3;

@@ -2,6 +2,7 @@
 // `plans/plan-issues.dto.ts` implement them, so the contract and the engine cannot drift apart.
 import type { RequirementGroupKind, TrainingType } from '../curriculum/curriculum-types.js';
 import type { Term } from '../terms/term.js';
+import type { GraduationVerdict } from './audit-types.js';
 import type { CreditCaps, TermKind } from './credit-caps.js';
 
 export const PLAN_ISSUE_CODES = [
@@ -121,7 +122,7 @@ export interface PlanCoverage {
   totalCredits: number;
   totalRemaining: number | null;
   /** done: every requirement the data can check would be met. The school still checks the rest (Điều 17.3). */
-  graduation: 'done' | 'not_yet';
+  graduation: GraduationVerdict;
 }
 
 export interface PlanIssuesReport {

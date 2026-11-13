@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { type Term, termNumber } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { CAP_CITATION, PETITION_NOTE } from './credit-caps.js';
+import { CAP_CITATION, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CITATION, OFFERING_CITATION, PLAN_MODEL_CITATION, PREREQUISITE_CITATION } from './citations.js';
+import { PETITION_NOTE } from './credit-caps.js';
 import type { BoardTerm, CurriculumRules, Placement } from './inputs.js';
 import type { PlanIssue } from './plan-issue-types.js';
-import { checkPlan, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CITATION, OFFERING_CITATION, PLAN_MODEL_CITATION, PREREQUISITE_CITATION } from './plan-issues.js';
+import { checkPlan } from './plan-issues.js';
 import { course as fixtureCourse, graded, group, term, ungraded, zzCurriculum } from './testing/fixtures.js';
 
 // Synthetic curriculum and transcripts only (AGENTS.md hard rule 3): zzCurriculum is Tiên tiến,

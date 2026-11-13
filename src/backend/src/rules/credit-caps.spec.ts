@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CAP_CITATION, checkTermLoad, creditCaps, PETITION_NOTE, termKind } from './credit-caps.js';
+import { CAP_CITATION } from './citations.js';
+import { checkTermLoad, creditCaps, PETITION_NOTE, termKind } from './credit-caps.js';
 
 const load = (...credits: number[]) => credits.map((c) => ({ credits: c }));
 

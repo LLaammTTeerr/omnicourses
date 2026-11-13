@@ -5,7 +5,7 @@ import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
 import { degreeAudit } from './audit.js';
-import type { DegreeAudit } from './audit-types.js';
+import type { AuditUnavailableCode, DegreeAudit } from './audit-types.js';
 import { courseCodesOf, type BoardTerm } from './inputs.js';
 import type { PlanIssuesReport } from './plan-issue-types.js';
 import { checkPlan } from './plan-issues.js';
@@ -13,9 +13,9 @@ import { checkPlan } from './plan-issues.js';
 export type AuditOutcome =
   | { status: 'ok'; audit: DegreeAudit }
   /** Onboarding is not finished, or names no program and cohort. */
-  | { status: 'onboarding_required' }
+  | { status: Extract<AuditUnavailableCode, 'onboarding_required'> }
   /** Onboarding names a program and cohort that have no curriculum. */
-  | { status: 'curriculum_not_found'; programCode: string; cohortYear: number };
+  | { status: Extract<AuditUnavailableCode, 'curriculum_not_found'>; programCode: string; cohortYear: number };
 
 /** The plan a check is for: its id, and the curriculum it was made against (ADR 0014). */
 export interface PlanRef {

@@ -5,20 +5,21 @@ import { compareTerms, termLabel, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { isCompleted, resolve } from './attempts.js';
 import { degreeAudit } from './audit.js';
-import { CAP_CITATION, PETITION_NOTE, checkTermLoad, type LoadCourse } from './credit-caps.js';
+import {
+  CAP_CITATION,
+  CURRICULUM_CITATION,
+  GRADUATION_CITATION,
+  IMPROVEMENT_CITATION,
+  LOAD_CITATION,
+  OFFERING_CITATION,
+  PLAN_MODEL_CITATION,
+  PREREQUISITE_CITATION,
+} from './citations.js';
+import { PETITION_NOTE, checkTermLoad, type LoadCourse } from './credit-caps.js';
 import { placements } from './coverage.js';
 import type { BoardTerm, CourseRules, CurriculumRuleGroup, CurriculumRules } from './inputs.js';
 import type { PlanCoverage, PlanIssue, PlanIssuesReport, PlanTermLoad } from './plan-issue-types.js';
 import { checkOfferingTerm, checkPrerequisites } from './prerequisites.js';
-
-export const PREREQUISITE_CITATION = 'QĐ 1175/QĐ-KHTN Điều 3.1.c';
-/** Điều 6.5: the term plan says which courses open; Điều 7.1.a: students register for those. */
-export const OFFERING_CITATION = 'QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a';
-export const IMPROVEMENT_CITATION = 'QĐ 1175/QĐ-KHTN Điều 14.2';
-export const CURRICULUM_CITATION = 'QĐ 1175/QĐ-KHTN Điều 15.1';
-export const GRADUATION_CITATION = 'QĐ 1175/QĐ-KHTN Điều 17.3.b';
-/** A course placed twice breaks the plan model, not a clause of the regulation. */
-export const PLAN_MODEL_CITATION = 'ADR 0014';
 
 export interface PlanCheckInput {
   planId: string;
@@ -107,7 +108,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
       if (credits === undefined) {
         unknownCredits.push(code);
         placementIssues.push(
-          issue({ ...where, code: 'credits_not_recorded', kind: 'unknown', citation: 'QĐ 1175/QĐ-KHTN Điều 7.1.b', message: `${code} is not in the catalog, so its credits are unknown and left out of the load of ${label}.` }),
+          issue({ ...where, code: 'credits_not_recorded', kind: 'unknown', citation: LOAD_CITATION, message: `${code} is not in the catalog, so its credits are unknown and left out of the load of ${label}.` }),
         );
       } else {
         load.push({ credits, excludedFromMinimum: placed.get(code)?.course.countsTowardTotal === false });

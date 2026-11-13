@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CreditCapsDto } from '../audit/audit.dto.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-types.js';
+import { GRADUATION_VERDICTS, type GraduationVerdict } from '../rules/audit-types.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
 import {
   PLAN_ISSUE_CODES,
@@ -137,8 +138,8 @@ export class PlanCoverageDto implements PlanCoverage {
   @ApiProperty({ type: Number, nullable: true })
   totalRemaining!: number | null;
 
-  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every requirement the data can check would be met; the school still checks the rest (Điều 17.3).' })
-  graduation!: 'done' | 'not_yet';
+  @ApiProperty({ enum: GRADUATION_VERDICTS, description: 'done: every requirement the data can check would be met; the school still checks the rest (Điều 17.3).' })
+  graduation!: GraduationVerdict;
 }
 
 export class PlanIssuesDto implements PlanIssuesReport {

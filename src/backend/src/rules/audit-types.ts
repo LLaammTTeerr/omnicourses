@@ -4,7 +4,7 @@ import type { RequirementGroupKind, TrainingType } from '../curriculum/curriculu
 import type { Term } from '../terms/term.js';
 import type { TranscriptResult } from '../transcript/transcript-entry.js';
 import type { CapViolation, CreditCaps, TermKind } from './credit-caps.js';
-import type { Classification } from './grades.js';
+import type { Classification, YearLevel } from './grades.js';
 
 export const COURSE_STATUSES = ['passed', 'in_progress', 'failed', 'not_taken', 'counted_in_other_group'] as const;
 export type CourseStatus = (typeof COURSE_STATUSES)[number];
@@ -85,7 +85,7 @@ export interface CreditSummary {
   /** totalRequired − towardTotal, never below 0. */
   remaining: number | null;
   /** Điều 15.3, from the accumulated credits. */
-  yearLevel: 1 | 2 | 3 | 4;
+  yearLevel: YearLevel;
 }
 
 export interface GpaSummary {
@@ -131,9 +131,12 @@ export interface GraduationCondition {
   status: ConditionStatus;
 }
 
+/** done: every condition the data can check is met. The notChecked ones still need the school. */
+export const GRADUATION_VERDICTS = ['done', 'not_yet'] as const;
+export type GraduationVerdict = (typeof GRADUATION_VERDICTS)[number];
+
 export interface GraduationStatus {
-  /** done: every condition the data can check is met. The notChecked ones still need the school. */
-  status: 'done' | 'not_yet';
+  status: GraduationVerdict;
   met: GraduationCondition[];
   unmet: GraduationCondition[];
   notChecked: GraduationCondition[];
@@ -169,3 +172,7 @@ export interface DegreeAudit {
   graduation: GraduationStatus;
   warnings: AuditWarning[];
 }
+
+/** Why there is no audit (409): onboarding names no program and cohort, or they have no curriculum. */
+export const AUDIT_UNAVAILABLE_CODES = ['onboarding_required', 'curriculum_not_found'] as const;
+export type AuditUnavailableCode = (typeof AUDIT_UNAVAILABLE_CODES)[number];
