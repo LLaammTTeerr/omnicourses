@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Patch, PipeTransform, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, PipeTransform, Post, Put } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
 import { UUID_PATTERN } from '../common/uuid.js';
@@ -6,12 +6,12 @@ import { type PlanRef, RulesService } from '../rules/rules.service.js';
 import { User } from '../users/user.entity.js';
 import { PlanDropReportsDto, PlanIssuesDto } from './plan-issues.dto.js';
 import { CreatePlanDto, DuplicatePlanDto, PlanBoardDto, PlanDropPreviewDto, PlanDto, PlanListDto, RenamePlanDto } from './plans.dto.js';
-import { PlansService } from './plans.service.js';
+import { planNotFound, PlansService } from './plans.service.js';
 
 /** A malformed id is a 404 like any unknown plan: a 400 or a 500 would tell ids apart. */
 export class PlanIdPipe implements PipeTransform<string, string> {
   transform(value: string): string {
-    if (!UUID_PATTERN.test(value)) throw new NotFoundException('No plan with this id');
+    if (!UUID_PATTERN.test(value)) throw planNotFound();
     return value.toLowerCase();
   }
 }

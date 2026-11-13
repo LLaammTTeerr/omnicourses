@@ -1,8 +1,8 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated } from '../auth/auth.decorators.js';
 import { CourseDetailDto, CurriculumDto, ProgramListDto } from './curriculum.dto.js';
-import { CurriculumService } from './curriculum.service.js';
+import { curriculumNotFound, CurriculumService } from './curriculum.service.js';
 
 const COHORT_YEAR = /^\d{4}$/;
 
@@ -26,7 +26,7 @@ export class CurriculumController {
   @ApiOkResponse({ type: CurriculumDto, description: 'The curriculum of the cohort, with its requirement groups and their courses.' })
   @ApiNotFoundResponse({ description: 'The program does not exist, has no curriculum for this cohort, or the cohort is not a 4-digit year.' })
   getCurriculum(@Param('program') program: string, @Param('cohort') cohort: string): Promise<CurriculumDto> {
-    if (!COHORT_YEAR.test(cohort)) throw new NotFoundException('No curriculum for this program and cohort');
+    if (!COHORT_YEAR.test(cohort)) throw curriculumNotFound();
     return this.curriculum.getCurriculum(program, Number(cohort));
   }
 

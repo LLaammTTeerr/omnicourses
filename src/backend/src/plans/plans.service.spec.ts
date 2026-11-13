@@ -6,7 +6,7 @@ import type { BoardTerm, Placement } from '../rules/inputs.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 import type { Plan } from './plan.entity.js';
 import { PlanIdPipe } from './plans.controller.js';
-import { PlansService } from './plans.service.js';
+import { planNotFound, PlansService } from './plans.service.js';
 
 // Synthetic catalog only (AGENTS.md hard rule 3). The database is faked: the e2e suite covers
 // the SQL; this covers what the service refuses before it writes anything.
@@ -130,6 +130,8 @@ describe('PlanIdPipe', () => {
   it('answers 404 for a malformed plan id, as for an unknown one, and lower-cases a valid one', () => {
     const pipe = new PlanIdPipe();
     for (const id of ['not-a-uuid', '1', "' OR 1=1 --"]) expect(() => pipe.transform(id)).toThrow(NotFoundException);
+    // The same body as an unknown plan, so the answer can't tell a malformed id from another student's.
+    expect(() => pipe.transform('1')).toThrow(expect.objectContaining({ response: planNotFound().getResponse() }));
     expect(pipe.transform('3F2B8C1E-0D4A-4C6B-9E1F-2A3B4C5D6E7F')).toBe('3f2b8c1e-0d4a-4c6b-9e1f-2a3b4c5d6e7f');
   });
 });

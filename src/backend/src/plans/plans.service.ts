@@ -10,8 +10,11 @@ import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
 import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
 
-/** The answer for a plan that is missing or someone else's: the same, so it reveals nothing. */
-const notFound = () => new NotFoundException('No plan with this id');
+/**
+ * The answer for a plan that is missing, someone else's, or not even an id: the same, so it
+ * reveals nothing. PlanIdPipe answers a malformed id with it too.
+ */
+export const planNotFound = () => new NotFoundException('No plan with this id');
 
 // A student's plans (F5, ADR 0014): the placements they saved, nothing more. It decides no
 // academic rule (AGENTS.md hard rule 1): a plan that breaks one is saved as it is, and the rule
@@ -38,7 +41,7 @@ export class PlansService {
   /** One of the student's plans with its placements, or a 404. */
   async get(userId: string, planId: string): Promise<PlanDto> {
     const plan = await this.plans.findOne({ where: { id: planId, userId }, relations: { curriculum: { program: true } } });
-    if (!plan) throw notFound();
+    if (!plan) throw planNotFound();
     const rows = await this.placements.find({ where: { planId } });
     return { ...summary(plan), terms: toBoard(rows) };
   }
@@ -60,7 +63,7 @@ export class PlansService {
 
   async rename(userId: string, planId: string, name: string): Promise<PlanDto> {
     const { affected } = await this.plans.update({ id: planId, userId }, { name });
-    if (!affected) throw notFound();
+    if (!affected) throw planNotFound();
     return this.get(userId, planId);
   }
 
@@ -69,7 +72,7 @@ export class PlansService {
     const id = await this.db.transaction(async (tx) => {
       // FOR SHARE: a save of the original in progress finishes first, so the copy is never half of it.
       const [source] = await tx.query('SELECT "curriculum_id", "name" FROM "plans" WHERE "id" = $1 AND "user_id" = $2 FOR SHARE', [planId, userId]);
-      if (!source) throw notFound();
+      if (!source) throw planNotFound();
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId: source.curriculum_id, name: name ?? source.name });
       const copyId = identifiers[0].id as string;
       await tx.query(
@@ -89,7 +92,7 @@ export class PlansService {
       // Ownership and the lock in one statement. NO KEY UPDATE serializes two saves of one plan
       // without blocking the key-share lock of an insert that references it (a duplicate, a share).
       const [plan] = await tx.query('SELECT "curriculum_id" FROM "plans" WHERE "id" = $1 AND "user_id" = $2 FOR NO KEY UPDATE', [planId, userId]);
-      if (!plan) throw notFound();
+      if (!plan) throw planNotFound();
       await this.checkBoard(plan.curriculum_id, terms);
       await tx.delete(PlanPlacement, { planId });
       await insertBoard(tx, planId, userId, terms);
@@ -128,7 +131,7 @@ export class PlansService {
   /** Deletes the plan and its placements. */
   async delete(userId: string, planId: string): Promise<void> {
     const { affected } = await this.plans.delete({ id: planId, userId });
-    if (!affected) throw notFound();
+    if (!affected) throw planNotFound();
   }
 
   // Shape and references only: every course is in the catalog, every slot's group is in the

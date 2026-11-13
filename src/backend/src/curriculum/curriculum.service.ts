@@ -12,6 +12,9 @@ import { loadCurriculum } from './curriculum-query.js';
 import { Program } from './program.entity.js';
 import { RequirementGroupCourse } from './requirement-group-course.entity.js';
 
+/** A 404 for a program and cohort with no curriculum; the route answers a malformed cohort with it too. */
+export const curriculumNotFound = () => new NotFoundException('No curriculum for this program and cohort');
+
 // Serves the curriculum explorer (F4): the data the seed or F12 (ADR 0011) stored. It decides no
 // academic rule (AGENTS.md hard rule 1): the rule engine reads these shapes and decides.
 @Injectable()
@@ -41,7 +44,7 @@ export class CurriculumService {
   /** Like findCurriculum, for a route: a missing curriculum is a 404. */
   async getCurriculum(programCode: string, cohortYear: number): Promise<CurriculumDto> {
     const curriculum = await this.findCurriculum(programCode, cohortYear);
-    if (!curriculum) throw new NotFoundException('No curriculum for this program and cohort');
+    if (!curriculum) throw curriculumNotFound();
     return curriculum;
   }
 
