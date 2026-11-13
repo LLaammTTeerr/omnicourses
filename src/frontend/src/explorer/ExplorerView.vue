@@ -20,10 +20,10 @@ import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // The curriculum explorer (F4, UI prototypes: explorer.html without the prerequisite graph): the requirement groups
-// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API has
-// no prerequisites or offering terms yet, so nothing here says a course is open, locked or available; and whether a
-// course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's own transcript only adds a
-// neutral "in your transcript" mark.
+// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. Prerequisites
+// and offering terms are null until F12 records them (curriculum/api.ts) and this screen shows neither yet, so nothing
+// here says a course is open, locked or available; and whether a course is passed is the degree audit's call
+// (AGENTS.md hard rule 1), so the student's own transcript only adds a neutral "in your transcript" mark.
 const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
