@@ -3,7 +3,6 @@ import { UsersService } from '../users/users.service.js';
 
 const HOUR_MS = 3_600_000;
 
-// Purges accounts whose grace period has ended, at start-up and every hour.
 // A plain interval instead of a scheduler library: each account is one
 // idempotent DELETE, so two instances running it at once is harmless. One
 // DELETE per account, so an account whose rows can't be deleted doesn't keep

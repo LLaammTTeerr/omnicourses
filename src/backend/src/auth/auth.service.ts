@@ -78,7 +78,6 @@ export class AuthService {
     return { user: session.user, session };
   }
 
-  /** Rotates the token: the old one stops working at once, the expiry restarts. */
   async refresh(session: Session): Promise<AuthResultDto> {
     const token = newToken();
     const now = new Date();
@@ -129,7 +128,6 @@ export class AuthService {
 const isUniqueViolation = (error: unknown): boolean =>
   error instanceof QueryFailedError && (error.driverError as { code?: unknown }).code === '23505';
 
-/** A new or refreshed session lasts SESSION_TTL_DAYS from now. */
 const sessionExpiry = (now: Date): Date => new Date(now.getTime() + sessionTtlDays() * DAY_MS);
 
 function newToken(): string {

@@ -22,10 +22,7 @@ export class UsersService {
     return this.users.save(this.users.create({ ...fields, email: fields.email.toLowerCase() }));
   }
 
-  /**
-   * Starts the grace period at `at` and returns its deadline. The deadline is
-   * stored, so a later change of the setting can't move the one promised.
-   */
+  /** The deadline is stored, so a later change of the setting can't move the one promised. */
   async markDeletionRequestedWithin(manager: EntityManager, userId: string, at: Date): Promise<Date> {
     const purgeAfter = new Date(at.getTime() + accountDeletionGraceDays() * DAY_MS);
     await manager.update(User, userId, { deletionRequestedAt: at, purgeAfter });
@@ -46,7 +43,6 @@ export class UsersService {
     return (result.affected ?? 0) > 0;
   }
 
-  /** The accounts whose stored deletion deadline has passed. */
   async findDueForPurge(now: Date): Promise<string[]> {
     const rows = await this.users.find({ select: { id: true }, where: { purgeAfter: due(now) } });
     return rows.map((row) => row.id);

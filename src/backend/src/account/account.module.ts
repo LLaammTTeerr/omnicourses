@@ -5,9 +5,7 @@ import { AccountController } from './account.controller.js';
 import { AccountPurgeService } from './account-purge.service.js';
 import { AccountService } from './account.service.js';
 
-// The account's export and deletion lifecycle (ADR 0004). Scheduling a
-// deletion asks users to mark the row and auth to revoke the sessions, in one
-// transaction; the purge deletes the accounts whose deadline has passed.
+// The account's export and deletion lifecycle (ADR 0004).
 @Module({
   imports: [UsersModule, AuthModule],
   controllers: [AccountController],

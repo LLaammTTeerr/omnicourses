@@ -10,7 +10,6 @@ export const dataSourceOptions = {
   synchronize: false,
 } satisfies DataSourceOptions;
 
-/** The options of a real connection: dataSourceOptions plus DATABASE_URL. */
 export const connectionOptions = () => ({ ...dataSourceOptions, url: databaseUrl() });
 
 /**
