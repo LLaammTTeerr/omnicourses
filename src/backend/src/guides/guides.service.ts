@@ -1,21 +1,19 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CLOCK, type Clock } from '../common/clock.js';
 import { vietnamDate } from '../terms/calendar.js';
 import { GUIDE_ID, GUIDE_ID_MAX } from './guide-file.js';
 import { GuideText } from './guide-text.entity.js';
 import { GuideDto, GuideListItemDto, GuideListTextDto, GuideTextDto } from './guides.dto.js';
 import { isOutOfDate } from './out-of-date.js';
 
-/** The clock the out-of-date rule reads; tests replace it. */
-export const GUIDES_CLOCK = Symbol('GUIDES_CLOCK');
-
 // Reads the published guides. Nothing here writes: only the seed does (ADR 0010).
 @Injectable()
 export class GuidesService {
   constructor(
     @InjectRepository(GuideText) private readonly texts: Repository<GuideText>,
-    @Inject(GUIDES_CLOCK) private readonly now: () => Date,
+    @Inject(CLOCK) private readonly now: Clock,
   ) {}
 
   /** Every published guide, by ID, with its list entry in each language it is published in. */
