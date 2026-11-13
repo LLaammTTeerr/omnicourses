@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlanTermLoad } from './api.js';
-import { BAR_CODES, capOf, DROP_TONE, meter, splitIssues, toneOf } from './board-view.js';
+import { capOf, meter, splitIssues, toneOf } from './board-view.js';
 import { issue } from './testing/fixtures.js';
 
 const term = { year: 2026, number: 1 } as const;
@@ -26,10 +26,6 @@ describe('the meter colour', () => {
     expect(capOf([], 30)).toBe('ok');
     expect(capOf([], 0)).toBe('');
   });
-
-  it('leaves the bar’s own issues out of a row’s words', () => {
-    expect([...BAR_CODES].sort()).toEqual(['load_above_maximum', 'load_below_minimum']);
-  });
 });
 
 describe('tones', () => {
@@ -38,10 +34,6 @@ describe('tones', () => {
     expect(toneOf([issue({ code: 'not_offered', kind: 'flag' })])).toBe('has-flag');
     expect(toneOf([issue({ code: 'prerequisites_not_recorded', kind: 'unknown' })])).toBe('');
     expect(toneOf([])).toBe('');
-  });
-
-  it('colours a previewed drop by its verdict', () => {
-    expect(DROP_TONE).toEqual({ violation: 'bad-drop', flag: 'warn-drop', unknown: 'unknown-drop' });
   });
 });
 

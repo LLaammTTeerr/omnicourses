@@ -59,11 +59,14 @@ describe('usePlanActions', () => {
     expect(useAuth().signedIn).toBe(false);
   });
 
-  it('runs one action at a time: a copy while another is busy does nothing', async () => {
-    const fetch = mockApi({});
+  it('runs one action at a time: a copy while a rename is on its way does nothing', async () => {
+    const answers: ((response: Response) => void)[] = [];
+    const fetch = mockApi({ [`PATCH /plans/${PLAN_ID}`]: () => new Promise<Response>((resolve) => answers.push(resolve)) });
     const actions = usePlanActions();
-    actions.busy.value = true;
+    const renamed = actions.rename(PLAN_ID, 'B', vi.fn());
     expect(await actions.copy(PLAN_ID, 'Copy', vi.fn())).toBe(false);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch.mock.calls.map(([, init]) => init?.method)).toEqual(['PATCH']);
+    answers[0]!(Response.json(plan([], { name: 'B' })));
+    expect(await renamed).toBe(true);
   });
 });

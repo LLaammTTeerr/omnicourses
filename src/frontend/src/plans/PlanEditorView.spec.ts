@@ -935,6 +935,9 @@ describe('PlanEditorView (F5, UC-05)', () => {
         previews: (terms) => {
           const at = termOf(terms, 'ZZ201')!;
           const loads = terms.map((t) => ({ term: t.term, kind: 'main' as const, credits: t.term.number === at.number && t.term.year === at.year ? (at.number === 1 ? 11 : 3) : 8, caps: { min: 10, max: 22 } }));
+          // 2027: the load alone, over the cap in term 1 and under the minimum in term 2; the bar shows those, not words.
+          if (at.year === 2027 && at.number === 1) return report({ terms: loads, issues: [issue({ code: 'load_above_maximum', kind: 'violation', term: at, credits: 25, limit: 22 })] });
+          if (at.year === 2027 && at.number === 2) return report({ terms: loads, issues: [issue({ code: 'load_below_minimum', kind: 'flag', term: at, credits: 3, limit: 10 })] });
           // Term 2: the engine cannot tell whether ZZ201 is taught then. Term 3: ZZ201 there breaks a rule on ZZ101 in term 1.
           if (at.number === 2) return report({ terms: loads, issues: [issue({ code: 'offering_terms_not_recorded', kind: 'unknown', term: at, position: 0, courseCode: 'ZZ201' })] });
           if (at.number === 3) return report({ terms: loads, issues: [issue({ code: 'prerequisite_not_met', kind: 'violation', term: t1, position: 0, courseCode: 'ZZ101', missingCourseCodes: ['ZZ100'] })] });
@@ -950,6 +953,11 @@ describe('PlanEditorView (F5, UC-05)', () => {
       // A drop that breaks a rule elsewhere on the board is a bad drop, and says which.
       expect(row(w, `${t3.year}-${t3.number}`).classes()).toContain('bad-drop');
       expect(row(w, '2026-3').get('[data-test="drop-reason"]').text()).toBe('ZZ101 cần học xong ZZ100 ở một học kỳ trước.');
+      // A load issue colours the row by its kind, a flag less than a violation, and leaves the words to the bar.
+      expect(row(w, '2027-1').classes()).toContain('bad-drop');
+      expect(row(w, '2027-1').find('[data-test="drop-reason"]').exists()).toBe(false);
+      expect(row(w, '2027-2').classes()).toContain('warn-drop');
+      expect(row(w, '2027-2').find('[data-test="drop-reason"]').exists()).toBe(false);
 
       // Over term 1: the load goes 8 → 11 of a 22 cap; the meter (28 wide: the cap plus 6) fills to 8 and pulses to 11.
       await hover(row(w, '2026-1'));
@@ -1004,7 +1012,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
           },
         ],
       };
-      const { w } = await render({ routes: { 'GET /users/me/audit': audit } });
+      const { w, router } = await render({ routes: { 'GET /users/me/audit': audit } });
       const past = w.get('[data-test="past"]');
       expect(past.text()).toBe('Đã học2 học kỳ · HK1 2025–2026 → HK2 2025–20269 tín chỉ tích lũyZZ414');
       expect(row(w, '2026-1').get('[data-test="now"]').text()).toBe('Đang học');
@@ -1019,7 +1027,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
       // Each course taken is a tag that opens it in the curriculum explorer.
       await past.get('[data-test="past-ZZ414"]').trigger('click');
       await flushPromises();
-      expect(w.vm.$router.currentRoute.value).toMatchObject({ name: 'explorer', query: { course: 'ZZ414' } });
+      expect(router.currentRoute.value).toMatchObject({ name: 'explorer', query: { course: 'ZZ414' } });
     });
 
     it('labels each tile with its group, badges one with a violation, and filters the tray by group', async () => {
