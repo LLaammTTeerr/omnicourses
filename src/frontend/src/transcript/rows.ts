@@ -1,4 +1,5 @@
-import { TERM_NUMBERS, TRANSCRIPT_RESULTS, type Term, type TranscriptResult, type TranscriptRow } from './api.js';
+import { academicYearAt, TERM_NUMBERS, type Term } from '../terms.js';
+import { TRANSCRIPT_RESULTS, type TranscriptResult, type TranscriptRow } from './api.js';
 
 // A row of the review table (UC-02 step 5) as the student edits it, and the checks TranscriptRowDto makes, so the
 // table can block the save before the API refuses it (UC-02 A2). These are bounds on input, not academic rules:
@@ -88,10 +89,10 @@ export function fromRow(row: TranscriptRow, key: number): DraftRow {
   };
 }
 
-/** A new row in the term of the last row, or else the academic year `today` falls in (it starts in September). */
+/** A new row in the term of the last row, or else the academic year `today` falls in, on the date in Vietnam. */
 export function blankRow(key: number, rows: readonly DraftRow[], today = new Date()): DraftRow {
   const last = rows.at(-1);
-  const year = last?.year ?? (today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1);
+  const year = last?.year ?? academicYearAt(today);
   return { key, year, number: last?.number ?? 1, courseCode: '', courseName: '', credits: '', result: '', grade: '' };
 }
 

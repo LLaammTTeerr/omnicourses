@@ -1,9 +1,12 @@
 import type { Lang } from '../locale.js';
+import type { TermMonths } from '../terms.js';
 import type { PlanIssue, PlanIssueCode, PlanIssueKind } from './api.js';
 
 // The planner's words. Each issue code of the rule engine is worded here from its parameters (ADR 0006: issues are
 // codes with parameters); the API's `message` is English only. Wording an issue never judges the plan: the engine
 // already has.
+
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 /** What an issue's wording may need besides the issue itself. */
 export interface IssueContext {
@@ -98,7 +101,7 @@ interface PlannerMessages {
   /** Before the load of a term with a course of unknown credits (load_not_checked): its load is a lower bound. */
   atLeast: string;
   /** The months a term runs, from the calendar the API uses (term 1 from September, 2 from January, 3 from June). */
-  termMonths: (term: { year: number; number: 1 | 2 | 3 }) => string;
+  termMonths: (months: TermMonths) => string;
   caps: (min: number | null, max: number) => string;
   capsUnknown: string;
   summer: string;
@@ -272,7 +275,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     credits: (n) => `${n} TC`,
     ofCap: (max) => (max === null ? ' TC' : ` / ${max} TC`),
     atLeast: 'Ít nhất',
-    termMonths: ({ year, number }) => (number === 1 ? `Tháng 9 – 12/${year}` : number === 2 ? `Tháng 1 – 5/${year + 1}` : `Tháng 6 – 8/${year + 1}`),
+    termMonths: ({ first, last, year }) => `Tháng ${first} – ${last}/${year}`,
     caps: (min, max) => (min === null ? `tối đa ${max} TC` : `${min}–${max} TC`),
     capsUnknown: 'chưa ghi nhận giới hạn TC',
     summer: 'Học kỳ hè',
@@ -468,7 +471,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     credits: (n) => `${n} cr`,
     ofCap: (max) => (max === null ? ' credits' : ` / ${max} credits`),
     atLeast: 'At least',
-    termMonths: ({ year, number }) => (number === 1 ? `Sep – Dec ${year}` : number === 2 ? `Jan – May ${year + 1}` : `Jun – Aug ${year + 1}`),
+    termMonths: ({ first, last, year }) => `${MONTHS_EN[first - 1]} – ${MONTHS_EN[last - 1]} ${year}`,
     caps: (min, max) => (min === null ? `at most ${max}` : `${min}–${max}`),
     capsUnknown: 'credit caps not recorded',
     summer: 'Summer term',

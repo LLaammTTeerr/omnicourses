@@ -15,7 +15,7 @@ import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
-import { currentTerm, termKey, termName, vietnamDate, type Term } from '../terms.js';
+import { compareTerms, currentTerm, nextTerm, termKey, termMonths, termName, vietnamDate, type Term } from '../terms.js';
 import { fetchPlan, fetchPlanIssues, previewPlanDrops, savePlacements, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
 import {
   addCourse,
@@ -24,11 +24,9 @@ import {
   boardBody,
   boardOf,
   boardWith,
-  compareTerms,
   dropVerdict,
   findTile,
   moveTile,
-  nextTerm,
   placedCodes,
   placementOf,
   PREVIEW_KEY,
@@ -594,7 +592,7 @@ function rowView(row: Row): RowView {
     name,
     summer: load?.kind === 'summer',
     now: compareTerms(row.term, currentTermNow()) === 0 && inProgressNow.value.length > 0,
-    when: m.value.termMonths(row.term),
+    when: m.value.termMonths(termMonths(row.term)),
     load: load && {
       atLeast,
       caps: load.caps ? m.value.caps(load.caps.min, load.caps.max) : m.value.capsUnknown,

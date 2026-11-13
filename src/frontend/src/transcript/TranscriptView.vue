@@ -9,7 +9,8 @@ import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { fetchTranscript, saveTranscript, TERM_NUMBERS, TRANSCRIPT_RESULTS } from './api.js';
+import { parseTermKey, TERM_NUMBERS, termKey } from '../terms.js';
+import { fetchTranscript, saveTranscript, TRANSCRIPT_RESULTS } from './api.js';
 import { TRANSCRIPT_MESSAGES } from './messages.js';
 import { blankRow, fromRow, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
 
@@ -35,13 +36,14 @@ const toFix = computed(() => checked.value.filter((entry) => entry.problems.leng
 const dirty = computed(() => snapshot(rows.value) !== savedState.value);
 const years = computed(() => yearChoices(rows.value));
 const counts = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ result, n: rows.value.filter((row) => row.result === result).length })));
-const termValue = (row: DraftRow) => `${row.year}-${row.number}`;
-const termOptions = computed(() => years.value.flatMap((year) => TERM_NUMBERS.map((n) => ({ value: `${year}-${n}`, label: m.value.term(year, n) }))));
+const termValue = (row: DraftRow) => termKey(row);
+const termOptions = computed(() => years.value.flatMap((year) => TERM_NUMBERS.map((number) => ({ value: termKey({ year, number }), label: m.value.term(year, number) }))));
 const resultOptions = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ value: result, label: m.value.results[result] })));
 function setTerm(row: DraftRow, value: string): void {
-  const [year, number] = value.split('-').map(Number);
-  row.year = year!;
-  row.number = number as DraftRow['number'];
+  const term = parseTermKey(value);
+  if (!term) return;
+  row.year = term.year;
+  row.number = term.number;
 }
 /** The line under an invalid row that says what to fix, for the fields it names. */
 const describedBy = (row: DraftRow, rowProblems: Problem[], field: Problem) => (rowProblems.includes(field) ? `problems-${row.key}` : undefined);

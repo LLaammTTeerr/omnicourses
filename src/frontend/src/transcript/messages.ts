@@ -1,6 +1,7 @@
 import type { Lang } from '../locale.js';
 import { termName } from '../terms.js';
-import type { Term, TranscriptResult } from './api.js';
+import type { Term } from '../terms.js';
+import type { TranscriptResult } from './api.js';
 import type { Problem } from './rows.js';
 
 interface TranscriptMessages {
