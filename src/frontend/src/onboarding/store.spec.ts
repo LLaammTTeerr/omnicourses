@@ -3,9 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/store.js';
 import { authResult, user } from '../auth/testing/fixtures.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
-import { NOT_STARTED } from './api.js';
 import { useOnboarding } from './store.js';
-import { onboarding } from './testing/fixtures.js';
+import { NOT_STARTED, onboarding } from './testing/fixtures.js';
 
 /** Signs in through the store as an account with this id. The sign-in call is not counted: the specs count the calls after it. */
 async function signIn(id = user().id) {

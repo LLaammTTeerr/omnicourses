@@ -46,6 +46,9 @@ export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MAX_LENGTH = 128;
 export const DISPLAY_NAME_MAX_LENGTH = 100;
 
+/** A loose shape check, like the API's: something@something.something with no spaces. */
+export const looksLikeEmail = (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
 export const signUp = (body: SignUpBody) => request<AuthResult>('POST', '/auth/sign-up', { body });
 export const signIn = (body: SignInBody) => request<AuthResult>('POST', '/auth/sign-in', { body });
 /** A new token for the session; the one sent stops working at once (ADR 0002). */

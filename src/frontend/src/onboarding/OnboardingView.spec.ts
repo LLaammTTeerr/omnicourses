@@ -5,8 +5,8 @@ import type { Program } from '../curriculum/api.js';
 import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import { NOT_STARTED, type Onboarding } from './api.js';
-import { onboarding } from './testing/fixtures.js';
+import type { Onboarding } from './api.js';
+import { NOT_STARTED, onboarding } from './testing/fixtures.js';
 import { chooseOption } from '../testing/select.js';
 
 // Synthetic programs: APCS as the API lists it, and one the release does not offer.

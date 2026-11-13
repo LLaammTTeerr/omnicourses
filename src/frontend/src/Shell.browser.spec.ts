@@ -7,8 +7,7 @@ import { course as auditCourse, degreeAudit, group as auditGroup } from './audit
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult, session } from './auth/testing/fixtures.js';
 import { createAppRouter } from './router.js';
-import { NOT_STARTED } from './onboarding/api.js';
-import { onboarding } from './onboarding/testing/fixtures.js';
+import { NOT_STARTED, onboarding } from './onboarding/testing/fixtures.js';
 import { mockApi, sentBody } from './testing/fetch.js';
 import { HEALTHY } from './testing/health.js';
 

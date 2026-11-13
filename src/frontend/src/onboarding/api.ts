@@ -20,16 +20,6 @@ export interface Onboarding {
   finished: boolean;
 }
 
-/** What the API answers before the first save. */
-export const NOT_STARTED: Onboarding = {
-  program: null,
-  cohort: null,
-  targetGraduationTerm: null,
-  creditsPerTerm: null,
-  internshipTerm: null,
-  finished: false,
-};
-
 export const fetchOnboarding = (token: string) => request<Onboarding>('GET', '/users/me/onboarding', { token });
 
 /** Replaces every answer, so the whole object is sent; the saved answers come back. 400: an answer is invalid. */

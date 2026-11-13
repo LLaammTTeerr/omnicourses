@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { NOT_STARTED } from './api.js';
 import { creditsProblem, errorsByField, goalAnswers, goalDraft, goalTermChoices, resumeStep } from './answers.js';
-import { onboarding } from './testing/fixtures.js';
+import { NOT_STARTED, onboarding } from './testing/fixtures.js';
 
 describe('creditsProblem (UC-01 §7: 1 or more, no upper limit)', () => {
   it.each(['', '  ', '1', '18', '40', '2147483647'])('accepts %j', (text) => {

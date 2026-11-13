@@ -5,8 +5,9 @@ import { statusOf } from '../api.js';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
+import { looksLikeEmail } from './api.js';
 import AuthFrame from './AuthFrame.vue';
-import { AUTH_MESSAGES, looksLikeEmail } from './messages.js';
+import { AUTH_MESSAGES } from './messages.js';
 import { afterSignIn } from './redirect.js';
 import { useAuth } from './store.js';
 
