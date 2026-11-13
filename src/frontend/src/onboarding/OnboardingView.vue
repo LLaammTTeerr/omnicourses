@@ -3,7 +3,7 @@ import { computed, nextTick, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { afterSignIn } from '../auth/redirect.js';
 import LoadState from '../components/LoadState.vue';
-import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
+import { isOffered, programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { COMMON_MESSAGES } from '../messages.js';
@@ -42,6 +42,7 @@ const cohorts = computed(() => choices.value.find((choice) => choice.code === pr
 const programName = (choice: ProgramChoice) => nameOfProgram(choice, locale.lang);
 
 function pickProgram(code: string): void {
+  if (!isOffered(code)) return; // only offered programs have a button
   program.value = code;
   // A cohort belongs to its program; the next step asks it again.
   if (cohort.value !== null && !cohorts.value.includes(cohort.value)) cohort.value = null;

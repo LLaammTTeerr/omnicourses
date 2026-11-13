@@ -1,18 +1,13 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
+import type { SignUpDto } from '../api-schema/types.gen.js';
 import contract from '../../../backend/openapi.json';
-import { contractShape, type Shape } from '../testing/contract.js';
-import { DISPLAY_NAME_MAX_LENGTH, looksLikeEmail, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, revokeSession, type AuthResult, type Session, type SignInBody, type SignUpBody, type User } from './api.js';
+import { DISPLAY_NAME_MAX_LENGTH, looksLikeEmail, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, revokeSession, type SignUpBody } from './api.js';
 
 describe('auth types against the contract', () => {
-  it.each([
-    ['UserDto', { id: 'required', email: 'required', displayName: 'required', emailVerifiedAt: 'required', createdAt: 'required' } satisfies Shape<User>],
-    ['AuthResultDto', { token: 'required', expiresAt: 'required', user: 'required', accountRestored: 'required' } satisfies Shape<AuthResult>],
-    ['SignUpDto', { email: 'required', password: 'required', displayName: 'required', acceptedTerms: 'required' } satisfies Shape<SignUpBody>],
-    ['SignInDto', { email: 'required', password: 'required' } satisfies Shape<SignInBody>],
-    ['SessionDto', { id: 'required', userAgent: 'required', createdAt: 'required', expiresAt: 'required', current: 'required' } satisfies Shape<Session>],
-  ])('has the fields of %s', (schema, shape) => {
-    expect(contractShape(schema)).toEqual(shape);
+  it('sends only a sign-up the contract allows, with the terms accepted', () => {
+    expectTypeOf<SignUpBody>().toExtend<SignUpDto>();
+    expectTypeOf<SignUpBody['acceptedTerms']>().toEqualTypeOf<true>();
   });
 
   it('checks the password length the API checks', () => {

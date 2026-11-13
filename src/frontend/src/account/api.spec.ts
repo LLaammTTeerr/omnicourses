@@ -1,16 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractShape, type Shape } from '../testing/contract.js';
-import { exportAccount, type DeleteAccountBody, type DeletionScheduled } from './api.js';
-
-describe('account types against the contract', () => {
-  it.each([
-    ['DeleteAccountDto', { password: 'required' } satisfies Shape<DeleteAccountBody>],
-    ['DeletionScheduledDto', { purgeAfter: 'required' } satisfies Shape<DeletionScheduled>],
-  ])('has the fields of %s', (schema, shape) => {
-    expect(contractShape(schema)).toEqual(shape);
-  });
-});
+import { exportAccount } from './api.js';
 
 describe('exportAccount', () => {
   afterEach(() => vi.restoreAllMocks());

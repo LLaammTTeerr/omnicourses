@@ -12,7 +12,7 @@ import { useOnboarding } from './store.js';
  */
 export function useOnboardingForm(onLoaded: (answers: Onboarding) => void = () => {}) {
   const onboarding = useOnboarding();
-  const program = ref<string | null>(null);
+  const program = ref<Onboarding['program']>(null);
   const cohort = ref<number | null>(null);
   const goal = reactive<GoalDraft>({ graduation: '', credits: '', internship: '' });
 

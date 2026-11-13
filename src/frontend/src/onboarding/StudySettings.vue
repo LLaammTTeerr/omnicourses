@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
+import { isOffered, programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
 import { useLocale, useMessages } from '../locale.js';
 import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
@@ -28,6 +28,7 @@ const programName = (choice: ProgramChoice) => nameOfProgram(choice, locale.lang
 
 /** A cohort belongs to its program: the select has no empty choice, so the program's first cohort is picked. */
 function pickProgram(code: string): void {
+  if (!isOffered(code)) return; // the select lists only offered programs
   program.value = code;
   if (cohort.value === null || !cohorts.value.includes(cohort.value)) cohort.value = cohorts.value[0] ?? null;
 }

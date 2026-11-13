@@ -1,19 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
-import {
-  fetchGuide,
-  GUIDE_GROUPS,
-  GUIDE_LANGS,
-  type Guide,
-  type GuideItem,
-  type GuideLink,
-  type GuideListItem,
-  type GuideListText,
-  type GuideNoteSource,
-  type GuidePortal,
-  type GuideText,
-} from './api.js';
+import type { GuideDto, GuideNoteSourceDto, GuideTextDto } from '../api-schema/types.gen.js';
+import { contractEnum, contractShape } from '../testing/contract.js';
+import { fetchGuide, GUIDE_GROUPS, GUIDE_LANGS, type Guide, type GuideNoteSource, type GuideText } from './api.js';
 
 type RegulationSource = Extract<GuideNoteSource, { kind: 'regulation' }>;
 
@@ -29,45 +18,10 @@ describe('guide types against the contract', () => {
     expect(contractShape('GuideTextsDto')).toEqual(texts);
   });
 
-  it.each([
-    ['GuideListItemDto', { id: 'required', group: 'required', texts: 'required' } satisfies Shape<GuideListItem>],
-    ['GuideDto', { id: 'required', group: 'required', texts: 'required' } satisfies Shape<Guide>],
-    ['GuidePortalDto', { name: 'required', url: 'required', account: 'required' } satisfies Shape<GuidePortal>],
-    ['GuideLinkDto', { label: 'required', url: 'required' } satisfies Shape<GuideLink>],
-    [
-      'GuideListTextDto',
-      { title: 'required', keywords: 'required', portal: 'required', version: 'required', lastCheckedOn: 'required', outOfDate: 'required' } satisfies Shape<GuideListText>,
-    ],
-    [
-      'GuideTextDto',
-      {
-        title: 'required',
-        keywords: 'required',
-        portal: 'required',
-        version: 'required',
-        lastCheckedOn: 'required',
-        outOfDate: 'required',
-        changeNote: 'required',
-        lastCheckedBy: 'required',
-        summary: 'required',
-        when: 'required',
-        appliesTo: 'required',
-        prepare: 'required',
-        steps: 'required',
-        notes: 'required',
-        citations: 'required',
-        ifPortalDown: 'required',
-        related: 'required',
-        portals: 'required',
-      } satisfies Shape<GuideText>,
-    ],
-    ['GuideWhenDto', { text: 'required', announcement: 'optional' } satisfies Shape<GuideText['when']>],
-    ['GuideItemDto', { text: 'required', link: 'optional' } satisfies Shape<GuideItem>],
-    ['GuideNoteDto', { text: 'required', source: 'required' } satisfies Shape<GuideText['notes'][number]>],
-    ['GuideCitationDto', { document: 'required', clause: 'required', url: 'required' } satisfies Shape<GuideText['citations'][number]>],
-    ['GuideBoardPortalDto', { name: 'required', url: 'required', account: 'required', purpose: 'required' } satisfies Shape<GuideText['portals'][number]>],
-  ])('has the fields of %s', (schema, shape) => {
-    expect(contractShape(schema)).toEqual(shape);
+  it('narrows a note source, a text and a guide only within what the contract allows', () => {
+    expectTypeOf<GuideNoteSource>().toExtend<GuideNoteSourceDto>();
+    expectTypeOf<GuideText>().toExtend<GuideTextDto>();
+    expectTypeOf<Guide>().toExtend<GuideDto>();
   });
 
   it('has the note sources of the contract', () => {

@@ -1,6 +1,6 @@
 import type { Lang } from '../locale.js';
 import type { TermMonths } from '../terms.js';
-import type { PlanIssue, PlanIssueCode, PlanIssueKind } from './api.js';
+import type { PlanCoverage, PlanIssue, PlanIssueCode, PlanIssueKind } from './api.js';
 
 // The planner's words. Each issue code of the rule engine is worded here from its parameters (ADR 0006: issues are
 // codes with parameters); the API's `message` is English only. Wording an issue never judges the plan: the engine
@@ -179,7 +179,7 @@ interface PlannerMessages {
   wholePlan: string;
   coverage: string;
   totalCredits: (credits: number, required: number | null) => string;
-  graduation: Record<'done' | 'not_yet', string>;
+  graduation: Record<PlanCoverage['graduation'], string>;
   groupCredits: (credits: number, required: number | null) => string;
   met: string;
   short: (n: number) => string;

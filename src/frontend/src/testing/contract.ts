@@ -1,6 +1,7 @@
 import contract from '../../../backend/openapi.json';
 
-// The committed OpenAPI contract (src/backend/openapi.json), for specs that check a hand-written API type against it.
+// The committed OpenAPI contract (src/backend/openapi.json), for specs that check a value the client keeps at run time
+// (an ordered list, a length) against it. The types themselves are generated from it (ADR 0018).
 
 interface Schema {
   properties: Record<string, { enum?: (string | number)[] }>;
@@ -9,9 +10,6 @@ interface Schema {
 const schemas = contract.components.schemas as Record<string, Schema>;
 
 type Presence = 'required' | 'optional';
-
-/** Each property of T, and whether it must be present. Written `{ … } satisfies Shape<T>`, the literal must list every property. */
-export type Shape<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? 'optional' : 'required' };
 
 /** Each property of a contract schema, and whether it must be present. */
 export function contractShape(schema: string): Record<string, Presence> {

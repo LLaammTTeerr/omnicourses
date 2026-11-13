@@ -4,6 +4,7 @@ import type { PlanIssue, PlanIssueKind } from './api.js';
 // How the planner shows each kind of issue: a violation, a flag and an unknown never look alike, and each has an
 // icon and words as well as a colour. Presentation only; the kind comes from the rule engine.
 
+/** Every issue kind, strongest first; api.spec.ts checks that it has every kind of the contract. */
 export const ISSUE_KINDS_SHOWN = ['violation', 'flag', 'unknown'] as const satisfies readonly PlanIssueKind[];
 
 export const KIND_STYLE: Record<PlanIssueKind, { icon: IconName; tone: 'bad' | 'warn' | 'line' }> = {

@@ -1,25 +1,15 @@
 import { request } from '../api.js';
-import type { Term } from '../terms.js';
+import type { TranscriptDto, TranscriptRowDto } from '../api-schema/types.gen.js';
 
-// The transcript DTOs of the API (ADR 0007, ADR 0009), written by hand; api.spec.ts checks them against
-// src/backend/openapi.json.
+// The transcript DTOs of the API (ADR 0007, ADR 0009), generated from the contract (ADR 0018).
 
-export const TRANSCRIPT_RESULTS = ['graded', 'in_progress', 'exempt', 'pass', 'fail'] as const;
-export type TranscriptResult = (typeof TRANSCRIPT_RESULTS)[number];
+/** `grade` may be left out of a request. */
+export type TranscriptRow = TranscriptRowDto;
+export type Transcript = TranscriptDto;
+export type TranscriptResult = TranscriptRowDto['result'];
 
-export interface TranscriptRow {
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  result: TranscriptResult;
-  /** 10-point scale, one decimal, when graded; null otherwise. The API may leave it out of a request. */
-  grade?: number | null;
-  term: Term;
-}
-
-export interface Transcript {
-  rows: TranscriptRow[];
-}
+/** In the order the transcript screen lists them; api.spec.ts checks that it has every result of the contract. */
+export const TRANSCRIPT_RESULTS = ['graded', 'in_progress', 'exempt', 'pass', 'fail'] as const satisfies readonly TranscriptResult[];
 
 /** The saved transcript, oldest term first; no rows if none is saved. */
 export const fetchTranscript = (token: string) => request<Transcript>('GET', '/users/me/transcript', { token });

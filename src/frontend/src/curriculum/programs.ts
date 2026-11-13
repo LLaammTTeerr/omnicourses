@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+import type { OnboardingDto } from '../api-schema/types.gen.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import { localName, type Lang } from '../locale.js';
@@ -7,11 +8,18 @@ import { fetchPrograms, type Program } from './api.js';
 // The programs a student can pick (onboarding, settings, the explorer): every program the API lists, and which of
 // them this release offers.
 
+/** A program this release offers: the contract lists them as the values of OnboardingDto.program. */
+export type OfferedProgram = NonNullable<OnboardingDto['program']>;
+
 /**
  * The programs and cohorts this release offers (B1 test cases §6 item 1). The API keeps them as a constant and
- * publishes them only in its contract (OnboardingDto), so programs.spec.ts checks this copy against openapi.json.
+ * publishes them only in its contract (OnboardingDto): the type holds this copy to the same programs, and
+ * programs.spec.ts checks the cohorts against openapi.json.
  */
-export const OFFERED_COHORTS: Readonly<Record<string, readonly number[]>> = { APCS: [2024, 2025] };
+export const OFFERED_COHORTS: Readonly<Record<OfferedProgram, readonly number[]>> = { APCS: [2024, 2025] };
+
+/** Whether the release offers this program code, so a student may pick it (UC-01 A7). */
+export const isOffered = (code: string): code is OfferedProgram => Object.hasOwn(OFFERED_COHORTS, code);
 
 export interface ProgramChoice {
   code: string;
@@ -28,7 +36,7 @@ export function programChoices(programs: readonly Program[]): ProgramChoice[] {
     const program = programs.find((p) => p.code === code) ?? null;
     return { code, program, cohorts: program ? cohorts.filter((c) => program.cohortYears.includes(c)) : [...cohorts], offered: true };
   });
-  const others = programs.filter((p) => !Object.hasOwn(OFFERED_COHORTS, p.code)).map((program): ProgramChoice => ({ code: program.code, program, cohorts: [], offered: false }));
+  const others = programs.filter((p) => !isOffered(p.code)).map((program): ProgramChoice => ({ code: program.code, program, cohorts: [], offered: false }));
   return [...offered, ...others];
 }
 
