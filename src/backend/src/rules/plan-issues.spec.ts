@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { type Term, termNumber } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { CAP_CITATION, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CITATION, OFFERING_CITATION, PLAN_MODEL_CITATION, PREREQUISITE_CITATION } from './citations.js';
-import { PETITION_NOTE } from './credit-caps.js';
 import type { BoardTerm, CurriculumRules, Placement } from './inputs.js';
 import type { PlanIssue } from './plan-issue-types.js';
 import { checkPlan, projectedTranscript } from './plan-issues.js';
@@ -10,6 +8,16 @@ import { course as fixtureCourse, graded, group, term, ungraded, zzCurriculum } 
 
 // Synthetic curriculum and transcripts only (AGENTS.md hard rule 3): zzCurriculum is Tiên tiến,
 // 10–22 credits in every term, and needs 38 credits.
+
+// Expected citations, written out by hand: citations.spec.ts checks each clause against the regulation.
+const CAP_CITATION = 'QĐ 1175/QĐ-KHTN Điều 7.2';
+const PREREQUISITE_CITATION = 'QĐ 1175/QĐ-KHTN Điều 3.1.c';
+const OFFERING_CITATION = 'QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a';
+const IMPROVEMENT_CITATION = 'QĐ 1175/QĐ-KHTN Điều 14.2';
+const CURRICULUM_CITATION = 'QĐ 1175/QĐ-KHTN Điều 15.1';
+const GRADUATION_CITATION = 'QĐ 1175/QĐ-KHTN Điều 17.3.b';
+const PLAN_MODEL_CITATION = 'ADR 0014';
+const PETITION_NOTE = 'Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b).';
 
 const course = (courseCode: string): Placement => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
 const slot = (requirementGroupId: string, credits: number): Placement => ({ kind: 'slot', courseCode: null, requirementGroupId, credits });

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CAP_CITATION } from './citations.js';
 import { checkTermLoad, creditCaps, isExcludedFromMinimum, PETITION_NOTE, termKind } from './credit-caps.js';
+
+// Written out by hand: citations.spec.ts checks each clause against the regulation.
+const CAP_CITATION = 'QĐ 1175/QĐ-KHTN Điều 7.2';
+const PETITION = 'Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b).';
 
 const load = (...credits: number[]) => credits.map((c) => ({ credits: c }));
 
@@ -36,16 +39,15 @@ describe('credit caps (Điều 7.2)', () => {
     expect(checkTermLoad('advanced', number, load(4, 4, 2)).violations).toEqual([]);
     expect(checkTermLoad('advanced', number, load(4, 4, 4, 4, 4, 2)).violations).toEqual([]);
     expect(checkTermLoad('advanced', number, load(4, 4, 1)).violations).toEqual([
-      { rule: 'below_minimum', credits: 9, limit: 10, citation: CAP_CITATION, petition: PETITION_NOTE },
+      { rule: 'below_minimum', credits: 9, limit: 10, citation: CAP_CITATION, petition: PETITION },
     ]);
     expect(checkTermLoad('advanced', number, load(4, 4, 4, 4, 4, 3)).violations).toEqual([
-      { rule: 'above_maximum', credits: 23, limit: 22, citation: CAP_CITATION, petition: PETITION_NOTE },
+      { rule: 'above_maximum', credits: 23, limit: 22, citation: CAP_CITATION, petition: PETITION },
     ]);
   });
 
   it('cites Điều 7.2 and the petition route', () => {
-    expect(CAP_CITATION).toBe('QĐ 1175/QĐ-KHTN Điều 7.2');
-    expect(PETITION_NOTE).toMatch(/faculty.*Rector/);
+    expect(PETITION_NOTE).toBe(PETITION);
   });
 
   it('đại trà term 3 (summer): 12 allowed, 13 a violation, a light load no violation', () => {
@@ -64,7 +66,7 @@ describe('credit caps (Điều 7.2)', () => {
   it('leaves GDQP, GDTC and general foreign language out of the đại trà minimum only', () => {
     const courses = [{ credits: 4 }, { credits: 4 }, { credits: 4 }, { credits: 4, excludedFromMinimum: true }];
     expect(checkTermLoad('standard', 1, courses).violations).toEqual([
-      { rule: 'below_minimum', credits: 12, limit: 14, citation: CAP_CITATION, petition: PETITION_NOTE },
+      { rule: 'below_minimum', credits: 12, limit: 14, citation: CAP_CITATION, petition: PETITION },
     ]);
     expect(checkTermLoad('advanced', 1, courses).violations).toEqual([]);
   });
