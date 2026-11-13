@@ -3,7 +3,6 @@
 
 export const TERM_NUMBERS = [1, 2, 3] as const;
 
-/** The last term number of an academic year. */
 export const LAST_TERM_NUMBER = TERM_NUMBERS[TERM_NUMBERS.length - 1];
 
 /** The academic years a stored term or cohort may name. The CHECKs in the migrations repeat them in SQL. */

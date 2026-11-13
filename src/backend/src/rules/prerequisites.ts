@@ -1,4 +1,4 @@
-// Prerequisites and offering terms. Neither the database nor the APCS PDFs record them yet
+// Prerequisites and offering terms. The APCS PDFs do not record them; only F12 enters them
 // (ADR 0011, "Prerequisites, offering terms and implementation gates"): the checks take the data
 // as input, null meaning "not recorded", and never invent it. Pure functions.
 import { byText } from '../common/by-text.js';

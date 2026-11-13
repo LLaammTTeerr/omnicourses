@@ -17,8 +17,9 @@ import {
 } from '../rules/plan-issue-types.js';
 import { TermDto } from '../terms/term.dto.js';
 
-// GET /api/plans/{id}/issues (ADR 0014). Each class implements the rule engine's result type, so
-// this contract cannot drift from what the engine returns.
+// The responses of GET and POST /api/plans/{id}/issues and POST …/issues/drops (ADR 0014). Each
+// class implements the rule engine's result type, so this contract cannot drift from what the
+// engine returns.
 
 export class PlanIssueDto implements PlanIssue {
   @ApiProperty({

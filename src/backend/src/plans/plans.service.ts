@@ -124,7 +124,6 @@ export class PlansService {
     return { plan, boards };
   }
 
-  /** Deletes the plan and its placements. */
   async delete(userId: string, planId: string): Promise<void> {
     const { affected } = await this.plans.delete({ id: planId, userId });
     if (!affected) throw planNotFound();

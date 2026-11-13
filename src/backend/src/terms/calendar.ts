@@ -17,7 +17,6 @@ export function vietnamDate(now: Date): VietnamDay {
 // prototype's term dates (ui-prototypes/assets/data.js): term 1 runs September to December,
 // term 2 January to May, term 3 June to August. A term stays current from the first day of its
 // first month until the next one starts, so the weeks between two terms count as the earlier one.
-// For APCS term 3 is a main term (QĐ 1175/QĐ-KHTN Điều 6.4b), so nothing here calls it summer.
 const TERM_2_FIRST_MONTH = 1;
 const TERM_3_FIRST_MONTH = 6;
 const TERM_1_FIRST_MONTH = 9;
