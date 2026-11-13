@@ -172,6 +172,9 @@ export interface PlanIssues {
 
 const path = (id: string) => `/plans/${encodeURIComponent(id)}`;
 
+/** The longest plan name the API takes, in characters (code points): CreatePlanDto, RenamePlanDto, DuplicatePlanDto. */
+export const PLAN_NAME_MAX_LENGTH = 100;
+
 export const fetchPlans = (token: string) => request<PlanList>('GET', '/plans', { token });
 
 /** 400: no curriculum for this program and cohort. */

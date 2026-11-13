@@ -7,9 +7,10 @@ import LoadState from '../components/LoadState.vue';
 import { useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
-import { createPlan, fetchPlans } from './api.js';
+import { createPlan } from './api.js';
 import { readLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
+import { useLoadPlans } from './plan-actions.js';
 
 // The planner's front door (/plans): it opens a plan straight away. The one the student had open last, else their
 // first; a student with none gets a "Default plan" on their program and cohort. Without a program, or when the plans
@@ -19,11 +20,12 @@ const onboarding = useOnboarding();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
 const failed = ref(false);
+const loadPlans = useLoadPlans();
 
 async function open(): Promise<void> {
   failed.value = false;
   try {
-    const { plans } = await auth.authed(fetchPlans);
+    const plans = await loadPlans();
     const last = readLastPlan();
     const pick = plans.find((p) => p.id === last) ?? plans[0];
     if (pick) {

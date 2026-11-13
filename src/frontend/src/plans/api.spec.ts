@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import contract from '../../../backend/openapi.json';
 import { API_URL } from '../api.js';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
 import {
@@ -8,8 +9,10 @@ import {
   fetchPlan,
   fetchPlanIssues,
   fetchPlans,
+  previewPlanDrops,
   previewPlanIssues,
   PLACEMENT_KINDS,
+  PLAN_NAME_MAX_LENGTH,
   PLAN_ISSUE_CODES,
   PLAN_ISSUE_KINDS,
   renamePlan,
@@ -22,6 +25,9 @@ import {
   type PlanCombinedMinimumCoverage,
   type PlanCoverage,
   type PlanCurriculum,
+  type PlanDropPreview,
+  type PlanDropReport,
+  type PlanDropReports,
   type PlanGroupCoverage,
   type PlanIssue,
   type PlanIssues,
@@ -48,6 +54,9 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     ['PlanPlacementDto', { kind: 'required', courseCode: 'optional', requirementGroupId: 'optional', credits: 'optional' } satisfies Shape<Placement>],
     ['CreatePlanDto', { name: 'required', programCode: 'required', cohortYear: 'required', terms: 'optional' } satisfies Shape<CreatePlanBody>],
     ['CreditCapsDto', { min: 'required', max: 'required' } satisfies Shape<CreditCaps>],
+    ['PlanDropPreviewDto', { terms: 'required', placement: 'required', targets: 'required' } satisfies Shape<PlanDropPreview>],
+    ['PlanDropReportDto', { term: 'required', issues: 'required' } satisfies Shape<PlanDropReport>],
+    ['PlanDropReportsDto', { reports: 'required' } satisfies Shape<PlanDropReports>],
     ['PlanTermLoadDto', { term: 'required', kind: 'required', credits: 'required', caps: 'required' } satisfies Shape<PlanTermLoad>],
     [
       'PlanIssueDto',
@@ -109,6 +118,12 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
   });
 });
 
+describe('plan name length', () => {
+  it('is the length the API checks on create, rename and copy', () => {
+    for (const dto of ['CreatePlanDto', 'RenamePlanDto', 'DuplicatePlanDto'] as const) expect(contract.components.schemas[dto].properties.name.maxLength).toBe(PLAN_NAME_MAX_LENGTH);
+  });
+});
+
 describe('plan requests', () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -137,6 +152,29 @@ describe('plan requests', () => {
       ['POST', `/plans/${PLAN_ID}/issues`, { terms }],
     ]);
     for (const [, init] of fetch.mock.calls) expect(init).toMatchObject({ headers: { Authorization: 'Bearer zz-token' } });
+  });
+
+  it('sends the drag preview to its route with the token and the body', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ reports: [] }));
+    const body: PlanDropPreview = {
+      terms: [{ term: { year: 2026, number: 1 }, placements: [course('ZZ101')] }],
+      placement: course('ZZ102'),
+      targets: [{ year: 2026, number: 2 }],
+    };
+    await expect(previewPlanDrops('zz-token', PLAN_ID, body)).resolves.toEqual({ reports: [] });
+    const [url, init] = fetch.mock.calls[0]!;
+    expect([init?.method, String(url).slice(API_URL.length), JSON.parse(String(init?.body))]).toEqual(['POST', `/plans/${PLAN_ID}/issues/drops`, body]);
+    expect(init).toMatchObject({ headers: { Authorization: 'Bearer zz-token' } });
+  });
+
+  it('lets the drag preview be cancelled with its signal', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ reports: [] }));
+    const controller = new AbortController();
+    await previewPlanDrops('zz-token', PLAN_ID, { terms: [], placement: course('ZZ101'), targets: [] }, controller.signal);
+    const signal = fetch.mock.calls[0]![1]!.signal!;
+    expect(signal.aborted).toBe(false);
+    controller.abort();
+    expect(signal.aborted).toBe(true);
   });
 
   it('lets a drag preview be cancelled with its signal', async () => {

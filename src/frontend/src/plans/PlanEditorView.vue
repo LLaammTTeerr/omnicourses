@@ -1,42 +1,33 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { HttpError, statusOf } from '../api.js';
+import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
-import { fetchAudit, type DegreeAudit } from '../audit/api.js';
 import { useAuth } from '../auth/store.js';
+import LoadState from '../components/LoadState.vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
-import { courseName, groupColour, matches, orderGroups } from '../curriculum/present.js';
+import { courseName, groupColour, matches } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { reducedMotion, replay, scrollToView } from '../motion.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { useTranscriptCodes } from '../transcript/codes.js';
-import { compareTerms, currentTerm, nextTerm, termKey, termMonths, termName, vietnamDate, type Term } from '../terms.js';
-import { fetchPlan, fetchPlanIssues, previewPlanDrops, savePlacements, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
+import { readStored, writeStored } from '../storage.js';
+import { compareTerms, nextTerm, termAt, termKey, termMonths, termName, type Term } from '../terms.js';
+import { fetchPlan, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
 import {
   addCourse,
   addSlot,
-  attachIssues,
-  boardBody,
   boardOf,
-  boardWith,
-  dropVerdict,
   findTile,
   moveTile,
   placedCodes,
-  placementOf,
-  PREVIEW_KEY,
   removeTile,
   rowsFor,
-  sameTiles,
   withNextRow,
-  type AttachedIssues,
   type Board,
-  type DropVerdict,
   type Moving,
   type Row,
   type Tile,
@@ -45,20 +36,24 @@ import { pointerDrag, type DropTarget } from './drag.js';
 import { play, snapshot, type Lift } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
 import { rememberLastPlan } from './last-plan.js';
-import { isLocked, setLocked } from './lock.js';
-import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
+import { PLANNER_MESSAGES } from './messages.js';
+import { usePlanActions } from './plan-actions.js';
 import PlanTabs from './PlanTabs.vue';
 import { KIND_STYLE, strongest } from './present.js';
 import StatusStrip from './StatusStrip.vue';
+import { useDropPreview } from './use-drop-preview.js';
+import { usePlanContext } from './use-plan-context.js';
+import { usePlanIssues } from './use-plan-issues.js';
+import { usePlanSave, type Opened } from './use-plan-save.js';
 
 // The plan editor (F5, UC-05): one row per term, the curriculum's courses to add, and moves by button, keyboard
-// (Space, arrows, Enter, Escape: UC-05 A1) or drag and drop. Each change saves the whole board (ADR 0014), then the
-// rule engine's report is read again from GET /plans/{id}/issues. While a course is dragged or lifted, the editor asks
-// the engine about the board with the drop made (POST /plans/{id}/issues, which saves nothing), so each row can say
-// before the drop whether it would break a rule and what its load would be. The editor never judges a placement, a
-// load or a requirement itself (AGENTS.md hard rule 1): colours, loads, caps and reasons come only from those reports.
-// A report is pinned to the board it was computed for, so its issues follow their tiles, and they are dimmed while
-// the board on screen holds other tiles than that one.
+// (Space, arrows, Enter, Escape: UC-05 A1) or drag and drop. Each change saves the whole board (ADR 0014,
+// use-plan-save.ts), then the rule engine's report is read again from GET /plans/{id}/issues (use-plan-issues.ts).
+// While a course is dragged or lifted, the editor asks the engine about the board with the drop made
+// (POST /plans/{id}/issues/drops, which saves nothing: use-drop-preview.ts), so each row can say before the drop
+// whether it would break a rule and what its load would be. The editor never judges a placement, a load or a
+// requirement itself (AGENTS.md hard rule 1): colours, loads, caps and reasons come only from those reports. This
+// file wires them to the board on screen: what each row and tile shows, and the moves by pointer and keyboard.
 const props = defineProps<{ id: string }>();
 const auth = useAuth();
 const onboarding = useOnboarding();
@@ -76,109 +71,31 @@ const saved = shallowRef<Board>([]);
 const lifted = shallowRef<{ key: number; target: number } | null>(null);
 let nextKey = 0;
 const newKey = () => nextKey++;
-const currentTermNow = () => currentTerm(vietnamDate(new Date()));
+const currentTermNow = () => termAt(new Date());
 
-/**
- * The plan this editor has open. The router reuses the editor when the student goes from one plan straight to
- * another, so each load opens a new one, and a save or check started for an earlier one stops instead of touching
- * the plan now on screen.
- */
-interface Opened {
-  id: string;
-  saving: boolean;
-}
 let opened: Opened = { id: props.id, saving: false };
 
-// ---------- The rule engine's report ----------
-const issues = shallowRef<AttachedIssues | null>(null);
-const issuesStatus = ref<'loading' | 'failed' | 'idle'>('loading');
-let checkCall = 0;
-
-async function check(snapshotBoard: Board): Promise<void> {
-  const call = ++checkCall;
-  const { id } = opened;
-  issuesStatus.value = 'loading';
-  try {
-    const report = await auth.authed((token) => fetchPlanIssues(token, id));
-    if (call !== checkCall) return;
-    issues.value = attachIssues(snapshotBoard, report);
-    issuesStatus.value = 'idle';
-  } catch (e) {
-    if (call !== checkCall) return;
-    if (statusOf(e) !== 401) console.error('Checking the plan failed:', e);
-    issuesStatus.value = 'failed';
-  }
-}
+const { issues, status: issuesStatus, check, dropPending, reset: resetIssues, fresh, ctx } = usePlanIssues(board, () => opened.id);
 /** The Issues panel's retry. During a save it waits: the loop checks when it ends, after the last PUT. */
 function retryCheck(): void {
   if (!opened.saving) void check(saved.value);
 }
-/** The report describes the board on screen. Empty rows do not count: they are not saved, so not checked either. */
-const fresh = computed(() => issues.value !== null && sameTiles(issues.value.board, board.value));
 
-// ---------- Saving ----------
-/** How long a save waits after each 429 before sending again; after the last one it fails as any error does. */
-const SAVE_RETRY_MS = [2000, 5000, 10000];
-const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
-const saveError = ref<string | null>(null);
-
-/**
- * Saves the board on screen until the API holds it, then checks the saved board, also after a failure, which puts
- * back the last saved board (an earlier request of the same loop may have gone through). If the student opens
- * another plan meanwhile, the request in flight still lands in this one and the loop stops there: a change not yet
- * sent is dropped rather than written into the plan now open.
- */
-async function save(): Promise<void> {
-  const mine = opened;
-  if (mine.saving) return;
-  mine.saving = true;
-  saveState.value = 'saving';
-  let waits = 0;
-  try {
-    for (;;) {
-      const sending = board.value;
-      if (sameTiles(sending, saved.value)) {
-        saved.value = sending; // Same tiles, maybe more empty rows: keep them if a later save fails.
-        break;
-      }
-      // A check asked for before this PUT may be answered after it commits, about this board and not its snapshot:
-      // drop it. The loop checks again when it ends.
-      ++checkCall;
-      if (issuesStatus.value === 'loading') issuesStatus.value = 'idle';
-      let updated: Plan;
-      try {
-        updated = await auth.authed((token) => savePlacements(token, mine.id, boardBody(sending)));
-      } catch (e) {
-        // 429: too many requests, not a refusal. Keep the board, wait, and send the board on screen again.
-        if (statusOf(e) !== 429 || waits >= SAVE_RETRY_MS.length) throw e;
-        await new Promise((resolve) => setTimeout(resolve, SAVE_RETRY_MS[waits++]));
-        if (mine !== opened) return;
-        continue;
-      }
-      waits = 0;
-      if (mine !== opened) return;
-      plan.value = updated;
-      saved.value = sending;
-    }
-    saveState.value = 'saved';
-    void check(saved.value);
-  } catch (e) {
-    if (mine !== opened) return;
+const { saveState, saveError, save, history, record, takeLast, locked, setLock, open: openLock, reset: resetSave } = usePlanSave({
+  plan,
+  board,
+  saved,
+  opened: () => opened,
+  issues: { check, dropPending },
+  revert() {
     animate(() => (board.value = saved.value));
-    forgetUnsaved();
     // A lifted tile's target row may be gone, or the tile may be back in another row.
     lifted.value = null;
-    const code = statusOf(e);
-    saveState.value = code === 401 ? 'saved' : 'failed';
-    if (code === 401) return; // App.vue takes the student to sign in.
-    console.error('Saving the plan failed:', e);
-    const details = e instanceof HttpError ? e.details.join('; ') : '';
-    saveError.value = code === 400 && details ? m.value.saveRefused(details) : m.value.saveFailed;
-    void check(saved.value);
-  } finally {
-    mine.saving = false;
-  }
-}
+  },
+  words: () => m.value,
+});
+
+const { moving, previews, homeOf, isHome, previewRow, previewAll, stopPreview } = useDropPreview(board, issues, () => opened.id);
 
 // ---------- Changes, their animation and undo ----------
 const boardEl = ref<HTMLElement | null>(null);
@@ -189,39 +106,21 @@ function animate(fn: () => void, lift?: Lift): void {
   void nextTick(() => play(boardEl.value, before, lift));
 }
 
-/** The boards before each change, newest last, with what the change was, for Undo (Ctrl+Z). */
-const history = shallowRef<{ board: Board; said: string }[]>([]);
-const HISTORY_MAX = 50;
-
 function change(next: Board, said?: string, undoing = false, lift?: Lift): void {
   if (next === board.value || locked.value) return;
-  if (!undoing) history.value = [...history.value.slice(1 - HISTORY_MAX), { board: board.value, said: said ?? '' }];
+  if (!undoing) record(board.value, said ?? '');
   animate(() => (board.value = next), lift);
   saveError.value = null;
   if (said) announce(said);
   void save();
 }
 
-/**
- * After a failed save the board is back at the last saved one: the changes made since are gone, so Undo forgets them
- * too. They are the newest entries, down to the one that holds the saved board.
- */
-function forgetUnsaved(): void {
-  const kept = [...history.value];
-  while (kept.length) {
-    const last = kept.pop()!;
-    if (sameTiles(last.board, saved.value)) break;
-  }
-  history.value = kept;
-}
-
 function undo(): void {
-  const last = history.value.at(-1);
+  const last = takeLast();
   if (!last) {
     toast.show(m.value.nothingToUndo);
     return;
   }
-  history.value = history.value.slice(0, -1);
   lifted.value = null;
   const said = m.value.undone(last.said);
   change(last.board, said, true);
@@ -237,12 +136,9 @@ function onWindowKey(event: KeyboardEvent): void {
   undo();
 }
 
-// ---------- Lock: the plan cannot change until it is unlocked (kept per plan on this browser) ----------
-const locked = ref(false);
 function toggleLock(): void {
   if (!plan.value) return;
-  locked.value = !locked.value;
-  setLocked(plan.value.id, locked.value);
+  setLock(plan.value.id, !locked.value);
   if (locked.value) {
     drag.stop();
     endDrag();
@@ -256,12 +152,9 @@ const loaded = useAsyncLoad(
   'the plan',
   async () => {
     const mine: Opened = (opened = { id: props.id, saving: false });
-    ++checkCall;
-    issues.value = null;
-    saveState.value = 'saved';
-    saveError.value = null;
+    resetIssues();
+    resetSave();
     lifted.value = null;
-    history.value = [];
     const found = await auth.authed((token) => fetchPlan(token, mine.id));
     // The rows run to the target graduation term; without onboarding answers they stop at the plan's last term.
     const target = await onboarding.load().then(
@@ -275,7 +168,7 @@ const loaded = useAsyncLoad(
     lifted.value = null;
     const start = boardOf(found.terms, rowsFor(found.terms, currentTermNow(), target), newKey);
     plan.value = found;
-    locked.value = isLocked(found.id);
+    openLock(found.id);
     rememberLastPlan(found.id);
     board.value = start;
     saved.value = start;
@@ -287,65 +180,21 @@ const loaded = useAsyncLoad(
 );
 
 // ---------- What a tile shows ----------
-interface CourseInfo {
-  course: CurriculumCourse;
-  colour: GroupId;
-}
-const curriculum = useAsyncLoad(
-  'the curriculum of the plan',
-  async () => {
-    const c = plan.value?.curriculum;
-    return c ? auth.authed((token) => fetchCurriculum(token, c.programCode, c.cohortYear)) : null;
-  },
-  () => plan.value?.curriculum.id ?? null,
+const { curriculum, requirementGroups, catalog, groupNames, transcriptCodes, audit, passed, passedCodes, gradeOf, pastTerms, inProgressNow } = usePlanContext(
+  plan,
+  currentTermNow,
 );
-const requirementGroups = computed<readonly RequirementGroup[]>(() => curriculum.data.value?.requirementGroups ?? []);
-/** Each course of the curriculum once, in the group order of the explorer. */
-const catalog = computed(() => {
-  const courses = new Map<string, CourseInfo>();
-  for (const group of orderGroups(requirementGroups.value)) {
-    const colour = groupColour(group);
-    for (const course of group.courses) if (!courses.has(course.code)) courses.set(course.code, { course, colour });
-  }
-  return courses;
-});
-const groupNames = computed(() => new Map(requirementGroups.value.map((g) => [g.id, g])));
 const shortName = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.short[locale.lang];
 const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
-// A neutral mark on the courses of the student's saved transcript, as in the explorer: whether one counts as passed
-// is the engine's call (it flags a placed one as already_passed). No transcript, or none loaded, shows no marks.
-const transcriptCodes = useTranscriptCodes('the planner');
-
-// The degree audit (the rule engine's reading of the transcript, F3): the terms already taken, the courses it counts
-// as passed or in progress, and their grades. Without one (no transcript, no onboarding, a failure) none of it shows.
-const audit = shallowRef<DegreeAudit | null>(null);
-auth
-  .authed(fetchAudit)
-  .then((outcome) => (audit.value = outcome.status === 'ready' ? outcome.audit : null))
-  .catch((e) => statusOf(e) === 401 || console.error('Loading the audit for the planner failed:', e));
-const auditCourses = computed(() => audit.value?.groups.flatMap((g) => g.courses) ?? []);
-const passedCodes = computed(() => new Set(auditCourses.value.filter((c) => c.status === 'passed').map((c) => c.code)));
-const gradeOf = computed(() => new Map(auditCourses.value.filter((c) => c.grade !== null).map((c) => [c.code, c.grade!])));
 /** The terms before the current one, with what the engine counts as passed, for the "Taken" strip. */
 const past = computed(() => {
-  const now = currentTermNow();
-  const terms = audit.value?.terms.filter((t) => compareTerms(t.term, now) < 0) ?? [];
+  const terms = pastTerms.value;
   if (!audit.value || terms.length === 0) return null;
-  const passed = auditCourses.value.filter((c) => c.status === 'passed');
   return {
     span: m.value.pastTerms(terms.length, nameOf(terms[0]!.term), nameOf(terms.at(-1)!.term)),
     accumulated: audit.value.credits.accumulated,
-    courses: passed.map((c) => ({ code: c.code, name: courseName(c, locale.lang), colour: catalog.value.get(c.code)?.colour ?? 'core' })),
+    courses: passed.value.map((c) => ({ code: c.code, name: courseName(c, locale.lang), colour: catalog.value.get(c.code)?.colour ?? 'core' })),
   };
-});
-/** The courses the transcript has in progress in the current term: shown in its row, locked. */
-const inProgressNow = computed(() => {
-  const now = currentTermNow();
-  const term = audit.value?.terms.find((t) => compareTerms(t.term, now) === 0);
-  return (term?.inProgressCourseCodes ?? []).map((code) => {
-    const info = catalog.value.get(code);
-    return { code, name: info ? courseName(info.course, locale.lang) : null, credits: info?.course.credits ?? null, colour: info?.colour ?? 'core' };
-  });
 });
 
 function tileTitle(tile: Tile): string {
@@ -360,86 +209,7 @@ const movingTitle = (what: Moving) => {
   return found ? tileTitle(found.row.tiles[found.index]!) : '';
 };
 
-const ctx = computed<IssueContext>(() => ({
-  requirementName: (issue: PlanIssue) => {
-    const coverage = issues.value?.report.coverage;
-    if (issue.requirementGroupId) return coverage?.groups.find((g) => g.id === issue.requirementGroupId)?.name ?? null;
-    if (issue.combinedMinimumId) return coverage?.combinedMinimums.find((c) => c.id === issue.combinedMinimumId)?.name ?? null;
-    return null;
-  },
-}));
-
-// ---------- The drag preview: the engine's report on the board with the drop made, one per row ----------
-interface RowPreview {
-  status: 'loading' | 'done' | 'failed';
-  attached: AttachedIssues | null;
-  verdict: DropVerdict | null;
-}
-/** What is being dragged with the pointer, or lifted with the keyboard. */
-const moving = shallowRef<Moving | null>(null);
-const previews = shallowRef<Map<string, RowPreview>>(new Map());
-let previewAbort: AbortController | null = null;
-let previewOf: Moving | null = null;
-
-const homeOf = (what: Moving) => ('key' in what ? findTile(board.value, what.key)?.row.term : undefined);
-
-/**
- * Asks the engine about the drop of `what` on each of `terms` it has no answer for yet, in one request
- * (POST /plans/{id}/issues/drops): a drag costs one request against the rate limit, not one per row.
- */
-function previewRows(what: Moving, terms: readonly Term[]): void {
-  if (previewOf !== what) {
-    previewAbort?.abort();
-    previewAbort = new AbortController();
-    previewOf = what;
-    previews.value = new Map();
-  }
-  const snapshot = board.value;
-  const home = homeOf(what);
-  const todo = terms.filter((term) => {
-    const had = previews.value.get(termKey(term));
-    return !(had && had.status !== 'failed') && !(home && termKey(home) === termKey(term)) && boardWith(snapshot, what, term) !== snapshot;
-  });
-  const placement = placementOf(snapshot, what);
-  if (!todo.length || !placement) return;
-  const setAll = (value: (term: Term) => RowPreview) => {
-    if (previewOf !== what) return;
-    const next = new Map(previews.value);
-    for (const term of todo) next.set(termKey(term), value(term));
-    previews.value = next;
-  };
-  setAll(() => ({ status: 'loading', attached: null, verdict: null }));
-  const tileKey = 'key' in what ? what.key : PREVIEW_KEY;
-  const without = 'key' in what ? removeTile(snapshot, what.key) : snapshot;
-  const before = issues.value;
-  const { signal } = previewAbort!;
-  const { id } = opened;
-  auth
-    .authed((token) => previewPlanDrops(token, id, { terms: boardBody(without), placement, targets: todo }, signal))
-    .then(({ reports }) => {
-      const byTerm = new Map(reports.map((r) => [termKey(r.term), r.issues]));
-      setAll((term) => {
-        const report = byTerm.get(termKey(term));
-        if (!report) return { status: 'failed', attached: null, verdict: null };
-        const attached = attachIssues(boardWith(snapshot, what, term), report);
-        return { status: 'done', attached, verdict: dropVerdict(attached, tileKey, term, before) };
-      });
-    })
-    .catch((e) => {
-      if (signal.aborted) return;
-      if (statusOf(e) !== 401) console.error('Previewing a drop failed:', e);
-      setAll(() => ({ status: 'failed', attached: null, verdict: null }));
-    });
-}
-const previewRow = (what: Moving, term: Term) => previewRows(what, [term]);
-const previewAll = (what: Moving) => previewRows(what, board.value.map((row) => row.term));
-function stopPreview(): void {
-  previewAbort?.abort();
-  previewAbort = null;
-  previewOf = null;
-  previews.value = new Map();
-}
-
+// ---------- The drag preview on screen ----------
 /** The row a drop would land on now: the one under the pointer, or the lifted tile's target. */
 const hoverKey = computed(() => {
   if (dropRow.value) return dropRow.value;
@@ -451,7 +221,7 @@ const panelPreview = computed(() => {
   const what = moving.value;
   const key = hoverKey.value;
   const row = key ? board.value.find((r) => termKey(r.term) === key) : undefined;
-  if (!what || !row || (homeOf(what) && termKey(homeOf(what)!) === key)) return null;
+  if (!what || !row || isHome(what, row.term)) return null;
   return { label: m.value.previewOf(movingTitle(what), nameOf(row.term)), attached: hoverPreview.value?.attached ?? null };
 });
 
@@ -604,7 +374,7 @@ function rowView(row: Row): RowView {
     cap: capOf(previewed ? (hoverPreview.value?.attached?.byTerm.get(key) ?? []) : rowIssues, load?.credits ?? 0),
     tone: toneOf(rowIssues),
     drop: dropOf(key),
-    placeholder: dropRow.value === key && movingInfo.value && !(moving.value && homeOf(moving.value) && termKey(homeOf(moving.value)!) === key) ? movingInfo.value : null,
+    placeholder: dropRow.value === key && movingInfo.value && !(moving.value && isHome(moving.value, row.term)) ? movingInfo.value : null,
     issues: rowIssues,
     tiles: row.tiles.map((tile) => tileView(tile, name)),
   };
@@ -649,7 +419,7 @@ const query = ref('');
 const poolGroup = ref<GroupId | ''>('');
 const addTarget = ref('');
 const addTargetTerm = computed(() => board.value.find((row) => termKey(row.term) === addTarget.value)?.term ?? board.value[0]?.term ?? null);
-/** The tray: courses not placed, not in progress now, and not counted as passed by the engine's audit. */
+/** The tray: courses not placed and not in progress now. A passed course stays, marked as passed. */
 const unplaced = computed(() => {
   const placed = placedCodes(board.value);
   const now = new Set(inProgressNow.value.map((c) => c.code));
@@ -706,23 +476,15 @@ async function addRow(event?: MouseEvent): Promise<void> {
   const by = button.getBoundingClientRect().top - top;
   if (by > 0) window.scrollBy({ top: by, behavior: reducedMotion() ? 'auto' : 'smooth' });
 }
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Brings a tile into view and makes it shake and glow for a moment, so the eye finds it. */
 async function jumpTo(key: number): Promise<void> {
   await nextTick();
   const el = document.getElementById(`tile-${key}`);
   if (!el) return;
-  if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' });
+  scrollToView(el, 'center');
   el.focus({ preventScroll: true });
-  ring(el, 'flash');
-}
-/** Plays a one-off animation class on an element again, even if it just played. */
-function ring(el: HTMLElement, cls: 'flash' | 'shake'): void {
-  el.classList.remove(cls);
-  void el.offsetWidth;
-  el.classList.add(cls);
-  el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+  replay(el, 'flash');
 }
 
 /** A passed course in the "Taken" strip: its place in the curriculum explorer. */
@@ -805,6 +567,9 @@ watch(
   },
 );
 
+/** How long a dropped tile takes to land (flip.ts) before a refused drop shakes it. */
+const LANDING_MS = 420;
+
 const drag = pointerDrag<Moving>({
   begin(what) {
     dragging.value = what;
@@ -828,7 +593,7 @@ const drag = pointerDrag<Moving>({
     if (key !== null && verdict?.kind === 'violation') {
       void nextTick(() => {
         const el = document.getElementById(`tile-${key}`);
-        if (el) setTimeout(() => ring(el, 'shake'), 420);
+        if (el) setTimeout(() => replay(el, 'shake'), LANDING_MS);
       });
     }
   },
@@ -883,29 +648,24 @@ const movingInfo = computed<{ title: string; credits: number | null; colour: Gro
   return { title: view.title, credits: view.credits, colour: view.colour };
 });
 
-// ---------- The issues panel, open or collapsed (kept for the next visit) ----------
+// ---------- The issues panel, open or collapsed (kept for the next visit on this browser) ----------
 const RAIL_KEY = 'oc-planner-rail';
-const readRail = () => {
-  try {
-    return localStorage.getItem(RAIL_KEY) === 'mini';
-  } catch {
-    return false;
-  }
-};
-const collapsed = ref(readRail());
+const collapsed = ref(readStored(RAIL_KEY) === 'mini');
 function toggleRail(): void {
   collapsed.value = !collapsed.value;
-  try {
-    localStorage.setItem(RAIL_KEY, collapsed.value ? 'mini' : 'open');
-  } catch {
-    // Not kept: private mode or storage blocked.
-  }
+  writeStored(RAIL_KEY, collapsed.value ? 'mini' : 'open');
 }
 
-// ---------- What-if: try a change on a copy ----------
-const tabs = ref<InstanceType<typeof PlanTabs> | null>(null);
+// ---------- What-if: try a change on a copy, opened at once ----------
+// The tabs get these actions too, so their buttons wait while a copy is made.
+const actions = usePlanActions();
 function whatIf(): void {
-  if (plan.value) void tabs.value?.copy(m.value.whatIfName(plan.value.name));
+  const current = plan.value;
+  if (!current) return;
+  void actions.copy(current.id, m.value.whatIfName(current.name), async (made) => {
+    toast.show(m.value.copied(made.name));
+    await router.push({ name: 'plan', params: { id: made.id } });
+  });
 }
 
 onMounted(() => window.addEventListener('keydown', onWindowKey));
@@ -917,6 +677,8 @@ onBeforeUnmount(() => {
 
 usePageTitle(() => plan.value?.name ?? m.value.title);
 </script>
+
+
 
 <template>
   <div class="page planner-page">
@@ -943,21 +705,15 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
       </div>
     </header>
 
-    <p v-if="loaded.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="loaded.status.value === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" />
+    <LoadState v-if="loaded.status.value !== 'loaded'" :status="loaded.status.value" :loading="m.loading" :failed="m.loadFailed" :retry="m.retry" @retry="loaded.reload">
       <div v-if="statusOf(loaded.error.value) === 404">
         <p>{{ m.notFound }}</p>
         <RouterLink class="btn sm" :to="{ name: 'plan-list' }">{{ m.allPlans }}</RouterLink>
       </div>
-      <div v-else>
-        <p>{{ m.loadFailed }}</p>
-        <button class="btn sm" type="button" @click="loaded.reload">{{ m.retry }}</button>
-      </div>
-    </div>
+    </LoadState>
 
     <template v-else-if="plan">
-      <PlanTabs :id="plan.id" ref="tabs" :name="plan.name" :curriculum="plan.curriculum" />
+      <PlanTabs :id="plan.id" :name="plan.name" :curriculum="plan.curriculum" :actions="actions" />
       <p v-if="locked" class="callout info small lock-note" role="status" data-test="locked-note"><Icon name="lock" size="sm" /><span>{{ m.lockedNote }}</span></p>
       <StatusStrip :attached="issues" :fresh="fresh" :save-state="saveState" />
       <p class="small t3">{{ m.curriculum(plan.curriculum.code) }}</p>
@@ -1002,14 +758,16 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                 <SelectMenu v-model="addTarget" :options="board.map((row) => ({ value: termKey(row.term), label: nameOf(row.term) }))" data-test="add-to" />
               </label>
             </div>
-            <p v-if="curriculum.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-            <div v-else-if="curriculum.status.value === 'failed'" class="callout warn small" role="alert">
-              <Icon name="alert" size="sm" />
-              <div>
-                <p>{{ statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.curriculumFailed }}</p>
-                <button class="btn sm" type="button" @click="curriculum.reload">{{ m.retry }}</button>
-              </div>
-            </div>
+            <LoadState
+              v-if="curriculum.status.value !== 'loaded'"
+              :status="curriculum.status.value"
+              :loading="m.loading"
+              :failed="statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.curriculumFailed"
+              :retry="m.retry"
+              tone="warn"
+              small
+              @retry="curriculum.reload"
+            />
             <p v-else-if="unplaced.length === 0" class="small t2" role="status">{{ m.allPlaced }}</p>
             <p v-else-if="shown.length === 0" class="small t2" role="status">{{ m.noMatch }}</p>
             <ul v-else class="tray-list">

@@ -1,19 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { reducedMotion, replay, SHAKE_MS } from './motion.js';
-
-// Read from disk: Vitest does not load CSS, so a ?raw import comes back empty. Under jsdom import.meta.url is not a
-// file URL, so the path is built from the file name.
-const css = readFileSync(join(dirname(import.meta.filename), 'styles.css'), 'utf8');
+import { reducedMotion, replay } from './motion.js';
 
 describe('motion', () => {
   afterEach(() => vi.unstubAllGlobals());
-
-  it('gives .shake in styles.css the duration the planner waits for', () => {
-    const seconds = /\.shake\s*\{\s*animation:\s*shake\s+([\d.]+)s/.exec(css)?.[1];
-    expect(Number(seconds) * 1000).toBe(SHAKE_MS);
-  });
 
   it('reads the reduced-motion setting, and calls jsdom without matchMedia calm', () => {
     expect(reducedMotion()).toBe(false);

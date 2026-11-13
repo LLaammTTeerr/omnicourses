@@ -3,9 +3,6 @@
 /** True when the student asked the system for less motion (and in jsdom, which has no matchMedia). */
 export const reducedMotion = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** How long `.shake` runs (styles.css): a refused drop shakes once its tile has landed. motion.spec.ts ties the two. */
-export const SHAKE_MS = 420;
-
 /** Plays a one-off animation class (`flash`, `shake` in styles.css) on an element again, even if it just played. */
 export function replay(el: HTMLElement, cls: 'flash' | 'shake'): void {
   el.classList.remove(cls);

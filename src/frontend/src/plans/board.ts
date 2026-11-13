@@ -184,6 +184,9 @@ export function placementOf(board: Board, what: Moving): Placement | null {
 /** An issue's identity across two reports: its code, course, term and group (positions move when a tile does). */
 export const issueId = (i: PlanIssue) => [i.code, i.courseCode ?? '', i.term ? termKey(i.term) : '', i.requirementGroupId ?? ''].join('|');
 
+/** The violations a report finds in the terms (about a term or a course); coverage shortfalls are about the whole plan. */
+export const termViolations = (report: PlanIssues | null | undefined): PlanIssue[] => report?.issues.filter((i) => i.kind === 'violation' && i.term !== null) ?? [];
+
 /** How a row would take a drop, from the engine's report on the board with the drop made. */
 export interface DropVerdict {
   /**
@@ -203,7 +206,7 @@ export interface DropVerdict {
 export function dropVerdict(attached: AttachedIssues, key: number, to: Term, before: AttachedIssues | null): DropVerdict {
   const mine = [...(attached.byTile.get(key) ?? []), ...(attached.byTerm.get(termKey(to)) ?? [])];
   const had = new Set(before?.report.issues.filter((i) => i.kind === 'violation').map(issueId) ?? []);
-  const elsewhere = before ? attached.report.issues.filter((i) => i.kind === 'violation' && i.term !== null && !mine.includes(i) && !had.has(issueId(i))) : [];
+  const elsewhere = before ? termViolations(attached.report).filter((i) => !mine.includes(i) && !had.has(issueId(i))) : [];
   const issues = [...mine.filter((i) => i.kind === 'violation'), ...elsewhere, ...mine.filter((i) => i.kind === 'flag'), ...mine.filter((i) => i.kind === 'unknown')];
   const load = attached.loads.get(termKey(to)) ?? null;
   return { kind: issues[0]?.kind ?? null, issues, load };

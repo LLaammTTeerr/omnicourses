@@ -4,9 +4,9 @@ import LoadState from '../components/LoadState.vue';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { REGULATION_URL } from '../shell/messages.js';
-import { termKey, termName } from '../terms.js';
+import { termName } from '../terms.js';
 import type { PlanIssue, PlanIssueKind } from './api.js';
-import type { AttachedIssues } from './board.js';
+import { issueId, termViolations, type AttachedIssues } from './board.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
 import { ISSUE_KINDS_SHOWN, KIND_STYLE } from './present.js';
 
@@ -35,21 +35,19 @@ const coverage = computed(() => props.attached?.report.coverage ?? null);
 const short = computed(() => [...(coverage.value?.groups ?? []), ...(coverage.value?.combinedMinimums ?? [])].filter((g) => !g.met).length);
 const tileOf = (issue: PlanIssue) => props.attached?.tileOf.get(issue);
 
-/** An issue's identity across two reports: its code, course and term (positions move when a tile does). */
-const idOf = (i: PlanIssue) => [i.code, i.courseCode ?? '', i.term ? termKey(i.term) : '', i.requirementGroupId ?? ''].join('|');
 const listed = (a: AttachedIssues | null | undefined) => a?.report.issues.filter((i) => (i.kind === 'violation' || i.kind === 'flag') && i.term !== null) ?? [];
-const violationsOf = (a: AttachedIssues | null | undefined) => listed(a).filter((i) => i.kind === 'violation');
+const violationsOf = (a: AttachedIssues | null | undefined) => termViolations(a?.report);
 
 /** The cards: the current report, or while previewing the report with the drop made, plus what it would remove. */
 const cards = computed(() => {
   const next = props.preview?.attached;
   const now = listed(props.attached);
-  if (!next) return now.map((issue) => ({ issue, state: '' as const, id: idOf(issue) }));
-  const nowIds = new Set(now.map(idOf));
-  const nextIds = new Set(listed(next).map(idOf));
+  if (!next) return now.map((issue) => ({ issue, state: '' as const, id: issueId(issue) }));
+  const nowIds = new Set(now.map(issueId));
+  const nextIds = new Set(listed(next).map(issueId));
   return [
-    ...listed(next).map((issue) => ({ issue, state: nowIds.has(idOf(issue)) ? ('' as const) : ('new' as const), id: idOf(issue) })),
-    ...now.filter((i) => !nextIds.has(idOf(i))).map((issue) => ({ issue, state: 'gone' as const, id: `${idOf(issue)}|gone` })),
+    ...listed(next).map((issue) => ({ issue, state: nowIds.has(issueId(issue)) ? ('' as const) : ('new' as const), id: issueId(issue) })),
+    ...now.filter((i) => !nextIds.has(issueId(i))).map((issue) => ({ issue, state: 'gone' as const, id: `${issueId(issue)}|gone` })),
   ];
 });
 const previewNew = computed(() => cards.value.filter((c) => c.state === 'new' && c.issue.kind === 'violation'));

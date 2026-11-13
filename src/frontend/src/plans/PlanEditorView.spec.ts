@@ -40,7 +40,7 @@ interface Options {
   routes?: Record<string, unknown>;
   /** The reports GET /issues answers, one per call; the last one repeats. */
   reports?: (PlanIssues | number)[];
-  /** What POST /issues (the drag preview) answers for a board; by default a report with no issue. */
+  /** What POST /issues/drops (the drag preview) answers for each target's board; by default a report with no issue. */
   previews?: (terms: PlanTerm[]) => PlanIssues | number;
 }
 

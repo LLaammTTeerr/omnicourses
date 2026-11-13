@@ -70,12 +70,15 @@ export function termMonths(term: Term): TermMonths {
   return { first, last: next === 1 ? 12 : next - 1, year: first >= TERM_1_FIRST_MONTH ? term.year : term.year + 1 };
 }
 
+/** The term at this instant, counted on the date in Vietnam like the API, wherever the browser's clock is set. */
+export const termAt = (now: Date): Term => currentTerm(vietnamDate(now));
+
 /** The academic year (ADR 0009) at this instant, counted on the date in Vietnam like the API. */
-export const academicYearAt = (now: Date): number => currentTerm(vietnamDate(now)).year;
+export const academicYearAt = (now: Date): number => termAt(now).year;
 
 /** The terms a goal may name, earliest first: the current term up to term 3 of the academic year 8 years on. */
 export function goalTerms(now: Date = new Date()): Term[] {
-  const first = currentTerm(vietnamDate(now));
+  const first = termAt(now);
   const terms: Term[] = [];
   for (let year = first.year; year <= first.year + GOAL_YEARS_AHEAD; year++) {
     for (const number of TERM_NUMBERS) if (year > first.year || number >= first.number) terms.push({ year, number });
