@@ -93,7 +93,7 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
         <template v-else>{{ m.issuesLead }}</template>
       </p>
 
-      <LoadState v-if="status === 'failed'" status="failed" small :failed="m.checkFailed" :retry="m.retry" data-test="issues-failed" @retry="emit('retry')" />
+      <LoadState v-if="status === 'failed'" status="failed" small :failed="m.checkFailed" data-test="issues-failed" @retry="emit('retry')" />
 
       <template v-if="attached">
         <div class="issue-counts" :class="{ stale: !fresh }" data-test="issue-counts">

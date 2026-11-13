@@ -6,6 +6,7 @@ import LoadState from '../components/LoadState.vue';
 import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import { usePageTitle } from '../page-title.js';
 import BrandLink from '../shell/BrandLink.vue';
 import Icon from '../shell/Icon.vue';
@@ -26,6 +27,7 @@ const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const m = useMessages(ONBOARDING_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const STEPS = 4;
 const step = ref(0);
@@ -98,7 +100,7 @@ usePageTitle(() => m.value.title);
       </div>
     </div>
 
-    <LoadState v-if="status !== 'loaded'" :status="status" :loading="m.loading" :failed="m.loadFailed" :retry="m.retry" @retry="reload" />
+    <LoadState v-if="status !== 'loaded'" :status="status" :loading="common.loading" :failed="m.loadFailed" @retry="reload" />
 
     <form v-else class="stack wizard-step" novalidate @submit.prevent="onNext">
       <div>

@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
 import LoadState from '../components/LoadState.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import { termName } from '../terms.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
@@ -22,6 +23,7 @@ const locale = useLocale();
 const toast = useToast();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const plans = ref<PlanListItem[]>([]);
 const loadPlans = useLoadPlans();
@@ -123,12 +125,12 @@ usePageTitle(() => m.value.title);
       </div>
     </header>
 
-    <LoadState v-if="answers.status.value === 'failed'" status="failed" tone="warn" :failed="m.programFailed" :retry="m.retry" data-test="program-failed" @retry="answers.reload" />
+    <LoadState v-if="answers.status.value === 'failed'" status="failed" tone="warn" :failed="m.programFailed" data-test="program-failed" @retry="answers.reload" />
     <p v-else-if="answers.status.value === 'loaded' && !program" class="callout warn" data-test="no-program">
       <Icon name="info" /><span>{{ m.noProgram }} <RouterLink class="link" :to="{ name: 'settings' }">{{ m.openSettings }}</RouterLink></span>
     </p>
 
-    <LoadState v-if="status !== 'loaded'" :status="status" :loading="m.loading" :failed="m.loadFailed" :retry="m.retry" @retry="reload" />
+    <LoadState v-if="status !== 'loaded'" :status="status" :loading="common.loading" :failed="m.loadFailed" @retry="reload" />
     <div v-else-if="plans.length === 0" class="card empty" role="status" data-test="empty">
       <b>{{ m.empty }}</b>
       <p class="small t2">{{ m.emptyHint }}</p>

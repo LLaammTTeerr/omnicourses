@@ -9,6 +9,7 @@ import SelectMenu from '../components/SelectMenu.vue';
 import { courseName, groupColour, matches } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import { reducedMotion, replay, scrollToView } from '../motion.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
@@ -61,6 +62,7 @@ const locale = useLocale();
 const toast = useToast();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const plan = shallowRef<Plan | null>(null);
 /** The board on screen. */
@@ -705,7 +707,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
       </div>
     </header>
 
-    <LoadState v-if="loaded.status.value !== 'loaded'" :status="loaded.status.value" :loading="m.loading" :failed="m.loadFailed" :retry="m.retry" @retry="loaded.reload">
+    <LoadState v-if="loaded.status.value !== 'loaded'" :status="loaded.status.value" :loading="common.loading" :failed="m.loadFailed" @retry="loaded.reload">
       <div v-if="statusOf(loaded.error.value) === 404">
         <p>{{ m.notFound }}</p>
         <RouterLink class="btn sm" :to="{ name: 'plan-list' }">{{ m.allPlans }}</RouterLink>
@@ -761,9 +763,8 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
             <LoadState
               v-if="curriculum.status.value !== 'loaded'"
               :status="curriculum.status.value"
-              :loading="m.loading"
+              :loading="common.loading"
               :failed="statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.curriculumFailed"
-              :retry="m.retry"
               tone="warn"
               small
               @retry="curriculum.reload"

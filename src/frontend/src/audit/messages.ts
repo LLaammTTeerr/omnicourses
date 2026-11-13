@@ -14,7 +14,6 @@ interface AuditMessages {
   curriculum: (code: string, year: 1 | 2 | 3 | 4) => string;
   loading: string;
   loadFailed: string;
-  retry: string;
   onboardingRequired: string;
   onboardingRequiredText: string;
   finishOnboarding: string;
@@ -132,7 +131,6 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     curriculum: (code, year) => `${code} · sinh viên năm ${year}`,
     loading: 'Đang xét bảng điểm…',
     loadFailed: 'Chưa tải được kết quả xét tốt nghiệp.',
-    retry: 'Thử lại',
     onboardingRequired: 'Bạn chưa chọn chương trình và khóa.',
     onboardingRequiredText: 'Cần biết chương trình và khóa của bạn thì mới xét được tiến độ tốt nghiệp.',
     finishOnboarding: 'Hoàn tất khai báo',
@@ -254,7 +252,6 @@ export const AUDIT_MESSAGES: Record<Lang, AuditMessages> = {
     curriculum: (code, year) => `${code} · year ${year}`,
     loading: 'Checking your transcript…',
     loadFailed: 'The degree audit could not be loaded.',
-    retry: 'Try again',
     onboardingRequired: 'You have not chosen your program and cohort yet.',
     onboardingRequiredText: 'Your progress toward graduation needs your program and cohort.',
     finishOnboarding: 'Finish onboarding',

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
 
 // A screen's data while it is not there: "loading", or a failure in plain words with a way to try again. Shared by
@@ -12,13 +14,15 @@ withDefaults(
     /** The words while loading; none draws nothing. */
     loading?: string;
     failed: string;
-    retry: string;
+    /** The retry button's words; "Try again" by default. */
+    retry?: string;
     tone?: 'bad' | 'warn';
     small?: boolean;
   }>(),
-  { loading: undefined, tone: 'bad', small: false },
+  { loading: undefined, retry: undefined, tone: 'bad', small: false },
 );
 defineEmits<{ retry: [] }>();
+const common = useMessages(COMMON_MESSAGES);
 </script>
 
 <template>
@@ -28,7 +32,7 @@ defineEmits<{ retry: [] }>();
     <slot>
       <div>
         <p>{{ failed }}</p>
-        <button class="btn sm" type="button" @click="$emit('retry')">{{ retry }}</button>
+        <button class="btn sm" type="button" @click="$emit('retry')">{{ retry ?? common.retry }}</button>
         <slot name="actions" />
       </div>
     </slot>

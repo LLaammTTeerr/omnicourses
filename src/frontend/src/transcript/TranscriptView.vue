@@ -6,6 +6,7 @@ import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
@@ -19,6 +20,7 @@ import { blankRow, fromRow, MAX_ROWS, normalizeCode, problems, toRow, yearChoice
 const auth = useAuth();
 const toast = useToast();
 const m = useMessages(TRANSCRIPT_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const rows = ref<DraftRow[]>([]);
 let nextKey = 0;
@@ -105,7 +107,7 @@ usePageTitle(() => m.value.title);
     </div>
 
     <p v-if="status === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" /><span>{{ m.loadFailed }} <button class="btn sm" type="button" @click="reload">{{ m.retry }}</button></span>
+      <Icon name="alert" /><span>{{ m.loadFailed }} <button class="btn sm" type="button" @click="reload">{{ common.retry }}</button></span>
     </p>
     <p v-else-if="status === 'loading'" class="t3">{{ m.loading }}</p>
 

@@ -20,9 +20,7 @@ interface PlannerMessages {
   title: string;
   listLead: string;
   newPlan: string;
-  loading: string;
   loadFailed: string;
-  retry: string;
   empty: string;
   emptyHint: string;
   noProgram: string;
@@ -48,7 +46,6 @@ interface PlannerMessages {
   create: string;
   renameTitle: string;
   save: string;
-  cancel: string;
   deleteBody: string;
   keep: string;
   deleting: string;
@@ -202,9 +199,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     title: 'Lộ trình học tập',
     listLead: 'Xếp các học phần trong chương trình của bạn vào từng học kỳ cho đến khi tốt nghiệp. Bạn có thể giữ nhiều kế hoạch để so sánh.',
     newPlan: 'Kế hoạch mới',
-    loading: 'Đang tải…',
     loadFailed: 'Chưa tải được kế hoạch.',
-    retry: 'Thử lại',
     empty: 'Bạn chưa có kế hoạch nào.',
     emptyHint: 'Tạo một kế hoạch trống rồi xếp môn vào từng học kỳ.',
     noProgram: 'Hãy chọn chương trình và khóa trong Cài đặt trước khi tạo kế hoạch.',
@@ -230,7 +225,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     create: 'Tạo',
     renameTitle: 'Đổi tên kế hoạch',
     save: 'Lưu',
-    cancel: 'Hủy',
     deleteBody: 'Kế hoạch và mọi môn đã xếp trong đó sẽ bị xóa. Không thể hoàn tác.',
     keep: 'Giữ lại',
     deleting: 'Đang xóa…',
@@ -398,9 +392,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     title: 'Plans',
     listLead: 'Place the courses of your curriculum into terms until graduation. Keep several plans to compare them.',
     newPlan: 'New plan',
-    loading: 'Loading…',
     loadFailed: 'The plans could not be loaded.',
-    retry: 'Try again',
     empty: 'You have no plan yet.',
     emptyHint: 'Create an empty plan, then place courses into its terms.',
     noProgram: 'Choose your program and cohort in Settings before creating a plan.',
@@ -426,7 +418,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     create: 'Create',
     renameTitle: 'Rename the plan',
     save: 'Save',
-    cancel: 'Cancel',
     deleteBody: 'The plan and every course placed in it are deleted. This cannot be undone.',
     keep: 'Keep it',
     deleting: 'Deleting…',

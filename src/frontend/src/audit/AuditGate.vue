@@ -29,7 +29,7 @@ const noTranscript = computed(() => audit.value !== null && audit.value.terms.le
 <template>
   <p v-if="status === 'loading'" class="t3" role="status" aria-busy="true" data-test="loading">{{ m.loading }}</p>
   <template v-else-if="status === 'failed'">
-    <LoadState v-if="statusOf(error) !== 401" status="failed" :failed="m.loadFailed" :retry="m.retry" data-test="load-failed" @retry="$emit('retry')" />
+    <LoadState v-if="statusOf(error) !== 401" status="failed" :failed="m.loadFailed" data-test="load-failed" @retry="$emit('retry')" />
   </template>
   <div v-else-if="data?.status === 'onboarding_required'" class="callout info" data-test="onboarding-required">
     <Icon name="info" />

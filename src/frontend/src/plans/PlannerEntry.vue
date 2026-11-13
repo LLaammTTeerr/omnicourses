@@ -50,7 +50,7 @@ usePageTitle(() => m.value.title);
 
 <template>
   <div class="page">
-    <LoadState v-if="failed" status="failed" :failed="m.loadFailed" :retry="m.retry" data-test="entry-failed" @retry="open">
+    <LoadState v-if="failed" status="failed" :failed="m.loadFailed" data-test="entry-failed" @retry="open">
       <template #actions><RouterLink class="btn sm ghost" :to="{ name: 'plan-list' }">{{ m.backToList }}</RouterLink></template>
     </LoadState>
     <p v-else class="t3" role="status">{{ m.opening }}</p>

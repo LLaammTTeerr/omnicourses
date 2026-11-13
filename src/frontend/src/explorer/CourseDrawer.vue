@@ -7,6 +7,7 @@ import { fetchCourse, type Course } from '../curriculum/api.js';
 import { courseName } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
@@ -19,6 +20,7 @@ const emit = defineEmits<{ close: [] }>();
 const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const detail = useAsyncLoad(
   'the course',
@@ -52,7 +54,7 @@ const periods = computed(() => {
           <h2 id="course-title">{{ name }}</h2>
           <p v-if="other" class="small t3">{{ other }}</p>
         </div>
-        <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="emit('close')"><Icon name="x" size="sm" /></button>
+        <button class="btn sm icon-only" type="button" :aria-label="common.close" @click="emit('close')"><Icon name="x" size="sm" /></button>
       </div>
       <dl class="kv">
         <dt>{{ m.code }}</dt>

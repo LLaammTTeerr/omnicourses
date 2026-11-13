@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import SelectMenu from '../components/SelectMenu.vue';
 import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
 import { useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import { creditsProblem } from './answers.js';
@@ -17,6 +18,7 @@ const onboarding = useOnboarding();
 const locale = useLocale();
 const toast = useToast();
 const m = useMessages(STUDY_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const { program, cohort, goal, status, reload, saving, saveFailed, otherErrors, goalErrors, save: saveAnswers } = useOnboardingForm();
 const { choices: allChoices } = usePrograms();
@@ -39,10 +41,10 @@ async function save(): Promise<void> {
 <template>
   <section id="study" class="card flush" aria-labelledby="study-title">
     <div class="card-head"><h2 id="study-title">{{ m.title }}</h2></div>
-    <p v-if="status === 'loading'" class="srow t3">{{ m.loading }}</p>
+    <p v-if="status === 'loading'" class="srow t3">{{ common.loading }}</p>
     <div v-else-if="status === 'failed'" class="srow">
       <p class="callout bad" role="alert"><Icon name="alert" /><span>{{ m.loadFailed }}</span></p>
-      <button class="btn sm" type="button" @click="reload">{{ m.retry }}</button>
+      <button class="btn sm" type="button" @click="reload">{{ common.retry }}</button>
     </div>
     <div v-else-if="!onboarding.finished" class="srow">
       <div class="txt"><b>{{ m.unfinished }}</b><p>{{ m.unfinishedNote }}</p></div>

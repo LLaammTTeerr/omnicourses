@@ -154,7 +154,6 @@ usePageTitle(() => m.value.title);
       :status="curriculum.status.value"
       :loading="m.loading"
       :failed="statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.loadFailed"
-      :retry="m.retry"
       @retry="curriculum.reload"
     />
     <template v-else>
