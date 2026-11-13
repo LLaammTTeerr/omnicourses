@@ -1,21 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import contract from '../../../backend/openapi.json';
 import { GOAL_YEARS_AHEAD } from '../terms.js';
-import { contractShape, type Shape } from '../testing/contract.js';
 import { NO_INTERNSHIP, type Onboarding } from './api.js';
 
 const onboardingDto = contract.components.schemas.OnboardingDto;
 
-describe('onboarding types against the contract (UC-01)', () => {
-  it('has the fields of OnboardingDto, every one required: PUT replaces them all', () => {
-    expect(contractShape('OnboardingDto')).toEqual({
-      program: 'required',
-      cohort: 'required',
-      targetGraduationTerm: 'required',
-      creditsPerTerm: 'required',
-      internshipTerm: 'required',
-      finished: 'required',
-    } satisfies Shape<Onboarding>);
+describe('onboarding values against the contract (UC-01)', () => {
+  it('sends every answer: PUT replaces them all', () => {
+    expectTypeOf<Onboarding>().toEqualTypeOf<Required<Onboarding>>();
   });
 
   it('asks credits per term as the API checks them: 1 or more, no upper limit', () => {

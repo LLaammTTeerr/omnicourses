@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "test": "vitest run",
-    "test:browser": "vitest run --config vitest.browser.config.ts"
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "generate:api": "openapi-ts"
   },
   "dependencies": {
     "pinia": "4.1.0",
@@ -17,6 +18,7 @@
     "vue-router": "5.4.0"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@types/node": "22.20.5",
     "@vitejs/plugin-vue": "6.0.10",
     "@vitest/browser-playwright": "5.0.4",

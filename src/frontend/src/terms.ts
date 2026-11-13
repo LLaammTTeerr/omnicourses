@@ -1,15 +1,14 @@
+import type { TermDto } from './api-schema/types.gen.js';
 import type { Lang } from './locale.js';
 
 // Terms as the API encodes them (ADR 0009), and the term calendar: the client's only copy of either. The transcript,
 // onboarding, the planner and the calendar all read terms from here.
 
-export const TERM_NUMBERS = [1, 2, 3] as const;
-
 /** ADR 0009: `year` 2026 is the academic year 2026–2027, with terms 1, 2 and 3. */
-export interface Term {
-  year: number;
-  number: (typeof TERM_NUMBERS)[number];
-}
+export type Term = TermDto;
+
+/** In order; transcript/api.spec.ts checks that it lists every number of the contract. */
+export const TERM_NUMBERS = [1, 2, 3] as const satisfies readonly Term['number'][];
 
 // The same calendar as the API (src/backend/src/terms/current-term.ts): term 1 from September, term 2 from
 // January, term 3 from June. The API decides; these only build the choices it will accept.

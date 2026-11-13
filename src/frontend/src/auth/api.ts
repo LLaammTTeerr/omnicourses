@@ -1,45 +1,18 @@
 import { request } from '../api.js';
+import type { AuthResultDto, SessionDto, SignInDto, SignUpDto, UserDto } from '../api-schema/types.gen.js';
 
-// The auth and user DTOs of the API, written by hand; api.spec.ts checks them against src/backend/openapi.json.
+// The auth and user DTOs of the API (ADR 0002), generated from the contract (ADR 0018).
 
-export interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  emailVerifiedAt: string | null;
-  createdAt: string;
-}
+export type User = UserDto;
+export type AuthResult = AuthResultDto;
+export type SignInBody = SignInDto;
+export type Session = SessionDto;
 
-export interface AuthResult {
-  /** Opaque bearer token (ADR 0002). */
-  token: string;
-  expiresAt: string;
-  user: User;
-  /** True when this sign-in cancelled a pending account deletion (ADR 0004). */
-  accountRestored: boolean;
-}
-
-export interface SignUpBody {
-  email: string;
-  password: string;
-  displayName: string;
-  /** Consent to processing the student's data (Luật 91/2025/QH15); the API refuses anything but true. */
-  acceptedTerms: true;
-}
-
-export interface SignInBody {
-  email: string;
-  password: string;
-}
-
-export interface Session {
-  id: string;
-  userAgent: string | null;
-  createdAt: string;
-  expiresAt: string;
-  /** True for the session making the request. */
-  current: boolean;
-}
+/**
+ * Narrower than SignUpDto on purpose: the contract types `acceptedTerms` as a boolean, but it is consent to processing
+ * the student's data (Luật 91/2025/QH15) and the API refuses anything but true, so the client cannot send false.
+ */
+export type SignUpBody = Omit<SignUpDto, 'acceptedTerms'> & { acceptedTerms: true };
 
 // The password rules of SignUpDto.
 export const PASSWORD_MIN_LENGTH = 10;

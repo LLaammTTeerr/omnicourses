@@ -1,8 +1,23 @@
 import { HttpError, request } from '../api.js';
+import type {
+  GuideDto,
+  GuideItemDto,
+  GuideLinkDto,
+  GuideListDto,
+  GuideListItemDto,
+  GuideListTextDto,
+  GuideNoteDto,
+  GuideNoteSourceDto,
+  GuidePortalDto,
+  GuideTextDto,
+  GuideTextsDto,
+} from '../api-schema/types.gen.js';
 
-// The guide DTOs of the API, written by hand; api.spec.ts checks them against src/backend/openapi.json.
+// The guide DTOs of the API (ADR 0010), generated from the contract (ADR 0018), and the one place the client is
+// stricter than the contract: a note's source.
 
-// Guides plan §2, in the order the guides page lists them.
+export type GuideGroup = GuideDto['group'];
+/** Guides plan §2, in the order the guides page lists them; api.spec.ts checks that it has every group of the contract. */
 export const GUIDE_GROUPS = [
   'accounts-and-portals',
   'registration',
@@ -12,73 +27,34 @@ export const GUIDE_GROUPS = [
   'scholarships',
   'internship-and-thesis',
   'graduation',
-] as const;
-export type GuideGroup = (typeof GUIDE_GROUPS)[number];
+] as const satisfies readonly GuideGroup[];
 
 // The languages a guide can be published in, which are not the screen languages (locale.ts).
-export const GUIDE_LANGS = ['vi', 'en'] as const;
-export type GuideLang = (typeof GUIDE_LANGS)[number];
+export type GuideLang = keyof GuideTextsDto;
+/** In the order a missing text falls back; api.spec.ts checks that it has every language of the contract. */
+export const GUIDE_LANGS = ['vi', 'en'] as const satisfies readonly GuideLang[];
 /** Only the languages the guide is published in (UC-10 A8). */
 export type GuideTexts<T> = Partial<Record<GuideLang, T>>;
 
-export interface GuideLink {
-  label: string;
-  /** An https address, or an OmniCourse path starting with /. */
-  url: string;
-}
+/** `url`: an https address, or an OmniCourse path starting with /. */
+export type GuideLink = GuideLinkDto;
+export type GuidePortal = GuidePortalDto;
+export type GuideListText = GuideListTextDto;
+export type GuideListItem = GuideListItemDto;
+export type GuideItem = GuideItemDto;
 
-export interface GuidePortal {
-  name: string;
-  url: string;
-  account: string;
-}
-
-export interface GuideListText {
-  title: string;
-  keywords: string[];
-  portal: GuidePortal;
-  version: number;
-  lastCheckedOn: string;
-  outOfDate: boolean;
-}
-
-export interface GuideListItem {
-  id: string;
-  group: GuideGroup;
-  texts: GuideTexts<GuideListText>;
-}
-
-export interface GuideItem {
-  text: string;
-  link?: GuideLink;
-}
-
+/**
+ * Narrower than GuideNoteSourceDto on purpose: the contract has one flat object with optional fields, but the
+ * backend's guide validation requires the document, clause and url of a regulation, and a team note has none.
+ */
 export type GuideNoteSource = { kind: 'regulation'; document: string; clause: string; url: string } | { kind: 'team' };
-
-export interface GuideText extends GuideListText {
-  changeNote: string;
-  lastCheckedBy: string;
-  summary: string;
-  when: { text: string; announcement?: GuideLink };
-  appliesTo: string;
-  prepare: GuideItem[];
-  steps: GuideItem[];
-  notes: { text: string; source: GuideNoteSource }[];
-  citations: { document: string; clause: string; url: string }[];
-  ifPortalDown: string | null;
-  related: GuideLink[];
-  portals: (GuidePortal & { purpose: string })[];
-}
-
-export interface Guide {
-  id: string;
-  group: GuideGroup;
-  texts: GuideTexts<GuideText>;
-}
+export type GuideNote = Omit<GuideNoteDto, 'source'> & { source: GuideNoteSource };
+export type GuideText = Omit<GuideTextDto, 'notes'> & { notes: GuideNote[] };
+export type Guide = Omit<GuideDto, 'texts'> & { texts: GuideTexts<GuideText> };
 
 /** Every published guide (ADR 0010: no sign-in, so no token is sent). */
 export async function fetchGuides(): Promise<GuideListItem[]> {
-  return (await request<{ guides: GuideListItem[] }>('GET', '/guides')).guides;
+  return (await request<GuideListDto>('GET', '/guides')).guides;
 }
 
 /** The published guide with this id, or null when there is none. No token is sent either (ADR 0010). */

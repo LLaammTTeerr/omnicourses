@@ -1,8 +1,9 @@
-// api.spec.ts checks this against HealthDto in src/backend/openapi.json.
-export interface Health {
-  status: 'ok' | 'degraded';
-  database: 'up' | 'down';
-}
+import type { HealthDto } from './api-schema/types.gen.js';
+
+// The API's DTO types come from the contract (ADR 0018): src/api-schema/types.gen.ts is generated from
+// src/backend/openapi.json, and each feature's api.ts names the ones it uses next to its requests.
+
+export type Health = HealthDto;
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
 

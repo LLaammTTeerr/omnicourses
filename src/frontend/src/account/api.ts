@@ -1,16 +1,11 @@
 import { request, send } from '../api.js';
+import type { DeleteAccountDto, DeletionScheduledDto } from '../api-schema/types.gen.js';
 
-// The account DTOs of the API (ADR 0004), written by hand; api.spec.ts checks them against src/backend/openapi.json.
+// The account DTOs of the API (ADR 0004), generated from the contract (ADR 0018).
 
-export interface DeleteAccountBody {
-  /** The current password, asked again before deleting. */
-  password: string;
-}
-
-export interface DeletionScheduled {
-  /** Signing in before this time cancels the deletion. */
-  purgeAfter: string;
-}
+/** The current password, asked again before deleting. */
+export type DeleteAccountBody = DeleteAccountDto;
+export type DeletionScheduled = DeletionScheduledDto;
 
 export const EXPORT_FILE_NAME = 'omnicourse-account.json';
 

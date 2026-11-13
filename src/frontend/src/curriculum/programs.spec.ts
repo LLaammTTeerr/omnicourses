@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import contract from '../../../backend/openapi.json';
 import { contractEnum } from '../testing/contract.js';
 import type { Program } from './api.js';
-import { OFFERED_COHORTS, programChoices, programName } from './programs.js';
+import { isOffered, OFFERED_COHORTS, programChoices, programName } from './programs.js';
 
 const onboardingDto = contract.components.schemas.OnboardingDto;
 const program = (code: string, cohortYears: number[]): Program => ({ code, nameVi: `Chương trình ${code}`, nameEn: null, faculty: null, trainingType: null, cohortYears });
@@ -12,6 +12,13 @@ describe('the offered programs against the contract', () => {
     expect(contractEnum('OnboardingDto', 'program').filter((program) => program !== null)).toEqual(Object.keys(OFFERED_COHORTS).sort());
     const offered = /Offered: (.+?)\. /.exec(onboardingDto.properties.cohort.description)?.[1];
     expect(offered).toBe(Object.entries(OFFERED_COHORTS).map(([program, cohorts]) => `${program} ${cohorts.join(', ')}`).join('; '));
+  });
+});
+
+describe('isOffered', () => {
+  it('is true only for a program this release offers', () => {
+    expect(isOffered('APCS')).toBe(true);
+    for (const code of ['CLCZZ', 'apcs', '', 'toString', 'hasOwnProperty']) expect(isOffered(code)).toBe(false);
   });
 });
 
