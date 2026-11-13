@@ -670,6 +670,19 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(w.get('[role="alert"]').text()).toContain('Không có kế hoạch này trong các kế hoạch của bạn.');
   });
 
+  it('says the plan did not load, with a way to try again, when the API fails another way (500)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let loads = 0;
+    const { w } = await render({ routes: { [`GET /plans/${PLAN_ID}`]: () => (++loads === 1 ? new Response(null, { status: 500 }) : Response.json(plan(SAVED))) } });
+    const alert = w.get('[role="alert"]');
+    expect(alert.text()).toBe('Chưa tải được kế hoạch.Thử lại');
+    expect(w.find('.trow').exists()).toBe(false);
+    await alert.get('button').trigger('click');
+    await flushPromises();
+    expect(loads).toBe(2);
+    expect(w.findAll('.trow').length).toBeGreaterThan(0);
+  });
+
   it('signs the student out on a 401', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     await render({ routes: { [`GET /plans/${PLAN_ID}`]: status(401) } });
