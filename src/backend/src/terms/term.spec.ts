@@ -24,7 +24,7 @@ describe('termLabel', () => {
 describe('termKey', () => {
   it('is year-number, one string per term', () => {
     expect(termKey({ year: 2026, number: 3 })).toBe('2026-3');
-    expect(new Set([termKey({ year: 2026, number: 1 }), termKey({ year: 2026, number: 1 })]).size).toBe(1);
+    expect(termKey({ year: 2026, number: 1 })).not.toBe(termKey({ year: 2026, number: 3 }));
   });
 });
 
