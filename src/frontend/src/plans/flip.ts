@@ -13,8 +13,11 @@ export function snapshot(root: ParentNode | null): Snapshot {
   return rects;
 }
 
-/** How long a dropped tile takes to land. The editor waits this long before it shakes a drop that breaks a rule. */
+/** How long a dropped tile takes to land. */
 export const LANDING_MS = 440;
+
+/** How long to wait before a just-dropped tile has landed: no time at all when nothing lands (reduced motion). */
+export const landingWait = (): number => (reducedMotion() ? 0 : LANDING_MS);
 
 /** A tile just dropped: it lands from where the dragged copy was, with a little spring. */
 export interface Lift {

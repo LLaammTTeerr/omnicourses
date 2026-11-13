@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { edgeScroll, LANDING_MS, play, snapshot } from './flip.js';
+import { edgeScroll, LANDING_MS, landingWait, play, snapshot } from './flip.js';
 
 describe('dragging near the edge of the window', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -64,5 +64,15 @@ describe('tiles gliding to their new place', () => {
     play(root, new Map());
     expect(animate).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it('waits for a dropped tile to land, and not at all when the student asks for reduced motion', () => {
+    expect(landingWait()).toBe(LANDING_MS);
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    try {
+      expect(landingWait()).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

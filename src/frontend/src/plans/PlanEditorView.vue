@@ -35,7 +35,7 @@ import {
 } from './board.js';
 import { BAR_CODES, capOf, DROP_TONE, meter, splitIssues, toneOf, type RowView, type TileView } from './board-view.js';
 import { pointerDrag, type DropTarget } from './drag.js';
-import { LANDING_MS, play, snapshot, type Lift } from './flip.js';
+import { landingWait, play, snapshot, type Lift } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
 import { rememberLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
@@ -526,7 +526,7 @@ const drag = pointerDrag<Moving>({
     if (key !== null && verdict?.kind === 'violation') {
       void nextTick(() => {
         const el = document.getElementById(`tile-${key}`);
-        if (el) setTimeout(() => replay(el, 'shake'), reducedMotion() ? 0 : LANDING_MS);
+        if (el) setTimeout(() => replay(el, 'shake'), landingWait());
       });
     }
   },
