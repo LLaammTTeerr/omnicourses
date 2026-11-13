@@ -17,7 +17,7 @@ import { useToast } from '../shell/toast.js';
 import { readStored, writeStored } from '../storage.js';
 import { matchesEveryWord } from '../text-search.js';
 import { compareTerms, nextTerm, termAt, termKey, termMonths, termName, type Term } from '../terms.js';
-import { fetchPlan, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
+import { fetchPlan, type Plan } from './api.js';
 import {
   addCourse,
   addSlot,
@@ -33,6 +33,7 @@ import {
   type Row,
   type Tile,
 } from './board.js';
+import { BAR_CODES, capOf, DROP_TONE, meter, splitIssues, toneOf, type RowView, type TileView } from './board-view.js';
 import { pointerDrag, type DropTarget } from './drag.js';
 import { LANDING_MS, play, snapshot, type Lift } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
@@ -40,7 +41,7 @@ import { rememberLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
 import { usePlanActions } from './plan-actions.js';
 import PlanTabs from './PlanTabs.vue';
-import { KIND_STYLE, strongest } from './present.js';
+import { KIND_STYLE } from './present.js';
 import StatusStrip from './StatusStrip.vue';
 import { useDropPreview } from './use-drop-preview.js';
 import { usePlanContext } from './use-plan-context.js';
@@ -227,57 +228,7 @@ const panelPreview = computed(() => {
   return { label: m.value.previewOf(movingTitle(what), nameOf(row.term)), attached: hoverPreview.value?.attached ?? null };
 });
 
-// ---------- What each row and tile shows, worked out once per change ----------
-interface TileView {
-  tile: Tile;
-  title: string;
-  label: string;
-  credits: number | null;
-  name: string | null;
-  group: string | null;
-  slot: boolean;
-  taken: string | null;
-  colour: GroupId | null;
-  /** The tile's issues in words, for its tooltip. */
-  tip: string;
-  classes: string[];
-  bad: boolean;
-  /** Violations, then flags. */
-  issues: PlanIssue[];
-  unknowns: PlanIssueCode[];
-}
-interface RowView {
-  row: Row;
-  key: string;
-  name: string;
-  summer: boolean;
-  now: boolean;
-  when: string;
-  load: { atLeast: boolean; caps: string; credits: number; max: number | null; delta: number } | null;
-  meter: { fill: number; from: number; to: number; min: number | null; minLabel: number | null; max: number; maxLabel: number } | null;
-  /** The meter's colour, from the engine's load issues for this row (with the drop made, while one is previewed). */
-  cap: 'under' | 'over' | 'ok' | '';
-  tone: string;
-  drop: { tone: string; reason: string } | null;
-  /** The dashed tile where a drop would land, while the pointer is over this row. */
-  placeholder: { title: string; credits: number | null; colour: GroupId | null } | null;
-  issues: PlanIssue[];
-  tiles: TileView[];
-}
-
-function capOf(issues: readonly PlanIssue[], credits: number): RowView['cap'] {
-  if (issues.some((i) => i.code === 'load_above_maximum')) return 'over';
-  if (issues.some((i) => i.code === 'load_below_minimum')) return 'under';
-  return credits > 0 ? 'ok' : '';
-}
-
-/** Issues the credit bar already shows (over or under the caps): the row gives them no words of its own. */
-const BAR_CODES: ReadonlySet<PlanIssue['code']> = new Set(['load_above_maximum', 'load_below_minimum']);
-
-const toneOf = (issues: readonly PlanIssue[]) => {
-  const kind = strongest(issues.filter((i) => i.kind !== 'unknown'));
-  return kind ? `has-${kind}` : '';
-};
+// ---------- What each row and tile shows, worked out once per change (types and drawing in board-view.ts) ----------
 const gradeText = (n: number) => formatNumber(n, locale.lang, 1);
 
 function tileView(tile: Tile, termName: string): TileView {
@@ -289,8 +240,7 @@ function tileView(tile: Tile, termName: string): TileView {
   const title = tileTitle(tile);
   const grade = p.courseCode ? gradeOf.value.get(p.courseCode) : undefined;
   const tone = toneOf(all);
-  const shown = [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')];
-  const unknowns = all.filter((i) => i.kind === 'unknown').map((i) => i.code);
+  const { shown, unknowns } = splitIssues(all);
   const tip = [...shown.map((i) => `${m.value.kinds[i.kind]}: ${m.value.issue[i.code](i, ctx.value)}`), ...(unknowns.length ? [m.value.unknownWhat(unknowns)] : [])].join('\n');
   return {
     tile,
@@ -310,22 +260,6 @@ function tileView(tile: Tile, termName: string): TileView {
   };
 }
 
-/** The meter runs a little past the maximum, so a load above it still shows. Drawing only: the engine compares. */
-function meter(load: PlanTermLoad | null, base: number): RowView['meter'] {
-  if (!load?.caps) return null;
-  const scale = load.caps.max + 6;
-  const pct = (n: number) => Math.max(0, Math.min(100, (n / scale) * 100));
-  return {
-    fill: pct(Math.min(base, load.credits)),
-    from: pct(Math.min(base, load.credits)),
-    to: pct(Math.max(base, load.credits)),
-    min: load.caps.min === null ? null : pct(load.caps.min),
-    minLabel: load.caps.min,
-    max: pct(load.caps.max),
-    maxLabel: load.caps.max,
-  };
-}
-
 function dropOf(key: string): RowView['drop'] {
   const what = moving.value;
   if (!what) return null;
@@ -341,7 +275,7 @@ function dropOf(key: string): RowView['drop'] {
   // A load against the caps is shown by the bar alone; only another rule gets words.
   const first = v.issues.find((i) => !BAR_CODES.has(i.code));
   if (!v.kind) return { tone: 'ok-drop', reason: '' };
-  const tone = v.kind === 'violation' ? 'bad-drop' : v.kind === 'flag' ? 'warn-drop' : 'unknown-drop';
+  const tone = DROP_TONE[v.kind];
   if (!first) return { tone, reason: '' };
   const text = m.value.issue[first.code](first, ctx.value);
   return { tone, reason: first.kind === 'unknown' ? m.value.dropUnknown(text) : text };
