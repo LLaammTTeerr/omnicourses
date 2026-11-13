@@ -135,7 +135,6 @@ interface PlannerMessages {
   previewSpan: (first: string, last: string) => string;
   previewCounts: (terms: number, courses: number, slots: number) => string;
   previewEmpty: string;
-  openPlan: (name: string) => string;
   statusLabel: string;
   invalid: (n: number) => string;
   /** No violation, and every rule checked. */
@@ -304,7 +303,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
     previewCounts: (terms, courses, slots) => [`${terms} học kỳ`, `${courses} môn`, ...(slots ? [`${slots} chỗ tự chọn`] : [])].join(' · '),
     previewEmpty: 'Chưa xếp môn nào',
-    openPlan: (name) => `Mở ${name}`,
     statusLabel: 'Tình trạng kế hoạch',
     invalid: (n) => `Chưa hợp lệ · ${n} vi phạm`,
     noViolation: 'Không thấy vi phạm',
@@ -497,7 +495,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
     previewCounts: (terms, courses, slots) => [`${terms} ${terms === 1 ? 'term' : 'terms'}`, `${courses} ${courses === 1 ? 'course' : 'courses'}`, ...(slots ? [`${slots} elective ${slots === 1 ? 'slot' : 'slots'}`] : [])].join(' · '),
     previewEmpty: 'No courses placed yet',
-    openPlan: (name) => `Open ${name}`,
     statusLabel: 'Plan status',
     invalid: (n) => `Not valid yet · ${n} ${n === 1 ? 'violation' : 'violations'}`,
     noViolation: 'No violation found',
