@@ -5,7 +5,7 @@ import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { fetchCourse, type Course } from '../curriculum/api.js';
 import { groupClass, groupOf, type GroupId } from '../groups.js';
-import { localName, useLocale, useMessages } from '../locale.js';
+import { localName, otherName, useLocale, useMessages } from '../locale.js';
 import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
@@ -28,7 +28,7 @@ const detail = useAsyncLoad(
 );
 const glyph = computed(() => (props.group ? groupOf(props.group.id).glyph : ''));
 const name = computed(() => (props.course ? localName(props.course, locale.lang) : ''));
-const other = computed(() => (props.course ? (locale.lang === 'en' ? props.course.nameVi : props.course.nameEn) : null));
+const other = computed(() => (props.course ? otherName(props.course, locale.lang) : null));
 const periods = computed(() => {
   const course = props.course;
   if (!course) return [];

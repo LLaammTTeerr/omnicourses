@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
-import type { Lang } from '../locale.js';
+import { localName, type Lang } from '../locale.js';
 import { fetchPrograms, type Program } from './api.js';
 
 // The programs a student can pick (onboarding, settings, the explorer): every program the API lists, and which of
@@ -32,8 +32,8 @@ export function programChoices(programs: readonly Program[]): ProgramChoice[] {
   return [...offered, ...others];
 }
 
-/** A program's name in the language on screen; its Vietnamese name, or its code while the list is not loaded. */
-export const programName = (choice: ProgramChoice, lang: Lang): string => (lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
+/** A program's name in the language on screen (`localName`), or its code while the list is not loaded. */
+export const programName = (choice: ProgramChoice, lang: Lang): string => (choice.program ? localName(choice.program, lang) : choice.code);
 
 /**
  * Loads the programs (GET /programs) and offers them as choices. Without the list the offered codes still show, so a

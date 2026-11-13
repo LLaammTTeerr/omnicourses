@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { formatDate, formatDateTime, formatNumber, localName, useLocale } from './locale.js';
+import { formatDate, formatDateTime, formatNumber, localName, otherName, useLocale } from './locale.js';
 
 describe('locale store', () => {
   beforeEach(() => {
@@ -85,6 +85,14 @@ describe('localName', () => {
     expect(localName({ nameVi: 'Học máy', nameEn: 'Machine learning' }, 'en')).toBe('Machine learning');
     expect(localName({ nameVi: 'Học máy', nameEn: 'Machine learning' }, 'vi')).toBe('Học máy');
     expect(localName({ nameVi: 'Học máy', nameEn: null }, 'en')).toBe('Học máy');
+  });
+});
+
+describe('otherName', () => {
+  it('names in the language not on screen', () => {
+    expect(otherName({ nameVi: 'Học máy', nameEn: 'Machine learning' }, 'vi')).toBe('Machine learning');
+    expect(otherName({ nameVi: 'Học máy', nameEn: 'Machine learning' }, 'en')).toBe('Học máy');
+    expect(otherName({ nameVi: 'Học máy', nameEn: null }, 'vi')).toBeNull();
   });
 });
 

@@ -36,4 +36,8 @@ describe('programName', () => {
     expect(programName(apcs!, 'vi')).toBe('Chương trình APCS');
     expect(programName(programChoices([])[0]!, 'en')).toBe('APCS');
   });
+
+  it('names a program as every other name is picked, so an empty English name falls back to the Vietnamese one', () => {
+    for (const nameEn of [null, '']) expect(programName(programChoices([{ ...program('APCS', [2024]), nameEn }])[0]!, 'en')).toBe('Chương trình APCS');
+  });
 });

@@ -68,6 +68,9 @@ export function formatDate(isoDate: string, lang: Lang): string {
 /** A name in the language on screen: the English one in English when there is one, else the Vietnamese one. */
 export const localName = (named: { nameVi: string; nameEn: string | null }, lang: Lang): string => (lang === 'en' && named.nameEn) || named.nameVi;
 
+/** The name in the language not on screen, if there is one: a course's other name, shown under the first. */
+export const otherName = (named: { nameVi: string; nameEn: string | null }, lang: Lang): string | null => (lang === 'en' ? named.nameVi : named.nameEn);
+
 const numberFormats = new Map<string, Intl.NumberFormat>();
 
 /** A number as the language writes it, to `maxDigits` decimals at most: 7,5 or 7.5. */
