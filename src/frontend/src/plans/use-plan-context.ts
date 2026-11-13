@@ -54,7 +54,6 @@ export function usePlanContext(plan: Ref<Plan | null>, now: () => Term) {
   const passed = computed(() => auditCourses.value.filter((c) => c.status === 'passed'));
   const passedCodes = computed(() => new Set(passed.value.map((c) => c.code)));
   const gradeOf = computed(() => new Map(auditCourses.value.filter((c) => c.grade !== null).map((c) => [c.code, c.grade!])));
-  /** The audit's terms before the current one. */
   const pastTerms = computed(() => audit.value?.terms.filter((t) => compareTerms(t.term, now()) < 0) ?? []);
   /** The courses the transcript has in progress in the current term: shown in its row, locked. */
   const inProgressNow = computed(() => {

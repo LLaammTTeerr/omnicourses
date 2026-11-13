@@ -62,7 +62,8 @@ async function render({ routes = {}, reports = [REPORT], previews = () => report
       sent.push(terms);
       return Response.json(plan(terms));
     },
-    // The drag preview: one request per drag, a board per target (the placement at the end of that term).
+    // The drag preview: one request per drag, a board per target, with the placement added at the end of that term
+    // (PlanDropPreviewDto.placement in the contract).
     [`POST /plans/${PLAN_ID}/issues/drops`]: (init: RequestInit) => {
       const { terms, placement, targets } = sentBody(init) as { terms: PlanTerm[]; placement: PlanTerm['placements'][number]; targets: PlanTerm['term'][] };
       previewRequests++;
@@ -238,7 +239,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
   it('adds a course found by search to the chosen term, saves the board and checks it again', async () => {
     const { w, sent, checks } = await render();
     expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual(['ZZ201', 'ZZ414']);
-    // A neutral mark for a course of the transcript; the planner never says it is passed.
+    // Without an audit, a neutral mark for a course of the transcript: the planner does not say it is passed.
     expect(w.get('[data-test="pool-ZZ414"] [data-test="in-transcript"]').text()).toBe('Trong bảng điểm');
     expect(w.findAll('[data-test="in-transcript"]')).toHaveLength(1);
     await w.get('#course-search').setValue('giai thuat');

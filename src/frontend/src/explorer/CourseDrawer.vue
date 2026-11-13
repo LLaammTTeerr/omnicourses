@@ -11,8 +11,8 @@ import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // One course, opened from a tile (UI prototypes: explorer.html, the drawer). What the catalog stores, the groups
-// that list it, and a neutral mark when the student's own transcript has it. Prerequisites and offering terms have
-// no data yet (ADR 0011), so the drawer says so instead of showing any.
+// that list it, and a neutral mark when the student's own transcript has it. The drawer does not show prerequisites or
+// offering terms yet, though F12 records them (ADR 0011); its note still says they are not recorded.
 const props = defineProps<{ course: Course | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 

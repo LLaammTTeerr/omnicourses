@@ -79,7 +79,6 @@ export function sameTiles(a: Board, b: Board): boolean {
   );
 }
 
-/** A row added after the last one. */
 export const withNextRow = (board: Board): Row[] => [...board, { term: nextTerm(board.at(-1)!.term), tiles: [] }];
 
 /** Places a course at the end of a row. A course already on the board is not placed again (ADR 0014). */

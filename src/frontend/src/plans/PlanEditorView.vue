@@ -66,7 +66,6 @@ const m = useMessages(PLANNER_MESSAGES);
 const common = useMessages(COMMON_MESSAGES);
 
 const plan = shallowRef<Plan | null>(null);
-/** The board on screen. */
 const board = shallowRef<Board>([]);
 /** The board the API last saved. */
 const saved = shallowRef<Board>([]);
@@ -100,7 +99,6 @@ const { saveState, saveError, save, history, record, takeLast, locked, setLock, 
 
 const { moving, previews, homeOf, isHome, previewRow, previewAll, stopPreview } = useDropPreview(board, issues, () => opened.id);
 
-// ---------- Changes, their animation and undo ----------
 const boardEl = ref<HTMLElement | null>(null);
 /** Runs a change of the board, then lets each tile glide from where it was (flip.ts); a dropped one lands from the ghost. */
 function animate(fn: () => void, lift?: Lift): void {
@@ -150,7 +148,6 @@ function toggleLock(): void {
   announce(locked.value ? m.value.lockedNote : m.value.unlock);
 }
 
-// ---------- Loading ----------
 const loaded = useAsyncLoad(
   'the plan',
   async () => {
@@ -182,7 +179,6 @@ const loaded = useAsyncLoad(
   () => props.id,
 );
 
-// ---------- What a tile shows ----------
 const { curriculum, requirementGroups, catalog, groupNames, transcriptCodes, audit, passed, passedCodes, gradeOf, pastTerms, inProgressNow } = usePlanContext(
   plan,
   currentTermNow,
@@ -212,7 +208,6 @@ const movingTitle = (what: Moving) => {
   return found ? tileTitle(found.row.tiles[found.index]!) : '';
 };
 
-// ---------- The drag preview on screen ----------
 /** The row a drop would land on now: the one under the pointer, or the lifted tile's target. */
 const hoverKey = computed(() => {
   if (dropRow.value) return dropRow.value;
@@ -228,7 +223,7 @@ const panelPreview = computed(() => {
   return { label: m.value.previewOf(movingTitle(what), nameOf(row.term)), attached: hoverPreview.value?.attached ?? null };
 });
 
-// ---------- What each row and tile shows, worked out once per change (types and drawing in board-view.ts) ----------
+// What each row and tile shows, worked out once per change; the types and the drawing are in board-view.ts.
 const gradeText = (n: number) => formatNumber(n, locale.lang, 1);
 
 function tileView(tile: Tile, termName: string): TileView {
@@ -317,7 +312,6 @@ function rowView(row: Row): RowView {
 }
 const rows = computed(() => board.value.map(rowView));
 
-// ---------- Actions ----------
 const announcement = ref('');
 function announce(text: string): void {
   announcement.value = text;
@@ -581,7 +575,7 @@ const movingInfo = computed<{ title: string; credits: number | null; colour: Gro
   return { title: view.title, credits: view.credits, colour: view.colour };
 });
 
-// ---------- The issues panel, open or collapsed (kept for the next visit on this browser) ----------
+// The issues panel, open or collapsed: kept for the next visit on this browser.
 const RAIL_KEY = 'oc-planner-rail';
 const collapsed = ref(readStored(RAIL_KEY) === 'mini');
 function toggleRail(): void {
@@ -589,7 +583,7 @@ function toggleRail(): void {
   writeStored(RAIL_KEY, collapsed.value ? 'mini' : 'open');
 }
 
-// ---------- What-if: try a change on a copy, opened at once ----------
+// What-if: try a change on a copy, opened at once.
 // The tabs get these actions too, so their buttons wait while a copy is made.
 const actions = usePlanActions();
 function whatIf(): void {

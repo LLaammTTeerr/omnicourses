@@ -24,7 +24,6 @@ const report = computed(() => props.attached?.report ?? null);
 const placementViolations = computed(() => termViolations(report.value).length);
 /** Rules the engine could not check for lack of data. */
 const unknowns = computed(() => report.value?.issues.filter((i) => i.kind === 'unknown').length ?? 0);
-/** The engine's own graduation status. */
 const graduation = computed(() => report.value?.coverage.graduation ?? null);
 const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
   const colour = groupColour(group);

@@ -11,7 +11,7 @@ import { AUTH_MESSAGES } from './messages.js';
 import { afterSignIn } from './redirect.js';
 import { useAuth } from './store.js';
 
-// F1 sign-in (issue #13). Then the page the guard came from, or the transcript.
+// F1 sign-in (issue #13). Then the page the guard came from, or the dashboard.
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();

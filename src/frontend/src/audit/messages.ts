@@ -23,7 +23,6 @@ interface AuditMessages {
   noTranscriptTitle: string;
   noTranscriptText: string;
   enterTranscript: string;
-  // Graduation
   graduation: string;
   graduationDone: string;
   graduationNotYet: string;
@@ -35,7 +34,6 @@ interface AuditMessages {
   notCheckedText: string;
   metTitle: string;
   unmetTitle: string;
-  // Credits
   creditsTitle: string;
   creditsOf: (passed: number, total: number | null) => string;
   totalNotRecorded: string;
@@ -44,7 +42,6 @@ interface AuditMessages {
   accumulated: (n: number) => string;
   accumulatedHint: string;
   creditsShort: (n: number) => string;
-  // GPA
   gpaTitle: string;
   average: string;
   accumulatedAverage: string;
@@ -52,7 +49,6 @@ interface AuditMessages {
   classification: string;
   classifications: Record<Classification, string>;
   noGrade: string;
-  // Groups
   groupsTitle: string;
   legendPassed: string;
   legendOverflow: string;
@@ -77,7 +73,6 @@ interface AuditMessages {
   attentionNone: string;
   attentionMore: (n: number) => string;
   seeAudit: string;
-  // Courses
   courseTable: (group: string) => string;
   code: string;
   course: string;
@@ -89,7 +84,6 @@ interface AuditMessages {
   outsideTotal: string;
   outsideGpa: string;
   results: { exempt: string; pass: string; fail: string };
-  // Terms
   termsTitle: string;
   term: string;
   termKinds: Record<TermKind, string>;
@@ -105,7 +99,6 @@ interface AuditMessages {
   unmatchedText: string;
   warningsTitle: string;
   warnings: Record<AuditWarningCode, (warning: AuditWarning) => string>;
-  // Conditions
   totalCondition: (n: number | null) => string;
   combinedCondition: (name: string, min: number) => string;
   conditions: Record<string, string>;
