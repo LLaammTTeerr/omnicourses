@@ -42,8 +42,8 @@ export const useAuth = defineStore('auth', () => {
 
   /**
    * Forgets the session on this device, without calling the API, and what the account kept in this browser (the
-   * plan open last, the locked plans), so the next student on it sees none of it. Runs on sign-out, on a 401 and
-   * after the account is deleted.
+   * plan open last, the locked plans), so the next student on it sees none of it. Runs on sign-out, on a 401 (from a
+   * call or from the refresh at page load) and after the account is deleted.
    */
   function clear(): void {
     token.value = null;
@@ -59,8 +59,9 @@ export const useAuth = defineStore('auth', () => {
 
   /**
    * Once per page load: a saved token is exchanged for a fresh one, so an active student never meets the 7-day
-   * expiry. A 401 means the session is over. Any other failure keeps the saved token for the next load, since the
-   * session may still be alive, but leaves the student signed out for now.
+   * expiry. A 401 means the session is over, so it is forgotten like a sign-out, with what the account kept in this
+   * browser. Any other failure keeps the saved token for the next load, since the session may still be alive, but
+   * leaves the student signed out for now.
    */
   function start(): Promise<void> {
     started ??= (async () => {
@@ -69,7 +70,7 @@ export const useAuth = defineStore('auth', () => {
       try {
         adopt(await api.refresh(saved));
       } catch (e) {
-        if (statusOf(e) === 401) writeToken(null);
+        if (statusOf(e) === 401) clear();
         else console.error('Restoring the session failed:', e);
       }
     })();

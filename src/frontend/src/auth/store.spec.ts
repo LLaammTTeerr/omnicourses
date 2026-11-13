@@ -123,6 +123,27 @@ describe('auth store (ADR 0002)', () => {
     expect(localStorage.getItem(ACCOUNT_KEYS.lastPlan)).toBeNull();
   });
 
+  it('forgets what the account kept in this browser when the saved session has ended', async () => {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, 'zz-dead');
+    localStorage.setItem(ACCOUNT_KEYS.lastPlan, 'zz-plan');
+    localStorage.setItem(ACCOUNT_KEYS.planLocks, '["zz-plan"]');
+    fetchMock().mockResolvedValue(new Response(null, { status: 401 }));
+    await useAuth().start();
+    expect(localStorage.getItem(ACCOUNT_KEYS.lastPlan)).toBeNull();
+    expect(localStorage.getItem(ACCOUNT_KEYS.planLocks)).toBeNull();
+  });
+
+  it('keeps what the account kept in this browser when the session may still be alive', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    sessionStorage.setItem(SESSION_STORAGE_KEY, 'zz-maybe');
+    localStorage.setItem(ACCOUNT_KEYS.lastPlan, 'zz-plan');
+    localStorage.setItem(ACCOUNT_KEYS.planLocks, '["zz-plan"]');
+    fetchMock().mockRejectedValue(new TypeError('Failed to fetch'));
+    await useAuth().start();
+    expect(localStorage.getItem(ACCOUNT_KEYS.lastPlan)).toBe('zz-plan');
+    expect(localStorage.getItem(ACCOUNT_KEYS.planLocks)).toBe('["zz-plan"]');
+  });
+
   it('lets the shell say once that a sign-in cancelled a pending deletion', async () => {
     fetchMock().mockResolvedValue(Response.json(authResult({ accountRestored: true })));
     const auth = useAuth();
