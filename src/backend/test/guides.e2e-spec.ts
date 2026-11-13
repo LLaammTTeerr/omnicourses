@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { vietnamDate } from '../src/config/time.js';
+import { vietnamDate } from '../src/terms/calendar.js';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
 import { GUIDES_CLOCK } from '../src/guides/guides.service.js';
 import { seedGuides } from '../src/guides/seed-guides.js';

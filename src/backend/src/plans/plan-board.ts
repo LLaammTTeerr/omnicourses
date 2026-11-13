@@ -1,4 +1,4 @@
-import { Term } from '../terms/term.js';
+import { compareTerms, sameTerm, Term, termFromColumns, termKey } from '../terms/term.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
 // The board of a plan (ADR 0014): one row per term, placements in order. Pure functions, so the
@@ -25,8 +25,6 @@ export interface BoardTerm {
 export const MAX_BOARD_TERMS = 30;
 export const MAX_TERM_PLACEMENTS = 30;
 export const MAX_BOARD_PLACEMENTS = 300;
-
-const termKey = (t: Term) => `${t.year}-${t.number}`;
 
 /** Why a board cannot be stored as sent, or [] when its shape is sound. */
 export function boardProblems(terms: readonly BoardTerm[]): string[] {
@@ -83,12 +81,12 @@ export function toRows(planId: string, userId: string, terms: readonly BoardTerm
 
 /** The board stored in these rows: terms oldest first, placements in position order. */
 export function toBoard(rows: readonly PlanPlacement[]): BoardTerm[] {
-  const sorted = [...rows].sort((a, b) => a.termYear - b.termYear || a.termNumber - b.termNumber || a.position - b.position);
+  const sorted = rows.map((row) => ({ row, term: termFromColumns(row.termYear, row.termNumber) })).sort((a, b) => compareTerms(a.term, b.term) || a.row.position - b.row.position);
   const terms: BoardTerm[] = [];
-  for (const row of sorted) {
+  for (const { row, term } of sorted) {
     let last = terms.at(-1);
-    if (!last || last.term.year !== row.termYear || last.term.number !== row.termNumber) {
-      last = { term: { year: row.termYear, number: row.termNumber as Term['number'] }, placements: [] };
+    if (!last || !sameTerm(last.term, term)) {
+      last = { term, placements: [] };
       terms.push(last);
     }
     last.placements.push(

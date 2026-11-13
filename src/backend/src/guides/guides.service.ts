@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { vietnamDate } from '../config/time.js';
+import { vietnamDate } from '../terms/calendar.js';
 import { GUIDE_ID, GUIDE_ID_MAX } from './guide-file.js';
 import { GuideText } from './guide-text.entity.js';
 import { GuideDto, GuideListItemDto, GuideListTextDto, GuideTextDto } from './guides.dto.js';

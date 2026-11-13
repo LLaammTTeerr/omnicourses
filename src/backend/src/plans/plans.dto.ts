@@ -23,6 +23,7 @@ import {
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
 import { trimString } from '../common/transforms.js';
 import { TermDto } from '../terms/term.dto.js';
+import { TERM_YEAR_MAX, TERM_YEAR_MIN } from '../terms/term.js';
 import { BoardTerm, MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS, Placement, PLACEMENT_KINDS, PlacementKind } from './plan-board.js';
 
 const PlanName = () =>
@@ -139,8 +140,8 @@ export class CreatePlanDto {
 
   @ApiProperty({ example: 2024, description: 'The cohort of that curriculum.' })
   @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @Min(TERM_YEAR_MIN)
+  @Max(TERM_YEAR_MAX)
   cohortYear!: number;
 
   // A generated plan (UC-07 step 10) is saved with its placements in one request.

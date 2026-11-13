@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { TermDto } from '../terms/term.dto.js';
+import { compareTerms, termFromColumns, termKey } from '../terms/term.js';
 import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, Placement, toBoard, toRows, withPlacement } from './plan-board.js';
 import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
@@ -113,7 +114,7 @@ export class PlansService {
    * check it. The references are checked once, on the board with the placement in the first target.
    */
   async dropBoards(userId: string, planId: string, terms: BoardTerm[], placement: Placement, targets: TermDto[]): Promise<{ plan: PlanDto; boards: BoardTerm[][] }> {
-    const seen = new Set(targets.map((t) => `${t.year}-${t.number}`));
+    const seen = new Set(targets.map(termKey));
     if (seen.size !== targets.length) throw new BadRequestException('A target term is listed twice');
     const plan = await this.get(userId, planId);
     const boards = targets.map((to) => withPlacement(terms, placement, to));
@@ -153,10 +154,10 @@ async function insertBoard(tx: EntityManager, planId: string, userId: string, te
 }
 
 function preview(rows: readonly PlanPlacement[]): PlanPreviewDto {
-  const terms = [...new Set(rows.map((r) => r.termYear * 10 + r.termNumber))].sort((a, b) => a - b);
-  const term = (n: number | undefined) => (n === undefined ? null : { year: Math.floor(n / 10), number: (n % 10) as TermDto['number'] });
+  const byKey = new Map(rows.map((r) => termFromColumns(r.termYear, r.termNumber)).map((t) => [termKey(t), t]));
+  const terms = [...byKey.values()].sort(compareTerms);
   const courseCount = rows.filter((r) => r.courseCode !== null).length;
-  return { termCount: terms.length, courseCount, slotCount: rows.length - courseCount, firstTerm: term(terms[0]), lastTerm: term(terms.at(-1)) };
+  return { termCount: terms.length, courseCount, slotCount: rows.length - courseCount, firstTerm: terms[0] ?? null, lastTerm: terms.at(-1) ?? null };
 }
 
 function summary(plan: Plan): PlanSummaryDto {

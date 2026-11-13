@@ -1,5 +1,6 @@
 import { Check, Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
+import { TERM_NUMBERS, TERM_YEAR_MAX, TERM_YEAR_MIN } from '../terms/term.js';
 import { User } from '../users/user.entity.js';
 import { Plan } from './plan.entity.js';
 
@@ -10,8 +11,8 @@ import { Plan } from './plan.entity.js';
 @Index('uq_plan_placements_course', ['planId', 'courseCode'], { unique: true, where: `"course_code" IS NOT NULL` })
 @Index('ix_plan_placements_user_id', ['userId'])
 @Index('ix_plan_placements_requirement_group_id', ['requirementGroupId'])
-@Check('ck_plan_placements_term_year', `"term_year" BETWEEN 2000 AND 2100`)
-@Check('ck_plan_placements_term_number', `"term_number" IN (1, 2, 3)`)
+@Check('ck_plan_placements_term_year', `"term_year" BETWEEN ${TERM_YEAR_MIN} AND ${TERM_YEAR_MAX}`)
+@Check('ck_plan_placements_term_number', `"term_number" IN (${TERM_NUMBERS.join(', ')})`)
 @Check('ck_plan_placements_position', `"position" >= 0`)
 @Check('ck_plan_placements_course_code', `"course_code" ~ '^[A-Z0-9]{2,20}$'`)
 @Check('ck_plan_placements_course_or_slot', `("course_code" IS NULL) <> ("requirement_group_id" IS NULL)`)

@@ -1,5 +1,5 @@
-import { compareTerms, currentTerm } from '../terms/current-term.js';
-import { Term } from '../terms/term.js';
+import { currentTerm, type VietnamDay } from '../terms/calendar.js';
+import { compareTerms, LAST_TERM_NUMBER, Term } from '../terms/term.js';
 
 // B1 test cases §6 item 1 (Lâm, 9 November 2026): onboarding offers only APCS, cohorts 2024 and
 // 2025. The CLC curricula are seeded but not offered until they are verified, so the seeded
@@ -18,12 +18,12 @@ export function isOfferedCohort(program: string, cohort: unknown): boolean {
 export const YEARS_AHEAD = 8;
 
 /** The first and last term a goal may name on a Vietnam date: the current term, and term 3 of the academic year 8 years on. */
-export function goalTermWindow(vietnamDay: string): { first: Term; last: Term } {
+export function goalTermWindow(vietnamDay: VietnamDay): { first: Term; last: Term } {
   const first = currentTerm(vietnamDay);
-  return { first, last: { year: first.year + YEARS_AHEAD, number: 3 } };
+  return { first, last: { year: first.year + YEARS_AHEAD, number: LAST_TERM_NUMBER } };
 }
 
-export function isInGoalTermWindow(term: Term, vietnamDay: string): boolean {
+export function isInGoalTermWindow(term: Term, vietnamDay: VietnamDay): boolean {
   const { first, last } = goalTermWindow(vietnamDay);
   return compareTerms(term, first) >= 0 && compareTerms(term, last) <= 0;
 }

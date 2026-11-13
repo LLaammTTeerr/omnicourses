@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, IsArray, IsIn, IsInt, IsNotEmpty, IsString, MaxLength, Min, ValidateIf } from 'class-validator';
 import { trimString } from '../common/transforms.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import { TERM_NUMBERS } from '../terms/term.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
 
 // Request and response shapes of F12 (ADR 0011). Requests go through StrictBody: a field not
@@ -139,7 +140,7 @@ export class SetOfferingTermsDto {
   @ArrayNotEmpty()
   @ArrayUnique()
   @IsInt({ each: true })
-  @IsIn([1, 2, 3], { each: true })
+  @IsIn(TERM_NUMBERS, { each: true })
   terms!: number[];
 }
 

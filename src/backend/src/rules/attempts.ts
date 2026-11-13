@@ -1,7 +1,6 @@
 // Which attempt of a course counts (QĐ 1175/QĐ-KHTN Điều 14) and what passes (Điều 11.4, 13).
 // Pure functions over the transcript's entries (ADR 0007): every attempt is its own entry.
-import { compareTerms } from '../terms/current-term.js';
-import type { Term } from '../terms/term.js';
+import { compareTerms, sameTerm, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { isPassingGrade, toTenths } from './grades.js';
 
@@ -54,8 +53,6 @@ export interface CourseRecord {
    */
   sameTermAttempts: boolean;
 }
-
-const sameTerm = (a: Term, b: Term) => compareTerms(a, b) === 0;
 
 /** Groups the transcript by course code and resolves each course's official attempt. */
 export function courseRecords(entries: readonly TranscriptEntry[]): Map<string, CourseRecord> {

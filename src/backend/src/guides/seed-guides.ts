@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DataSource, EntityManager } from 'typeorm';
 import { nodeEnv } from '../config/env.js';
-import { vietnamDate } from '../config/time.js';
+import { vietnamDate } from '../terms/calendar.js';
 import { GUIDE_FILES } from './content/index.js';
 import { contentOf, type GuideFile, textKey } from './guide-file.js';
 import type { GuideText } from './guide-text.entity.js';

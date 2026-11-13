@@ -11,13 +11,14 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
+import { TERM_YEAR_MAX, TERM_YEAR_MIN } from '../terms/term.js';
 import { Program } from './program.entity.js';
 import { RequirementGroup } from './requirement-group.entity.js';
 
 // Table `curriculums` of migration 1792912952302: one curriculum per program and cohort (ADR 0005).
 @Entity({ name: 'curriculums' })
 @Unique('uq_curriculums_program_cohort', ['programId', 'cohortYear'])
-@Check('ck_curriculums_cohort_year_range', `"cohort_year" BETWEEN 2000 AND 2100`)
+@Check('ck_curriculums_cohort_year_range', `"cohort_year" BETWEEN ${TERM_YEAR_MIN} AND ${TERM_YEAR_MAX}`)
 @Index('ix_curriculums_program_id', ['programId'])
 export class Curriculum {
   @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'curriculums_pkey' })

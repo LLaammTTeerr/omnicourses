@@ -1,10 +1,9 @@
 import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsObject, ValidateBy, ValidateIf, ValidateNested, ValidationOptions } from 'class-validator';
-import { vietnamDate } from '../config/time.js';
-import { termLabel } from '../terms/current-term.js';
+import { vietnamDate } from '../terms/calendar.js';
 import { TermDto } from '../terms/term.dto.js';
-import { Term, TERM_NUMBERS } from '../terms/term.js';
+import { Term, termLabel, TERM_NUMBERS } from '../terms/term.js';
 import { goalTermWindow, isInGoalTermWindow, isOfferedCohort, OFFERED_COHORTS, OFFERED_PROGRAMS, YEARS_AHEAD } from './onboarding-options.js';
 
 /** internshipTerm when the student plans no internship: kept apart from null, which means not answered (B1 §6 item 3). */

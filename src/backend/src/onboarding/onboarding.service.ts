@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term } from '../terms/term.js';
+import { Term, termFromColumns } from '../terms/term.js';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { NO_INTERNSHIP, OnboardingDto } from './onboarding.dto.js';
 
@@ -60,7 +60,7 @@ export class OnboardingService {
 type AnswerColumns = Omit<OnboardingAnswers, 'userId' | 'user' | 'finishedAt' | 'createdAt' | 'updatedAt'>;
 
 const term = (year: number | null, number: number | null): Term | null =>
-  year === null || number === null ? null : { year, number: number as Term['number'] };
+  year === null || number === null ? null : termFromColumns(year, number);
 
 export function toOnboarding(row: OnboardingAnswers | null): OnboardingDto {
   if (!row) {
