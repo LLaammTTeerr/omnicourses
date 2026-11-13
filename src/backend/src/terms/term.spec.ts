@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareTerms, LAST_TERM_NUMBER, sameTerm, termFromColumns, termKey, termLabel, termNumber } from './term.js';
+import { compareTerms, isTerm, LAST_TERM_NUMBER, sameTerm, termFromColumns, termKey, termLabel, termNumber } from './term.js';
 
 describe('compareTerms', () => {
   it('orders by academic year, then by term number', () => {
@@ -41,5 +41,15 @@ describe('termFromColumns', () => {
 
   it('knows term 3 is the last of the year', () => {
     expect(LAST_TERM_NUMBER).toBe(3);
+  });
+});
+
+describe('isTerm', () => {
+  it.each([{ year: 2026, number: 1 }, { year: 2026, number: 3 }, { year: 1999, number: 2 }])('accepts %j', (value) => {
+    expect(isTerm(value)).toBe(true);
+  });
+
+  it.each([null, undefined, 'x', 2026, {}, { year: 2026 }, { year: 2026.5, number: 1 }, { year: '2026', number: 1 }, { year: 2026, number: 4 }, { year: 2026, number: '1' }])('refuses %j', (value) => {
+    expect(isTerm(value)).toBe(false);
   });
 });

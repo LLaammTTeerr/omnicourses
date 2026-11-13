@@ -16,6 +16,13 @@ export interface Term {
   number: (typeof TERM_NUMBERS)[number];
 }
 
+/** A value of the shape of a Term: an integer year and a term number. The year's range is TermDto's to check. */
+export function isTerm(value: unknown): value is Term {
+  if (typeof value !== 'object' || value === null) return false;
+  const { year, number } = value as Record<string, unknown>;
+  return Number.isInteger(year) && (TERM_NUMBERS as readonly unknown[]).includes(number);
+}
+
 /** A stored term number as `Term['number']`; a RangeError for any other value, which the CHECKs forbid. */
 export function termNumber(value: number): Term['number'] {
   const found = TERM_NUMBERS.find((n) => n === value);

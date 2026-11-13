@@ -22,5 +22,5 @@ export const canonicalForm = (input: string): string => input.trim().toUpperCase
  * and dashes. A code it cannot make valid (a dot) stays invalid, never guessed.
  */
 export function normalizePrintedCode(printed: string): string {
-  return printed.trim().toUpperCase().replace(/[\s\-‐-―]/g, '');
+  return canonicalForm(printed).replace(/[\s\-‐-―]/g, '');
 }

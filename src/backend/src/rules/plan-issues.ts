@@ -1,7 +1,7 @@
 // Live validation of a plan (F5, UC-05 step 6, ADR 0014): the plan's placements against its own
 // curriculum, the student's transcript and the regulation. One pure function; RulesService loads
 // the inputs. It composes the engine's existing rules and decides nothing new about them.
-import { compareTerms, termLabel, type Term } from '../terms/term.js';
+import { compareTerms, termKey, termLabel, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { courseRecords, isCompleted, recordBefore } from './attempts.js';
 import { degreeAudit } from './audit.js';
@@ -240,7 +240,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
   return { planId: input.planId, trainingType: rules.trainingType, terms: loads, issues, coverage: coverage.coverage };
 }
 
-const sitting = (courseCode: string, term: Term): string => `${courseCode}@${term.year}-${term.number}`;
+const sitting = (courseCode: string, term: Term): string => `${courseCode}@${termKey(term)}`;
 
 export interface ProjectedTranscript {
   entries: TranscriptEntry[];
@@ -272,7 +272,7 @@ export function projectedTranscript(input: PlanCheckInput, terms: readonly Board
         if (credits !== undefined) entries.push(pass(p.courseCode, credits, term));
       } else if (p.requirementGroupId !== null && p.credits !== null) {
         // Lower case: never a catalog code (COURSE_CODE_PATTERN is capitals and digits).
-        const code = `slot:${term.year}-${term.number}-${position}`;
+        const code = `slot:${termKey(term)}-${position}`;
         const slot = { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: slotCountsTowardTotal(rules, p.requirementGroupId), countsTowardGpa: false };
         slotsByGroup.set(p.requirementGroupId, [...(slotsByGroup.get(p.requirementGroupId) ?? []), slot]);
         entries.push(pass(code, p.credits, term));
