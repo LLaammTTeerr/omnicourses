@@ -1,8 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuthService } from '../auth/auth.service.js';
-import { accountDeletionGraceDays } from '../config/env.js';
-import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { findUserColumns, findUserTables, selectList } from './account-export.js';
@@ -37,12 +35,11 @@ export class AccountService {
    */
   async requestDeletion(user: User, password: string): Promise<DeletionScheduledDto> {
     if (!(await this.auth.verifyPassword(user, password))) throw new ForbiddenException('Wrong password');
-    const requestedAt = new Date();
-    const purgeAfter = new Date(requestedAt.getTime() + accountDeletionGraceDays() * DAY_MS);
     // One transaction: a failed revoke must not leave a deletion scheduled behind a 500.
-    await this.db.transaction(async (manager) => {
-      await this.users.markDeletionRequestedWithin(manager, user.id, requestedAt, purgeAfter);
+    const purgeAfter = await this.db.transaction(async (manager) => {
+      const deadline = await this.users.markDeletionRequestedWithin(manager, user.id, new Date());
       await this.auth.revokeAllWithin(manager, user.id);
+      return deadline;
     });
     return { purgeAfter };
   }

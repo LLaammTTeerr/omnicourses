@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, IsNull, LessThanOrEqual, MoreThan, Or, Repository } from 'typeorm';
+import { accountDeletionGraceDays } from '../config/env.js';
+import { DAY_MS } from '../config/time.js';
 import { User } from './user.entity.js';
 
 // A pending deletion is cancellable before its stored deadline and due for the
@@ -20,8 +22,14 @@ export class UsersService {
     return this.users.save(this.users.create({ ...fields, email: fields.email.toLowerCase() }));
   }
 
-  async markDeletionRequestedWithin(manager: EntityManager, userId: string, at: Date, purgeAfter: Date): Promise<void> {
+  /**
+   * Starts the grace period at `at` and returns its deadline. The deadline is
+   * stored, so a later change of the setting can't move the one promised.
+   */
+  async markDeletionRequestedWithin(manager: EntityManager, userId: string, at: Date): Promise<Date> {
+    const purgeAfter = new Date(at.getTime() + accountDeletionGraceDays() * DAY_MS);
     await manager.update(User, userId, { deletionRequestedAt: at, purgeAfter });
+    return purgeAfter;
   }
 
   /**

@@ -1,6 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { AccountPurgeService } from './account-purge.service.js';
 import { AccountService } from './account.service.js';
@@ -60,17 +59,17 @@ describe('AccountService', () => {
   });
 
   it('schedules deletion after the grace period and signs out everywhere, in one transaction', async () => {
-    vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '30');
+    const stored = new Date('2026-12-13T00:00:00Z');
+    users.markDeletionRequestedWithin.mockResolvedValue(stored);
     const before = Date.now();
     const { purgeAfter } = await service.requestDeletion(user, 'correct horse battery');
     expect(auth.verifyPassword).toHaveBeenCalledWith(user, 'correct horse battery');
-    // The deadline promised to the student is stored, so a later change of the setting can't move it.
-    const [manager, userId, requestedAt, storedPurgeAfter] = users.markDeletionRequestedWithin.mock.calls[0]!;
+    // The deadline promised to the student is the one stored (users computes it: users.service.spec.ts).
+    const [manager, userId, requestedAt] = users.markDeletionRequestedWithin.mock.calls[0]!;
     expect(userId).toBe('u1');
-    expect(storedPurgeAfter).toEqual(purgeAfter);
-    expect(purgeAfter.getTime() - requestedAt.getTime()).toBe(30 * DAY_MS);
-    expect(purgeAfter.getTime() - before).toBeGreaterThanOrEqual(30 * DAY_MS);
-    expect(purgeAfter.getTime() - before).toBeLessThan(30 * DAY_MS + 1000);
+    expect(purgeAfter).toBe(stored);
+    expect((requestedAt as Date).getTime() - before).toBeGreaterThanOrEqual(0);
+    expect((requestedAt as Date).getTime() - before).toBeLessThan(1000);
     expect(db.transaction).toHaveBeenCalledOnce();
     expect(manager).toBe(tx);
     expect(auth.revokeAllWithin).toHaveBeenCalledWith(tx, 'u1');
