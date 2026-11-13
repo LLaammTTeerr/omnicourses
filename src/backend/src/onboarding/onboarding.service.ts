@@ -20,6 +20,11 @@ export class OnboardingService {
     return toOnboarding(await this.answers.findOneBy({ userId }));
   }
 
+  /** The program and cohort the student finished onboarding with, or null (the degree audit's input). */
+  async programFor(userId: string): Promise<OnboardedProgram | null> {
+    return toProgram(await this.answers.findOneBy({ userId }));
+  }
+
   /** Replaces every answer. finished_at keeps the first Finish; finished false clears it. */
   async save(userId: string, dto: OnboardingDto): Promise<OnboardingDto> {
     const c = toColumns(dto);
@@ -55,6 +60,18 @@ export class OnboardingService {
     );
     return this.answersFor(userId);
   }
+}
+
+/** The read contract for other modules: the program and cohort, apart from the HTTP answers. */
+export interface OnboardedProgram {
+  programCode: string;
+  cohortYear: number;
+}
+
+/** Null until onboarding is finished with a program and cohort. */
+export function toProgram(row: OnboardingAnswers | null): OnboardedProgram | null {
+  if (!row || row.finishedAt === null || row.programCode === null || row.cohortYear === null) return null;
+  return { programCode: row.programCode, cohortYear: row.cohortYear };
 }
 
 type AnswerColumns = Omit<OnboardingAnswers, 'userId' | 'user' | 'finishedAt' | 'createdAt' | 'updatedAt'>;

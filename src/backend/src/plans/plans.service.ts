@@ -15,7 +15,7 @@ const notFound = () => new NotFoundException('No plan with this id');
 
 // A student's plans (F5, ADR 0014): the placements they saved, nothing more. It decides no
 // academic rule (AGENTS.md hard rule 1): a plan that breaks one is saved as it is, and the rule
-// engine reports the violation (ADR 0012) through PlanIssuesProvider (plan-issues.ts).
+// engine reports the violation (ADR 0012) through RulesService (`rules/plan-issues.ts`).
 // Every read and write is scoped to the owner: another student's plan is a 404, never a 403.
 @Injectable()
 export class PlansService {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository } from 'typeorm';
 import type { CurriculumRules } from '../rules/inputs.js';
 import { CombinedMinimum } from './combined-minimum.entity.js';
 import { Curriculum } from './curriculum.entity.js';
@@ -23,10 +23,16 @@ export class CurriculumRulesReader {
   /** The rules of one cohort's curriculum, or null when the program has no curriculum for it. */
   async rulesFor(programCode: string, cohortYear: number): Promise<CurriculumRules | null> {
     if (!Number.isInteger(cohortYear)) return null;
-    const row = await this.curriculums.findOne({
-      where: { cohortYear, program: { code: programCode } },
-      relations: { program: true, requirementGroups: { courseLinks: { course: true } } },
-    });
+    return this.load({ cohortYear, program: { code: programCode } });
+  }
+
+  /** The rules of the curriculum with this id (a plan's own curriculum), or null. */
+  async rulesForId(id: string): Promise<CurriculumRules | null> {
+    return this.load({ id });
+  }
+
+  private async load(where: FindOptionsWhere<Curriculum>): Promise<CurriculumRules | null> {
+    const row = await this.curriculums.findOne({ where, relations: { program: true, requirementGroups: { courseLinks: { course: true } } } });
     if (!row) return null;
     const groupIds = row.requirementGroups.map((g) => g.id);
     const [minimums, overflows] = await Promise.all([
