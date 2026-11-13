@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BoardTerm, courseCodesOf, Placement } from '../rules/inputs.js';
-import { boardProblems, groupIdsOf, MAX_BOARD_PLACEMENTS, toBoard, toRows, withPlacement } from './plan-board.js';
+import { boardProblems, groupIdsOf, toBoard, toRows, withPlacement } from './plan-board.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
 // Synthetic codes only (AGENTS.md hard rule 3).
@@ -29,12 +29,13 @@ describe('boardProblems', () => {
     expect(boardProblems([{ term: { year: 2030, number: 1 }, placements: [slot('g1', 3), slot('g1', 3)] }])).toEqual([]);
   });
 
-  it(`refuses more than ${MAX_BOARD_PLACEMENTS} placements in all`, () => {
+  it('refuses more than 300 placements in all', () => {
     const terms = Array.from({ length: 11 }, (_, i): BoardTerm => ({
       term: { year: 2030 + Math.floor(i / 3), number: ((i % 3) + 1) as 1 | 2 | 3 },
       placements: Array.from({ length: 28 }, () => slot('g1', 1)),
     }));
-    expect(boardProblems(terms)).toEqual([`a plan holds at most ${MAX_BOARD_PLACEMENTS} placements`]);
+    expect(boardProblems(terms)).toEqual(['a plan holds at most 300 placements']);
+    expect(boardProblems(terms.slice(0, 10).concat({ ...terms[10]!, placements: terms[10]!.placements.slice(0, 20) }))).toEqual([]);
   });
 });
 
