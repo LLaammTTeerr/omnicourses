@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { reportFailure } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { listSessions, revokeSession, type Session } from '../auth/api.js';
 import { useAuth } from '../auth/store.js';
@@ -49,9 +50,8 @@ async function revoke(): Promise<void> {
     revoking.value = null;
     await sessions.reload();
   } catch (e) {
-    console.error('Revoking a session failed:', e);
     revoking.value = null;
-    toast.show(m.value.revokeFailed);
+    if (reportFailure('Revoking a session', e)) toast.show(m.value.revokeFailed);
   } finally {
     revokeBusy.value = false;
   }
@@ -66,8 +66,7 @@ async function download(): Promise<void> {
     saveFile(await auth.authed(exportAccount), EXPORT_FILE_NAME);
     toast.show(m.value.exported(EXPORT_FILE_NAME));
   } catch (e) {
-    console.error('Exporting the account failed:', e);
-    exportFailed.value = true;
+    exportFailed.value = reportFailure('Exporting the account', e);
   } finally {
     exporting.value = false;
   }
