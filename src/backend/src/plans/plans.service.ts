@@ -75,12 +75,8 @@ export class PlansService {
       if (!source) throw planNotFound();
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId: source.curriculum_id, name: name ?? source.name });
       const copyId = identifiers[0].id as string;
-      await tx.query(
-        `INSERT INTO "plan_placements" ("plan_id", "user_id", "term_year", "term_number", "position", "course_code", "requirement_group_id", "slot_credits")
-         SELECT $1, "user_id", "term_year", "term_number", "position", "course_code", "requirement_group_id", "slot_credits"
-         FROM "plan_placements" WHERE "plan_id" = $2`,
-        [copyId, planId],
-      );
+      // Through the one write path, so a placement column added later is copied too.
+      await insertBoard(tx, copyId, userId, toBoard(await tx.find(PlanPlacement, { where: { planId } })));
       return copyId;
     });
     return this.get(userId, id);

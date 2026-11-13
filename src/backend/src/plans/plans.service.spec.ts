@@ -24,7 +24,12 @@ const storedPlan = {
 } as unknown as Plan;
 
 function service(found: { curriculumId?: string | null; plan?: Plan | null; affected?: number } = {}) {
-  const tx = { insert: vi.fn().mockResolvedValue({ identifiers: [{ id: 'p1' }] }), delete: vi.fn(), query: vi.fn().mockResolvedValue([{ curriculum_id: 'c1', name: 'Main plan' }]) };
+  const tx = {
+    insert: vi.fn().mockResolvedValue({ identifiers: [{ id: 'p1' }] }),
+    delete: vi.fn(),
+    find: vi.fn().mockResolvedValue([]),
+    query: vi.fn().mockResolvedValue([{ curriculum_id: 'c1', name: 'Main plan' }]),
+  };
   const db = { transaction: vi.fn((work: (t: typeof tx) => unknown) => work(tx)) } as unknown as DataSource;
   const plans = {
     find: vi.fn().mockResolvedValue([storedPlan]),
@@ -123,6 +128,16 @@ describe('PlansService', () => {
     expect(tx.insert).toHaveBeenCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'Main plan' });
     await svc.duplicate('u1', 'p1', 'What if');
     expect(tx.insert).toHaveBeenLastCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'What if' });
+  });
+
+  it('copies the placements through the same rows a save writes', async () => {
+    const { svc, tx } = service();
+    tx.insert.mockResolvedValueOnce({ identifiers: [{ id: 'p2' }] });
+    const stored = { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 1, position: 0, courseCode: null, requirementGroupId: 'g1', slotCredits: 3 };
+    tx.find.mockResolvedValue([stored]);
+    await svc.duplicate('u1', 'p1');
+    expect(tx.find).toHaveBeenCalledWith(expect.anything(), { where: { planId: 'p1' } });
+    expect(tx.insert.mock.calls[1][1]).toEqual([{ ...stored, planId: 'p2' }]);
   });
 });
 
