@@ -5,6 +5,7 @@ describe('storage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('keeps a value, and forgets it when written null', () => {
@@ -14,6 +15,15 @@ describe('storage', () => {
     expect(readStored('omnicourse.test')).toBeNull();
   });
 
+  it('keeps a value for this tab only in sessionStorage', () => {
+    writeStored('omnicourse.test', 'kept', 'session');
+    expect(sessionStorage.getItem('omnicourse.test')).toBe('kept');
+    expect(readStored('omnicourse.test')).toBeNull();
+    expect(readStored('omnicourse.test', 'session')).toBe('kept');
+    writeStored('omnicourse.test', null, 'session');
+    expect(sessionStorage.getItem('omnicourse.test')).toBeNull();
+  });
+
   it('keeps nothing and finds nothing when storage is blocked', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('blocked', 'SecurityError');
@@ -21,8 +31,10 @@ describe('storage', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('blocked', 'SecurityError');
     });
-    expect(() => writeStored('omnicourse.test', 'kept')).not.toThrow();
-    expect(readStored('omnicourse.test')).toBeNull();
+    for (const area of ['local', 'session'] as const) {
+      expect(() => writeStored('omnicourse.test', 'kept', area)).not.toThrow();
+      expect(readStored('omnicourse.test', area)).toBeNull();
+    }
   });
 
   it('forgets what one account kept, and only that', () => {

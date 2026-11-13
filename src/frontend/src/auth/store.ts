@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { statusOf } from '../api.js';
-import { forgetAccountData } from '../storage.js';
+import { forgetAccountData, readStored, writeStored } from '../storage.js';
 import * as api from './api.js';
 import type { AuthResult, SignInBody, SignUpBody, User } from './api.js';
 
@@ -11,20 +11,8 @@ import type { AuthResult, SignInBody, SignUpBody, User } from './api.js';
 // Kept in students' browsers: a new key signs everyone out once.
 export const SESSION_STORAGE_KEY = 'omnicourse.session';
 
-function readToken(): string | null {
-  try {
-    return sessionStorage.getItem(SESSION_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeToken(token: string | null): void {
-  try {
-    if (token) sessionStorage.setItem(SESSION_STORAGE_KEY, token);
-    else sessionStorage.removeItem(SESSION_STORAGE_KEY);
-  } catch {}
-}
+const readToken = (): string | null => readStored(SESSION_STORAGE_KEY, 'session');
+const writeToken = (token: string | null): void => writeStored(SESSION_STORAGE_KEY, token || null, 'session');
 
 export const useAuth = defineStore('auth', () => {
   const token = ref<string | null>(null);
