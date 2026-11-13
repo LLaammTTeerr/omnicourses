@@ -8,8 +8,8 @@ import type { Plan } from './plan.entity.js';
 import { PlanIdPipe } from './plans.controller.js';
 import { planNotFound, PlansService } from './plans.service.js';
 
-// Synthetic catalog only (AGENTS.md hard rule 3). The database is faked: the e2e suite covers
-// the SQL; this covers what the service refuses before it writes anything.
+// Synthetic catalog only (AGENTS.md hard rule 3). The database is faked: test/plans.e2e-spec.ts
+// covers what is stored; this covers what the service refuses before it writes anything.
 const course = (courseCode: string): Placement => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
 const slot = (requirementGroupId: string): Placement => ({ kind: 'slot', courseCode: null, requirementGroupId, credits: 3 });
 const board = (...placements: Placement[]): BoardTerm[] => [{ term: { year: 2030, number: 1 }, placements }];
@@ -23,44 +23,40 @@ const storedPlan = {
   updatedAt: new Date('2030-01-02T00:00:00Z'),
 } as unknown as Plan;
 
-function service(found: { curriculumId?: string | null; plan?: Plan | null; affected?: number } = {}) {
+/** A service whose database holds `storedPlan` for its owner, or nothing (`owned: false`). */
+function service(found: { curriculumId?: string | null; owned?: boolean } = {}) {
+  const owned = found.owned ?? true;
   const tx = {
     insert: vi.fn().mockResolvedValue({ identifiers: [{ id: 'p1' }] }),
     delete: vi.fn(),
     find: vi.fn().mockResolvedValue([]),
-    query: vi.fn().mockResolvedValue([{ curriculum_id: 'c1', name: 'Main plan' }]),
+    query: vi.fn().mockResolvedValue(owned ? [{ curriculum_id: 'c1', name: 'Main plan' }] : []),
   };
-  const db = { transaction: vi.fn((work: (t: typeof tx) => unknown) => work(tx)) } as unknown as DataSource;
+  const transaction = vi.fn((work: (t: typeof tx) => unknown) => work(tx));
   const plans = {
-    find: vi.fn().mockResolvedValue([storedPlan]),
-    findOne: vi.fn().mockResolvedValue(found.plan === undefined ? storedPlan : found.plan),
-    update: vi.fn().mockResolvedValue({ affected: found.affected ?? 1 }),
-    delete: vi.fn().mockResolvedValue({ affected: found.affected ?? 1 }),
+    findOne: vi.fn().mockResolvedValue(owned ? storedPlan : null),
+    update: vi.fn().mockResolvedValue({ affected: owned ? 1 : 0 }),
+    delete: vi.fn().mockResolvedValue({ affected: owned ? 1 : 0 }),
   };
-  const placements = { find: vi.fn().mockResolvedValue([]) };
-  const curriculum = {
+  const catalog = {
     curriculumIdOf: vi.fn().mockResolvedValue(found.curriculumId === undefined ? 'c1' : found.curriculumId),
     knownCourseCodes: vi.fn().mockResolvedValue(new Set(['ZZ001', 'ZZ002'])),
     requirementGroupIds: vi.fn().mockResolvedValue(new Set(['g1'])),
   };
   const svc = new PlansService(
-    db,
+    { transaction } as unknown as DataSource,
     plans as unknown as Repository<Plan>,
-    placements as unknown as Repository<PlanPlacement>,
-    curriculum as unknown as CatalogLookup,
+    { find: vi.fn().mockResolvedValue([]) } as unknown as Repository<PlanPlacement>,
+    catalog as unknown as CatalogLookup,
   );
-  return { svc, tx, plans, curriculum };
+  return { svc, transaction };
 }
 
 const create = (svc: PlansService, terms?: BoardTerm[]) => svc.create('u1', { name: 'Main plan', programCode: 'ZZ', cohortYear: 2030, terms });
 
 describe('PlansService', () => {
-  it('creates a plan with its placements against the cohort’s curriculum', async () => {
-    const { svc, tx } = service();
-    const plan = await create(svc, board(course('ZZ001'), slot('g1')));
-    expect(tx.insert).toHaveBeenNthCalledWith(1, expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'Main plan' });
-    expect(tx.insert.mock.calls[1][1]).toHaveLength(2);
-    expect(plan).toEqual({
+  it('answers a new plan with its curriculum', async () => {
+    expect(await create(service().svc, board(course('ZZ001'), slot('g1')))).toEqual({
       id: 'p1',
       name: 'Main plan',
       curriculum: { id: 'c1', code: 'ZZ2030', programCode: 'ZZ', cohortYear: 2030 },
@@ -70,12 +66,6 @@ describe('PlansService', () => {
     });
   });
 
-  it('inserts no placement row for an empty plan', async () => {
-    const { svc, tx } = service();
-    await create(svc);
-    expect(tx.insert).toHaveBeenCalledTimes(1);
-  });
-
   it('refuses an unknown curriculum, an unknown course, another curriculum’s group and a course placed twice, writing nothing', async () => {
     const cases: [ReturnType<typeof service>, BoardTerm[] | undefined, RegExp][] = [
       [service({ curriculumId: null }), undefined, /No curriculum/],
@@ -83,61 +73,21 @@ describe('PlansService', () => {
       [service(), board(slot('g9')), /g9 is not in the plan's curriculum/],
       [service(), [...board(course('ZZ001')), { term: { year: 2030, number: 2 }, placements: [course('ZZ001')] }], /./],
     ];
-    for (const [{ svc, tx }, terms, message] of cases) {
+    for (const [{ svc, transaction }, terms, message] of cases) {
       const error = await create(svc, terms).catch((e: unknown) => e);
       expect(error).toBeInstanceOf(BadRequestException);
       expect(JSON.stringify((error as BadRequestException).getResponse())).toMatch(message);
-      expect(tx.insert).not.toHaveBeenCalled();
+      expect(transaction).not.toHaveBeenCalled();
     }
   });
 
-  it('asks the catalog nothing about groups when the board has no slot, and allows a course outside the curriculum', async () => {
-    const { svc, curriculum } = service();
-    await create(svc, board(course('ZZ002')));
-    expect(curriculum.requirementGroupIds).not.toHaveBeenCalled();
-  });
-
   it('answers 404 for a plan that is missing or someone else’s', async () => {
-    const missing = service({ plan: null, affected: 0 });
-    await expect(missing.svc.get('u2', 'p1')).rejects.toBeInstanceOf(NotFoundException);
-    await expect(missing.svc.rename('u2', 'p1', 'x')).rejects.toBeInstanceOf(NotFoundException);
-    await expect(missing.svc.delete('u2', 'p1')).rejects.toBeInstanceOf(NotFoundException);
-    expect(missing.plans.update).toHaveBeenCalledWith({ id: 'p1', userId: 'u2' }, { name: 'x' });
-    expect(missing.plans.delete).toHaveBeenCalledWith({ id: 'p1', userId: 'u2' });
-
-    const locked = service();
-    locked.tx.query.mockResolvedValue([]);
-    await expect(locked.svc.replacePlacements('u2', 'p1', [])).rejects.toBeInstanceOf(NotFoundException);
-    await expect(locked.svc.duplicate('u2', 'p1')).rejects.toBeInstanceOf(NotFoundException);
-    expect(locked.tx.delete).not.toHaveBeenCalled();
-    expect(locked.tx.insert).not.toHaveBeenCalled();
-  });
-
-  it('replaces the placements of an owned plan and marks it changed', async () => {
-    const { svc, tx } = service();
-    await svc.replacePlacements('u1', 'p1', board(course('ZZ001')));
-    expect(tx.query.mock.calls[0]).toEqual([expect.stringContaining('FOR NO KEY UPDATE'), ['p1', 'u1']]);
-    expect(tx.delete).toHaveBeenCalledWith(expect.anything(), { planId: 'p1' });
-    expect(tx.insert.mock.calls[0][1]).toEqual([expect.objectContaining({ planId: 'p1', userId: 'u1', courseCode: 'ZZ001', position: 0 })]);
-    expect(tx.query.mock.calls.at(-1)?.[0]).toMatch(/SET "updated_at" = now\(\)/);
-  });
-
-  it('copies a plan under the original name unless given one', async () => {
-    const { svc, tx } = service();
-    await svc.duplicate('u1', 'p1');
-    expect(tx.insert).toHaveBeenCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'Main plan' });
-    await svc.duplicate('u1', 'p1', 'What if');
-    expect(tx.insert).toHaveBeenLastCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'What if' });
-  });
-
-  it('copies the placements through the same rows a save writes', async () => {
-    const { svc, tx } = service();
-    tx.insert.mockResolvedValueOnce({ identifiers: [{ id: 'p2' }] });
-    const stored = { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 1, position: 0, courseCode: null, requirementGroupId: 'g1', slotCredits: 3 };
-    tx.find.mockResolvedValue([stored]);
-    await svc.duplicate('u1', 'p1');
-    expect(tx.find).toHaveBeenCalledWith(expect.anything(), { where: { planId: 'p1' } });
-    expect(tx.insert.mock.calls[1][1]).toEqual([{ ...stored, planId: 'p2' }]);
+    const { svc } = service({ owned: false });
+    await expect(svc.get('u2', 'p1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.rename('u2', 'p1', 'x')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.delete('u2', 'p1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.replacePlacements('u2', 'p1', [])).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.duplicate('u2', 'p1')).rejects.toBeInstanceOf(NotFoundException);
   });
 });
 
