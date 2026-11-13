@@ -7,14 +7,14 @@ import { useAuth } from '../auth/store.js';
 import LoadState from '../components/LoadState.vue';
 import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, type Course, type RequirementGroup } from '../curriculum/api.js';
-import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
+import { groupClass, groupColour, groupOf, GROUPS, orderGroups, type GroupId } from '../groups.js';
+import { localName, useLocale, useMessages } from '../locale.js';
 import { replay, scrollToView } from '../motion.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
+import { matchesEveryWord } from '../text-search.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
@@ -65,15 +65,15 @@ const query = ref('');
 const only = ref<GroupId | null>(null);
 const groups = computed(() => orderGroups(curriculum.data.value?.requirementGroups ?? []).map((group) => ({ group, colour: groupColour(group) })));
 const colours = computed(() => GROUPS.filter((g) => groups.value.some((entry) => entry.colour === g.id)));
-const courseName = (course: Course) => nameIn(course, locale.lang);
+const courseName = (course: Course) => localName(course, locale.lang);
 const shown = computed(() =>
   groups.value
     .filter(({ colour }) => !only.value || colour === only.value)
-    .map((entry) => ({ ...entry, courses: entry.group.courses.filter((course) => matches(query.value, course.code, course.nameVi, course.nameEn)) }))
+    .map((entry) => ({ ...entry, courses: entry.group.courses.filter((course) => matchesEveryWord(query.value, course.code, course.nameVi, course.nameEn)) }))
     .filter((entry) => entry.courses.length > 0),
 );
 const courseCount = computed(() => new Set(groups.value.flatMap(({ group }) => group.courses.map((course) => course.code))).size);
-const glyph = (id: GroupId) => GROUPS.find((g) => g.id === id)!.glyph;
+const glyph = (id: GroupId) => groupOf(id).glyph;
 
 const open = shallowRef<{ course: Course; group: { id: GroupId; name: string } } | null>(null);
 function openCourse(course: Course, group: RequirementGroup, colour: GroupId): void {
@@ -112,7 +112,7 @@ usePageTitle(() => m.value.title);
       <div>
         <h1>{{ m.title }}</h1>
         <p v-if="curriculum.data.value" data-test="summary">
-          {{ (locale.lang === 'en' && curriculum.data.value.nameEn) || curriculum.data.value.nameVi }} ·
+          {{ localName(curriculum.data.value, locale.lang) }} ·
           {{ m.summary(courseCount, curriculum.data.value.totalCreditsMin) }}
         </p>
       </div>

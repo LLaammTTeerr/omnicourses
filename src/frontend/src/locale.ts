@@ -64,3 +64,16 @@ export function formatDate(isoDate: string, lang: Lang): string {
   // A calendar date, not an instant: format it in UTC so no time zone moves it.
   return new Intl.DateTimeFormat(LANGUAGES[lang].tag, { ...LANGUAGES[lang].date, timeZone: 'UTC' }).format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+/** A name in the language on screen: the English one in English when there is one, else the Vietnamese one. */
+export const localName = (named: { nameVi: string; nameEn: string | null }, lang: Lang): string => (lang === 'en' && named.nameEn) || named.nameVi;
+
+const numberFormats = new Map<string, Intl.NumberFormat>();
+
+/** A number as the language writes it, to `maxDigits` decimals at most: 7,5 or 7.5. */
+export function formatNumber(value: number, lang: Lang, maxDigits: number): string {
+  const key = `${lang} ${maxDigits}`;
+  let format = numberFormats.get(key);
+  if (!format) numberFormats.set(key, (format = new Intl.NumberFormat(LANGUAGES[lang].tag, { maximumFractionDigits: maxDigits })));
+  return format.format(value);
+}

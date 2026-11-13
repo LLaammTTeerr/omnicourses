@@ -4,9 +4,8 @@ import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { fetchCourse, type Course } from '../curriculum/api.js';
-import { courseName } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
+import { groupClass, groupOf, type GroupId } from '../groups.js';
+import { localName, useLocale, useMessages } from '../locale.js';
 import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
@@ -27,8 +26,8 @@ const detail = useAsyncLoad(
   async () => (props.course ? auth.authed((token) => fetchCourse(token, props.course!.code)) : null),
   () => props.course?.code,
 );
-const glyph = computed(() => GROUPS.find((g) => g.id === props.group?.id)?.glyph ?? '');
-const name = computed(() => (props.course ? courseName(props.course, locale.lang) : ''));
+const glyph = computed(() => (props.group ? groupOf(props.group.id).glyph : ''));
+const name = computed(() => (props.course ? localName(props.course, locale.lang) : ''));
 const other = computed(() => (props.course ? (locale.lang === 'en' ? props.course.nameVi : props.course.nameEn) : null));
 const periods = computed(() => {
   const course = props.course;

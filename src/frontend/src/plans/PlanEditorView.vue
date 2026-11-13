@@ -6,9 +6,8 @@ import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import LoadState from '../components/LoadState.vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { courseName, groupColour, matches } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
+import { groupClass, groupColour, groupOf, type GroupId } from '../groups.js';
+import { formatNumber, localName, useLocale, useMessages } from '../locale.js';
 import { COMMON_MESSAGES } from '../messages.js';
 import { reducedMotion, replay, scrollToView } from '../motion.js';
 import { useOnboarding } from '../onboarding/store.js';
@@ -16,6 +15,7 @@ import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import { readStored, writeStored } from '../storage.js';
+import { matchesEveryWord } from '../text-search.js';
 import { compareTerms, nextTerm, termAt, termKey, termMonths, termName, type Term } from '../terms.js';
 import { fetchPlan, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
 import {
@@ -186,8 +186,8 @@ const { curriculum, requirementGroups, catalog, groupNames, transcriptCodes, aud
   plan,
   currentTermNow,
 );
-const shortName = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.short[locale.lang];
-const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
+const shortName = (colour: GroupId) => groupOf(colour).short[locale.lang];
+const glyphOf = (colour: GroupId) => groupOf(colour).glyph;
 /** The terms before the current one, with what the engine counts as passed, for the "Taken" strip. */
 const past = computed(() => {
   const terms = pastTerms.value;
@@ -195,7 +195,7 @@ const past = computed(() => {
   return {
     span: m.value.pastTerms(terms.length, nameOf(terms[0]!.term), nameOf(terms.at(-1)!.term)),
     accumulated: audit.value.credits.accumulated,
-    courses: passed.value.map((c) => ({ code: c.code, name: courseName(c, locale.lang), colour: catalog.value.get(c.code)?.colour ?? 'core' })),
+    courses: passed.value.map((c) => ({ code: c.code, name: localName(c, locale.lang), colour: catalog.value.get(c.code)?.colour ?? 'core' })),
   };
 });
 
@@ -278,7 +278,7 @@ const toneOf = (issues: readonly PlanIssue[]) => {
   const kind = strongest(issues.filter((i) => i.kind !== 'unknown'));
   return kind ? `has-${kind}` : '';
 };
-const gradeText = (n: number) => n.toLocaleString(locale.lang === 'vi' ? 'vi-VN' : 'en-GB', { maximumFractionDigits: 1 });
+const gradeText = (n: number) => formatNumber(n, locale.lang, 1);
 
 function tileView(tile: Tile, termName: string): TileView {
   const p = tile.placement;
@@ -297,7 +297,7 @@ function tileView(tile: Tile, termName: string): TileView {
     title,
     label: m.value.tileLabel(title, termName),
     credits: p.kind === 'slot' ? (p.credits ?? null) : (info?.course.credits ?? null),
-    name: info ? courseName(info.course, locale.lang) : null,
+    name: info ? localName(info.course, locale.lang) : null,
     group: colour ? shortName(colour) : null,
     slot: p.kind === 'slot',
     taken: grade === undefined ? null : m.value.takenBefore(gradeText(grade)),
@@ -429,7 +429,7 @@ const unplaced = computed(() => {
 });
 const poolGroups = computed(() => [...new Set(unplaced.value.map((c) => c.colour))]);
 const shown = computed(() =>
-  unplaced.value.filter(({ course, colour }) => (!poolGroup.value || colour === poolGroup.value) && matches(query.value, course.code, course.nameVi, course.nameEn)),
+  unplaced.value.filter(({ course, colour }) => (!poolGroup.value || colour === poolGroup.value) && matchesEveryWord(query.value, course.code, course.nameVi, course.nameEn)),
 );
 /**
  * One slot per elective group (ADR 0014: credits held before a course is chosen), at the credits most of its courses
@@ -785,7 +785,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <span class="k">{{ course.code }}</span>
                   <span class="cr">{{ m.credits(course.credits) }}</span>
                 </span>
-                <span class="nm" :title="courseName(course, locale.lang)">{{ courseName(course, locale.lang) }}</span>
+                <span class="nm" :title="localName(course, locale.lang)">{{ localName(course, locale.lang) }}</span>
                 <span class="sub">
                   <span class="glabel">{{ shortName(colour) }}</span>
                   <span v-if="passedCodes.has(course.code)" class="mark passed" data-test="passed"><Icon name="check" size="sm" />{{ m.passedMark }}</span>

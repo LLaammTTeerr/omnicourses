@@ -3,9 +3,8 @@ import { useAsyncLoad } from '../async-load.js';
 import { useAudit } from '../audit/present.js';
 import { useAuth } from '../auth/store.js';
 import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
-import { courseName, groupColour, orderGroups } from '../curriculum/present.js';
-import type { GroupId } from '../groups.js';
-import { useLocale } from '../locale.js';
+import { groupColour, orderGroups, type GroupId } from '../groups.js';
+import { localName, useLocale } from '../locale.js';
 import { compareTerms, type Term } from '../terms.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import type { Plan } from './api.js';
@@ -62,7 +61,7 @@ export function usePlanContext(plan: Ref<Plan | null>, now: () => Term) {
     const term = audit.value?.terms.find((t) => compareTerms(t.term, now()) === 0);
     return (term?.inProgressCourseCodes ?? []).map((code) => {
       const info = catalog.value.get(code);
-      return { code, name: info ? courseName(info.course, locale.lang) : null, credits: info?.course.credits ?? null, colour: info?.colour ?? 'core' };
+      return { code, name: info ? localName(info.course, locale.lang) : null, credits: info?.course.credits ?? null, colour: info?.colour ?? 'core' };
     });
   });
 

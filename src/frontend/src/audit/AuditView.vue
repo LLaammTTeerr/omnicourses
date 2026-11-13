@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { nextTick, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
-import { courseName } from '../curriculum/present.js';
 import { groupClass } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
+import { localName, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { termName } from '../terms.js';
@@ -184,7 +183,7 @@ usePageTitle(() => m.value.auditTitle);
                 <tr v-for="course in group.courses" :key="course.code" :class="`st-${course.status}`" :data-test="`course-${course.code}`">
                   <td><span class="code">{{ course.code }}</span></td>
                   <td>
-                    {{ courseName(course, locale.lang) }}
+                    {{ localName(course, locale.lang) }}
                     <template v-if="!course.countsTowardTotal">{{ ' ' }}<span class="chip">{{ m.outsideTotal }}</span></template>
                     <template v-if="!course.countsTowardGpa">{{ ' ' }}<span class="chip">{{ m.outsideGpa }}</span></template>
                   </td>

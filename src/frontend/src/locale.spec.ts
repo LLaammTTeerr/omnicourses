@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { formatDate, formatDateTime, useLocale } from './locale.js';
+import { formatDate, formatDateTime, formatNumber, localName, useLocale } from './locale.js';
 
 describe('locale store', () => {
   beforeEach(() => {
@@ -77,5 +77,21 @@ describe('formatDateTime', () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe('localName', () => {
+  it('names in English when there is an English name, else in Vietnamese', () => {
+    expect(localName({ nameVi: 'Học máy', nameEn: 'Machine learning' }, 'en')).toBe('Machine learning');
+    expect(localName({ nameVi: 'Học máy', nameEn: 'Machine learning' }, 'vi')).toBe('Học máy');
+    expect(localName({ nameVi: 'Học máy', nameEn: null }, 'en')).toBe('Học máy');
+  });
+});
+
+describe('formatNumber', () => {
+  it('writes a number as each language does, to the decimals asked for at most', () => {
+    expect(formatNumber(7.25, 'vi', 1)).toBe('7,3');
+    expect(formatNumber(7.25, 'en', 2)).toBe('7.25');
+    expect(formatNumber(8, 'en', 2)).toBe('8');
   });
 });
