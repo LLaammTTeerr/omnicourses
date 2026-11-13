@@ -1,23 +1,26 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink } from 'vue-router';
-import { statusOf } from '../api.js';
+import { reportFailure, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { fetchTranscript, saveTranscript, TERM_NUMBERS, TRANSCRIPT_RESULTS } from './api.js';
+import { parseTermKey, TERM_NUMBERS, termKey } from '../terms.js';
+import { fetchTranscript, saveTranscript, TRANSCRIPT_RESULTS } from './api.js';
 import { TRANSCRIPT_MESSAGES } from './messages.js';
-import { blankRow, fromRow, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
+import { blankRow, fromRow, MAX_NAME_LENGTH, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
 
 // F2 (UC-02): review every row, then save the whole set; a later save replaces it (ADR 0007). There is no PDF
 // reader yet, so the student enters rows by hand (UC-02 A4). An incomplete row blocks the save (A2).
 const auth = useAuth();
 const toast = useToast();
 const m = useMessages(TRANSCRIPT_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const rows = ref<DraftRow[]>([]);
 let nextKey = 0;
@@ -35,13 +38,14 @@ const toFix = computed(() => checked.value.filter((entry) => entry.problems.leng
 const dirty = computed(() => snapshot(rows.value) !== savedState.value);
 const years = computed(() => yearChoices(rows.value));
 const counts = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ result, n: rows.value.filter((row) => row.result === result).length })));
-const termValue = (row: DraftRow) => `${row.year}-${row.number}`;
-const termOptions = computed(() => years.value.flatMap((year) => TERM_NUMBERS.map((n) => ({ value: `${year}-${n}`, label: m.value.term(year, n) }))));
+const termValue = (row: DraftRow) => termKey(row);
+const termOptions = computed(() => years.value.flatMap((year) => TERM_NUMBERS.map((number) => ({ value: termKey({ year, number }), label: m.value.term(year, number) }))));
 const resultOptions = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ value: result, label: m.value.results[result] })));
 function setTerm(row: DraftRow, value: string): void {
-  const [year, number] = value.split('-').map(Number);
-  row.year = year!;
-  row.number = number as DraftRow['number'];
+  const term = parseTermKey(value);
+  if (!term) return;
+  row.year = term.year;
+  row.number = term.number;
 }
 /** The line under an invalid row that says what to fix, for the fields it names. */
 const describedBy = (row: DraftRow, rowProblems: Problem[], field: Problem) => (rowProblems.includes(field) ? `problems-${row.key}` : undefined);
@@ -74,13 +78,8 @@ async function save(): Promise<void> {
     savedState.value = snapshot(rows.value);
     toast.show(m.value.saved(saved.length));
   } catch (e) {
-    const code = statusOf(e);
-    if (code === 401) return; // App.vue takes the student to sign in.
-    if (code === 400) saveError.value = m.value.saveRefused;
-    else {
-      console.error('Saving the transcript failed:', e);
-      saveError.value = m.value.saveFailed;
-    }
+    if (statusOf(e) === 400) saveError.value = m.value.saveRefused;
+    else if (reportFailure('Saving the transcript', e)) saveError.value = m.value.saveFailed;
   } finally {
     saving.value = false;
   }
@@ -108,7 +107,7 @@ usePageTitle(() => m.value.title);
     </div>
 
     <p v-if="status === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" /><span>{{ m.loadFailed }} <button class="btn sm" type="button" @click="reload">{{ m.retry }}</button></span>
+      <Icon name="alert" /><span>{{ m.loadFailed }} <button class="btn sm" type="button" @click="reload">{{ common.retry }}</button></span>
     </p>
     <p v-else-if="status === 'loading'" class="t3">{{ m.loading }}</p>
 
@@ -178,7 +177,7 @@ usePageTitle(() => m.value.title);
                     />
                   </td>
                   <td :data-label="m.columns.courseName">
-                    <input v-model="row.courseName" class="input" maxlength="255" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
+                    <input v-model="row.courseName" class="input" :maxlength="MAX_NAME_LENGTH" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
                       :aria-describedby="describedBy(row, rowProblems, 'courseName')" />
                   </td>
                   <td :data-label="m.columns.credits">

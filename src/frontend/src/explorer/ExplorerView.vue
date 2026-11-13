@@ -4,24 +4,26 @@ import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
+import LoadState from '../components/LoadState.vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
-import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
-import { programChoices } from '../onboarding/answers.js';
+import { fetchCurriculum, type Course, type RequirementGroup } from '../curriculum/api.js';
+import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
+import { groupClass, groupColour, groupOf, GROUPS, orderGroups, type GroupId } from '../groups.js';
+import { localName, useLocale, useMessages } from '../locale.js';
+import { replay, scrollToView } from '../motion.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
+import { matchesEveryWord } from '../text-search.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // The curriculum explorer (F4, UI prototypes: explorer.html without the prerequisite graph): the requirement groups
-// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API has
-// no prerequisites or offering terms yet, so nothing here says a course is open, locked or available; and whether a
-// course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's own transcript only adds a
-// neutral "in your transcript" mark.
+// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. Prerequisites
+// and offering terms are null until F12 records them (curriculum/api.ts) and this screen shows neither yet, so nothing
+// here says a course is open, locked or available; and whether a course is passed is the degree audit's call
+// (AGENTS.md hard rule 1), so the student's own transcript only adds a neutral "in your transcript" mark.
 const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
@@ -29,8 +31,8 @@ const m = useMessages(EXPLORER_MESSAGES);
 
 // The student's program and cohort by default (UC-01), then whatever they pick. Only offered ones are listed: the
 // other curricula are seeded but not verified (B1 §6 item 1).
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
-const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
+const { choices: allChoices } = usePrograms();
+const choices = computed(() => allChoices.value.filter((choice) => choice.offered));
 const picked = ref<{ program: string; cohort: number } | null>(null);
 const selection = computed(() => {
   if (picked.value) return picked.value;
@@ -40,7 +42,7 @@ const selection = computed(() => {
   return first?.cohorts[0] ? { program: first.code, cohort: first.cohorts[0] } : null;
 });
 const cohorts = computed(() => choices.value.find((choice) => choice.code === selection.value?.program)?.cohorts ?? []);
-const programName = (choice: (typeof choices.value)[number]) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
+const programName = (choice: ProgramChoice) => nameOfProgram(choice, locale.lang);
 
 function pickProgram(code: string): void {
   const cohort = choices.value.find((choice) => choice.code === code)?.cohorts[0];
@@ -63,15 +65,15 @@ const query = ref('');
 const only = ref<GroupId | null>(null);
 const groups = computed(() => orderGroups(curriculum.data.value?.requirementGroups ?? []).map((group) => ({ group, colour: groupColour(group) })));
 const colours = computed(() => GROUPS.filter((g) => groups.value.some((entry) => entry.colour === g.id)));
-const courseName = (course: Course) => nameIn(course, locale.lang);
+const courseName = (course: Course) => localName(course, locale.lang);
 const shown = computed(() =>
   groups.value
     .filter(({ colour }) => !only.value || colour === only.value)
-    .map((entry) => ({ ...entry, courses: entry.group.courses.filter((course) => matches(query.value, course.code, course.nameVi, course.nameEn)) }))
+    .map((entry) => ({ ...entry, courses: entry.group.courses.filter((course) => matchesEveryWord(query.value, course.code, course.nameVi, course.nameEn)) }))
     .filter((entry) => entry.courses.length > 0),
 );
 const courseCount = computed(() => new Set(groups.value.flatMap(({ group }) => group.courses.map((course) => course.code))).size);
-const glyph = (id: GroupId) => GROUPS.find((g) => g.id === id)!.glyph;
+const glyph = (id: GroupId) => groupOf(id).glyph;
 
 const open = shallowRef<{ course: Course; group: { id: GroupId; name: string } } | null>(null);
 function openCourse(course: Course, group: RequirementGroup, colour: GroupId): void {
@@ -94,13 +96,9 @@ watch(
     await nextTick();
     const el = document.querySelector<HTMLElement>(`[data-test="course-${CSS.escape(code)}"]`);
     if (!el) return;
-    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView?.({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+    scrollToView(el, 'center');
     el.focus({ preventScroll: true });
-    el.classList.remove('flash');
-    void el.offsetWidth;
-    el.classList.add('flash');
-    el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true });
+    replay(el, 'flash');
   },
   { immediate: true },
 );
@@ -114,7 +112,7 @@ usePageTitle(() => m.value.title);
       <div>
         <h1>{{ m.title }}</h1>
         <p v-if="curriculum.data.value" data-test="summary">
-          {{ (locale.lang === 'en' && curriculum.data.value.nameEn) || curriculum.data.value.nameVi }} ·
+          {{ localName(curriculum.data.value, locale.lang) }} ·
           {{ m.summary(courseCount, curriculum.data.value.totalCreditsMin) }}
         </p>
       </div>
@@ -151,14 +149,13 @@ usePageTitle(() => m.value.title);
       </div>
     </div>
 
-    <p v-if="curriculum.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="curriculum.status.value === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" />
-      <div>
-        <p>{{ statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.loadFailed }}</p>
-        <button class="btn sm" type="button" @click="curriculum.reload">{{ m.retry }}</button>
-      </div>
-    </div>
+    <LoadState
+      v-if="curriculum.status.value !== 'loaded'"
+      :status="curriculum.status.value"
+      :loading="m.loading"
+      :failed="statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.loadFailed"
+      @retry="curriculum.reload"
+    />
     <template v-else>
       <section
         v-for="{ group, colour, courses } in shown"

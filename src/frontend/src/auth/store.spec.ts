@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, HttpError } from '../api.js';
+import { ACCOUNT_KEYS } from '../storage.js';
 import { SESSION_STORAGE_KEY, useAuth } from './store.js';
 import { authResult } from './testing/fixtures.js';
 
@@ -98,5 +99,56 @@ describe('auth store (ADR 0002)', () => {
     expect(seen).toEqual(['zz-live']);
     expect(auth.signedIn).toBe(false);
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it('forgets what the account kept in this browser when it signs out', async () => {
+    const fetch = fetchMock().mockResolvedValueOnce(Response.json(authResult()));
+    await useAuth().signIn({ email: 'zz@example.com', password: 'zz-password-1' });
+    localStorage.setItem(ACCOUNT_KEYS.lastPlan, 'zz-plan');
+    localStorage.setItem(ACCOUNT_KEYS.planLocks, '["zz-plan"]');
+    localStorage.setItem('omnicourse.lang', 'en');
+    fetch.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await useAuth().signOut();
+    expect(localStorage.getItem(ACCOUNT_KEYS.lastPlan)).toBeNull();
+    expect(localStorage.getItem(ACCOUNT_KEYS.planLocks)).toBeNull();
+    expect(localStorage.getItem('omnicourse.lang')).toBe('en');
+  });
+
+  it('forgets what the account kept in this browser when a call answers 401', async () => {
+    fetchMock().mockResolvedValue(Response.json(authResult()));
+    const auth = useAuth();
+    await auth.signIn({ email: 'zz@example.com', password: 'zz-password-1' });
+    localStorage.setItem(ACCOUNT_KEYS.lastPlan, 'zz-plan');
+    await expect(auth.authed(async () => Promise.reject(new HttpError('/x', 401)))).rejects.toThrow('401');
+    expect(localStorage.getItem(ACCOUNT_KEYS.lastPlan)).toBeNull();
+  });
+
+  it('forgets what the account kept in this browser when the saved session has ended', async () => {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, 'zz-dead');
+    localStorage.setItem(ACCOUNT_KEYS.lastPlan, 'zz-plan');
+    localStorage.setItem(ACCOUNT_KEYS.planLocks, '["zz-plan"]');
+    fetchMock().mockResolvedValue(new Response(null, { status: 401 }));
+    await useAuth().start();
+    expect(localStorage.getItem(ACCOUNT_KEYS.lastPlan)).toBeNull();
+    expect(localStorage.getItem(ACCOUNT_KEYS.planLocks)).toBeNull();
+  });
+
+  it('keeps what the account kept in this browser when the session may still be alive', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    sessionStorage.setItem(SESSION_STORAGE_KEY, 'zz-maybe');
+    localStorage.setItem(ACCOUNT_KEYS.lastPlan, 'zz-plan');
+    localStorage.setItem(ACCOUNT_KEYS.planLocks, '["zz-plan"]');
+    fetchMock().mockRejectedValue(new TypeError('Failed to fetch'));
+    await useAuth().start();
+    expect(localStorage.getItem(ACCOUNT_KEYS.lastPlan)).toBe('zz-plan');
+    expect(localStorage.getItem(ACCOUNT_KEYS.planLocks)).toBe('["zz-plan"]');
+  });
+
+  it('lets the shell say once that a sign-in cancelled a pending deletion', async () => {
+    fetchMock().mockResolvedValue(Response.json(authResult({ accountRestored: true })));
+    const auth = useAuth();
+    await auth.signIn({ email: 'zz@example.com', password: 'zz-password-1' });
+    auth.acknowledgeRestored();
+    expect(auth.accountRestored).toBe(false);
   });
 });

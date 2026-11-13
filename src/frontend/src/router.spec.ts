@@ -4,8 +4,7 @@ import { createMemoryHistory } from 'vue-router';
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult } from './auth/testing/fixtures.js';
 import { createAppRouter } from './router.js';
-import { NOT_STARTED } from './onboarding/api.js';
-import { onboarding } from './onboarding/testing/fixtures.js';
+import { NOT_STARTED, onboarding } from './onboarding/testing/fixtures.js';
 import { mockApi, status } from './testing/fetch.js';
 import { setup } from './testing/signed-in.js';
 

@@ -22,8 +22,6 @@ interface ExplorerMessages {
   loading: string;
   loadFailed: string;
   noCurriculum: string;
-  retry: string;
-  close: string;
   code: string;
   creditsLabel: string;
   periods: string;
@@ -57,8 +55,6 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
     loading: 'Đang tải chương trình…',
     loadFailed: 'Chưa tải được chương trình đào tạo.',
     noCurriculum: 'Chưa có chương trình đào tạo cho khóa này.',
-    retry: 'Thử lại',
-    close: 'Đóng',
     code: 'Mã học phần',
     creditsLabel: 'Tín chỉ',
     periods: 'Số tiết',
@@ -90,8 +86,6 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
     loading: 'Loading the curriculum…',
     loadFailed: 'The curriculum could not be loaded.',
     noCurriculum: 'There is no curriculum for this cohort yet.',
-    retry: 'Try again',
-    close: 'Close',
     code: 'Course code',
     creditsLabel: 'Credits',
     periods: 'Periods',

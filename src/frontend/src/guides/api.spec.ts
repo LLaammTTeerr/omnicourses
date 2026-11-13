@@ -3,6 +3,7 @@ import { API_URL } from '../api.js';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
 import {
   fetchGuide,
+  fetchGuides,
   GUIDE_GROUPS,
   GUIDE_LANGS,
   type Guide,
@@ -76,6 +77,16 @@ describe('guide types against the contract', () => {
     const regulation: Record<keyof RegulationSource, true> = { kind: true, document: true, clause: true, url: true };
     expect(Object.keys(kinds).sort()).toEqual(contractEnum('GuideNoteSourceDto', 'kind'));
     expect(Object.keys(contractShape('GuideNoteSourceDto')).sort()).toEqual(Object.keys(regulation).sort());
+  });
+});
+
+describe('fetchGuides', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('asks for the list with no token (ADR 0010) and gives its guides', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ guides: [{ id: 'zz-a' }] }));
+    await expect(fetchGuides()).resolves.toEqual([{ id: 'zz-a' }]);
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/guides`, expect.objectContaining({ method: 'GET', headers: {} }));
   });
 });
 

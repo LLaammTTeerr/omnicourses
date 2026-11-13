@@ -1,9 +1,12 @@
 import type { Lang } from '../locale.js';
+import type { TermMonths } from '../terms.js';
 import type { PlanIssue, PlanIssueCode, PlanIssueKind } from './api.js';
 
 // The planner's words. Each issue code of the rule engine is worded here from its parameters (ADR 0006: issues are
 // codes with parameters); the API's `message` is English only. Wording an issue never judges the plan: the engine
 // already has.
+
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 /** What an issue's wording may need besides the issue itself. */
 export interface IssueContext {
@@ -17,9 +20,7 @@ interface PlannerMessages {
   title: string;
   listLead: string;
   newPlan: string;
-  loading: string;
   loadFailed: string;
-  retry: string;
   empty: string;
   emptyHint: string;
   noProgram: string;
@@ -45,7 +46,6 @@ interface PlannerMessages {
   create: string;
   renameTitle: string;
   save: string;
-  cancel: string;
   deleteBody: string;
   keep: string;
   deleting: string;
@@ -98,7 +98,7 @@ interface PlannerMessages {
   /** Before the load of a term with a course of unknown credits (load_not_checked): its load is a lower bound. */
   atLeast: string;
   /** The months a term runs, from the calendar the API uses (term 1 from September, 2 from January, 3 from June). */
-  termMonths: (term: { year: number; number: 1 | 2 | 3 }) => string;
+  termMonths: (months: TermMonths) => string;
   caps: (min: number | null, max: number) => string;
   capsUnknown: string;
   summer: string;
@@ -135,7 +135,6 @@ interface PlannerMessages {
   previewSpan: (first: string, last: string) => string;
   previewCounts: (terms: number, courses: number, slots: number) => string;
   previewEmpty: string;
-  openPlan: (name: string) => string;
   statusLabel: string;
   invalid: (n: number) => string;
   /** No violation, and every rule checked. */
@@ -199,9 +198,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     title: 'Lộ trình học tập',
     listLead: 'Xếp các học phần trong chương trình của bạn vào từng học kỳ cho đến khi tốt nghiệp. Bạn có thể giữ nhiều kế hoạch để so sánh.',
     newPlan: 'Kế hoạch mới',
-    loading: 'Đang tải…',
     loadFailed: 'Chưa tải được kế hoạch.',
-    retry: 'Thử lại',
     empty: 'Bạn chưa có kế hoạch nào.',
     emptyHint: 'Tạo một kế hoạch trống rồi xếp môn vào từng học kỳ.',
     noProgram: 'Hãy chọn chương trình và khóa trong Cài đặt trước khi tạo kế hoạch.',
@@ -227,7 +224,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     create: 'Tạo',
     renameTitle: 'Đổi tên kế hoạch',
     save: 'Lưu',
-    cancel: 'Hủy',
     deleteBody: 'Kế hoạch và mọi môn đã xếp trong đó sẽ bị xóa. Không thể hoàn tác.',
     keep: 'Giữ lại',
     deleting: 'Đang xóa…',
@@ -272,7 +268,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     credits: (n) => `${n} TC`,
     ofCap: (max) => (max === null ? ' TC' : ` / ${max} TC`),
     atLeast: 'Ít nhất',
-    termMonths: ({ year, number }) => (number === 1 ? `Tháng 9 – 12/${year}` : number === 2 ? `Tháng 1 – 5/${year + 1}` : `Tháng 6 – 8/${year + 1}`),
+    termMonths: ({ first, last, year }) => `Tháng ${first} – ${last}/${year}`,
     caps: (min, max) => (min === null ? `tối đa ${max} TC` : `${min}–${max} TC`),
     capsUnknown: 'chưa ghi nhận giới hạn TC',
     summer: 'Học kỳ hè',
@@ -307,7 +303,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
     previewCounts: (terms, courses, slots) => [`${terms} học kỳ`, `${courses} môn`, ...(slots ? [`${slots} chỗ tự chọn`] : [])].join(' · '),
     previewEmpty: 'Chưa xếp môn nào',
-    openPlan: (name) => `Mở ${name}`,
     statusLabel: 'Tình trạng kế hoạch',
     invalid: (n) => `Chưa hợp lệ · ${n} vi phạm`,
     noViolation: 'Không thấy vi phạm',
@@ -395,9 +390,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     title: 'Plans',
     listLead: 'Place the courses of your curriculum into terms until graduation. Keep several plans to compare them.',
     newPlan: 'New plan',
-    loading: 'Loading…',
     loadFailed: 'The plans could not be loaded.',
-    retry: 'Try again',
     empty: 'You have no plan yet.',
     emptyHint: 'Create an empty plan, then place courses into its terms.',
     noProgram: 'Choose your program and cohort in Settings before creating a plan.',
@@ -423,7 +416,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     create: 'Create',
     renameTitle: 'Rename the plan',
     save: 'Save',
-    cancel: 'Cancel',
     deleteBody: 'The plan and every course placed in it are deleted. This cannot be undone.',
     keep: 'Keep it',
     deleting: 'Deleting…',
@@ -468,7 +460,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     credits: (n) => `${n} cr`,
     ofCap: (max) => (max === null ? ' credits' : ` / ${max} credits`),
     atLeast: 'At least',
-    termMonths: ({ year, number }) => (number === 1 ? `Sep – Dec ${year}` : number === 2 ? `Jan – May ${year + 1}` : `Jun – Aug ${year + 1}`),
+    termMonths: ({ first, last, year }) => `${MONTHS_EN[first - 1]} – ${MONTHS_EN[last - 1]} ${year}`,
     caps: (min, max) => (min === null ? `at most ${max}` : `${min}–${max}`),
     capsUnknown: 'credit caps not recorded',
     summer: 'Summer term',
@@ -503,7 +495,6 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
     previewCounts: (terms, courses, slots) => [`${terms} ${terms === 1 ? 'term' : 'terms'}`, `${courses} ${courses === 1 ? 'course' : 'courses'}`, ...(slots ? [`${slots} elective ${slots === 1 ? 'slot' : 'slots'}`] : [])].join(' · '),
     previewEmpty: 'No courses placed yet',
-    openPlan: (name) => `Open ${name}`,
     statusLabel: 'Plan status',
     invalid: (n) => `Not valid yet · ${n} ${n === 1 ? 'violation' : 'violations'}`,
     noViolation: 'No violation found',

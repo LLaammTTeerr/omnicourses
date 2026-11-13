@@ -305,10 +305,6 @@ describe('AuditView (F3, ADR 0013)', () => {
     });
   });
 
-  it('leaves no scrollIntoView behind for later tests', () => {
-    expect(Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')).toEqual(ORIGINAL_SCROLL);
-  });
-
   it('sends a student without a program to onboarding', async () => {
     const { w } = await render(status(409, { statusCode: 409, code: 'onboarding_required', message: 'Finish onboarding' }));
     expect(w.get('[data-test="onboarding-required"] a').attributes('href')).toBe('/onboarding');

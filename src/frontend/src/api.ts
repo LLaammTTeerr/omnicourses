@@ -76,14 +76,29 @@ export async function request<T>(method: string, path: string, options: RequestO
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
-/** A public read: no token is sent (ADR 0010). It times out like any JSON call. */
-export function getJson<T>(path: string): Promise<T> {
-  return request<T>('GET', path);
-}
-
 export function fetchHealth(): Promise<Health> {
-  return getJson<Health>('/health');
+  return request<Health>('GET', '/health');
 }
 
 /** The HTTP status of a failed call, or null when the request never got an answer (offline, CORS, DNS). */
 export const statusOf = (e: unknown): number | null => (e instanceof HttpError ? e.status : null);
+
+/** True when the request was cancelled by its caller (an AbortController), not when it timed out. */
+const aborted = (e: unknown): boolean => e instanceof DOMException && e.name === 'AbortError';
+
+/**
+ * Whether a screen should say that a call failed. Two failures are not worth saying. A 401: `auth.authed` has already
+ * signed the student out and App.vue takes them to sign in. An abort: the screen cancelled the call itself. A timeout
+ * is a failure like any other.
+ */
+export const failureWorthSaying = (e: unknown): boolean => statusOf(e) !== 401 && !aborted(e);
+
+/**
+ * The one way a screen reports a failed call: the details go to the console, as "<what> failed:", unless the failure
+ * is not worth saying (`failureWorthSaying`). Returns whether the screen should say it failed.
+ */
+export function reportFailure(what: string, e: unknown): boolean {
+  if (!failureWorthSaying(e)) return false;
+  console.error(`${what} failed:`, e);
+  return true;
+}

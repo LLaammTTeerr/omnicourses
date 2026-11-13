@@ -27,9 +27,6 @@ interface SettingsMessages {
   revoked: string;
   revokeFailed: string;
   sessionsFailed: string;
-  retry: string;
-  loading: string;
-  cancel: string;
   theme: string;
   themeNote: string;
   light: string;
@@ -87,9 +84,6 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     revoked: 'Đã thu hồi phiên.',
     revokeFailed: 'Chưa thu hồi được phiên. Thử lại sau ít phút.',
     sessionsFailed: 'Chưa tải được danh sách phiên.',
-    retry: 'Thử lại',
-    loading: 'Đang tải…',
-    cancel: 'Hủy',
     theme: 'Chủ đề',
     themeNote: 'Sáng hoặc tối, nhớ trên trình duyệt này.',
     light: 'Sáng',
@@ -147,9 +141,6 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     revoked: 'Session revoked.',
     revokeFailed: 'Could not revoke the session. Try again in a moment.',
     sessionsFailed: 'Could not load your sessions.',
-    retry: 'Try again',
-    loading: 'Loading…',
-    cancel: 'Cancel',
     theme: 'Theme',
     themeNote: 'Light or dark, remembered in this browser.',
     light: 'Light',

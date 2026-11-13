@@ -9,7 +9,6 @@ interface AuthMessages {
   emailInvalid: string;
   rateLimited: string;
   unreachable: string;
-  // Sign-in
   signInTitle: string;
   signInLead: string;
   signIn: string;
@@ -21,7 +20,6 @@ interface AuthMessages {
   signInArtChip: string;
   signInArt: string;
   signInArtText: string;
-  // Sign-up
   signUpTitle: string;
   signUpLead: string;
   displayName: string;
@@ -139,6 +137,3 @@ export const AUTH_MESSAGES: Record<Lang, AuthMessages> = {
     signUpArtText: 'The colour is quick to read; the glyph keeps the meaning when colours look alike.',
   },
 };
-
-/** A loose shape check, like the API's: something@something.something with no spaces. */
-export const looksLikeEmail = (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { statusOf } from '../api.js';
+import { forgetAccountData, readStored, writeStored } from '../storage.js';
 import * as api from './api.js';
 import type { AuthResult, SignInBody, SignUpBody, User } from './api.js';
 
@@ -10,20 +11,8 @@ import type { AuthResult, SignInBody, SignUpBody, User } from './api.js';
 // Kept in students' browsers: a new key signs everyone out once.
 export const SESSION_STORAGE_KEY = 'omnicourse.session';
 
-function readToken(): string | null {
-  try {
-    return sessionStorage.getItem(SESSION_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeToken(token: string | null): void {
-  try {
-    if (token) sessionStorage.setItem(SESSION_STORAGE_KEY, token);
-    else sessionStorage.removeItem(SESSION_STORAGE_KEY);
-  } catch {}
-}
+const readToken = (): string | null => readStored(SESSION_STORAGE_KEY, 'session');
+const writeToken = (token: string | null): void => writeStored(SESSION_STORAGE_KEY, token || null, 'session');
 
 export const useAuth = defineStore('auth', () => {
   const token = ref<string | null>(null);
@@ -39,17 +28,28 @@ export const useAuth = defineStore('auth', () => {
     writeToken(result.token);
   }
 
-  /** Forgets the session on this device, without calling the API. */
+  /**
+   * Forgets the session on this device, without calling the API, and what the account kept in this browser (the
+   * plan open last, the locked plans), so the next student on it sees none of it. Runs on sign-out, on a 401 (from a
+   * call or from the refresh at page load) and after the account is deleted.
+   */
   function clear(): void {
     token.value = null;
     user.value = null;
     writeToken(null);
+    forgetAccountData();
+  }
+
+  /** The shell has told the student that signing in cancelled their pending deletion. */
+  function acknowledgeRestored(): void {
+    accountRestored.value = false;
   }
 
   /**
    * Once per page load: a saved token is exchanged for a fresh one, so an active student never meets the 7-day
-   * expiry. A 401 means the session is over. Any other failure keeps the saved token for the next load, since the
-   * session may still be alive, but leaves the student signed out for now.
+   * expiry. A 401 means the session is over, so it is forgotten like a sign-out, with what the account kept in this
+   * browser. Any other failure keeps the saved token for the next load, since the session may still be alive, but
+   * leaves the student signed out for now.
    */
   function start(): Promise<void> {
     started ??= (async () => {
@@ -58,7 +58,7 @@ export const useAuth = defineStore('auth', () => {
       try {
         adopt(await api.refresh(saved));
       } catch (e) {
-        if (statusOf(e) === 401) writeToken(null);
+        if (statusOf(e) === 401) clear();
         else console.error('Restoring the session failed:', e);
       }
     })();
@@ -101,5 +101,5 @@ export const useAuth = defineStore('auth', () => {
     }
   }
 
-  return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, authed };
+  return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, acknowledgeRestored, authed };
 });

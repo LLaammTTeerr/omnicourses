@@ -172,6 +172,9 @@ export interface PlanIssues {
 
 const path = (id: string) => `/plans/${encodeURIComponent(id)}`;
 
+/** The longest plan name the API takes, in characters (code points): CreatePlanDto, RenamePlanDto, DuplicatePlanDto. */
+export const PLAN_NAME_MAX_LENGTH = 100;
+
 export const fetchPlans = (token: string) => request<PlanList>('GET', '/plans', { token });
 
 /** 400: no curriculum for this program and cohort. */
@@ -210,7 +213,3 @@ export interface PlanDropReports {
 /** The drag preview in one request: the engine's report on the board with the placement at the end of each target. */
 export const previewPlanDrops = (token: string, id: string, body: PlanDropPreview, signal?: AbortSignal) =>
   request<PlanDropReports>('POST', `${path(id)}/issues/drops`, { token, body, signal });
-
-/** The rule engine's report on `terms` in place of the saved board; nothing is saved (the drag preview). */
-export const previewPlanIssues = (token: string, id: string, terms: PlanTerm[], signal?: AbortSignal) =>
-  request<PlanIssues>('POST', `${path(id)}/issues`, { token, body: { terms }, signal });

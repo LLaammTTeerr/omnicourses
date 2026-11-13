@@ -5,12 +5,13 @@ import { statusOf } from '../api.js';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
+import { looksLikeEmail } from './api.js';
 import AuthFrame from './AuthFrame.vue';
-import { AUTH_MESSAGES, looksLikeEmail } from './messages.js';
+import { AUTH_MESSAGES } from './messages.js';
 import { afterSignIn } from './redirect.js';
 import { useAuth } from './store.js';
 
-// F1 sign-in (issue #13). Then the page the guard came from, or the transcript.
+// F1 sign-in (issue #13). Then the page the guard came from, or the dashboard.
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();

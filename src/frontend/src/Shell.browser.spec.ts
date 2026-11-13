@@ -7,12 +7,11 @@ import { course as auditCourse, degreeAudit, group as auditGroup } from './audit
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult, session } from './auth/testing/fixtures.js';
 import { createAppRouter } from './router.js';
-import { NOT_STARTED } from './onboarding/api.js';
-import { onboarding } from './onboarding/testing/fixtures.js';
+import { NOT_STARTED, onboarding } from './onboarding/testing/fixtures.js';
 import { mockApi, sentBody } from './testing/fetch.js';
 import { HEALTHY } from './testing/health.js';
 
-// The new screens in Chromium: the layout at a phone's width, the native dialog, and the sign-in round trip.
+// The screens in Chromium: the layout at a phone's width, the native dialog, and the sign-in round trip.
 
 const LONG = 'Mônhọcthửcótênrấtdàikhôngcóchỗngắtdòngnàocảđểthửbềrộng';
 const ROWS = [

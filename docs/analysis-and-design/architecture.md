@@ -279,7 +279,7 @@ C4Component
 
   Container_Boundary(spa, "Single-page app") {
     Component(shell, "App shell", "App.vue, createOmniCourseApp", "Header, navigation, language switch, skip link, global styles")
-    Component(apiclient, "API client", "api.ts", "API base URL, getJson(), health")
+    Component(apiclient, "API client", "api.ts", "API base URL, request(), health")
     Component(types, "API types", "TypeScript", "Hand-written, checked against src/backend/openapi.json")
     Component(home, "Home", "HomeView, ApiStatus", "Landing page, API status")
     Component(router, "Router", "vue-router 5, createAppRouter", "Routes, scroll position, KeepAlive by route name")
@@ -318,7 +318,7 @@ C4Component
 | Router | `router.ts` | `createAppRouter()`: `/` (home), `/guides`, `/guides/:id`. Back restores the scroll position; the guide list is kept alive by route name so Back finds the same search. |
 | Locale | `locale.ts` | Pinia store for the screen language. One table maps each language to its `Intl` tag, date format, own name and the other language. Defaults to Vietnamese; remembered in `localStorage`. The UI language type is separate from a guide's content language. |
 | Shared view blocks | composables and components | `useAsyncLoad` (loading, failure, retry, ignoring a stale response), `usePageTitle` (tab title, aware of KeepAlive), `ExternalLink.vue` (new tab with safe `rel`), used by every view. |
-| API client | `api.ts` | `API_URL` from `VITE_API_URL`; one `getJson(path)`; `fetchHealth()`. Feature modules build their calls on it. Components never call `fetch` directly (AGENTS.md). |
+| API client | `api.ts` | `API_URL` from `VITE_API_URL`; `send` and `request` (JSON, a timeout by default, a token when given); `fetchHealth()`. Feature modules build their calls on them. Components never call `fetch` directly (AGENTS.md). |
 | API types | `guides/api.ts`, `testing/contract.ts` | Request and response types are written by hand beside each API module. Specs check them against the committed contract `src/backend/openapi.json` through `testing/contract.ts`, so a renamed or missing field fails a test. `openapi-typescript` is not used: it requires TypeScript 5 and the repo pins 6.0.3 (decided 9 November 2026; revisit when it supports TypeScript 6). A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift. |
 | guides feature | `src/frontend/src/guides/` | F11 screens: `api.ts` (`fetchGuides`, `fetchGuide` with its not-found error), the list and guide views, diacritic-insensitive search, language fallback (`pick-text`), content links. `GUIDE_GROUPS` stays a frontend array for display order, checked at compile time against the contract's group enum. |
 | Home | `views/HomeView.vue`, `components/ApiStatus.vue` | Landing page and API health. |

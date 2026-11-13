@@ -1,5 +1,15 @@
 import type { Onboarding } from '../api.js';
 
+/** What the API answers before the first save. */
+export const NOT_STARTED: Onboarding = {
+  program: null,
+  cohort: null,
+  targetGraduationTerm: null,
+  creditsPerTerm: null,
+  internshipTerm: null,
+  finished: false,
+};
+
 /** A finished onboarding for the synthetic student, unless overridden. */
 export function onboarding(overrides: Partial<Onboarding> = {}): Onboarding {
   return {
