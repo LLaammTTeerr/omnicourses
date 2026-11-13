@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import type { CurriculumRules } from '../rules/inputs.js';
 import { CombinedMinimum } from './combined-minimum.entity.js';
 import { Curriculum } from './curriculum.entity.js';
+import { type CurriculumKey, loadCurriculum } from './curriculum-query.js';
 import { RequirementGroupOverflow } from './requirement-group-overflow.entity.js';
 
 // Reads the rule engine's view of one curriculum (ADR 0013, `rules/inputs.ts`), in no particular
@@ -19,8 +20,7 @@ export class CurriculumRulesReader {
 
   /** The rules of one cohort's curriculum, or null when the program has no curriculum for it. */
   async rulesFor(programCode: string, cohortYear: number): Promise<CurriculumRules | null> {
-    if (!Number.isInteger(cohortYear)) return null;
-    return this.load({ cohortYear, program: { code: programCode } });
+    return this.load({ programCode, cohortYear });
   }
 
   /** The rules of the curriculum with this id (a plan's own curriculum), or null. */
@@ -28,8 +28,8 @@ export class CurriculumRulesReader {
     return this.load({ id });
   }
 
-  private async load(where: FindOptionsWhere<Curriculum>): Promise<CurriculumRules | null> {
-    const row = await this.curriculums.findOne({ where, relations: { program: true, requirementGroups: { courseLinks: { course: true } } } });
+  private async load(key: CurriculumKey): Promise<CurriculumRules | null> {
+    const row = await loadCurriculum(this.curriculums, key);
     if (!row) return null;
     const groupIds = row.requirementGroups.map((g) => g.id);
     const [minimums, overflows] = await Promise.all([

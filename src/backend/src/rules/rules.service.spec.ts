@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { CatalogLookup } from '../curriculum/catalog-lookup.js';
 import type { CourseRulesService } from '../curriculum/course-rules.service.js';
 import type { CurriculumRulesReader } from '../curriculum/curriculum-rules.reader.js';
-import type { CurriculumService } from '../curriculum/curriculum.service.js';
 import type { OnboardedProgram, OnboardingService } from '../onboarding/onboarding.service.js';
 import type { TranscriptService } from '../transcript/transcript.service.js';
 import { creditCaps, termKind } from './credit-caps.js';
@@ -23,7 +23,7 @@ function service(program: OnboardedProgram | null, curricula: Record<string, Ret
   const courseRules = {
     rulesFor: async (id: string) => (reads.push(`course-rules:${id}`), { prerequisites: new Map([['ZZB1', ['ZZX9']]]), offeringTerms: new Map() }),
   } as unknown as CourseRulesService;
-  const catalog = { courseCredits: async (codes: string[]) => (reads.push(`credits:${codes.join(',')}`), new Map([['ZZX9', 3]])) } as unknown as CurriculumService;
+  const catalog = { courseCredits: async (codes: string[]) => (reads.push(`credits:${codes.join(',')}`), new Map([['ZZX9', 3]])) } as unknown as CatalogLookup;
   return { rules: new RulesService(reader, transcript, onboarding, courseRules, catalog), reads };
 }
 

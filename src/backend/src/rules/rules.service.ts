@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { CatalogLookup } from '../curriculum/catalog-lookup.js';
 import { CourseRulesService } from '../curriculum/course-rules.service.js';
 import { CurriculumRulesReader } from '../curriculum/curriculum-rules.reader.js';
-import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
 import { degreeAudit } from './audit.js';
@@ -33,7 +33,7 @@ export class RulesService {
     private readonly transcript: TranscriptService,
     private readonly onboarding: OnboardingService,
     private readonly courseRules: CourseRulesService,
-    private readonly catalog: CurriculumService,
+    private readonly catalog: CatalogLookup,
   ) {}
 
   /** The degree audit of the signed-in student: their onboarding program and cohort, their transcript. */

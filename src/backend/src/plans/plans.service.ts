@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
-import { CurriculumService } from '../curriculum/curriculum.service.js';
+import { CatalogLookup } from '../curriculum/catalog-lookup.js';
 import { TermDto } from '../terms/term.dto.js';
 import { compareTerms, termFromColumns, termKey } from '../terms/term.js';
 import { BoardTerm, courseCodesOf, Placement } from '../rules/inputs.js';
@@ -23,7 +23,7 @@ export class PlansService {
     private readonly db: DataSource,
     @InjectRepository(Plan) private readonly plans: Repository<Plan>,
     @InjectRepository(PlanPlacement) private readonly placements: Repository<PlanPlacement>,
-    private readonly curriculum: CurriculumService,
+    private readonly catalog: CatalogLookup,
   ) {}
 
   /** The student's plans, oldest first, each with a preview of its placements. */
@@ -45,7 +45,7 @@ export class PlansService {
 
   /** A new plan against the curriculum of one cohort, empty or with a whole board (UC-07 step 10). */
   async create(userId: string, input: { name: string; programCode: string; cohortYear: number; terms?: BoardTerm[] }): Promise<PlanDto> {
-    const curriculumId = await this.curriculum.findCurriculumId(input.programCode, input.cohortYear);
+    const curriculumId = await this.catalog.curriculumIdOf(input.programCode, input.cohortYear);
     if (!curriculumId) throw new BadRequestException('No curriculum for this program and cohort');
     const terms = input.terms ?? [];
     await this.checkBoard(curriculumId, terms);
@@ -138,12 +138,12 @@ export class PlansService {
     const problems = boardProblems(terms);
     if (problems.length) throw new BadRequestException(problems);
     const codes = courseCodesOf(terms);
-    const known = await this.curriculum.knownCourseCodes(codes);
+    const known = await this.catalog.knownCourseCodes(codes);
     const unknown = codes.filter((c) => !known.has(c));
     if (unknown.length) throw new BadRequestException(`No course in the catalog has the code ${unknown.join(', ')}`);
     const groups = groupIdsOf(terms);
     if (!groups.length) return;
-    const own = await this.curriculum.requirementGroupIds(curriculumId);
+    const own = await this.catalog.requirementGroupIds(curriculumId);
     const foreign = [...new Set(groups.filter((g) => !own.has(g)))];
     if (foreign.length) throw new BadRequestException(`Requirement group ${foreign.join(', ')} is not in the plan's curriculum`);
   }

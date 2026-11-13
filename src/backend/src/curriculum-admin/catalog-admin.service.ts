@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { Course } from '../curriculum/course.entity.js';
 import type { CourseDto } from '../curriculum/curriculum.dto.js';
-import { courseDto } from '../curriculum/curriculum.service.js';
+import { courseDto } from '../curriculum/curriculum.mappers.js';
 import { AffectedCurriculumDto, conflict, notFound, referencedItem } from './admin-errors.js';
 import { AdminWriteService } from './admin-write.service.js';
 import { COURSE_FIELDS, type CourseField, CreateCourseDto, UpdateCourseDto } from './curriculum-admin.dto.js';

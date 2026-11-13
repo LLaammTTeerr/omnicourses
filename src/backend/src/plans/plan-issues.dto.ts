@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CreditCapsDto } from '../audit/audit.dto.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-types.js';
 import { GRADUATION_VERDICTS, type GraduationVerdict } from '../rules/audit-types.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
+import { CreditCapsDto } from '../rules/credit-caps.dto.js';
 import {
   PLAN_ISSUE_CODES,
   PLAN_ISSUE_KINDS,

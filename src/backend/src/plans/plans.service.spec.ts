@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { DataSource, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
-import type { CurriculumService } from '../curriculum/curriculum.service.js';
+import type { CatalogLookup } from '../curriculum/catalog-lookup.js';
 import type { BoardTerm, Placement } from '../rules/inputs.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 import type { Plan } from './plan.entity.js';
@@ -34,7 +34,7 @@ function service(found: { curriculumId?: string | null; plan?: Plan | null; affe
   };
   const placements = { find: vi.fn().mockResolvedValue([]) };
   const curriculum = {
-    findCurriculumId: vi.fn().mockResolvedValue(found.curriculumId === undefined ? 'c1' : found.curriculumId),
+    curriculumIdOf: vi.fn().mockResolvedValue(found.curriculumId === undefined ? 'c1' : found.curriculumId),
     knownCourseCodes: vi.fn().mockResolvedValue(new Set(['ZZ001', 'ZZ002'])),
     requirementGroupIds: vi.fn().mockResolvedValue(new Set(['g1'])),
   };
@@ -42,7 +42,7 @@ function service(found: { curriculumId?: string | null; plan?: Plan | null; affe
     db,
     plans as unknown as Repository<Plan>,
     placements as unknown as Repository<PlanPlacement>,
-    curriculum as unknown as CurriculumService,
+    curriculum as unknown as CatalogLookup,
   );
   return { svc, tx, plans, curriculum };
 }

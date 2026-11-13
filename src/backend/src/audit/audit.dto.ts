@@ -23,7 +23,8 @@ import {
   type TermSummary,
   type UnmatchedCourse,
 } from '../rules/audit-types.js';
-import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
+import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type TermKind } from '../rules/credit-caps.js';
+import { CreditCapsDto } from '../rules/credit-caps.dto.js';
 import { CLASSIFICATIONS, type Classification, YEAR_LEVELS, type YearLevel } from '../rules/grades.js';
 import { TermDto } from '../terms/term.dto.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
@@ -192,14 +193,6 @@ export class GpaSummaryDto implements GpaSummary {
 
   @ApiProperty()
   gradedCredits!: number;
-}
-
-export class CreditCapsDto implements CreditCaps {
-  @ApiProperty({ type: Number, nullable: true })
-  min!: number | null;
-
-  @ApiProperty()
-  max!: number;
 }
 
 export class CapViolationDto implements CapViolation {
