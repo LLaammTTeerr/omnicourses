@@ -77,13 +77,8 @@ export async function request<T>(method: string, path: string, options: RequestO
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
-/** A public read: no token is sent (ADR 0010). It times out like any JSON call. */
-export function getJson<T>(path: string): Promise<T> {
-  return request<T>('GET', path);
-}
-
 export function fetchHealth(): Promise<Health> {
-  return getJson<Health>('/health');
+  return request<Health>('GET', '/health');
 }
 
 /** The HTTP status of a failed call, or null when the request never got an answer (offline, CORS, DNS). */

@@ -21,7 +21,6 @@ export interface Opened {
 
 interface SaveOptions {
   plan: ShallowRef<Plan | null>;
-  /** The board on screen. */
   board: ShallowRef<Board>;
   /** The board the API last saved. */
   saved: ShallowRef<Board>;
@@ -115,7 +114,6 @@ export function usePlanSave({ plan, board, saved, opened, issues, revert, words 
     history.value = kept;
   }
 
-  /** Takes the newest change off the history, to undo it. */
   function takeLast(): { board: Board; said: string } | undefined {
     const last = history.value.at(-1);
     if (last) history.value = history.value.slice(0, -1);

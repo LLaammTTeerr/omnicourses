@@ -16,7 +16,6 @@ export function mockApi(routes: Record<string, Answer>) {
   });
 }
 
-/** The JSON body a mocked call was sent with. */
 export const sentBody = (init: RequestInit | undefined): unknown => JSON.parse(String(init?.body));
 
 /** An answer that comes only when the request's signal aborts, as on a hung connection; usable as a mockApi route. */
@@ -25,14 +24,5 @@ export const hung = (init: RequestInit | undefined) =>
 
 /** Every fetch hangs until its signal aborts. */
 export const hang = () => vi.spyOn(globalThis, 'fetch').mockImplementation((_input, init) => hung(init));
-
-/**
- * Closes a <dialog> as a browser without `closedby` does on a second Escape while busy (see
- * ModalDialog.browser.spec.ts). jsdom has no close watcher, so specs close it this way.
- */
-export function closeNatively(dialog: Element): void {
-  dialog.removeAttribute('open');
-  dialog.dispatchEvent(new Event('close'));
-}
 
 export const status = (code: number, body?: unknown) => () => (body === undefined ? new Response(null, { status: code }) : Response.json(body, { status: code }));

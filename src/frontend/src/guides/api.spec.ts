@@ -2,7 +2,7 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
 import type { GuideDto, GuideNoteSourceDto, GuideTextDto } from '../api-schema/types.gen.js';
 import { contractEnum, contractShape } from '../testing/contract.js';
-import { fetchGuide, GUIDE_GROUPS, GUIDE_LANGS, type Guide, type GuideNoteSource, type GuideText } from './api.js';
+import { fetchGuide, fetchGuides, GUIDE_GROUPS, GUIDE_LANGS, type Guide, type GuideNoteSource, type GuideText } from './api.js';
 
 type RegulationSource = Extract<GuideNoteSource, { kind: 'regulation' }>;
 
@@ -30,6 +30,16 @@ describe('guide types against the contract', () => {
     const regulation: Record<keyof RegulationSource, true> = { kind: true, document: true, clause: true, url: true };
     expect(Object.keys(kinds).sort()).toEqual(contractEnum('GuideNoteSourceDto', 'kind'));
     expect(Object.keys(contractShape('GuideNoteSourceDto')).sort()).toEqual(Object.keys(regulation).sort());
+  });
+});
+
+describe('fetchGuides', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('asks for the list with no token (ADR 0010) and gives its guides', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ guides: [{ id: 'zz-a' }] }));
+    await expect(fetchGuides()).resolves.toEqual([{ id: 'zz-a' }]);
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/guides`, expect.objectContaining({ method: 'GET', headers: {} }));
   });
 });
 

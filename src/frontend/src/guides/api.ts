@@ -1,4 +1,4 @@
-import { getJson, HttpError } from '../api.js';
+import { HttpError, request } from '../api.js';
 import type {
   GuideDto,
   GuideItemDto,
@@ -54,13 +54,13 @@ export type Guide = Omit<GuideDto, 'texts'> & { texts: GuideTexts<GuideText> };
 
 /** Every published guide (ADR 0010: no sign-in, so no token is sent). */
 export async function fetchGuides(): Promise<GuideListItem[]> {
-  return (await getJson<GuideListDto>('/guides')).guides;
+  return (await request<GuideListDto>('GET', '/guides')).guides;
 }
 
-/** The published guide with this id, or null when there is none. */
+/** The published guide with this id, or null when there is none. No token is sent either (ADR 0010). */
 export async function fetchGuide(id: string): Promise<Guide | null> {
   try {
-    return await getJson<Guide>(`/guides/${encodeURIComponent(id)}`);
+    return await request<Guide>('GET', `/guides/${encodeURIComponent(id)}`);
   } catch (e) {
     if (e instanceof HttpError && e.status === 404) return null;
     throw e;

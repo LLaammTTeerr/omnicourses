@@ -9,7 +9,6 @@ interface AuthMessages {
   emailInvalid: string;
   rateLimited: string;
   unreachable: string;
-  // Sign-in
   signInTitle: string;
   signInLead: string;
   signIn: string;
@@ -21,7 +20,6 @@ interface AuthMessages {
   signInArtChip: string;
   signInArt: string;
   signInArtText: string;
-  // Sign-up
   signUpTitle: string;
   signUpLead: string;
   displayName: string;
