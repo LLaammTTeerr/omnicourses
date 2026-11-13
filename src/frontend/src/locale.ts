@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watchEffect, type ComputedRef } from 'vue';
+import { readStored, writeStored } from './storage.js';
 
 // The screen language (Vision §6 Usability: Vietnamese and English).
 
@@ -27,14 +28,10 @@ function isLang(value: string | null): value is Lang {
   return value !== null && Object.hasOwn(LANGUAGES, value);
 }
 
+/** The language chosen last on this browser; Vietnamese at first, or when storage is blocked. */
 function storedLang(): Lang {
-  try {
-    const value = localStorage.getItem(LANG_STORAGE_KEY);
-    return isLang(value) ? value : 'vi';
-  } catch {
-    // Storage blocked (private mode, site data off): start in Vietnamese.
-    return 'vi';
-  }
+  const value = readStored(LANG_STORAGE_KEY);
+  return isLang(value) ? value : 'vi';
 }
 
 export const useLocale = defineStore('locale', () => {
@@ -42,9 +39,7 @@ export const useLocale = defineStore('locale', () => {
 
   function set(next: Lang): void {
     lang.value = next;
-    try {
-      localStorage.setItem(LANG_STORAGE_KEY, next);
-    } catch {}
+    writeStored(LANG_STORAGE_KEY, next);
   }
 
   watchEffect(() => {

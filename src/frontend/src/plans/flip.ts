@@ -1,11 +1,11 @@
+import { reducedMotion } from '../motion.js';
+
 // Tiles glide from where they were to where a change put them (FLIP: first, last, invert, play). Drawing only: it
 // reads positions before and after Vue renders the change, and moves nothing in the board. Skipped when the student
 // asks for reduced motion, and where the browser cannot animate (jsdom).
 
 /** Where each tile is now, by its board key. */
 export type Snapshot = Map<string, DOMRect>;
-
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function snapshot(root: ParentNode | null): Snapshot {
   const rects: Snapshot = new Map();

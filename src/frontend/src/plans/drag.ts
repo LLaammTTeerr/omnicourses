@@ -1,3 +1,4 @@
+import { reducedMotion } from '../motion.js';
 import { edgeScroll } from './flip.js';
 
 // Drag and drop with the pointer, as in the prototype (planner.html): a copy of the tile (the ghost) follows the
@@ -25,7 +26,6 @@ export interface DragHandlers<W> {
 const START = 6;
 const HOLD = 280;
 const EASE = 'cubic-bezier(.2, .8, .2, 1)';
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function pointerDrag<W>(h: DragHandlers<W>) {
   const hit = h.hit ?? ((x: number, y: number) => (typeof document.elementFromPoint === 'function' ? document.elementFromPoint(x, y) : null));
@@ -130,7 +130,7 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
     h.cancel(s.what);
     if (!ghost) return;
     const home = s.el.getBoundingClientRect();
-    const fly = calm() || typeof ghost.animate !== 'function' ? null : ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${home.left}px, ${home.top}px)` }], { duration: 300, easing: EASE });
+    const fly = reducedMotion() || typeof ghost.animate !== 'function' ? null : ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${home.left}px, ${home.top}px)` }], { duration: 300, easing: EASE });
     if (!fly) {
       ghost.remove();
       return;
