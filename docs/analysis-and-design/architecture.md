@@ -279,7 +279,7 @@ C4Component
 
   Container_Boundary(spa, "Single-page app") {
     Component(shell, "App shell", "App.vue, createOmniCourseApp", "Header, navigation, language switch, skip link, global styles")
-    Component(apiclient, "API client", "api.ts", "API base URL, getJson(), health")
+    Component(apiclient, "API client", "api.ts", "API base URL, request(), health")
     Component(types, "API types", "TypeScript", "Generated from src/backend/openapi.json (ADR 0018)")
     Component(home, "Home", "HomeView, ApiStatus", "Landing page, API status")
     Component(router, "Router", "vue-router 5, createAppRouter", "Routes, scroll position, KeepAlive by route name")
@@ -318,7 +318,7 @@ C4Component
 | Router | `router.ts` | `createAppRouter()`: `/` (home), `/guides`, `/guides/:id`. Back restores the scroll position; the guide list is kept alive by route name so Back finds the same search. |
 | Locale | `locale.ts` | Pinia store for the screen language. One table maps each language to its `Intl` tag, date format, own name and the other language. Defaults to Vietnamese; remembered in `localStorage`. The UI language type is separate from a guide's content language. |
 | Shared view blocks | composables and components | `useAsyncLoad` (loading, failure, retry, ignoring a stale response), `usePageTitle` (tab title, aware of KeepAlive), `ExternalLink.vue` (new tab with safe `rel`), used by every view. |
-| API client | `api.ts` | `API_URL` from `VITE_API_URL`; one `getJson(path)`; `fetchHealth()`. Feature modules build their calls on it. Components never call `fetch` directly (AGENTS.md). |
+| API client | `api.ts` | `API_URL` from `VITE_API_URL`; `send` and `request` (JSON, a timeout by default, a token when given); `fetchHealth()`. Feature modules build their calls on them. Components never call `fetch` directly (AGENTS.md). |
 | API types | `api-schema/types.gen.ts`, `api-schema.spec.ts`, each feature's `api.ts` | Request and response types are generated from the committed contract `src/backend/openapi.json` by `@hey-api/openapi-ts` (`npm run generate:api -w src/frontend`) into one committed module; each feature's `api.ts` names the ones it uses next to its requests. `api-schema.spec.ts` regenerates them and fails when the committed module is stale. A few types are narrower than the contract on purpose (`SignUpBody`, `GuideNoteSource`), and a type test holds them within it; runtime lists (`TRANSCRIPT_RESULTS`, `GUIDE_GROUPS`, …) are checked against it through `testing/contract.ts`. A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift either ([ADR 0018](adr/0018-frontend-api-types-from-the-contract.md)). |
 | guides feature | `src/frontend/src/guides/` | F11 screens: `api.ts` (`fetchGuides`, `fetchGuide` with its not-found error), the list and guide views, diacritic-insensitive search, language fallback (`pick-text`), content links. `GUIDE_GROUPS` stays a frontend array for display order, checked at compile time against the contract's group enum. |
 | Home | `views/HomeView.vue`, `components/ApiStatus.vue` | Landing page and API health. |
