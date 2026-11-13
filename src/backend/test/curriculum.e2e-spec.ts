@@ -2,9 +2,9 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { apcs2024 } from '../src/database/seeds/apcs-2024.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { apcs2024 } from '../src/curriculum/seeds/apcs-2024.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
+import { seedCurricula } from '../src/curriculum/seeds/seed-curricula.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 

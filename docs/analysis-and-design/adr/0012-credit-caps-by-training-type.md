@@ -17,7 +17,7 @@ Vision §4 (Assumptions) took the credit caps to be 14–25 credits in a main te
 - **Điều 7.2.c:** a student in two programs at once may take at most 37 credits per main term and 15 per summer term.
 - **Điều 7.1.b:** a term's load counts new courses, retaken courses and courses taken again to improve a grade.
 
-APCS is the Advanced Program (Chương trình Tiên tiến), and the seeded CLC 2025 programs are Chất lượng cao. The seeded APCS 2024 and 2025 teaching plans (`src/backend/src/database/seeds/apcs-202{4,5}.teaching-plan.ts`) place courses in 12 terms over 4 years: three a year, as Điều 6.4.b says.
+APCS is the Advanced Program (Chương trình Tiên tiến), and the seeded CLC 2025 programs are Chất lượng cao. The seeded APCS 2024 and 2025 teaching plans (`src/backend/src/curriculum/seeds/apcs-202{4,5}.teaching-plan.ts`) place courses in 12 terms over 4 years: three a year, as Điều 6.4.b says.
 
 ## Decisions
 
