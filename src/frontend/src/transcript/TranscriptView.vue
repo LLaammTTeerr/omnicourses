@@ -13,7 +13,7 @@ import { useToast } from '../shell/toast.js';
 import { parseTermKey, TERM_NUMBERS, termKey } from '../terms.js';
 import { fetchTranscript, saveTranscript, TRANSCRIPT_RESULTS } from './api.js';
 import { TRANSCRIPT_MESSAGES } from './messages.js';
-import { blankRow, fromRow, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
+import { blankRow, fromRow, MAX_NAME_LENGTH, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
 
 // F2 (UC-02): review every row, then save the whole set; a later save replaces it (ADR 0007). There is no PDF
 // reader yet, so the student enters rows by hand (UC-02 A4). An incomplete row blocks the save (A2).
@@ -177,7 +177,7 @@ usePageTitle(() => m.value.title);
                     />
                   </td>
                   <td :data-label="m.columns.courseName">
-                    <input v-model="row.courseName" class="input" maxlength="255" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
+                    <input v-model="row.courseName" class="input" :maxlength="MAX_NAME_LENGTH" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
                       :aria-describedby="describedBy(row, rowProblems, 'courseName')" />
                   </td>
                   <td :data-label="m.columns.credits">

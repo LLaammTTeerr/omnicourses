@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
 import contract from '../../../backend/openapi.json';
 import { contractShape, type Shape } from '../testing/contract.js';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, revokeSession, type AuthResult, type Session, type SignInBody, type SignUpBody, type User } from './api.js';
+import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, revokeSession, type AuthResult, type Session, type SignInBody, type SignUpBody, type User } from './api.js';
 
 describe('auth types against the contract', () => {
   it.each([
@@ -18,6 +18,10 @@ describe('auth types against the contract', () => {
   it('checks the password length the API checks', () => {
     const password = contract.components.schemas.SignUpDto.properties.password;
     expect([password.minLength, password.maxLength]).toEqual([PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH]);
+  });
+
+  it('checks the display name length the API checks', () => {
+    expect(contract.components.schemas.SignUpDto.properties.displayName.maxLength).toBe(DISPLAY_NAME_MAX_LENGTH);
   });
 });
 
