@@ -6,13 +6,12 @@ import { CLOCK } from '../src/common/clock.js';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
 import { seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
-import { vietnamDate } from '../src/terms/calendar.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
 // 12:00 on 13 November 2026 in Vietnam, the run day of GUIDE-01j.
 const NOW = new Date('2026-11-13T05:00:00Z');
-const TODAY = vietnamDate(NOW);
+const TODAY = '2026-11-13';
 const FIXTURES = guideFixtures(TODAY);
 const fixture = (id: string, lang: string) => FIXTURES.find((f) => f.id === id && f.lang === lang)!;
 
