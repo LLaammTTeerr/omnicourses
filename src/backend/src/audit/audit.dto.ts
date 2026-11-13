@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { CodedErrorBody } from '../common/coded-error.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-types.js';
 import {
   AUDIT_UNAVAILABLE_CODES,
@@ -331,7 +332,7 @@ export class DegreeAuditDto implements DegreeAudit {
 }
 
 /** 409: the audit has no program and cohort to work from. */
-export class AuditUnavailableDto {
+export class AuditUnavailableDto implements CodedErrorBody {
   @ApiProperty({ example: 409 })
   statusCode!: number;
 

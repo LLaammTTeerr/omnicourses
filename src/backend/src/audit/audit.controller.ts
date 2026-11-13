@@ -1,6 +1,7 @@
 import { ConflictException, Controller, Get } from '@nestjs/common';
 import { ApiConflictResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { codedError } from '../common/coded-error.js';
 import { RulesService } from '../rules/rules.service.js';
 import { User } from '../users/user.entity.js';
 import { AuditUnavailableDto, DegreeAuditDto } from './audit.dto.js';
@@ -23,14 +24,10 @@ export class AuditController {
   async get(@CurrentUser() user: User): Promise<DegreeAuditDto> {
     const outcome = await this.rules.auditFor(user.id);
     if (outcome.status === 'onboarding_required') {
-      throw new ConflictException({ statusCode: 409, code: 'onboarding_required', message: 'Finish onboarding to choose a program and cohort first' });
+      throw codedError(ConflictException, 'onboarding_required', 'Finish onboarding to choose a program and cohort first');
     }
     if (outcome.status === 'curriculum_not_found') {
-      throw new ConflictException({
-        statusCode: 409,
-        code: 'curriculum_not_found',
-        message: `No curriculum for ${outcome.programCode} cohort ${outcome.cohortYear}`,
-      });
+      throw codedError(ConflictException, 'curriculum_not_found', `No curriculum for ${outcome.programCode} cohort ${outcome.cohortYear}`);
     }
     return outcome.audit;
   }
