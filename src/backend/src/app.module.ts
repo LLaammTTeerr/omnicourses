@@ -4,13 +4,12 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthGuard } from './auth/auth.guard.js';
 import { THROTTLERS } from './auth/rate-limits.js';
-import { databaseUrl } from './config/env.js';
-import { dataSourceOptions } from './database/data-source.js';
+import { connectionOptions } from './database/data-source.js';
 import { FEATURE_MODULES } from './features.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({ useFactory: () => ({ ...dataSourceOptions, url: databaseUrl(), autoLoadEntities: true }) }),
+    TypeOrmModule.forRootAsync({ useFactory: () => ({ ...connectionOptions(), autoLoadEntities: true }) }),
     ThrottlerModule.forRoot(THROTTLERS),
     ...FEATURE_MODULES,
   ],
