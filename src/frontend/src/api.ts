@@ -92,13 +92,18 @@ export const statusOf = (e: unknown): number | null => (e instanceof HttpError ?
 const aborted = (e: unknown): boolean => e instanceof DOMException && e.name === 'AbortError';
 
 /**
- * The one way a screen reports a failed call: the details go to the console, as "<what> failed:". Two failures are
- * not reported. A 401: `auth.authed` has already signed the student out and App.vue takes them to sign in. An abort:
- * the screen cancelled the call itself. A timeout is a failure like any other. Returns whether the screen should say
- * it failed: false for those two.
+ * Whether a screen should say that a call failed. Two failures are not worth saying. A 401: `auth.authed` has already
+ * signed the student out and App.vue takes them to sign in. An abort: the screen cancelled the call itself. A timeout
+ * is a failure like any other.
+ */
+export const failureWorthSaying = (e: unknown): boolean => statusOf(e) !== 401 && !aborted(e);
+
+/**
+ * The one way a screen reports a failed call: the details go to the console, as "<what> failed:", unless the failure
+ * is not worth saying (`failureWorthSaying`). Returns whether the screen should say it failed.
  */
 export function reportFailure(what: string, e: unknown): boolean {
-  if (statusOf(e) === 401 || aborted(e)) return false;
+  if (!failureWorthSaying(e)) return false;
   console.error(`${what} failed:`, e);
   return true;
 }

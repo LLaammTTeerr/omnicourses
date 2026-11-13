@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
-import { statusOf } from '../api.js';
+import { failureWorthSaying } from '../api.js';
 import LoadState from '../components/LoadState.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
@@ -29,7 +29,7 @@ const noTranscript = computed(() => audit.value !== null && audit.value.terms.le
 <template>
   <p v-if="status === 'loading'" class="t3" role="status" aria-busy="true" data-test="loading">{{ m.loading }}</p>
   <template v-else-if="status === 'failed'">
-    <LoadState v-if="statusOf(error) !== 401" status="failed" :failed="m.loadFailed" data-test="load-failed" @retry="$emit('retry')" />
+    <LoadState v-if="failureWorthSaying(error)" status="failed" :failed="m.loadFailed" data-test="load-failed" @retry="$emit('retry')" />
   </template>
   <div v-else-if="data?.status === 'onboarding_required'" class="callout info" data-test="onboarding-required">
     <Icon name="info" />

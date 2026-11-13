@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, getJson, HttpError, reportFailure, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
+import { API_URL, failureWorthSaying, getJson, HttpError, reportFailure, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
@@ -128,5 +128,14 @@ describe('reportFailure', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(reportFailure('Loading the plans', new DOMException('The operation timed out.', 'TimeoutError'))).toBe(true);
     expect(consoleError).toHaveBeenCalledOnce();
+  });});
+
+describe('failureWorthSaying', () => {
+  it('says every failure but a 401 and an abort, a timeout included', () => {
+    expect(failureWorthSaying(new HttpError('/plans', 500))).toBe(true);
+    expect(failureWorthSaying(new TypeError('Failed to fetch'))).toBe(true);
+    expect(failureWorthSaying(new DOMException('The operation timed out.', 'TimeoutError'))).toBe(true);
+    expect(failureWorthSaying(new HttpError('/plans', 401))).toBe(false);
+    expect(failureWorthSaying(new DOMException('The operation was aborted.', 'AbortError'))).toBe(false);
   });
 });
