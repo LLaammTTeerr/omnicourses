@@ -7,13 +7,21 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seeds/seed-curricula.js';
-import { NOT_CHECKED_CONDITIONS } from '../src/rules/graduation.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
 // F3 against the seeded APCS 2024 curriculum (ADR 0013). The transcript is synthetic (AGENTS.md
 // hard rule 3): real course codes from the published curriculum, made-up grades. Every expected
 // number is worked out by hand in the comments, not read from the code under test.
+
+/** Điều 17.3's conditions the data cannot show. */
+const NOT_CHECKED = [
+  { id: 'no_prosecution_or_suspension', description: 'Not being prosecuted, and not serving a suspension, at the time of graduation review', citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.a', status: 'not_checked' },
+  { id: 'defence_education_certificate', description: 'The Giáo dục quốc phòng - An ninh certificate (passing the courses is checked with their group)', citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.c', status: 'not_checked' },
+  { id: 'foreign_language_standard', description: "The school's foreign-language standard", citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.d', status: 'not_checked' },
+  { id: 'it_standard', description: 'The IT standard set by the curriculum', citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.e', status: 'not_checked' },
+  { id: 'study_time_limit', description: 'Finishing within the maximum study time', citation: 'QĐ 1175/QĐ-KHTN Điều 2.7', status: 'not_checked' },
+];
 
 type Result = 'graded' | 'in_progress' | 'exempt' | 'pass' | 'fail';
 const row = (courseCode: string, credits: number, result: Result, grade: number | null, year: number, number: 1 | 2 | 3) => ({
@@ -212,7 +220,7 @@ describe('Degree audit API (e2e)', () => {
         '"Kiến thức tự chọn": at least 43 credits across its groups',
         'At least 163 credits toward the cohort total',
       ]);
-      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
+      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED);
     });
   });
 
@@ -291,7 +299,7 @@ describe('Degree audit API (e2e)', () => {
     it('is done, with the conditions it cannot check still listed, and no warning', () => {
       expect(audit.graduation.status).toBe('done');
       expect(audit.graduation.unmet).toEqual([]);
-      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
+      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED);
       expect(audit.unmatchedCourses).toEqual([]);
       expect(audit.warnings).toEqual([]);
     });
