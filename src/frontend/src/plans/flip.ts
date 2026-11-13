@@ -13,6 +13,9 @@ export function snapshot(root: ParentNode | null): Snapshot {
   return rects;
 }
 
+/** How long a dropped tile takes to land. The editor waits this long before it shakes a drop that breaks a rule. */
+export const LANDING_MS = 440;
+
 /** A tile just dropped: it lands from where the dragged copy was, with a little spring. */
 export interface Lift {
   flip: string;
@@ -31,7 +34,7 @@ export function play(root: ParentNode | null, before: Snapshot, lift?: Lift): vo
           { transform: `translate(${lift.rect.left - now.left}px, ${lift.rect.top - now.top}px) scale(1.05)`, boxShadow: 'var(--shadow-lg)', zIndex: 5 },
           { transform: 'none', boxShadow: 'none', zIndex: 5 },
         ],
-        { duration: 440, easing: 'cubic-bezier(.3, 1.25, .4, 1)' },
+        { duration: LANDING_MS, easing: 'cubic-bezier(.3, 1.25, .4, 1)' },
       );
       return;
     }

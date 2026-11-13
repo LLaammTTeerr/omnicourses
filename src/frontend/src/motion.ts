@@ -1,6 +1,6 @@
 // Motion the screens share. Every animation respects the student's "reduce motion" setting.
 
-/** True when the student asked the system for less motion (and in jsdom, which has no matchMedia). */
+/** True when the student asked the system for less motion. False in jsdom, which has no matchMedia. */
 export const reducedMotion = (): boolean => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Plays a one-off animation class (`flash`, `shake` in styles.css) on an element again, even if it just played. */

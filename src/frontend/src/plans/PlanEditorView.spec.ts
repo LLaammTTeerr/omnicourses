@@ -6,6 +6,7 @@ import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { PlanIssues, PlanTerm } from './api.js';
+import { LANDING_MS } from './flip.js';
 import { course, CURRICULUM, ELECTIVE_GROUP, issue, OTHER_ID, plan, PLAN_ID, report, summary } from './testing/fixtures.js';
 
 // 1 October 2026 in Vietnam: term 1 of 2026–2027. The synthetic student's target is term 2 of 2027–2028, so the
@@ -846,6 +847,9 @@ describe('PlanEditorView (F5, UC-05)', () => {
     });
 
     it('asks the engine about each row when a course is dragged, and colours each row by its answer before the drop', async () => {
+      // Fake timers for the shake that waits for the tile to land.
+      vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+      vi.setSystemTime(NOW);
       const { w, previewed, previewRequests, sent } = await render({
         // The engine says ZZ201 is not taught in term 2, and ZZ102 still misses its prerequisite.
         previews: (terms) => {
@@ -887,7 +891,9 @@ describe('PlanEditorView (F5, UC-05)', () => {
       await release();
       expect(rowCodes(w)[1]).toBe('HK2 2026–2027: ZZ201');
       // It lands, then shakes once: the rule it breaks is in the panel.
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      vi.advanceTimersByTime(LANDING_MS - 1);
+      expect(tile(w, 'ZZ201').classes()).not.toContain('shake');
+      vi.advanceTimersByTime(1);
       expect(tile(w, 'ZZ201').classes()).toContain('shake');
       expect(w.find('.bad-drop').exists()).toBe(false);
       expect(w.find('[data-test="issues-preview"]').exists()).toBe(false);

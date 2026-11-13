@@ -34,7 +34,7 @@ import {
   type Tile,
 } from './board.js';
 import { pointerDrag, type DropTarget } from './drag.js';
-import { play, snapshot, type Lift } from './flip.js';
+import { LANDING_MS, play, snapshot, type Lift } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
 import { rememberLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
@@ -569,9 +569,6 @@ watch(
   },
 );
 
-/** How long a dropped tile takes to land (flip.ts) before a refused drop shakes it. */
-const LANDING_MS = 420;
-
 const drag = pointerDrag<Moving>({
   begin(what) {
     dragging.value = what;
@@ -595,7 +592,7 @@ const drag = pointerDrag<Moving>({
     if (key !== null && verdict?.kind === 'violation') {
       void nextTick(() => {
         const el = document.getElementById(`tile-${key}`);
-        if (el) setTimeout(() => replay(el, 'shake'), LANDING_MS);
+        if (el) setTimeout(() => replay(el, 'shake'), reducedMotion() ? 0 : LANDING_MS);
       });
     }
   },
