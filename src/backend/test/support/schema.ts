@@ -1,6 +1,5 @@
 import { DataSource } from 'typeorm';
-import { databaseUrl } from '../../src/config/env.js';
-import { dataSourceOptions } from '../../src/database/data-source.js';
+import { connectionOptions } from '../../src/database/data-source.js';
 
 /**
  * A freshly migrated schema of its own, for a test that must start empty or
@@ -8,8 +7,8 @@ import { dataSourceOptions } from '../../src/database/data-source.js';
  */
 export async function privateSchema(prefix: string): Promise<{ schema: string; dataSource: DataSource; drop: () => Promise<void> }> {
   const schema = `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-  const admin = new DataSource({ ...dataSourceOptions, url: databaseUrl() });
-  const dataSource = new DataSource({ ...dataSourceOptions, url: databaseUrl(), schema, extra: { options: `-c search_path=${schema}` } });
+  const admin = new DataSource(connectionOptions());
+  const dataSource = new DataSource({ ...connectionOptions(), schema, extra: { options: `-c search_path=${schema}` } });
   const drop = async () => {
     if (dataSource.isInitialized) await dataSource.destroy();
     if (!admin.isInitialized) return;

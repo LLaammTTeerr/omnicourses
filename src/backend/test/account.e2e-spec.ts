@@ -133,6 +133,54 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     }
   });
 
+  // AGENTS.md: never read users.password_hash. Secret columns are left out of the SELECT, not filtered after it.
+  it('selects no secret column, in one read-only transaction that only reads', async () => {
+    const logged: { sql: string; runner: unknown }[] = [];
+    const spy = vi.spyOn(db.logger, 'logQuery').mockImplementation((sql, _parameters, runner) => {
+      logged.push({ sql: sql.trim(), runner });
+    });
+    try {
+      await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
+    } finally {
+      spy.mockRestore();
+    }
+    const runners = [...new Set(logged.filter((q) => q.sql === 'START TRANSACTION').map((q) => q.runner))];
+    expect(runners).toHaveLength(1);
+    const statements = logged.filter((q) => q.runner === runners[0]).map((q) => q.sql);
+    expect(statements).toContain('SET TRANSACTION READ ONLY');
+    const reads = statements.filter((sql) => !/^(START TRANSACTION|SET TRANSACTION |COMMIT$)/.test(sql));
+    expect(reads.filter((sql) => !sql.startsWith('SELECT'))).toEqual([]);
+    // The users row and every user table, besides the catalog lookups.
+    expect(reads.length).toBeGreaterThan((await findUserTables(db)).length + 1);
+    for (const sql of reads) expect(sql).not.toMatch(/password_hash|google_sub|token_hash|\*/);
+  });
+
+  // ADR 0004: the export is one consistent snapshot of the account.
+  it('reads every table from the snapshot it starts with, not a write committed while it runs', async () => {
+    await db.query(`CREATE TABLE zz_snapshot (user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, note text NOT NULL)`);
+    const writer = db.createQueryRunner();
+    try {
+      await writer.startTransaction();
+      // Holds the export at its read of zz_snapshot, after it has read the users row.
+      await writer.query('LOCK TABLE zz_snapshot IN ACCESS EXCLUSIVE MODE');
+      await writer.query(`INSERT INTO zz_snapshot VALUES ($1, 'written during the export')`, [userId]);
+      const exported = http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).then((res) => res);
+      await vi.waitFor(
+        async () => expect(await db.query(`SELECT 1 FROM pg_locks WHERE NOT granted AND relation = 'zz_snapshot'::regclass`)).toHaveLength(1),
+        { timeout: 10_000, interval: 50 },
+      );
+      await writer.commitTransaction();
+      const res = await exported;
+      expect(res.status).toBe(200);
+      expect(await db.query('SELECT note FROM zz_snapshot')).toEqual([{ note: 'written during the export' }]);
+      expect(res.body.tables.zz_snapshot).toEqual([]);
+    } finally {
+      if (writer.isTransactionActive) await writer.rollbackTransaction();
+      await writer.release();
+      await db.query('DROP TABLE zz_snapshot');
+    }
+  });
+
   // Independent of isSecretColumn: any column that merely mentions a credential word, in any
   // case or plural, must either be dropped by the export or be listed here as the student's data.
   it('every exported column that looks like a credential is dropped or known to be data', async () => {
@@ -171,6 +219,10 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   it('schedules deletion, signs out everywhere, and a sign-in within the grace period restores the account', async () => {
     const res = await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
     expect(new Date(res.body.purgeAfter).getTime()).toBeGreaterThan(Date.now() + 29 * DAY_MS);
+    // The deadline promised to the student is the one stored, from the time of the request.
+    const [scheduled] = await db.query('SELECT deletion_requested_at, purge_after FROM users WHERE id = $1', [userId]);
+    expect(new Date(res.body.purgeAfter)).toEqual(scheduled.purge_after);
+    expect(Math.abs(scheduled.deletion_requested_at.getTime() - Date.now())).toBeLessThan(5_000);
     await http().get('/api/users/me').set('Authorization', `Bearer ${token}`).expect(401);
 
     const signIn = await http().post('/api/auth/sign-in').send({ email, password }).expect(200);

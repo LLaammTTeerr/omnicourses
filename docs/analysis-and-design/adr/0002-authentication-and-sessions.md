@@ -23,7 +23,7 @@ F1 (Vision §5) needs sign-up and sign-in. The security NFR (Vision §6) require
 | **Default-deny global `AuthGuard`** with `@Public()` opt-out | Per-controller `@UseGuards` | A new route is protected even if its author forgets. `health` and the two password endpoints are the only public routes (widened by ADR 0010). |
 | **Rate limit**: `@nestjs/throttler` 6.7.1, 10 requests/min per IP on sign-up and sign-in, 120/min elsewhere | None until the Sprint 5 security pass | Password endpoints are brute-force targets from day one. The throttler peer range includes Nest 12. |
 | **`users` table holds identity only**: email (lowercase, CHECK), nullable `password_hash` and `google_sub` (CHECK: at least one), `email_verified_at`, `consent_at` | Adding program, cohort and roles now | Onboarding columns reference Triết's curriculum tables (28 Oct). Admin roles belong to F12 (Thắng). `consent_at` meets the privacy NFR (Luật 91/2025/QH15). |
-| **Migrations as imported classes**, run by `npm run db:migrate` and by the e2e setup | TypeORM CLI with a glob path | Globs differ between `.ts` (tests) and `.js` (dist). An imported class that is missing fails typecheck. |
+| **Migrations as imported classes**, run by `npm run db:migrate` and by the e2e setup | TypeORM CLI with a glob path | Globs differ between `.ts` (tests) and `.js` (dist). A file left out of the list fails `database/migrations.spec.ts`. |
 
 ## Deferred
 

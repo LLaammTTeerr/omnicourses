@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bootApp } from './support/app.js';
-import { PASSWORD as password } from './support/users.js';
+import { PASSWORD as password, signedInUser } from './support/users.js';
 
 // Synthetic, unique per run, so reruns against the same database never collide.
 const email = `student-${randomUUID()}@example.com`;
@@ -55,6 +55,14 @@ describe('Auth against PostgreSQL (e2e)', () => {
 
     await http().post('/api/auth/sign-out').set('Authorization', `Bearer ${second}`).expect(204);
     await http().get('/api/users/me').set('Authorization', `Bearer ${second}`).expect(401);
+  });
+
+  it("answers 404 to revoking another student's session, which keeps working", async () => {
+    const owner = await signedInUser(app);
+    const intruder = await signedInUser(app);
+    const [session] = (await http().get('/api/auth/sessions').set('Authorization', `Bearer ${owner.token}`).expect(200)).body;
+    await http().delete(`/api/auth/sessions/${session.id}`).set('Authorization', `Bearer ${intruder.token}`).expect(404);
+    await http().get('/api/users/me').set('Authorization', `Bearer ${owner.token}`).expect(200);
   });
 
   // Issue #28: both pass the lookup before either inserts; the unique email must answer 409, not 500.

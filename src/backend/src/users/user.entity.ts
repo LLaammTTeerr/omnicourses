@@ -1,5 +1,8 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 
+export const EMAIL_MAX_LENGTH = 254;
+export const DISPLAY_NAME_MAX_LENGTH = 100;
+
 @Entity({ name: 'users' })
 @Unique('uq_users_email', ['email'])
 @Unique('uq_users_google_sub', ['googleSub'])
@@ -8,14 +11,14 @@ export class User {
   id!: string;
 
   // Stored lowercased; a CHECK constraint in the migration enforces it.
-  @Column({ type: 'varchar', length: 254 })
+  @Column({ type: 'varchar', length: EMAIL_MAX_LENGTH })
   email!: string;
 
   // Null for accounts that only sign in with Google.
   @Column({ name: 'password_hash', type: 'text', nullable: true })
   passwordHash!: string | null;
 
-  @Column({ name: 'display_name', type: 'varchar', length: 100 })
+  @Column({ name: 'display_name', type: 'varchar', length: DISPLAY_NAME_MAX_LENGTH })
   displayName!: string;
 
   @Column({ name: 'google_sub', type: 'varchar', length: 255, nullable: true })
@@ -44,3 +47,9 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
 }
+
+/**
+ * A deletion was requested and not cancelled (ADR 0004): such an account has no
+ * session, and signing in again before the deadline restores it.
+ */
+export const isPendingDeletion = (user: Pick<User, 'deletionRequestedAt'>): boolean => user.deletionRequestedAt != null;
