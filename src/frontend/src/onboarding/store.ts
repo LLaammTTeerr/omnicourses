@@ -14,7 +14,7 @@ interface Owned {
 
 export const useOnboarding = defineStore('onboarding', () => {
   const auth = useAuth();
-  /** The last answers loaded or saved, with the account they belong to. Tests seed it. */
+  /** The last answers loaded or saved, with the account they belong to. */
   const cache = shallowRef<Owned | null>(null);
   let pending: { userId: string; load: Promise<Onboarding> } | null = null;
 

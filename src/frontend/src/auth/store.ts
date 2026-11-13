@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { statusOf } from '../api.js';
+import { forgetAccountData } from '../storage.js';
 import * as api from './api.js';
 import type { AuthResult, SignInBody, SignUpBody, User } from './api.js';
 
@@ -39,11 +40,21 @@ export const useAuth = defineStore('auth', () => {
     writeToken(result.token);
   }
 
-  /** Forgets the session on this device, without calling the API. */
+  /**
+   * Forgets the session on this device, without calling the API, and what the account kept in this browser (the
+   * plan open last, the locked plans), so the next student on it sees none of it. Runs on sign-out, on a 401 and
+   * after the account is deleted.
+   */
   function clear(): void {
     token.value = null;
     user.value = null;
     writeToken(null);
+    forgetAccountData();
+  }
+
+  /** The shell has told the student that signing in cancelled their pending deletion. */
+  function acknowledgeRestored(): void {
+    accountRestored.value = false;
   }
 
   /**
@@ -101,5 +112,5 @@ export const useAuth = defineStore('auth', () => {
     }
   }
 
-  return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, authed };
+  return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, acknowledgeRestored, authed };
 });

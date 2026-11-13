@@ -1,9 +1,7 @@
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { user } from '../auth/testing/fixtures.js';
-import { useAuth } from '../auth/store.js';
 import type { Onboarding } from '../onboarding/api.js';
-import { useOnboarding } from '../onboarding/store.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { createAppRouter } from '../router.js';
 
@@ -21,13 +19,11 @@ interface Options {
 export async function setup(path: string, { signedIn = true, onboarded = onboarding() }: Options = {}): Promise<{ pinia: Pinia; router: Router }> {
   const pinia = createPinia();
   setActivePinia(pinia);
-  if (signedIn) {
-    const auth = useAuth();
-    auth.token = 'zz-token';
-    auth.user = user();
-  }
-  // Seeded for the fixture's account even when signed out, so a sign-in in the spec finds it.
-  if (onboarded) useOnboarding().cache = { userId: user().id, answers: onboarded };
+  // Seeded as Pinia hydrates a store, before the store exists, so no spec writes a store's state through its
+  // interface. The answers are seeded for the fixture's account even when signed out, so a sign-in in the spec
+  // finds them.
+  if (signedIn) pinia.state.value.auth = { token: 'zz-token', user: user(), accountRestored: false };
+  if (onboarded) pinia.state.value.onboarding = { cache: { userId: user().id, answers: onboarded } };
   const router = createAppRouter(createMemoryHistory());
   await router.push(path);
   await router.isReady();
