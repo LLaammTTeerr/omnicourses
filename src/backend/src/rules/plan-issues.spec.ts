@@ -5,7 +5,7 @@ import { CAP_CITATION, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CIT
 import { PETITION_NOTE } from './credit-caps.js';
 import type { BoardTerm, CurriculumRules, Placement } from './inputs.js';
 import type { PlanIssue } from './plan-issue-types.js';
-import { checkPlan } from './plan-issues.js';
+import { checkPlan, projectedTranscript } from './plan-issues.js';
 import { course as fixtureCourse, graded, group, term, ungraded, zzCurriculum } from './testing/fixtures.js';
 
 // Synthetic curriculum and transcripts only (AGENTS.md hard rule 3): zzCurriculum is Tiên tiến,
@@ -318,6 +318,39 @@ describe('checkPlan', () => {
   });
 
   describe('coverage with the plan completed (Điều 17.3.b)', () => {
+    it('projects one sitting for a course the plan places in a term the transcript already has it in', () => {
+      const terms = [at(term(2025, 1), course('ZZA1'), course('ZZA2')), at(term(2025, 2), course('ZZB1'))];
+      const transcript = [ungraded('ZZA1', 3, 'in_progress', term(2025, 1)), graded('ZZB1', 4, 3, term(2024, 3))];
+      const { entries } = projectedTranscript({ planId: 'plan-1', rules: zzCurriculum(), courseRules: { prerequisites: new Map(), offeringTerms: new Map() }, transcript, terms, catalogCredits: new Map() }, terms);
+      expect(entries).toEqual([
+        { ...transcript[0], result: 'pass' },
+        transcript[1],
+        { courseCode: 'ZZA2', courseName: 'ZZA2', credits: 4, result: 'pass', grade: null, term: term(2025, 1) },
+        // A retake in a later term is its own sitting.
+        { courseCode: 'ZZB1', courseName: 'ZZB1', credits: 4, result: 'pass', grade: null, term: term(2025, 2) },
+      ]);
+    });
+
+    it('counts a course the plan places in a term the transcript already has it in once, as the transcript says', () => {
+      // The tile and the row are the same sitting (ADR 0013), whatever the row's name sorts against the plan's.
+      const cases: [TranscriptEntry, number][] = [
+        [ungraded('ZZA1', 3, 'in_progress', term(2025, 1)), 3 + 4],
+        [ungraded('ZZA1', 5, 'in_progress', term(2025, 1)), 4 + 4],
+        [ungraded('ZZA1', 3, 'exempt', term(2025, 1)), 3 + 4],
+        [graded('ZZA1', 3, 8, term(2025, 1)), 3 + 4],
+        [ungraded('ZZA1', 4, 'fail', term(2025, 1)), 4],
+        [graded('ZZA1', 4, 3, term(2025, 1)), 4],
+      ];
+      for (const courseName of ['đại số', 'Algebra']) {
+        for (const [row, counted] of cases) {
+          const report = check([at(term(2025, 1), course('ZZA1'), course('ZZA2'), course('ZZC1'))], { transcript: [{ ...row, courseName }] });
+          const group = report.coverage.groups.find((g) => g.id === 'a-bb');
+          expect(group?.credits).toBe(counted);
+          expect(group?.met).toBe(counted > 4); // A compulsory group is met once every course of it passes.
+        }
+      }
+    });
+
     it('counts the smaller of the transcript and curriculum credits for a course in progress the plan places in the same term, whatever its name', () => {
       // The plan's own entry is named by its code; a transcript name that sorts after it, or before, changes nothing.
       for (const courseName of ['đại số', 'Algebra']) {

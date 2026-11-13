@@ -240,6 +240,48 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
   return { planId: input.planId, trainingType: rules.trainingType, terms: loads, issues, coverage: coverage.coverage };
 }
 
+const sitting = (courseCode: string, term: Term): string => `${courseCode}@${term.year}-${term.number}`;
+
+export interface ProjectedTranscript {
+  entries: TranscriptEntry[];
+  /** The slots of each requirement group, as unnamed courses of it. */
+  slotsByGroup: Map<string, CurriculumRuleGroup['courses']>;
+}
+
+/**
+ * The transcript as it would stand with the plan completed: every course in progress passed, every
+ * placed course a pass in its term, and every slot a pass of an unnamed course of its group. A course
+ * the plan places in a term the transcript already has it in adds nothing: the tile shows that
+ * sitting (ADR 0013), so the transcript's attempt stands alone, as it is, and no tie between two
+ * attempts of one term is left for the audit to break.
+ */
+export function projectedTranscript(input: PlanCheckInput, terms: readonly BoardTerm[]): ProjectedTranscript {
+  const { rules, catalogCredits } = input;
+  const placed = placements(rules);
+  const slotsByGroup = new Map<string, CurriculumRuleGroup['courses']>();
+  const entries: TranscriptEntry[] = input.transcript.map((e) => (e.result === 'in_progress' ? { ...e, result: 'pass' as const } : e));
+  const pass = (courseCode: string, credits: number, term: Term): TranscriptEntry => ({ courseCode, courseName: courseCode, credits, result: 'pass', grade: null, term });
+
+  const sat = new Set(input.transcript.map((e) => sitting(e.courseCode, e.term)));
+
+  for (const { term, placements: tiles } of terms) {
+    tiles.forEach((p, position) => {
+      if (p.kind === 'course' && p.courseCode !== null) {
+        if (sat.has(sitting(p.courseCode, term))) return;
+        const credits = plannedCredits(placed, catalogCredits, p.courseCode);
+        if (credits !== undefined) entries.push(pass(p.courseCode, credits, term));
+      } else if (p.requirementGroupId !== null && p.credits !== null) {
+        // Lower case: never a catalog code (COURSE_CODE_PATTERN is capitals and digits).
+        const code = `slot:${term.year}-${term.number}-${position}`;
+        const slot = { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: slotCountsTowardTotal(rules, p.requirementGroupId), countsTowardGpa: false };
+        slotsByGroup.set(p.requirementGroupId, [...(slotsByGroup.get(p.requirementGroupId) ?? []), slot]);
+        entries.push(pass(code, p.credits, term));
+      }
+    });
+  }
+  return { entries, slotsByGroup };
+}
+
 /**
  * The degree audit as it would stand with the plan completed: every placed course and every course
  * in progress passed in its term. A slot is an unnamed course of its group with the slot's credits,
@@ -247,26 +289,8 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
  * when every course of its group does.
  */
 function projectedCoverage(input: PlanCheckInput, terms: readonly BoardTerm[]): { coverage: PlanCoverage; issues: PlanIssue[] } {
-  const { rules, catalogCredits } = input;
-  const placed = placements(rules);
-  const slotsByGroup = new Map<string, CurriculumRuleGroup['courses']>();
-  const projected: TranscriptEntry[] = input.transcript.map((e) => (e.result === 'in_progress' ? { ...e, result: 'pass' as const } : e));
-  const pass = (courseCode: string, credits: number, term: Term): TranscriptEntry => ({ courseCode, courseName: courseCode, credits, result: 'pass', grade: null, term });
-
-  for (const { term, placements: tiles } of terms) {
-    tiles.forEach((p, position) => {
-      if (p.kind === 'course' && p.courseCode !== null) {
-        const credits = plannedCredits(placed, catalogCredits, p.courseCode);
-        if (credits !== undefined) projected.push(pass(p.courseCode, credits, term));
-      } else if (p.requirementGroupId !== null && p.credits !== null) {
-        // Lower case: never a catalog code (COURSE_CODE_PATTERN is capitals and digits).
-        const code = `slot:${term.year}-${term.number}-${position}`;
-        const slot = { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: slotCountsTowardTotal(rules, p.requirementGroupId), countsTowardGpa: false };
-        slotsByGroup.set(p.requirementGroupId, [...(slotsByGroup.get(p.requirementGroupId) ?? []), slot]);
-        projected.push(pass(code, p.credits, term));
-      }
-    });
-  }
+  const { rules } = input;
+  const { entries: projected, slotsByGroup } = projectedTranscript(input, terms);
 
   const withSlots: CurriculumRules = { ...rules, groups: rules.groups.map((g) => ({ ...g, courses: [...g.courses, ...(slotsByGroup.get(g.id) ?? [])] })) };
   const audit = degreeAudit(withSlots, projected);
