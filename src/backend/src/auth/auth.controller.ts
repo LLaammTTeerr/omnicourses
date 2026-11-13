@@ -9,12 +9,11 @@ import {
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { PasswordRateLimit } from '../common/rate-limits.js';
 import { User } from '../users/user.entity.js';
 import { CurrentSession, CurrentUser, Public } from './auth.decorators.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { AuthService } from './auth.service.js';
-import { PASSWORD_LIMIT } from './rate-limits.js';
 import { Session } from './session.entity.js';
 
 @ApiTags('auth')
@@ -24,7 +23,7 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
-  @Throttle(PASSWORD_LIMIT)
+  @PasswordRateLimit()
   @Post('sign-up')
   @ApiCreatedResponse({ type: AuthResultDto })
   @ApiConflictResponse({ description: 'Email already registered' })
@@ -33,7 +32,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle(PASSWORD_LIMIT)
+  @PasswordRateLimit()
   @Post('sign-in')
   @HttpCode(200)
   @ApiOkResponse({ type: AuthResultDto, description: 'Signing in during the deletion grace period cancels the deletion (`accountRestored: true`).' })

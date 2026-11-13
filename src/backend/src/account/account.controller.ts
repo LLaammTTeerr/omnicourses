@@ -1,8 +1,7 @@
 import { Body, Controller, Delete, Get, Header, HttpCode } from '@nestjs/common';
-import { ApiAcceptedResponse, ApiForbiddenResponse, ApiOkResponse, ApiTags, ApiTooManyRequestsResponse } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { ApiAcceptedResponse, ApiForbiddenResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
-import { PASSWORD_LIMIT } from '../auth/rate-limits.js';
+import { PasswordRateLimit } from '../common/rate-limits.js';
 import { User } from '../users/user.entity.js';
 import { AccountExportDto, DeleteAccountDto, DeletionScheduledDto } from './account.dto.js';
 import { AccountService } from './account.service.js';
@@ -22,10 +21,9 @@ export class AccountController {
 
   @Delete()
   @HttpCode(202)
-  @Throttle(PASSWORD_LIMIT)
+  @PasswordRateLimit()
   @ApiAcceptedResponse({ type: DeletionScheduledDto, description: 'Signed out everywhere; purged after the grace period unless the user signs in again.' })
   @ApiForbiddenResponse({ description: 'Wrong password' })
-  @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
   delete(@CurrentUser() user: User, @Body() dto: DeleteAccountDto): Promise<DeletionScheduledDto> {
     return this.account.requestDeletion(user, dto.password);
   }

@@ -89,7 +89,7 @@ SELECT (SELECT count(*) FROM programs) AS programs, (SELECT count(*) FROM curric
        (SELECT count(*) FROM requirement_group_courses) AS links;
 ```
 
-**Rate limits.** Sign-up, sign-in and account deletion each accept 10 requests a minute from one address (`PASSWORD_LIMIT` in `auth/rate-limits.ts`; ADRs 0002 and 0004). Every other route accepts 120 (`THROTTLERS`, same file; ADR 0010). Each limit counts per route: sign-up and sign-in each get their own 10. Wait a minute between batches, or a case fails with 429 for the wrong reason.
+**Rate limits.** Sign-up, sign-in and account deletion each accept 10 requests a minute from one address (`PASSWORD_LIMIT` in `common/rate-limits.ts`; ADRs 0002 and 0004). Every other route accepts 120 (`THROTTLERS`, same file; ADR 0010). Each limit counts per route: sign-up and sign-in each get their own 10. Wait a minute between batches, or a case fails with 429 for the wrong reason.
 
 **Recording results.** As in [B0 cases §1](test-cases-b0.md#1-before-you-start): case ID, result (**passed**, **failed**, **blocked** or **not run**, with the reason for the last two), build tag and commit, browser and version, and the screen width for screen cases. A11Y-01 also records the language and theme; PERF-01 records every timing. Evidence goes in `docs/test/evidence/b1/`. Never record a token, a password or a password hash.
 

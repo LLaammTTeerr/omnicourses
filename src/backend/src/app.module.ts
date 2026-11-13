@@ -3,7 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthGuard } from './auth/auth.guard.js';
-import { THROTTLERS } from './auth/rate-limits.js';
+import { THROTTLERS } from './common/rate-limits.js';
 import { connectionOptions } from './database/data-source.js';
 import { FEATURE_MODULES } from './features.js';
 
