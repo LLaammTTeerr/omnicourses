@@ -9,7 +9,7 @@
 
 F10 (Vision §5, as cited by the test plan's TC-B2-NOTIF-01) reminds students of registration windows and term starts. On 12 November 2026 Lâm decided that F10 in B2 is an **in-app inbox only, no email**, and that the school dates it needs live in an **admin-entered `academic_calendar`**: Thắng, who holds the APCS program-administrator grant ([ADR 0011](0011-curriculum-administration.md)), enters them each term from the school's announcements. AGENTS.md hard rule 2 forbids reading the school portal, so these dates cannot be scraped; they are typed in, like the curriculum.
 
-The calendar page ([prototype](../ui-prototypes/calendar.html)) shows a week and a month view. A per-student timetable (the prototype's classes, rooms and deadlines) is **out of scope** here: this ADR covers only the dates the school publishes for a whole program.
+The calendar page ([prototype](../ui-prototypes/calendar.html)) shows a week and a month view. This ADR covers only the dates the school publishes for a whole program. The personal timetable (a student's classes, rooms, deadlines, exams and notes) is a separate feature with its own ADR; this ADR does not rule it out of the page.
 
 ADR 0015 is claimed by the advisor harness (open PR #77), so this is 0016.
 
