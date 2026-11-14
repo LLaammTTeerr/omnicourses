@@ -230,6 +230,7 @@ usePageTitle(() => m.value.title);
                 class="cal-ev"
                 :class="[KIND_GROUP[e.kind], { exam: e.kind === 'exam_period', cont: continues(e, day), on: e.id === selectedId }]"
                 :aria-pressed="e.id === selectedId"
+                :title="titleOf(e)"
                 data-test="event"
                 @click="select(e)"
               >
@@ -254,6 +255,7 @@ usePageTitle(() => m.value.title);
                 class="cal-chip"
                 :class="[KIND_GROUP[e.kind], { on: e.id === selectedId }]"
                 :aria-pressed="e.id === selectedId"
+                :title="titleOf(e)"
                 data-test="event"
                 @click="select(e)"
               >
@@ -386,13 +388,18 @@ usePageTitle(() => m.value.title);
 .cal-ev .code i, .cal-ev.cont i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; }
 .cal-ev .code span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .cal-ev .code em { margin-left: auto; font: 650 10.5px var(--mono); font-style: normal; padding: 1px 6px; border-radius: 5px; background: color-mix(in oklab, var(--c) 22%, var(--surface)); color: var(--c-ink); white-space: nowrap; }
-.cal-ev b { font-size: 13.5px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+/* A long title takes three lines at most; the whole title is on hover and in the detail card. */
+.cal-ev b {
+  font-size: 13.5px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
+}
 .cal-ev .room { font: 600 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .cal-ev.cont { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-style: dashed; font-size: 12px; font-weight: 600; color: var(--c-ink); }
 .cal-ev.cont span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .cal-ev.exam { border-style: dashed; }
 
-.cal-month { display: grid; grid-template-columns: repeat(7, minmax(96px, 1fr)); gap: 6px; min-width: 720px; }
+/* Chips shorten with an ellipsis, so the month fits a content area from 480px; narrower (a phone), it scrolls in its card. */
+.cal-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; min-width: 480px; }
 .cal-mh { font-size: 13px; font-weight: 650; color: var(--ink-3); padding: 2px 6px 4px; }
 .cal-md { min-height: 108px; border-radius: 12px; background: var(--surface-2); padding: 6px; display: grid; align-content: start; gap: 3px; min-width: 0; }
 .cal-md.out { opacity: 0.45; }
