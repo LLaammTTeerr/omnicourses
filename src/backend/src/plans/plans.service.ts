@@ -2,10 +2,11 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
-import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, toBoard, toRows } from './plan-board.js';
+import { TermDto } from '../terms/term.dto.js';
+import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, Placement, toBoard, toRows, withPlacement } from './plan-board.js';
 import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
-import { PlanDto, PlanSummaryDto } from './plans.dto.js';
+import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
 
 /** The answer for a plan that is missing or someone else's: the same, so it reveals nothing. */
 const notFound = () => new NotFoundException('No plan with this id');
@@ -23,10 +24,13 @@ export class PlansService {
     private readonly curriculum: CurriculumService,
   ) {}
 
-  /** The student's plans, oldest first. */
-  async list(userId: string): Promise<PlanSummaryDto[]> {
+  /** The student's plans, oldest first, each with a preview of its placements. */
+  async list(userId: string): Promise<PlanListItemDto[]> {
     const rows = await this.plans.find({ where: { userId }, relations: { curriculum: { program: true } }, order: { createdAt: 'ASC', id: 'ASC' } });
-    return rows.map(summary);
+    const placements = await this.placements.find({ where: { userId }, select: { planId: true, termYear: true, termNumber: true, courseCode: true } });
+    const byPlan = new Map<string, PlanPlacement[]>();
+    for (const p of placements) byPlan.set(p.planId, [...(byPlan.get(p.planId) ?? []), p]);
+    return rows.map((plan) => ({ ...summary(plan), preview: preview(byPlan.get(plan.id) ?? []) }));
   }
 
   /** One of the student's plans with its placements, or a 404. */
@@ -93,6 +97,32 @@ export class PlansService {
     return this.get(userId, planId);
   }
 
+  /**
+   * One of the student's plans with another board in place of its saved one, for the rule engine to
+   * check before anything is saved (the planner's drag preview). The board is validated as a save
+   * would be; nothing is written.
+   */
+  async withBoard(userId: string, planId: string, terms: BoardTerm[]): Promise<PlanDto> {
+    const plan = await this.get(userId, planId);
+    await this.checkBoard(plan.curriculum.id, terms);
+    return { ...plan, terms };
+  }
+
+  /**
+   * The boards of a drag preview: `placement` dropped on each target in turn, each board checked as a save would
+   * check it. The references are checked once, on the board with the placement in the first target.
+   */
+  async dropBoards(userId: string, planId: string, terms: BoardTerm[], placement: Placement, targets: TermDto[]): Promise<{ plan: PlanDto; boards: BoardTerm[][] }> {
+    const seen = new Set(targets.map((t) => `${t.year}-${t.number}`));
+    if (seen.size !== targets.length) throw new BadRequestException('A target term is listed twice');
+    const plan = await this.get(userId, planId);
+    const boards = targets.map((to) => withPlacement(terms, placement, to));
+    const problems = [...new Set(boards.flatMap(boardProblems))];
+    if (problems.length) throw new BadRequestException(problems);
+    await this.checkBoard(plan.curriculum.id, boards[0]!);
+    return { plan, boards };
+  }
+
   /** Deletes the plan and its placements. */
   async delete(userId: string, planId: string): Promise<void> {
     const { affected } = await this.plans.delete({ id: planId, userId });
@@ -120,6 +150,13 @@ export class PlansService {
 async function insertBoard(tx: EntityManager, planId: string, userId: string, terms: readonly BoardTerm[]): Promise<void> {
   const rows = toRows(planId, userId, terms);
   if (rows.length) await tx.insert(PlanPlacement, rows);
+}
+
+function preview(rows: readonly PlanPlacement[]): PlanPreviewDto {
+  const terms = [...new Set(rows.map((r) => r.termYear * 10 + r.termNumber))].sort((a, b) => a - b);
+  const term = (n: number | undefined) => (n === undefined ? null : { year: Math.floor(n / 10), number: (n % 10) as TermDto['number'] });
+  const courseCount = rows.filter((r) => r.courseCode !== null).length;
+  return { termCount: terms.length, courseCount, slotCount: rows.length - courseCount, firstTerm: term(terms[0]), lastTerm: term(terms.at(-1)) };
 }
 
 function summary(plan: Plan): PlanSummaryDto {

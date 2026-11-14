@@ -4,6 +4,7 @@ import type { CourseDetail, Curriculum, CurriculumCourse, Program, RequirementGr
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import ExplorerView from './ExplorerView.vue';
+import { chooseOption } from '../testing/select.js';
 
 // A synthetic curriculum: made-up codes and names, the group headings of the real APCS tables.
 const course = (code: string, nameVi: string, credits = 4, nameEn: string | null = null): CurriculumCourse => ({
@@ -63,7 +64,7 @@ const DETAIL: CourseDetail = {
 
 let wrapper: VueWrapper | undefined;
 
-async function render(routes: Record<string, unknown> = {}) {
+async function render(routes: Record<string, unknown> = {}, path = '/explorer') {
   const fetch = mockApi({
     'GET /programs': { programs: PROGRAMS },
     'GET /programs/APCS/curricula/2024': CURRICULUM,
@@ -73,7 +74,7 @@ async function render(routes: Record<string, unknown> = {}) {
     'GET /courses/ZZ414': DETAIL,
     ...routes,
   });
-  const app = await setup('/explorer');
+  const app = await setup(path);
   wrapper = mount(ExplorerView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch };
@@ -106,6 +107,21 @@ describe('ExplorerView (F4)', () => {
     expect(elective!.classes()).toContain('g-elec');
     expect(elective!.text()).toContain('Tự chọn · tối thiểu 12 TC');
     expect(w.get('[data-test="course-ZZ102"]').text()).toContain('3 TC');
+  });
+
+  it('brings the course named by ?course= into view, focused and glowing (the planner’s Taken tags link here)', async () => {
+    const { w } = await render({}, '/explorer?course=ZZ102');
+    const tile = w.get('[data-test="course-ZZ102"]');
+    expect(document.activeElement).toBe(tile.element);
+    expect(tile.classes()).toContain('flash');
+  });
+
+  it('shows the linked course once: a later cohort switch keeps the student’s own search', async () => {
+    const { w } = await render({ 'GET /programs/APCS/curricula/2025': { ...CURRICULUM, cohortYear: 2025 } }, '/explorer?course=ZZ102');
+    await w.get('input[type="search"]').setValue('zz101');
+    await chooseOption(w.findAll('.head-actions [role="combobox"]')[1]!, 'Khóa 2025');
+    await flushPromises();
+    expect((w.get('input[type="search"]').element as HTMLInputElement).value).toBe('zz101');
   });
 
   it('finds courses typed without diacritics, by name, English name or code', async () => {
@@ -164,7 +180,7 @@ describe('ExplorerView (F4)', () => {
 
   it('switches to another cohort of the program', async () => {
     const { w, fetch } = await render({ 'GET /programs/APCS/curricula/2025': { ...CURRICULUM, cohortYear: 2025, nameVi: 'CTĐT thử khóa 2025' } });
-    await w.findAll('.head-actions select')[1]!.setValue('2025');
+    await chooseOption(w.findAll('.head-actions [role="combobox"]')[1]!, 'Khóa 2025');
     await flushPromises();
     expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(expect.stringContaining('/programs/APCS/curricula/2025'));
     expect(w.get('[data-test="summary"]').text()).toContain('CTĐT thử khóa 2025');

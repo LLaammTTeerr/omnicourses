@@ -12,6 +12,7 @@ import { useSidebar } from './shell/sidebar.js';
 import { useTheme } from './shell/theme.js';
 import { useToast } from './shell/toast.js';
 import ToastHost from './shell/ToastHost.vue';
+import TooltipHost from './shell/TooltipHost.vue';
 
 const auth = useAuth();
 const route = useRoute();
@@ -67,6 +68,7 @@ watch(
   <PublicFooter v-if="layout === 'public'" />
   <MobileBars v-if="layout === 'app'" part="tabs" />
   <ToastHost />
+  <TooltipHost />
 </template>
 
 <style>

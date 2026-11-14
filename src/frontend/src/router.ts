@@ -21,6 +21,7 @@ import GuideView from './guides/GuideView.vue';
 import GuidesView from './guides/GuidesView.vue';
 import OnboardingView from './onboarding/OnboardingView.vue';
 import PlanEditorView from './plans/PlanEditorView.vue';
+import PlannerEntry from './plans/PlannerEntry.vue';
 import PlansView from './plans/PlansView.vue';
 import PrivacyView from './privacy/PrivacyView.vue';
 import { useOnboarding } from './onboarding/store.js';
@@ -65,7 +66,9 @@ const routes: RouteRecordRaw[] = [
     path: '/plans',
     meta: { layout: 'app', auth: 'required' },
     children: [
-      { path: '', name: 'plans', component: PlansView },
+      // The front door opens a plan (the last one open, or a new default plan); the list is one level below.
+      { path: '', name: 'plans', component: PlannerEntry },
+      { path: 'all', name: 'plan-list', component: PlansView },
       { path: ':id', name: 'plan', component: PlanEditorView, props: true },
     ],
   },

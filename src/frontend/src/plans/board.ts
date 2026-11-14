@@ -104,6 +104,13 @@ export function addCourse(board: Board, code: string, to: Term, key: number): Bo
   );
 }
 
+/** Holds credits for a requirement group in a row, before a course is chosen (a slot, ADR 0014). */
+export function addSlot(board: Board, groupId: string, credits: number, to: Term, key: number): Board {
+  return board.map((row) =>
+    termKey(row.term) === termKey(to) ? { ...row, tiles: [...row.tiles, { key, placement: { kind: 'slot', courseCode: null, requirementGroupId: groupId, credits } }] } : row,
+  );
+}
+
 export function removeTile(board: Board, key: number): Board {
   if (!findTile(board, key)) return board;
   return board.map((row) => (row.tiles.some((tile) => tile.key === key) ? { ...row, tiles: row.tiles.filter((tile) => tile.key !== key) } : row));
@@ -165,4 +172,53 @@ export function attachIssues(board: Board, report: PlanIssues): AttachedIssues {
   }
   const loads = new Map(report.terms.map((load) => [termKey(load.term), load]));
   return { board, report, byTile, tileOf, byTerm, loads, plan };
+}
+
+/** What is being dragged or lifted: a tile of the board, or a course of the tray. */
+export type Moving = { key: number } | { code: string } | { slot: string; credits: number };
+
+/** The key a course of the tray gets on a board made only to preview it: no tile of a real board has it. */
+export const PREVIEW_KEY = -1;
+
+/** The board as it would be with `what` dropped on the row of `to`, for the rule engine to check before a drop. */
+export function boardWith(board: Board, what: Moving, to: Term): Board {
+  if ('key' in what) return moveTile(board, what.key, to);
+  if ('code' in what) return addCourse(board, what.code, to, PREVIEW_KEY);
+  return addSlot(board, what.slot, what.credits, to, PREVIEW_KEY);
+}
+
+/** What is dropped, as the placement it would add. */
+export function placementOf(board: Board, what: Moving): Placement | null {
+  if ('code' in what) return { kind: 'course', courseCode: what.code, requirementGroupId: null, credits: null };
+  if ('slot' in what) return { kind: 'slot', courseCode: null, requirementGroupId: what.slot, credits: what.credits };
+  const found = findTile(board, what.key);
+  return found ? found.row.tiles[found.index]!.placement : null;
+}
+
+/** An issue's identity across two reports: its code, course, term and group (positions move when a tile does). */
+export const issueId = (i: PlanIssue) => [i.code, i.courseCode ?? '', i.term ? termKey(i.term) : '', i.requirementGroupId ?? ''].join('|');
+
+/** How a row would take a drop, from the engine's report on the board with the drop made. */
+export interface DropVerdict {
+  /**
+   * violation: the drop breaks a rule, here or in a term elsewhere. flag: allowed, worth a look. unknown: the engine
+   * could not check a rule for lack of data, which never reads as a pass (#80). null: the engine reports nothing.
+   */
+  kind: 'violation' | 'flag' | 'unknown' | null;
+  /** Violations about the dropped tile or its row, then new ones elsewhere, then flags, then unknowns. */
+  issues: PlanIssue[];
+  load: PlanTermLoad | null;
+}
+
+/**
+ * The verdict on a drop. `before` is the report on the board without it: a violation the drop adds in another term
+ * (moving a prerequisite after the course that needs it flags that course) counts too.
+ */
+export function dropVerdict(attached: AttachedIssues, key: number, to: Term, before: AttachedIssues | null): DropVerdict {
+  const mine = [...(attached.byTile.get(key) ?? []), ...(attached.byTerm.get(termKey(to)) ?? [])];
+  const had = new Set(before?.report.issues.filter((i) => i.kind === 'violation').map(issueId) ?? []);
+  const elsewhere = before ? attached.report.issues.filter((i) => i.kind === 'violation' && i.term !== null && !mine.includes(i) && !had.has(issueId(i))) : [];
+  const issues = [...mine.filter((i) => i.kind === 'violation'), ...elsewhere, ...mine.filter((i) => i.kind === 'flag'), ...mine.filter((i) => i.kind === 'unknown')];
+  const load = attached.loads.get(termKey(to)) ?? null;
+  return { kind: issues[0]?.kind ?? null, issues, load };
 }

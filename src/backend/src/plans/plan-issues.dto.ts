@@ -158,3 +158,17 @@ export class PlanIssuesDto implements PlanIssuesReport {
   @ApiProperty({ type: PlanCoverageDto, description: 'The curriculum as it would stand with every placement and every course in progress passed.' })
   coverage!: PlanCoverageDto;
 }
+
+/** The engine's report on the board with the placement dropped on one target term. */
+export class PlanDropReportDto {
+  @ApiProperty({ type: TermDto })
+  term!: TermDto;
+
+  @ApiProperty({ type: PlanIssuesDto })
+  issues!: PlanIssuesDto;
+}
+
+export class PlanDropReportsDto {
+  @ApiProperty({ type: [PlanDropReportDto], description: 'One per target, in the order sent.' })
+  reports!: PlanDropReportDto[];
+}

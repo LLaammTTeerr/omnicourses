@@ -7,6 +7,7 @@ import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import { NOT_STARTED, type Onboarding } from './api.js';
 import { onboarding } from './testing/fixtures.js';
+import { chooseOption } from '../testing/select.js';
 
 // Synthetic programs: APCS as the API lists it, and one the release does not offer.
 const PROGRAMS: Program[] = [
@@ -80,12 +81,12 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     expect(puts(fetch)).toEqual([{ ...NOT_STARTED, program: 'APCS', cohort: 2025 }]);
 
     expect(eyebrow(w)).toBe('Câu 3 / 4 · Mục tiêu');
-    await w.get('#onboarding-graduation').setValue('2027-2');
+    await chooseOption(w.get('#onboarding-graduation'), 'HK2 2027–2028');
     await next(w);
 
     expect(eyebrow(w)).toBe('Câu 4 / 4 · Tải học');
     await w.get('#onboarding-credits').setValue('40');
-    await w.get('#onboarding-internship').setValue('none');
+    await chooseOption(w.get('#onboarding-internship'), 'Không thực tập');
     expect(w.get('button[type="submit"]').text()).toBe('Xong');
     await next(w);
 
@@ -132,10 +133,10 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
   it('keeps the answers when saving fails for another reason', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render(onboarding({ finished: false }), { 'PUT /users/me/onboarding': status(503) });
-    await w.get('#onboarding-graduation').setValue('2028-1');
+    await chooseOption(w.get('#onboarding-graduation'), 'HK1 2028–2029');
     await next(w);
     expect(w.get('[data-test="save-failed"]').text()).toContain('Câu trả lời vẫn còn ở đây');
-    expect((w.get('#onboarding-graduation').element as HTMLSelectElement).value).toBe('2028-1');
+    expect(w.get('#onboarding-graduation').text()).toBe('HK1 2028–2029');
   });
 
   it('lets the student leave and come back later (A7, A8)', async () => {

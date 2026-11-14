@@ -3,7 +3,7 @@ import { CourseRulesService } from '../curriculum/course-rules.service.js';
 import { CurriculumRulesReader } from '../curriculum/curriculum-rules.reader.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
-import { courseCodesOf } from '../plans/plan-board.js';
+import { courseCodesOf, type BoardTerm } from '../plans/plan-board.js';
 import type { PlanIssuesProvider, PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
@@ -54,15 +54,20 @@ export class RulesService implements PlanIssuesProvider {
    * curriculum, never the onboarding one: a plan keeps the curriculum it was made against.
    */
   async issuesFor(userId: string, plan: PlanDto): Promise<PlanIssuesReport> {
+    const [report] = await this.issuesForBoards(userId, plan, [plan.terms]);
+    return report!;
+  }
+
+  async issuesForBoards(userId: string, plan: PlanDto, boards: readonly BoardTerm[][]): Promise<PlanIssuesReport[]> {
     const { id: curriculumId, programCode, cohortYear } = plan.curriculum;
     const [rules, courseRules, transcript, catalogCredits] = await Promise.all([
       this.curriculum.rulesFor(programCode, cohortYear),
       this.courseRules.rulesFor(curriculumId),
       this.transcript.rowsFor(userId),
-      this.catalog.courseCredits(courseCodesOf(plan.terms)),
+      this.catalog.courseCredits([...new Set(boards.flatMap(courseCodesOf))]),
     ]);
     // ON DELETE RESTRICT keeps a plan's curriculum (ADR 0014), so this is a broken invariant.
     if (!rules) throw new Error(`The curriculum of plan ${plan.id} is missing`);
-    return checkPlan({ planId: plan.id, rules, courseRules, transcript, terms: plan.terms, catalogCredits });
+    return boards.map((terms) => checkPlan({ planId: plan.id, rules, courseRules, transcript, terms, catalogCredits }));
   }
 }
