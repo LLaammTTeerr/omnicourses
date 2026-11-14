@@ -54,6 +54,14 @@ describe('CalendarView (F10 school dates)', () => {
     expect(cell(w, '2026-11-15').findAll('[data-test="event"]')).toHaveLength(1);
   });
 
+  it('opens on the week holding today on a weekend, with today marked', async () => {
+    vi.setSystemTime(new Date('2026-11-15T03:00:00Z')); // Sunday 15 November in Vietnam.
+    const { w } = await render();
+    expect(text(w, 'range')).toBe('9/11 – 15/11');
+    expect(cell(w, '2026-11-15').classes()).toContain('today');
+    expect(w.get('[data-test="today"]').attributes('disabled')).toBeDefined();
+  });
+
   it('moves between weeks and months without asking the API again', async () => {
     const { w, fetch } = await render();
     await w.get('[data-test="next"]').trigger('click');

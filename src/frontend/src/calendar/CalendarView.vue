@@ -33,8 +33,9 @@ const program = computed(() => data.value?.program ?? null);
 
 // ---------- Where the calendar is ----------
 const today = vietnamDate(new Date());
-// On a weekend the week view opens on the coming week, as in the prototype.
-const homeWeek = mondayOf(weekday(today) >= 5 ? addDays(today, 7) : today);
+// The week view shows all seven days, so it opens on the week holding today, weekends included. (The prototype's
+// Monday-to-Friday week jumped to the coming week on a weekend, which here would hide today.)
+const homeWeek = mondayOf(today);
 const homeMonth = monthStart(today);
 const mode = ref<'week' | 'month'>('week');
 const week = ref(homeWeek);
