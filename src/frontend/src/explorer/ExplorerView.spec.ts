@@ -4,6 +4,7 @@ import type { CourseDetail, Curriculum, CurriculumCourse, Program, RequirementGr
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import ExplorerView from './ExplorerView.vue';
+import { EXPLORER_MESSAGES } from './messages.js';
 import { chooseOption } from '../testing/select.js';
 
 // A synthetic curriculum: made-up codes and names, the group headings of the real APCS tables.
@@ -44,7 +45,8 @@ const CURRICULUM: Curriculum = {
     group('0a02', 'Kiến thức Math', 'compulsory', [course('ZZ101', 'Giải tích thử'), course('ZZ102', 'Đại số thử', 3)], {
       officialNotes: 'Ghi chú thử của nhóm.',
     }),
-    group('0a03', 'Kiến thức Computer Science (A): bắt buộc', 'compulsory', [course('ZZ201', 'Lập trình thử')]),
+    // ZZ201 is recorded as having no prerequisite, as the seed records every APCS course.
+    group('0a03', 'Kiến thức Computer Science (A): bắt buộc', 'compulsory', [{ ...course('ZZ201', 'Lập trình thử'), prerequisites: [] }]),
   ],
 };
 const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced', cohortYears: [2024, 2025] }];
@@ -160,6 +162,14 @@ describe('ExplorerView (F4)', () => {
     const { w } = await render({ 'GET /users/me/transcript': status(500) });
     expect(w.findAll('[data-test="in-transcript"]')).toHaveLength(0);
     expect(w.find('[role="alert"]').exists()).toBe(false);
+  });
+
+  it('says a course recorded as having no prerequisite has none, in both languages, and still that its offering terms are not recorded', async () => {
+    const { w } = await render();
+    await w.get('[data-test="course-ZZ201"]').trigger('click');
+    await flushPromises();
+    expect(w.get('dialog[open] [data-test="no-prerequisites"]').text()).toBe('Không có môn tiên quyết. Chưa ghi nhận học kỳ mở môn.');
+    expect(EXPLORER_MESSAGES.en.prerequisitesNone).toBe('No prerequisite. Offering terms are not recorded yet.');
   });
 
   it('opens a course in a drawer, with its groups and a plain note that prerequisites are not recorded', async () => {

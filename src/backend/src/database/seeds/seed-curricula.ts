@@ -2,7 +2,7 @@ import type { DataSource, EntityManager } from 'typeorm';
 import { buildCatalog, CatalogConflictError, type CatalogConflict } from './catalog.js';
 import type { CatalogCourse, CatalogDecision, CurriculumSeed } from './seed-types.js';
 
-type SeededTable = 'programs' | 'curriculums' | 'requirement_groups' | 'courses' | 'links' | 'combined_minimums' | 'overflows';
+type SeededTable = 'programs' | 'curriculums' | 'requirement_groups' | 'courses' | 'links' | 'combined_minimums' | 'overflows' | 'prerequisite_lists';
 
 export interface SeedReport {
   inserted: Record<SeededTable, number>;
@@ -22,6 +22,12 @@ const FIELDS_CHECKED_AGAINST_DATABASE = ['name_vi', 'credits'] as const;
  * name; same course code; same group and course) is left untouched, so later
  * admin edits survive a re-run. A catalog course that already exists with a
  * different Vietnamese name or credit count aborts the whole run.
+ *
+ * A seed with `no_prerequisites` also records each of its courses as having no prerequisite: one
+ * `course_prerequisite_lists` row and no `course_prerequisites` (ADR 0011). A course whose list
+ * already exists, with or without prerequisites a program administrator entered, is left as it
+ * is. A list an administrator deleted is written again by the next run, as a deleted link is.
+ * Offering terms are never seeded.
  */
 export async function seedCurricula(
   dataSource: DataSource,
@@ -31,8 +37,8 @@ export async function seedCurricula(
   const catalog = buildCatalog(seeds, decisions);
 
   const report: SeedReport = {
-    inserted: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0 },
-    skipped: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0 },
+    inserted: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0 },
+    skipped: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0 },
   };
   const count = (table: SeededTable, rows: unknown[]) => {
     if (rows.length) report.inserted[table]++;
@@ -164,6 +170,19 @@ export async function seedCurricula(
             [groupId(group.name), groupId(group.overflow_to!)],
           ),
         );
+      }
+
+      if (seed.no_prerequisites) {
+        for (const code of new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))) {
+          count(
+            'prerequisite_lists',
+            await em.query(
+              `INSERT INTO course_prerequisite_lists (curriculum_id, course_code) VALUES ($1, $2)
+               ON CONFLICT (curriculum_id, course_code) DO NOTHING RETURNING course_code`,
+              [curriculumId, code],
+            ),
+          );
+        }
       }
     }
   });

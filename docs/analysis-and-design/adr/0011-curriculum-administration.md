@@ -1,6 +1,6 @@
 # ADR 0011: Curriculum administration and program-scoped permissions
 
-- Status: proposed; not authorization to implement. Scope, audit and prerequisite decisions recorded on 9 November 2026; review findings below still open. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now))
+- Status: proposed; not authorization to implement. Scope, audit and prerequisite decisions recorded on 9 November 2026; review findings below still open. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now)). Amended 15 November 2026: APCS courses are seeded as having no prerequisite (see [the amendment](#amendment-15-november-2026-apcs-courses-have-no-prerequisite))
 - Date: 2026-11-03
 - Owner: Thắng (F12)
 - Deciders: Lâm (Project Lead), Triết (curriculum schema and rule engine)
@@ -194,6 +194,22 @@ Implement in dependency order: grants/bootstrap and program/cohort writes; group
 - **Unknown fields (open item 2, closed).** Admin request bodies use `@StrictBody()`, a custom parameter decorator the global pipe skips, validated with `forbidNonWhitelisted`: an unknown, identifier or gated field answers `400 validation_failed` instead of being dropped.
 - **Membership writes go ahead with structural checks only.** Codes, ownership and references are checked; group-total final-state validation still waits for the rule-engine interface, and credit totals stay read-only (`400`) until then.
 - **Still partial:** program and cohort creation/editing, CSV import, the audit log (deferred past B3 above) and the account screen's User ID field. F12 remains **partial**.
+
+### Amendment, 15 November 2026: APCS courses have no prerequisite
+
+**Decided (Lâm, 15 November 2026, on the team Discord: "apcs have no prerequisite"):** no course of the APCS program has a prerequisite. No official document states it: the APCS curriculum PDFs print no prerequisite column, and this decision is the source. It replaces one sentence of the amendment above for APCS, "The seeds stay without them: no prerequisite or offering term is invented": the APCS seeds now carry the decision. Storage, the read API and the write routes are unchanged.
+
+| Decision | Alternatives rejected | Evidence |
+| --- | --- | --- |
+| **The seed records "no prerequisite" for every course of APCS 2024 and APCS 2025.** `apcsNoPrerequisites` (`seeds/apcs-prerequisites.ts`) holds who decided, when and on what basis; both APCS seeds point at it (`CurriculumSeed.no_prerequisites`), and `db:seed` writes one `course_prerequisite_lists` row with no `course_prerequisites` per course of the curriculum. The read API then answers `prerequisites: []`, and the rule engine's check answers `none` instead of `not_recorded`. CLC seeds carry no such decision and stay `null`. | Entering 140 empty lists (69 courses of APCS 2024, 71 of APCS 2025) by hand through `PUT …/prerequisites`; a migration; a per-program "has no prerequisites" flag; making the rule engine treat a missing list as "none" for APCS. | The deploy runs `db:migrate` then `db:seed` (`deploy/server/omnicourse-deploy`), so the data reaches every environment with the code and a new database gets it too; a migration runs before the seed on an empty database and would write nothing there. A flag is a schema change, and the table above already rejected it. An engine special case would be a rule hidden in code instead of recorded data (AGENTS.md hard rule 1 keeps the engine deterministic over recorded data). `test/curriculum-seed.e2e-spec.ts`, `test/curriculum.e2e-spec.ts`. |
+| **Insert-only, like the rest of the seed.** `ON CONFLICT (curriculum_id, course_code) DO NOTHING`: a list a program administrator entered through F12, empty or not, is never changed. | Deleting and rewriting the lists on each run. | The seed's rule since #36: later admin edits survive a re-run. |
+| **Offering terms stay not recorded** (`null`), for APCS too. | Seeding every term as offered. | The decision covers prerequisites only; no source gives offering terms. |
+| **The booklet's "Prior-course" lines, and any older prerequisite table, are not rules** and are not loaded. | Loading the lines that resolve to a course. | The decision above. The lines stay in `apcs-prerequisites.ts` as printed text for the advisor's course descriptions. |
+
+Two consequences of insert-only, both the same as for a seeded group link today:
+
+- `DELETE …/prerequisites` on a seeded APCS course returns it to `null` only until the next deploy, whose seed records "none" again. To give an APCS course a prerequisite, `PUT` the list; that survives.
+- A seeded APCS course now has a recorded rule, so unlinking it from its last group answers `409 referenced_item` ("prerequisites of … are recorded") until its list is deleted. The seed would link it again on the next deploy in any case.
 
 ## Verification required with implementation
 

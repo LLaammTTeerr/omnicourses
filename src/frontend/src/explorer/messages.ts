@@ -31,6 +31,8 @@ interface ExplorerMessages {
   memberships: string;
   membershipsFailed: string;
   noPrerequisites: string;
+  /** The curriculum records the course as having no prerequisite; its offering terms are not recorded. */
+  prerequisitesNone: string;
   source: string;
 }
 
@@ -66,6 +68,7 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
     memberships: 'Thuộc nhóm',
     membershipsFailed: 'Chưa tải được các nhóm của môn này.',
     noPrerequisites: 'Chưa ghi nhận môn tiên quyết và học kỳ mở môn.',
+    prerequisitesNone: 'Không có môn tiên quyết. Chưa ghi nhận học kỳ mở môn.',
     source: 'Dữ liệu CTĐT nhập theo văn bản gốc của trường, không do AI trích xuất.',
   },
   en: {
@@ -99,6 +102,7 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
     memberships: 'In groups',
     membershipsFailed: 'The groups of this course could not be loaded.',
     noPrerequisites: 'Prerequisites and offering terms are not recorded yet.',
+    prerequisitesNone: 'No prerequisite. Offering terms are not recorded yet.',
     source: 'Curriculum data is entered from the school’s official documents, not extracted by AI.',
   },
 };

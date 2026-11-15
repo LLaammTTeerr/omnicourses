@@ -1,6 +1,6 @@
-// Prerequisites and offering terms. Neither the database nor the APCS PDFs record them yet
-// (ADR 0011, "Prerequisites, offering terms and implementation gates"): the checks take the data
-// as input, null meaning "not recorded", and never invent it. Pure functions.
+// Prerequisites and offering terms (ADR 0011). The checks take the data as input, null meaning
+// "not recorded", and never invent it. APCS 2024 and 2025 courses are recorded as having no
+// prerequisite (Project Lead, 15 November 2026); no offering term is recorded yet. Pure functions.
 import type { Term } from '../terms/term.js';
 
 export type PrerequisiteCheck =

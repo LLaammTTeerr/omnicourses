@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { apcs2024TeachingPlan } from './apcs-2024.teaching-plan.js';
 import { apcs2025TeachingPlan } from './apcs-2025.teaching-plan.js';
 import { apcsEquivalences } from './apcs-equivalences.js';
+import { apcsNoPrerequisites, apcsPrerequisites } from './apcs-prerequisites.js';
 import { clcEquivalences } from './clc-equivalences.js';
 import { COURSE_CODE_PATTERN, normalizePrintedCode } from '../../common/course-code.js';
 import { buildCatalog, CatalogConflictError, rowToCourse, seedLabel } from './catalog.js';
@@ -400,4 +401,21 @@ describe('APCS audit rules', () => {
       expect(notCounted).toEqual(['BAA00021', 'BAA00022', 'BAA00030']);
     },
   );
+});
+
+describe('prerequisites', () => {
+  it('records "no prerequisite" for APCS 2024 and 2025 only, as the Project Lead decided on 15 November 2026', () => {
+    expect(CURRICULUM_SEEDS.filter((s) => s.no_prerequisites).map((s) => s.curriculum.code)).toEqual(['APCS2024', 'APCS2025']);
+    for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) expect(seed.no_prerequisites).toBe(apcsNoPrerequisites);
+    expect(apcsNoPrerequisites).toMatchObject({ decided_by: 'Project Lead (Lâm)', date: '2026-11-15' });
+    // No official document backs the decision, and the data says so.
+    expect(apcsNoPrerequisites.source).toContain('There is no official document');
+  });
+
+  it('loads none of the booklet\'s "Prior-course" lines as a rule, and no offering term', () => {
+    // A seed can only say "none": it has no field for a course's prerequisite codes.
+    for (const plan of TEACHING_PLANS) expect(plan.prerequisites, plan.curriculum).toEqual([]);
+    expect(apcsPrerequisites.offering_terms).toEqual([]);
+    expect(apcsPrerequisites.note).toContain('not rules and are not loaded');
+  });
 });

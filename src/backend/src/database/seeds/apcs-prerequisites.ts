@@ -1,8 +1,24 @@
-import type { PrintedPrerequisite, PrintedPrerequisiteList } from './seed-types.js';
+import type { NoPrerequisitesDecision, PrintedPrerequisite, PrintedPrerequisiteList } from './seed-types.js';
+
+/**
+ * APCS courses have no prerequisite: decided by the Project Lead on 15 November 2026. The seeds of
+ * APCS 2024 and APCS 2025 carry it, and `db:seed` records every course of both curricula as
+ * "no prerequisite" (ADR 0011, amendment of 15 November 2026). Offering terms stay not recorded.
+ */
+export const apcsNoPrerequisites: NoPrerequisitesDecision = {
+  decided_by: 'Project Lead (Lâm)',
+  date: '2026-11-15',
+  source:
+    'Stated by the Project Lead on the team Discord on 15 November 2026: "apcs have no prerequisite". ' +
+    'There is no official document for it: the APCS curriculum PDFs print no prerequisite column, and ' +
+    'the "Prior-course" lines of the 2021 course-description booklet below are not rules.',
+};
 
 // The "Prior-course" lines of APCS_Program_Descriptions.pdf (course
-// descriptions of the APCS program, March 2021, 129 pages with a text layer),
-// for the prerequisite table F12 adds (ADR 0011). Not loaded yet.
+// descriptions of the APCS program, March 2021, 129 pages with a text layer).
+// Not loaded, and not rules: the Project Lead decided on 15 November 2026 that
+// APCS courses have no prerequisite (apcsNoPrerequisites above). The lines stay
+// here as printed text, which the advisor's course descriptions spec checks.
 //
 // Of the seven curriculum PDFs shared on 9 November 2026, this booklet is the
 // only one that prints anything prerequisite-like, and none prints offering
@@ -34,8 +50,8 @@ export const apcsPrerequisites: PrintedPrerequisiteList = {
     'does not say whether it means a prerequisite (học phần tiên quyết: must be passed), a prior ' +
     'course (học phần học trước: must have been taken) or advice, and many lines name topics, not ' +
     'courses. The codes are the 2021 ones (CS161, CS162, CM101); the 2024/2025 curricula use CS160 ' +
-    'and CM102. A loader needs the Project Lead and the rule-engine owner to decide the meaning, ' +
-    'the cohorts it applies to, and every unresolved part, first.',
+    'and CM102. Decided by the Project Lead on 15 November 2026: APCS courses have no prerequisite, ' +
+    'so these printed lines are not rules and are not loaded.',
   lines: [
     line('CS162', 'Introduction to Computer Science I', ['CS161'], [], 6),
     line('CS163', 'Introduction to Computer Science II', ['CS162'], [], 8),

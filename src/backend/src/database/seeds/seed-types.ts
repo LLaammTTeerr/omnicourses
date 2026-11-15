@@ -178,6 +178,18 @@ export interface PrintedSubtotal {
   note?: string;
 }
 
+/**
+ * A decision that no course of a curriculum has a prerequisite. It is not transcribed from a
+ * PDF: it records who decided, when, and what the decision rests on.
+ */
+export interface NoPrerequisitesDecision {
+  decided_by: string;
+  /** ISO date of the decision. */
+  date: string;
+  /** Where the decision was stated, and whether an official document backs it. */
+  source: string;
+}
+
 /** One curriculum, transcribed from its PDF(s). */
 export interface CurriculumSeed {
   /**
@@ -193,6 +205,12 @@ export interface CurriculumSeed {
   groups: PrintedGroup[];
   appendix: AppendixRow[];
   known_discrepancies: KnownDiscrepancy[];
+  /**
+   * loaded: one `course_prerequisite_lists` row with no `course_prerequisites` per course of the
+   * curriculum, which the read API and the rule engine read as "no prerequisite" (ADR 0011).
+   * Absent: nothing is written, and the courses stay "not recorded".
+   */
+  no_prerequisites?: NoPrerequisitesDecision;
 }
 
 /** A course as it goes into the shared `courses` catalog. */
@@ -250,8 +268,9 @@ export interface TeachingPlan {
   known_discrepancies: KnownDiscrepancy[];
 }
 
-// Prerequisites and offering terms as printed. Not loaded: the tables come
-// with F12 (ADR 0011), and the rule engine decides what a printed line means.
+// Prerequisites and offering terms as printed. Not loaded, and not rules: the Project Lead
+// decided on 15 November 2026 that APCS courses have no prerequisite (CurriculumSeed.no_prerequisites,
+// ADR 0011). The advisor's course descriptions still read the printed lines.
 
 /**
  * One course's "Prior-course" line in a course-description booklet. The line
@@ -279,7 +298,7 @@ export interface PrintedPrerequisiteList {
   source: { file: string; pages: number; sha256: string; issued: string };
   /** The printed field the lines come from, e.g. "Prior-course". */
   field: string;
-  /** What the field may mean, and what must be decided before it is loaded. */
+  /** What the field may mean, and why it is not loaded as a rule. */
   note: string;
   lines: PrintedPrerequisite[];
   /** Courses whose line is printed blank. */
