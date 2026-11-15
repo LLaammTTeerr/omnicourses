@@ -44,6 +44,13 @@ function fixture(id: string, lang: GuideLang, status: GuideStatus, checkedOn: st
   };
 }
 
+// The seed wants every published guide's portal on a published portal board (validate-guide.ts).
+// zz-fresh is the board of the test guides, so they load next to the real G01 as well.
+function asBoard(file: GuideFile): GuideFile {
+  const vi = file.lang === 'vi';
+  return { ...file, portals: [{ name: file.portal.name, url: 'https://example.com', account: file.portal.account, purpose: vi ? 'Cổng của các hướng dẫn thử.' : 'The portal of the test guides.' }] };
+}
+
 /** The test-only guides of TC-B1-GUIDE-01, dated back from `today` (a Vietnam date, YYYY-MM-DD). */
 export function guideFixtures(today: string): GuideFile[] {
   const edge = oldestFreshDate(today);
@@ -52,7 +59,7 @@ export function guideFixtures(today: string): GuideFile[] {
     fixture(id, 'en', status, on, group),
   ];
   return [
-    ...both('zz-fresh', 'published', today, 'registration'),
+    ...both('zz-fresh', 'published', today, 'registration').map(asBoard),
     ...both('zz-six-months', 'published', edge, 'tuition-and-fees'),
     ...both('zz-six-months-and-a-day', 'published', addDays(edge, -1), 'tuition-and-fees'),
     fixture('zz-vi-only', 'vi', 'published', today, 'records-and-certificates'),

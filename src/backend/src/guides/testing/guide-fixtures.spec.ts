@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GUIDE_FILES } from '../content/index.js';
 import { isOutOfDate } from '../out-of-date.js';
 import { validateGuideSet } from '../validate-guide.js';
 import { addDays, guideFixtures } from './guide-fixtures.js';
@@ -15,6 +16,10 @@ describe('addDays', () => {
 describe('guideFixtures (TC-B1-GUIDE-01)', () => {
   it('are valid content files', () => {
     expect(validateGuideSet(guideFixtures('2026-11-13'))).toEqual([]);
+  });
+
+  it('load next to the content files, as db:seed --guide-fixtures does', () => {
+    expect(validateGuideSet([...GUIDE_FILES, ...guideFixtures('2026-11-13')])).toEqual([]);
   });
 
   it('date the six-month pair as GUIDE-01j does for a run on 13 November 2026', () => {

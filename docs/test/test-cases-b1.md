@@ -189,7 +189,7 @@ Search queries for GUIDE-01c. The expected guides follow the keywords in the con
 | `HỌC PHÍ` | G06 |
 | `  hoc   phi  ` (spaces around and between) | G06 |
 | `học phí` as decomposed Unicode: run `copy('học phí'.normalize('NFD'))` in the DevTools console, then paste | G06 |
-| `hoc ph` (not finished) | G02 and G06: "học phần" starts the same way |
+| `hoc ph` (not finished) | G02, G06 and G07: "học phần" starts the same way, and G07 has the portal's label "kết quả học phần" as a keyword |
 | `tuition` | G06 |
 | `đăng ký học phần` | G02 |
 | `dang ky hoc phan` | G02. `đ` must match `d`: removing accents alone leaves `đ`, so this catches a common bug. |
