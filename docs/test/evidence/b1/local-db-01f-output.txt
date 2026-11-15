@@ -1,0 +1,41 @@
+# DB-01f, local disposable PostgreSQL 18.6 (podman), migrated and seeded at tree 7f66b7a (app code = B1 1decf4a)
+2026-11-15T03:03:27Z
+--- shared-data counts before
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+--- psql -f local-db-01f.sql
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+psql:<stdin>:10: ERROR:  duplicate key value violates unique constraint "uq_curriculums_program_cohort"
+DETAIL:  Key (program_id, cohort_year)=(db60ac7a-68cd-4417-b25f-9db99121228f, 2024) already exists.
+psql:<stdin>:12: ERROR:  new row for relation "courses" violates check constraint "ck_courses_code_format"
+DETAIL:  Failing row contains (zz-1, ZZ bad code, null, 3, 0, 0, 0, 0, 2026-11-15 03:03:28.108342+00, 2026-11-15 03:03:28.108342+00).
+psql:<stdin>:14: ERROR:  new row for relation "requirement_group_courses" violates check constraint "ck_requirement_group_courses_code_format"
+DETAIL:  Failing row contains (31829b9b-b694-4438-9bd4-4763fbaa434e, zz-1, 2026-11-15 03:03:28.108342+00, t, t).
+psql:<stdin>:16: ERROR:  duplicate key value violates unique constraint "uq_requirement_groups_curriculum_name"
+DETAIL:  Key (curriculum_id, name)=(9f1d62c9-b23d-47f3-9584-9403d60a8129, ZZ group) already exists.
+psql:<stdin>:18: ERROR:  new row for relation "requirement_groups" violates check constraint "ck_requirement_groups_kind"
+DETAIL:  Failing row contains (495275ac-36a2-448a-b6af-f39ec112b65c, 9f1d62c9-b23d-47f3-9584-9403d60a8129, ZZ other group, optional, null, null, null, 2026-11-15 03:03:28.108342+00, 2026-11-15 03:03:28.108342+00).
+psql:<stdin>:20: ERROR:  new row for relation "curriculums" violates check constraint "ck_curriculums_cohort_year_range"
+DETAIL:  Failing row contains (8b4197f5-abfa-4d1d-aab6-caf98f0a0b63, db60ac7a-68cd-4417-b25f-9db99121228f, 1999, ZZTEST1999, ZZ test 1999, null, null, null, 2026-11-15 03:03:28.108342+00, 2026-11-15 03:03:28.108342+00).
+psql:<stdin>:22: ERROR:  new row for relation "courses" violates check constraint "ck_courses_credits_positive"
+DETAIL:  Failing row contains (ZZ002, ZZ no credits, null, 0, 0, 0, 0, 0, 2026-11-15 03:03:28.108342+00, 2026-11-15 03:03:28.108342+00).
+ROLLBACK
+ zztest_programs_left 
+----------------------
+                    0
+(1 row)
+
+--- shared-data counts after
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
