@@ -1,0 +1,86 @@
+{
+  "id": "so-tay-2024-2025",
+  "title": "Sổ tay sinh viên năm học 2024–2025",
+  "shortName": "Sổ tay SV 2024–2025",
+  "issuer": "Trường Đại học Khoa học Tự nhiên, Đại học Quốc gia Thành phố Hồ Chí Minh",
+  "obtained": "The PDF the team shared on 2026-11-09 (ModDate 2024-08-20). It stays out of git: the repository is public and the PDF prints staff names, phone numbers and e-mail addresses.",
+  "pdf": {
+    "sha256": "6f12f9a11520dbf86e8294df0009b356e16d9272df622eb5bfdfb5b8d33a3bf0",
+    "pages": 184
+  },
+  "textLayer": {
+    "command": "pdftotext",
+    "tool": "pdftotext 26.01.0 (Poppler)",
+    "sha256": "b61fc05bbaaaeff87277174d608a470bf8f40ba8a9e5d0cd697703095ea9309c"
+  },
+  "printedPageOffset": 2,
+  "sections": [
+    { "id": "phong-ban", "title": "Các phòng ban chức năng, Thư viện", "kind": "prose", "pdfPages": [7, 20] },
+    { "id": "cac-khoa", "title": "Các khoa", "kind": "prose", "pdfPages": [21, 50], "context": "^KHOA(?:$| (?!HỌC ))", "contextContinues": "^KHOA \\| |VÀ \\| | \\| - " },
+    { "id": "trung-tam-ngoai-ngu", "title": "Trung tâm Ngoại ngữ", "kind": "prose", "pdfPages": [54, 54] },
+    { "id": "ke-hoach-nam-hoc", "title": "Kế hoạch năm học 2024–2025", "kind": "prose", "pdfPages": [55, 58], "headings": "^(?:KẾ HOẠCH|HỌC KỲ)", "context": "^KẾ HOẠCH", "contextContinues": " \\| (?:NĂM HỌC|ĐẠI HỌC CHÍNH QUY)" },
+    { "id": "khao-thi", "title": "Quy định công tác khảo thí (trích lược)", "kind": "regulation", "pdfPages": [85, 90] },
+    { "id": "trach-nhiem-thi", "title": "Quy định trách nhiệm của cán bộ và người học trong các kỳ thi (trích lược)", "kind": "regulation", "pdfPages": [91, 99] },
+    { "id": "cong-tac-sinh-vien", "title": "Quy chế công tác sinh viên (trích lược)", "kind": "regulation", "pdfPages": [100, 113] },
+    { "id": "ren-luyen", "title": "Quy chế đánh giá kết quả rèn luyện sinh viên", "kind": "regulation", "pdfPages": [118, 127] },
+    { "id": "khen-thuong-ky-luat", "title": "Quy định khen thưởng, kỷ luật sinh viên (trích lược)", "kind": "regulation", "pdfPages": [138, 147], "endsBefore": "PHỤC LỤC I" },
+    { "id": "ngoai-tru", "title": "Quy chế ngoại trú (trích lược)", "kind": "regulation", "pdfPages": [155, 156] },
+    { "id": "noi-tru", "title": "Quy chế công tác học sinh, sinh viên nội trú (trích lược)", "kind": "regulation", "pdfPages": [157, 160] },
+    { "id": "noi-quy", "title": "Nội quy cơ quan", "kind": "prose", "pdfPages": [161, 164] },
+    { "id": "hoc-bong", "title": "Quy định xét cấp học bổng khuyến khích học tập", "kind": "regulation", "pdfPages": [165, 169] },
+    { "id": "ho-tro-sinh-vien", "title": "Miễn giảm học phí, trợ cấp xã hội và chính sách cho sinh viên", "kind": "prose", "pdfPages": [170, 175] }
+  ],
+  "overrides": [
+    {
+      "kind": "dropLines",
+      "pdfPage": 15,
+      "reason": "Hidden text from the calendar pages: the text layer has it, the printed page does not show it.",
+      "lines": ["h sách", "HK2"]
+    },
+    {
+      "kind": "replacePage",
+      "pdfPage": 58,
+      "reason": "The text layer also holds a hidden copy of the đại trà calendar (another HK2 and a summer term) that the printed page does not show. These are the visible lines, transcribed from the page image.",
+      "lines": [
+        "HỌC KỲ 2",
+        "30/12/2024 - 05/01/2025:",
+        "Bắt đầu HK2 NH 2024-2025",
+        "27/01 - 09/02/2025:",
+        "NGHỈ TẾT",
+        "24/02 - 02/3/2025:",
+        "THI GIỮA HK2",
+        "03/3 - 14/3/2025:",
+        "Nộp hồ sơ MGHP, TCXH, Chế độ chính sách HK2",
+        "14/4 - 27/4/2025:",
+        "THI HK2",
+        "05 - 07/2025:",
+        "Đánh giá điểm rèn luyện HK2",
+        "HỌC KỲ 3",
+        "05/5 - 11/5/2025:",
+        "Bắt đầu HK3 NH 2024-2025",
+        "16/6 - 22/6/2025:",
+        "THI GIỮA HK3",
+        "28/7 - 10/8/2025:",
+        "THI HK3",
+        "09 - 10/2025:",
+        "Đánh giá điểm rèn luyện HK3",
+        "56"
+      ]
+    }
+  ],
+  "excluded": [
+    { "pdfPages": [1, 6], "reason": "cover, contents, mission and history: no study rule." },
+    { "pdfPages": [51, 53], "reason": "the youth union, student association and student support centre pages are images with no text layer." },
+    { "pdfPages": [59, 84], "reason": "the training regulation, word for word the same as QĐ 1175/QĐ-KHTN Điều 1–23 (qd-1175-2021), which the advisor already cites; the handbook leaves out Điều 24." },
+    { "pdfPages": [114, 117], "reason": "appendix to the Quy chế công tác sinh viên: a table of violations and penalties that the text layer interleaves cell by cell, so a violation reads next to another row's penalty. Rebuilding its rows from the layout text is a follow-up." },
+    { "pdfPages": [128, 137], "reason": "appendix to the rèn luyện regulation: the conduct-score table, interleaved the same way (a criterion next to another criterion's points)." },
+    { "pdfPages": [147, 154], "reason": "Phụ lục I to the khen thưởng, kỷ luật regulation, from the line PHỤC LỤC I on PDF page 147: the discipline table, interleaved the same way. Điều 11 of the regulation states the penalty ladder in prose and is kept." },
+    { "pdfPages": [176, 178], "reason": "a directory of security staff phone numbers: personal data." },
+    { "pdfPages": [179, 184], "reason": "tips for new students (documents, driving licence, passport, safety) and bus routes: outside the advisor's scope." }
+  ],
+  "notes": [
+    "Page numbers in citations are the printed ones (PDF page minus 2).",
+    "The contents page calls the calendar \"Kế hoạch năm học 2023 - 2024\"; the calendar pages themselves are for 2024–2025.",
+    "Small tables that stay readable (the exam durations in khảo thí Điều 8, the scholarship classes in học bổng Điều 3) come through as one line in reading order, not as tables."
+  ]
+}

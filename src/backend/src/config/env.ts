@@ -50,15 +50,42 @@ export const sessionTtlDays = (): number => positiveInt(process.env.SESSION_TTL_
 
 export const accountDeletionGraceDays = (): number => positiveInt(process.env.ACCOUNT_DELETION_GRACE_DAYS, 30);
 
+/**
+ * The model providers the gateway may call, by OpenAI-compatible base URL (ADR 0003, note of
+ * 2026-11-09). AI_BASE_URL must be one of these exactly, so a changed env file can never point the
+ * gateway, and the API key it sends, at another host.
+ */
+export const AI_BASE_URLS = {
+  openrouter: 'https://openrouter.ai/api/v1',
+  anthropic: 'https://api.anthropic.com/v1/',
+} as const;
+export type AiProvider = keyof typeof AI_BASE_URLS;
+
+/** The provider named by AI_BASE_URL; unset or blank is OpenRouter. Throws on any other URL, so the app does not boot. */
+export function aiProvider(value: string | undefined): AiProvider {
+  const url = value?.trim();
+  if (!url) return 'openrouter';
+  const provider = (Object.keys(AI_BASE_URLS) as AiProvider[]).find((p) => AI_BASE_URLS[p] === url);
+  if (!provider) throw new Error(`AI_BASE_URL must be one of ${Object.values(AI_BASE_URLS).join(', ')}`);
+  return provider;
+}
+
 // A missing key or model is not a startup error: the app boots and AI calls
-// answer 503 `ai_unavailable` (ADR 0003, robustness NFR).
+// answer 503 `ai_unavailable` (ADR 0003, robustness NFR). A base URL outside the
+// allowlist is: it would send the key elsewhere.
 export function aiConfig() {
   const env = process.env;
+  const provider = aiProvider(env.AI_BASE_URL);
   return {
-    apiKey: env.OPENROUTER_API_KEY || null,
+    provider,
+    baseUrl: AI_BASE_URLS[provider],
+    // AI_API_KEY for any provider; OPENROUTER_API_KEY still works for existing env files.
+    apiKey: env.AI_API_KEY || env.OPENROUTER_API_KEY || null,
     structuredModel: env.AI_MODEL_STRUCTURED || null,
     chatModel: env.AI_MODEL_CHAT || null,
     timeoutMs: positiveInt(env.AI_TIMEOUT_MS, 30_000),
+    // Output cap per model request. Anthropic requires one; thinking tokens count toward it.
+    maxOutputTokens: positiveInt(env.AI_MAX_OUTPUT_TOKENS, 8192),
     dailyCallsPerUser: positiveInt(env.AI_DAILY_CALLS_PER_USER, 20),
   };
 }

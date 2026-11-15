@@ -29,7 +29,16 @@ describe('AI gateway against PostgreSQL (e2e)', () => {
   let app: INestApplication;
   let llm: LlmService;
   let usage: Repository<AiUsage>;
-  const config: AiConfig = { apiKey: 'test-key', structuredModel: 'any-model', chatModel: 'any-model', timeoutMs: 1000, dailyCallsPerUser: 2 };
+  const config: AiConfig = {
+    provider: 'openrouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    apiKey: 'test-key',
+    structuredModel: 'any-model',
+    chatModel: 'any-model',
+    timeoutMs: 1000,
+    maxOutputTokens: 1000,
+    dailyCallsPerUser: 2,
+  };
   const structured = (userId: string) => llm.structured({ context: { userId, feature: 'e2e' }, instructions: '', input: '', schema: z.object({}) });
 
   beforeAll(async () => {

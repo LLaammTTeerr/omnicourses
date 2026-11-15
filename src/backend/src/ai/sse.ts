@@ -10,8 +10,11 @@ import type { ChatEvent } from './llm.service.js';
  * A failure before the first event is thrown, so Nest answers 503
  * `ai_unavailable` as usual. After that the status is already 200, so a
  * failure becomes an `error` event and the stream ends.
+ *
+ * A feature may stream its own events (the advisor holds the model's text back
+ * and sends a vetted answer, ADR 0016): each is sent under its `type`.
  */
-export async function streamChat(res: Response, events: AsyncIterable<ChatEvent>): Promise<void> {
+export async function streamChat(res: Response, events: AsyncIterable<ChatEvent | { type: string }>): Promise<void> {
   const iterator = events[Symbol.asyncIterator]();
   let closed = false;
   // Registered before the first event: in a tool turn that can take seconds,

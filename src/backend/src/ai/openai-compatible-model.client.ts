@@ -3,10 +3,10 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionStreamParams, ChatCompletionTool } from 'openai/resources/chat/completions';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { logErrorName } from './log-error-name.js';
+import type { AiConfig } from './ai-config.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelTool, ModelUsage, StreamRequest } from './model-client.js';
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1';
-const logger = new Logger('OpenRouterModelClient');
+const logger = new Logger('OpenAiCompatibleModelClient');
 
 export function toSdkMessages(messages: ModelMessage[]): ChatCompletionMessageParam[] {
   return messages.map((m): ChatCompletionMessageParam => {
@@ -27,9 +27,11 @@ function toSdkTools(tools: ModelTool[]): ChatCompletionTool[] {
   return tools.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } }));
 }
 
-export function toStreamParams(request: StreamRequest): ChatCompletionStreamParams {
+export function toStreamParams(request: StreamRequest, maxOutputTokens = 8192): ChatCompletionStreamParams {
   return {
     model: request.model,
+    // Anthropic's compatibility layer needs an explicit cap; OpenRouter accepts it.
+    max_tokens: maxOutputTokens,
     messages: toSdkMessages(request.messages),
     // Some providers reject an empty tools array, and tool_choice without tools.
     ...(request.tools.length ? { tools: toSdkTools(request.tools), ...(request.toolChoice ? { tool_choice: request.toolChoice } : {}) } : {}),
@@ -48,35 +50,53 @@ function toUsage(usage: OpenAI.CompletionUsage | undefined | null): ModelUsage {
 export function toAiUnavailable(error: unknown): AiUnavailableError {
   if (error instanceof AiUnavailableError) return error;
   if (error instanceof OpenAI.APIConnectionTimeoutError) {
-    logger.warn('OpenRouter error: timeout');
+    logger.warn('Model provider error: timeout');
     return new AiUnavailableError(AI_REASONS.timedOut);
   }
   if (error instanceof OpenAI.APIError) {
-    logger.warn(`OpenRouter error: status=${error.status ?? '-'} code=${error.code ?? '-'} type=${error.type ?? '-'}`);
+    logger.warn(`Model provider error: status=${error.status ?? '-'} code=${error.code ?? '-'} type=${error.type ?? '-'}`);
     // Refused before any work, so not billed: the call must not count.
     if (error.status === 401 || error.status === 403) return new AiUnavailableError(AI_REASONS.notConfigured, { billed: false });
     if (error.status === 402) return new AiUnavailableError(AI_REASONS.creditUsedUp, { billed: false });
     if (error.status === 429) return new AiUnavailableError(AI_REASONS.busy, { billed: false });
     return new AiUnavailableError(AI_REASONS.providerFailed);
   }
-  logErrorName(logger, 'OpenRouter error', error);
+  logErrorName(logger, 'Model provider error', error);
   return new AiUnavailableError(AI_REASONS.providerFailed);
 }
 
-// OpenRouter through the OpenAI SDK (ADR 0003). The no-training guarantee is the
-// OpenRouter account's privacy setting, not a request field.
-export class OpenRouterModelClient extends ModelClient {
-  private readonly sdk: OpenAI;
+export type ClientSettings = Pick<AiConfig, 'provider' | 'baseUrl' | 'timeoutMs' | 'maxOutputTokens'>;
 
-  constructor(apiKey: string, timeoutMs: number) {
+/** The SDK options for a provider. `baseUrl` is one of the allowlisted AI_BASE_URLS (config/env.ts). */
+export function sdkOptions(apiKey: string, settings: ClientSettings): ConstructorParameters<typeof OpenAI>[0] {
+  return {
+    apiKey,
+    baseURL: settings.baseUrl,
+    timeout: settings.timeoutMs,
+    maxRetries: 1,
+    // OpenRouter's app attribution header; other providers get no extra header.
+    ...(settings.provider === 'openrouter' ? { defaultHeaders: { 'X-Title': 'OmniCourse' } } : {}),
+  };
+}
+
+// An OpenAI-compatible provider through the OpenAI SDK (ADR 0003 and its note of
+// 2026-11-09): OpenRouter, or Anthropic's compatibility layer. The no-training
+// guarantee is an account setting of the provider, not a request field.
+export class OpenAiCompatibleModelClient extends ModelClient {
+  private readonly sdk: OpenAI;
+  private readonly maxOutputTokens: number;
+
+  constructor(apiKey: string, settings: ClientSettings) {
     super();
-    this.sdk = new OpenAI({ apiKey, baseURL: OPENROUTER_URL, timeout: timeoutMs, maxRetries: 1, defaultHeaders: { 'X-Title': 'OmniCourse' } });
+    this.sdk = new OpenAI(sdkOptions(apiKey, settings));
+    this.maxOutputTokens = settings.maxOutputTokens;
   }
 
   async complete(request: Parameters<ModelClient['complete']>[0]): Promise<{ content: string; usage: ModelUsage }> {
     try {
       const completion = await this.sdk.chat.completions.create({
         model: request.model,
+        max_tokens: this.maxOutputTokens,
         messages: toSdkMessages(request.messages),
         response_format: { type: 'json_schema', json_schema: { name: request.jsonSchema.name, schema: request.jsonSchema.schema, strict: true } },
       });
@@ -88,7 +108,7 @@ export class OpenRouterModelClient extends ModelClient {
 
   async *stream(request: StreamRequest): AsyncIterable<ModelStreamEvent> {
     try {
-      const stream = this.sdk.chat.completions.stream(toStreamParams(request));
+      const stream = this.sdk.chat.completions.stream(toStreamParams(request, this.maxOutputTokens));
       let finished = false;
       try {
         for await (const chunk of stream) {

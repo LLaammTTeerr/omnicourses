@@ -285,5 +285,63 @@ describe('GatewayLlmService', () => {
       await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(guard.reserve).not.toHaveBeenCalled();
     });
+
+    describe('tool-call cap (red team round 3, J32)', () => {
+      const calls = (n: number, args: (i: number) => string = (i) => JSON.stringify({ query: `q${i}` })) =>
+        Array.from({ length: n }, (_, i) => ({ id: `c${i}`, name: 'search_regulations', arguments: args(i) }));
+
+      it('runs no call of a turn that would pass the cap, ends with tool_limit and keeps the call counted', async () => {
+        model.turns = [{ toolCalls: calls(200) }];
+        await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError(AI_REASONS.toolLimit));
+        expect(handler).not.toHaveBeenCalled();
+        expect(model.streamCalls).toHaveLength(1);
+        expect(guard.release).not.toHaveBeenCalled();
+        expect(guard.finish).toHaveBeenCalledWith('row-1', expect.objectContaining({ succeeded: false }));
+      });
+
+      it('counts calls across turns, unknown and invalid ones too', async () => {
+        const bad = [
+          { id: 'u', name: 'drop_tables', arguments: '{}' },
+          { id: 'v', name: 'search_regulations', arguments: '{"query":42}' },
+        ];
+        model.turns = [{ toolCalls: [...calls(3), ...bad] }, { toolCalls: calls(4, (i) => JSON.stringify({ query: `r${i}` })) }, { text: 'never' }];
+        await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError(AI_REASONS.toolLimit));
+        expect(handler).toHaveBeenCalledTimes(3);
+        expect(model.streamCalls).toHaveLength(2);
+      });
+
+      it('allows exactly the cap', async () => {
+        model.turns = [{ toolCalls: calls(4) }, { toolCalls: calls(4, (i) => JSON.stringify({ query: `r${i}` })) }, { text: 'Done.' }];
+        const events = await collect(llm.chat(request));
+        expect(events.at(-1)).toEqual({ type: 'done', text: 'Done.' });
+        expect(handler).toHaveBeenCalledTimes(8);
+      });
+
+      it('takes the cap from the request', async () => {
+        model.turns = [{ toolCalls: calls(2) }];
+        await expect(collect(llm.chat({ ...request, maxToolCalls: 1 }))).rejects.toThrow(new AiUnavailableError(AI_REASONS.toolLimit));
+        expect(handler).not.toHaveBeenCalled();
+      });
+
+      it('runs an identical call once and gives every copy the same result', async () => {
+        model.turns = [{ toolCalls: calls(3, () => '{"query":"cap"}') }, { toolCalls: calls(1, () => '{ "query": "cap" }') }, { text: 'Done.' }];
+        const events = await collect(llm.chat(request));
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(events.filter((e) => e.type === 'tool_result')).toEqual(Array(4).fill({ type: 'tool_result', name: 'search_regulations', ok: true }));
+        const fed = model.streamCalls[2].messages.filter((m) => m.role === 'tool').map((m) => m.content);
+        expect(fed).toEqual(Array(4).fill('{"clause":"Article 10: cap"}'));
+      });
+
+      it('ends the chat when tool results would pass the prompt budget', async () => {
+        handler.mockImplementation(async ({ query }) => ({ clause: query.padEnd(150_000, '.') }));
+        try {
+          model.turns = [{ toolCalls: calls(2) }, { text: 'never' }];
+          await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError(AI_REASONS.toolLimit));
+          expect(model.streamCalls).toHaveLength(1);
+        } finally {
+          handler.mockImplementation(async ({ query }) => ({ clause: `Article 10: ${query}` }));
+        }
+      });
+    });
   });
 });

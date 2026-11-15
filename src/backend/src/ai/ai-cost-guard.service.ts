@@ -19,7 +19,7 @@ export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'late
 // and one the provider refused without billing (wrong key, no credit, rate
 // limit) has its row released. The window rolls over 24 hours, so
 // no time zone is involved. The monthly budget is the credit limit set on the
-// OpenRouter key itself.
+// provider's API key itself (OpenRouter or Anthropic, ADR 0003).
 @Injectable()
 export class AiCostGuard {
   private readonly logger = new Logger(AiCostGuard.name);

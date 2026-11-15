@@ -12,6 +12,7 @@ export const AI_REASONS = {
   unusableReply: 'The model returned an unusable reply',
   streamEndedEarly: 'The model stream ended early',
   dailyLimit: 'Daily AI limit reached, try again tomorrow',
+  toolLimit: 'The model called too many tools',
 } as const;
 
 // The one failure type of the AI gateway (ADR 0003): no key, timeout, provider

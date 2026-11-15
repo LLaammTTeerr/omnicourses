@@ -48,6 +48,13 @@ export interface ChatRequest {
   tools?: ChatTool<any>[];
   /** Model turns including the final answer; on the last turn the model may not call a tool. Default 5. */
   maxSteps?: number;
+  /**
+   * Tool calls in the whole chat, every turn and every call counted (a repeat too). A turn that would
+   * go past it runs none of its calls: the chat ends with AiUnavailableError(`toolLimit`), and the
+   * call still counts toward the cap. Default 8. An identical call (same tool, same parsed arguments)
+   * reuses the first call's result and does not run the handler again.
+   */
+  maxToolCalls?: number;
 }
 
 // `text` deltas stream from every model turn, including a short preamble before

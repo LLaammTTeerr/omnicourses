@@ -66,18 +66,24 @@ const goal = await this.llm.structured({
   schema: PlanningGoalSchema,          // zod; .nullable(), not .optional()
 });
 
-@Post('ask')                           // F8: stream with streamChat, read it with fetch
-ask(@CurrentUser() user: User, @Body() dto: AskDto, @Res() res: Response) {   // AskDto: @IsIn(['user', 'assistant']) on role
-  return streamChat(res, this.llm.chat({ context: { userId: user.id, feature: 'advisor' }, instructions, messages: dto.messages, tools }));
+@Post('ask')                           // F8: tools, then a JSON final message the server checks
+@HttpCode(200)
+async ask(@CurrentUser() user: User, @Body() dto: AskDto): Promise<AdvisorAnswerDto> {   // AskDto: @IsIn(['user', 'assistant']) on role
+  let final = '';
+  for await (const e of this.llm.chat({ context: { userId: user.id, feature: 'advisor' }, instructions, messages: dto.messages, tools }))
+    if (e.type === 'done') final = e.text;   // never show text deltas: they are unchecked
+  return assembleAnswer({ text: final, evidence, … });   // ids checked, facts templated, explanation guarded, badge added
 }
 ```
+
+- F8 shows no word the model wrote until the whole answer is checked ([ADR 0016](docs/analysis-and-design/adr/0016-advisor-harness.md), option A): the model picks passages and engine facts by id, the server renders them, and its own explanation is shown only after the explanation guard, next to the badge. `streamChat` (`ai/sse.ts`) streams `chat()` for a feature that may show raw model text; none does today.
 
 - Every failure is `AiUnavailableError` → **503 `ai_unavailable`**. Give each AI screen a manual path. Document it with `@ApiServiceUnavailableResponse({ type: AiUnavailableDto })`.
 - A tool handler gets only the arguments the model wrote. Build the tools per request and close over the signed-in `user`; never take a user id from the arguments.
 - Validate the role of each chat message with `@IsIn(['user', 'assistant'])`. The gateway also drops any other role, so a client cannot inject a system message.
-- Unit tests use `FakeLlmService` (`src/ai/testing/`). CI never calls OpenRouter. `npm run test:live -w src/backend` is the manual smoke test and spends credit.
+- Unit tests use `FakeLlmService` (`src/ai/testing/`). CI never calls a model provider. `npm run test:live -w src/backend` is the manual smoke test and spends credit.
 - Calls are capped per user per day (`AI_DAILY_CALLS_PER_USER`). A call counts once it reaches the model, even if the student disconnects, times out or gets a provider 5xx. One that fails before (no key, no model) does not, and neither does one the provider refused without billing (wrong key, no credit, rate limit): the gateway releases its row. Usage rows hold no content. Never log a prompt, a reply, tool arguments or a provider error message.
-- Two settings in the OpenRouter dashboard carry ADR 0003's guarantees. The Project Lead keeps them on: **Settings → Privacy → training opt-out**, and **a monthly credit limit on the API key**.
+- The provider is `AI_BASE_URL`: OpenRouter by default, or Anthropic; any other URL stops the boot (ADR 0003, note of 2026-11-09). Two provider settings carry ADR 0003's guarantees, and the Project Lead keeps them on: **no training on prompts** (OpenRouter: Settings → Privacy → training opt-out; Anthropic: confirmed in the Console) and **a monthly credit limit on the API key**.
 
 ## Testing
 
