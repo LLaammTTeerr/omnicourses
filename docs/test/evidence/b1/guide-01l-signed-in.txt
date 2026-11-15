@@ -1,0 +1,47 @@
+TC-B1-GUIDE-01l, signed-in half, on G01 and G07. Production https://omnicourses.lamter.cc (main e20bdc1, deployed by
+Deploy run 43690617723), 15 November 2026, 08:05-08:15 UTC.
+
+Dũng signed in as S1 (b1-s1@example.com) in Chrome 144.0.7559.110, in the Claude in Chrome tab group, and typed the
+password. Claude Code ran the JavaScript below in that tab. The session token was read from sessionStorage inside the
+page and used only there: it was never printed, returned or saved. The script returned booleans and sizes only, not
+S1's email or display name.
+
+Account: GET /api/users/me 200, its email is b1-s1@example.com (true). GET /api/users/me/onboarding 200: finished true,
+program and cohort set.
+
+1. Each guide route, without and with S1's token, from the same tab (fetch, cache 'no-store')
+
+   path                               without  with   bodies identical  bytes  S1 email  S1 name  identity key*
+   /api/guides                        200      200    yes               1702   no        no       no
+   /api/guides/accounts-and-portals   200      200    yes               9965   no        no       no
+   /api/guides/grades-and-transcript  200      200    yes               4555   no        no       no
+   /api/guides/register-courses       404      404    yes                 66   no        no       no
+   /api/guides/pay-tuition            404      404    yes                 66   no        no       no
+   /api/guides/no-such-guide          404      404    yes                 66   no        no       no
+
+   * a JSON key email, displayName, program, cohort, transcript, plan, plans or userId.
+   The 1702-byte list is also what the signed-out run read (guide-01-g01-g07-output.txt).
+
+   const t = sessionStorage.getItem('omnicourse.session');
+   for (const p of paths) {
+     const a = await (await fetch(p, { cache: 'no-store' })).text();
+     const b = await (await fetch(p, { cache: 'no-store', headers: { Authorization: 'Bearer ' + t } })).text();
+     // compared a === b, b.length, b.includes(me.email), b.includes(me.displayName), identity-key regex on b
+   }
+
+2. The guide pages, signed in as S1, screen in Vietnamese
+
+   G01 /guides/accounts-and-portals: h1 "Tài khoản và cổng thông tin", 5 steps.
+       <main> text SHA-256 (first 16 hex, whitespace collapsed): ddf6cdb2d44c62f4, 4028 characters.
+       Signed out (Playwright, installed Chrome, new context, same digest): ddf6cdb2d44c62f4, 4028 characters. Identical.
+   G07 /guides/grades-and-transcript: h1 "Xem điểm", 4 steps.
+       <main> text: 75f460a26d997e2d, 1714 characters. Signed out: 75f460a26d997e2d, 1714 characters. Identical.
+
+   On both pages, inside <main>: S1's display name no; S1's email no; Report a problem or Suggest a guide no; a
+   program value or plan courses no; forms 0; password fields 0 (forms on the whole page 0).
+
+   Outside <main>: S1's display name appears once, in a <b> of the app's sidebar (<aside>). The sidebar shows it on
+   every signed-in page; it is not guide content. Recorded as pass with a note (Dũng, 15 November 2026); GUIDE-01l's
+   last sentence now says "No guide content shows the student's name" (test-cases-b1.md 0.5).
+
+The tab stayed signed in as S1 after the check.
