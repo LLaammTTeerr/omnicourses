@@ -2,7 +2,7 @@
 
 - Feature: F11 Quicklinks and step-by-step guides (Vision §5); use case UC-10 (`docs/requirements/use-cases/UC-10-follow-a-school-task-guide.md`)
 - Owner: Dũng
-- Status: draft, 30 October 2026. The B1 batch, public reading and file storage were agreed by Lâm on 30 October. No portal address, account or step below has been checked on a portal yet.
+- Status: draft, 30 October 2026. The B1 batch, public reading and file storage were agreed by Lâm on 30 October. Dũng checked the B1 guides on the portals on 15 November 2026: G01 and G07 to the end, G02 and G06 in part (registration was closed and nothing was owed, so their remaining steps wait for the next registration and tuition periods). Nothing in the B3 and later guides has been checked on a portal yet.
 - Due: this list and the content model by 1 Nov (week 4 report); the first batch of guides in B1 (15 Nov)
 
 ## 1. Purpose
@@ -49,7 +49,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 
 ## 4. School tasks to cover
 
-**B1 batch** (first, by 15 Nov, agreed by Lâm): the tasks every student meets every term, plus the transcript download that UC-02 needs. **B3**: the rest. **Later**: only if time allows.
+**B1 batch** (first, by 15 Nov, agreed by Lâm): the tasks every student meets every term. **B3**: the rest. **Later**: only if time allows.
 
 | ID | Guide | Vietnamese name | Group | Batch | Why it is needed |
 | --- | --- | --- | --- | --- | --- |
@@ -123,8 +123,8 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 
 ### G07 View your grades (B1)
 
-- **Shows:** where grades appear on the portal, term by term. For now it ends with a link to the student's transcript page in OmniCourse. A link to transcript import (UC-02) is added when import ships.
-- **Notes:** the file holds personal data, so don't post it anywhere. When import ships, the guide adds that OmniCourse reads the file on its own server and deletes it after reading (UC-02).
+- **Shows:** where grades appear on the portal, term by term. A link to transcript import (UC-02) is added when import ships.
+- **Notes:** grades are personal data, so don't post screenshots of the grades page anywhere. When import ships, the guide adds that OmniCourse reads the file on its own server and deletes it after reading (UC-02).
 - **Found (15 November 2026):** neither portal.ctdb nor portal.hcmus offers a transcript PDF to download. Grades are on portal.ctdb under “SINH VIÊN” → “Kết Quả Học Phần”. ADR 0003's open question (does the file have a text layer and a fixed layout) has no portal file to answer it; what transcript import (UC-02) reads is the Project Lead's decision.
 
 ### G08 Request an official transcript (B3)
