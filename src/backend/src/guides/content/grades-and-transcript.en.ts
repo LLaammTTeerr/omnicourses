@@ -58,5 +58,5 @@ export default {
       source: { kind: 'team' },
     },
   ],
-  related: [{ label: 'Register for courses', url: '/guides/register-courses' }],
+  // Register for courses is linked under `related` once that guide is published (version 2).
 } satisfies GuideFile;

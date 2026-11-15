@@ -60,9 +60,8 @@ export default {
       source: { kind: 'team' },
     },
   ],
+  // Register for courses and Pay tuition are linked here once those guides are published (version 2).
   related: [
-    { label: 'Register for courses', url: '/guides/register-courses' },
-    { label: 'Pay tuition', url: '/guides/pay-tuition' },
     { label: 'View your grades', url: '/guides/grades-and-transcript' },
   ],
   // The board (guides plan §5 G01): every site the other guides send an APCS student to.
