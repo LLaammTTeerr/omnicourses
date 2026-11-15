@@ -20,31 +20,39 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     Student->>View: opens /explorer
-    View->>Auth: authed(fetchPrograms)
-    Auth->>Api: fetchPrograms(token)
-    Api->>Ctrl: GET /api/programs
-    Ctrl->>Svc: listPrograms()
-    Svc->>DB: SELECT programs with their curriculums
-    Svc-->>Ctrl: ProgramDto[] with cohortYears
-    Ctrl-->>View: 200 ProgramListDto
     View->>Onb: answers (loaded by the router guard)
     Onb-->>View: the student's program and cohort
     View->>View: selection = what the student picked, else their own<br/>program and cohort, else the first offered one
-    View->>Auth: authed(fetchCurriculum)
-    Auth->>Api: fetchCurriculum(token, program, cohort)
-    Api->>Ctrl: GET /api/programs/{program}/curricula/{cohort}
-    Ctrl->>Svc: getCurriculum(program, cohort)
-    Svc->>DB: SELECT curriculums with program, requirement groups,<br/>course links and courses
-    Svc->>CR: rulesFor(curriculum.id)
-    CR->>DB: SELECT course_prerequisite_lists with prerequisites,<br/>and course_offering_terms
-    CR-->>Svc: CourseRules
-    Svc-->>Ctrl: CurriculumDto: groups, courses, each course's<br/>prerequisites and offeringTerms, or null when not recorded
-    Ctrl-->>View: 200 CurriculumDto
-    View->>Auth: useTranscriptCodes: authed(fetchTranscript)
-    Auth-->>View: the course codes of the saved transcript
+    Note over View: The selection does not wait for GET /api/programs. Without answers,<br/>programChoices lists the offered programs from OFFERED_COHORTS
+    par the program and cohort menus
+        View->>Auth: authed(fetchPrograms)
+        Auth->>Api: fetchPrograms(token)
+        Api->>Ctrl: GET /api/programs
+        Ctrl->>Svc: listPrograms()
+        Svc->>DB: SELECT programs with their curriculums
+        Svc-->>Ctrl: ProgramDto[] with cohortYears
+        Ctrl-->>View: 200 ProgramListDto
+        View->>View: fill the program and cohort menus, nothing else
+    and the curriculum of the selection
+        View->>Auth: authed(fetchCurriculum)
+        Auth->>Api: fetchCurriculum(token, program, cohort)
+        Api->>Ctrl: GET /api/programs/{program}/curricula/{cohort}
+        Ctrl->>Svc: getCurriculum(program, cohort)
+        Svc->>DB: SELECT curriculums with program, requirement groups,<br/>course links and courses
+        Svc->>CR: rulesFor(curriculum.id)
+        CR->>DB: SELECT course_prerequisite_lists with prerequisites,<br/>and course_offering_terms
+        CR-->>Svc: CourseRules
+        Svc-->>Ctrl: CurriculumDto: groups, courses, each course's<br/>prerequisites and offeringTerms, or null when not recorded
+        Ctrl-->>View: 200 CurriculumDto
+    and the transcript marks
+        View->>Auth: useTranscriptCodes: authed(fetchTranscript)
+        Auth-->>View: the course codes of the saved transcript
+    end
     View->>View: orderGroups, groupColour, one section per requirement group
     View-->>Student: every course by group, with a neutral<br/>"in your transcript" mark on the saved ones
 ```
+
+The three reads start together when the view is set up (`ExplorerView.vue`); none waits for another. `GET /api/programs` only fills the program and cohort menus. The curriculum is read again each time the selection changes, for example when the student picks another program or cohort.
 
 The transcript read is `GET /api/users/me/transcript`, drawn in [UC-02](UC-02-import-transcript.md). It only adds a mark: whether a course is passed is the rule engine's call, and the explorer does not ask it. `GET /api/programs` and the curriculum read need a signed-in user like every other route; they are not public.
 

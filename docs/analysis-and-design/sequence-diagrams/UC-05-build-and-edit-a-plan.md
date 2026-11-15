@@ -193,15 +193,17 @@ sequenceDiagram
         Editor->>Api: fetchPlanIssues for the saved board
     else 404, not the student's plan
         API-->>Api: 404, the same for a missing plan, another student's and a malformed id
-        Editor->>Editor: board = the last saved one
+        Api-->>Editor: HttpError 404
+        Editor->>Editor: board = the last saved one, forget the unsaved Undo steps
         Editor-->>Student: "saving failed"
+        Editor->>Api: fetchPlanIssues for the saved board
     else 401, the session is over
         API-->>Api: 401 from AuthGuard
-        Editor->>Editor: board = the last saved one, no message
+        Editor->>Editor: board = the last saved one, forget the unsaved Undo steps,<br/>no message and no issues check
         Note over Editor: useAuth cleared the token, App.vue opens /sign-in
     else any other failure (5xx, no answer within 30 s)
         Api-->>Editor: the error
-        Editor->>Editor: board = the last saved one
+        Editor->>Editor: board = the last saved one, forget the unsaved Undo steps
         Editor-->>Student: "saving failed"
         Editor->>Api: fetchPlanIssues for the saved board
     end

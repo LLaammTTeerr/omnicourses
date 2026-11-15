@@ -44,7 +44,7 @@ sequenceDiagram
 ```
 
 - The export names no table in code: it reads the foreign keys from the catalog, so a module that adds a table with `user_id` is exported with no change here. One snapshot (`REPEATABLE READ`) keeps the tables consistent with each other.
-- A secret column is one whose name ends in `_hash`, `_token`, `_secret`, `_key`, `_password` or `_sub` (`isSecretColumn`); it is never selected, so `password_hash`, `google_sub` and `sessions.token_hash` never leave the database.
+- A secret column is one whose name ends in `_hash`, `_token`, `_secret`, `_key`, `_password`, `_sub`, `_salt` or `_seed`, in snake_case or camelCase (`isSecretColumn`); it is never selected, so `password_hash`, `google_sub` and `sessions.token_hash` never leave the database.
 - Rows that only mention the student in another column (a grant they gave, `granted_by`) belong to someone else and are not exported.
 - `exportAccount` uses `send`, which has no timeout, because a download may take longer than a JSON call. A failure shows a message in the settings page; a 401 signs the student out as on every page.
 

@@ -88,7 +88,7 @@ classDiagram
 ```
 
 - `users` has a check that `deletion_requested_at` and `purge_after` are set and cleared together (`ck_users_deletion_pending`).
-- Credential columns (`passwordHash`, `googleSub`, `tokenHash`) are named here and never read into a response: the account export leaves out every column whose name ends in `_hash`, `_token`, `_secret`, `_key`, `_password` or `_sub` (`account/account-export.ts`, `isSecretColumn`). The session token itself is never stored, only its SHA-256.
+- Credential columns (`passwordHash`, `googleSub`, `tokenHash`) are named here and never read into a response: the account export leaves out every column whose name ends in `_hash`, `_token`, `_secret`, `_key`, `_password`, `_sub`, `_salt` or `_seed`, in snake_case or camelCase (`account/account-export.ts`, `isSecretColumn`). The session token itself is never stored, only its SHA-256.
 - `TranscriptRow.courseCode` and `OnboardingAnswers.programCode` are plain values with no foreign key to `courses` or `programs`: a transcript may name a course the catalog does not have ([ADR 0007](adr/0007-transcript.md)).
 - `AiUsage` has no `@ManyToOne` in the entity; its foreign key and `ON DELETE CASCADE` are in the `create-ai-usage` migration. Its rows hold no prompt or reply ([ADR 0003](adr/0003-language-model-scope.md)).
 
@@ -183,7 +183,7 @@ classDiagram
     CoursePrerequisiteList "0..*" --> "1" Course : course_code RESTRICT
     CoursePrerequisite "0..*" --> "1" CoursePrerequisiteList : curriculum_id, course_code CASCADE
     CoursePrerequisite "0..*" --> "1" Course : prerequisite_code RESTRICT
-    CourseOfferingTerm "1..3" --> "1" Curriculum : curriculum_id CASCADE
+    CourseOfferingTerm "0..*" --> "1" Curriculum : curriculum_id CASCADE
     CourseOfferingTerm "0..*" --> "1" Course : course_code RESTRICT
 ```
 
@@ -192,7 +192,8 @@ classDiagram
 - The course catalog is shared: a `Course` belongs to no curriculum, and `RequirementGroupCourse` links it into each one ([ADR 0005](adr/0005-curriculum-cohort-and-course-catalog.md)). The catalog side of every link is `RESTRICT`, so a course in use cannot be deleted.
 - A `CoursePrerequisiteList` row with no `CoursePrerequisite` rows means "recorded as having no prerequisite"; no list row means "not recorded". The rule engine keeps the two apart ([ADR 0011](adr/0011-curriculum-administration.md)). A check forbids a course being its own prerequisite.
 - `RequirementGroupOverflow`: a group sends its credits beyond its own minimum to at most one other group (its primary key is `fromGroupId`), never to itself ([ADR 0013](adr/0013-rule-engine-and-degree-audit.md)).
-- The multiplicity `1..*` on `CombinedMinimumGroup` and `1..3` on `CourseOfferingTerm` is what the seed and the admin service write; the schema itself allows zero.
+- The multiplicity `1..*` on `CombinedMinimumGroup` is what the seed writes; the schema itself allows zero.
+- A curriculum has any number of `CourseOfferingTerm` rows: one per course and term (the primary key is `curriculum_id`, `course_code`, `term_number`), and none until an administrator records them (the seed writes none). The limit of 1 to 3 rows is per course within a curriculum: `term_number` is 1, 2 or 3 (`ck_course_offering_terms_term_number`), and the admin route takes at least one term (`SetOfferingTermsDto`). Neither arrow can show that limit.
 
 ### 1.3 Administration grants
 
@@ -914,7 +915,7 @@ classDiagram
     PlansService --> CurriculumService
 ```
 
-Each service reaches its own tables through TypeORM repositories (left out of the drawing): `OnboardingService` → `OnboardingAnswers`; `TranscriptService` → `TranscriptRow`; `CurriculumService` → `Program`, `Curriculum`, `Course`, `RequirementGroupCourse`; `CourseRulesService` → `CoursePrerequisiteList`, `CourseOfferingTerm`; `CurriculumRulesReader` → `Curriculum`, `CombinedMinimum`, `RequirementGroupOverflow`; `PlansService` → `Plan`, `PlanPlacement`. No service reads another module's tables: `RulesService` and `PlansService` go through the services drawn.
+Each service reaches its own tables through TypeORM repositories (left out of the drawing): `OnboardingService` → `OnboardingAnswers`; `TranscriptService` → `TranscriptRow`; `CurriculumService` → `Program`, `Curriculum`, `Course`, `RequirementGroupCourse`; `CourseRulesService` → `CoursePrerequisiteList`, `CourseOfferingTerm`; `CurriculumRulesReader` → `Curriculum`, `CombinedMinimum`, `RequirementGroupOverflow`; `PlansService` → `Plan`, `PlanPlacement`. No service in this diagram reads another module's data from its tables: `RulesService` and `PlansService` go through the services drawn. The one statement on another module's table is a row lock: `TranscriptService` locks the student's `users` row while it replaces the transcript and selects no column. Outside this diagram, `AccountService` reads every table with a `user_id` by design ([ADR 0004](adr/0004-account-export-and-deletion.md), section 3.1), and the curriculum administration services write the curriculum tables (section 3.3).
 
 | Controller | Routes |
 | --- | --- |
