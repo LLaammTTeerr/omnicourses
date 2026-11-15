@@ -1,5 +1,6 @@
-TC-B1-GUIDE-01l, signed-in half, on G01 and G07. Production https://omnicourses.lamter.cc (main e20bdc1, deployed by
-Deploy run 43690617723), 15 November 2026, 08:05-08:15 UTC.
+TC-B1-GUIDE-01l, signed-in half, on G01 and G07. Production https://omnicourses.lamter.cc, 15 November 2026,
+08:05-08:15 UTC. Production then served main a515ce7 (Deploy run 43691958402, finished 07:54:24 UTC), not e20bdc1
+(#112); a515ce7 has the same src/ as e20bdc1.
 
 Dũng signed in as S1 (b1-s1@example.com) in Chrome 144.0.7559.110, in the Claude in Chrome tab group, and typed the
 password. Claude Code ran the JavaScript below in that tab. The session token was read from sessionStorage inside the
