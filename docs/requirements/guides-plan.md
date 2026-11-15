@@ -178,7 +178,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 
 ## 6. How each guide is made
 
-1. Dũng drafts the guide in both languages from the school's published pages. An AI tool may draft and translate the guide text (Lâm, 9 Nov 2026; until then guides were typed by hand, Lâm, 30 Oct 2026). Portal addresses, labels and steps still come only from the school's pages or the portal, never from the tool, and step 2 confirms each one. No personal data goes into the tool (§3 rule 5).
+1. Dũng drafts the guide in both languages from the school's published pages. An AI tool may draft and translate the guide text (Lâm, confirmed 15 Nov 2026; until then guides were typed by hand, Lâm, 30 Oct 2026). Portal addresses, labels and steps still come only from the school's pages or the portal, never from the tool, and step 2 confirms each one. No personal data goes into the tool (§3 rule 5).
 2. A team member who has used that portal follows it with their own account and records **Last checked**.
 3. Another team member reviews the pull request.
 4. The guide is published with version 1.
