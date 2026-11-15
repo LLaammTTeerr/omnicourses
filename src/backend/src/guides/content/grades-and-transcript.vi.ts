@@ -54,7 +54,7 @@ export default {
       source: { kind: 'team' },
     },
     {
-      text: 'Nếu thấy điểm sai, làm đơn phúc khảo trong thời gian ghi ở thông báo phúc khảo của học kỳ, ở mục Thông báo Giáo vụ. Đơn nộp trễ hạn sẽ không được giải quyết.',
+      text: 'Nếu thấy điểm sai, làm đơn phúc khảo trong thời gian ghi ở thông báo phúc khảo của học kỳ, ở mục Thông báo Giáo vụ. Thông báo ghi rõ: sau thời gian phúc khảo, mọi khiếu nại sẽ không được giải quyết.',
       source: { kind: 'team' },
     },
   ],

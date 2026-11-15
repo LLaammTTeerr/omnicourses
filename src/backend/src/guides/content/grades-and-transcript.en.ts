@@ -54,7 +54,7 @@ export default {
       source: { kind: 'team' },
     },
     {
-      text: 'If a grade looks wrong, ask for a re-mark (phúc khảo) within the period given in that term’s re-mark announcement, under Thông báo Giáo vụ. Late requests are not handled.',
+      text: 'If a grade looks wrong, ask for a re-mark (phúc khảo) within the period given in that term’s re-mark announcement, under Thông báo Giáo vụ. The announcement says that after this period, complaints are not handled.',
       source: { kind: 'team' },
     },
   ],

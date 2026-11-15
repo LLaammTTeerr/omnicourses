@@ -62,7 +62,7 @@ export default {
       text: 'Go back to the online tuition site, open the “Các khoản thu đã nộp” (Amounts paid) tab and check that your payment is listed. Download the e-invoice with “Tải hóa đơn” (Download invoice).',
     },
     {
-      text: 'If the payment is not listed after 15 minutes, open the “Lịch sử giao dịch” (Transaction history) tab and look at “Trạng thái” (Status), or contact Phòng Kế hoạch – Tài chính (the Planning and Finance Office).',
+      text: 'If a payment is still waiting for confirmation after 15 minutes, open the “Lịch sử giao dịch” (Transaction history) tab and look at “Trạng thái” (Status), or contact Phòng Kế hoạch – Tài chính (the Planning and Finance Office).',
     },
   ],
   notes: [

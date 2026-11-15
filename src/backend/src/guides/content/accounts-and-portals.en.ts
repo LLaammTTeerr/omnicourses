@@ -2,8 +2,9 @@ import type { GuideFile } from '../guide-file.js';
 
 // G01 Your school accounts and portals (guides plan §4, §5). Sources: the sign-in and
 // "Forget Password" pages of portal.ctdb.hcmus.edu.vn, the sign-in page of Moodle CTDA, and the
-// school's notice on student accounts for the Chương trình Tiên tiến 2023 cohort. The rest comes
-// from following it on the portal (lastChecked). Search expectations: GUIDE-01c.
+// school's notice on student accounts for the Chương trình Tiên tiến 2023 cohort, and the
+// library's sign-in guide (glib.hcmus.edu.vn/vi/introduction/instruction_lib/Login-Guideline).
+// The rest comes from following it on the portal (lastChecked). Search expectations: GUIDE-01c.
 export default {
   id: 'accounts-and-portals',
   lang: 'en',
@@ -105,7 +106,7 @@ export default {
     {
       name: 'Thư viện (library)',
       url: 'https://glib.hcmus.edu.vn',
-      account: 'Your library account: the user name is 12000 followed by your student ID',
+      account: 'Your library account: the user name is 12000 followed by your student ID. The library sends the password by email or gives it at a training session',
       purpose: 'The school library: search for books and documents.',
     },
   ],

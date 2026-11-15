@@ -62,7 +62,7 @@ export default {
       text: 'Quay lại trang Thu học phí online, mở thẻ “Các khoản thu đã nộp” và kiểm tra khoản vừa nộp có trong danh sách. Tải hóa đơn điện tử bằng nút “Tải hóa đơn”.',
     },
     {
-      text: 'Nếu sau 15 phút khoản vừa nộp vẫn chưa có, mở thẻ “Lịch sử giao dịch” và xem cột “Trạng thái”, hoặc liên hệ Phòng Kế hoạch – Tài chính.',
+      text: 'Nếu giao dịch chờ xác nhận quá 15 phút, mở thẻ “Lịch sử giao dịch” và xem cột “Trạng thái”, hoặc liên hệ Phòng Kế hoạch – Tài chính.',
     },
   ],
   notes: [
