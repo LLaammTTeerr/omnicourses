@@ -38,6 +38,13 @@ program and cohort set.
    G07 /guides/grades-and-transcript: h1 "Xem điểm", 4 steps.
        <main> text: 75f460a26d997e2d, 1714 characters. Signed out: 75f460a26d997e2d, 1714 characters. Identical.
 
+   How the digests were made (Dũng, 15 November 2026): two one-off scripts written by Claude Code, neither kept in
+   the repository. Signed in: JavaScript run in the Chrome tab, crypto.subtle.digest('SHA-256', ...). Signed out: a
+   Node script with Playwright (installed Chrome, a fresh context), createHash('sha256') from node:crypto. Both took
+   the innerText of <main>, collapsed each run of whitespace to one space, trimmed it, hashed it and kept the first
+   16 hex characters. The character counts are of the text before collapsing. The digests cannot be reproduced from
+   a file in this pull request.
+
    On both pages, inside <main>: S1's display name no; S1's email no; Report a problem or Suggest a guide no; a
    program value or plan courses no; forms 0; password fields 0 (forms on the whole page 0).
 
