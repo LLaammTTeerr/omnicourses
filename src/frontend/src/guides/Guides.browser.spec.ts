@@ -61,4 +61,27 @@ describe('guide pages in a real browser', () => {
     await expectNoSidewaysScroll('/guides');
     await expectNoSidewaysScroll('/guides/zz-long');
   });
+
+  // Found on G01 in production (B1 GUIDE-01 rerun, 15 Nov 2026): a step's link became a third item of the step's
+  // two-column grid and fell into the 34 px number column, one letter per line.
+  it('keeps a step link beside its text, not under the step number', async () => {
+    await page.viewport(1280, 800);
+    const step = { text: 'Open the “Forget Password” page.', link: { label: 'The portal’s “Forget Password” page', url: 'https://portal.example.com/forget-password' } };
+    const guide: Guide = { id: 'zz-step-link', group: 'accounts-and-portals', texts: { en: guideText({ steps: [{ text: 'Sign in.' }, step] }) } };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json(guide));
+    const router = createAppRouter(createMemoryHistory());
+    await router.push('/guides/zz-step-link');
+    host = document.createElement('div');
+    document.body.append(host);
+    app = createOmniCourseApp(router);
+    app.mount(host);
+    await expect.poll(() => document.querySelector('[data-test=steps] a')).not.toBeNull();
+
+    const item = document.querySelectorAll<HTMLLIElement>('[data-test=steps] > li')[1]!;
+    const link = item.querySelector('a')!.getBoundingClientRect();
+    const number = parseFloat(getComputedStyle(item, '::before').width);
+    expect(link.left).toBeGreaterThanOrEqual(item.getBoundingClientRect().left + number);
+    // Squeezed into the number column it is about one letter wide; beside the text it fits the label on one line.
+    expect(link.width).toBeGreaterThan(4 * number);
+  });
 });
