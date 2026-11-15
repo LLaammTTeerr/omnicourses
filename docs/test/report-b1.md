@@ -1,10 +1,10 @@
 # B1 test report
 
-- Owner: Dũng. This version was drafted from the automated run of 15 November 2026 by the Project Lead's coding agent, which leads B1 acceptance for Lâm. Dũng adds his manual run (§4, marked **to be filled from Dũng's manual run**).
+- Owner: Dũng. Drafted by the Project Lead's coding agent, which leads B1 acceptance for Lâm, from two runs of 15 November 2026: its own scripted run on staging and on a local database, and Dũng's manual run on production ([`results-2026-11-15.md`](evidence/b1/results-2026-11-15.md), pull request #118). Where the two differ, §4 gives both.
 - Build: B1 is tag `B1` on commit `1decf4a` (`1decf4a0bb63152955ee0ab3f39d33b357b292ab`, "chore(release): version packages (#69)", version 0.3.0). [Deploy run 43666848017](https://github.com/LLaammTTeerr/omnicourses/actions/runs/43666848017) (15 November 2026, 02:14 UTC) deployed that commit to production and created the tag.
 - Tested commit: `7f66b7a` (`7f66b7a2c8c4a138aa713b90b264d89e4cef3e95`), which is B1 plus one commit that changes documents only. `git diff --stat 1decf4a 7f66b7a` lists two files, `.changeset/late-comics-bow.md` and `docs/test/test-cases-b1.md`; no file under `src/` differs. Staging and production both run `7f66b7a`.
 - Cases: [B1 test cases](test-cases-b1.md) v0.4 and the [B0 test cases](test-cases-b0.md) carried to B1 (B1 cases §8). Parent checks: [test plan §5](test-plan.md#5-required-checks).
-- Run: 15 November 2026, 03:02–03:31 UTC (10:02–10:31 in Vietnam). On staging, https://stag-omnicourses.lamter.cc, and on a local disposable database for the cases that §1 of the cases keeps off staging. Nothing was tested on production.
+- Runs: 15 November 2026. The scripted run, 03:02–03:31 UTC (10:02–10:31 in Vietnam), on staging, https://stag-omnicourses.lamter.cc, and on a local disposable database for the cases that §1 of the cases keeps off staging. Dũng's manual run, about 02:30–05:00 UTC, on production, https://omnicourses.lamter.cc, which served the same commit from 02:22 UTC. The scripted run tested nothing on production.
 - **Decision: pending — Lâm.** This report does not accept or reject B1.
 
 ## 1. Summary
@@ -13,35 +13,36 @@
 
 | Result | Cases |
 | --- | --- |
-| Passed | 114. B1 (63): ACAD-01a–g, ACAD-02a–f, PLAN-01a–l, DATA-01a–e, AI-01a–g, COV-01a–c, USER-01a–j, l–v, y, z. B0 on B1 (51): AUTH-01a–p, SESS-01a–k, UI-01b–j, m–q, DB-01a–f, DEP-01a–d |
-| Failed | 7. Two app defects: PLAN-01n ([#101](https://github.com/LLaammTTeerr/omnicourses/issues/101), known) and PLAN-01m ([#117](https://github.com/LLaammTTeerr/omnicourses/issues/117): the rate limit lets 121 requests through, so the case sees no 429). One where the case and the build disagree and a decision is needed: USER-01k ([#115](https://github.com/LLaammTTeerr/omnicourses/issues/115)). Four that fail as written while the app does what the case protects ([#116](https://github.com/LLaammTTeerr/omnicourses/issues/116)): UI-01a, UI-01k, UI-01l, DEP-01f |
+| Passed | 127. B1 (76): ACAD-01a–g, ACAD-02a–f, PLAN-01a–l, DATA-01a–e, AI-01a–g, COV-01a–c, USER-01a–j, l–v, x–z, GUIDE-01o, PERF-01a–h, A11Y-01a, c, g. B0 on B1 (51): AUTH-01a–p, SESS-01a–k, UI-01b–j, m–q, DB-01a–f, DEP-01a–d |
+| Failed | 12. Accessibility ([#119](https://github.com/LLaammTTeerr/omnicourses/issues/119)): A11Y-01b, d, e, f. The planner's Taken strip ([#101](https://github.com/LLaammTTeerr/omnicourses/issues/101), known): PLAN-01n. The case and the build disagree and a decision is needed: USER-01k ([#115](https://github.com/LLaammTTeerr/omnicourses/issues/115)). Fail as written, cause not established: PLAN-01m ([#117](https://github.com/LLaammTTeerr/omnicourses/issues/117): 121 saves got through a limit documented as 120, so the case saw no 429). Fail as written while the app does what the case protects ([#116](https://github.com/LLaammTTeerr/omnicourses/issues/116)): USER-01w, UI-01a, UI-01k, UI-01l, DEP-01f |
 | Blocked | 12. GUIDE-01a–h, l, m, n, **blocked: no guide is published** ([#114](https://github.com/LLaammTTeerr/omnicourses/issues/114), cases §6 item 10); ACAD-01h, **blocked: no prerequisite or offering-term data** (cases §6 item 14) |
-| Not run | 23. **To be filled from Dũng's manual run:** PERF-01a–h, A11Y-01a–g, GUIDE-01i, j, k, o and the screen parts of USER-01w and x (21). Needs a second network: DEP-01e. Not run by hand, by design: SESS-01l |
+| Not run | 5. GUIDE-01i, j, k (test-only guides, which need a local test database; Dũng records them as blocked). DEP-01e (needs a second network). SESS-01l (not run by hand, by design) |
 | **Total** | **156** |
 
 What matters for the decision:
 
-- **The academic core passed.** Every audit, counting, plan, data, gateway and coverage case that can run on B1 passed on observed evidence, except two. PLAN-01n (#101): the planner's **Đã học / Taken** strip shows 172 credits where its six terms hold 102. PLAN-01m (#117): the 120-a-minute limit lets 121 requests through, so the case as written sees no 429; once the limit is reached, the planner keeps the board and sends the save again as the case expects. No case found a wrong audit result, a leak between two students, or lost data.
-- **No guide is published.** B1's scope has the first guide batch (G01, G02, G06, G07). All four are still drafts, so the guide list is empty on staging and on production (#114). Eleven guide cases are blocked on it.
-- **USER-01k does not happen as the case says** (#115). There is no **My program isn't listed** choice, and the dashboard never opens for a student who has not finished onboarding: the app sends them to onboarding first. Details in §4.
-- **Dũng's manual run is not in this report yet**: PERF-01a–h, A11Y-01a–g, the screen parts of USER-01w and x, and the guide cases on test-only guides. The 2-second target and the keyboard, width and contrast checks are therefore not shown yet.
+- **The academic core passed.** Every audit, counting, plan, data, gateway and coverage case that can run on B1 passed on observed evidence, except two. PLAN-01n (#101): the planner's **Đã học / Taken** strip shows 172 credits where its six terms hold 102. PLAN-01m (#117): on staging 121 saves got through the limit documented as 120, so the case as written saw no 429; whether the limit or the case is off by one is not established, and on production's guide list the 121st request did get 429. Once the limit is reached, the planner keeps the board and sends the save again as the case expects. No case found a wrong audit result, a leak between two students, or lost data.
+- **No guide is published.** B1's scope has the first guide batch (G01, G02, G06, G07). All four are still drafts, so the guide list is empty on staging and on production (#114). Eleven guide cases are blocked on it. Pull request #112, which publishes G01 and G07 and leaves G02 and G06 as drafts, is reviewed and waits for a human approval; it is not in the tested build.
+- **USER-01k does not happen as the case says** (#115), in both runs. There is no **My program isn't listed** choice, and the dashboard never opens for a student who has not finished onboarding: the app sends them to onboarding first. Details in §4.
+- **Speed passed; accessibility did not.** In Dũng's manual run on production every timed load of the dashboard and the audit was under 2 seconds (the slowest was 1047 ms). A11Y-01b, d, e and f failed: focus is lost after some actions, the skip link skips nothing on three screens, one button is not translated, and axe-core finds contrast violations in 65 of 84 runs (#119).
+- **Where a pass was seen.** The 27 AUTH-01 and SESS-01 passes, DB-01, DATA-01, COV-01, AI-01 and USER-01n, q, r, y, z were seen on a local build of the tested tree with a disposable database, not on a deployed server. On production Dũng records USER-01n, q, r, y, z as blocked: they need database access there. §4 gives both.
 
 By parent check. A parent passes only when all its required detailed outcomes pass ([test plan §5](test-plan.md#5-required-checks)); the totals above count only the detailed cases.
 
 | Parent check | Result | Why |
 | --- | --- | --- |
-| TC-B1-USER-01 | not passed | 23 of 26 passed. USER-01k failed (#115). The screen parts of USER-01w and x wait for Dũng's manual run. |
-| TC-B1-GUIDE-01 | blocked | No guide is published (#114). GUIDE-01i, j, k and o are not run. |
+| TC-B1-USER-01 | not passed | 24 of 26 passed. USER-01k failed (#115) and USER-01w failed as written (#116). USER-01n, q, r, y, z passed on a local database and are blocked on production. |
+| TC-B1-GUIDE-01 | blocked | No guide is published (#114); #112 is not merged. GUIDE-01o passed on production. GUIDE-01i, j, k are not run. |
 | TC-B1-ACAD-01 | not passed yet | ACAD-01a–g passed. ACAD-01h is blocked on prerequisite and offering-term data (§6 item 14 of the cases). |
 | TC-B1-ACAD-02 | passed | ACAD-02a–f passed. |
-| TC-B1-PLAN-01 | failed | PLAN-01n failed (#101) and PLAN-01m failed (#117). PLAN-01a–l passed. |
+| TC-B1-PLAN-01 | failed | PLAN-01n failed (#101). PLAN-01m failed as written (#117). PLAN-01a–l passed. |
 | TC-B1-DATA-01 | passed | DATA-01a–e passed. Prerequisites and offering terms are recorded as unresolved (§5). |
 | TC-B1-AI-01 | passed | AI-01a–g passed. No B1 route calls a model, and no model was called in this run. |
 | TC-B1-COV-01 | passed | `src/rules/**`: 459 of 459 statements covered (100 %); a run below 80 % fails. |
-| TC-B1-PERF-01 | not run | To be filled from Dũng's manual run. |
-| TC-B1-A11Y-01 | not run | To be filled from Dũng's manual run. Two observations from this run are in §4. |
-| TC-B0-AUTH-01 | passed | AUTH-01a–p passed again through the API; the screens passed under UI-01 except the three below. |
-| TC-B0-SESS-01 | all run cases passed | SESS-01a–k passed. SESS-01l is not run by hand, by design. |
+| TC-B1-PERF-01 | passed | PERF-01a–h passed in Dũng's manual run on production: 130 timed runs, all under 2 seconds. |
+| TC-B1-A11Y-01 | failed | A11Y-01b, d, e, f failed (#119). A11Y-01a, c, g passed. |
+| TC-B0-AUTH-01 | passed | AUTH-01a–p passed again through the API, on a local build; the screens passed on staging under UI-01 except the three below. |
+| TC-B0-SESS-01 | all run cases passed | SESS-01a–k passed, on a local build. SESS-01l is not run by hand, by design. |
 | TC-B0-UI-01 | not passed | 14 of 17 passed. UI-01a, k and l fail as written: the app's address is a public home page, not the sign-in screen (#116). |
 | TC-B0-DB-01 | passed | DB-01a–f passed. |
 | TC-B0-DEP-01 | not passed | DEP-01a–d passed. DEP-01e needs a second network. DEP-01f fails as written: the tag is `1decf4a`, the servers run `7f66b7a`, documents-only apart. |
@@ -56,7 +57,9 @@ By parent check. A parent passes only when all its required detailed outcomes pa
 | Test data | Made-up `example.com` accounts only, password `correct horse battery`, display name `Test Student`. On staging: 19 accounts named `b1-run-07ef42-<role>@example.com` (§7). Locally: the accounts the cases name, in the disposable database only. Transcripts: the `ZZ` rows of the cases, the catalog rows the cases list, and the completion fixture `apcs-2024-completion.json` (SHA-256 `d0a0493f…facde`, checked before each use). No real name, student ID, transcript or secret. |
 | Model calls | None. No route of B1 calls a model, and nothing in this run spent AI credit. |
 
-Where each group of cases ran:
+Dũng's manual run used Chrome 144.0.7559.110 on Windows 10, headed, with Playwright 1.64.1 driving the installed Chrome for PERF-01 and A11Y-01 and axe-core 4.10.2, on production with the accounts the cases name (`b1-01` to `b1-04`, `b1-s1`, `b1-s2`, `b1-perf`) and one more, `b1-a11y`. His setup, accounts and notes are in [`results-2026-11-15.md`](evidence/b1/results-2026-11-15.md). The cases prescribe staging; his file says production was used as Lâm's bot asked. Both servers ran `7f66b7a`.
+
+Where each group of cases ran in the scripted run:
 
 - **Staging, through the API** (`b1-api-cases.mjs`, `b1-user-api-cases.mjs`): ACAD-01a–g, ACAD-02a–f, PLAN-01a, b, d, f, USER-01m, o, s, t, v, DB-01b, d, e, DEP-01b, d and the API part of GUIDE-01n.
 - **Staging, through the screens** (the `a-*` and `p-*` scripts): USER-01a–l, p, u, the screen parts of ACAD-01a, c, e, g and ACAD-02d, PLAN-01b, c, e, g–n, UI-01a–p, DEP-01a, c, and the three guide pages seen with no guide published.
@@ -65,7 +68,7 @@ Where each group of cases ran:
 How this differs from the cases:
 
 - **Scripts and a headless browser did the work, not a person in Chrome with the Swagger page.** Each script sends the routes and bodies, or does the clicks and keys, of its cases and prints the value it saw for every check. Drags, keys and clicks are Playwright events. Dũng's manual run is the check by a person.
-- **The accounts have run names**, not `b1-01` to `b1-09`, `b1-s1` to `b1-s3` or `b1-perf`. Dũng's manual run uses those names on the same server, and a second sign-up would get 409. Each run account stands for the account its case names, as §4 says.
+- **The accounts have run names**, not `b1-01` to `b1-09`, `b1-s1` to `b1-s3` or `b1-perf`. Those names belong to Dũng's manual run, and a second sign-up of one would get 409. Each run account stands for the account its case names, as §4 says.
 - **Request blocking** (PLAN-01e, the blocked part of PLAN-01g, UI-01p) used Playwright's request routing in place of DevTools blocking or stopping the backend. The server was never touched.
 - **"Read the CI result" cases.** The log of [CI run 43666344959](https://github.com/LLaammTTeerr/omnicourses/actions/runs/43666344959) on `1decf4a` gives totals per suite, not each test's title. So the named tests were also run locally with the verbose reporter, and both are recorded.
 - **COV-01c** used a throwaway copy of `src/backend` outside the repository, not a branch.
@@ -86,6 +89,7 @@ Raw evidence, in [`evidence/b1/`](evidence/b1/). No file holds a token or a pass
 | [`b0-regression-local.mjs`](evidence/b1/b0-regression-local.mjs), [`b0-regression-local-output.txt`](evidence/b1/b0-regression-local-output.txt) | AUTH-01a–p, SESS-01a–k and DB-01b, d, e again, on the local build. B0's script, with `psql` through podman and the health body of B1. |
 | [`local-user-01-db.mjs`](evidence/b1/local-user-01-db.mjs), [`local-user-01-db-output.txt`](evidence/b1/local-user-01-db-output.txt) | USER-01n, q, r, s, t, v, y, z and the API and database parts of w and x, on the local database |
 | [`cleanup.mjs`](evidence/b1/cleanup.mjs), [`cleanup-output.txt`](evidence/b1/cleanup-output.txt) | The deletion of every account the run made on staging, with each `purgeAfter` |
+| From pull request #118, at the same paths once it merges: [`results-2026-11-15.md`](evidence/b1/results-2026-11-15.md), `perf-01.mjs` and `perf-01-2026-11-15T03-57-28-615Z.json`, `a11y-01.mjs`, `a11y-01-2026-11-15T04-31-36-554Z-results.json` and `a11y-01c-widths-2026-11-15T04-40-50-767Z-results.json`, `guide-01o.sh` and `guide-01o-burst*.txt` | Dũng's manual run on production: a result and a note for every case of USER-01, GUIDE-01, PERF-01 and A11Y-01; every timed run of PERF-01b–h; the axe-core, language and width results; the three rate-limit bursts. His USER-01, GUIDE-01n, PERF-01a and A11Y-01b, f, g results are notes in the results file, with no raw output beside them. |
 
 Some evidence files hold lines that are not results, each explained inside the file: `a-onboarding-output.txt` (a first run whose script reused a token the page had rotated; `a-onboarding-2-output.txt` is the result), `p-plan-01g-h-e-first-run-output.txt` and `p-plan-01g-second-run-output.txt` (the pointer missed a row at that viewport height; `p-plan-01g-output.txt` is the result), `p-user-01j-plan-01i-aborted-run-output.txt` (a script error; the case was run again in full), and two mistyped queries in `local-data-01-output.txt`, rerun correctly below them.
 
@@ -194,13 +198,13 @@ Evidence: [`local-cov-01-output.txt`](evidence/b1/local-cov-01-output.txt).
 
 ### TC-B1-USER-01: Onboarding and account privacy
 
-Run by scripts, as §2 says. **Dũng's manual run of USER-01: to be filled from Dũng's manual run**; where it differs from a row below, his result is added beside it.
+Two runs. "Scripted" is this report's run: staging, or the local database for the cases that need `psql`. "Manual" is Dũng's run on production ([`results-2026-11-15.md`](evidence/b1/results-2026-11-15.md)). The two agree on every case both ran. They differ only where one could not run a case: the last column says so. For USER-01a–m, o, p, s, t, u and v, Dũng's result on production is the same as the row's.
 
 | ID | Result | Where | What happened |
 | --- | --- | --- | --- |
 | USER-01a | passed | staging | After sign-up, `/onboarding?redirect=/dashboard` opens at "Câu 1 / 4 · Chương trình". The only typed field in the wizard is credits per term. |
 | USER-01b | passed | staging | Programs: APCS only. Cohorts: 2024 and 2025. No free text, no faculty question. Nine other programs are named in a list and cannot be chosen ([screenshot](evidence/b1/a-user-01b-programs.png)). |
-| USER-01c | passed | staging | **Xong** with empty goals opened `/dashboard` ("APCS2024 · sinh viên năm 1"). A second context signed in to `/dashboard`. The API returns `null` for the three goals; Settings shows "Chưa biết", an empty field and "Chưa chọn". |
+| USER-01c | passed | staging | **Xong** with empty goals opened `/dashboard` ("APCS2024 · sinh viên năm 1"), seen on `a03`. A second context signed in to `/dashboard`, seen on `a02`. The API returns `null` for the three goals; Settings shows "Chưa biết", an empty field and "Chưa chọn". |
 | USER-01d | passed | staging | Saved and reloaded: `{2027, 2}`, 18, `{2027, 1}`; on screen HK2 2027–2028, 18, HK1 2027–2028. |
 | USER-01e | passed | staging | 23 came back as 23, then 9 as 9. No message. |
 | USER-01f | passed | staging | `-1`, `2.5` and `abc`: nothing sent, "Nhập một số nguyên từ 1 trở lên." at the field, the earlier 9 stayed. Cleared: `null`. |
@@ -208,22 +212,22 @@ Run by scripts, as §2 says. **Dũng's manual run of USER-01: to be filled from 
 | USER-01h | passed | staging | "Không thực tập" came back as `'none'`; cleared, it is `null`. |
 | USER-01i | passed | staging | Cohort 2025 saved. Dashboard "APCS2025 · …", explorer "Khóa tuyển 2025 · 71 học phần", audit `curriculumCode` `APCS2025`. Goals unchanged. |
 | USER-01j | passed | staging | **Lộ trình** made and opened "Kế hoạch mặc định"; CS160 added, **Đã lưu**. After the cohort change to 2025, the same plan opened, the line still said "CTĐT APCS2024", CS160 was still placed, and the course list held APCS 2024's courses ([screenshot](evidence/b1/p-user-01j-plan-after-cohort-change.png)). |
-| USER-01k | **failed** | staging | [#115](https://github.com/LLaammTTeerr/omnicourses/issues/115). See below. |
+| USER-01k | **failed** | staging, production | [#115](https://github.com/LLaammTTeerr/omnicourses/issues/115). Failed in both runs, with the same observations. See below. |
 | USER-01l | passed | staging | After the cohort step the context was closed. Signing in again resumed at "Câu 3 / 4 · Mục tiêu", with APCS 2024 kept and `finished` false. |
 | USER-01m | passed | staging | Both onboarding routes answer 401 without a token. With S2's token, only S2's answers. Neither route takes a user id; a `PUT` with S2's token and S1's id as extra fields changed only S2's own answers, and S1's were unchanged. |
-| USER-01n | passed | local | The hash starts with `$argon2id$`. The data dump and the backend log do not contain the password (0 matches each). |
+| USER-01n | passed | local | The hash starts with `$argon2id$`. The data dump and the backend log do not contain the password (0 matches each). **On production: blocked** (Dũng): it needs `psql` and the backend log there, with Lâm's OK. The case allows a local disposable database (§1 of the cases), so the local result is the one counted. |
 | USER-01o | passed | staging | The bodies of sign-up, sign-in, refresh, `GET /api/users/me`, sessions, both onboarding routes and the export have no key named `password`, `passwordHash` or `password_hash`, and none contains an argon2 hash. The hash itself cannot be read on staging, so the search was for `$argon2`, which every such hash starts with (USER-01n). |
 | USER-01p | passed | staging | `/privacy` opens signed out, from the link beside the consent box. In Vietnamese and English it states what is stored, that data is kept until the account is deleted, the 30 days and that signing in cancels, the 14 pre-deploy copies, the nightly backups kept 7 days and not running yet, and how to export or delete. The 30 days match the server: every deletion in §7 answered a `purgeAfter` 30 days ahead ([screenshot](evidence/b1/a-user-01p-privacy-en.png)). |
-| USER-01q | passed | local | `consent_at` was 58 ms after the sign-up was sent. |
-| USER-01r | passed | local | 200, `attachment; filename="omnicourse-account.json"`. `tables` has the eight tables of the §1 query with the same counts (onboarding_answers 1, plans 1, sessions 2, transcript_rows 3, the rest 0). Goals as prepared. On staging the API side gave the same, without the `psql` comparison. |
+| USER-01q | passed | local | `consent_at` was 58 ms after the sign-up was sent. **On production: blocked** (Dũng): needs `psql`. |
+| USER-01r | passed | local | 200, `attachment; filename="omnicourse-account.json"`. `tables` has the eight tables of the §1 query with the same counts (onboarding_answers 1, plans 1, sessions 2, transcript_rows 3, the rest 0). Goals as prepared. On staging the API side gave the same, without the `psql` comparison. **On production: blocked** (Dũng) for the `psql` comparison; the API half passed there too, with 3 transcript rows, 2 sessions, 1 plan and 1 placement. |
 | USER-01s | passed | local, staging | No key at any depth ends in a secret suffix. The file holds no password hash, no session token hash and no bearer token. |
 | USER-01t | passed | local, staging | S2's id, email and `ZZ201` are nowhere in S1's file; the same search finds S1's own. |
 | USER-01u | passed | staging | As `us1` (S1 with the Prepare data): **Xuất dữ liệu** saved `omnicourse-account.json` with the same eight tables and row counts as the API export taken right after. |
 | USER-01v | passed | local, staging | 403 "Wrong password"; still 200 on `GET /api/users/me`; `deletion_requested_at` still null. |
-| USER-01w | not run | | **Screen part to be filled from Dũng's manual run** (the dialog's text, browsers A and B on the sign-in screen). The API and database parts were seen locally: 202 with `purgeAfter` exactly 30 days after the request and equal to `purge_after`; both sessions 401; sign-up again 409; S2 still 200. |
-| USER-01x | not run | | **Screen part to be filled from Dũng's manual run** (the "account restored" message). Seen locally: 200 with `accountRestored: true`; both columns null; E2 equals E1 except `exportedAt`, `user.updated_at` and the sessions. |
-| USER-01y | passed | local | After the `UPDATE`, S3 and `nobody-b1@example.com` both got 401 with identical bodies. S3's row still existed. |
-| USER-01z | passed | local | After the restart the log says "Purged 1 account(s) after the deletion grace period". S3 has no `users` row and 0 rows in all eight user tables. S2's counts and the shared counts are unchanged. The new sign-up answered 201, and its export holds only its own session. |
+| USER-01w | **failed** | production (manual); local for the database part | As written (#116). Dũng, on production: after **Xóa tài khoản**, browser A goes to the public home page with a toast, not the sign-in screen (`DeleteAccountDialog.vue` sends it to `home`). The rest held: the dialog explains the 30 days before asking for the password; 202 with `purgeAfter` 2026-12-15T03:31:19Z, 30 days to the minute; browser B gets 401 and shows the sign-in screen; sign-up again 409; S2 still 200. He could not read `purge_after` in the production database. The scripted run did not do the screen part; locally it saw the API and database parts: `purgeAfter` exactly 30 days after the request and equal to `purge_after`, both sessions 401, 409, S2 200. |
+| USER-01x | passed | production (manual); local for the database part | Dũng, on production: 200 with `accountRestored: true`; the toast "Chào mừng trở lại…" seen on a second round; the deletion fields null in the export; E2 equals E1 except the allowed fields. Locally: `deletion_requested_at` and `purge_after` null in the database, and the same E1 and E2 comparison. The scripted run did not do the screen part. |
+| USER-01y | passed | local | After the `UPDATE`, S3 and `nobody-b1@example.com` both got 401 with identical bodies. S3's row still existed. **On production: blocked** (Dũng): needs a `psql` `UPDATE` there. |
+| USER-01z | passed | local | After the restart the log says "Purged 1 account(s) after the deletion grace period". S3 has no `users` row and 0 rows in all eight user tables. S2's counts and the shared counts are unchanged. The new sign-up answered 201, and its export holds only its own session. **On production: blocked** (Dũng): needs the backend restarted and `psql`. |
 
 **USER-01k, expected and observed** ([output](evidence/b1/a-user-01k-output.txt), [program question](evidence/b1/a-user-01k-program-question.png), [after opening `/dashboard`](evidence/b1/a-user-01k-dashboard.png), [Settings](evidence/b1/a-user-01k-settings.png)):
 
@@ -236,11 +240,11 @@ Run by scripts, as §2 says. **Dũng's manual run of USER-01: to be filled from 
 | No error, and no audit worked out without a program | As expected: `GET /api/users/me/audit` answers 409 `onboarding_required`; no error on screen or in the console. |
 | After signing in again, onboarding opens | As expected: `/onboarding?redirect=/dashboard`. |
 
-So the answer to "does the dashboard ask, or does the app redirect first?" is: **the app redirects to onboarding first.** Whether the app or the case and UC-01 A7 changes is Lâm's call (#115).
+So the answer to "does the dashboard ask, or does the app redirect first?" is: **the app redirects to onboarding first.** Dũng saw the same on production, and reads `router.ts` as doing it on purpose. Whether the app or the case and UC-01 A7 changes is Lâm's call (#115).
 
 ### TC-B1-GUIDE-01: Public guides
 
-**Blocked: no guide is published** ([#114](https://github.com/LLaammTTeerr/omnicourses/issues/114)). The eight content files of G01, G02, G06 and G07 have `status: 'draft'` and `lastChecked: null`: nobody has recorded following them on the real portal (§6 item 10 of the cases). The seed prints `Guides: {"inserted":0,…,"drafts":8}` on staging and locally, and `GET /api/guides` answers `{"guides":[]}` on staging and on production.
+**Blocked: no guide is published** ([#114](https://github.com/LLaammTTeerr/omnicourses/issues/114)). The eight content files of G01, G02, G06 and G07 have `status: 'draft'` and `lastChecked: null`: nobody has recorded following them on the real portal (§6 item 10 of the cases). The seed prints `Guides: {"inserted":0,…,"drafts":8}` on staging and locally, and `GET /api/guides` answers `{"guides":[]}` on staging and on production. Both runs saw it. Pull request #112 publishes G01 and G07 and keeps G02 and G06 as drafts; it is reviewed and waits for a human approval, and it is not in the tested build. After it merges, GUIDE-01b–e still cannot fully pass while G02 and G06 are drafts.
 
 | ID | Result | What happened |
 | --- | --- | --- |
@@ -251,20 +255,46 @@ So the answer to "does the dashboard ask, or does the app redirect first?" is: *
 | GUIDE-01e, f | blocked | No guide to open. |
 | GUIDE-01g | blocked | `/guides/register-courses` shows "Không tìm thấy hướng dẫn" and its API request answers 404, because the guide is a draft. The second half was seen: `/guides/no-such-guide` shows the not-found page with a link to **Guides**, and its API request answers 404 ([screenshot](evidence/b1/a-guide-01g-not-found.png)). |
 | GUIDE-01h, l, m | blocked | No guide to read. Seen meanwhile: the guide requests carry no `Authorization` header. |
-| GUIDE-01i, j, k | not run | They need the test-only `zz-*` guides, which load only on a local test database (§6 item 12). **To be filled from Dũng's manual run.** |
-| GUIDE-01n | blocked | One expectation cannot be seen without a published guide: 200 from `GET /api/guides/{id}`. The rest was seen. On staging, without a token: `GET /api/guides` 200; an unknown guide 404; the document has exactly two guide routes, both `GET`; the 44 routes outside the five public ones all answer 401. `PUBLIC_ROUTES` adds exactly `GET /api/guides` and `GET /api/guides/{id}` to health, sign-up and sign-in, in the commit that added the routes (`a8bd0c9`, #54), and the five tests of `public-routes.e2e-spec.ts` pass on the candidate. |
-| GUIDE-01o | not run | Needs a second tester on another network. **To be filled from Dũng's manual run.** |
+| GUIDE-01i, j, k | not run | Test-only guides, local database | Dũng | Run locally with `--guide-fixtures`. |
+| GUIDE-01n | blocked | **The two runs record it differently.** Dũng, on production: **pass**: the only guide routes are the two `GET`s, both public (200, and 404 for an unknown guide), the other 44 routes answer 401, and the guide routes joined `PUBLIC_ROUTES` in #54 with the routes. The scripted run, on staging, saw the same and records **blocked**, because one expectation cannot be seen without a published guide: a 200 from `GET /api/guides/{id}`; only its 404 was seen. This report counts it as blocked. Also seen: the five tests of `public-routes.e2e-spec.ts` pass on the candidate. |
+| GUIDE-01o | passed | Dũng, on production, not staging as the case says. Requests 1–120 answered 200 and request 121 answered 429 in two bursts; in a third the 429 came at request 120 (`guide-01o-burst.txt`, `-2`, `-3`). His notes add what the files do not hold: 200 again after the minute, and a phone on mobile data opened **Guides** while his address was refused, so the limit counts each visitor, not the proxy. The scripted run did not run it. On staging's `PUT …/placements` 121 requests got through (PLAN-01m, #117). |
 
-### TC-B1-PERF-01 and TC-B1-A11Y-01
+### TC-B1-PERF-01: Dashboard and audit load time
 
-| Cases | Result | Why |
+Dũng's manual run, on production. Chrome 144.0.7559.110, headed; profile 50 ms, 10 Mbps down, 2 Mbps up; account `b1-perf` with the completion fixture (SHA-256 `d0a0493f…facde`, 45 rows, the same before and after). Every timed run is in `perf-01-2026-11-15T03-57-28-615Z.json` (pull request #118); the script is `perf-01.mjs`. Not as the case says: production, not staging, and other people may have used the server during timing. The scripted run did not time anything.
+
+| ID | Result | What happened |
 | --- | --- | --- |
-| PERF-01a–h | not run | **To be filled from Dũng's manual run.** The cases ask for a headed Chrome in the foreground with the network profile, and a quiet server; this run was headless and busy. Seen meanwhile: the fixture's checksum matches, the API holds its 45 rows, and the dashboard and the audit show every expected value (ACAD-01c). |
-| A11Y-01a–g | not run | **To be filled from Dũng's manual run.** Two observations for it. A11Y-01a: `router.ts` has `/transcript`, which the screen table of the cases lacks (#116). A11Y-01c: `scrollWidth <= innerWidth` was true on 17 screen states at 25 widths (360, 768, 1280, 1920 and each CSS breakpoint, 420, 620, 760, 900, 960, 1100 and 1180, with 1 px either side), light theme, Vietnamese ([output](evidence/b1/a-a11y-01c-output.txt)). Not covered there: the planner, the dialogs, a real guide, the dark theme, English, and a look for overlap. |
+| PERF-01a | passed | Checksum matches, 45 rows, and both pages show every expected value: 164 / 163 TC, 7,77 twice, 3,3, Khá, done. Recorded in Dũng's notes. The scripted run saw the same values on staging (ACAD-01c). |
+| PERF-01b | passed | 10 health requests took 92–110 ms, all at least 50. The largest JavaScript file, `index-BK7zc12x.js`, 362,352 bytes unpacked (121,864 on the wire), took 334 ms, about its unpacked size ÷ 1.25 MB/s plus 50 ms. |
+| PERF-01c | passed | Dashboard, cold cache, 5 runs: median 773 ms, maximum 889 ms. |
+| PERF-01d | passed | Dashboard, warm cache, 30 runs after 5 warm-ups: median 443, p95 471, maximum 472 ms. |
+| PERF-01e | passed | Dashboard, in-app, 30 runs: median 111, p95 125, maximum 130 ms. |
+| PERF-01f | passed | Audit, cold cache, 5 runs: median 780, maximum 831 ms. |
+| PERF-01g | passed | Audit, warm cache, 30 runs: median 504, p95 520, maximum 1047 ms. In that slowest run the server took 663 ms on `/users/me/onboarding`, against about 106 ms normally. |
+| PERF-01h | passed | Audit, in-app, 30 runs: median 124, p95 136, maximum 137 ms. |
+
+No run reached 2 seconds, and no run had an error. Dũng's script took about three minutes for all the series.
+
+### TC-B1-A11Y-01: Keyboard, languages, widths and contrast
+
+Dũng's manual run, on production: 21 screen states, light and dark, Vietnamese, with English for the language scan; axe-core 4.10.2 with the four tags of the case. Raw output: `a11y-01-2026-11-15T04-31-36-554Z-results.json` and `a11y-01c-widths-2026-11-15T04-40-50-767Z-results.json` (pull request #118). His 84 screenshots are not in the repository. The failures are in [#119](https://github.com/LLaammTTeerr/omnicourses/issues/119).
+
+| ID | Result | What happened |
+| --- | --- | --- |
+| A11Y-01a | passed | Dũng: pass after a fix. `router.ts` has `/transcript`, which the screen table of the cases lacks; he adds the row (no rows, rows saved, a field error, save failed). The other 14 routes are in the table. The scripted run saw the same gap (#116). The row is not in the cases yet. |
+| A11Y-01b | **failed** | Journeys 1–4, 6 and 7 can be finished by keyboard; journey 5 needs a guide (#114). Expected: focus always visible and never lost, and a skip link that jumps to the main content. Observed: after removing a placed course, focus goes to the course search box, scrolled out of view; after adding a course, saving in Settings, exporting and closing the revoke-session dialog, focus falls to the page body; on sign-up, sign-in and onboarding the skip link targets a `<main>` that wraps the top bar, so it skips nothing. Dialogs and the drawer do close with Esc and give focus back. |
+| A11Y-01c | passed | `scrollWidth <= innerWidth` in all 21 states at 28 widths: 360, 768, 1280, 1920 and each CSS breakpoint (420, 620, 760, 860, 900, 960, 1100, 1180) with 1 px either side. 588 checks, none failing. The scripted run, on staging, found the same on 17 states at 25 widths ([output](evidence/b1/a-a11y-01c-output.txt)); it missed the breakpoint at 860. |
+| A11Y-01d | **failed** | In Vietnamese the planner's **What-if** button stays in English; the scripted run saw the same (PLAN-01l). In English every state sets `lang="en"` and an English title; what stays Vietnamese is data that exists in one language. |
+| A11Y-01e | **failed** | `color-contrast` violations in 65 of the 84 runs (21 states, two themes, 360 and 1280 px). Light theme: small and secondary text. Dark theme: the primary buttons and many nodes of the plan editor. Also `scrollable-region-focusable` on the audit at 360 px. |
+| A11Y-01f | **failed** | Text-field borders 1.42:1 (light) and 1.78:1 (dark), 3:1 needed. Dark placeholder 3.89:1 and the light hint "Không cần tên thật…" 4.45:1, 4.5:1 needed. Progress bar against its track 2.55 to 2.85, 3:1 needed. Passed: body, secondary and sidebar text, status labels, group glyphs (5.1 to 9.0), focus outlines (5.48 and 5.81). The pairs are in Dũng's notes. |
+| A11Y-01g | passed | Every group has its glyph, statuses are in words, field errors are written out, the chosen card has a check mark, and the graduation chip has words and an icon. |
+
+States Dũng's run did not reach, listed in his file: the API degraded, too many attempts, server unreachable, account restored, program not listed, the planner's drag, lock, Taken strip and save-failed states, guides with content, and session expired. The scripted run saw several of those states work (UI-01g, UI-01p, PLAN-01e, g, j, n) but did not check their contrast, languages or widths.
 
 ### B0 cases run on B1
 
-AUTH-01, SESS-01 and DB-01 ran locally, as in B0, because they count rows with `psql` and stop the database. UI-01 and DEP-01 ran on staging. Evidence: [`b0-regression-local-output.txt`](evidence/b1/b0-regression-local-output.txt), [`a-ui-01-output.txt`](evidence/b1/a-ui-01-output.txt), [`a-followup-output.txt`](evidence/b1/a-followup-output.txt).
+AUTH-01, SESS-01 and DB-01 ran locally, as in B0, because they count rows with `psql` and stop the database: on a build of the tested tree, not on the deployed server. Of them, staging saw only AUTH-01a and k (DEP-01d) and DB-01b, d, e. UI-01 and DEP-01 ran on staging. Evidence: [`b0-regression-local-output.txt`](evidence/b1/b0-regression-local-output.txt), [`a-ui-01-output.txt`](evidence/b1/a-ui-01-output.txt), [`a-followup-output.txt`](evidence/b1/a-followup-output.txt).
 
 | ID | Result | What happened |
 | --- | --- | --- |
@@ -305,17 +335,18 @@ AUTH-01, SESS-01 and DB-01 ran locally, as in B0, because they count rows with `
 
 | Cases | Result | Reason | Owner | Next action |
 | --- | --- | --- | --- | --- |
-| PERF-01a–h, A11Y-01a–g | not run | Dũng runs them by hand | Dũng | Add his results to this report before the decision, or carry them. |
-| USER-01w, x | not run | Screen parts by hand | Dũng | Same. |
+| A11Y-01b, d, e, f | failed | #119 | Hoà (screens), Dũng (retest) | Fix, then rerun A11Y-01 with the states the run did not reach. |
+| USER-01w | failed as written | The app shows the home page after deletion (#116) | Lâm (decision), Dũng (case) | Decide which is right; rerun. |
+| USER-01n, q, r, y, z | passed locally, blocked on production | Need database access on a server | Lâm or Thắng | Run on staging with Lâm's OK if a server result is wanted. |
 | USER-01k | failed | #115 | Lâm (decision), Hoà (screens), Dũng (case) | Decide: change the app, or the case and UC-01 A7. Then rerun. |
-| GUIDE-01a–h, l, m, n | blocked | No guide is published (#114) | Dũng and a second team member (portal check), Lâm | Follow each guide on the portal, publish, deploy, then run them. |
+| GUIDE-01a–h, l, m, n | blocked | No guide is published (#114) | A human reviewer for #112, Dũng, Lâm | Approve and merge #112 (G01, G07), deploy, run them. G02 and G06 need their portal check before GUIDE-01b–e can fully pass. |
 | GUIDE-01i, j, k | not run | Test-only guides, local database | Dũng | Run locally with `--guide-fixtures`. |
-| GUIDE-01o, DEP-01e | not run | Need two networks | Dũng and a second tester | Run on staging; both check that the rate limit counts each visitor, not the proxy. |
+| DEP-01e | not run | Needs two networks | Dũng and a second tester | Run on staging. GUIDE-01o showed on production that the limit counts each visitor. |
 | ACAD-01h | blocked | No prerequisite or offering-term data (§6 item 14) | Thắng, Triết | Enter the data through the admin routes, write the expected results, run. |
 | PLAN-01n | failed | #101 | Hoà | Fix with a regression test; Dũng retests. |
 | UI-01a, k, l, DEP-01f | failed as written | The cases describe a sign-in landing and a single commit (#116) | Dũng (cases), Lâm (DEP-01f) | Update the cases; rerun on B2. |
 | SESS-01l | not run (by design) | Sessions last 7 days | Dũng | None. |
-| PLAN-01m | failed | #117 | Lâm (rate limits), Dũng (case) | Fix the count or the documented number; rerun. GUIDE-01o expects the same "request 121: 429". |
+| PLAN-01m | failed as written | #117 | Lâm (rate limits), Dũng (case) | Find which is off by one, the limit on that route or the case; rerun. |
 
 Missing academic data, kept visible as [test plan §5](test-plan.md#b1-checks) asks: **no prerequisite and no offering term is recorded for any course** (0 rows in the three tables; `null` in the API; the planner and the explorer say "chưa ghi nhận", never "none"). The audit does not check five graduation conditions and says so (ACAD-01d): no prosecution or suspension, the defence-education certificate, the foreign-language standard, the IT standard and the study time limit.
 
@@ -326,20 +357,24 @@ Missing academic data, kept visible as [test plan §5](test-plan.md#b1-checks) a
 | [#101](https://github.com/LLaammTTeerr/omnicourses/issues/101) (known, open) | PLAN-01n | The planner's **Đã học / Taken** strip shows the whole transcript's credits and course tags beside a span of fewer terms. Seen on screen in this run; a comment on the issue gives the figures. |
 | [#114](https://github.com/LLaammTTeerr/omnicourses/issues/114) (new) | GUIDE-01 | No guide is published in B1: G01, G02, G06 and G07 are still drafts. Missing content, not a code defect. |
 | [#115](https://github.com/LLaammTTeerr/omnicourses/issues/115) (new) | USER-01k | No **My program isn't listed** choice, and the dashboard's finish-onboarding notice cannot be reached. Needs a decision. |
-| [#116](https://github.com/LLaammTTeerr/omnicourses/issues/116) (new) | UI-01a, c, k, l, DEP-01f, A11Y-01a | The cases no longer match the screens as built. A documentation fix. |
-| [#117](https://github.com/LLaammTTeerr/omnicourses/issues/117) (new) | PLAN-01m | The 120-a-minute rate limit answers 200 to 121 requests; the 122nd is the first 429. The sign-up and sign-in limit of 10 behaved as documented. |
+| [#116](https://github.com/LLaammTTeerr/omnicourses/issues/116) (new) | UI-01a, c, k, l, USER-01w, DEP-01f, A11Y-01a | The cases no longer match the screens as built: the app lands on a public home page where they expect the sign-in screen. A documentation fix, or a decision for USER-01w. |
+| [#117](https://github.com/LLaammTTeerr/omnicourses/issues/117) (new) | PLAN-01m | On staging, `PUT /api/plans/{id}/placements` answered 200 to 121 requests in a minute against a documented 120; the 122nd was the first 429. Cause not established: on production's guide list the 121st request got 429 (GUIDE-01o), and the limit of 10 behaved as documented. |
+| [#119](https://github.com/LLaammTTeerr/omnicourses/issues/119) (new) | A11Y-01b, d, e, f | Focus lost after some actions, a skip link that skips nothing on three screens, **What-if** not translated, and contrast below WCAG 2.1 AA. From Dũng's manual run. |
 
 Seen and not filed, for the owners to judge:
 
 - Staging serves the Swagger page and `/api/docs-json` although the cases say it runs like production (§6 item 12); production answers 404 for both. It helped this run. Lâm decides whether staging should keep it.
 - In English, the planner's load tooltip reads "10–22" with no unit, where Vietnamese has "10–22 TC".
 - The seed's "Already present, left untouched" line counts 11 programs where the table has 10.
+- From Dũng's notes: the custom select keeps its list open after a mouse click on an option; reaching the planner board by keyboard takes about 90 Tabs; and test plan §5 still says drag-and-drop is B2 while B1 has the drag preview.
 
 ## 7. Accounts and data left by the run
 
 On staging the run created 19 accounts, all `b1-run-07ef42-<role>@example.com`: `a01`–`a05`, `p01`, `p02`, `p03`, `p06`, `m06`–`m09`, `ms1`, `ms2`, `us1`, `us2`, `uo1` and `dep01d`. With them: their onboarding answers, synthetic transcripts, sessions and about 25 plans. Nothing else was written: no curriculum data, no guide, no grant.
 
 All 19 were deleted through the app's own account deletion (`DELETE /api/users/me` with the password) at 03:27–03:30 UTC. Each answered 202, and the token used stopped working at once (401) ([`cleanup-output.txt`](evidence/b1/cleanup-output.txt)). **Deletion has a 30-day grace period, so the rows remain on staging until the purge on 15 December 2026** (`purgeAfter` 2026-12-15T03:27–03:30Z), or until staging's database is reset. Nobody should sign in to them before then: a sign-in restores the account.
+
+On production, Dũng's manual run left the accounts his file lists: `b1-01` to `b1-04`, `b1-s1`, `b1-s2` and a new `b1-a11y`, beside `b1-perf` and `b1-06` to `b1-09` from 12 November. All are synthetic `example.com` accounts. They are not deleted; `b1-02` has a password other than the one in the cases. Lâm decides when they go.
 
 Locally, the container with both databases was removed, and the throwaway copy for COV-01c was deleted. Production was only read without an account: `GET /api/health`, `/api/guides`, `/api/docs` and `/api/docs-json`.
 
@@ -350,8 +385,8 @@ Locally, the container with both databases was removed, and the throwaway copy f
 Against the acceptance criteria of [test plan §7](test-plan.md#7-when-a-build-is-ready):
 
 - **Typecheck, tests, build, e2e and browser checks pass for the candidate:** yes (§3).
-- **All required detailed cases pass:** no. 114 of 156 passed; 7 failed, 12 are blocked and 23 are not run (§1). Of the 7 failures, two are app defects (#101, #117), one needs a decision (#115) and four are cases that no longer match the build (#116).
-- **No open defect exposes another student's data, loses data, gives a known wrong academic result or blocks a required task:** none of the first three was found. #101 shows a wrong credit figure on the planner's Taken strip; the audit's own figures are right. #114 leaves the guides task with nothing to read.
-- **The report identifies the commit, the environment, the evidence, the coverage and the measured NFRs:** coverage yes; PERF-01 and A11Y-01 wait for Dũng's manual run.
+- **All required detailed cases pass:** no. 127 of 156 passed; 12 failed, 12 are blocked and 5 are not run (§1). Of the 12 failures: four are accessibility (#119), one is the Taken strip (#101), one needs a decision (#115), one fails as written with its cause not established (#117), and five are cases that no longer match the build (#116).
+- **No open defect exposes another student's data, loses data, gives a known wrong academic result or blocks a required task:** none of the first three was found. #101 shows a wrong credit figure on the planner's Taken strip; the audit's own figures are right. #114 leaves the guides task with nothing to read. #119 leaves keyboard and low-vision use below the Vision's WCAG 2.1 AA target. #117 is a rate limit one request looser than documented on one route.
+- **The report identifies the commit, the environment, the evidence, the coverage and the measured NFRs:** yes. Coverage 100 % of the rule engine's statements; load time under 2 seconds in every run (on production); accessibility measured and failing.
 
-For Lâm to decide: whether to accept B1 with the open items above as recorded exceptions, each with its owner in §5, or to hold it for #114 and Dũng's manual results.
+For Lâm to decide: whether to accept B1 with the open items above as recorded exceptions, each with its owner in §5, or to hold it for #114 and #119.
