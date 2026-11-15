@@ -12,7 +12,8 @@ export default {
   version: 1,
   changeNote:
     'First version. Not checked to the end: nothing was owed on the day of the check, so the button that starts the payment and the steps on each payment page (the steps marked CHECK) wait for the next tuition period.',
-  lastChecked: { on: '2026-11-15', by: 'Dũng' },
+  // Partly followed on 15 Nov 2026 (Dũng). Set when every step has been followed on the portal.
+  lastChecked: null,
   group: 'tuition-and-fees',
   title: 'Pay tuition',
   keywords: ['tuition', 'pay tuition', 'tuition fees', 'hocphi', 'vnpay', 'vietqr', 'viettel money', 'tuition invoice', 'tuition extension'],

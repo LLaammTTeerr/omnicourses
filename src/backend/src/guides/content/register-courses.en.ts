@@ -12,7 +12,8 @@ export default {
   version: 1,
   changeNote:
     'First version. Not checked to the end: registration was closed on the day of the check, so finding a course, choosing a class, the clash warning, confirming, cancelling and how a retake shows (the steps marked CHECK) wait for the next registration period.',
-  lastChecked: { on: '2026-11-15', by: 'Dũng' },
+  // Partly followed on 15 Nov 2026 (Dũng). Set when every step has been followed on the portal.
+  lastChecked: null,
   group: 'registration',
   title: 'Register for courses',
   keywords: ['register', 'course registration', 'register for courses', 'enrol', 'enroll', 'dkhp', 'retake'],

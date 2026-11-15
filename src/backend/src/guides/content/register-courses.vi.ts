@@ -12,7 +12,8 @@ export default {
   version: 1,
   changeNote:
     'Bản đầu tiên. Chưa kiểm tra hết: ngày kiểm tra đang ngoài thời gian đăng ký, nên các bước tìm học phần, chọn lớp, cảnh báo trùng giờ, xác nhận, hủy và cách hiện học phần học lại (các bước ghi CHECK) chờ đến đợt đăng ký tới.',
-  lastChecked: { on: '2026-11-15', by: 'Dũng' },
+  // Partly followed on 15 Nov 2026 (Dũng). Set when every step has been followed on the portal.
+  lastChecked: null,
   group: 'registration',
   title: 'Đăng ký học phần',
   keywords: ['đăng ký học phần', 'dkhp', 'đkhp', 'đăng ký môn học', 'kết quả đkhp', 'học lại'],

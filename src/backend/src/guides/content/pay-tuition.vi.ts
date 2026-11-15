@@ -12,7 +12,8 @@ export default {
   version: 1,
   changeNote:
     'Bản đầu tiên. Chưa kiểm tra hết: ngày kiểm tra không còn khoản phải nộp, nên nút bắt đầu thanh toán và các bước ở từng trang thanh toán (các bước ghi CHECK) chờ đến đợt thu học phí tới.',
-  lastChecked: { on: '2026-11-15', by: 'Dũng' },
+  // Partly followed on 15 Nov 2026 (Dũng). Set when every step has been followed on the portal.
+  lastChecked: null,
   group: 'tuition-and-fees',
   title: 'Đóng học phí',
   keywords: ['học phí', 'đóng học phí', 'nộp học phí', 'hocphi', 'vnpay', 'vietqr', 'viettel money', 'hóa đơn học phí', 'gia hạn học phí'],
