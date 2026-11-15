@@ -133,6 +133,9 @@ describe('Curriculum API (e2e)', () => {
       'offering_terms_not_recorded CS201',
       'offering_terms_not_recorded CS160',
     ]);
+    // The coverage does not move with the decision: three 4-credit courses of (A): bắt buộc, 12 of its 40 credits.
+    const groupA = drop.body.reports[0].issues.coverage.groups.find((g: { name: string }) => g.name === 'Kiến thức Computer Science (A): bắt buộc');
+    expect([groupA.credits, groupA.requiredCredits]).toEqual([12, 40]);
   });
 
   it('answers 404 for an unknown program, an unknown cohort or a malformed cohort', async () => {
