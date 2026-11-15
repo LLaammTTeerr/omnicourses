@@ -1,0 +1,23 @@
+2026-11-15T03:13:36.023Z CSS files: ["/assets/index-BoIDReW-.css"]
+2026-11-15T03:13:36.024Z @media queries in the deployed CSS: ["@media (hover:none)","@media (prefers-reduced-motion:reduce)","@media (width<=1100px)","@media (width<=1180px)","@media (width<=420px)","@media (width<=620px)","@media (width<=760px)","@media (width<=900px)","@media (width<=960px)","@media (width>=900px)"]
+2026-11-15T03:13:36.024Z widths tested: [360,419,420,421,619,620,621,759,760,761,768,899,900,901,959,960,961,1099,1100,1101,1179,1180,1181,1280,1920]
+2026-11-15T03:13:36.099Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+ok   A11Y-01c Home, signed out, API ok (/): no sideways scroll at 25 widths
+ok   A11Y-01c Sign in, empty (/sign-in): no sideways scroll at 25 widths
+ok   A11Y-01c Sign up, empty (/sign-up): no sideways scroll at 25 widths
+ok   A11Y-01c Privacy notice, signed out (/privacy): no sideways scroll at 25 widths
+ok   A11Y-01c Guides list, signed out (no guide published on staging) (/guides): no sideways scroll at 25 widths
+ok   A11Y-01c Guide not found (/guides/no-such-guide): no sideways scroll at 25 widths
+ok   A11Y-01c Sign up, each field error (/sign-up): no sideways scroll at 25 widths
+ok   A11Y-01c Onboarding, program question (/onboarding): no sideways scroll at 25 widths
+ok   A11Y-01c Settings, onboarding unfinished (/settings): no sideways scroll at 25 widths
+ok   A11Y-01c Dashboard, the completion fixture (/dashboard): no sideways scroll at 25 widths
+ok   A11Y-01c Audit, the completion fixture (/audit): no sideways scroll at 25 widths
+ok   A11Y-01c Explorer, groups (/explorer): no sideways scroll at 25 widths
+ok   A11Y-01c Transcript, 45 rows (/transcript): no sideways scroll at 25 widths
+ok   A11Y-01c Settings, profile and goal (/settings): no sideways scroll at 25 widths
+ok   A11Y-01c Privacy notice, signed in (/privacy): no sideways scroll at 25 widths
+ok   A11Y-01c Explorer, search with no results (/explorer): no sideways scroll at 25 widths
+ok   A11Y-01c Explorer, course drawer open (/explorer): no sideways scroll at 25 widths
+ok   A11Y-01c: no sideways scroll on the 17 screen states covered | observed: []
+2026-11-15T03:14:57.352Z console errors: []

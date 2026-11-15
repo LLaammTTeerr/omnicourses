@@ -1,0 +1,157 @@
+# npm run test:e2e -w src/backend -- --reporter=verbose, local PostgreSQL 18.6 (podman, database omnicourse_e2e), tree 7f66b7a, started 2026-11-15T03:04:10Z
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > maps the new tables exactly as migration 1794230000000 creates them 115ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > refuses the admin routes without a token 14ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > gives a signed-in user without a grant 403 on every kind of write, and no program to edit 108ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > lets the APCS administrator list APCS with its cohorts, and not write CLC, even through nested IDs 71ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > rejects malformed codes, unknown fields and a gated credit total with 400 validation_failed 101ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > sets prerequisites, then rejects a cycle and names it, saving nothing 155ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > serves the prerequisites on the read API, with null for a course nothing was recorded for 63ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > round-trips offering terms, and clears both kinds back to not recorded 214ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > keeps an untouched curriculum, and another cohort of the same program, at not recorded 53ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > warns before changing a shared course, lists the curricula, and applies only the confirmed impact 197ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > refuses to strand a rule: no unlinking a required course, no deleting a linked group or course 176ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > renames a group, refuses a duplicate name, and deletes an empty group 116ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > blocks the next write once a grant is revoked 138ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Curriculum administration API (e2e) > shows a user's grants to an access manager, with who granted them, and exports them to their recipient 44ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Access-manager bootstrap and grant lifecycle (e2e) > refuses an unknown account and one waiting for deletion, then makes the first access manager once 28ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Access-manager bootstrap and grant lifecycle (e2e) > lets only one of two concurrent bootstraps succeed 19ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Access-manager bootstrap and grant lifecycle (e2e) > delegates, protects the last active access manager, and recovers when the last one is deleted 51ms
+ ✓ test/curriculum-admin.e2e-spec.ts > Access-manager bootstrap and grant lifecycle (e2e) > keeps a grant when its granter is purged, and deletes it with its recipient's account 20ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > answers 401 without a token 41ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > answers 409 onboarding_required before onboarding is finished 165ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > answers 409 curriculum_not_found when the cohort has no curriculum 69ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > names the program, its training type and the curriculum 1ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > covers every requirement group, with (A) tự chọn overflowing into (C) 2ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > adds (B) and (C) together, with the overflow from (A), against 43 1ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > counts the credits 0ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > computes the averages (Điều 15) 0ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > summarises each term, with the APCS caps 1ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > lists the course outside the curriculum as unmatched 0ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > a synthetic APCS 2024 student > is not done, names what is unmet, and lists what it cannot check 1ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > the APCS 2024 completion fixture > is the version the test cases record 2ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > the APCS 2024 completion fixture > meets every group and the combined minimum 1ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > the APCS 2024 completion fixture > counts 164 credits toward the 163 0ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > the APCS 2024 completion fixture > computes the averages from the 42 graded courses 0ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > the APCS 2024 completion fixture > keeps every term within the APCS caps 0ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > the APCS 2024 completion fixture > is done, with the conditions it cannot check still listed, and no warning 0ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > recomputes after a new transcript is saved, for that student only 173ms
+ ✓ test/audit.e2e-spec.ts > Degree audit API (e2e) > audits an empty transcript 61ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > maps the two plan tables exactly as migration 1794218005469 creates them 161ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > creates, lists, reads, fills and renames a plan 338ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > creates a plan with its placements in one request (a generated plan, UC-07 step 10) 123ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > refuses a curriculum that does not exist and a bad name 110ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > replaces every placement at once, and a refused board changes nothing 245ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > empties a plan with an empty board 126ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > keeps a placement owned by its plan’s student, even past the API 245ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > duplicates a plan into an independent copy 143ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > deletes a plan with its placements 212ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > answers 404 for another student's plan, as for one that does not exist, and changes nothing 307ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > answers 401 to a signed-out request 26ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > exports the plans with the account and purges them with it (ADR 0004) 227ms
+ ✓ test/plans.e2e-spec.ts > Plans API against PostgreSQL (e2e) > keeps a curriculum and a requirement group that a plan uses from being deleted (ADR 0011) 97ms
+ ✓ test/plan-issues.e2e-spec.ts > Plan issues API (e2e) > reports the owner's plan per term and placement, unrecorded data as unknown, and the coverage 346ms
+ ✓ test/plan-issues.e2e-spec.ts > Plan issues API (e2e) > flags a term outside the Tiên tiến caps without refusing the plan, and reports what is left to cover 154ms
+ ✓ test/plan-issues.e2e-spec.ts > Plan issues API (e2e) > answers 404 for another student's plan, as for a missing or malformed id, and 401 when signed out 132ms
+ ✓ test/plan-issues.e2e-spec.ts > Plan issues API (e2e) > checks one drop on several terms in one request (the drag preview), in the order sent 171ms
+ ✓ test/plan-issues.e2e-spec.ts > Plan issues API (e2e) > checks a board that is not saved (POST), without changing the saved plan 181ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > every user_id key to users cascades, and every other key cascades or sets null (AGENTS.md rule) 8ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > nothing blocks the purge and every table it deletes from is exported 6ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > the schema rules catch a grandchild table, a key not named user_id, a composite key, a self-reference and a wrong ON DELETE, and accept SET NULL on reviewed_by 17ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > finds each user table once, and only keys that point at users.id 12ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > exports the account with every user table and no secret column 70ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > exports only the rows the student owns (user_id), not rows that merely reference them 42ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > every exported column that looks like a credential is dropped or known to be data 3ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > refuses deletion with a wrong password with 403, keeping the session 49ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > schedules nothing when revoking the sessions fails, so the 500 is not a hidden deletion 51ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > schedules deletion, signs out everywhere, and a sign-in within the grace period restores the account 83ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > two concurrent sign-ins to an account pending deletion both succeed 74ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > refuses a sign-in once the stored deadline has passed, even before the purge runs 85ms
+ ✓ test/account.e2e-spec.ts > Account export and deletion against PostgreSQL (e2e) > purges only the accounts whose deadline has passed, with their rows 16ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01m: both routes answer 401 without a token 69ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01c: before any save every answer is null and onboarding is unfinished 67ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01c: Finish with every goal left empty stores null for each, with no default 57ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01d: a PUT then GET returns every answer unchanged, terms as { year, number } 58ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01l: program and cohort saved before the goal step stay, unfinished 53ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01e, USER-01g: 26, 13 and 40 credits are stored as asked; 0 is refused and the earlier value stays 104ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01f: -1, 2.5 and "abc" are refused with what a valid value is; clearing stores null 91ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01h: "none" planned is kept apart from unset, and clearing it stores null 60ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01i: changing the cohort keeps the goals and onboarding finished 47ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > keeps the time of the first Finish across later saves 45ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > a PUT replaces finished too: false after a Finish reopens onboarding and clears its time 48ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > B1 §6 item 4: the current term and the last term eight academic years ahead are accepted 43ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses a past target graduation term and keeps the saved answers 46ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses a target term more than eight years ahead and keeps the saved answers 53ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses a past internship term and keeps the saved answers 46ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses an internship term more than eight years ahead and keeps the saved answers 47ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses term number 4 and keeps the saved answers 47ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses USER-01b: a program not offered (CLC) and keeps the saved answers 49ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses USER-01b: a cohort the curriculum data lacks (APCS 2023) and keeps the saved answers 49ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses finished without a program and keeps the saved answers 46ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > refuses a body with an answer left out instead of clearing it 47ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01m: each student reads and writes only their own answers; another student's id in the body is ignored 72ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > USER-01r, USER-01z: the answers are in the account export and go with the purge 95ms
+ ✓ test/onboarding.e2e-spec.ts > Onboarding against PostgreSQL (e2e) > the table refuses half a term, a cohort without a program and 0 credits, whatever the caller 32ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > migrates into its own empty schema 14ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > loads every curriculum, then loads nothing more when run again 1951ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > writes the printed totals and the decided catalog values 4ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > writes the rules the degree audit reads (ADR 0013) 9ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > migration 1794300000000 sets the same rules on rows seeded before it existed 838ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > keeps an admin edit to a group, and aborts on a catalog course edited to a new name 806ms
+ ✓ test/curriculum-seed.e2e-spec.ts > db:seed > rolls back everything when one insert fails 164ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > starts empty, saves the reviewed rows and returns them oldest term first 224ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > replaces the whole transcript on the next save (UC-02 A5) 230ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > returns the same course twice in one term in the same order on every read 19ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > keeps the saved transcript when a save is refused 150ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > stores a grade exactly when the result is graded, even past the API 23ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > strips a field the row does not have 112ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > waits for a save in progress instead of merging with it 153ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > lets the student sign in while a save is in progress 443ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > shows each student only their own transcript and serves it to other modules 211ms
+ ✓ test/transcript.e2e-spec.ts > Transcript against PostgreSQL (e2e) > is included in the account export and removed with the account (ADR 0004) 246ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > maps the curriculum tables exactly as migrations 1792912952302 and 1794300000000 create them 94ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > lists every seeded program with its cohorts 56ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > returns the APCS 2024 curriculum with every group and course of the seed 39ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > reads prerequisites and offering terms as not recorded (null), never as none, while F12 has stored none 50ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > answers 404 for an unknown program, an unknown cohort or a malformed cohort 29ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > returns a course with the groups that link to it, across cohorts 15ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > answers 404 for an unknown or malformed course code 19ms
+ ✓ test/curriculum.e2e-spec.ts > Curriculum API (e2e) > refuses every route without a token 11ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > loads the published texts only, then nothing more when run again 42ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > replaces a text when its version goes up 42ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > takes a new last-checked date without a new version 33ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > refuses a change without a new version, and changes nothing 27ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > refuses a lower version 20ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > refuses to turn a published text back into a draft 19ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > withdraws a text whose file is removed or marked withdrawn, keeps it, and shows it again when it comes back 30ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > refuses an invalid file before touching the database 4ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > db:seed loads the zz-* test guides only with --guide-fixtures, and withdraws them without it 30ms
+ ✓ test/guide-seed.e2e-spec.ts > Guide seed against PostgreSQL (e2e) > loads the content files of the repository 6ms
+ ✓ test/guides.e2e-spec.ts > Guides API (e2e) > lists the published guides without a token, in each language they are written in 69ms
+ ✓ test/guides.e2e-spec.ts > Guides API (e2e) > marks only the guide checked more than 6 months ago out of date (UC-10 A5) 11ms
+ ✓ test/guides.e2e-spec.ts > Guides API (e2e) > returns a whole guide in both languages 11ms
+ ✓ test/guides.e2e-spec.ts > Guides API (e2e) > answers an unknown, draft or withdrawn guide with the same 404 34ms
+ ✓ test/guides.e2e-spec.ts > Guides API (e2e) > gives a signed-in reader exactly what a signed-out reader gets (GUIDE-01l) 88ms
+ ✓ test/ai.e2e-spec.ts > AI gateway against PostgreSQL (e2e) > boots without a key and answers ai_unavailable before reserving, so the attempt does not count 155ms
+ ✓ test/ai.e2e-spec.ts > AI gateway against PostgreSQL (e2e) > counts a call the student stopped, and refuses once the daily cap is reached 46ms
+ ✓ test/ai.e2e-spec.ts > AI gateway against PostgreSQL (e2e) > counts only the calls of the last 24 hours 16ms
+ ✓ test/ai.e2e-spec.ts > AI gateway against PostgreSQL (e2e) > lets exactly the cap through when calls arrive in parallel 47ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > documents every route the app serves, except the docs pages 6ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > finds every listed public route in the OpenAPI document 1ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > answers 401 without a token on every route that is not listed 162ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > keeps the listed public routes open 32ms
+ ✓ test/public-routes.e2e-spec.ts > Public routes (e2e) > lets a signed-out caller write only to sign-up and sign-in 0ms
+ ✓ test/auth.e2e-spec.ts > Auth against PostgreSQL (e2e) > requires consent and a 10+ character password at sign-up 65ms
+ ✓ test/auth.e2e-spec.ts > Auth against PostgreSQL (e2e) > signs up, signs in, rotates, lists, revokes and signs out 206ms
+ ✓ test/auth.e2e-spec.ts > Auth against PostgreSQL (e2e) > answers 201 and 409 to two concurrent sign-ups with one email 45ms
+ ✓ test/curriculum-schema-migration.e2e-spec.ts > curriculum schema migration > applies migrations and enforces cohort/catalog constraints 232ms
+ ✓ test/rate-limits.e2e-spec.ts > Rate limits (e2e) > refuses the 11th sign-in within a minute 116ms
+ ✓ test/rate-limits.e2e-spec.ts > Rate limits (e2e) > refuses the 121st request within a minute on a route without a password 327ms
+ ✓ test/rate-limits.e2e-spec.ts > Rate limits behind a proxy (e2e) > counts each forwarded visitor separately when TRUST_PROXY=loopback 121ms
+ ✓ test/rate-limits.e2e-spec.ts > Rate limits behind a proxy (e2e) > ignores X-Forwarded-For when TRUST_PROXY is unset 92ms
+ ✓ test/app.e2e-spec.ts > API against PostgreSQL (e2e) > GET /api/health reaches the database, which runs PostgreSQL 18 49ms
+ ✓ test/app.e2e-spec.ts > API against PostgreSQL (e2e) > serves the OpenAPI 3.2.0 document 15ms
+ Test Files  17 passed (17)
+      Tests  151 passed (151)
+   Start at  10:04:13
+   Duration  61.79s (tests 50%, import 44%, transform 5%)
+exit 0
