@@ -79,4 +79,4 @@ No sign-in is needed to read guides (ADR 0010). Only the parts that use the stud
 
 **Proposed here, to confirm:** a guide is out of date (A5) when it was last checked more than 6 months ago. Every guide is checked again before each main term's registration.
 
-**Open:** each guide's portal address, account and steps must be checked on the real portal by a team member before it is published. None is verified yet.
+**Open:** each guide's portal address, account and steps must be checked on the real portal by a team member before it is published. Verified on 15 November 2026 (Dũng): G01 and G07 to the end, and published; G02 and G06 in part, so they stay drafts until their remaining steps are followed in the next registration and tuition periods. No B3 guide is verified yet.

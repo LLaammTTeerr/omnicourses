@@ -1,5 +1,5 @@
 // The content model of one guide in one language (guides plan §2). The files in
-// ./content/ are typed by hand against it, and the seed loads them (ADR 0010).
+// ./content/ are written against it, and the seed loads them (ADR 0010).
 
 /** A guide ID: lower-case words joined by hyphens, such as `register-courses`. */
 export const GUIDE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
