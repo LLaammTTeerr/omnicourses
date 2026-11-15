@@ -6,7 +6,7 @@ import { TERM_NUMBERS } from '../terms/term.js';
 import { CALENDAR_EVENT_KINDS, type CalendarEventKind } from './academic-calendar-event.entity.js';
 import { IsCalendarDate } from './calendar-date.js';
 
-// Request and response shapes of the academic calendar (ADR 0016). Admin requests go through
+// Request and response shapes of the academic calendar (ADR 0017). Admin requests go through
 // StrictBody: a field not declared here is a 400 `validation_failed`, never ignored.
 
 /** Present: validated. Absent: left as it is. */

@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-// F10 school dates (ADR 0016): the academic calendar a program administrator enters each term.
+// F10 school dates (ADR 0017): the academic calendar a program administrator enters each term.
 // Shared data of a program, not a student's record, so no user_id. The two actor columns point
 // at someone else's account and are nulled on purge (AGENTS.md, ADR 0004). Production seeds none.
 export class CreateAcademicCalendar1794500000000 implements MigrationInterface {

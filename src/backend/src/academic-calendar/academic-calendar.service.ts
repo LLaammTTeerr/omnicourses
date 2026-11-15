@@ -53,7 +53,7 @@ export function eventDto(e: AcademicCalendarEvent): AcademicCalendarEventDto {
 
 const programDto = (p: Program): CalendarProgramDto => ({ id: p.id, code: p.code, nameVi: p.nameVi, nameEn: p.nameEn });
 
-// The school dates of a program (ADR 0016). Reads are open to every signed-in user: the dates
+// The school dates of a program (ADR 0017). Reads are open to every signed-in user: the dates
 // are shared, published by the school, and hold nothing about a student. Writes reuse F12's
 // program grant and write lock (ADR 0011) through AdminWriteService; no guard of their own.
 @Injectable()

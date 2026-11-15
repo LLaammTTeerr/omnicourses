@@ -2,11 +2,11 @@ import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, 
 import { Program } from '../curriculum/program.entity.js';
 import { User } from '../users/user.entity.js';
 
-/** What a school date is (ADR 0016). `other` covers anything the list does not name. */
+/** What a school date is (ADR 0017). `other` covers anything the list does not name. */
 export const CALENDAR_EVENT_KINDS = ['term_start', 'term_end', 'registration', 'add_drop', 'exam_period', 'holiday', 'other'] as const;
 export type CalendarEventKind = (typeof CALENDAR_EVENT_KINDS)[number];
 
-// Table of migration 1794500000000 (ADR 0016). Shared data of a program, not a student's
+// Table of migration 1794500000000 (ADR 0017). Shared data of a program, not a student's
 // record: no user_id. created_by and updated_by name the administrator and are nulled when
 // that account is purged (AGENTS.md, ADR 0004), so the dates stay for everyone else.
 @Entity({ name: 'academic_calendar' })

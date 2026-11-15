@@ -1,4 +1,4 @@
-# ADR 0016: Academic calendar
+# ADR 0017: Academic calendar
 
 - Status: proposed
 - Date: 2026-11-12
@@ -11,7 +11,7 @@ F10 (Vision §5, as cited by the test plan's TC-B2-NOTIF-01) reminds students of
 
 The calendar page ([prototype](../ui-prototypes/calendar.html)) shows a week and a month view. This ADR covers only the dates the school publishes for a whole program. The personal timetable (a student's classes, rooms, deadlines, exams and notes) is a separate feature with its own ADR; this ADR does not rule it out of the page.
 
-ADR 0015 is claimed by the advisor harness (open PR #77), so this is 0016.
+ADR 0016 is claimed by the advisor harness (open PR #77), so this is 0017.
 
 ## Decisions
 
