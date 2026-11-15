@@ -288,6 +288,76 @@ export interface PrintedPrerequisiteList {
   offering_terms: { code: string; terms: number[]; page: Page }[];
 }
 
+// A printed course table with a prerequisite column. Not loaded: whether it is
+// the prerequisite rule of a cohort is the Project Lead's decision (AGENTS.md
+// hard rule 1), and no code is mapped to the code another cohort uses.
+
+export type PrerequisiteTableColumn = 'code' | 'name_en' | 'name_vi' | 'credits' | 'prerequisites';
+
+/** `sources/<id>.source.json`: where a prerequisite table comes from and how its text was read. */
+export interface PrerequisiteTableSource {
+  id: string;
+  title: string;
+  shortName: string;
+  issuer: string;
+  /** The issue date as printed; null when the document prints none. */
+  issued: string | null;
+  languages: string[];
+  sourceUrl: string;
+  /** The upload folder in `sourceUrl` ("2015/07"). A fact about the URL, not an issue date. */
+  urlPathDate: string;
+  /** `created` is the PDF's own metadata, not a printed date. The PDF itself never enters git. */
+  pdf: { file: string; sha256: string; pages: number; created: string; producer: string };
+  /** The whole page, `pdftotext -layout` output, unchanged. */
+  textLayer: { file: string; command: string; tool: string; sha256: string };
+  /** One crop per extracted column, the same on every page, unchanged. */
+  columns: { field: PrerequisiteTableColumn; file: string; command: string; sha256: string }[];
+  notes: string[];
+}
+
+/** One course row of a printed prerequisite table. */
+export interface PrintedPrerequisiteRow {
+  /** "Mã môn": the lines of the cell joined with nothing ("MTH2" + "51", "CS487-" + "CS488"). Not normalised. */
+  code: string;
+  /** "Tên TA": lines joined with one space, or with nothing where the column breaks a word or follows a "-". */
+  name_en: string;
+  /** "Tên tiếng Việt", joined like `name_en`. */
+  name_vi: string;
+  /** "Số tín chỉ". */
+  credits: number;
+  /** The credits exactly as printed, only when they differ from `credits` ("01"). */
+  credits_printed?: string;
+  /**
+   * "Điều kiện tiên quyết" exactly as printed, lines joined with one space
+   * ("MATH2" + "51" is "MATH2 51"). "None" where the cell prints None, null
+   * where it prints nothing.
+   */
+  printed: string | null;
+  /**
+   * Codes the cell prints: each comma-separated part with its spaces removed
+   * that has the shape of a code. Order as printed, no duplicates. Spelling is
+   * never repaired ("MATH251" stays, although the row is "MTH251").
+   */
+  resolved: string[];
+  /** Every other part of the cell, "None" excepted. */
+  unresolved: string[];
+  /** The page the row starts on. */
+  page: Page;
+}
+
+/** The rows of one printed prerequisite table. */
+export interface PrintedPrerequisiteTable {
+  /** `issued` is null when the document prints no date. */
+  source: { id: string; file: string; pages: number; sha256: string; sourceUrl: string; issued: string | null };
+  /** The printed column the cells come from. */
+  field: string;
+  /** What the column may mean, and what must be decided before it is loaded. */
+  note: string;
+  rows: PrintedPrerequisiteRow[];
+  /** Offering terms the document prints; [] when it prints none. */
+  offering_terms: { code: string; terms: number[]; page: Page }[];
+}
+
 // Equivalent and replacement course lists ("học phần tương đương/thay thế").
 // Not loaded: there is no table for them yet.
 

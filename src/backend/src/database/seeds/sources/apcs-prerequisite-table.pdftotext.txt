@@ -1,0 +1,1429 @@
+TRƯỜNG ĐẠI HỌC KHOA HỌC TỰ NHIÊN
+KHOA CÔNG NGHỆ THÔNG TIN
+
+
+                BẢNG MÔ TẢ TÓM TẮT MÔN HỌC CHƯƠNG TRÌNH TIÊN TIẾN
+  Mã      Tên TA       Tên tiếng                 Mô tả môn học                   Chuẩn đầu ra của môn học          Số tín     Điều
+  môn                    Việt                                                                                       chỉ     kiện tiên
+                                                                                                                             quyết
+CS161   Introduction   Nhập môn - This course is designed to introduce           - Practice problem solving    4            None
+        to Computer    Tin học I  students to problem solving by                   by programming in C++.
+        Science I                 programming in C++. Programming                - Comprehend
+                                  fundamentals include program structure,          programming
+                                  assignment, data types, repetition,              fundamentals (include
+                                  input/output, flow of control, and               program structure,
+                                  functions. Program design development            assignment, data types,
+                                  and testing is emphasized.                       repetition, input/output,
+                                                                                   flow of control, and
+                                                                                   functions)
+                                                                                 - Practice solving problem
+                                                                                   in C++.
+                                                                                 - Apply program design
+                                                                                   development and testing.
+CS162   Introduction   Nhập môn - The course is the continuation of the          - Comprehend advanced         4            CS161
+        to Computer    Tin học II Introduction to Computer Science I               data types and concepts
+        Science II                (CS161). It is designed to teach students        in programming with
+                                  arrays, pointers, linked list, file handling     arrays, pointers, linked
+                                  and an introduction to object-oriented           list, file handling
+                                  programming.                                   - Practice advanced
+                                                                                   object-oriented
+                                                                                   programming.
+CS163   Data           Cấu trúc    - The course is designed to teach students    - Use some popular data       4            CS162
+        Structures     dữ liệu       popular data structures used in computer      structures in
+                                     programming, including linked-list,           programming, including
+
+                                                                                                                               1
+ Mã       Tên TA     Tên tiếng               Mô tả môn học                    Chuẩn đầu ra của môn học           Số tín     Điều
+ môn                   Việt                                                                                       chỉ     kiện tiên
+                                                                                                                           quyết
+                                  stacks, queues, trees. It also provides         linked-list, stacks,
+                                  students knowledge on basic algorithms,         queues, trees.
+                                  such as sorting, searching, recursion and   -   Comprehend basic
+                                  hashing. The course will focus on the           algorithms, such as
+                                  implementation of various algorithms            sorting, searching,
+                                  and data structures.                            recursion and hashing.
+                                                                              -   Implement various
+                                                                                  algorithms and data
+                                                                                  structures.
+CS201   Computer    Lập trình    - Introduction to computer systems           -   Comprehend computer        4            CS161,
+        Systems     hệ thống      from a software perspective. Topics             systems from a software                 CS162
+        Programming               include: Basic machine organization.            perspective.
+                                  System programming using C and              -   Practice systems
+                                  assembly language. Introduction to              programming using C
+                                                                                  and assembly language.
+                                  system programming tools (gcc,
+                                                                              -   Show the understanding
+                                  makefile, gdb). Data representation             on: basic computer
+                                  (bits & bytes, characters, integers,            organization,
+                                  floating point numbers,                         presentation of data,
+                                  Implementation of control flow,                 machine instruction sets
+                                  procedure class, and complex data               and assembly
+                                  types at machine level. Linking and             programming,
+                                  loading. Exceptions and interrupts.         -   Show the relationship
+                                  Process control and signals. System             between C code and
+                                  calls, File I/O. Timing and improving           assembly code, C
+                                  program performance. Introduction               pointers and structures
+                                  to memory hierachy, dynamic                     and their machine-level
+                                                                                  representation.
+                                  memory allocation techniques.
+
+
+
+                                                                                                                             2
+ Mã       Tên TA     Tên tiếng               Mô tả môn học                Chuẩn đầu ra của môn học          Số tín     Điều
+ môn                   Việt                                                                                  chỉ     kiện tiên
+                                                                                                                      quyết
+                                                                          - Practice linking and
+                                                                            loading, debugging
+                                                                            program
+                                                                          - Implementing of control
+                                                                            flow, procedure class,
+                                                                            and complex data types
+                                                                            at machine level.
+                                                                          - Processing control and
+                                                                            signals, system calls, file
+                                                                            I/O. Timing and
+                                                                            improving program
+                                                                            performance.
+                                                                          - Show the understanding
+                                                                            on memory hierarchy,
+                                                                            dynamic memory
+                                                                            allocation techniques.
+CS202   Programming Các hệ       - The course is designed to introduce    - Comprehend the              4            None
+        Systems     thống lập     to students the concepts of object-       concepts of object-
+                    trình         oriented programming while learning       oriented programming
+                                  advanced C++ syntax. Students will        while learning advanced
+                                  understand the difference between         C++ syntax.
+                                                                          - Understand the
+                                  procedural programming and object
+                                                                            difference between
+                                  oriented programming. Students will       procedural programming
+                                  learn and practice how to design and      and object oriented
+                                  program with inheritance hierarchies,     programming.
+                                  with the goal of solving problems       - Learn and practice how
+                                  efficiently: producing high quality,      to design and program
+                                  robust, maintainable as well as           with inheritance
+                                  efficient object oriented solutions.      hierarchies, with the goal
+
+                                                                                                                        3
+ Mã       Tên TA       Tên tiếng               Mô tả môn học                  Chuẩn đầu ra của môn học         Số tín     Điều
+ môn                     Việt                                                                                   chỉ     kiện tiên
+                                                                                                                         quyết
+                                    Students will learn about C++'s               of solving problems
+                                    classes, objects, function                    efficiently: producing
+                                    overloading, operator overloading,            high quality, robust,
+                                    constructors, destructor, and be              maintainable as well as
+                                    introduced to inheritance and                 efficient object oriented
+                                                                                  solutions.
+                                    polymorphism.
+                                                                              -   Learn and practice C++'s
+                                                                                  classes, objects, function
+                                                                                  overloading, operator
+                                                                                  overloading,
+                                                                                  constructors, destructor
+                                                                              -   Comprehend and
+                                                                                  practice inheritance and
+                                                                                  polymorphism.
+CS250   Discrete       Cấu trúc    This course introduces Discrete            -   Comprehend differential      4        None
+        Structures I   rời rạc I   Mathematics with minimal formal                and integral calculus of
+                                   logic. There will be 40 lecture hours          one variable
+                                   and 10 lab sessions in 10 weeks. The       -   Comprehend the
+                                   course will essentially cover chapters         concepts and their
+                                                                                  applications in different
+                                   1-5 and a little of chapters 6, 7, 10 of
+                                                                                  settings.
+                                   the textbook. A detailed list of topics
+                                   is at the end of this syllabus.
+CS251   Logical        Cấu trúc    The course is the second term of the       - Obtain skills in discrete      4        CS250
+        Structures     logic                                                    mathematics and logic
+                                   two term sequence CS 250-251. The            that are used in the study
+                                   main goal of the sequence is that            and practice of computer
+                                                                                science.
+                                   students obtain those skills in discrete   - Show the understanding
+                                                                                on concepts of logic
+                                                                                (propositional calculus,
+                                                                                                                           4
+ Mã       Tên TA      Tên tiếng                Mô tả môn học                 Chuẩn đầu ra của môn học    Số tín     Điều
+ môn                    Việt                                                                              chỉ     kiện tiên
+                                                                                                                   quyết
+                                  mathematics and logic that are used in       first-order predicate
+                                                                               calculus), formal
+                                  the study and practice of computer           reasoning (natural
+                                  science. A second goal is that students      deduction, resolution),
+                                                                               algebraic structures in
+                                  become familiar with symbolic algebra        computing.
+                                                                             - Familiar with symbolic
+                                  and logic programming as tools for           algebra.
+                                  doing     laboratory   experiments   in    - Use logic programming
+                                                                               as tools for doing
+                                  discrete mathematics and logic. Logic:       laboratory experiments
+                                                                               in discrete mathematics
+                                  propositional    calculus,   first-order
+                                                                               and logic.
+                                  predicate calculus. Formal reasoning:
+                                  natural      deduction,      resolution.
+                                  Applications to program correctness
+                                  and automatic reasoning. Introduction
+                                  to algebraic structures in computing.
+                                  Logic programming is introduced and
+                                  used for programming experiments.
+
+CS300   Elements of   Nhập môn Practical techniques of program               - Show the understanding    4        CS202
+        Software      Công                                                     on practical techniques
+        Engineering   nghệ phần development    for  medium-scale               of program development
+                      mềm       software produced by individuals.              for medium-scale
+
+
+                                                                                                                     5
+ Mã       Tên TA       Tên tiếng                   Mô tả môn học                     Chuẩn đầu ra của môn học         Số tín     Điều
+ môn                     Việt                                                                                          chỉ     kiện tiên
+                                                                                                                                quyết
+                                   Software development from problem                     software produced by
+                                                                                         individuals.
+                                   specification            through        design,   -   Practice the phases of
+                                   implementation,             testing,       and        software development
+                                                                                         from problem
+                                   maintenance. The fundamental design                   specification through
+                                                                                         design, implementation,
+                                   techniques of step-wise refinement and                testing, and maintenance.
+                                   data abstraction. A software project              -   Apply the fundamental
+                                                                                         design techniques of
+                                   will     be      carried        through     the       step-wise refinement and
+                                                                                         data abstraction.
+                                   development cycle.
+                                                                                     -   Practice developing a
+                                   -                                                     software project through
+                                                                                         the development cycle.
+CS305   Social,        Đạo đức     The      advancement        of      information   -   Address the social,          2        None
+        Ethical, and   khoa học                                                          ethical, and legal issues
+        Legal Issues               technology has changed the way we                     related to the
+                                   leave, interact, and work. However, it                advancement of
+                                                                                         information technology.
+                                   also results in social, ethical, and legal        -   Comprehend important
+                                                                                         social and professional
+                                   issues that we have to address. This                  issues related to
+                                   course        will      introduce      students       information technology.
+                                                                                     -   Practice discussing real-
+                                   important       social    and      professional       world situations where
+                                                                                         social, ethical, and legal
+                                   issues        related      to       information
+                                                                                         implications are relevant
+                                   technology and provide opportunities                  to the information
+                                                                                         technology profession.
+
+                                                                                                                                  6
+ Mã       Tên TA        Tên tiếng                Mô tả môn học                   Chuẩn đầu ra của môn học    Số tín     Điều
+ môn                      Việt                                                                                chỉ     kiện tiên
+                                                                                                                       quyết
+                                    for students to discuss real-world
+                                    situations where social, ethical, and
+                                    legal implications are relevant to the
+                                    information technology profession.
+
+CS311   Computation     Cấu trúc    Introduces     the      foundations     of   - Show the understanding    4        CS251
+        al Structures   tính toán                                                  on foundations of
+                                    computing: regular languages and               computing: regular
+                                    finite automata; context-free languages        languages and finite
+                                                                                   automata.
+                                    and   pushdown         automata;    Turing   - Comprehend the context-
+                                                                                   free languages and
+                                    machines and equivalent models of              pushdown automata;
+                                    computation;               computability;    - Comprehend turing
+                                                                                   machines and equivalent
+                                    introduction to complexity.                    models of computation;
+                                                                                 - Show the understanding
+                                                                                   on computability, and
+                                                                                   complexity.
+CS320   Principles of Nguyên lý This course introduces the overall               - Show the understanding    4        CS200,
+        Programming các ngôn                                                       on the overall                     CS201,
+        Languages     ngữ lập   construction of compilers using a                  construction of                    CS311
+                      trình     multiphase translation process. It                 compilers using a
+                                                                                   multiphase translation
+                                    covers the Front-End phase of compiler         process.
+                                                                                 - Comprehend the Front-
+                                    including    lexical    analysis,   syntax     End phase of compiler
+                                                                                   including lexical
+
+                                                                                                                         7
+Mã    Tên TA   Tên tiếng                 Mô tả môn học                       Chuẩn đầu ra của môn học      Số tín     Điều
+môn              Việt                                                                                       chỉ     kiện tiên
+                                                                                                                     quyết
+                           analysis and semantic analysis. More                analysis, syntax analysis
+                                                                               and semantic analysis.
+                           specifically, it focuses on theory of             - Show the understanding
+                           scanning      and    parsing     and       both     on theory of scanning
+                                                                               and parsing and both
+                           handwritten and automated scanner and               handwritten and
+                                                                               automated scanner and
+                           parser implementation. Compiling is                 parser implementation.
+                           essentially a process of symbolically             - Understand compiling is
+                                                                               essentially a process of
+                           manipulating program representations                symbolically
+                                                                               manipulating program
+                           described by tree and graph-like data
+                                                                               representations described
+                           structures. Because of this, the course             by tree and graph-like
+                                                                               data structures. Practice
+                           also introduces tools that facilitate               with the tools that
+                           symbolic manipulation and definition                facilitate symbolic
+                                                                               manipulation and
+                           of such structures as scanner and parser            definition of such
+                                                                               structures as scanner and
+                           generators. This course emphasizes                  parser generators.
+                           teamwork in small groups on a
+                           substantial    project    that      will    be
+                           performed for a real customer. Projects
+                           are   chosen        so   as    to    provide
+                           interdisciplinary content with project
+
+
+                                                                                                                       8
+ Mã       Tên TA       Tên tiếng               Mô tả môn học                   Chuẩn đầu ra của môn học      Số tín     Điều
+ môn                     Việt                                                                                 chỉ     kiện tiên
+                                                                                                                       quyết
+                                   proposals being solicited from the
+                                   community at large. Projects that
+                                   involve students as well as customers
+                                   from other disciplines are encouraged.
+                                   Lectures will be directed towards the
+                                   management of software development
+                                   projects such as those being carried out
+                                   by the teams. It is the intent of the
+                                   course to provide a capstone experience
+                                   that integrates the material contained in
+                                   the remainder of the CS curriculum
+                                   through work on a project that applies
+                                   this material in another discipline.
+
+CS333   Introduction   Nhập môn    1.     To learn the evolution of            - To learn the evolution of   4        CS200,
+        to Operating   Hệ điều                                                   Operating systems.
+        Systems        hành          Operating systems.                        - To study the operations              CS201,
+                                   2.    To     study     the    operations      performed by Operating               CS311
+                                                                                 System as a resource
+                                     performed by Operating System as a          manager.
+                                     resource manager.
+
+                                                                                                                         9
+ Mã       Tên TA     Tên tiếng                Mô tả môn học                    Chuẩn đầu ra của môn học    Số tín     Điều
+ môn                   Việt                                                                                 chỉ     kiện tiên
+                                                                                                                     quyết
+                                  3.     To study computer security            - To study computer
+                                                                                 security issues and
+                                    issues and Operating System tools.           Operating System tools.
+
+CS350   Algorithms   Thuật        You will often be called upon to "give       - Show the description of   4        CS311
+        and          toán và độ                                                  the algorithm in
+        Complexity   phức tạp     an algorithm" to solve a certain               pseudocode.
+                                  problem. Your write-up should take the         Use worked example or
+                                                                                 diagram to show more
+                                  form of a short essay. A topic                 precisely how the
+                                                                                 algorithm works.
+                                  paragraph   should      summarize      the   - Give the proof (or
+                                  problem you are solving and what your          indication) of the
+                                                                                 correctness of the
+                                  results are. The body of your essay            algorithm.
+                                                                                 Analyze the running
+                                  should provide the following:
+                                                                                 time of the algorithm.
+                                  1. A description of the algorithm in
+                                  English and, if helpful, pseudocode.
+                                  2. At least one worked example or
+                                  diagram to show more precisely how
+                                  your algorithm works.
+                                  3. A proof (or indication) of the
+                                  correctness of the algorithm.
+
+
+
+                                                                                                                      10
+ Mã       Tên TA       Tên tiếng                 Mô tả môn học                       Chuẩn đầu ra của môn học        Số tín     Điều
+ môn                     Việt                                                                                         chỉ     kiện tiên
+                                                                                                                               quyết
+                                   4. An analysis of the running time of
+                                   the algorithm.
+                                   -
+CS486   Introduction   Nhập môn Introduction to fundamental concepts                 - Understand fundamental    4            CS163,
+        to Database    các hệ cơ                                                       concepts of database                   CS250,
+        Systems        sở dữ liệu of database management with the                      management with the                    CS251
+                                   relational model. Schema design and                 relational data model.
+                                                                                     - Design effective
+                                   refinement,        query            languages,      database schema that
+                                                                                       accurately model real-
+                                   transaction      management,          security,     world information
+                                   database      application     environments,         semantics.
+                                                                                     - Pose complex database
+                                   physical data organization, overview of             queries in SQL as well
+                                                                                       as theoretical query
+                                   query processing, physical design
+                                                                                       languages.
+                                   tuning.                                           - Show the understanding
+                                                                                       on concepts and their
+                                   To learn how to design effective                    applications such as
+                                   database      schemas       that    accurately      transaction management,
+                                                                                       concurrency control and
+                                   model         real-world           information      recovery, security,
+                                                                                       database application
+                                   semantics. To learn how to pose                     environments, physical
+                                   complex database queries in SQL as                  data organization,
+                                                                                       overview of query
+                                   well as theoretical query languages. To             optimization, physical
+                                                                                       design tuning.
+                                   understand what is meant by a
+
+                                                                                                                                11
+ Mã        Tên TA   Tên tiếng               Mô tả môn học                  Chuẩn đầu ra của môn học       Số tín     Điều
+ môn                  Việt                                                                                 chỉ     kiện tiên
+                                                                                                                    quyết
+                                transaction. To gain an introductory       - Practice creating index
+                                                                             in database systems.
+                                background in concurrency control and
+                                recovery. To learn about indexing in
+                                database systems.
+                                -
+CS487-   Capstone   Đồ án tốt   Emphasizes teamwork in small groups        - Work in small groups on      6        CS163,
+CS488    Project    nghiệp                                                   a substantial project that            CS250,
+                                on a substantial project that will be        will be performed for a               CS251
+                                performed for a real customer. Projects      real customer.
+                                                                           - Work on the
+                                are   chosen    so   as    to   provide      interdisciplinary content
+                                                                             projects. Their proposals
+                                interdisciplinary content with project       are solicited from the
+                                proposals being solicited from the           community at large.
+                                                                           - Design the project.
+                                community at large. Projects that          - Manage the software
+                                                                             development projects.
+                                involve students as well as customers
+                                                                           - Contribute to the design,
+                                from other disciplines are encouraged.       documentation, and
+                                                                             testing phases of the
+                                Lectures will be directed towards the        project.
+                                management of software development
+                                projects such as those being carried out
+                                by the teams. It is the intent of the
+                                course to provide a capstone experience
+
+                                                                                                                     12
+ Mã       Tên TA      Tên tiếng                Mô tả môn học                  Chuẩn đầu ra của môn học         Số tín     Điều
+ môn                    Việt                                                                                    chỉ     kiện tiên
+                                                                                                                         quyết
+                                  that integrates the material contained in
+                                  the remainder of the CS curriculum
+                                  through work on a project that applies
+                                  this material in another discipline. Each
+                                  team member will contribute to the
+                                  design, documentation, and testing
+                                  phases of the project.
+CM101   Communicati   Kỹ năng     This course is designed to improve          - Improve communication      4            None
+        on            giao tiếp                                                 abilities of freshman
+        Management                communication abilities of freshman           students.
+                                  students in Advanced Program in             - Formulate a
+                                                                                communication strategy
+                                  Computer Science at the University of       - Persuade targeted
+                                                                                audiences
+                                  Science, Vietnam National University        - Give and receive
+                                  HCM - A joint BSCS program between            feedbacks
+                                                                              - Manage difficult
+                                  US-VNU            and    Portland   State     conversations
+                                                                              - Listen and take notes
+                                  University. The course is organized
+                                                                              - Perform several in-class
+                                  into 6 Chapters, each targets one             exercises, assignments,
+                                                                                and one teamwork
+                                  specific skill:                               project.
+
+
+
+
+                                                                                                                          13
+ Mã       Tên TA   Tên tiếng               Mô tả môn học                     Chuẩn đầu ra của môn học           Số tín     Điều
+ môn                 Việt                                                                                        chỉ     kiện tiên
+                                                                                                                          quyết
+                               1. Formulating A Communication
+                               Strategy
+                               2. Giving and Receiving Feedbacks
+                               3. Listening and Taking Notes
+                               4. Persuading Targeted Audiences
+                               5. Managing Difficult Conversations
+                               6. Team-working
+
+ECE34   Computer   Phần cứng This course presents an overview of             - Show the understanding       4            None
+1       Hardware   máy tính                                                    on computer architecture
+                               computer         architecture          and      and programming from a
+                               programming      from      a     hardware       hardware viewpoint.
+                                                                             - Show the understanding
+                               viewpoint. Topics covered in the class          on the computer
+                                                                               hardware concepts,
+                               include:    digital     logic        gates,     which include: digital
+                               multiplexers,      flip-flops,        state     logic gates, multiplexers,
+                                                                               flip-flops, state
+                               machines;       computer         arithmetic     machines, computer
+                                                                               arithmetic operations,
+                               operations; basic computer architecture
+                                                                               basic computer
+                               - data path, control, and buses;                architecture - data path,
+                                                                               control, and buses,
+                               pipelining- HW and CISC vs. RISC;               pipelining- HW and
+                               memory hierarchy and virtual memory;            CISC vs. RISC;
+
+
+                                                                                                                           14
+ Mã       Tên TA     Tên tiếng                Mô tả môn học                       Chuẩn đầu ra của môn học           Số tín     Điều
+ môn                   Việt                                                                                           chỉ     kiện tiên
+                                                                                                                               quyết
+                                 input/output    techniques        -   polling,   - Comprehend memory
+                                                                                    hierarchy and virtual
+                                 interrupt, DMA; hardware view of                   memory;
+                                 computer       system     components         -   - Explain input/output
+                                                                                    techniques - polling,
+                                 keyboard, mouse, displays, printers,               interrupt, DMA;
+                                                                                  - Give hardware view of
+                                 disks, modems, and LANs.                           computer system
+                                                                                    components - keyboard,
+                                                                                    mouse, displays,
+                                                                                    printers, disks, modems,
+                                                                                    and LANs.
+SC203   Scientific   Phương      To define an experimental project,               - Define an experimental       4            None
+        Method       pháp khoa                                                      project, invest on your
+                     học         invest on your capability to observe,              capability to observe,
+                                 develop a hypothesis, state project                develop a hypothesis,
+                                                                                    state project objective(s)
+                                 objective(s) and success criteria.                 and success criteria.
+                                                                                  - Aim at developing
+                                 Through lectures and practical in-class            scientific aptitudes
+                                 exercises      aiming     at      developing     - Comprehend the
+                                                                                    methods, processes and
+                                 scientific   aptitudes,        students   are      techniques for: reading
+                                                                                    and analyzing scientific
+                                 exposed to relevant methods, processes
+                                                                                    articles,
+                                 and techniques for:            Reading and       - Raise a hypothesis that
+                                                                                    reflects a question to be
+                                 Analyzing scientific articles, Raising a           answered.
+                                 Hypothesis that reflects a Question to           - Design the experiments
+                                                                                    to test the raised
+
+                                                                                                                                15
+ Mã       Tên TA    Tên tiếng                  Mô tả môn học                    Chuẩn đầu ra của môn học         Số tín     Điều
+ môn                  Việt                                                                                        chỉ     kiện tiên
+                                                                                                                           quyết
+                                be    answered,         Designing        the      hypothesis, Implement
+                                                                                  the experimentation
+                                experiments      to    test   the     raised    - Execute the tests and
+                                hypothesis,       Implementing           the      analyze the obtained data
+                                                                                  Document the obtained
+                                experimentation, Executing the tests              results
+                                and Analyzing the obtained data,
+                                Documenting the obtained results.
+
+WR227   Technical   Kỹ năng     To define an experimental project,              - Define an experimental     4            SC203
+        Writing     viết tài                                                      project, invest on your
+                    liệu khoa   invest on your capability to observe,             capability to observe,
+                    học         develop a hypothesis, state project               develop a hypothesis,
+                                                                                  state project objective(s)
+                                objective(s)     and   success      criteria.     and success criteria.
+                                                                                - Practice reading,
+                                Through readings, discussions and                 discussing and doing
+                                practical exercises, we will focus on             practical exercises.
+                                                                                - Comprehend basic
+                                basic principles of good writing and on           principles of good
+                                                                                  writing and on
+                                organizational     matters     aiming     at
+                                                                                  organizational matters
+                                developing skills that enable you to              aiming at developing
+                                                                                  skills to produce clear
+                                produce clear and effective scientific            and effective scientific
+                                and technical documents.                          and technical documents.
+
+
+
+
+                                                                                                                            16
+Mã       Tên TA       Tên tiếng                  Mô tả môn học                   Chuẩn đầu ra của môn học            Số tín     Điều
+môn                     Việt                                                                                          chỉ     kiện tiên
+                                                                                                                               quyết
+MTH2   Calculus I     Vi tích     To equip the students with the concept         - Show the understanding        4            None
+51                    phân I                                                       on concepts and
+                                  and techniques of limit, differentiation         techniques of limit,
+                                  and their applications; as well as the           differentiation and their
+                                                                                   applications;
+                                  theory and techniques of integration:          - Comprehend the theory
+                                                                                   and techniques of
+                                  Function and Models, Limits and                  integration: function and
+                                  Derivatives,     Differentiation     Rules,      models, limits and
+                                                                                   derivatives,
+                                  Application       of        Differentiation,     differentiation rules,
+                                                                                   application of
+                                  Integrals, Techniques of Integration
+                                                                                   differentiation, integrals,
+                                                                                   technique of integration.
+MTH2   Calculus II    Vi tích     This    course     covers       topics   in    - Show the understanding        4            MATH2
+52                    phân II                                                      on advanced topics of                      51
+                                  integrations,    differential    equations,      integrations, differential
+                                  parametric        curves,       sequences,       equations, parametric
+                                                                                   curves, sequences,
+                                  numerical and functional series.                 numerical and functional
+                                                                                   series.
+                                                                                 - Do the exercises relevant
+                                                                                   to these above topics.
+MTH2   Calculus III   Vi tích     To equip the students with the concept         - Comprehend the concept        4            MATH2
+53                    phân III                                                     and techniques of vector
+                                  and techniques of vector valued                  valued functions and                       52
+                                  functions and functions of several               functions of several
+                                                                                   variables, partial
+                                  variables, partial differentiation; the          differentiation;
+
+
+                                                                                                                                   17
+ Mã       Tên TA       Tên tiếng                 Mô tả môn học                  Chuẩn đầu ra của môn học          Số tín     Điều
+ môn                     Việt                                                                                      chỉ     kiện tiên
+                                                                                                                            quyết
+                                   theory of multiple integrals and an          - Show the understanding
+                                                                                  on the theory of multiple
+                                   introduction to vector calculus.               integrals.
+                                                                                - Show the understanding
+                                                                                  on vector calculus.
+STAT4   Applied        Xác suất    Randomness       and     uncertainty   are   - Recognize that              4            CS250,
+51      Statistics for thống kê                                                   randomness and                           CS251
+        Engineers                  phenomena that CS, finance and                 uncertainty are
+        and Scientists             engineering students are facing in both        phenomena that CS,
+                                                                                  finance and engineering
+                                   their daily life and in professional           students are facing in
+                                                                                  both their daily life and
+                                   environments. The course' aims are to          in professional
+                                   provide to students in Computing,              environments.
+                                                                                - Show the understanding
+                                   Business                  Administration,      on Computing, Business
+                                                                                  Administration,
+                                   Econometrics and Biological Sciences
+                                                                                  Econometrics and
+                                   fundamental methodologies together             Biological Sciences
+                                                                                  fundamental
+                                   with     major      formalizations     and     methodologies
+                                   techniques of Probability theory and         - Address major
+                                                                                  formalizations and
+                                   Statistics, in particular Descriptive          techniques of Probability
+                                                                                  theory and Statistics, in
+                                   Statistics    and      Basic   Inferential     particular Descriptive
+                                   Statistics.                                    Statistics and Basic
+                                                                                  Inferential Statistics.
+                                   -
+
+
+
+                                                                                                                             18
+ Mã       Tên TA        Tên tiếng                  Mô tả môn học                     Chuẩn đầu ra của môn học      Số tín     Điều
+ môn                      Việt                                                                                      chỉ     kiện tiên
+                                                                                                                             quyết
+PH214   Physics         Thực        The students be master of general idea,          - Know different between 1             None
+        Laboratory I    hành Vật                                                       density and private mass.
+                        lý I        the error. To know different between             - Show the understanding
+                                    density and private mass.Viscosity of              on viscosity of liquids,
+                                                                                       reversible pendulum and
+                                    liquids, the viscosity is dependence of            mathematical pendulum.
+                                    different         temperature.Reversible
+                                    pendulum          and            Mathematical
+                                    pendulum.        The        Malus’       law,
+                                    polarization     of     light,    to   mesure
+                                    concentration of sugar. The Lambert-
+                                    Beers’law, absortion              of    light.
+                                    Refraction of         light, dispersion and
+                                    resolving power of the prisms (flint
+                                    glass,crown glass). Heat for ice, heat
+                                    capacity of metals, volt meter and
+                                    ampe.
+PH215   Physics         Thực        The students be master of general idea,          - Comprehend the Malus’ 01             None
+        Laboratory II   hành Vật                                                       law, polarization of light,
+                        lý II       the error. To know different between               the Lambert-Beers’law,
+                                    density and private mass.Viscosity of              the absortion of light.
+                                                                                     - Measure concentration
+                                                                                       of sugar.
+
+                                                                                                                              19
+ Mã       Tên TA     Tên tiếng                  Mô tả môn học                     Chuẩn đầu ra của môn học         Số tín     Điều
+ môn                   Việt                                                                                         chỉ     kiện tiên
+                                                                                                                             quyết
+                                 liquids, the viscosity is dependence of
+                                 different         temperature.Reversible
+                                 pendulum          and            Mathematical
+                                 pendulum.        The        Malus’       law,
+                                 polarization     of     light,    to   mesure
+                                 concentration of sugar. The Lambert-
+                                 Beers’law, absortion              of    light.
+                                 Refraction of         light, dispersion and
+                                 resolving power of the prisms (flint
+                                 glass,crown glass). Heat for ice, heat
+                                 capacity of metals, volt meter and
+                                 ampe.
+PH216   Physics      Thực        The students be master of general idea,          - Show the understanding        01        None
+        Laboratory   hành Vật                                                       on refraction of light,
+        III          lý III      the error. To know different between               dispersion and resolving
+                                 density and private mass.Viscosity of              power of the prisms
+                                                                                    (flint glass, crown glass).
+                                 liquids, the viscosity is dependence of          - Recognize heat for ice,
+                                                                                    heat capacity of metals,
+                                 different         temperature.Reversible           volt meter and ampe.
+                                 pendulum          and            Mathematical
+
+
+                                                                                                                              20
+ Mã       Tên TA    Tên tiếng                   Mô tả môn học                        Chuẩn đầu ra của môn học       Số tín     Điều
+ môn                  Việt                                                                                           chỉ     kiện tiên
+                                                                                                                              quyết
+                                 pendulum.         The           Malus’      law,
+                                 polarization     of       light,   to    mesure
+                                 concentration of sugar. The Lambert-
+                                 Beers’law, absortion               of      light.
+                                 Refraction of          light, dispersion and
+                                 resolving power of the prisms (flint
+                                 glass,crown glass). Heat for ice, heat
+                                 capacity of metals, volt meter and
+                                 ampe.
+
+PH221   General     Vật lý Đại   Physics        and         mechanics,       One     - Show understanding on    3            None
+        Physics I   cương I                                                            concepts such as physics
+                                 dimensional kinematics, Vectors and                   and mechanics, one
+                                 trigonometry,             Two      dimensional        dimensional kinematics,
+                                                                                       vectors and
+                                 kinematics, Newton’s laws of motion,                  trigonometry, two
+                                                                                       dimensional kinematics,
+                                 Applications         of     Newton’s       laws,      Newton’s laws of
+                                 Energy, Work and kinetic energy,                      motion.
+                                                                                     - Apply Newton’s laws,
+                                 Potential energy and conservative                   - Comprehend the
+                                                                                       concepts of energy, work
+                                 forces,       Linear       momentum         and
+                                                                                       and kinetic energy,
+                                 collisions,          Rotational          motion,      potential energy and
+                                                                                       conservative forces,
+
+                                                                                                                               21
+ Mã       Tên TA      Tên tiếng                  Mô tả môn học                     Chuẩn đầu ra của môn học          Số tín     Điều
+ môn                    Việt                                                                                          chỉ     kiện tiên
+                                                                                                                               quyết
+                                   Rotational      dynamics      and      static     Linear momentum and
+                                                                                     collisions, Rotational
+                                   equilibrium,        Oscillations      about       motion, Rotational
+                                   equilibrium, Waves and Sound, Fluids,             dynamics and static
+                                                                                     equilibrium, Oscillations
+                                   Temperature and heat, Ideal gas law               about equilibrium,
+                                                                                     Waves and Sound,
+                                                                                     Fluids, Temperature and
+                                                                                     heat, Ideal gas law
+PH222   General       Vật lý Đại   Electric charge. electric fields, electric      - Show the understanding      3            None
+        Physics II    cương II                                                       on electric charge,
+                                   energy and capacitance, current and               electric fields, electric
+                                   resistance.     direct   current    circuits,     energy and capacitance,
+                                                                                     current and resistance.
+                                   magnetism, electromagnetic induction,             direct current circuits,
+                                                                                     magnetism,
+                                   alternating-current                 circuits,     electromagnetic
+                                   electromagnetic waves.                            induction, alternating-
+                                                                                     current circuits,
+                                                                                     electromagnetic waves.
+                                                                                   - Use the above concepts
+                                                                                     to solve exercises
+PH223   General       Vật lý Đại   Oscillations,     Mechanical       Waves-I,     - Show the understanding      3            None
+        Physics III   cương III                                                      on Oscillations,
+                                   Maxwell’s Equations, Electromagnetic              Mechanical Waves-I,
+                                   Waves, Interferences, Diffractioin.               Maxwell’s Equations,
+                                                                                     Electromagnetic Waves,
+                                                                                     Interferences,
+                                                                                     Diffraction.
+
+
+                                                                                                                                22
+ Mã       Tên TA   Tên tiếng                   Mô tả môn học                   Chuẩn đầu ra của môn học       Số tín     Điều
+ môn                 Việt                                                                                      chỉ     kiện tiên
+                                                                                                                        quyết
+                                                                               - Use the above concepts
+                                                                                 to solve exercises
+CS411   Computer   Đồ họa      This   class      will    introduce     about   - Show the understanding 4              CS202,
+        Graphics   máy tính                                                      on concepts, structures,              MTH261
+                               concepts, structures, and programming             and programming
+                               techniques for display of 2D and 3D               techniques for display of
+                                                                                 2D and 3D objects.
+                               objects.   It    will    include      drawing   - Apply the techniques on
+                                                                                 drawing algorithms (line,
+                               algorithms (line, circle), rasterization          circle), rasterization
+                               (triangle and polygon), 2D geometrical            (triangle and polygon),
+                                                                                 2D geometrical
+                               transformation,          3D     geometrical       transformation, 3D
+                                                                                 geometrical
+                               transformations,         3D     projections
+                                                                                 transformations, 3D
+                               (orthographic and perspective), surface           projections (orthographic
+                                                                                 and perspective), surface
+                               shading, 2D and 3D clipping, and ray              shading, 2D and 3D
+                               tracing. OpenGL will be the main                  clipping, and ray tracing.
+                                                                               - Use OpenGL as the main
+                               toolbox for experiments.                          toolbox for experiments.
+
+CS412   Computer   Thị giác    Computer vision course will provide             - Comprehend the           4            None
+        Vision     máy tính                                                      knowledge about how to
+                               knowledge about how to define and                 define and detect the
+                               detect the features of image and video.           features of image and
+                                                                                 video.
+                               Some basic problems of computer                 - Explain some basic
+                                                                                 problems of computer
+                               vision will be explained in this course           vision such as image
+
+                                                                                                                         23
+ Mã       Tên TA       Tên tiếng                Mô tả môn học                       Chuẩn đầu ra của môn học         Số tín     Điều
+ môn                     Việt                                                                                         chỉ     kiện tiên
+                                                                                                                               quyết
+                                   such as image segmentation, object                  segmentation, object
+                                                                                       detection, object
+                                   detection,   object      tracking,     object       tracking, object
+                                   recognition, stereo matching, etc. This             recognition, stereo
+                                                                                       matching, etc. Apply the
+                                   course will also provide a skill of                 skill of computer
+                                                                                       programming using
+                                   computer programming using OpenCV                   OpenCV through project
+                                   through project final.                              final.
+
+
+CS417   Game           Lý thuyết   There has been an explosive growth of            - Aim at introduction to     4            None
+        Theory,        game - Hệ                                                      some of the fields that
+        Multi-Agents   thống đa    online communities in recent years.                might shed light on how
+        and Social     tác nhân    These communities involve millions of              certain behaviors or
+        Algorithms     và thuật                                                       phenomena arise in these
+                       toán xã     users and span a wide range of media               highly connected
+                       hội                                                            systems.
+                                   and platforms from instant messaging,            - Comprehend the topics
+                                   to blogging and social networking. This            in game theory, multi-
+                                                                                      agent systems, and social
+                                   leads   to   complex        and      intricate     algorithms with
+                                                                                      sufficient depth to tackle
+                                   interactions between users in these
+                                                                                      challenging technical
+                                   communities. The course aims at                    problems.
+                                                                                    - Find an area that piques
+                                   giving you an introduction to some of              the interest to further
+                                   the fields that might shed light on how            pursue.
+
+                                   certain behaviors or phenomena arise in
+
+                                                                                                                                24
+ Mã       Tên TA       Tên tiếng                Mô tả môn học                   Chuẩn đầu ra của môn học          Số tín     Điều
+ môn                     Việt                                                                                      chỉ     kiện tiên
+                                                                                                                            quyết
+                                   these   highly    connected     systems.
+                                   Specifically, we will cover various
+                                   topics in game theory, multi-agent
+                                   systems, and social algorithms with
+                                   sufficient depth to tackle challenging
+                                   technical problems. However the main
+                                   goal is for you to find an area that
+                                   piques your interest to further pursue it.
+
+CS418   Introduction   Nhập môn Natural language processing (NLP)               - Aim at computational        4            CS162
+        to Natural     xử lý                                                      methods to convert text
+        Language       ngôn ngữ deals with computational methods to               or speech data
+        Processing     tự nhiên convert text or speech data                       (unstructured data) into
+                                                                                  structured data.
+                                   (unstructured data) into structured data.    - Comprehend some
+                                                                                  typical applications of
+                                   NLP is considered a branch of artificial       NLP: text classification,
+                                   intelligence. Typical applications of          text summarization,
+                                                                                  machine translation,
+                                   NLP are: text classification, text             information retrieval,
+                                                                                  question answering.
+                                   summarization, machine translation,
+                                                                                - Explain some basic
+                                   infomation       retrieval,     question       concepts and techniques
+                                                                                  for processing text.
+                                   answering. This course introduces
+
+                                                                                                                             25
+ Mã       Tên TA       Tên tiếng                 Mô tả môn học                         Chuẩn đầu ra của môn học        Số tín     Điều
+ môn                     Việt                                                                                           chỉ     kiện tiên
+                                                                                                                                 quyết
+                                   basic concepts and techniques for                   - Use two NLP
+                                                                                         applications: spelling-
+                                   processing        text,     and       two   NLP       error correction and text
+                                   applications: spelling-error correction               classification.
+
+                                   and text classification.
+
+CS419   Introduction   Nhập môn The course introduces fundamental                      - Aim at fundamental        4            CS163,
+        to             tìm kiếm                                                          theory, design and
+        Information    thông tin theory, design and impelmentation                       implementation                         STAT45
+        Retrieval                  techniques for information retrieval                  techniques for                         1,
+                                                                                         information retrieval
+                                   system. The core components of the                    system.                                MATH2
+                                                                                       - Comprehend the core
+                                   course        includes:           organization,       components of the                      61
+                                   representation            and     access       to     course includes:
+                                                                                         organization,
+                                   information; indexing and indexes;                    representation and access
+                                                                                         to information; indexing
+                                   query       and           retrieval     models;
+                                                                                         and indexes; query and
+                                   categorization             and         clustering     retrieval models;
+                                                                                         categorization and
+                                   algorithms;       link analysis; relevance            clustering algorithms;
+                                   feedback and query expansion. Textual                 link analysis; relevance
+                                                                                         feedback and query
+                                   and      visual     information         retrieval     expansion.
+                                                                                       - Investigate textual and
+                                   systems are under investigation.                      visual information
+                                                                                         retrieval systems.
+
+
+                                                                                                                                     26
+ Mã       Tên TA       Tên tiếng                  Mô tả môn học                    Chuẩn đầu ra của môn học       Số tín     Điều
+ môn                     Việt                                                                                      chỉ     kiện tiên
+                                                                                                                            quyết
+CS420   Artificial     Trí tuệ     Introduction to the basic concepts and          - Show the understanding 4              CS202,
+        Intelligence   nhân tạo                                                      on basic concepts and                 CS311
+                                   techniques of artificial intelligence.            techniques on artificial
+                                   Knowledge representation, problem                 intelligence.
+                                                                                   - Comprehend knowledge
+                                   solving, and AI search techniques.                representations, solving
+                                                                                     problem techniques
+                                   Program will be written in one of the AI          using AI.
+                                   languages.                                      - Conduct experimental
+                                                                                     programs using AI
+                                                                                     techniques.
+CS421   Software       Quản lý  This course introduces the methods and             - Comprehend the           4             None
+        Requirement    yêu cầu                                                       methods and techniques
+                       phần mềm techniques that support collecting,                  that support collecting,
+                                   identifying,     analyzing,       specifying,     identifying, analyzing,
+                                                                                     specifying, testing, and
+                                   testing,   and    managing        (software)      managing (software)
+                                                                                     requirements.
+                                   requirements. The content of this               - Implement the process of
+                                   course focuses on introducing and                 analyzing and managing
+                                                                                     requirements with a
+                                   guiding students to implement the                 specific methodology
+                                                                                     (currently RUP).
+                                   process of analyzing and managing
+                                   requirements       with       a      specific
+                                   methodology (currently RUP).
+
+
+
+
+                                                                                                                             27
+ Mã       Tên TA       Tên tiếng                     Mô tả môn học                   Chuẩn đầu ra của môn học       Số tín     Điều
+ môn                     Việt                                                                                        chỉ     kiện tiên
+                                                                                                                              quyết
+CS422   Software       Phân tích This course introduces the common                   - Show the understanding       4        None
+        Analysis and   và thiết kế                                                     on the common
+        Design         phần mềm principles to analyze and design                       principles to analyze and
+                                   software from software requirements.                design software from
+                                                                                       software requirements.
+                                   The content of this course focuses on             - Use object oriented
+                                                                                       techniques (using UML)
+                                   object      oriented    techniques      (using      to analyze, to design
+                                   UML)         to     analyze,      to    design      architecture, interface,
+                                                                                       business logic, and data.
+                                   architecture, interface, business logic,          - Comprehend several
+                                                                                       advanced topics such as
+                                   and data.
+                                                                                       design patterns, service
+                                   Several      advanced     topics       can   be     oriented architecture…
+                                   optionally introduced (e.g. design
+                                   patterns,            service           oriented
+                                   architecture…)
+
+CS423   Software       Kiểm     This course introduces the methods and               - Show the understanding           4    None
+        Testing        chứng                                                           on the methods and
+                       phần mềm techniques in the field of Quality,                    techniques in the field of
+                                   Assurance (QA) and Quality Control                  Quality, Assurance (QA)
+                                                                                       and Quality Control
+                                   (QC). After finish this course, students            (QC).
+                                                                                     - Use basic techniques for
+                                   can use basic techniques, to design the             designing the test cases,
+                                   test cases, test plan and use the open              test plan and using the
+
+
+                                                                                                                               28
+ Mã       Tên TA      Tên tiếng                Mô tả môn học                  Chuẩn đầu ra của môn học          Số tín     Điều
+ môn                    Việt                                                                                     chỉ     kiện tiên
+                                                                                                                          quyết
+                                   source tools to test the software.           open source tools to test
+                                                                                the software.
+                                   Besides that, student can organize and     - Organize and manage
+                                   manage the software testing project,         the software testing
+                                                                                project, deploy the bug
+                                   deploy the bug tracking system…              tracking system…
+
+CS424   Web           Phát triển   This course introduces the methods and     - Show the knowledge and      4            None
+        Application   ứng dụng                                                  techniques in developing
+        Development   Web          techniques in the field of Quality,          web applications.
+                                   Assurance (QA) and Quality Control         - Show the understanding
+                                                                                on the web and internet
+                                   (QC). After finish this course, students     overview, client-server
+                                                                                model of the web
+                                   can use basic techniques, to design the      applications as well as
+                                   test cases, test plan and use the open       the detail steps in
+                                                                                building a website.
+                                   source tools to test the software.         - Use the client-side and
+                                                                                server-side technologies
+                                   Besides that, student can organize and
+                                                                                in developing web
+                                   manage the software testing project,         applications,
+                                                                              - Use the issues of and
+                                   deploy the bug tracking system…              solutions to web security
+                                                                              - Use the basic techniques
+                                                                                and the tools in testing
+                                                                                the web applications.
+CS426   Mobile        Phát triển   The content of this course includes        - Show the understanding      4            None
+        Device        ứng dụng                                                  on basic to advanced
+        Application   trên thiết   basic to advanced topics in application      topics in application
+        Development   bị di động
+
+                                                                                                                           29
+Mã    Tên TA   Tên tiếng                  Mô tả môn học                    Chuẩn đầu ra của môn học         Số tín     Điều
+môn              Việt                                                                                        chỉ     kiện tiên
+                                                                                                                      quyết
+                           development       for     Android      mobile       development for Android
+                                                                               mobile devices.
+                           devices:                                        -   Develop application with
+                               •      Developing application with              widgets, events, and
+                                                                               intent.
+                                      widgets, events, and intent.         -   Use maps, direction, and
+                                                                               localization for location-
+                               •      Using maps, direction, and               based applications
+                                      localization for location-based      -   Use the concepts and
+                                                                               techniques such as file,
+                                      applications                             storage, and database,
+                                                                               graphics, animation,
+                               •      File, storage, and database
+                                                                               customized and
+                               •      Graphics,            animation,          advanced UI.
+                                                                           -   Use Web APIs
+                                      customized and advanced UI.              (Facebook, Dropbox,
+                               •      Using Web APIs (Facebook,                customized web
+                                                                               services).
+                                      Dropbox,       customized     web    -   Practice sensors,
+                                                                               network programming
+                                      services)                                and short-range
+                               •      Sensors,                 network         communication
+                                                                           -   Practice monetization,
+                                      programming and short-range              in-app purchasing, and
+                                                                               publishing applications
+                                      communication
+                                                                               to store.
+
+
+
+
+                                                                                                                       30
+ Mã       Tên TA        Tên tiếng                  Mô tả môn học                   Chuẩn đầu ra của môn học         Số tín     Điều
+ môn                      Việt                                                                                       chỉ     kiện tiên
+                                                                                                                              quyết
+                                         •     Monetization, in-app purchase,
+                                               and publishing applications to
+                                               store.
+
+CS427   3D              Trực quan    The content of this course includes           - Show the understanding     4            None
+        Visualization   hóa 3D và                                                    on architecture and main
+        and Game        phát triển   architecture and main components of a           components of a game
+        Development     Game         game and game-related applications,             and game-related
+                                                                                     applications, such as
+                                     such as generate and render 3D scenes,          generate and render 3D
+                                                                                     scenes, create visual
+                                     create visual environmental effects             environmental effects
+                                     with vertex shaders and pixel shaders.          with vertex shaders and
+                                                                                     pixel shaders.
+                                     This course also provides students with       - Apply basic to advanced
+                                                                                     techniques in data
+                                     basic to advanced techniques in data
+                                                                                     visualization of
+                                     visualization of multivariate and high          multivariate and high
+                                                                                     dimensional data.
+                                     dimensional data.
+
+CS428   Electronic      Thương       The course briefly looks at topics such       - Show the understanding         4        None
+        Commerce        mại điện                                                     on topics such as
+                        tử           as fundamentals of EC, online business          fundamentals of EC,
+                                     models,      EC       infrastructures   and     online business models,
+                                                                                     EC infrastructures and
+                                     softwares,         electronic    payments,      software, electronic
+                                                                                     payments, internet
+
+                                                                                                                               31
+ Mã       Tên TA      Tên tiếng                Mô tả môn học                     Chuẩn đầu ra của môn học          Số tín     Điều
+ môn                    Việt                                                                                        chỉ     kiện tiên
+                                                                                                                             quyết
+                                  internet marketing and advertising                 marketing and
+                                                                                     advertising strategies,
+                                  strategies, and web technologies                   and web technologies
+                                                                                 -   Conduct an experimental
+                                                                                     application.
+CS429   Mining on     Khai thác   The course will discuss data mining            -   Comprehend the data       4            None
+        Big Data      trên dữ                                                        mining and machine
+                      liệu lớn    and machine learning algorithms for                learning algorithms for
+                                  analyzing very large amounts of data.              analyzing very large
+                                                                                     amounts of data. Show
+                                  The emphasis will be on Map Reduce                 the understanding on
+                                                                                     Map Reduce, a tool for
+                                  as a tool for creating parallel algorithms         creating parallel
+                                  that can process big data. This course             algorithms that can
+                                                                                     process big data.
+                                  also   gives    students    a     practical    -   Show the practical
+                                                                                     understanding of the
+                                  understanding of the tools in the
+                                                                                     tools in the Hadoop
+                                  Hadoop ecosystem with a focus on                   ecosystem with a focus
+                                                                                     on understanding
+                                  understanding MapReduce.                           MapReduce.
+                                                                                 -   Using the tools for
+                                                                                     experimental results.
+CS430   Human-        Tương tác   Introduction to the basic theory of            -   Show the basic            4            CS202
+        Computer      người -                                                        understanding on
+        Interaction   máy         human-computer                  interaction.       human-computer
+                                  Principles of human cognition and                  interaction.
+                                                                                 -   Comprehend the
+                                  interface design, interface evaluation             principles of human
+                                                                                     recognization.
+
+                                                                                                                              32
+ Mã       Tên TA   Tên tiếng                 Mô tả môn học                     Chuẩn đầu ra của môn học      Số tín     Điều
+ môn                 Việt                                                                                     chỉ     kiện tiên
+                                                                                                                       quyết
+                               techniques. Several prototyping tools           - Design the user interface
+                                                                                 and its refinement.
+                               will be presented. A project is required.       - Apply the tools for
+                                                                                 designing human-
+                                                                                 computer interaction.
+CS431   Wireless   Mạng      Wireless networks and the use of                  - Comprehend the wireless 4            None
+        Network    không dây                                                     networks and the use of
+                               wireless     networks           in   industry     wireless networks in
+                               environments. Topics include reasons              industry environments.
+                                                                               - Comprehend the key
+                               why current technology of wired                   issues affects the design
+                                                                                 and implementation of
+                               networked cannot be directly apply for            wireless network
+                               wireless environments; key issues                 hardware and software;
+                                                                               - Recognize different
+                               affects the design and implementation             models (infrastructure
+                                                                                 vs. adhoc) and
+                               of wireless network hardware and
+                                                                                 technologies in wireless
+                               software;           different         models      network (802.11, Wifi,
+                                                                                 Bluetooth, cellular
+                               (infrastructure        vs.   adhoc)      and      phones, satellite phones,
+                               technologies      in     wireless    network      sensor);
+                                                                               - Recognize different
+                               (802.11,    Wifi,       Bluetooth,   cellular     protocols in wireless
+                                                                                 networks;
+                               phones,     satellite     phones,    sensor);   - Program with different
+                               different     protocols         in   wireless     wireless networks
+                                                                                 (Bluetooth, 802.11,
+                               networks; programming with different              J2ME); mobile devices
+                                                                                 (smart phone, laptops).
+
+                                                                                                                        33
+ Mã       Tên TA        Tên tiếng               Mô tả môn học                   Chuẩn đầu ra của môn học          Số tín     Điều
+ môn                      Việt                                                                                     chỉ     kiện tiên
+                                                                                                                            quyết
+                                    wireless networks (Bluetooth, 802.11,       - Arm the security issues
+                                                                                  in wireless networks;
+                                    J2ME); programming with mobile                routing in wireless
+                                    devices    (smart    phone,     laptops),     networks; location aided
+                                                                                  in wireless network.
+                                    securities in wireless networks; routing    - Comprehend an
+                                                                                  advanced topic:
+                                    in wireless networks; location aided in       programming with
+                                    wireless network. May cover some              robots for wireless
+                                                                                  networks.
+                                    advanced topic: programming with
+                                    robots for wireless networks.
+
+CS494   Internetworki   Các giao    Write      and      develop     network     - Develop network             4            None
+        ng Protocols    thức liên                                                 applications: TCP/IP,
+                        mạng        applications: TCP/IP, UDP, client-            UDP, client-server, peer-
+                                    server, peer-to-peer (Java and C++)           to-peer (Java and C++)
+                                                                                - Familiar with socket
+                                       • Be       familiar   with     socket      programming
+                                                                                  Show the understanding
+                                            programming                           on computer network
+                                       • Acquire an understanding of              and its changing
+                                                                                  character
+                                            computer    network     and   its   - Understand how
+                                                                                  computer network is
+                                            changing character                    conceptualized and
+                                                                                  carried out
+
+
+
+
+                                                                                                                             34
+Mã       Tên TA       Tên tiếng                   Mô tả môn học                    Chuẩn đầu ra của môn học      Số tín     Điều
+môn                     Việt                                                                                      chỉ     kiện tiên
+                                                                                                                           quyết
+                                      • Understand        how       computer       - Examine the historical
+                                                                                     evolution of computer
+                                         network is conceptualized and               network
+                                         carried out                               - Appreciate the
+                                                                                     usefulness of network
+                                      • Examine the historical evolution             applications and
+                                                                                     protocols
+                                         of computer network
+                                      • Appreciate the usefulness of
+                                         network        applications        and
+                                         protocols
+
+MTH2   Introduction   Đại số       To give an elementary treatment of              - Give an elementary             4     None
+61     to Linear      tuyến tính                                                     treatment of Linear
+       Algebra                     Linear Algebra and its applications,              Algebra and its
+                                   namely in systems of linear equations,            applications, namely in
+                                                                                     systems of linear
+                                   matrices and determinants, vector                 equations, matrices and
+                                                                                     determinants, vector
+                                   spaces and linear transformations. An             spaces and linear
+                                   introductory      treatment     of      inner     transformations.
+                                                                                   - Comprehend an
+                                   products and eigenvalues, eigenvectors            introductory treatment of
+                                                                                     inner products and
+                                   is also consider: systems of linear
+                                                                                     eigenvalues,
+                                   equations and matrices, determinants,             eigenvectors is also
+                                                                                     consider: systems of
+                                   vectors   in    2-space   and        3-space,     linear equations and
+
+                                                                                                                            35
+Mã       Tên TA   Tên tiếng               Mô tả môn học                  Chuẩn đầu ra của môn học       Số tín     Điều
+môn                 Việt                                                                                 chỉ     kiện tiên
+                                                                                                                  quyết
+                              euclidean vector spaces, general vector      matrices, determinants,
+                                                                           vectors in 2-space and 3-
+                              spaces,    inner    product     spaces,      space, euclidean vector
+                              eigenvalues, eigenvectors                    spaces, general vector
+                                                                           spaces, inner product
+                                                                           spaces, eigenvalues,
+                                                                           eigenvectors
+MTH3   Group      Lý thuyết   The course aims to provide students        - Show the understanding 4              CS251
+44     Theory     nhóm                                                     on basic notions of group
+                              with basic notions of group theory and       theory and its
+                              its applications. After giving the basic     applications.
+                                                                         - Comprehend the
+                              definitions for groups, we introduce         fundamental properties
+                                                                           of groups:
+                              fundamental properties of groups:            homomorphisms, normal
+                              homomorphisms, normal subgroups              subgroups and factor
+                                                                           groups, cyclic groups,
+                              and factor groups, cyclic groups,            permutation groups.
+                                                                         - Aim at some important
+                              permutation groups. Especially, some
+                                                                           applications of groups to
+                              important applications of groups to          number theory, computer
+                                                                           science, and other
+                              number theory, computer science, and         domains.
+                              other domains will be presented.
+
+MTH3   Number     Lý thuyết   The aim of this course is to provide       - Show the understanding   4            MATH2
+46     Theory     số                                                       on basic knowledge on
+                              students   specialized   in   computer       number theory:                        51,
+                                                                           divisibility and
+
+                                                                                                                   36
+ Mã       Tên TA         Tên tiếng                Mô tả môn học                   Chuẩn đầu ra của môn học      Số tín     Điều
+ môn                       Việt                                                                                  chỉ     kiện tiên
+                                                                                                                          quyết
+                                     science basic knowledge on number              primality, congruences               CS161,
+                                                                                    and finish with some
+                                     theory. We start from basic notions,           practical problems of                CS162,
+                                     such as divisibility and primality,            algorithmic number                   CS163,
+                                                                                    theory: finding
+                                     congruences and finish with some               generators and discrete              CS350
+                                                                                    logarithms in Zp*,
+                                     practical   problems      of   algorithmic     computing squares roots,
+                                     number theory: finding generators and          primality tests.
+                                                                                  - Comprehend algorithms
+                                     discrete logarithms in Zp*, computing          and applications in
+                                                                                    algebraic form.
+                                     squares roots, primality tests. The
+                                     theory will be provided in algebraic
+                                     form with an emphasis on algorithms
+                                     and applications.
+
+STAT4   Applied          Thống kê    This class will introduce about the          - Show the understanding      4        STAT45
+52      Statistics for   máy tính                                                   on concepts and models               1
+        Engineers        và ứng      concepts and models of statistics for          of statistics for dealing
+        and Scientists   dụng        dealing     with    the   meanings    and      with the meanings and
+        2                                                                           variability in observed
+                                     variability in observed data. In details,      data.
+                                                                                  - Show the background
+                                     this class will provide background             knowledge of statistical
+                                     knowledge of statistical analysis in           analysis in terms of
+                                                                                    simple and multiple
+                                     terms of simple and multiple linear            linear regressions,
+
+                                                                                                                           37
+ Mã       Tên TA     Tên tiếng                Mô tả môn học                  Chuẩn đầu ra của môn học      Số tín     Điều
+ môn                   Việt                                                                                 chỉ     kiện tiên
+                                                                                                                     quyết
+                                 regressions, analysis of variance (one-       analysis of variance
+                                                                               (one-way ANOVA for
+                                 way      ANOVA        for    completely       completely randomized
+                                 randomized design, one-way ANOVA              design, one-way
+                                                                               ANOVA for randomized
+                                 for      randomized    block       design     block design ANOVA),
+                                                                               moving average,
+                                 ANOVA),          moving        average,       autoregressive model.
+                                 autoregressive   model,      and    point   - Do the exercises using
+                                                                               the provided models and
+                                 estimations of parameters in the first 5      techniques
+                                 weeks.
+
+CS404   Internship   Thực tập                                                - Know and experience         4        None
+                     thực tế                                                   the real working context
+                                                                               at a Computer Science
+                                                                               company or professional
+                                                                               organization as full-time
+                                                                               interns.
+                                                                             - Take part in the
+                                                                               company’s real projects.
+                                                                             - Discover organization
+                                                                               structures, roles and
+                                                                               responsibilities within
+                                                                               that structure, the
+                                                                               processes applied at the
+                                                                               company;
+
+
+
+
+                                                                                                                      38
+ Mã       Tên TA       Tên tiếng                 Mô tả môn học              Chuẩn đầu ra của môn học       Số tín     Điều
+ môn                     Việt                                                                               chỉ     kiện tiên
+                                                                                                                     quyết
+                                                                            - Demonstrate their own
+                                                                              knowledge, techniques
+                                                                              and professional skills;
+                                                                            - Comprehend the
+                                                                              company culture or
+                                                                              etiquette rules. Make
+                                                                              more connections with
+                                                                              people in the same
+                                                                              professional field.
+                                                                            - Gain insight into a career
+                                                                              path for their future job.
+                                                                            - Build their professional
+                                                                              manners and attitude to
+                                                                              adapt in the business and
+                                                                              industrial environment.
+CS405   Open           Kinh tế   Introducing different mechanisms of        - Show the understanding       4        None
+        Economy,       mở, doanh                                              on different mechanisms
+        Entrepreneur   nhân và   OpEEE (e.g. sharing economy,                 of OpEEE (e.g. sharing
+        ship &         giáo dục  collaborative models, open source, Do        economy, collaborative
+        Education                                                             models, open source, Do
+                                   It Yourself / Makers approaches, open      It Yourself / Makers
+                                                                              approaches, open science
+                                   science   &     research,   empowering     & research, empowering
+                                   innovations) & practical tools to          innovations)
+                                                                            - Use practical tools to
+                                   efficiently conduct projects. A strong     efficiently conduct
+                                                                              projects.
+                                   emphasis will be put on digital tools
+                                                                            - Use digital tools and
+                                   and networking skills during all the       networking skills during
+                                                                              all the class.
+
+                                                                                                                      39
+Mã    Tên TA   Tên tiếng                 Mô tả môn học                   Chuẩn đầu ra của môn học     Số tín     Điều
+môn              Việt                                                                                  chỉ     kiện tiên
+                                                                                                                quyết
+                           class. Students will also have a chance       - Have a chance to meet
+                                                                           with players active in
+                           to meet with players active in this new         this new economy.
+                           economy. Subjects will be co-defined          - Apply (in group of 3-4
+                                                                           people) the different
+                           with host companies / organizations.            mechanisms of OpEEE
+                                                                           in order to initiate the
+                           Students, then in group of 3-4 people,          very first concepts
+                           will apply the different mechanisms of          (subjects are co-defined
+                                                                           with host companies /
+                           OpEEE in order to initiate the very first       organizations).
+                                                                         - Interact with different
+                           concepts. Interactions with different
+                                                                           players (companies,
+                           players (companies, communities of              communities of end
+                                                                           users, stakeholders) in
+                           end users, stakeholders) in related             related ecosystems to
+                           ecosystems will be crucial to iterate &         iterate & validate the
+                                                                           final concept.
+                           validate the final concept. A prototype       - Conduct a prototype (is
+                                                                           highly recommended) in
+                           is highly recommended in order to have          order to have a concrete
+                           a concrete result but it is not obligatory.     result
+
+                           Daily stand-up will be held in order to
+                           ensure coherence & reactivity of all
+                           activities.
+
+
+
+
+                                                                                                                 40
+ Mã       Tên TA       Tên tiếng               Mô tả môn học                   Chuẩn đầu ra của môn học    Số tín     Điều
+ môn                     Việt                                                                               chỉ     kiện tiên
+                                                                                                                     quyết
+CS407   Technology-    Đổi mới     Technology-based        innovation    and   - Show the understanding 4           None
+        based          công nghệ                                                 on technology-based
+        Innovation     và khả      business    survival,    Leadership    in     innovation and business
+        and            năng lãnh   technology-based innovation, Strategy         survival
+        Leadership     đạo                                                     - Comprehend leadership
+                                   formulation and execution.                    in technology-based
+                                                                                 innovation
+                                                                               - Aim at strategy
+                                                                                 formulation and
+                                                                                 execution.
+CS408   Computation    Tính toán   Macroeconomics basics, introduction         - Show the understanding     4       None
+        al Finance     tài chính                                                 on concepts such as
+                                   to stochastic calculus and option             macroeconomics basics,
+                                   pricing, Banking system, Banking              introduction to stochastic
+                                                                                 calculus and option
+                                   regulations, Risk modelling.                  pricing,
+                                                                               - Comprehend banking
+                                                                                 system, banking
+                                                                                 regulations, Aim at risk
+                                                                                 modeling
+CS409   Enterpreneur   Sáng        This course will help you answer the        - Answer the following       4       None
+        ship           nghiệp                                                    questions: what is
+                       Công        following     questions:       what    is     entrepreneurship, what
+                       nghệ        entrepreneurship,   what     knowledge,       knowledge, skills, and
+                       thông tin                                                 abilities are important in
+                                   skills, and abilities are important in        starting a new venture,
+                                                                               - To be able to become a
+                                   starting a new venture, how can I             successful IT
+                                                                                 entrepreneur now or in
+                                                                                 the future.
+
+                                                                                                                      41
+ Mã       Tên TA    Tên tiếng                 Mô tả môn học                   Chuẩn đầu ra của môn học        Số tín     Điều
+ môn                  Việt                                                                                     chỉ     kiện tiên
+                                                                                                                        quyết
+                                 become a successful IT entrepreneur
+                                 now or in the future.
+
+KT006   Macro       Kinh tế vĩ   This course will introduce students to       - Comprehend the            4            None
+        economics   mô                                                          economy as a whole.
+                                 the study of the economy as a whole.         - Address simple models
+                                 Simple models will be developed to             and the development to
+                                                                                better understand the
+                                 better understand the driving forces and       driving forces and
+                                                                                welfare consequences of
+                                 welfare consequences of phenomena              phenomena such as
+                                 such   as   inflation,   unemployment,         inflation, unemployment,
+                                                                                economic growth,
+                                 economic growth, foreign debt, and             foreign debt, and current
+                                                                                account deficit.
+                                 current account deficit. Importantly,
+                                                                              - Comprehend that the
+                                 the effectiveness and desirability of          effectiveness and
+                                                                                desirability of
+                                 policymakers’ responses to various             policymakers’ responses
+                                 economic situations via monetary and           to various economic
+                                                                                situations via monetary
+                                 fiscal policy will be discussed in detail.     and fiscal policy.
+
+
+
+
+                                                                                                                         42
+

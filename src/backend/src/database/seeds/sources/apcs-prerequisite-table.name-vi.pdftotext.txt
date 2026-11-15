@@ -1,0 +1,451 @@
+ HỌC TỰ NHI
+NG TIN
+
+
+G MÔ TẢ
+ Tên tiếng
+   Việt
+
+ Nhập môn
+ Tin học I
+
+
+
+
+ Nhập môn
+ Tin học II
+
+
+
+
+ Cấu trúc
+ dữ liệu
+Tên tiếng
+  Việt
+
+
+
+
+Lập trình
+hệ thống
+Tên tiếng
+  Việt
+
+
+
+
+Các hệ
+thống lập
+trình
+Tên tiếng
+  Việt
+
+
+
+
+Cấu trúc
+rời rạc I
+
+
+
+
+Cấu trúc
+logic
+Tên tiếng
+  Việt
+
+
+
+
+Nhập môn
+Công
+nghệ phần
+mềm
+Tên tiếng
+  Việt
+
+
+
+
+Đạo đức
+khoa học
+Tên tiếng
+  Việt
+
+
+
+
+Cấu trúc
+tính toán
+
+
+
+
+Nguyên lý
+các ngôn
+ngữ lập
+trình
+Tên tiếng
+  Việt
+Tên tiếng
+  Việt
+
+
+
+
+Nhập môn
+Hệ điều
+hành
+Tên tiếng
+  Việt
+
+
+
+
+Thuật
+toán và độ
+phức tạp
+Tên tiếng
+  Việt
+
+
+
+
+Nhập môn
+các hệ cơ
+sở dữ liệu
+Tên tiếng
+  Việt
+
+
+
+
+Đồ án tốt
+nghiệp
+Tên tiếng
+  Việt
+
+
+
+
+Kỹ năng
+giao tiếp
+Tên tiếng
+  Việt
+
+
+
+
+Phần cứng
+máy tính
+Tên tiếng
+  Việt
+
+
+
+
+Phương
+pháp khoa
+học
+Tên tiếng
+  Việt
+
+
+
+
+Kỹ năng
+viết tài
+liệu khoa
+học
+Tên tiếng
+  Việt
+
+Vi tích
+phân I
+
+
+
+
+Vi tích
+phân II
+
+
+
+
+Vi tích
+phân III
+Tên tiếng
+  Việt
+
+
+
+
+Xác suất
+thống kê
+Tên tiếng
+  Việt
+
+Thực
+hành Vật
+lý I
+
+
+
+
+Thực
+hành Vật
+lý II
+Tên tiếng
+  Việt
+
+
+
+
+Thực
+hành Vật
+lý III
+Tên tiếng
+  Việt
+
+
+
+
+Vật lý Đại
+cương I
+Tên tiếng
+  Việt
+
+
+
+
+Vật lý Đại
+cương II
+
+
+
+
+Vật lý Đại
+cương III
+Tên tiếng
+  Việt
+
+
+
+Đồ họa
+máy tính
+
+
+
+
+Thị giác
+máy tính
+Tên tiếng
+  Việt
+
+
+
+
+Lý thuyết
+game - Hệ
+thống đa
+tác nhân
+và thuật
+toán xã
+hội
+Tên tiếng
+  Việt
+
+
+
+
+Nhập môn
+xử lý
+ngôn ngữ
+tự nhiên
+Tên tiếng
+  Việt
+
+
+
+
+Nhập môn
+tìm kiếm
+thông tin
+Tên tiếng
+  Việt
+
+Trí tuệ
+nhân tạo
+
+
+
+
+Quản lý
+yêu cầu
+phần mềm
+Tên tiếng
+  Việt
+
+Phân tích
+và thiết kế
+phần mềm
+
+
+
+
+Kiểm
+chứng
+phần mềm
+Tên tiếng
+  Việt
+
+
+
+
+Phát triển
+ứng dụng
+Web
+
+
+
+
+Phát triển
+ứng dụng
+trên thiết
+bị di động
+Tên tiếng
+  Việt
+Tên tiếng
+  Việt
+
+
+
+
+Trực quan
+hóa 3D và
+phát triển
+Game
+
+
+
+
+Thương
+mại điện
+tử
+Tên tiếng
+  Việt
+
+
+
+
+Khai thác
+trên dữ
+liệu lớn
+
+
+
+
+Tương tác
+người -
+máy
+Tên tiếng
+  Việt
+
+
+
+
+Mạng
+không dây
+Tên tiếng
+  Việt
+
+
+
+
+Các giao
+thức liên
+mạng
+Tên tiếng
+  Việt
+
+
+
+
+Đại số
+tuyến tính
+Tên tiếng
+  Việt
+
+
+
+
+Lý thuyết
+nhóm
+
+
+
+
+Lý thuyết
+số
+Tên tiếng
+  Việt
+
+
+
+
+Thống kê
+máy tính
+và ứng
+dụng
+Tên tiếng
+  Việt
+
+
+
+
+Thực tập
+thực tế
+Tên tiếng
+  Việt
+
+
+
+
+Kinh tế
+mở, doanh
+nhân và
+giáo dục
+Tên tiếng
+  Việt
+Tên tiếng
+  Việt
+
+Đổi mới
+công nghệ
+và khả
+năng lãnh
+đạo
+
+
+
+
+Tính toán
+tài chính
+
+
+
+
+Sáng
+nghiệp
+Công
+nghệ
+thông tin
+Tên tiếng
+  Việt
+
+
+
+
+Kinh tế vĩ
+mô
+

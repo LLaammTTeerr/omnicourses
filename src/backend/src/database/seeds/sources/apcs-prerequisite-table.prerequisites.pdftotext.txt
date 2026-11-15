@@ -1,0 +1,405 @@
+  Điều
+kiện tiên
+ quyết
+None
+
+
+
+
+CS161
+
+
+
+
+CS162
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS161,
+CS162
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+
+
+
+
+CS250
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS202
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS251
+
+
+
+
+CS200,
+CS201,
+CS311
+  Điều
+kiện tiên
+ quyết
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS200,
+CS201,
+CS311
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS311
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS163,
+CS250,
+CS251
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS163,
+CS250,
+CS251
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+SC203
+  Điều
+kiện tiên
+ quyết
+None
+
+
+
+
+MATH2
+51
+
+
+
+
+MATH2
+52
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS250,
+CS251
+  Điều
+kiện tiên
+ quyết
+None
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+CS202,
+MTH261
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS162
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS163,
+STAT45
+1,
+MATH2
+61
+  Điều
+kiện tiên
+ quyết
+CS202,
+CS311
+
+
+
+
+ None
+  Điều
+kiện tiên
+ quyết
+None
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+
+
+
+
+CS202
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+CS251
+
+
+
+
+MATH2
+51,
+  Điều
+kiện tiên
+ quyết
+CS161,
+CS162,
+CS163,
+CS350
+
+
+
+
+STAT45
+1
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+  Điều
+kiện tiên
+ quyết
+None
+
+
+
+
+None
+
+
+
+
+None
+  Điều
+kiện tiên
+ quyết
+
+
+
+
+None
+

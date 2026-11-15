@@ -1,0 +1,67 @@
+{
+  "id": "apcs-prerequisite-table",
+  "title": "Bảng mô tả tóm tắt môn học Chương trình Tiên tiến",
+  "shortName": "APCS course summary table (undated)",
+  "issuer": "Trường Đại học Khoa học Tự nhiên, Khoa Công nghệ Thông tin",
+  "issued": null,
+  "languages": ["vi", "en"],
+  "sourceUrl": "https://www.ctda.hcmus.edu.vn/wp-content/uploads/2015/07/CTTT-Bang-mo-ta-tom-tat-mon-hoc.pdf",
+  "urlPathDate": "2015/07",
+  "pdf": {
+    "file": "CTTT-Bang-mo-ta-tom-tat-mon-hoc.pdf",
+    "sha256": "f57e6b6349b98aa00e9bd1d26978ef5a090a447cb59ca80e781c078313606ed1",
+    "pages": 42,
+    "created": "2019-07-30T11:53:00+07:00",
+    "producer": "Microsoft® Word for Office 365"
+  },
+  "textLayer": {
+    "file": "apcs-prerequisite-table.pdftotext.txt",
+    "command": "pdftotext -layout",
+    "tool": "pdftotext 26.01.0 (Poppler)",
+    "sha256": "3da0c023b5f3509a2cbe4591e14e1ae4f700fb06478a8caafbb4c8af577e18bd"
+  },
+  "columns": [
+    {
+      "field": "code",
+      "file": "apcs-prerequisite-table.code.pdftotext.txt",
+      "command": "pdftotext -layout -x 70 -y 0 -W 52 -H 545",
+      "sha256": "cc2d25a4af5f4cc1c57142c6e8545201d1b725a0f6b2ba9b49bd1ea74b69cccc"
+    },
+    {
+      "field": "name_en",
+      "file": "apcs-prerequisite-table.name-en.pdftotext.txt",
+      "command": "pdftotext -layout -x 122 -y 0 -W 81 -H 545",
+      "sha256": "66a1a6246460c618cf081830320180ba3c821f68508c96d55c2aa73a40af4d27"
+    },
+    {
+      "field": "name_vi",
+      "file": "apcs-prerequisite-table.name-vi.pdftotext.txt",
+      "command": "pdftotext -layout -x 203 -y 0 -W 63 -H 545",
+      "sha256": "f41002a4885154c82c63a053d4511a4736926621c2f0879b550f8914a237b26c"
+    },
+    {
+      "field": "credits",
+      "file": "apcs-prerequisite-table.credits.pdftotext.txt",
+      "command": "pdftotext -layout -x 630 -y 0 -W 55 -H 545",
+      "sha256": "b70592d08e50dff774284ce656beba6c05e79c91d606dc46fe107820982bfe81"
+    },
+    {
+      "field": "prerequisites",
+      "file": "apcs-prerequisite-table.prerequisites.pdftotext.txt",
+      "command": "pdftotext -layout -x 685 -y 0 -W 65 -H 545",
+      "sha256": "ebf2cf2ab2d401853c65e6a4b47f4e01989148e2ea9a645e2d28a5330bd2595b"
+    }
+  ],
+  "notes": [
+    "Downloaded from sourceUrl on 15 November 2026. The PDF itself never enters git; its sha256 is recorded above.",
+    "The document prints no date and names no cohort. Its metadata says it was created on 30 July 2019; the URL folder says 2015/07. Neither is an issue date.",
+    "Landscape letter pages (792 x 612 pt). The table has seven columns at the same x on all 42 pages: Mã môn, Tên TA, Tên tiếng Việt, Mô tả môn học, Chuẩn đầu ra của môn học, Số tín chỉ, Điều kiện tiên quyết. Each crop takes one column of every page; -H 545 leaves out the page number in the footer.",
+    "The whole-page text interleaves the columns line by line, so each cell is read from its column's crop, and the whole-page text only ties a row's code to its credits and the first line of its prerequisite cell.",
+    "Narrow columns break words: codes (MTH2 / 51, ECE34 / 1, STAT4 / 51), names (Communicati / on, Internetworki / ng) and prerequisite cells (MATH2 / 51, STAT45 / 1,). The prerequisite cell is kept with one space at each line break.",
+    "\"Mô tả môn học\" and \"Chuẩn đầu ra của môn học\" are not extracted.",
+    "One row carries two codes, CS487-CS488 (Capstone Project, 6 credits). PH215 and PH216 print their credits as \"01\", PH214 as \"1\".",
+    "The prerequisite cell of MTH346 starts on page 36 and ends on page 37.",
+    "Prerequisite cells name codes that are no row of the table: CS200 (CS320, CS333), MATH251 (MTH252, MTH346), MATH252 (MTH253) and MATH261 (CS419). The rows are MTH251, MTH252 and MTH261; CS411 prints MTH261.",
+    "Not a rule: nothing loads this table and the rule engine never reads it (AGENTS.md hard rule 1)."
+  ]
+}

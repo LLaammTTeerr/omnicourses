@@ -1,0 +1,405 @@
+ĐẠI HỌC KHOA
+NG NGHỆ THÔN
+
+
+        BẢNG
+  Tên TA
+
+
+Introduction
+to Computer
+Science I
+
+
+
+
+Introduction
+to Computer
+Science II
+
+
+
+
+Data
+Structures
+  Tên TA
+
+
+
+
+Computer
+Systems
+Programming
+  Tên TA
+
+
+
+
+Programming
+Systems
+  Tên TA
+
+
+
+
+Discrete
+Structures I
+
+
+
+
+Logical
+Structures
+  Tên TA
+
+
+
+
+Elements of
+Software
+Engineering
+  Tên TA
+
+
+
+
+Social,
+Ethical, and
+Legal Issues
+  Tên TA
+
+
+
+
+Computation
+al Structures
+
+
+
+
+Principles of
+Programming
+Languages
+Tên TA
+  Tên TA
+
+
+
+
+Introduction
+to Operating
+Systems
+  Tên TA
+
+
+
+
+Algorithms
+and
+Complexity
+  Tên TA
+
+
+
+
+Introduction
+to Database
+Systems
+  Tên TA
+
+
+
+
+Capstone
+Project
+  Tên TA
+
+
+
+
+Communicati
+on
+Management
+  Tên TA
+
+
+
+
+Computer
+Hardware
+  Tên TA
+
+
+
+
+Scientific
+Method
+  Tên TA
+
+
+
+
+Technical
+Writing
+  Tên TA
+
+
+Calculus I
+
+
+
+
+Calculus II
+
+
+
+
+Calculus III
+  Tên TA
+
+
+
+
+Applied
+Statistics for
+Engineers
+and Scientists
+  Tên TA
+
+
+Physics
+Laboratory I
+
+
+
+
+Physics
+Laboratory II
+  Tên TA
+
+
+
+
+Physics
+Laboratory
+III
+  Tên TA
+
+
+
+
+General
+Physics I
+  Tên TA
+
+
+
+
+General
+Physics II
+
+
+
+
+General
+Physics III
+  Tên TA
+
+
+
+
+Computer
+Graphics
+
+
+
+
+Computer
+Vision
+  Tên TA
+
+
+
+
+Game
+Theory,
+Multi-Agents
+and Social
+Algorithms
+  Tên TA
+
+
+
+
+Introduction
+to Natural
+Language
+Processing
+  Tên TA
+
+
+
+
+Introduction
+to
+Information
+Retrieval
+  Tên TA
+
+
+Artificial
+Intelligence
+
+
+
+
+Software
+Requirement
+  Tên TA
+
+
+Software
+Analysis and
+Design
+
+
+
+
+Software
+Testing
+  Tên TA
+
+
+
+
+Web
+Application
+Development
+
+
+
+
+Mobile
+Device
+Application
+Development
+Tên TA
+  Tên TA
+
+
+
+
+3D
+Visualization
+and Game
+Development
+
+
+
+
+Electronic
+Commerce
+  Tên TA
+
+
+
+
+Mining on
+Big Data
+
+
+
+
+Human-
+Computer
+Interaction
+  Tên TA
+
+
+
+
+Wireless
+Network
+  Tên TA
+
+
+
+
+Internetworki
+ng Protocols
+  Tên TA
+
+
+
+
+Introduction
+to Linear
+Algebra
+  Tên TA
+
+
+
+
+Group
+Theory
+
+
+
+
+Number
+Theory
+  Tên TA
+
+
+
+
+Applied
+Statistics for
+Engineers
+and Scientists
+2
+  Tên TA
+
+
+
+
+Internship
+  Tên TA
+
+
+
+
+Open
+Economy,
+Entrepreneur
+ship &
+Education
+Tên TA
+  Tên TA
+
+
+Technology-
+based
+Innovation
+and
+Leadership
+
+
+
+
+Computation
+al Finance
+
+
+
+
+Enterpreneur
+ship
+  Tên TA
+
+
+
+
+Macro
+economics
+
