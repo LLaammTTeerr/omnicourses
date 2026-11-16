@@ -1,0 +1,13 @@
+2026-11-15T03:09:17.475Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+2026-11-15T03:09:17.899Z GET /api/guides without a token: 200 {"guides":[]}
+2026-11-15T03:09:19.845Z GUIDE-01b page: /guides | Hướng dẫn thủ tục | Những việc ở trường mà OmniCourse không làm thay bạn: link thẳng tới cổng, các bước và tài khoản cần dùng. | OmniCourse chỉ dẫn link tới cổng của trường. OmniCourse không đăng nhập vào cổng và không bao giờ hỏi mật khẩu cổng của bạn. | Bạn cần làm gì? | Tìm bằng tiếng Việt hoặc tiếng Anh, có dấu hoặc không dấu. | Chưa có hướng dẫn nào được đăng.
+FAIL GUIDE-01b: the signed-out Guides page lists the four guides G01, G02, G06 and G07 under their groups | observed: 0 guide(s) listed; API holds 0 guide(s)
+2026-11-15T03:09:20.431Z GUIDE-01d after "xyzzy": Hướng dẫn thủ tục | Những việc ở trường mà OmniCourse không làm thay bạn: link thẳng tới cổng, các bước và tài khoản cần dùng. | OmniCourse chỉ dẫn link tới cổng của trường. OmniCourse không đăng nhập vào cổng và không bao giờ hỏi mật khẩu cổng của bạn. | Bạn cần làm gì? | Tìm bằng tiếng Việt hoặc tiếng Anh, có dấu hoặc không dấu. | Chưa có hướng dẫn nào được đăng.
+FAIL GUIDE-01d: "xyzzy": the page says no guide covers it yet and shows the task groups; no Suggest a guide, no advisor link | observed: {"noMatch":null}
+FAIL GUIDE-01d: once cleared, all four guides are back | observed: 0 guide(s) listed
+2026-11-15T03:09:22.544Z GUIDE-01g /guides/register-courses: /guides/register-courses | not-found card: 1 | link: /guides | API: 404 {"message":"Guide not found","error":"Not Found","statusCode":404} | text: Hướng dẫn | Không tìm thấy hướng dẫn | Hướng dẫn này không tồn tại hoặc đã được gỡ. | Xem tất cả hướng dẫn
+FAIL GUIDE-01g: the guide address /guides/register-courses opens the guide directly, signed out | observed: not-found page shown: true; API 404
+2026-11-15T03:09:24.175Z GUIDE-01g /guides/no-such-guide: /guides/no-such-guide | not-found card: 1 | link: /guides | API: 404 {"message":"Guide not found","error":"Not Found","statusCode":404} | text: Hướng dẫn | Không tìm thấy hướng dẫn | Hướng dẫn này không tồn tại hoặc đã được gỡ. | Xem tất cả hướng dẫn
+ok   GUIDE-01g: the unknown address shows a "guide not found" page with a link to Guides, and its API request answers 404 | observed: not-found page shown: true; link /guides; API 404
+2026-11-15T03:09:24.221Z guide API requests the page made (signed out): ["GET /api/guides 200 auth:no","GET /api/guides/register-courses 404 auth:no","GET /api/guides/no-such-guide 404 auth:no"]
+2026-11-15T03:09:24.221Z console errors: ["Failed to load resource: the server responded with a status of 404 ()","Failed to load resource: the server responded with a status of 404 ()"]

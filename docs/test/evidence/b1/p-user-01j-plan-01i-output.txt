@@ -1,0 +1,26 @@
+[2026-11-15T03:06:57.680Z] signed up b1-run-07ef42-p03@example.com
+OK   setup | onboarded to APCS 2024 (API, 200) | observed: 200
+[2026-11-15T03:06:58.003Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+DIFF USER-01j | with no plan, Lộ trình creates "Kế hoạch mặc định" and opens it | observed: h1 "Kế hoạch mặc định", tabs []
+OK   USER-01j | the planner has no Save button | observed: 0 such buttons
+OK   USER-01j | CS160 added with +; chip says Đã lưu | observed: Đã lưu; HK1 2026–2027: CS160
+NOTE USER-01j | curriculum line before the change (note) | observed: CTĐT APCS2024
+[2026-11-15T03:07:01.833Z] Settings before: program "APCS", cohort "Khóa 2024"
+OK   USER-01j | Settings saves the cohort 2025 (PUT 200; the API then reads APCS 2025) | observed: PUT 200; GET program APCS, cohort 2025
+OK   USER-01j | the same plan opens | observed: same address: true; h1 "Kế hoạch mặc định"
+OK   USER-01j | the line under the status strip still says "CTĐT APCS2024" | observed: CTĐT APCS2024
+OK   USER-01j | CS160 is still placed | observed: HK1 2026–2027: CS160
+OK   USER-01j | the course list holds exactly APCS 2024's courses less CS160 | observed: 68 courses listed; APCS2024 has 69, APCS2025 71; only in 2024: none; only in 2025: CS436 CS437; 2025-only courses listed: none
+OK   USER-01j | API: the plan's curriculum.code is APCS2024 | observed: {"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","programCode":"APCS","cohortYear":2024}
+OK   PLAN-01i | one tab per plan, the open plan's tab marked | observed: ["Kế hoạch mặc định"]; marked: Kế hoạch mặc định
+OK   PLAN-01i | with one plan there is no trash button | observed: 0 trash buttons
+OK   PLAN-01i | the dialog names the open plan's curriculum (APCS 2024), not the 2025 cohort of Settings | observed: Kế hoạch dùng CTĐT APCS 2024 và giữ nguyên CTĐT này kể cả khi bạn đổi chương trình sau này.
+OK   PLAN-01i | "Tabs 01i" opens at once with "Đã tạo Tabs 01i." | observed: h1 "Tabs 01i"; toast "Đã tạo Tabs 01i."
+OK   PLAN-01i | two tabs now, "Tabs 01i" marked, and its trash button shows | observed: ["Kế hoạch mặc định","Tabs 01i"]; marked "Tabs 01i"; trash buttons 1
+OK   PLAN-01i | the new plan is on APCS2024 (API and the line under the strip) | observed: APCS2024; "CTĐT APCS2024"
+OK   PLAN-01i | the trash button opens "Xóa kế hoạch này?" with its warning | observed: "Xóa kế hoạch này?" / "Kế hoạch và mọi môn đã xếp trong đó sẽ bị xóa. Không thể hoàn tác." / names "Tabs 01i"
+OK   PLAN-01i | Giữ lại keeps the plan | observed: GET plan 200; tabs ["Kế hoạch mặc định","Tabs 01i"]
+OK   PLAN-01i | the confirm button reads Xóa | observed: Xóa
+OK   PLAN-01i | Xóa deletes it, says "Đã xóa Tabs 01i." and opens the other plan | observed: toast "Đã xóa Tabs 01i."; GET deleted plan 404; now open: "Kế hoạch mặc định"; tabs ["Kế hoạch mặc định"]
+OK   PLAN-01i | back to one plan: no trash button again | observed: 0 trash buttons
+SUMMARY {"setup":{"ok":1,"diff":0},"USER-01j":{"ok":8,"diff":1},"PLAN-01i":{"ok":11,"diff":0}} elapsed 10s

@@ -60,9 +60,13 @@ usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.
           <section class="card">
             <h2>{{ m.steps }}</h2>
             <ol class="steps" :lang="textLang" data-test="steps">
+              <!-- One element beside the number: the li is a two-column grid, so a link left loose would be a third
+                   grid item and fall into the number column. -->
               <li v-for="(step, i) in t.steps" :key="i">
-                {{ step.text }}
-                <ContentLink v-if="step.link" :link="step.link" />
+                <div>
+                  {{ step.text }}
+                  <ContentLink v-if="step.link" :link="step.link" />
+                </div>
               </li>
             </ol>
           </section>

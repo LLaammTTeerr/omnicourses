@@ -1,0 +1,15 @@
+[2026-11-15T03:20:04.915Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-15T03:20:08.618Z] plan "Retry 01m" made, board: HK1 2026–2027: -; waiting 65 s so no earlier save counts toward the minute
+[2026-11-15T03:21:30.280Z] script: 120 PUT …/placements of the empty board in 16.6 s; status counts {"200":120}
+OK   PLAN-01m | the script prints 120 200 | observed: {"200":120}
+[2026-11-15T03:21:30.528Z] CS160 added in the browser 0.0 s after the script ended
+[2026-11-15T03:21:30.579Z] +0.3 s chip "Đang lưu…" | error "" | board HK1 2026–2027: CS160
+[2026-11-15T03:21:30.646Z] browser PUT …/placements answered 200 at +0.4 s
+[2026-11-15T03:21:30.931Z] +0.6 s chip "Đã lưu" | error "" | board HK1 2026–2027: CS160
+DIFF PLAN-01m | the browser's PUT is answered 429 | observed: [{"at":"0.4","status":200}]
+DIFF PLAN-01m | it is sent again after 2, 5 and 10 seconds | observed: PUTs [{"at":"0.4","status":200}]; gaps  s
+OK   PLAN-01m | CS160 stays on the board and the chip says Đang lưu… while the save is resent; the board never goes back at the first 429 | observed: ["+0.3 s chip \"Đang lưu…\" | error \"\" | board HK1 2026–2027: CS160","+0.6 s chip \"Đã lưu\" | error \"\" | board HK1 2026–2027: CS160"]
+NOTE PLAN-01m | how long the chip said Đang lưu… (note; the case says about 17 s) | observed: 0.4 s
+OK   PLAN-01m | ending 1: a resend landed after the minute; chip Đã lưu | observed: chip "Đã lưu"; HK1 2026–2027: CS160
+OK   PLAN-01m | after a reload CS160 is still there (screen and API agree with the ending) | observed: ending: saved; screen HK1 2026–2027: CS160; API placements [CS160] (GET 200)
+SUMMARY {"PLAN-01m":{"ok":4,"diff":2}} elapsed 117s

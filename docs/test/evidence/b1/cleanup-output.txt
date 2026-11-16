@@ -1,0 +1,21 @@
+2026-11-15T03:27:56.794Z 19 accounts to delete on https://stag-omnicourses.lamter.cc/api
+b1-run-07ef42-m06@example.com delete 202 purgeAfter 2026-12-15T03:27:57.523Z; the same token afterwards: 401
+b1-run-07ef42-a01@example.com delete 202 purgeAfter 2026-12-15T03:28:05.504Z; the same token afterwards: 401
+b1-run-07ef42-p06@example.com delete 202 purgeAfter 2026-12-15T03:28:13.420Z; the same token afterwards: 401
+b1-run-07ef42-a02@example.com delete 202 purgeAfter 2026-12-15T03:28:21.436Z; the same token afterwards: 401
+b1-run-07ef42-p01@example.com delete 202 purgeAfter 2026-12-15T03:28:29.489Z; the same token afterwards: 401
+b1-run-07ef42-a03@example.com delete 202 purgeAfter 2026-12-15T03:28:37.400Z; the same token afterwards: 401
+b1-run-07ef42-dep01d@example.com delete 202 purgeAfter 2026-12-15T03:28:45.230Z; the same token afterwards: 401
+b1-run-07ef42-m07@example.com delete 202 purgeAfter 2026-12-15T03:28:52.941Z; the same token afterwards: 401
+b1-run-07ef42-m08@example.com delete 202 purgeAfter 2026-12-15T03:29:00.956Z; the same token afterwards: 401
+b1-run-07ef42-ms1@example.com delete 202 purgeAfter 2026-12-15T03:29:10.017Z; the same token afterwards: 401
+b1-run-07ef42-p02@example.com delete 202 purgeAfter 2026-12-15T03:29:17.648Z; the same token afterwards: 401
+b1-run-07ef42-ms2@example.com delete 202 purgeAfter 2026-12-15T03:29:25.517Z; the same token afterwards: 401
+b1-run-07ef42-p03@example.com delete 202 purgeAfter 2026-12-15T03:29:33.348Z; the same token afterwards: 401
+b1-run-07ef42-m09@example.com delete 202 purgeAfter 2026-12-15T03:29:41.320Z; the same token afterwards: 401
+b1-run-07ef42-a04@example.com delete 202 purgeAfter 2026-12-15T03:29:49.185Z; the same token afterwards: 401
+b1-run-07ef42-us1@example.com delete 202 purgeAfter 2026-12-15T03:29:56.966Z; the same token afterwards: 401
+b1-run-07ef42-us2@example.com delete 202 purgeAfter 2026-12-15T03:30:04.894Z; the same token afterwards: 401
+b1-run-07ef42-uo1@example.com delete 202 purgeAfter 2026-12-15T03:30:13.324Z; the same token afterwards: 401
+b1-run-07ef42-a05@example.com delete 202 purgeAfter 2026-12-15T03:30:21.436Z; the same token afterwards: 401
+2026-11-15T03:30:28.740Z deleted 19 of 19

@@ -99,7 +99,7 @@ None of the tools writes anything. In general mode (A1) only `search_regulations
 **Decided** (Lâm, 30 Oct 2026):
 - Conversations are not stored on the server. A conversation lives in the open page only, and leaving or reloading the page starts a new one. This avoids storing free text that may hold personal data.
 - A student who declines consent can still use the advisor chat for general questions about the regulations, and their record is never sent (A1).
-- Dũng types the regulation documents in as files in the repository, inside the `advisor` module. Each one goes through a pull request, and Triết or Thắng checks it against the official document. No AI types or drafts them (AGENTS.md hard rule 1, ADR 0003). Guides use the same approach (ADR 0010).
+- Dũng types the regulation documents in as files in the repository, inside the `advisor` module. Each one goes through a pull request, and Triết or Thắng checks it against the official document. No AI types or drafts them (AGENTS.md hard rule 1, ADR 0003). Guides are files in the repository reviewed the same way (ADR 0010), but their text may be drafted and translated by an AI tool (Lâm, confirmed 15 Nov 2026): portal addresses, labels and steps come only from the school's pages or the portal, and no personal data goes into the tool (guides plan §6 step 1).
 
 **Proposed here, to confirm:** citation links are built only from clauses returned by `search_regulations`.
 
