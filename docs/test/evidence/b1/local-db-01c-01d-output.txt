@@ -1,0 +1,28 @@
+# DB-01c and DB-01d, local B1 build (tree 7f66b7a, app code = B1 1decf4a): API node dist/main.js on :3055, Vite dev frontend on :5175, PostgreSQL 18.6 in podman
+2026-11-15T03:14:27Z
+=== DB-01d: the rendered Swagger page
+chromium 156.0.8078.4 | Authorize buttons: 1 | groups: health, users, auth, guides, curriculum, plans, curriculum-admin
+docs-json starts with: {"openapi":"3.2.0"
+=== DB-01c, part 1: stop the database
+API pid before: 1336962 (node)
+health (db up): {"status":"ok","database":"up"} HTTP 200
+podman stop: exit 0; container state: exited
+health (db stopped): {"status":"degraded","database":"down"} HTTP 200
+chromium 156.0.8078.4 | home page shows: "API degraded · database down"
+=== DB-01c, part 2: start the database, health every 5 s for 60 s
+podman start: exit 0; container state: running
++0s {"status":"degraded","database":"down"}
++5s {"status":"ok","database":"up"}
++10s {"status":"ok","database":"up"}
++15s {"status":"ok","database":"up"}
++20s {"status":"ok","database":"up"}
++25s {"status":"ok","database":"up"}
++30s {"status":"ok","database":"up"}
++36s {"status":"ok","database":"up"}
++41s {"status":"ok","database":"up"}
++46s {"status":"ok","database":"up"}
++51s {"status":"ok","database":"up"}
++56s {"status":"ok","database":"up"}
++61s {"status":"ok","database":"up"}
+API pid after: 1336962 (node) — the same process, never restarted
+chromium 156.0.8078.4 | home page shows: "API ok · database up"

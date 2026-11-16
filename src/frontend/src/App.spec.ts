@@ -39,7 +39,7 @@ describe('App shell', () => {
 
     const student = await render('/guides', true);
     expect(student.w.find('.pub-head').exists()).toBe(false);
-    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
+    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(student.w.get('.side .nav a[href="/guides"]').classes()).toContain('router-link-active');
     expect(student.w.get('.side .me').text()).toContain('Sinh viên thử');
   });

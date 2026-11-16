@@ -2,7 +2,7 @@
 
 - Feature: F11 Quicklinks and step-by-step guides (Vision §5); use case UC-10 (`docs/requirements/use-cases/UC-10-follow-a-school-task-guide.md`)
 - Owner: Dũng
-- Status: draft, 30 October 2026. The B1 batch, public reading and file storage were agreed by Lâm on 30 October. No portal address, account or step below has been checked on a portal yet.
+- Status: draft, 30 October 2026. The B1 batch, public reading and file storage were agreed by Lâm on 30 October. Dũng checked the B1 guides on the portals on 15 November 2026: G01 and G07 to the end, G02 and G06 in part (registration was closed and nothing was owed, so their remaining steps wait for the next registration and tuition periods). Nothing in the B3 and later guides has been checked on a portal yet.
 - Due: this list and the content model by 1 Nov (week 4 report); the first batch of guides in B1 (15 Nov)
 
 ## 1. Purpose
@@ -49,7 +49,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 
 ## 4. School tasks to cover
 
-**B1 batch** (first, by 15 Nov, agreed by Lâm): the tasks every student meets every term, plus the transcript download that UC-02 needs. **B3**: the rest. **Later**: only if time allows.
+**B1 batch** (first, by 15 Nov, agreed by Lâm): the tasks every student meets every term. **B3**: the rest. **Later**: only if time allows.
 
 | ID | Guide | Vietnamese name | Group | Batch | Why it is needed |
 | --- | --- | --- | --- | --- | --- |
@@ -59,7 +59,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 | G04 | Retake or improve a course | Học lại, học cải thiện | Registration | B3 | Vision F11 note: a failed course must be registered again. |
 | G05 | Find your timetable and exam schedule | Thời khóa biểu, lịch thi | Timetable and exams | B3 | Every student, every term. |
 | G06 | Pay tuition | Đóng học phí | Tuition and fees | B1 | Every student, every term (Vision F11). |
-| G07 | View your grades and download your transcript PDF | Xem điểm, tải bảng điểm | Records and certificates | B1 | Transcript import (UC-02) needs this exact file. |
+| G07 | View your grades | Xem điểm | Records and certificates | B1 | Every student, every term. The portals offer no transcript PDF (see G07), so what transcript import (UC-02) reads is open. |
 | G08 | Request an official transcript | Xin bảng điểm có xác nhận | Records and certificates | B3 | Vision F11: "requesting a transcript". |
 | G09 | Request a student certificate | Xin giấy xác nhận sinh viên | Records and certificates | B3 | Vision F11: "requesting a certificate". |
 | G10 | Apply for a scholarship | Đăng ký học bổng | Scholarships | B3 | Vision F11: "applying for a scholarship". |
@@ -121,15 +121,15 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 - **Notes:** keep the receipt; what happens after a late payment, cited from the regulation.
 - **To find out:** where the amount is shown, the accepted channels, how long a payment takes to appear, and who to contact if it does not.
 
-### G07 View your grades and download your transcript PDF (B1)
+### G07 View your grades (B1)
 
-- **Shows:** where grades appear on the portal, and step by step which file to download, so the student gets the PDF that transcript import will read. For now it ends with a link to the student's transcript page in OmniCourse. A link to transcript import (UC-02) is added when import ships.
-- **Notes:** the file holds personal data, so don't post it anywhere. When import ships, the guide adds that OmniCourse reads the file on its own server and deletes it after reading (UC-02).
-- **To find out:** the exact download path. The same check answers ADR 0003's open question: whether the file has a text layer and a fixed layout, to be confirmed locally before Sprint 4.
+- **Shows:** where grades appear on the portal, term by term. A link to transcript import (UC-02) is added when import ships.
+- **Notes:** grades are personal data, so don't post screenshots of the grades page anywhere. When import ships, the guide adds that OmniCourse reads the file on its own server and deletes it after reading (UC-02).
+- **Found (15 November 2026):** neither portal.ctdb nor portal.hcmus offers a transcript PDF to download. Grades are on portal.ctdb under “SINH VIÊN” → “Kết Quả Học Phần”. ADR 0003's open question (does the file have a text layer and a fixed layout) has no portal file to answer it; what transcript import (UC-02) reads is the Project Lead's decision.
 
 ### G08 Request an official transcript (B3)
 
-- **Shows:** how it differs from the G07 PDF, where to request it (online or at an office), the form, the fee, the processing time and how to collect it.
+- **Shows:** how it differs from the grades page of G07, where to request it (online or at an office), the form, the fee, the processing time and how to collect it.
 - **To find out:** the office or online form, the fee and the processing time.
 
 ### G09 Request a student certificate (B3)
@@ -178,7 +178,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 
 ## 6. How each guide is made
 
-1. Dũng drafts the guide in both languages from the school's published pages, typed by hand with no AI drafting: the same rule as the regulation files (Lâm, 30 Oct 2026).
+1. Dũng drafts the guide in both languages from the school's published pages. An AI tool may draft and translate the guide text (Lâm, confirmed 15 Nov 2026; until then guides were typed by hand, Lâm, 30 Oct 2026). Portal addresses, labels and steps still come only from the school's pages or the portal, never from the tool, and step 2 confirms each one. No personal data goes into the tool (§3 rule 5).
 2. A team member who has used that portal follows it with their own account and records **Last checked**.
 3. Another team member reviews the pull request.
 4. The guide is published with version 1.

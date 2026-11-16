@@ -72,7 +72,7 @@ describe('Guides API (e2e)', () => {
     const { body } = await http().get('/api/guides/zz-fresh').expect(200);
     expect(Object.keys(body.texts).sort()).toEqual(['en', 'vi']);
     const fresh = fixture('zz-fresh', 'en');
-    // The fixture leaves citations, related and portals out: the API sends them as [].
+    // The fixture leaves citations and related out: the API sends them as [].
     expect(body.texts.en).toEqual({
       title: fresh.title,
       keywords: fresh.keywords,
@@ -91,7 +91,7 @@ describe('Guides API (e2e)', () => {
       citations: [],
       ifPortalDown: fresh.ifPortalDown,
       related: [],
-      portals: [],
+      portals: fresh.portals,
     });
   });
 

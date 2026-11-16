@@ -1,0 +1,17 @@
+2026-11-15T03:19:49.313Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+ok   UI-01b: after a screen sign-in the signed-in page shows "Test Student" | observed: {"signIn":200,"onDashboard":["aside ."],"settingsDisplayName":"Test Student"}
+ok   USER-01u: as b1-run-07ef42-us1@example.com: "Xuất dữ liệu" saves a JSON file with the same tables and row counts as the API export taken right after | observed: {"signIn":200,"file":"omnicourse-account.json","fileTables":{"ai_usage":0,"global_admin_grants":0,"onboarding_answers":1,"plan_placements":0,"plans":1,"program_admin_grants":0,"sessions":3,"transcript_rows":3},"apiTables":{"ai_usage":0,"global_admin_grants":0,"onboarding_answers":1,"plan_placements":0,"plans":1,"program_admin_grants":0,"sessions":3,"transcript_rows":3}}
+2026-11-15T03:20:07.675Z UI-01g attempt 1: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:02.486Z
+2026-11-15T03:20:07.676Z UI-01g attempt 2: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:03.075Z
+2026-11-15T03:20:07.676Z UI-01g attempt 3: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:03.667Z
+2026-11-15T03:20:07.676Z UI-01g attempt 4: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:04.221Z
+2026-11-15T03:20:07.676Z UI-01g attempt 5: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:04.751Z
+2026-11-15T03:20:07.676Z UI-01g attempt 6: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:05.256Z
+2026-11-15T03:20:07.676Z UI-01g attempt 7: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:05.769Z
+2026-11-15T03:20:07.676Z UI-01g attempt 8: 401 | Email hoặc mật khẩu không đúng. | at 2026-11-15T03:20:06.276Z
+2026-11-15T03:20:07.676Z UI-01g attempt 9: 429 | Quá nhiều lần thử từ mạng này. Đợi một phút rồi thử lại. | at 2026-11-15T03:20:06.744Z
+2026-11-15T03:20:07.676Z UI-01g attempt 10: 429 | Quá nhiều lần thử từ mạng này. Đợi một phút rồi thử lại. | at 2026-11-15T03:20:07.185Z
+2026-11-15T03:20:07.676Z UI-01g attempt 11: 429 | Quá nhiều lần thử từ mạng này. Đợi một phút rồi thử lại. | at 2026-11-15T03:20:07.671Z
+FAIL UI-01g: 11 wrong sign-ins within a minute: ten say "invalid email or password" (401), the 11th says to wait and try again (429) | observed: {"seconds":6,"statuses":"401,401,401,401,401,401,401,401,429,429,429","eleventh":"Quá nhiều lần thử từ mạng này. Đợi một phút rồi thử lại.","stillOn":"/sign-in"}
+2026-11-15T03:20:07.760Z UTC time of the last sign-in attempt: 2026-11-15T03:20:07.671Z
+NOTE (after the run): the 429 came at attempt 9, not 11, because this script had already made two sign-ins in the same minute (UI-01b at about 03:19:50 and USER-01u at about 03:19:56). 2 + 8 = 10 sign-ins were accepted from this address in the minute, and the next three were refused: the limit of 10 a minute held. The FAIL line is the script counting only its own 11 attempts.
