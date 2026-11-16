@@ -89,6 +89,7 @@ describe('CalendarView (F10 school dates)', () => {
     const day = cell(w, '2026-11-20');
     expect(day.findAll('[data-test="event"]')).toHaveLength(3);
     expect(day.get('.more').text()).toBe('+2');
+    expect(day.get('.more').attributes('aria-label')).toBe('2 mốc khác vào T6, 20/11/2026, mở tuần đó');
     await day.get('.n').trigger('click');
     expect(w.find('[data-test="week"]').exists()).toBe(true);
     expect(text(w, 'range')).toBe('16/11 – 22/11');
@@ -166,12 +167,21 @@ describe('CalendarView (F10 school dates)', () => {
     expect(w.text()).toContain(`quản trị chương trình ${PROGRAM.code}`);
   });
 
-  it('says there are no school dates yet while the API has no calendar route (404), not that loading failed', async () => {
+  it('says loading failed on a 404, not that there are no school dates (the route exists since #108)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render(status(404, { message: 'Cannot GET /api/academic-calendar', statusCode: 404 }));
-    expect(w.find('[role="alert"]').exists()).toBe(false);
-    expect(text(w, 'no-dates')).toContain('Chưa có lịch của trường');
-    expect(w.find('[data-test="no-program"]').exists()).toBe(false);
-    expect(w.findAll('[data-test="event"]')).toHaveLength(0);
+    expect(w.get('[role="alert"]').text()).toContain('Không tải được lịch.');
+    expect(w.find('[data-test="no-dates"]').exists()).toBe(false);
+  });
+
+  it('switches week and month with pressed buttons, not tabs', async () => {
+    const { w } = await render();
+    expect(w.findAll('[role="tab"], [role="tablist"]')).toHaveLength(0);
+    expect(w.get('[data-test="tab-week"]').attributes('aria-pressed')).toBe('true');
+    expect(w.get('[data-test="tab-month"]').attributes('aria-pressed')).toBe('false');
+    await w.get('[data-test="tab-month"]').trigger('click');
+    expect(w.get('[data-test="tab-week"]').attributes('aria-pressed')).toBe('false');
+    expect(w.get('[data-test="tab-month"]').attributes('aria-pressed')).toBe('true');
   });
 
   it('sends a student with no program to pick one', async () => {

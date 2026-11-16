@@ -34,6 +34,8 @@ interface CalendarMessages {
   noProgram: string;
   finishOnboarding: string;
   more: (n: number) => string;
+  /** The spoken name of "+N": how many more dates, on which day, and that it opens the week. */
+  moreLabel: (n: number, iso: string) => string;
   close: string;
   when: string;
   termLabel: string;
@@ -53,6 +55,8 @@ const EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July
 const VI_WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const EN_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const dow = (iso: string) => (new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7;
+const viLongDay = (iso: string) => `${VI_WEEKDAYS[dow(iso)]}, ${pad(parts(iso)[2])}/${pad(parts(iso)[1])}/${parts(iso)[0]}`;
+const enLongDay = (iso: string) => `${EN_WEEKDAYS[dow(iso)]}, ${Number(parts(iso)[2])} ${EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3)} ${parts(iso)[0]}`;
 
 export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
   vi: {
@@ -69,7 +73,7 @@ export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
     weekNumber: (n) => `Tuần ${n}`,
     weekdays: VI_WEEKDAYS,
     day: (iso) => `${Number(parts(iso)[2])}/${Number(parts(iso)[1])}`,
-    longDay: (iso) => `${VI_WEEKDAYS[dow(iso)]}, ${pad(parts(iso)[2])}/${pad(parts(iso)[1])}/${parts(iso)[0]}`,
+    longDay: viLongDay,
     monthName: (iso) => `Tháng ${Number(parts(iso)[1])}, ${parts(iso)[0]}`,
     monthShort: (iso) => `Th${Number(parts(iso)[1])}`,
     days: (n) => `${n} ngày`,
@@ -94,6 +98,7 @@ export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
     noProgram: 'Bạn chưa chọn chương trình, nên chưa có lịch của trường để hiện.',
     finishOnboarding: 'Chọn chương trình',
     more: (n) => `+${n}`,
+    moreLabel: (n, iso) => `${n} mốc khác vào ${viLongDay(iso)}, mở tuần đó`,
     close: 'Đóng',
     when: 'Thời gian',
     termLabel: 'Học kỳ',
@@ -120,7 +125,7 @@ export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
     weekNumber: (n) => `Week ${n}`,
     weekdays: EN_WEEKDAYS,
     day: (iso) => `${Number(parts(iso)[2])} ${EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3)}`,
-    longDay: (iso) => `${EN_WEEKDAYS[dow(iso)]}, ${Number(parts(iso)[2])} ${EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3)} ${parts(iso)[0]}`,
+    longDay: enLongDay,
     monthName: (iso) => `${EN_MONTHS[Number(parts(iso)[1]) - 1]} ${parts(iso)[0]}`,
     monthShort: (iso) => EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3),
     days: (n) => (n === 1 ? '1 day' : `${n} days`),
@@ -145,6 +150,7 @@ export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
     noProgram: 'You have not picked a program yet, so there are no school dates to show.',
     finishOnboarding: 'Pick a program',
     more: (n) => `+${n}`,
+    moreLabel: (n, iso) => `${n} more ${n === 1 ? 'date' : 'dates'} on ${enLongDay(iso)}, open that week`,
     close: 'Close',
     when: 'When',
     termLabel: 'Term',

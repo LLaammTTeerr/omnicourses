@@ -4,6 +4,7 @@ import type { App as VueApp } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createOmniCourseApp } from './app.js';
 import { course as auditCourse, degreeAudit, group as auditGroup } from './audit/testing/fixtures.js';
+import { calendar, event, REGISTRATION } from './calendar/testing/fixtures.js';
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult, session } from './auth/testing/fixtures.js';
 import { createAppRouter } from './router.js';
@@ -115,6 +116,7 @@ describe('the new screens at a phone width and on a desktop', () => {
     ['/explorer', true, 'Chương trình đào tạo'],
     ['/dashboard', true, 'Tổng quan'],
     ['/audit', true, 'Xét tốt nghiệp'],
+    ['/calendar', true, 'Lịch', { 'GET /academic-calendar': calendar([REGISTRATION, event({ id: 'zz-long', kind: 'other', startsOn: '2026-11-11', title: LONG })]) }],
     ['/onboarding', true, 'Bạn đang học chương trình nào?', { 'GET /users/me/onboarding': NOT_STARTED }],
   ];
 
@@ -130,6 +132,7 @@ describe('the new screens at a phone width and on a desktop', () => {
           await expect.poll(() => document.querySelectorAll('[data-test="group"]').length).toBe(AUDIT.groups.length);
           expect(document.body.textContent).toContain(LONG_GROUP);
         }
+        if (path === '/calendar') await expect.poll(() => document.querySelector('[data-test="week"]')).toBeTruthy();
         if (path === '/transcript') {
           // An invalid row, with its reasons spelled out, is the widest the table gets.
           await page.getByRole('button', { name: 'Thêm dòng' }).click();

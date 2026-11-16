@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
-import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import ExternalLink from '../components/ExternalLink.vue';
@@ -20,14 +19,8 @@ const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(CALENDAR_MESSAGES);
 
-// 404: an API without the calendar route yet (the request names no program, so it is never an unknown one). There
-// are no school dates to show, which the page says, rather than an error.
-const { status, data, reload } = useAsyncLoad('the academic calendar', () =>
-  auth.authed(fetchAcademicCalendar).catch((e: unknown) => {
-    if (statusOf(e) === 404) return null;
-    throw e;
-  }),
-);
+// Any failure, a 404 included (the request names no program, so a 404 is a broken route), says loading failed.
+const { status, data, reload } = useAsyncLoad('the academic calendar', () => auth.authed(fetchAcademicCalendar));
 const events = computed(() => data.value?.events ?? []);
 const program = computed(() => data.value?.program ?? null);
 
@@ -72,13 +65,26 @@ function go(n: number): void {
 function goHome(): void {
   week.value = homeWeek;
   month.value = homeMonth;
+  void nextTick(showToday);
 }
 function setMode(next: 'week' | 'month'): void {
   // The month that holds most of the shown week, and back to that month's first week or the current one.
   if (next === 'month' && mode.value === 'week') month.value = monthStart(addDays(week.value, 3));
   if (next === 'week' && mode.value === 'month') week.value = sameMonth(homeWeek, month.value) || sameMonth(addDays(homeWeek, 6), month.value) ? homeWeek : monthWeeks(month.value)[0]!;
   mode.value = next;
+  void nextTick(showToday);
 }
+// On a phone the grid is wider than the screen and scrolls sideways: bring today's column into view when the dates
+// arrive and when Today or a view switch lands on it, so a Sunday is not off to the right.
+const scroller = ref<HTMLElement | null>(null);
+function showToday(): void {
+  const box = scroller.value;
+  const cell = box?.querySelector<HTMLElement>(`[data-day="${today}"]`);
+  if (!box || !cell || box.scrollWidth <= box.clientWidth) return;
+  box.scrollLeft += cell.getBoundingClientRect().left - box.getBoundingClientRect().left - (box.clientWidth - cell.offsetWidth) / 2;
+}
+watch(status, (now) => now === 'loaded' && showToday(), { flush: 'post' });
+
 function openWeek(day: string): void {
   week.value = mondayOf(day);
   mode.value = 'week';
@@ -169,9 +175,9 @@ usePageTitle(() => m.value.title);
   <div class="page cal-page">
     <header class="page-head">
       <h1>{{ m.title }}</h1>
-      <div class="seg" role="tablist" :aria-label="m.view">
-        <button type="button" role="tab" :aria-selected="mode === 'week'" data-test="tab-week" @click="setMode('week')">{{ m.week }}</button>
-        <button type="button" role="tab" :aria-selected="mode === 'month'" data-test="tab-month" @click="setMode('month')">{{ m.month }}</button>
+      <div class="seg" role="group" :aria-label="m.view">
+        <button type="button" :aria-pressed="mode === 'week'" data-test="tab-week" @click="setMode('week')">{{ m.week }}</button>
+        <button type="button" :aria-pressed="mode === 'month'" data-test="tab-month" @click="setMode('month')">{{ m.month }}</button>
       </div>
     </header>
 
@@ -217,7 +223,7 @@ usePageTitle(() => m.value.title);
           </div>
         </div>
 
-        <div class="cal-scroll">
+        <div ref="scroller" class="cal-scroll">
           <div v-if="mode === 'week'" class="cal-week" data-test="week">
             <div v-for="(day, i) in weekDays" :key="day" class="cal-dh" :class="{ today: day === today }">
               <span>{{ m.weekdays[i] }}</span><b>{{ Number(day.slice(8)) }}</b>
@@ -261,7 +267,7 @@ usePageTitle(() => m.value.title);
               >
                 <i></i>{{ titleOf(e) }}
               </button>
-              <button v-if="on(day).length > 3" type="button" class="more" @click="openWeek(day)">{{ m.more(on(day).length - 3) }}</button>
+              <button v-if="on(day).length > 3" type="button" class="more" :aria-label="m.moreLabel(on(day).length - 3, day)" @click="openWeek(day)">{{ m.more(on(day).length - 3) }}</button>
             </div>
           </div>
         </div>
@@ -345,7 +351,6 @@ usePageTitle(() => m.value.title);
 /* The calendar prototype (ui-prototypes/calendar.html), with all-day school dates in place of class periods. */
 .cal-page { max-width: 1440px; }
 .cal-page .page-head { align-items: center; }
-.cal-page .seg button[aria-selected='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); outline: 1px solid var(--edge); }
 .cal-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
 .cal-main { min-width: 0; display: grid; gap: 14px; }
 .cal-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
