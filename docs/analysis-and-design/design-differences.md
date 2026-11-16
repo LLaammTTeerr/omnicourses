@@ -1,6 +1,6 @@
 # Design vs. use-case specification differences
 
-The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/README.md) draw the code on `main` as of 15 November 2026. Where that code differs from a use-case specification ([`docs/requirements/use-cases/`](../requirements/use-cases/README.md), and the Use-Case Specification v1.0 in [`report/assignments/PA2/uc-specs.tex`](../../report/assignments/PA2/uc-specs.tex)), the code is drawn and the difference is listed here. Each "not built" below was checked by searching `src/` for the code it would need.
+The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/README.md) draw the code on `main` as of 15 November 2026; UC-12 below was checked against `main` on 17 November 2026 (commit `b6892b7`). Where that code differs from a use-case specification ([`docs/requirements/use-cases/`](../requirements/use-cases/README.md), and the Use-Case Specification v1.0 in [`report/assignments/PA2/uc-specs.tex`](../../report/assignments/PA2/uc-specs.tex)), the code is drawn and the difference is listed here. Each "not built" below was checked by searching `src/` for the code it would need.
 
 ## UC-01 Sign up and onboard
 
@@ -54,6 +54,21 @@ The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/
 
 As the specification schedules: B1 has browsing, search and reading (steps 1–7, A1, A2, A5, A8). The parts that use the student's data (A3 program values from the rule engine, A4 courses from a plan) and reporting a problem (A6) are not built, and no guide route reads the signed-in user.
 
+## UC-12 Receive notifications (F10)
+
+Only the school dates are built: the dates that a notification would announce, and a page that shows them ([ADR 0017](adr/0017-academic-calendar.md)). Nothing in `src/` creates, stores or shows a notification.
+
+| Specification | As built | Follow-up |
+| --- | --- | --- |
+| At a scheduled moment, for example seven days before a registration window opens, the system creates a notification (steps 1 and 3). | Not built: nothing schedules or stores a notification. The dates such a notification would announce are stored in the `academic_calendar` table and read through `GET /api/academic-calendar`. | The notification inbox stays planned for F10 (ADR 0017, Consequences). |
+| The system asks the rule engine what applies to the student: the courses that the active plan places in the coming term, and any violation (step 2, A6). | Not built. No rule-engine function reads the calendar; ADR 0017 keeps it that way, so a date never decides an academic rule. | |
+| A bell with the unread count, a popover, and an inbox listed newest first; opening a notification marks it read (steps 4–7). **Mark all as read** (A3) and filters (A4). | Not built. Instead, a calendar page at `/calendar` shows the school dates of the student's program in a week view and a month view, with the term week. The page has no read state. It is not in UC-12: it follows the calendar UI prototype. | |
+| Notifications when the student saves a new transcript (A1) or when a curriculum change makes the active plan break a rule (A2). | Not built. | |
+| The student turns a kind of notification off in settings (A5). | Not built. | |
+| The dates come from the published school calendar, entered by the team (special requirements). | A program administrator of that program enters them through the API: `POST /api/admin/programs/{programId}/calendar-events`, and `PATCH` and `DELETE` on `…/calendar-events/{eventId}`. The writes use F12's program grant and write lock ([ADR 0011](adr/0011-curriculum-administration.md)). No screen calls these routes yet. Nothing is seeded, so a program shows no dates until its administrator enters them. | An administration screen for the dates |
+| (none) | The API also returns another program's dates when asked by program code (`program` query). The page always shows the student's own program. | |
+| (none) | The calendar prototype also shows a personal timetable: the student's classes, rooms, deadlines, exams and notes. It is not built. ADR 0017 leaves it to a separate feature with its own ADR, and the Project Lead approved it as that separate feature. | Personal timetable, its own PR and ADR |
+
 ## UC-14 Manage account and privacy
 
 | Specification | As built |
@@ -65,7 +80,7 @@ As the specification schedules: B1 has browsing, search and reading (steps 1–7
 
 ## Use cases with no code on `main`
 
-- UC-06 what-if scenario (F7), UC-07 generate a plan (F6), UC-08 advisor chat (F8), UC-09 and UC-16 sharing (F9), UC-12 notifications (F10): not built. The AI gateway (`src/backend/src/ai/`) is built, and no feature module injects `LlmService` yet.
+- UC-06 what-if scenario (F7), UC-07 generate a plan (F6), UC-08 advisor chat (F8), UC-09 and UC-16 sharing (F9): not built. The AI gateway (`src/backend/src/ai/`) is built, and no feature module injects `LlmService` yet.
 - UC-11, UC-17, UC-18 curriculum administration (F12): the API is built and tested (`src/backend/src/curriculum-admin/`); the single-page app has no administration screen. Their sequence diagrams are not drawn yet.
 
 ## Documents that lag the code
