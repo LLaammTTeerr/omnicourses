@@ -13,7 +13,7 @@ import { fetchAcademicCalendar, type CalendarEvent, type CalendarEventKind } fro
 import { academicYearMonths, academicYearOf, addDays, eventsByDay, monthDays, monthStart, monthWeeks, mondayOf, sameMonth, termWeek, weekday } from './dates.js';
 import { CALENDAR_MESSAGES } from './messages.js';
 
-// F10 school dates (ADR 0016) on the calendar prototype's week and month views. The dates are loaded once per visit;
+// F10 school dates (ADR 0017) on the calendar prototype's week and month views. The dates are loaded once per visit;
 // moving between weeks and months asks the API nothing. The prototype's own timetable, deadlines and notes need
 // per-student data that does not exist yet, so this page shows only what the program administrator entered.
 const auth = useAuth();

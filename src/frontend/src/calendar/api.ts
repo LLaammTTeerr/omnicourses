@@ -1,6 +1,6 @@
 import { request } from '../api.js';
 
-// The school dates of F10 (ADR 0016), written by hand; api.spec.ts checks them against src/backend/openapi.json.
+// The school dates of F10 (ADR 0017), written by hand; api.spec.ts checks them against src/backend/openapi.json.
 // An administrator of the program enters them from the school's announcements; the calendar page only reads them.
 
 export const CALENDAR_EVENT_KINDS = ['term_start', 'term_end', 'registration', 'add_drop', 'exam_period', 'holiday', 'other'] as const;
