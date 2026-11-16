@@ -86,4 +86,5 @@ Only the school dates are built: the dates that a notification would announce, a
 ## Documents that lag the code
 
 - [`architecture.md`](architecture.md) §4.2 and §5 still show `rules`, `audit`, `plans`, `curriculum-admin`, the session store and the student screens as planned; all are built.
+- [`architecture.md`](architecture.md) has no `academic-calendar` module and still lists F10 only as the planned `notifications` module; the school dates and the `/calendar` page are built ([class model](class-model.md) §1.6, §3.5).
 - [`sequence-diagrams/UC-01-sign-up-and-onboard.md`](sequence-diagrams/UC-01-sign-up-and-onboard.md) draws sign-up, sign-in and sessions; onboarding (`GET` and `PUT /api/users/me/onboarding`) has been built since and is not drawn.
