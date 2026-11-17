@@ -1,6 +1,6 @@
 # Class model
 
-- Drawn from the code on `main` on 15 November 2026 (commit `47e4ba3`), not from the UI prototypes or the use-case specifications. Every class, attribute, relation and method below exists in `src/`; each diagram names its source files.
+- Drawn from the code on `main` on 15 November 2026 (commit `47e4ba3`), not from the UI prototypes or the use-case specifications. Every class, attribute, relation and method below exists in `src/`; each diagram names its source files. The academic calendar (§1.6, §3.5 and the `calendar/` row of §4) was added from `main` on 17 November 2026 (commit `b6892b7`).
 - Where the built code differs from a use-case specification, the code is drawn and the difference is listed in [Design vs. use-case specification differences](design-differences.md).
 - Level: this is the fourth C4 level (code) under the [software architecture document](architecture.md). The matching behaviour is in the [sequence diagrams](sequence-diagrams/README.md).
 
@@ -10,7 +10,7 @@ Notation: the diagrams are Mermaid class diagrams, which GitHub renders. `?` aft
 
 ## 1. Persistent domain model
 
-Every table is a TypeORM entity; `synchronize` is off and the schema is made by the migrations in `src/backend/src/database/migrations/`. Attribute names are the entity's property names (the column is the same name in snake_case). `createdAt` and `updatedAt` are left out of the drawings: every entity has `createdAt` except `PlanPlacement`, `ProgramAdminGrant`, `GlobalAdminGrant` and `GuideText`, and the tables with `updatedAt` are `users`, `programs`, `curriculums`, `requirement_groups`, `courses`, `combined_minimums`, `course_prerequisite_lists`, `plans`, `onboarding_answers` and `guide_texts`.
+Every table is a TypeORM entity; `synchronize` is off and the schema is made by the migrations in `src/backend/src/database/migrations/`. Attribute names are the entity's property names (the column is the same name in snake_case). `createdAt` and `updatedAt` are left out of the drawings: every entity has `createdAt` except `PlanPlacement`, `ProgramAdminGrant`, `GlobalAdminGrant` and `GuideText`, and the tables with `updatedAt` are `users`, `programs`, `curriculums`, `requirement_groups`, `courses`, `combined_minimums`, `course_prerequisite_lists`, `plans`, `onboarding_answers`, `guide_texts` and `academic_calendar`.
 
 ### 1.1 Users, sessions and the student record
 
@@ -325,12 +325,63 @@ classDiagram
 
 A guide has one text per language (`vi`, `en`). Guide texts are written as files in `guides/content/` and stored by the seed (`seed-guides.ts`); a draft is never stored, so the stored status is `published` or `withdrawn` ([ADR 0010](adr/0010-public-pages-and-guide-content.md)). `contentHash` is a digest of the text for the seed's version check, not a credential. No guide table references `users`.
 
-### 1.6 Delete rules in one table
+### 1.6 Academic calendar
+
+Sources: `academic-calendar/academic-calendar-event.entity.ts`; migration `create-academic-calendar` ([ADR 0017](adr/0017-academic-calendar.md)).
+
+```mermaid
+classDiagram
+    direction LR
+    class User {
+        id : uuid PK
+    }
+    class Program {
+        id : uuid PK
+    }
+    class AcademicCalendarEvent {
+        id : uuid PK
+        programId : uuid FK
+        academicYear : smallint 2000..2100
+        term : smallint? 1..3
+        kind : CalendarEventKind
+        startsOn : date
+        endsOn : date, not before startsOn
+        title : varchar 255
+        titleEn : varchar 255?
+        sourceUrl : varchar 2048? https only
+        notes : text?
+        createdBy : uuid? FK
+        updatedBy : uuid? FK
+    }
+    class CalendarEventKind {
+        <<enumeration>>
+        term_start
+        term_end
+        registration
+        add_drop
+        exam_period
+        holiday
+        other
+    }
+    AcademicCalendarEvent "0..*" --> "1" Program : program_id RESTRICT
+    AcademicCalendarEvent "0..*" --> "0..1" User : created_by SET NULL
+    AcademicCalendarEvent "0..*" --> "0..1" User : updated_by SET NULL
+    AcademicCalendarEvent ..> CalendarEventKind
+```
+
+- The table is `academic_calendar`. One row is one school date of one program: a single day (`endsOn` equals `startsOn`) or a window of days, both inclusive. `term` is null for a date of the whole academic year; `academicYear` 2026 is 2026–2027 ([ADR 0009](adr/0009-term-encoding.md)).
+- Checks: `ck_academic_calendar_kind` (the seven kinds), `ck_academic_calendar_term` (1, 2 or 3), `ck_academic_calendar_academic_year` (2000 to 2100), `ck_academic_calendar_range` (`ends_on >= starts_on`) and `ck_academic_calendar_source_url` (`source_url LIKE 'https://%'`). The index `ix_academic_calendar_program_starts_on` is on (`program_id`, `starts_on`).
+- The dates are shared data of a program, not a student's record, so the table has no `user_id`. `created_by` and `updated_by` name the administrator who wrote the row. They are `ON DELETE SET NULL`, so purging that administrator's account keeps the dates for everyone else, and the account export does not read them ([ADR 0004](adr/0004-account-export-and-deletion.md)). The API never returns them.
+- `program_id` is `RESTRICT`, like curricula and program grants: shared academic data is never deleted as a side effect.
+- `startsOn` and `endsOn` are `date` columns, read as `YYYY-MM-DD` strings, never as a timestamp.
+- Nothing is seeded, and no rule-engine function reads this table.
+
+### 1.7 Delete rules in one table
 
 | When this row is deleted | These rows go with it (`CASCADE`) | The delete is refused while these exist (`RESTRICT`) | These rows stay, with the column cleared (`SET NULL`) |
 | --- | --- | --- | --- |
-| `User` | `Session`, `OnboardingAnswers`, `TranscriptRow`, `AiUsage`, `Plan`, `PlanPlacement`, `ProgramAdminGrant` and `GlobalAdminGrant` the user holds | none | grants the user gave (`granted_by`) |
-| `Program` | none | `Curriculum`, `ProgramAdminGrant` | none |
+| `User` | `Session`, `OnboardingAnswers`, `TranscriptRow`, `AiUsage`, `Plan`, `PlanPlacement`, `ProgramAdminGrant` and `GlobalAdminGrant` the user holds | none | grants the user gave (`granted_by`); `AcademicCalendarEvent` rows the user created or last changed (`created_by`, `updated_by`) |
+| `Program` | none | `Curriculum`, `ProgramAdminGrant`, `AcademicCalendarEvent` | none |
 | `Curriculum` | `RequirementGroup`, `CombinedMinimum`, `CoursePrerequisiteList`, `CourseOfferingTerm` | `Plan` | none |
 | `RequirementGroup` | `RequirementGroupCourse`, `CombinedMinimumGroup`, `RequirementGroupOverflow` | `PlanPlacement` slots | none |
 | `Course` | none | `RequirementGroupCourse`, `CoursePrerequisiteList`, `CoursePrerequisite`, `CourseOfferingTerm` | none |
@@ -1073,6 +1124,51 @@ classDiagram
 - `GuidesController`: `GET /guides`, `GET /guides/{id}`, both `@Public()`. `HealthController`: `GET /health`, public.
 - The AI gateway is built and exported (`AiModule` exports `LlmService`), but no feature module on `main` injects it yet: F6's goal box and F8 are not built. `FakeLlmService` (`ai/testing/`) replaces the gateway in unit tests. `AiUnavailableError` is a 503 `ai_unavailable` ([ADR 0003](adr/0003-language-model-scope.md)).
 
+### 3.5 Academic calendar
+
+Sources: `academic-calendar/` ([ADR 0017](adr/0017-academic-calendar.md)).
+
+```mermaid
+classDiagram
+    direction LR
+    class AcademicCalendarController {
+        +list(user, query) AcademicCalendarDto
+        +create(user, programId, dto) AcademicCalendarEventDto
+        +update(user, programId, eventId, dto) AcademicCalendarEventDto
+        +remove(user, programId, eventId)
+    }
+    class AcademicCalendarService {
+        +list(callerId, query) AcademicCalendarDto
+        +create(callerId, programId, dto) AcademicCalendarEventDto
+        +update(callerId, programId, eventId, dto) AcademicCalendarEventDto
+        +remove(callerId, programId, eventId)
+        -onboardingProgram(userId)
+    }
+    class AcademicCalendarDto {
+        program : CalendarProgramDto?
+        events : AcademicCalendarEventDto list
+    }
+    class AdminWriteService {
+        +run(callerId, need, write, otherUserIds)
+    }
+    AcademicCalendarController --> AcademicCalendarService
+    AcademicCalendarService --> AdminWriteService : every write
+    AcademicCalendarService --> DataSource : reads
+    AcademicCalendarService ..> AcademicCalendarDto
+    AcademicCalendarService ..> AcademicCalendarEvent
+    class DataSource
+    class AcademicCalendarEvent
+```
+
+- Reading: any signed-in user. `AcademicCalendarQueryDto` takes `program` (a program code), `academicYear`, `from` and `to`. Without `program`, the service reads the caller's program from `onboarding_answers.program_code`; with none, it answers `program: null` and no events. An unknown program code is 404 `not_found`, and `to` before `from` is 400 `validation_failed`. `from` and `to` keep every date that overlaps the range. The events come ordered by `startsOn`, `endsOn`, `title` and `id`.
+- Writing: a program administrator of that program. Each write runs inside `AdminWriteService.run` with the need `{ program: programId }`, so it uses F12's grant check, write lock and error codes, and has no guard of its own ([ADR 0011](adr/0011-curriculum-administration.md)). `AcademicCalendarModule` imports `CurriculumAdminModule`, which exports `AdminWriteService`. `StrictBody` refuses a body field that `CreateCalendarEventDto` or `UpdateCalendarEventDto` does not declare.
+- Checks before a write: `IsCalendarDate` refuses a date that is not a real `YYYY-MM-DD` day; `datesProblem` refuses an `endsOn` before `startsOn` and a `startsOn` outside the academic year's two calendar years; `sourceUrl` must start with lowercase `https://`. `eventIn` answers 404 for an event of another program. `eventDto` leaves out `createdBy` and `updatedBy`.
+- The single-page app only reads: the `calendar/` folder (§4). No screen calls the write routes yet.
+
+| Controller | Routes |
+| --- | --- |
+| `AcademicCalendarController` | `GET /academic-calendar`; `POST /admin/programs/{programId}/calendar-events`; `PATCH`, `DELETE /admin/programs/{programId}/calendar-events/{eventId}` |
+
 ## 4. Single-page app modules
 
 The Vue app has no classes of its own apart from `HttpError`; each feature folder in `src/frontend/src/` holds views (`<script setup>` single-file components), an `api.ts` with the calls and the response types, and sometimes a Pinia store or pure helper modules. The response types are hand-written and checked against `src/backend/openapi.json` by each folder's `api.spec.ts`.
@@ -1088,6 +1184,7 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `plans/` | `PlannerEntry`, `PlansView`, `PlanEditorView`, `IssuesPanel`, `StatusStrip`, `PlanTabs`, dialogs | none | `fetchPlans`, `createPlan`, `fetchPlan`, `renamePlan`, `duplicatePlan`, `deletePlan`, `savePlacements`, `fetchPlanIssues`, `previewPlanIssues`, `previewPlanDrops` | `board.ts` (`Board`, `boardOf`, `boardBody`, `moveTile`, `attachIssues`, `dropVerdict`), `drag.ts`, `lock.ts`, `last-plan.ts` |
 | `account/` | `SettingsView`, `DeleteAccountDialog` | none | `exportAccount`, `deleteAccount`, `saveFile` | `user-agent.ts` |
 | `guides/` | `GuidesView`, `GuideView` | none | `fetchGuides`, `fetchGuide` | `pick-text.ts`, `search.ts` |
+| `calendar/` | `CalendarView` (week and month views at `/calendar`) | none | `fetchAcademicCalendar` | `dates.ts` (`mondayOf`, `monthDays`, `monthWeeks`, `academicYearOf`, `termWeek`, `eventsByDay`) |
 
 `useAuth().authed(call)` runs an API call with the session token and clears the session on a 401; `App.vue` then sends the student to sign-in. The router guard (`router.ts`, `onboardingFirst`) sends a signed-in student whose onboarding is unfinished to `/onboarding` before any private page except `/settings`.
 
@@ -1096,7 +1193,7 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | Class group | Section | Features | Decided in |
 | --- | --- | --- | --- |
 | `User`, `Session`, `AuthService`, `AuthGuard`, `UsersService` | 1.1, 3.1 | F1 | [ADR 0002](adr/0002-authentication-and-sessions.md) |
-| `AccountService`, `AccountPurgeService`, the `user_id` delete rules | 1.6, 3.1 | F1, privacy NFR | [ADR 0004](adr/0004-account-export-and-deletion.md) |
+| `AccountService`, `AccountPurgeService`, the `user_id` delete rules | 1.7, 3.1 | F1, privacy NFR | [ADR 0004](adr/0004-account-export-and-deletion.md) |
 | `OnboardingAnswers`, `OnboardingService` | 1.1, 3.2 | F1 (program, cohort and planning goal) | No ADR of its own; its terms follow [ADR 0009](adr/0009-term-encoding.md), and [ADR 0013](adr/0013-rule-engine-and-degree-audit.md) decides how the degree audit reads it |
 | `TranscriptRow`, `TranscriptEntry`, `TranscriptService` | 1.1, 2.1, 3.2 | F2 | [ADR 0007](adr/0007-transcript.md) |
 | `Program`, `Curriculum`, `RequirementGroup`, `RequirementGroupCourse`, `Course`, `CurriculumService` | 1.2, 3.2 | F4, and the data under F3, F5, F12 | [ADR 0005](adr/0005-curriculum-cohort-and-course-catalog.md) |
@@ -1108,6 +1205,7 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `ProgramAdminGrant`, `GlobalAdminGrant`, `AdminWriteService`, the three administration services and controllers | 1.3, 3.3 | F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
 | `Guide`, `GuideText`, `GuideContent`, `GuidesService` | 1.5, 3.4 | F11 | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | `AiUsage`, `LlmService`, `GatewayLlmService`, `AiCostGuard`, `ModelClient` | 1.1, 3.4 | F6 goal box and F8 (gateway only; neither feature is built) | [ADR 0003](adr/0003-language-model-scope.md) |
-| (no classes yet) | | F7 what-if, F9 sharing, F10 notifications | [ADR 0006](adr/0006-plan-generator.md) for F6's planner; not built |
+| `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView` | 1.6, 3.5, 4 | F10 school dates (the dates and the calendar page; the notification inbox is not built) | [ADR 0017](adr/0017-academic-calendar.md) (proposed) |
+| (no classes yet) | | F7 what-if, F9 sharing, F10 notification inbox | [ADR 0006](adr/0006-plan-generator.md) for F6's planner; not built |
 
 The stack these classes are written in is [ADR 0001](adr/0001-technology-stack.md); how they are tested in a browser is [ADR 0008](adr/0008-browser-testing.md).
