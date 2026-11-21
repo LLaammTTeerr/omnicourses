@@ -2,9 +2,9 @@ import { Body, Controller, Delete, Get, HttpCode, Inject, NotFoundException, Par
 import { ApiBadRequestResponse, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
 import { User } from '../users/user.entity.js';
-import { PlanIssuesDto } from './plan-issues.dto.js';
+import { PlanDropReportsDto, PlanIssuesDto } from './plan-issues.dto.js';
 import { PLAN_ISSUES_PROVIDER, type PlanIssuesProvider } from './plan-issues.js';
-import { CreatePlanDto, DuplicatePlanDto, PlanBoardDto, PlanDto, PlanListDto, RenamePlanDto } from './plans.dto.js';
+import { CreatePlanDto, DuplicatePlanDto, PlanBoardDto, PlanDropPreviewDto, PlanDto, PlanListDto, RenamePlanDto } from './plans.dto.js';
 import { PlansService } from './plans.service.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -62,6 +62,37 @@ export class PlansController {
   async issuesOf(@CurrentUser() user: User, @PlanId() id: string): Promise<PlanIssuesDto> {
     const plan = await this.plans.get(user.id, id);
     return this.issues.issuesFor(user.id, plan);
+  }
+
+  @Post(':id/issues')
+  @HttpCode(200)
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({
+    type: PlanIssuesDto,
+    description:
+      "The rule engine's check of the plan with the board sent in place of its saved one, as GET /plans/{id}/issues reports it. Nothing is saved: the planner asks this while a course is dragged, to show what each term would say.",
+  })
+  @ApiBadRequestResponse({ description: 'A term or placement is invalid, as for PUT /plans/{id}/placements.' })
+  @ApiNotFoundResponse({ description: NOT_FOUND })
+  async previewIssues(@CurrentUser() user: User, @PlanId() id: string, @Body() dto: PlanBoardDto): Promise<PlanIssuesDto> {
+    const plan = await this.plans.withBoard(user.id, id, dto.terms);
+    return this.issues.issuesFor(user.id, plan);
+  }
+
+  @Post(':id/issues/drops')
+  @HttpCode(200)
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({
+    type: PlanDropReportsDto,
+    description:
+      "The rule engine's check of the board sent with the placement dropped on each target term, one report per target, as POST /plans/{id}/issues reports one board. Nothing is saved. The planner asks this once when a course is picked up, instead of once per term, so a drag costs one request against the rate limit.",
+  })
+  @ApiBadRequestResponse({ description: 'A term, placement or target is invalid, or a board with the drop would be refused by PUT /plans/{id}/placements.' })
+  @ApiNotFoundResponse({ description: NOT_FOUND })
+  async previewDrops(@CurrentUser() user: User, @PlanId() id: string, @Body() dto: PlanDropPreviewDto): Promise<PlanDropReportsDto> {
+    const { plan, boards } = await this.plans.dropBoards(user.id, id, dto.terms, dto.placement, dto.targets);
+    const reports = await this.issues.issuesForBoards(user.id, plan, boards);
+    return { reports: dto.targets.map((term, i) => ({ term, issues: reports[i]! })) };
   }
 
   @Patch(':id')

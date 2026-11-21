@@ -81,8 +81,9 @@ export class CatalogAdminService {
   }
 
   /**
-   * Only an unreferenced course (ADR 0011): no curriculum link or rule, and no transcript row,
-   * which names the course by plain code without a foreign key (ADR 0007).
+   * Only an unreferenced course (ADR 0011): no curriculum link or rule, no transcript row and no
+   * saved plan placement, both of which name the course by plain code without a foreign key
+   * (ADR 0007, ADR 0014).
    */
   deleteCourse(callerId: string, rawCode: string): Promise<void> {
     const code = courseCodeOr400(rawCode);
@@ -94,6 +95,7 @@ export class CatalogAdminService {
         ...(await countOf(em, code, 'course_prerequisites', 'prerequisite_code', 'courses require it')),
         ...(await countOf(em, code, 'course_offering_terms', 'course_code', 'offering-term rows name it')),
         ...(await countOf(em, code, 'transcript_rows', 'course_code', 'transcript rows name it')),
+        ...(await countOf(em, code, 'plan_placements', 'course_code', 'saved plans place it')),
       ];
       if (references.length) throw referencedItem(`${code} is still referenced`, references);
       await em.getRepository(Course).delete({ code });

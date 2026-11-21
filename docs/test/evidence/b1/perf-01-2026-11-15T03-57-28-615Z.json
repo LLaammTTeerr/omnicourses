@@ -1,0 +1,2620 @@
+{
+  "startedAt": "2026-11-15T03:57:28.615Z",
+  "base": "https://omnicourses.lamter.cc",
+  "profile": {
+    "offline": false,
+    "latency": 50,
+    "downloadThroughput": 1250000,
+    "uploadThroughput": 250000
+  },
+  "limitMs": 2000,
+  "series": {
+    "PERF-01b": {
+      "health": [
+        105.2,
+        92.6,
+        108.8,
+        93.5,
+        109.2,
+        92.7,
+        109.7,
+        92.1,
+        93.2,
+        92.8
+      ],
+      "js": {
+        "url": "/assets/index-BK7zc12x.js",
+        "encodedBytes": 121864,
+        "decodedBytes": 362352,
+        "ms": 333.9,
+        "expectedMs": 147
+      },
+      "healthAllAtLeast50": true
+    },
+    "PERF-01c": {
+      "label": "/dashboard cold cache",
+      "warmups": [],
+      "runs": [
+        {
+          "ms": 791.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 137.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 119.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 143.1
+            }
+          ]
+        },
+        {
+          "ms": 773.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 133.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 108.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 146
+            }
+          ]
+        },
+        {
+          "ms": 888.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 189.8
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 123.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 101.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 151.3
+            }
+          ]
+        },
+        {
+          "ms": 695.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 95
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.8
+            }
+          ]
+        },
+        {
+          "ms": 644.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 94.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 88.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 5,
+        "median": 773.3,
+        "p95": 888.7,
+        "max": 888.7,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01d": {
+      "label": "/dashboard warm cache",
+      "warmups": [
+        {
+          "ms": 470.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.1
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 88.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.9
+            }
+          ]
+        },
+        {
+          "ms": 442.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118
+            }
+          ]
+        },
+        {
+          "ms": 505.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 132.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.8
+            }
+          ]
+        },
+        {
+          "ms": 476.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 132.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.6
+            }
+          ]
+        },
+        {
+          "ms": 452.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.9
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 472.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.3
+            }
+          ]
+        },
+        {
+          "ms": 471.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 147.3
+            }
+          ]
+        },
+        {
+          "ms": 447.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.5
+            }
+          ]
+        },
+        {
+          "ms": 441.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.1
+            }
+          ]
+        },
+        {
+          "ms": 456.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.8
+            }
+          ]
+        },
+        {
+          "ms": 443,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 89.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.6
+            }
+          ]
+        },
+        {
+          "ms": 446,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.4
+            }
+          ]
+        },
+        {
+          "ms": 440.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.7
+            }
+          ]
+        },
+        {
+          "ms": 440,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.5
+            }
+          ]
+        },
+        {
+          "ms": 440.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.6
+            }
+          ]
+        },
+        {
+          "ms": 439.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.8
+            }
+          ]
+        },
+        {
+          "ms": 443.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.3
+            }
+          ]
+        },
+        {
+          "ms": 442.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.2
+            }
+          ]
+        },
+        {
+          "ms": 443.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.8
+            }
+          ]
+        },
+        {
+          "ms": 429,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 88.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.5
+            }
+          ]
+        },
+        {
+          "ms": 439.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 89.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.1
+            }
+          ]
+        },
+        {
+          "ms": 439.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.6
+            }
+          ]
+        },
+        {
+          "ms": 443.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.5
+            }
+          ]
+        },
+        {
+          "ms": 443.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.3
+            }
+          ]
+        },
+        {
+          "ms": 442.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.2
+            }
+          ]
+        },
+        {
+          "ms": 443.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 97.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.5
+            }
+          ]
+        },
+        {
+          "ms": 440.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 90.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 98.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.9
+            }
+          ]
+        },
+        {
+          "ms": 453.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.3
+            }
+          ]
+        },
+        {
+          "ms": 425.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.7
+            }
+          ]
+        },
+        {
+          "ms": 441.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.8
+            }
+          ]
+        },
+        {
+          "ms": 440.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.7
+            }
+          ]
+        },
+        {
+          "ms": 442.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.1
+            }
+          ]
+        },
+        {
+          "ms": 442.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.6
+            }
+          ]
+        },
+        {
+          "ms": 443.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 88.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.8
+            }
+          ]
+        },
+        {
+          "ms": 441.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 442.7,
+        "p95": 471.4,
+        "max": 472.2,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01e": {
+      "label": "/dashboard in-app from Guides (Tổng quan)",
+      "warmups": [
+        {
+          "ms": 256.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/guides",
+              "waitingMs": 84.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 93.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.8
+            }
+          ]
+        },
+        {
+          "ms": 112.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 102.1
+            }
+          ]
+        },
+        {
+          "ms": 129,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.4
+            }
+          ]
+        },
+        {
+          "ms": 112.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 105.1
+            }
+          ]
+        },
+        {
+          "ms": 105.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 95.6
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 111.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 101.1
+            }
+          ]
+        },
+        {
+          "ms": 110.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 102.9
+            }
+          ]
+        },
+        {
+          "ms": 107.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 98.7
+            }
+          ]
+        },
+        {
+          "ms": 124.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117
+            }
+          ]
+        },
+        {
+          "ms": 111.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 102.6
+            }
+          ]
+        },
+        {
+          "ms": 106.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 98.5
+            }
+          ]
+        },
+        {
+          "ms": 106,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 97.9
+            }
+          ]
+        },
+        {
+          "ms": 113.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 106.4
+            }
+          ]
+        },
+        {
+          "ms": 112.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 105.3
+            }
+          ]
+        },
+        {
+          "ms": 111,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 103.6
+            }
+          ]
+        },
+        {
+          "ms": 117.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 108
+            }
+          ]
+        },
+        {
+          "ms": 108.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 101.6
+            }
+          ]
+        },
+        {
+          "ms": 111,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 103.5
+            }
+          ]
+        },
+        {
+          "ms": 130.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 121.2
+            }
+          ]
+        },
+        {
+          "ms": 105.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 98.4
+            }
+          ]
+        },
+        {
+          "ms": 110.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 101.4
+            }
+          ]
+        },
+        {
+          "ms": 111,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 101.5
+            }
+          ]
+        },
+        {
+          "ms": 111.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 104.6
+            }
+          ]
+        },
+        {
+          "ms": 110.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 101.9
+            }
+          ]
+        },
+        {
+          "ms": 111.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 105.2
+            }
+          ]
+        },
+        {
+          "ms": 123.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.4
+            }
+          ]
+        },
+        {
+          "ms": 118.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 110.1
+            }
+          ]
+        },
+        {
+          "ms": 101.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 94.9
+            }
+          ]
+        },
+        {
+          "ms": 105.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 97.1
+            }
+          ]
+        },
+        {
+          "ms": 105.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 97.6
+            }
+          ]
+        },
+        {
+          "ms": 107.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 100.6
+            }
+          ]
+        },
+        {
+          "ms": 113.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 106
+            }
+          ]
+        },
+        {
+          "ms": 102.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 96.5
+            }
+          ]
+        },
+        {
+          "ms": 105.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 99
+            }
+          ]
+        },
+        {
+          "ms": 105.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 99.1
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 110.9,
+        "p95": 124.5,
+        "max": 130.3,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01f": {
+      "label": "/audit cold cache",
+      "warmups": [],
+      "runs": [
+        {
+          "ms": 769.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 120.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 139.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.4
+            }
+          ]
+        },
+        {
+          "ms": 795.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 108.6
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 109.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.3
+            }
+          ]
+        },
+        {
+          "ms": 779.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.7
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 106.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 98.6
+            }
+          ]
+        },
+        {
+          "ms": 831,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 136.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 162.7
+            }
+          ]
+        },
+        {
+          "ms": 654.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 84.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 99.6
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 5,
+        "median": 779.7,
+        "p95": 831,
+        "max": 831,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01g": {
+      "label": "/audit warm cache",
+      "warmups": [
+        {
+          "ms": 624.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 121.1
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 107.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 114.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132
+            }
+          ]
+        },
+        {
+          "ms": 521.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132
+            }
+          ]
+        },
+        {
+          "ms": 518.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 113.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133.3
+            }
+          ]
+        },
+        {
+          "ms": 490.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 106.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.1
+            }
+          ]
+        },
+        {
+          "ms": 489.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 114.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.7
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 506.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.9
+            }
+          ]
+        },
+        {
+          "ms": 504.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 118.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.3
+            }
+          ]
+        },
+        {
+          "ms": 519.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131
+            }
+          ]
+        },
+        {
+          "ms": 503.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 113.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.6
+            }
+          ]
+        },
+        {
+          "ms": 506.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 117.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 108.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.1
+            }
+          ]
+        },
+        {
+          "ms": 490,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 118.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.6
+            }
+          ]
+        },
+        {
+          "ms": 503.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.3
+            }
+          ]
+        },
+        {
+          "ms": 506.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.5
+            }
+          ]
+        },
+        {
+          "ms": 502.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 114.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132
+            }
+          ]
+        },
+        {
+          "ms": 494.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 106
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.7
+            }
+          ]
+        },
+        {
+          "ms": 504.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.4
+            }
+          ]
+        },
+        {
+          "ms": 506.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 114.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.7
+            }
+          ]
+        },
+        {
+          "ms": 491,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116
+            }
+          ]
+        },
+        {
+          "ms": 503.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 114.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.5
+            }
+          ]
+        },
+        {
+          "ms": 504.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 114.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.8
+            }
+          ]
+        },
+        {
+          "ms": 490.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 112.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.9
+            }
+          ]
+        },
+        {
+          "ms": 505.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131
+            }
+          ]
+        },
+        {
+          "ms": 491.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.7
+            }
+          ]
+        },
+        {
+          "ms": 490.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.6
+            }
+          ]
+        },
+        {
+          "ms": 488.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.9
+            }
+          ]
+        },
+        {
+          "ms": 489.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 104.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.3
+            }
+          ]
+        },
+        {
+          "ms": 490,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 108.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.9
+            }
+          ]
+        },
+        {
+          "ms": 501.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 113.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129.5
+            }
+          ]
+        },
+        {
+          "ms": 507.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 108
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.5
+            }
+          ]
+        },
+        {
+          "ms": 504.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 113
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 108
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.2
+            }
+          ]
+        },
+        {
+          "ms": 477.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.7
+            }
+          ]
+        },
+        {
+          "ms": 1047.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 662.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.2
+            }
+          ]
+        },
+        {
+          "ms": 477.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118
+            }
+          ]
+        },
+        {
+          "ms": 503.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132
+            }
+          ]
+        },
+        {
+          "ms": 505.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 116.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.6
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 503.7,
+        "p95": 519.9,
+        "max": 1047.1,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01h": {
+      "label": "/audit in-app from Guides (Xét tốt nghiệp)",
+      "warmups": [
+        {
+          "ms": 391.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/guides",
+              "waitingMs": 103.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 178.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.3
+            }
+          ]
+        },
+        {
+          "ms": 125.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.4
+            }
+          ]
+        },
+        {
+          "ms": 125.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.8
+            }
+          ]
+        },
+        {
+          "ms": 126.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.7
+            }
+          ]
+        },
+        {
+          "ms": 119.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 111.4
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 123.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114
+            }
+          ]
+        },
+        {
+          "ms": 129.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.6
+            }
+          ]
+        },
+        {
+          "ms": 126.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.6
+            }
+          ]
+        },
+        {
+          "ms": 117.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 107.1
+            }
+          ]
+        },
+        {
+          "ms": 123.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.7
+            }
+          ]
+        },
+        {
+          "ms": 136.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.1
+            }
+          ]
+        },
+        {
+          "ms": 117.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 109.5
+            }
+          ]
+        },
+        {
+          "ms": 117.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 109.9
+            }
+          ]
+        },
+        {
+          "ms": 123.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.5
+            }
+          ]
+        },
+        {
+          "ms": 113.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 105.7
+            }
+          ]
+        },
+        {
+          "ms": 136.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.9
+            }
+          ]
+        },
+        {
+          "ms": 118.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 109.9
+            }
+          ]
+        },
+        {
+          "ms": 119.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.1
+            }
+          ]
+        },
+        {
+          "ms": 120.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 113.3
+            }
+          ]
+        },
+        {
+          "ms": 124.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117
+            }
+          ]
+        },
+        {
+          "ms": 132.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.4
+            }
+          ]
+        },
+        {
+          "ms": 124.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.8
+            }
+          ]
+        },
+        {
+          "ms": 131.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.9
+            }
+          ]
+        },
+        {
+          "ms": 120.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 113.9
+            }
+          ]
+        },
+        {
+          "ms": 123.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.3
+            }
+          ]
+        },
+        {
+          "ms": 123,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.8
+            }
+          ]
+        },
+        {
+          "ms": 129.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.8
+            }
+          ]
+        },
+        {
+          "ms": 129.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.8
+            }
+          ]
+        },
+        {
+          "ms": 111.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 104.3
+            }
+          ]
+        },
+        {
+          "ms": 131.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124
+            }
+          ]
+        },
+        {
+          "ms": 123.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.1
+            }
+          ]
+        },
+        {
+          "ms": 124.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.5
+            }
+          ]
+        },
+        {
+          "ms": 124.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.5
+            }
+          ]
+        },
+        {
+          "ms": 125.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.6
+            }
+          ]
+        },
+        {
+          "ms": 123.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 113.8
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 123.8,
+        "p95": 136.3,
+        "max": 136.6,
+        "over": 0
+      },
+      "pass": true
+    }
+  },
+  "chrome": "144.0.7559.110",
+  "finishedAt": "2026-11-15T04:00:18.918Z"
+}

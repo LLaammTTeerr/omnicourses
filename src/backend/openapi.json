@@ -922,6 +922,114 @@
         "tags": [
           "plans"
         ]
+      },
+      "post": {
+        "operationId": "PlansController_previewIssues",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBoardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rule engine's check of the plan with the board sent in place of its saved one, as GET /plans/{id}/issues reports it. Nothing is saved: the planner asks this while a course is dragged, to show what each term would say.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanIssuesDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A term or placement is invalid, as for PUT /plans/{id}/placements."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}/issues/drops": {
+      "post": {
+        "operationId": "PlansController_previewDrops",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanDropPreviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The rule engine's check of the board sent with the placement dropped on each target term, one report per target, as POST /plans/{id}/issues reports one board. Nothing is saved. The planner asks this once when a course is picked up, instead of once per term, so a drag costs one request against the rate limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDropReportsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A term, placement or target is invalid, or a board with the drop would be refused by PUT /plans/{id}/placements."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "plans"
+        ]
       }
     },
     "/api/plans/{id}/duplicate": {
@@ -2603,6 +2711,320 @@
         ],
         "tags": [
           "curriculum-admin"
+        ]
+      }
+    },
+    "/api/academic-calendar": {
+      "get": {
+        "operationId": "AcademicCalendarController_list",
+        "parameters": [
+          {
+            "name": "program",
+            "required": false,
+            "in": "query",
+            "description": "Program code. Absent: the caller's program from onboarding",
+            "schema": {
+              "example": "APCS",
+              "type": "string"
+            }
+          },
+          {
+            "name": "academicYear",
+            "required": false,
+            "in": "query",
+            "description": "Only this academic year (ADR 0009: 2026 is 2026–2027)",
+            "schema": {
+              "example": 2026,
+              "type": "number"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Only dates that end on or after this day (YYYY-MM-DD)",
+            "schema": {
+              "example": "2026-09-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Only dates that start on or before this day (YYYY-MM-DD)",
+            "schema": {
+              "example": "2027-01-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The school dates of the program, by date. Empty when nothing is entered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicCalendarDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A malformed query value, or `to` before `from` (`validation_failed`)."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "`not_found`: no program has the code given in `program`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "academic-calendar"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/calendar-events": {
+      "post": {
+        "operationId": "AcademicCalendarController_create",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCalendarEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicCalendarEventDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "academic-calendar"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/calendar-events/{eventId}": {
+      "patch": {
+        "operationId": "AcademicCalendarController_update",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCalendarEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicCalendarEventDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "academic-calendar"
+        ]
+      },
+      "delete": {
+        "operationId": "AcademicCalendarController_remove",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "academic-calendar"
         ]
       }
     }
@@ -4635,7 +5057,53 @@
           "cohortYear"
         ]
       },
-      "PlanSummaryDto": {
+      "PlanPreviewDto": {
+        "type": "object",
+        "properties": {
+          "termCount": {
+            "type": "number",
+            "description": "Terms with at least one placement."
+          },
+          "courseCount": {
+            "type": "number",
+            "description": "Placements of a course."
+          },
+          "slotCount": {
+            "type": "number",
+            "description": "Placements of an elective slot (a course of a group, not chosen yet)."
+          },
+          "firstTerm": {
+            "description": "The earliest term with a placement; null for an empty plan.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastTerm": {
+            "description": "The latest term with a placement; null for an empty plan.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "termCount",
+          "courseCount",
+          "slotCount",
+          "firstTerm",
+          "lastTerm"
+        ]
+      },
+      "PlanListItemDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -4662,6 +5130,9 @@
             "type": "string",
             "format": "date-time",
             "description": "Last rename or change of placements."
+          },
+          "preview": {
+            "$ref": "#/components/schemas/PlanPreviewDto"
           }
         },
         "required": [
@@ -4669,7 +5140,8 @@
           "name",
           "curriculum",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "preview"
         ]
       },
       "PlanListDto": {
@@ -4679,7 +5151,7 @@
             "description": "Oldest first.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PlanSummaryDto"
+              "$ref": "#/components/schemas/PlanListItemDto"
             }
           }
         },
@@ -5181,6 +5653,83 @@
           "coverage"
         ]
       },
+      "PlanBoardDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
+      },
+      "PlanDropPreviewDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "description": "The board without the placement (a moved course is taken out of its term first). One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanTermDto"
+            }
+          },
+          "placement": {
+            "description": "What is dropped. It is added at the end of each target term in turn.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanPlacementDto"
+              }
+            ]
+          },
+          "targets": {
+            "description": "The terms to try it in, each once, at most 30.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermDto"
+            }
+          }
+        },
+        "required": [
+          "terms",
+          "placement",
+          "targets"
+        ]
+      },
+      "PlanDropReportDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/TermDto"
+          },
+          "issues": {
+            "$ref": "#/components/schemas/PlanIssuesDto"
+          }
+        },
+        "required": [
+          "term",
+          "issues"
+        ]
+      },
+      "PlanDropReportsDto": {
+        "type": "object",
+        "properties": {
+          "reports": {
+            "description": "One per target, in the order sent.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanDropReportDto"
+            }
+          }
+        },
+        "required": [
+          "reports"
+        ]
+      },
       "RenamePlanDto": {
         "type": "object",
         "properties": {
@@ -5206,21 +5755,6 @@
             "description": "The copy's name. Left out: the original's name; the UI words any \"copy of\"."
           }
         }
-      },
-      "PlanBoardDto": {
-        "type": "object",
-        "properties": {
-          "terms": {
-            "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlanTermDto"
-            }
-          }
-        },
-        "required": [
-          "terms"
-        ]
       },
       "AdminErrorDto": {
         "type": "object",
@@ -5959,6 +6493,310 @@
           "programs",
           "permissions"
         ]
+      },
+      "CalendarProgramDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Chương trình Tiên tiến ngành Khoa học Máy tính"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "nameVi",
+          "nameEn"
+        ]
+      },
+      "AcademicCalendarEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "academicYear": {
+            "type": "number",
+            "example": 2026,
+            "description": "ADR 0009: 2026 is the academic year 2026–2027"
+          },
+          "term": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "enum": [
+              1,
+              2,
+              3,
+              null
+            ],
+            "example": 1,
+            "description": "Term 1, 2 or 3; null for a date of the whole academic year"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "term_start",
+              "term_end",
+              "registration",
+              "add_drop",
+              "exam_period",
+              "holiday",
+              "other"
+            ],
+            "example": "registration",
+            "description": "term_start, term_end: first and last day of a term; registration: course registration window; add_drop: add/drop window; exam_period: final exams; holiday: no classes; other: anything else"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-07-20",
+            "description": "First day, inclusive"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-07-31",
+            "description": "Last day, inclusive; equals startsOn for a one-day date"
+          },
+          "title": {
+            "type": "string",
+            "example": "Đăng ký học phần học kỳ 1"
+          },
+          "titleEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "Term 1 course registration"
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "https://example.edu.vn/thong-bao/dang-ky-hk1",
+            "description": "The school's announcement (https)"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "academicYear",
+          "term",
+          "kind",
+          "startsOn",
+          "endsOn",
+          "title",
+          "titleEn",
+          "sourceUrl",
+          "notes",
+          "updatedAt"
+        ]
+      },
+      "AcademicCalendarDto": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "description": "null when no program was asked for and the caller has not chosen one in onboarding",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalendarProgramDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "events": {
+            "description": "By startsOn, then endsOn, then title; [] when nothing is entered",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicCalendarEventDto"
+            }
+          }
+        },
+        "required": [
+          "program",
+          "events"
+        ]
+      },
+      "CreateCalendarEventDto": {
+        "type": "object",
+        "properties": {
+          "academicYear": {
+            "type": "number",
+            "example": 2026,
+            "description": "ADR 0009: 2026 is 2026–2027. startsOn must fall in 2026 or 2027"
+          },
+          "term": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "enum": [
+              1,
+              2,
+              3,
+              null
+            ],
+            "description": "Absent or null: the whole academic year"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "term_start",
+              "term_end",
+              "registration",
+              "add_drop",
+              "exam_period",
+              "holiday",
+              "other"
+            ],
+            "description": "term_start, term_end: first and last day of a term; registration: course registration window; add_drop: add/drop window; exam_period: final exams; holiday: no classes; other: anything else"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-07-20"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-07-31",
+            "description": "Absent: the same day as startsOn. Never before startsOn"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "Đăng ký học phần học kỳ 1",
+            "description": "Vietnamese title, as the school words it"
+          },
+          "titleEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255,
+            "example": "Term 1 course registration"
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048,
+            "description": "The school's announcement; https only. '' or null: none"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "academicYear",
+          "kind",
+          "startsOn",
+          "title"
+        ]
+      },
+      "UpdateCalendarEventDto": {
+        "type": "object",
+        "properties": {
+          "academicYear": {
+            "type": "number",
+            "example": 2026
+          },
+          "term": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "enum": [
+              1,
+              2,
+              3,
+              null
+            ],
+            "description": "null: the whole academic year"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "term_start",
+              "term_end",
+              "registration",
+              "add_drop",
+              "exam_period",
+              "holiday",
+              "other"
+            ]
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date",
+            "description": "Checked against the stored endsOn when sent alone"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date",
+            "description": "Checked against the stored startsOn when sent alone"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "titleEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048,
+            "description": "https only; '' or null removes it"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          }
+        }
       }
     }
   }

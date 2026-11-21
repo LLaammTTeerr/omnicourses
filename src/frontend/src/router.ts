@@ -16,11 +16,13 @@ import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
 import SignInView from './auth/SignInView.vue';
 import SignUpView from './auth/SignUpView.vue';
 import { useAuth } from './auth/store.js';
+import CalendarView from './calendar/CalendarView.vue';
 import ExplorerView from './explorer/ExplorerView.vue';
 import GuideView from './guides/GuideView.vue';
 import GuidesView from './guides/GuidesView.vue';
 import OnboardingView from './onboarding/OnboardingView.vue';
 import PlanEditorView from './plans/PlanEditorView.vue';
+import PlannerEntry from './plans/PlannerEntry.vue';
 import PlansView from './plans/PlansView.vue';
 import PrivacyView from './privacy/PrivacyView.vue';
 import { useOnboarding } from './onboarding/store.js';
@@ -58,6 +60,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/privacy', name: 'privacy', component: PrivacyView, meta: { layout: 'auto' } },
   { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { layout: 'app', auth: 'required' } },
+  { path: '/calendar', name: 'calendar', component: CalendarView, meta: { layout: 'app', auth: 'required' } },
   { path: '/audit', name: 'audit', component: AuditView, meta: { layout: 'app', auth: 'required' } },
   { path: '/explorer', name: 'explorer', component: ExplorerView, meta: { layout: 'app', auth: 'required' } },
   // Nested, so the sidebar's Plans link stays marked while a plan is open.
@@ -65,7 +68,9 @@ const routes: RouteRecordRaw[] = [
     path: '/plans',
     meta: { layout: 'app', auth: 'required' },
     children: [
-      { path: '', name: 'plans', component: PlansView },
+      // The front door opens a plan (the last one open, or a new default plan); the list is one level below.
+      { path: '', name: 'plans', component: PlannerEntry },
+      { path: 'all', name: 'plan-list', component: PlansView },
       { path: ':id', name: 'plan', component: PlanEditorView, props: true },
     ],
   },

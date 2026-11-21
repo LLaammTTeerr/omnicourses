@@ -4,6 +4,7 @@ import { onBeforeRouteLeave, RouterLink } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
+import SelectMenu from '../components/SelectMenu.vue';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -35,6 +36,8 @@ const dirty = computed(() => snapshot(rows.value) !== savedState.value);
 const years = computed(() => yearChoices(rows.value));
 const counts = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ result, n: rows.value.filter((row) => row.result === result).length })));
 const termValue = (row: DraftRow) => `${row.year}-${row.number}`;
+const termOptions = computed(() => years.value.flatMap((year) => TERM_NUMBERS.map((n) => ({ value: `${year}-${n}`, label: m.value.term(year, n) }))));
+const resultOptions = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ value: result, label: m.value.results[result] })));
 function setTerm(row: DraftRow, value: string): void {
   const [year, number] = value.split('-').map(Number);
   row.year = year!;
@@ -152,18 +155,14 @@ usePageTitle(() => m.value.title);
               <template v-for="({ row, problems: rowProblems }, i) in checked" :key="row.key">
                 <tr :class="{ err: rowProblems.length }" :data-test="`row-${i}`">
                   <td class="term" :data-label="m.columns.term">
-                    <select
-                      class="select"
-                      :value="termValue(row)"
+                    <SelectMenu
+                      :model-value="termValue(row)"
+                      :options="termOptions"
                       :aria-label="m.fieldLabel(m.columns.term, label(i))"
                       :aria-invalid="rowProblems.includes('term') || undefined"
                       :aria-describedby="describedBy(row, rowProblems, 'term')"
-                      @change="setTerm(row, ($event.target as HTMLSelectElement).value)"
-                    >
-                      <template v-for="year in years" :key="year">
-                        <option v-for="n in TERM_NUMBERS" :key="n" :value="`${year}-${n}`">{{ m.term(year, n) }}</option>
-                      </template>
-                    </select>
+                      @update:model-value="setTerm(row, $event)"
+                    />
                   </td>
                   <td :data-label="m.columns.courseCode">
                     <input
@@ -187,11 +186,8 @@ usePageTitle(() => m.value.title);
                       :aria-describedby="describedBy(row, rowProblems, 'credits')" />
                   </td>
                   <td :data-label="m.columns.result">
-                    <select v-model="row.result" class="select" :aria-label="m.fieldLabel(m.columns.result, label(i))" :aria-invalid="rowProblems.includes('result') || undefined"
-                      :aria-describedby="describedBy(row, rowProblems, 'result')">
-                      <option value="" disabled>{{ m.pickResult }}</option>
-                      <option v-for="result in TRANSCRIPT_RESULTS" :key="result" :value="result">{{ m.results[result] }}</option>
-                    </select>
+                    <SelectMenu v-model="row.result" :options="resultOptions" :placeholder="m.pickResult" :aria-label="m.fieldLabel(m.columns.result, label(i))" :aria-invalid="rowProblems.includes('result') || undefined"
+                      :aria-describedby="describedBy(row, rowProblems, 'result')" />
                   </td>
                   <td :data-label="m.columns.grade">
                     <input

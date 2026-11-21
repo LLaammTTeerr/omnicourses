@@ -49,6 +49,16 @@ export function boardProblems(terms: readonly BoardTerm[]): string[] {
   return problems;
 }
 
+/**
+ * The board with `placement` added at the end of `to`, the term made if it holds nothing yet. The planner draws a
+ * drop the same way, so the positions in each report match its tiles. Board shape only: no rule is judged here.
+ */
+export function withPlacement(terms: readonly BoardTerm[], placement: Placement, to: Term): BoardTerm[] {
+  const key = termKey(to);
+  if (!terms.some((t) => termKey(t.term) === key)) return [...terms, { term: to, placements: [placement] }];
+  return terms.map((t) => (termKey(t.term) === key ? { term: t.term, placements: [...t.placements, placement] } : t));
+}
+
 export const courseCodesOf = (terms: readonly BoardTerm[]): string[] =>
   terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'course' && p.courseCode !== null ? [p.courseCode] : [])));
 

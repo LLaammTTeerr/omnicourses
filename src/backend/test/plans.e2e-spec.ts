@@ -84,7 +84,8 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     expect((await http().get(`/api/plans/${created.id}`).set(auth).expect(200)).body).toEqual(renamed.body);
     const { body } = await http().get('/api/plans').set(auth).expect(200);
     const { terms: _terms, ...summary } = renamed.body;
-    expect(body).toEqual({ plans: [summary] });
+    const preview = { termCount: 2, courseCount: 3, slotCount: 1, firstTerm: { year: 2030, number: 1 }, lastTerm: { year: 2030, number: 3 } };
+    expect(body).toEqual({ plans: [{ ...summary, preview }] });
   });
 
   it('creates a plan with its placements in one request (a generated plan, UC-07 step 10)', async () => {

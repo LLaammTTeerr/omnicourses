@@ -2,6 +2,7 @@ import type { TrainingType } from '../curriculum/program.entity.js';
 import type { RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import type { CreditCaps, TermKind } from '../rules/credit-caps.js';
 import type { Term } from '../terms/term.js';
+import type { BoardTerm } from './plan-board.js';
 import type { PlanDto } from './plans.dto.js';
 
 // Seam between the plans module and the rule engine (ADR 0014): this module stores placements and
@@ -142,6 +143,8 @@ export interface PlanIssuesReport {
 export interface PlanIssuesProvider {
   /** Every issue of the student's plan, checked against the plan's own curriculum. Never blocks saving (ADR 0012). */
   issuesFor(userId: string, plan: PlanDto): Promise<PlanIssuesReport>;
+  /** The same check on several boards of one plan, the inputs read once: the planner's drag preview. */
+  issuesForBoards(userId: string, plan: PlanDto, boards: readonly BoardTerm[][]): Promise<PlanIssuesReport[]>;
 }
 
 /** Injection token for the provider the rules module registers. */

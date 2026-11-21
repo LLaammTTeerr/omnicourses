@@ -1,3 +1,4 @@
+import { apcsNoPrerequisites } from './apcs-prerequisites.js';
 import { bb, tc } from './rows.js';
 import type { CurriculumSeed } from './seed-types.js';
 
@@ -327,4 +328,5 @@ export const apcs2024: CurriculumSeed = {
     { code: 'WR227', name_vi: 'Kỹ năng viết tài liệu khoa học', name_en: 'Technical Writing', page: 16 },
   ],
   known_discrepancies: [],
+  no_prerequisites: apcsNoPrerequisites,
 };

@@ -100,6 +100,69 @@ describe('Curriculum API (e2e)', () => {
     for (const course of courses) expect([course.prerequisites, course.offeringTerms]).toEqual([null, null]);
   });
 
+  it.each([2024, 2025])('reads every seeded APCS %i course as having no prerequisite ([]) except CS470 (CS469), offering terms still not recorded', async (cohort) => {
+    const seed = CURRICULUM_SEEDS.find((s) => s.program.code === 'APCS' && s.curriculum.cohort_year === cohort)!;
+    // Project Lead, 15 November 2026: APCS courses have no prerequisite (ADR 0011 amendment of that day).
+    expect(seed.no_prerequisites).toMatchObject({ date: '2026-11-15' });
+    const { body } = await get(`/api/programs/APCS/curricula/${cohort}`).expect(200);
+    const read = new Map(
+      (body.requirementGroups as Group[]).flatMap((g) => g.courses as unknown as { code: string; prerequisites: unknown; offeringTerms: unknown }[]).map((c) => [c.code, c]),
+    );
+    // The seeded courses only: curriculum-admin.e2e-spec.ts adds its own to APCS in the same database.
+    const codes = [...new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))];
+    expect(codes.length).toBeGreaterThan(0);
+    expect(codes).toContain('CS470');
+    // CS469 before CS470: printed under 7.3 of both curriculum PDFs (Project Lead, 21 November 2026).
+    for (const code of codes) {
+      expect([code, read.get(code)?.prerequisites, read.get(code)?.offeringTerms]).toEqual([code, code === 'CS470' ? ['CS469'] : [], null]);
+    }
+  });
+
+  it('checks CS470 against CS469 in an APCS plan: not met in the same term, met when CS469 comes a term earlier', async () => {
+    const auth = { Authorization: `Bearer ${token}` };
+    const course = (courseCode: string) => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
+    const prerequisiteIssues = async (terms: unknown) => {
+      const plan = (await http().post('/api/plans').set(auth).send({ name: 'Capstone plan', programCode: 'APCS', cohortYear: 2025, terms }).expect(201)).body;
+      const { body } = await http().get(`/api/plans/${plan.id}/issues`).set(auth).expect(200);
+      return (body.issues as { code: string; courseCode: string | null; missingCourseCodes?: string[] }[])
+        .filter((i) => i.code.startsWith('prerequisite'))
+        .map((i) => [i.code, i.courseCode, i.missingCourseCodes]);
+    };
+    expect(await prerequisiteIssues([{ term: { year: 2031, number: 1 }, placements: [course('CS469'), course('CS470')] }])).toEqual([
+      ['prerequisite_not_met', 'CS470', ['CS469']],
+    ]);
+    expect(
+      await prerequisiteIssues([
+        { term: { year: 2031, number: 1 }, placements: [course('CS469')] },
+        { term: { year: 2031, number: 2 }, placements: [course('CS470')] },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('checks an APCS plan: no prerequisite is unknown any more, in the issues and in the drag preview; offering terms still are', async () => {
+    const auth = { Authorization: `Bearer ${token}` };
+    const course = (courseCode: string) => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
+    const terms = [{ term: { year: 2030, number: 1 }, placements: [course('CS163'), course('CS201')] }];
+    const plan = (await http().post('/api/plans').set(auth).send({ name: 'APCS plan', programCode: 'APCS', cohortYear: 2024, terms }).expect(201)).body;
+    const brief = (issues: { code: string; kind: string; courseCode: string | null }[]) => issues.filter((i) => i.kind === 'unknown').map((i) => `${i.code} ${i.courseCode}`);
+
+    const { body } = await http().get(`/api/plans/${plan.id}/issues`).set(auth).expect(200);
+    // One unknown per placed course, where there were two before the decision was recorded.
+    expect(brief(body.issues)).toEqual(['offering_terms_not_recorded CS163', 'offering_terms_not_recorded CS201']);
+    expect(body.issues.some((i: { code: string }) => i.code === 'prerequisite_not_met')).toBe(false);
+
+    const target = { year: 2030, number: 1 };
+    const drop = await http().post(`/api/plans/${plan.id}/issues/drops`).set(auth).send({ terms: plan.terms, placement: course('CS160'), targets: [target] }).expect(200);
+    expect(brief(drop.body.reports[0].issues.issues)).toEqual([
+      'offering_terms_not_recorded CS163',
+      'offering_terms_not_recorded CS201',
+      'offering_terms_not_recorded CS160',
+    ]);
+    // The coverage does not move with the decision: three 4-credit courses of (A): bắt buộc, 12 of its 40 credits.
+    const groupA = drop.body.reports[0].issues.coverage.groups.find((g: { name: string }) => g.name === 'Kiến thức Computer Science (A): bắt buộc');
+    expect([groupA.credits, groupA.requiredCredits]).toEqual([12, 40]);
+  });
+
   it('answers 404 for an unknown program, an unknown cohort or a malformed cohort', async () => {
     await get('/api/programs/ZZ-NOT-A-PROGRAM/curricula/2024').expect(404);
     await get('/api/programs/APCS/curricula/1999').expect(404);

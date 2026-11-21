@@ -1,0 +1,23 @@
+# DB-01a, local disposable PostgreSQL (podman, port 55432), tree 7f66b7a (app code = B1 1decf4a)
+2026-11-15T03:02:30Z
+18.6 (Debian 18.6-1.pgdg13+2)
+0
+--- npm run build
+computing gzip size...
+dist/index.html                   1.22 kB │ gzip:   0.66 kB
+dist/assets/index-BoIDReW-.css   71.18 kB │ gzip:  14.35 kB
+dist/assets/index-03n8Nu73.js   362.37 kB │ gzip: 121.51 kB
+
+✓ built in 1.18s
+exit 0
+--- migrate run 1
+> @omnicourse/backend@0.3.0 db:migrate
+> node dist/database/migrate.js
+
+Applied: CreateUsersAndSessions1761696000000, CreateAiUsage1792800000000, AddUsersDeletionRequestedAt1792886400000, CreateCurriculumCourseSchema1792912952302, CreateTranscriptRows1793159431000, CreateGuides1793872582380, CreateOnboardingAnswers1794216390492, CreatePlans1794218005469, CreateCurriculumAdmin1794230000000, AddAuditRulesToCurriculum1794300000000
+exit 0
+--- migrate run 2
+> node dist/database/migrate.js
+
+Database is up to date.
+exit 0

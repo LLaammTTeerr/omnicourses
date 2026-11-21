@@ -1,0 +1,57 @@
+03:14:06 USER-01n
+03:14:06   ok   S1 sign-up 201 -> 201
+03:14:07   ok   password_hash starts with $argon2id$ (only its first 10 characters are read) -> $argon2id$
+03:14:07   ok   pg_dump --data-only | grep -c "correct horse battery" is 0 -> 0
+03:14:07   ok   the backend log does not contain the password (92 lines searched) -> 0 matches
+03:14:07 USER-01q
+03:14:07   ok   sign-up 201 -> 201
+03:14:07   ok   consent_at within a minute of the sign-up -> consent_at 2026-11-15T03:14:07.284Z, sign-up sent 2026-11-15T03:14:07.226Z
+03:14:07 prepare: S1 onboarding with all three goals, the S1 transcript, a second session, one plan; S2 onboarding and the S2 transcript
+03:14:07   S1 PUT onboarding 200 | S1 PUT transcript 200 | S1 second sign-in 200 | S1 POST plan 201 | S2 sign-up 201 | S2 PUT onboarding 200 | S2 PUT transcript 200
+03:14:07 USER-01r
+03:14:07   ok   200 -> 200
+03:14:07   ok   sent as a download named omnicourse-account.json -> attachment; filename="omnicourse-account.json"
+03:14:07   ok   user holds S1's id, email, display name and consent time -> user keys: id, email, display_name, email_verified_at, consent_at, created_at, updated_at, deletion_requested_at, purge_after
+03:14:09   ok   tables has a key for each table the query lists, with as many rows -> query {"ai_usage":0,"global_admin_grants":0,"onboarding_answers":1,"plan_placements":0,"plans":1,"program_admin_grants":0,"sessions":2,"transcript_rows":3} | export {"ai_usage":0,"global_admin_grants":0,"onboarding_answers":1,"plan_placements":0,"plans":1,"program_admin_grants":0,"sessions":2,"transcript_rows":3}
+03:14:09   ok   the onboarding answers appear with the values from Prepare -> {"program_code":"APCS","cohort_year":2024,"target_graduation_term_year":2027,"target_graduation_term_number":2,"credits_per_term":18,"internship_term_year":2027,"internship_term_number":1,"no_internship_planned":false,"finished_at":"2026-11-15T03:14:07.430Z"}
+03:14:09   ok   3 transcript rows and at least 2 sessions -> transcript_rows 3, sessions 2
+03:14:09 USER-01s
+03:14:09   ok   no key at any depth ends in _hash, _token, _secret, _key, _password or _sub (or camelCase) -> none
+03:14:09   ok   the file holds none of S1's password_hash, 2 session token_hash values, or the bearer token used -> 0 found
+03:14:09 USER-01t
+03:14:09   ok   S2's id, email and ZZ201 appear nowhere in S1's file -> 0 found
+03:14:09 USER-01v
+03:14:09   ok   403 "Wrong password" -> 403 "Wrong password"
+03:14:09   ok   S1 still signed in (200) -> GET /users/me 200
+03:14:09   ok   deletion_requested_at still null -> null
+03:14:09 USER-01w (API and database parts)
+03:14:09   ok   202 -> 202 keys: purgeAfter
+03:14:09   ok   purgeAfter is 30 days after the request, to the minute -> purgeAfter 2026-12-15T03:14:09.773Z; deletion_requested_at 2026-11-15T03:14:09.773Z; difference in the database 30 days
+03:14:09   ok   purge_after in the database is the same time -> purge_after 2026-12-15T03:14:09.773Z
+03:14:09   ok   the deleting session (A) gets 401 -> 401
+03:14:09   ok   the other session (B) gets 401 on its next request -> 401
+03:14:09   ok   sign-up again with the same email: 409 -> 409 "An account with this email already exists"
+03:14:09   ok   S2 still 200 -> 200
+03:14:09 USER-01x (API and database parts)
+03:14:10   ok   200 with accountRestored: true -> 200 accountRestored true
+03:14:10   ok   deletion_requested_at and purge_after are null -> null, null
+03:14:10   ok   E2 matches E1 except exportedAt, user.updated_at and the sessions rows -> no difference; tables compared: ai_usage, global_admin_grants, onboarding_answers, plan_placements, plans, program_admin_grants, transcript_rows
+03:14:10   ok   sessions differ as expected (the old ones were revoked) -> E1 2 sessions, E2 3
+03:14:10 USER-01y
+03:14:10   ok   S3 signed up, onboarded, transcript saved, deleted with the password -> 201, 200, 200, delete 202
+03:14:11   S3 rows before the purge: {"ai_usage":0,"global_admin_grants":0,"onboarding_answers":1,"plan_placements":0,"plans":0,"program_admin_grants":0,"sessions":1,"transcript_rows":3}
+03:14:12   ok   UPDATE purge_after to a minute ago changes 1 row -> UPDATE 1
+03:14:12   ok   S3 sign-in after the deadline: 401 "Invalid email or password" -> 401 {"message":"Invalid email or password","error":"Unauthorized","statusCode":401}
+03:14:12   ok   never-registered sign-in: 401 with an identical body -> 401 {"message":"Invalid email or password","error":"Unauthorized","statusCode":401}
+03:14:12   ok   S3's users row still exists (the purge has not run) -> 1 row
+03:14:12 USER-01z
+03:14:13   before: S2 {"ai_usage":0,"global_admin_grants":0,"onboarding_answers":1,"plan_placements":0,"plans":0,"program_admin_grants":0,"sessions":1,"transcript_rows":1} | shared 10 programs, 11 curriculums, 133 groups, 249 courses, 1823 links
+03:14:19   ok   after the restart the backend log says "Purged 1 account(s) after the deletion grace period" -> [Nest] 1336962 - 11/15/2026, 10:14:17 AM LOG [AccountPurgeService] Purged 1 account(s) after the deletion grace period
+03:14:19   ok   S3 has no users row -> 0 rows
+03:14:20   ok   S3 has 0 rows in every user table -> {"ai_usage":0,"global_admin_grants":0,"onboarding_answers":0,"plan_placements":0,"plans":0,"program_admin_grants":0,"sessions":0,"transcript_rows":0}
+03:14:23   ok   S2's counts are as before -> {"ai_usage":0,"global_admin_grants":0,"onboarding_answers":1,"plan_placements":0,"plans":0,"program_admin_grants":0,"sessions":1,"transcript_rows":1}
+03:14:23   ok   the shared counts are as before -> 10 programs, 11 curriculums, 133 groups, 249 courses, 1823 links
+03:14:23   ok   the new sign-up answers 201, with a new id -> 201, id differs
+03:14:23   ok   its export holds nothing from the old account -> {"ai_usage":0,"global_admin_grants":0,"onboarding_answers":0,"plan_placements":0,"plans":0,"program_admin_grants":0,"sessions":1,"transcript_rows":0}
+03:14:23   ok   the log still does not contain the password (USER-01n, after every request of this run) -> 0 matches
+03:14:23 SUMMARY USER-01n:passed | USER-01q:passed | USER-01r:passed | USER-01s:passed | USER-01t:passed | USER-01v:passed | USER-01w (API and database parts):passed | USER-01x (API and database parts):passed | USER-01y:passed | USER-01z:passed
