@@ -1,0 +1,3 @@
+PLAN-02 get run at 2026-11-21T17:23:05.034Z
+POST /auth/sign-in (b2-s5, as browser B) → 200
+GET /plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3 → 200 updatedAt 2026-11-21T17:21:53.964Z placements: 2026/1 CS160

@@ -1,0 +1,10 @@
+TRN-02a run at 2026-11-21T17:16:52.336Z
+POST /auth/sign-in (b2-s1@example.com) → 200
+PUT /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":7.5,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8.5,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"graded","grade":7,"term":{"year":2024,"number":1}}]}
+  OK  T-A save 200
+PUT /users/me/transcript → 200 {"rows":[{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}},{"courseCode":"CS163","courseName":"Cấu trúc dữ liệu","credits":4,"result":"graded","grade":8,"term":{"year":2024,"number":2}}]}
+  OK  T-B save 200, answer holds T-B only
+GET /users/me/transcript → 200 {"rows":[{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}},{"courseCode":"CS163","courseName":"Cấu trúc dữ liệu","credits":4,"result":"graded","grade":8,"term":{"year":2024,"number":2}}]}
+  OK  GET returns exactly T-B (PH211, CS163)
+
+Done: 0 mismatch(es).
