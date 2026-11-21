@@ -1,5 +1,21 @@
 # @omnicourse/backend
 
+## 0.4.0
+
+### Minor Changes
+
+- [#108](https://github.com/LLaammTTeerr/omnicourses/pull/108) [`d8a18ea`](https://github.com/LLaammTTeerr/omnicourses/commit/d8a18ea139e4750f1fd90d1ede3c3dc5dd815eaa) Thanks [@rakun68](https://github.com/rakun68)! - School dates for each program: every signed-in student can read the term, registration, add/drop, exam and holiday dates of their program, and the program's administrator can add, change and remove them.
+
+- [#111](https://github.com/LLaammTTeerr/omnicourses/pull/111) [`fd1f1ce`](https://github.com/LLaammTTeerr/omnicourses/commit/fd1f1cefa69107882be3c7535cbd28aa1847d6d6) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - APCS courses are now recorded as having no prerequisite, except Capstone Project II (CS470), which needs Capstone Project I (CS469) as the curriculum prints. The planner checks them instead of listing them as "not recorded yet", and the curriculum explorer shows each course's prerequisites; offering terms are still not recorded.
+
+- [#112](https://github.com/LLaammTTeerr/omnicourses/pull/112) [`e20bdc1`](https://github.com/LLaammTTeerr/omnicourses/commit/e20bdc1b792ccedb3b652a70ee938b0bbbd1d428) Thanks [@Anhdung1478](https://github.com/Anhdung1478)! - Two school task guides are now published, checked on the portals: "Your school accounts and portals" and "View your grades". "Register for courses" and "Pay tuition" stay hidden until their remaining portal steps can be checked.
+
+### Patch Changes
+
+- [#100](https://github.com/LLaammTTeerr/omnicourses/pull/100) [`acb7a58`](https://github.com/LLaammTTeerr/omnicourses/commit/acb7a582cd0ca4aa1995db8c71d666d90fd3e05d) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - A catalog maintainer can no longer delete a course that a student's saved plan still places; the delete is refused with the plan placements listed as references.
+
+- [#105](https://github.com/LLaammTTeerr/omnicourses/pull/105) [`7abf8e6`](https://github.com/LLaammTTeerr/omnicourses/commit/7abf8e6170a200758a8adb1f64f3363f7ce320a6) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - A plan's coverage now counts a course placed in a term the transcript already has it in once, by the transcript's own result and credits.
+
 ## 0.3.0
 
 ### Minor Changes
