@@ -1,8 +1,9 @@
 import { ref, shallowRef, watch, type WatchSource } from 'vue';
+import { reportFailure } from './api.js';
 
 /**
- * Loads data for a view: loading, then loaded or failed, with a reload for the retry button. A failure's details go
- * to the console. With a `key`, it loads again whenever the key changes, and an answer for an older key is dropped.
+ * Loads data for a view: loading, then loaded or failed, with a reload for the retry button. A failure is reported
+ * the one way (`reportFailure`). With a `key`, it loads again whenever the key changes, and an answer for an older key is dropped.
  */
 export function useAsyncLoad<T>(what: string, load: () => Promise<T>, key: WatchSource = () => null) {
   const status = ref<'loading' | 'loaded' | 'failed'>('loading');
@@ -22,7 +23,7 @@ export function useAsyncLoad<T>(what: string, load: () => Promise<T>, key: Watch
       status.value = 'loaded';
     } catch (e) {
       if (call !== latest) return;
-      console.error(`Loading ${what} failed:`, e);
+      reportFailure(`Loading ${what}`, e);
       error.value = e;
       status.value = 'failed';
     }

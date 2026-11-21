@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
 // Asks before a plan is deleted, from the plans list or the tabs above the editor. The name sits on its own lines
@@ -11,7 +11,7 @@ import { PLANNER_MESSAGES } from './messages.js';
 defineProps<{ open: boolean; name: string; busy: boolean; error: string | null }>();
 const emit = defineEmits<{ close: []; confirm: [] }>();
 const m = useMessages(PLANNER_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 </script>
 
 <template>
@@ -21,7 +21,7 @@ const shell = useMessages(SHELL_MESSAGES);
     labelledby="delete-plan-title"
     describedby="delete-plan-body"
     :busy="busy"
-    :busy-text="shell.working"
+    :busy-text="common.working"
     @close="emit('close')"
   >
     <span class="ic" aria-hidden="true"><Icon name="trash" /></span>

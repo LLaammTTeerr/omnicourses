@@ -1,94 +1,54 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, shallowRef } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { HttpError, statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
 import { afterSignIn } from '../auth/redirect.js';
-import { useAuth } from '../auth/store.js';
-import { fetchPrograms } from '../curriculum/api.js';
+import LoadState from '../components/LoadState.vue';
+import { programName as nameOfProgram, usePrograms, type ProgramChoice } from '../curriculum/programs.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import { usePageTitle } from '../page-title.js';
 import BrandLink from '../shell/BrandLink.vue';
 import Icon from '../shell/Icon.vue';
 import LangButton from '../shell/LangButton.vue';
 import ThemeButton from '../shell/ThemeButton.vue';
 import { useToast } from '../shell/toast.js';
-import type { Onboarding } from './api.js';
-import { creditsProblem, errorsByField, goalAnswers, goalDraft, programChoices, resumeStep, type AnswerField, type GoalDraft } from './answers.js';
+import { creditsProblem, resumeStep, type AnswerField } from './answers.js';
+import { useOnboardingForm } from './form.js';
 import GoalFields from './GoalFields.vue';
 import { ONBOARDING_MESSAGES } from './messages.js';
-import { useOnboarding } from './store.js';
 
 // Onboarding (UC-01 steps 6–9, UI prototypes: onboarding.html): program, cohort, then the default planning goal.
 // Every step saves the whole object with finished false, so a student who leaves resumes at the first unanswered
 // step (A8); Finish saves it with finished true. The program list comes from the curriculum API, and only the
 // programs and cohorts the release offers can be picked (A7).
-const auth = useAuth();
-const onboarding = useOnboarding();
 const locale = useLocale();
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const m = useMessages(ONBOARDING_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const STEPS = 4;
 const step = ref(0);
-const program = ref<string | null>(null);
-const cohort = ref<number | null>(null);
-const goal = reactive<GoalDraft>({ graduation: '', credits: '', internship: '' });
-
-const { status, reload } = useAsyncLoad('the onboarding answers', async () => {
-  const answers = await onboarding.load();
-  program.value = answers.program;
-  cohort.value = answers.cohort;
-  Object.assign(goal, goalDraft(answers));
+const { program, cohort, goal, status, reload, saving, saveFailed, apiErrors, otherErrors, goalErrors, save } = useOnboardingForm((answers) => {
   step.value = resumeStep(answers);
 });
 // The names of the programs. Without them the offered codes still show, so onboarding never waits on this list.
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
-const choices = computed(() => programChoices(programs.data.value?.programs ?? []));
+const { choices } = usePrograms();
 const offered = computed(() => choices.value.filter((choice) => choice.offered));
 const notOffered = computed(() => choices.value.filter((choice) => !choice.offered));
 const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
-const programName = (choice: (typeof choices.value)[number]) =>
-  (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
+const programName = (choice: ProgramChoice) => nameOfProgram(choice, locale.lang);
 
 function pickProgram(code: string): void {
   program.value = code;
-  // A cohort belongs to its program.
+  // A cohort belongs to its program; the next step asks it again.
   if (cohort.value !== null && !cohorts.value.includes(cohort.value)) cohort.value = null;
   missing.value = null;
 }
 
 const missing = ref<'program' | 'cohort' | null>(null);
-const saving = ref(false);
-const saveFailed = ref(false);
-const apiErrors = shallowRef<Partial<Record<AnswerField, string[]>>>({});
-const otherErrors = computed(() => [...(apiErrors.value.program ?? []), ...(apiErrors.value.cohort ?? []), ...(apiErrors.value.finished ?? [])]);
-
-function answers(finished: boolean): Onboarding {
-  return { program: program.value, cohort: cohort.value, ...goalAnswers(goal), finished };
-}
-
-async function save(finished: boolean): Promise<boolean> {
-  saving.value = true;
-  saveFailed.value = false;
-  apiErrors.value = {};
-  try {
-    await onboarding.save(answers(finished));
-    return true;
-  } catch (e) {
-    if (statusOf(e) === 400 && e instanceof HttpError) apiErrors.value = errorsByField(e.details);
-    else if (statusOf(e) !== 401) {
-      console.error('Saving the onboarding answers failed:', e);
-      saveFailed.value = true;
-    }
-    return false;
-  } finally {
-    saving.value = false;
-  }
-}
 
 const heading = ref<HTMLElement | null>(null);
 async function show(next: number): Promise<void> {
@@ -119,11 +79,6 @@ function showRejected(): Promise<void> | void {
 }
 
 const goalFields = computed(() => (step.value === 2 ? (['graduation'] as const) : (['credits', 'internship'] as const)));
-const goalErrors = computed(() => ({
-  graduation: apiErrors.value.targetGraduationTerm,
-  credits: apiErrors.value.creditsPerTerm,
-  internship: apiErrors.value.internshipTerm,
-}));
 const question = computed(() => [m.value.programQuestion, m.value.cohortQuestion, m.value.graduationQuestion, m.value.loadQuestion][step.value]);
 
 usePageTitle(() => m.value.title);
@@ -145,14 +100,7 @@ usePageTitle(() => m.value.title);
       </div>
     </div>
 
-    <p v-if="status === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="status === 'failed'" class="callout bad" role="alert">
-      <Icon name="alert" />
-      <div>
-        <p>{{ m.loadFailed }}</p>
-        <button class="btn sm" type="button" @click="reload">{{ m.retry }}</button>
-      </div>
-    </div>
+    <LoadState v-if="status !== 'loaded'" :status="status" :loading="common.loading" :failed="m.loadFailed" @retry="reload" />
 
     <form v-else class="stack wizard-step" novalidate @submit.prevent="onNext">
       <div>

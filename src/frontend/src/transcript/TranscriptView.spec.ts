@@ -6,6 +6,7 @@ import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import type { TranscriptRow } from './api.js';
+import { MAX_NAME_LENGTH } from './rows.js';
 import { chooseOption } from '../testing/select.js';
 
 // Synthetic rows only (AGENTS.md hard rule 3).
@@ -51,6 +52,12 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(row(w, 0).get('[data-test="check"]').text()).toBe('Hợp lệ');
     expect(summary(w)).toBe('2 dòng · chưa có thay đổi');
     expect(saveButton(w).attributes('disabled')).toBeDefined();
+  });
+
+  it('stops a course name at the length the save allows', async () => {
+    const { w } = await render();
+    const name = row(w, 0).findAll('input').find((input) => (input.element as HTMLInputElement).value === 'Môn thử một')!;
+    expect(name.attributes('maxlength')).toBe(String(MAX_NAME_LENGTH));
   });
 
   it('blocks the save on an incomplete row and says what to fix in words (A2)', async () => {

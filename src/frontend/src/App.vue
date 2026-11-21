@@ -45,7 +45,7 @@ watch(
   (restored) => {
     if (!restored) return;
     toast.show(m.value.restored);
-    auth.accountRestored = false;
+    auth.acknowledgeRestored();
   },
 );
 </script>

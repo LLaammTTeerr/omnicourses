@@ -1,6 +1,7 @@
 import type { Lang } from '../locale.js';
 import { termName } from '../terms.js';
-import type { Term, TranscriptResult } from './api.js';
+import type { Term } from '../terms.js';
+import type { TranscriptResult } from './api.js';
 import type { Problem } from './rows.js';
 
 interface TranscriptMessages {
@@ -13,7 +14,6 @@ interface TranscriptMessages {
   replaceText: string;
   loading: string;
   loadFailed: string;
-  retry: string;
   rowsCount: (rows: number) => string;
   toFix: (rows: number) => string;
   ready: string;
@@ -58,7 +58,6 @@ export const TRANSCRIPT_MESSAGES: Record<Lang, TranscriptMessages> = {
     replaceText: 'Chỉ những dòng trong bảng này được lưu. Lưu lần sau sẽ thay toàn bộ lần trước.',
     loading: 'Đang tải bảng điểm…',
     loadFailed: 'Chưa tải được bảng điểm. Hãy thử lại sau ít phút.',
-    retry: 'Thử lại',
     rowsCount: (rows) => `${rows} dòng`,
     toFix: (rows) => `${rows} dòng cần sửa`,
     ready: 'sẵn sàng lưu',
@@ -101,7 +100,6 @@ export const TRANSCRIPT_MESSAGES: Record<Lang, TranscriptMessages> = {
     replaceText: 'Only the rows in this table are saved. A later save replaces the earlier one.',
     loading: 'Loading your transcript…',
     loadFailed: 'Could not load your transcript right now. Please try again in a moment.',
-    retry: 'Try again',
     rowsCount: (rows) => `${rows} row${rows === 1 ? '' : 's'}`,
     toFix: (rows) => `${rows} to fix`,
     ready: 'ready to save',

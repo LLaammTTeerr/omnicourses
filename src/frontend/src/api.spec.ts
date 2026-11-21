@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, getJson, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
+import { API_URL, failureWorthSaying, HttpError, reportFailure, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
@@ -91,18 +91,35 @@ describe('request', () => {
   });
 });
 
-describe('getJson', () => {
+describe('reportFailure', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('sends no token (ADR 0010) and fails a read that gets no answer in time, like any JSON call', async () => {
-    hang();
-    const timeout = vi.spyOn(AbortSignal, 'timeout');
-    const timer = new AbortController();
-    timeout.mockReturnValue(timer.signal);
-    const pending = getJson('/guides').catch((e: unknown) => e);
-    expect(timeout).toHaveBeenCalledExactlyOnceWith(REQUEST_TIMEOUT_MS);
-    expect(vi.mocked(fetch).mock.calls[0]![1]).toMatchObject({ method: 'GET', headers: {} });
-    timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
-    expect(await pending).toMatchObject({ name: 'TimeoutError' });
+  it('logs a failure with what failed and its details', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new HttpError('/plans', 500);
+    expect(reportFailure('Loading the plans', failure)).toBe(true);
+    expect(consoleError).toHaveBeenCalledWith('Loading the plans failed:', failure);
+  });
+
+  it('logs nothing for a 401, which has already signed the student out, nor for a call the screen aborted', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(reportFailure('Loading the plans', new HttpError('/plans', 401))).toBe(false);
+    expect(reportFailure('Loading the plans', new DOMException('The operation was aborted.', 'AbortError'))).toBe(false);
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('logs a timeout like any failure', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(reportFailure('Loading the plans', new DOMException('The operation timed out.', 'TimeoutError'))).toBe(true);
+    expect(consoleError).toHaveBeenCalledOnce();
+  });});
+
+describe('failureWorthSaying', () => {
+  it('says every failure but a 401 and an abort, a timeout included', () => {
+    expect(failureWorthSaying(new HttpError('/plans', 500))).toBe(true);
+    expect(failureWorthSaying(new TypeError('Failed to fetch'))).toBe(true);
+    expect(failureWorthSaying(new DOMException('The operation timed out.', 'TimeoutError'))).toBe(true);
+    expect(failureWorthSaying(new HttpError('/plans', 401))).toBe(false);
+    expect(failureWorthSaying(new DOMException('The operation was aborted.', 'AbortError'))).toBe(false);
   });
 });

@@ -1,3 +1,5 @@
+import { reducedMotion } from '../motion.js';
+
 // Tiles glide from where they were to where a change put them (FLIP: first, last, invert, play). Drawing only: it
 // reads positions before and after Vue renders the change, and moves nothing in the board. Skipped when the student
 // asks for reduced motion, and where the browser cannot animate (jsdom).
@@ -5,13 +7,17 @@
 /** Where each tile is now, by its board key. */
 export type Snapshot = Map<string, DOMRect>;
 
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 export function snapshot(root: ParentNode | null): Snapshot {
   const rects: Snapshot = new Map();
   root?.querySelectorAll<HTMLElement>('[data-flip]').forEach((el) => rects.set(el.dataset.flip!, el.getBoundingClientRect()));
   return rects;
 }
+
+/** How long a dropped tile takes to land. */
+export const LANDING_MS = 440;
+
+/** How long to wait before a just-dropped tile has landed: no time at all when nothing lands (reduced motion). */
+export const landingWait = (): number => (reducedMotion() ? 0 : LANDING_MS);
 
 /** A tile just dropped: it lands from where the dragged copy was, with a little spring. */
 export interface Lift {
@@ -31,7 +37,7 @@ export function play(root: ParentNode | null, before: Snapshot, lift?: Lift): vo
           { transform: `translate(${lift.rect.left - now.left}px, ${lift.rect.top - now.top}px) scale(1.05)`, boxShadow: 'var(--shadow-lg)', zIndex: 5 },
           { transform: 'none', boxShadow: 'none', zIndex: 5 },
         ],
-        { duration: 440, easing: 'cubic-bezier(.3, 1.25, .4, 1)' },
+        { duration: LANDING_MS, easing: 'cubic-bezier(.3, 1.25, .4, 1)' },
       );
       return;
     }

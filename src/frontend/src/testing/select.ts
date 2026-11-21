@@ -11,12 +11,10 @@ const listOf = (trigger: Trigger) => {
   return list;
 };
 
-/** The labels of every option, in order. */
 export function optionsOf(trigger: Trigger): string[] {
   return [...listOf(trigger).querySelectorAll('[role="option"]')].map((o) => o.textContent?.trim() ?? '');
 }
 
-/** Opens the select and clicks the option with this label. */
 export async function chooseOption(trigger: Trigger, label: string): Promise<void> {
   if (trigger.attributes('aria-expanded') !== 'true') await trigger.trigger('click');
   const option = [...listOf(trigger).querySelectorAll<HTMLElement>('[role="option"]')].find((o) => o.textContent?.trim() === label);

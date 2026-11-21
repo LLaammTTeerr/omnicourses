@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, watchEffect } from 'vue';
+import { readStored, writeStored } from '../storage.js';
 
 // Light and dark themes (UI prototypes). index.html applies the saved theme before the first paint, with the same
 // key and default; this store owns it afterwards.
@@ -10,10 +11,8 @@ export type Theme = 'light' | 'dark';
 export const THEME_STORAGE_KEY = 'omnicourse.theme';
 
 function initialTheme(): Theme {
-  try {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
-  } catch {}
+  const saved = readStored(THEME_STORAGE_KEY);
+  if (saved === 'light' || saved === 'dark') return saved;
   // No choice yet: follow the system.
   return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -23,9 +22,7 @@ export const useTheme = defineStore('theme', () => {
 
   function set(next: Theme): void {
     theme.value = next;
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {}
+    writeStored(THEME_STORAGE_KEY, next);
   }
 
   function toggle(): void {

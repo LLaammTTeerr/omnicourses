@@ -11,7 +11,6 @@ interface GuideMessages {
   searchHint: string;
   loading: string;
   loadFailed: string;
-  retry: string;
   noGuides: string;
   noMatch: string;
   browseGroups: string;
@@ -63,7 +62,6 @@ export const GUIDE_MESSAGES: Record<Lang, GuideMessages> = {
     searchHint: 'Tìm bằng tiếng Việt hoặc tiếng Anh, có dấu hoặc không dấu.',
     loading: 'Đang tải hướng dẫn…',
     loadFailed: 'Chưa tải được hướng dẫn. Hãy thử lại sau ít phút.',
-    retry: 'Thử lại',
     noGuides: 'Chưa có hướng dẫn nào được đăng.',
     noMatch: 'Chưa có hướng dẫn cho việc này.',
     browseGroups: 'Xem theo nhóm việc:',
@@ -114,7 +112,6 @@ export const GUIDE_MESSAGES: Record<Lang, GuideMessages> = {
     searchHint: 'Search in Vietnamese or English, with or without accents.',
     loading: 'Loading guides…',
     loadFailed: 'Could not load the guides right now. Please try again in a moment.',
-    retry: 'Try again',
     noGuides: 'No guides are published yet.',
     noMatch: 'No guide covers this yet.',
     browseGroups: 'Browse by task group:',

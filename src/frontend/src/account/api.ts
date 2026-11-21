@@ -21,16 +21,3 @@ export async function exportAccount(token: string): Promise<Blob> {
 
 /** Signs the student out everywhere; the account is purged after the grace period unless they sign in again. 403: wrong password. */
 export const deleteAccount = (token: string, body: DeleteAccountBody) => request<DeletionScheduled>('DELETE', '/users/me', { token, body });
-
-/** Hands a file to the browser's downloads, as a link the student clicked would. */
-export function saveFile(blob: Blob, name: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  // Revoke after the click has been handled, or some browsers cancel the download.
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}

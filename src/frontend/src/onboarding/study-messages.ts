@@ -10,9 +10,7 @@ interface StudyMessages {
   saving: string;
   saved: string;
   saveFailed: string;
-  loading: string;
   loadFailed: string;
-  retry: string;
   unfinished: string;
   unfinishedNote: string;
   continue: string;
@@ -29,9 +27,7 @@ export const STUDY_MESSAGES: Record<Lang, StudyMessages> = {
     saving: 'Đang lưu…',
     saved: 'Đã lưu chương trình và mục tiêu.',
     saveFailed: 'Chưa lưu được. Thử lại sau ít phút.',
-    loading: 'Đang tải…',
     loadFailed: 'Chưa tải được chương trình và mục tiêu của bạn.',
-    retry: 'Thử lại',
     unfinished: 'Bạn chưa xong phần bắt đầu.',
     unfinishedNote: 'Chọn chương trình, khóa và mục tiêu để dùng các trang khác.',
     continue: 'Làm tiếp',
@@ -46,9 +42,7 @@ export const STUDY_MESSAGES: Record<Lang, StudyMessages> = {
     saving: 'Saving…',
     saved: 'Your program and goal are saved.',
     saveFailed: 'Nothing was saved. Try again in a few minutes.',
-    loading: 'Loading…',
     loadFailed: 'Your program and goal could not be loaded.',
-    retry: 'Try again',
     unfinished: 'You have not finished getting started.',
     unfinishedNote: 'Choose your program, cohort and goal to use the other pages.',
     continue: 'Continue',

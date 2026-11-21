@@ -1,9 +1,8 @@
 import { computed } from 'vue';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
-import { groupColour, orderGroups } from '../curriculum/present.js';
-import { GROUPS, type GroupId } from '../groups.js';
-import { LANGUAGES, type Lang } from '../locale.js';
+import { groupColour, groupOf, orderGroups, type GroupId } from '../groups.js';
+import { formatNumber, type Lang } from '../locale.js';
 import { fetchAudit, type AuditOutcome, type CourseStatus, type DegreeAudit, type GraduationCondition, type GroupCoverage } from './api.js';
 import type { AUDIT_MESSAGES } from './messages.js';
 
@@ -33,7 +32,7 @@ export interface ShownGroup {
 export function shownGroups(audit: DegreeAudit): ShownGroup[] {
   return orderGroups(audit.groups).map((group) => {
     const colour = groupColour(group);
-    return { group, colour, glyph: GROUPS.find((g) => g.id === colour)!.glyph };
+    return { group, colour, glyph: groupOf(colour).glyph };
   });
 }
 
@@ -98,13 +97,6 @@ export function share(part: number, whole: number | null): number {
   return Math.max(0, Math.min(100, (part / whole) * 100));
 }
 
-const scoreFormats = new Map<Lang, Intl.NumberFormat>();
-
 /** A grade or an average as the language writes it, to two decimals at most: 7,5 or 7.5. */
-export function formatScore(value: number | null, lang: Lang): string | null {
-  if (value === null) return null;
-  let format = scoreFormats.get(lang);
-  if (!format) scoreFormats.set(lang, (format = new Intl.NumberFormat(LANGUAGES[lang].tag, { maximumFractionDigits: 2 })));
-  return format.format(value);
-}
+export const formatScore = (value: number | null, lang: Lang): string | null => (value === null ? null : formatNumber(value, lang, 2));
 

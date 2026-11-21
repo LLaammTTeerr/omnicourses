@@ -7,7 +7,8 @@ import { session } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
+import { closeNatively } from '../testing/dialog.js';
+import { hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SettingsView from './SettingsView.vue';
 

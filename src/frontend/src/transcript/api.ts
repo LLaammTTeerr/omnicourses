@@ -1,8 +1,6 @@
 import { request } from '../api.js';
 import type { Term } from '../terms.js';
 
-export { TERM_NUMBERS, type Term } from '../terms.js';
-
 // The transcript DTOs of the API (ADR 0007, ADR 0009), written by hand; api.spec.ts checks them against
 // src/backend/openapi.json.
 

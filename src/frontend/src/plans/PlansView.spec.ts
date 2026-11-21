@@ -4,7 +4,8 @@ import { RouterView, type Router } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { useToast } from '../shell/toast.js';
-import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
+import { closeNatively } from '../testing/dialog.js';
+import { hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import { listItem, OTHER_ID, PLAN_ID, plan, report } from './testing/fixtures.js';
 

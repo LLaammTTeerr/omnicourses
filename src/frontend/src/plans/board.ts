@@ -1,4 +1,4 @@
-import { termKey, TERM_NUMBERS, type Term } from '../terms.js';
+import { compareTerms, nextTerm, sameTerm, termKey, termsBetween, type Term } from '../terms.js';
 import type { Placement, PlanIssue, PlanIssues, PlanTerm, PlanTermLoad } from './api.js';
 
 // The planner's board: the rows on screen and the tiles in them. Moving tiles around is bookkeeping only. Nothing
@@ -18,20 +18,6 @@ export interface Row {
 }
 
 export type Board = readonly Row[];
-
-export const compareTerms = (a: Term, b: Term): number => a.year - b.year || a.number - b.number;
-
-export function nextTerm(term: Term): Term {
-  const i = TERM_NUMBERS.indexOf(term.number);
-  return i === TERM_NUMBERS.length - 1 ? { year: term.year + 1, number: TERM_NUMBERS[0] } : { year: term.year, number: TERM_NUMBERS[i + 1]! };
-}
-
-/** Every term from `first` to `last`, both included, all three numbers of each year (ADR 0009). */
-export function termsBetween(first: Term, last: Term): Term[] {
-  const terms: Term[] = [];
-  for (let term = first; compareTerms(term, last) <= 0; term = nextTerm(term)) terms.push(term);
-  return terms;
-}
 
 const minTerm = (a: Term, b: Term) => (compareTerms(a, b) <= 0 ? a : b);
 const maxTerm = (a: Term, b: Term) => (compareTerms(a, b) >= 0 ? a : b);
@@ -88,26 +74,25 @@ export function sameTiles(a: Board, b: Board): boolean {
     x.length === y.length &&
     x.every((row, i) => {
       const other = y[i]!;
-      return termKey(row.term) === termKey(other.term) && row.tiles.length === other.tiles.length && row.tiles.every((tile, j) => tile === other.tiles[j]);
+      return sameTerm(row.term, other.term) && row.tiles.length === other.tiles.length && row.tiles.every((tile, j) => tile === other.tiles[j]);
     })
   );
 }
 
-/** A row added after the last one. */
 export const withNextRow = (board: Board): Row[] => [...board, { term: nextTerm(board.at(-1)!.term), tiles: [] }];
 
 /** Places a course at the end of a row. A course already on the board is not placed again (ADR 0014). */
 export function addCourse(board: Board, code: string, to: Term, key: number): Board {
   if (placedCodes(board).has(code)) return board;
   return board.map((row) =>
-    termKey(row.term) === termKey(to) ? { ...row, tiles: [...row.tiles, { key, placement: { kind: 'course', courseCode: code, requirementGroupId: null, credits: null } }] } : row,
+    sameTerm(row.term, to) ? { ...row, tiles: [...row.tiles, { key, placement: { kind: 'course', courseCode: code, requirementGroupId: null, credits: null } }] } : row,
   );
 }
 
 /** Holds credits for a requirement group in a row, before a course is chosen (a slot, ADR 0014). */
 export function addSlot(board: Board, groupId: string, credits: number, to: Term, key: number): Board {
   return board.map((row) =>
-    termKey(row.term) === termKey(to) ? { ...row, tiles: [...row.tiles, { key, placement: { kind: 'slot', courseCode: null, requirementGroupId: groupId, credits } }] } : row,
+    sameTerm(row.term, to) ? { ...row, tiles: [...row.tiles, { key, placement: { kind: 'slot', courseCode: null, requirementGroupId: groupId, credits } }] } : row,
   );
 }
 
@@ -119,11 +104,11 @@ export function removeTile(board: Board, key: number): Board {
 /** Moves a tile to the end of another row. */
 export function moveTile(board: Board, key: number, to: Term): Board {
   const found = findTile(board, key);
-  if (!found || termKey(found.row.term) === termKey(to)) return board;
+  if (!found || sameTerm(found.row.term, to)) return board;
   const tile = found.row.tiles[found.index]!;
   return board.map((row) => {
     if (row === found.row) return { ...row, tiles: row.tiles.filter((t) => t.key !== key) };
-    if (termKey(row.term) === termKey(to)) return { ...row, tiles: [...row.tiles, tile] };
+    if (sameTerm(row.term, to)) return { ...row, tiles: [...row.tiles, tile] };
     return row;
   });
 }
@@ -198,6 +183,9 @@ export function placementOf(board: Board, what: Moving): Placement | null {
 /** An issue's identity across two reports: its code, course, term and group (positions move when a tile does). */
 export const issueId = (i: PlanIssue) => [i.code, i.courseCode ?? '', i.term ? termKey(i.term) : '', i.requirementGroupId ?? ''].join('|');
 
+/** The violations a report finds in the terms (about a term or a course); coverage shortfalls are about the whole plan. */
+export const termViolations = (report: PlanIssues | null | undefined): PlanIssue[] => report?.issues.filter((i) => i.kind === 'violation' && i.term !== null) ?? [];
+
 /** How a row would take a drop, from the engine's report on the board with the drop made. */
 export interface DropVerdict {
   /**
@@ -217,7 +205,7 @@ export interface DropVerdict {
 export function dropVerdict(attached: AttachedIssues, key: number, to: Term, before: AttachedIssues | null): DropVerdict {
   const mine = [...(attached.byTile.get(key) ?? []), ...(attached.byTerm.get(termKey(to)) ?? [])];
   const had = new Set(before?.report.issues.filter((i) => i.kind === 'violation').map(issueId) ?? []);
-  const elsewhere = before ? attached.report.issues.filter((i) => i.kind === 'violation' && i.term !== null && !mine.includes(i) && !had.has(issueId(i))) : [];
+  const elsewhere = before ? termViolations(attached.report).filter((i) => !mine.includes(i) && !had.has(issueId(i))) : [];
   const issues = [...mine.filter((i) => i.kind === 'violation'), ...elsewhere, ...mine.filter((i) => i.kind === 'flag'), ...mine.filter((i) => i.kind === 'unknown')];
   const load = attached.loads.get(termKey(to)) ?? null;
   return { kind: issues[0]?.kind ?? null, issues, load };

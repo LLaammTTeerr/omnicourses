@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Term } from '../terms.js';
+import { termsBetween, type Term } from '../terms.js';
 import type { PlanIssue } from './api.js';
 import {
   addCourse,
@@ -10,14 +10,12 @@ import {
   boardWith,
   dropVerdict,
   moveTile,
-  nextTerm,
   placedCodes,
   placementOf,
   PREVIEW_KEY,
   removeTile,
   rowsFor,
   sameTiles,
-  termsBetween,
   withNextRow,
   type Board,
 } from './board.js';
@@ -31,13 +29,6 @@ const keys = () => {
 const codes = (board: Board) => board.map((row) => `${row.term.year}-${row.term.number}: ${row.tiles.map((tile) => tile.placement.courseCode ?? 'slot').join(' ')}`);
 
 describe('terms on the board', () => {
-  it('counts three terms a year (ADR 0009)', () => {
-    expect(nextTerm(t(2026, 1))).toEqual(t(2026, 2));
-    expect(nextTerm(t(2026, 3))).toEqual(t(2027, 1));
-    expect(termsBetween(t(2026, 2), t(2027, 1))).toEqual([t(2026, 2), t(2026, 3), t(2027, 1)]);
-    expect(termsBetween(t(2027, 1), t(2026, 1))).toEqual([]);
-  });
-
   it('draws rows from the current term to the target, widened to every term of the plan', () => {
     expect(rowsFor([], t(2026, 1), t(2026, 3))).toEqual([t(2026, 1), t(2026, 2), t(2026, 3)]);
     expect(rowsFor([], t(2026, 1), null)).toEqual([t(2026, 1)]);

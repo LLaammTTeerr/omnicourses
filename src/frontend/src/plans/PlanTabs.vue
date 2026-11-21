@@ -1,72 +1,40 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
-import { useAuth } from '../auth/store.js';
+import { RouterLink, useRouter } from 'vue-router';
+import { reportFailure } from '../api.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { createPlan, deletePlan, duplicatePlan, fetchPlans, type PlanCurriculum, type PlanSummary } from './api.js';
+import type { PlanCurriculum, PlanSummary } from './api.js';
 import DeletePlanDialog from './DeletePlanDialog.vue';
 import { PLANNER_MESSAGES } from './messages.js';
+import { useLoadPlans, type PlanActions } from './plan-actions.js';
 import PlanNameDialog from './PlanNameDialog.vue';
 
 // The student's plans as tabs above the editor (UC-05 A6), as in the prototype: switch between them, delete the one
 // open (with the trash button beside its tab, behind a confirmation; the last plan stays), and make a new one with a
-// name. A new plan uses the curriculum of the one open. A failed load shows no tabs: the editor still works.
-const props = defineProps<{ id: string; name: string; curriculum: PlanCurriculum }>();
-const auth = useAuth();
+// name. A new plan uses the curriculum of the one open. A failed load shows no tabs: the editor still works. The
+// editor's plan actions come in `actions`, so its What-if copy and these buttons wait for each other.
+const props = defineProps<{ id: string; name: string; curriculum: PlanCurriculum; actions: PlanActions }>();
 const router = useRouter();
 const toast = useToast();
 const m = useMessages(PLANNER_MESSAGES);
 
 const plans = ref<PlanSummary[]>([]);
-const busy = ref(false);
+const { busy, dialogError } = props.actions;
 const naming = ref(false);
 const deleting = ref(false);
-const dialogError = ref<string | null>(null);
 const canDelete = computed(() => plans.value.length > 1);
 
+const loadPlans = useLoadPlans();
 async function load(): Promise<void> {
   try {
-    plans.value = (await auth.authed(fetchPlans)).plans;
+    plans.value = await loadPlans();
   } catch (e) {
-    if (statusOf(e) !== 401) console.error('Loading the plans for the tabs failed:', e);
+    reportFailure('Loading the plans for the tabs', e);
   }
 }
 watch(() => props.id, load, { immediate: true });
-
-/** Runs an action; a 401 has already signed the student out (App.vue), any other failure is said in `dialogError`. */
-async function attempt(what: string, action: () => Promise<void>): Promise<boolean> {
-  busy.value = true;
-  dialogError.value = null;
-  try {
-    await action();
-    return true;
-  } catch (e) {
-    if (statusOf(e) !== 401) {
-      console.error(`${what} failed:`, e);
-      dialogError.value = m.value.actionFailed;
-    }
-    return false;
-  } finally {
-    busy.value = false;
-  }
-}
-
-/** A copy of the plan open, opened at once (What-if). The name is cut to the API's 100 characters (code points). */
-async function copy(full: string): Promise<void> {
-  if (busy.value) return;
-  const name = Array.from(full).slice(0, 100).join('');
-  const { id } = props;
-  const done = await attempt('Copying the plan', async () => {
-    const made = await auth.authed((token) => duplicatePlan(token, id, name));
-    toast.show(m.value.copied(made.name));
-    await router.push({ name: 'plan', params: { id: made.id } });
-  });
-  if (!done && dialogError.value) toast.show(dialogError.value);
-}
-defineExpose({ copy });
 
 function openNaming(): void {
   dialogError.value = null;
@@ -74,8 +42,7 @@ function openNaming(): void {
 }
 async function create(name: string): Promise<void> {
   const { programCode, cohortYear } = props.curriculum;
-  await attempt('Creating a plan', async () => {
-    const made = await auth.authed((token) => createPlan(token, { name, programCode, cohortYear }));
+  await props.actions.create({ name, programCode, cohortYear }, async (made) => {
     naming.value = false;
     toast.show(m.value.created(made.name));
     await router.push({ name: 'plan', params: { id: made.id } });
@@ -89,22 +56,13 @@ function askDelete(): void {
 async function confirmDelete(): Promise<void> {
   const { id, name } = props;
   const next = plans.value.find((p) => p.id !== id);
-  const done = await attempt('Deleting the plan', async () => {
-    try {
-      await auth.authed((token) => deletePlan(token, id));
-    } catch (e) {
-      // Already gone: an earlier deletion that timed out may have gone through on the server.
-      if (statusOf(e) !== 404) throw e;
-    }
-  });
-  if (!done) return;
+  if (!(await props.actions.remove(id))) return;
   deleting.value = false;
   toast.show(m.value.deleted(name));
   await router.replace(next ? { name: 'plan', params: { id: next.id } } : { name: 'plan-list' });
 }
 
-// A busy dialog refuses Escape; the back gesture would leave mid-request, so stay until it answers.
-onBeforeRouteLeave(() => !(busy.value && (naming.value || deleting.value)) || !auth.signedIn);
+props.actions.guardLeave(() => naming.value || deleting.value);
 </script>
 
 <template>

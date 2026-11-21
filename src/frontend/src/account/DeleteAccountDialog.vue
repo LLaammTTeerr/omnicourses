@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { reportFailure, statusOf } from '../api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { useToast } from '../shell/toast.js';
 import { deleteAccount } from './api.js';
 import { SETTINGS_MESSAGES } from './messages.js';
@@ -20,7 +20,7 @@ const locale = useLocale();
 const router = useRouter();
 const toast = useToast();
 const m = useMessages(SETTINGS_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const password = ref('');
 const error = ref<string | null>(null);
@@ -51,14 +51,10 @@ async function confirm(): Promise<void> {
     toast.show(m.value.deleted(formatDateTime(purgeAfter, locale.lang)));
   } catch (e) {
     const status = statusOf(e);
-    if (status === 401) return; // Signed out elsewhere: App.vue takes the student to sign in.
     if (status === 403) error.value = m.value.wrongPassword;
     else if (status === 429) error.value = m.value.rateLimited;
-    else {
-      console.error('Deleting the account failed:', e);
-      // A timeout: the request may have reached the server and revoked every session (ADR 0004).
-      error.value = e instanceof DOMException && e.name === 'TimeoutError' ? m.value.noAnswer : m.value.unreachable;
-    }
+    // A timeout: the request may have reached the server and revoked every session (ADR 0004).
+    else if (reportFailure('Deleting the account', e)) error.value = e instanceof DOMException && e.name === 'TimeoutError' ? m.value.noAnswer : m.value.unreachable;
   } finally {
     busy.value = false;
   }
@@ -67,7 +63,7 @@ async function confirm(): Promise<void> {
 
 <template>
   <!-- Busy: Keep is disabled and Escape is refused, so a wrong password is said in the dialog, not lost. -->
-  <ModalDialog :open="open" role="alertdialog" labelledby="delete-title" describedby="delete-body" :busy="busy" :busy-text="shell.working" @close="emit('close')">
+  <ModalDialog :open="open" role="alertdialog" labelledby="delete-title" describedby="delete-body" :busy="busy" :busy-text="common.working" @close="emit('close')">
     <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
     <h2 id="delete-title">{{ m.deleteDialogTitle }}</h2>
     <p id="delete-body" class="t2">{{ m.deleteDialogBody }}</p>

@@ -24,8 +24,6 @@ interface OnboardingMessages {
   pickProgram: string;
   pickCohort: string;
   loadFailed: string;
-  retry: string;
-  loading: string;
   saveFailed: string;
   rejected: string;
   finished: string;
@@ -69,8 +67,6 @@ export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
     pickProgram: 'Hãy chọn một chương trình.',
     pickCohort: 'Hãy chọn khóa của bạn.',
     loadFailed: 'Chưa tải được câu trả lời của bạn.',
-    retry: 'Thử lại',
-    loading: 'Đang tải…',
     saveFailed: 'Chưa lưu được. Câu trả lời vẫn còn ở đây; thử lại sau ít phút.',
     rejected: 'Máy chủ chưa nhận câu trả lời này:',
     finished: 'Đã lưu. Bạn có thể đổi các câu trả lời này trong Cài đặt.',
@@ -98,8 +94,6 @@ export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
     pickProgram: 'Choose a program.',
     pickCohort: 'Choose your cohort.',
     loadFailed: 'Your answers could not be loaded.',
-    retry: 'Try again',
-    loading: 'Loading…',
     saveFailed: 'Nothing was saved. Your answers are still here; try again in a few minutes.',
     rejected: 'The server did not accept this answer:',
     finished: 'Saved. You can change these answers in Settings.',

@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { reportFailure } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { listSessions, revokeSession, type Session } from '../auth/api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { GROUPS, groupClass } from '../groups.js';
 import { formatDateTime, LANGUAGES, useLocale, useMessages, type Lang } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { EXPORT_FILE_NAME, exportAccount, saveFile } from './api.js';
+import { EXPORT_FILE_NAME, exportAccount } from './api.js';
+import { saveFile } from './download.js';
 import StudySettings from '../onboarding/StudySettings.vue';
 import DeleteAccountDialog from './DeleteAccountDialog.vue';
 import { SETTINGS_MESSAGES } from './messages.js';
@@ -26,6 +29,7 @@ const router = useRouter();
 const theme = useTheme();
 const toast = useToast();
 const m = useMessages(SETTINGS_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const sessions = useAsyncLoad('the sessions', () => auth.authed(listSessions));
 // The current session first, then the newest.
@@ -47,9 +51,8 @@ async function revoke(): Promise<void> {
     revoking.value = null;
     await sessions.reload();
   } catch (e) {
-    console.error('Revoking a session failed:', e);
     revoking.value = null;
-    toast.show(m.value.revokeFailed);
+    if (reportFailure('Revoking a session', e)) toast.show(m.value.revokeFailed);
   } finally {
     revokeBusy.value = false;
   }
@@ -64,8 +67,7 @@ async function download(): Promise<void> {
     saveFile(await auth.authed(exportAccount), EXPORT_FILE_NAME);
     toast.show(m.value.exported(EXPORT_FILE_NAME));
   } catch (e) {
-    console.error('Exporting the account failed:', e);
-    exportFailed.value = true;
+    exportFailed.value = reportFailure('Exporting the account', e);
   } finally {
     exporting.value = false;
   }
@@ -128,9 +130,9 @@ usePageTitle(() => m.value.title);
           <div class="card-head"><h2 id="security-title">{{ m.sessions }}</h2></div>
           <p class="srow-note t2 small">{{ m.sessionsNote }}</p>
           <p v-if="sessions.status.value === 'failed'" class="srow" role="alert">
-            {{ m.sessionsFailed }} <button class="btn sm" type="button" @click="sessions.reload()">{{ m.retry }}</button>
+            {{ m.sessionsFailed }} <button class="btn sm" type="button" @click="sessions.reload()">{{ common.retry }}</button>
           </p>
-          <p v-else-if="sessions.status.value === 'loading'" class="srow t3">{{ m.loading }}</p>
+          <p v-else-if="sessions.status.value === 'loading'" class="srow t3">{{ common.loading }}</p>
           <div v-else class="table-wrap">
             <table class="table sessions" data-test="sessions">
               <thead>
@@ -205,7 +207,7 @@ usePageTitle(() => m.value.title);
       <h2 id="revoke-title">{{ m.revokeTitle }}</h2>
       <p id="revoke-body" class="t2">{{ revoking && m.revokeBody(deviceName(revoking)) }}</p>
       <div class="acts">
-        <button class="btn" type="button" autofocus @click="revoking = null">{{ m.cancel }}</button>
+        <button class="btn" type="button" autofocus @click="revoking = null">{{ common.cancel }}</button>
         <button class="btn danger" type="button" :disabled="revokeBusy" @click="revoke">{{ m.revoke }}</button>
       </div>
     </ModalDialog>

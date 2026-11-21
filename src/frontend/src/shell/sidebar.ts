@@ -1,26 +1,17 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { readStored, writeStored } from '../storage.js';
 
 // The sidebar narrows to icons (UI prototypes): the button at its foot, or the `[` key. Remembered per browser.
 
 const SIDEBAR_STORAGE_KEY = 'omnicourse.sidebar';
 
-function storedMini(): boolean {
-  try {
-    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'mini';
-  } catch {
-    return false;
-  }
-}
-
 export const useSidebar = defineStore('sidebar', () => {
-  const mini = ref(storedMini());
+  const mini = ref(readStored(SIDEBAR_STORAGE_KEY) === 'mini');
 
   function toggle(): void {
     mini.value = !mini.value;
-    try {
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, mini.value ? 'mini' : 'full');
-    } catch {}
+    writeStored(SIDEBAR_STORAGE_KEY, mini.value ? 'mini' : 'full');
   }
 
   return { mini, toggle };

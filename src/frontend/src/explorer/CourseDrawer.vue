@@ -4,30 +4,31 @@ import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { fetchCourse, type Course } from '../curriculum/api.js';
-import { courseName } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
-import { useLocale, useMessages } from '../locale.js';
+import { groupClass, groupOf, type GroupId } from '../groups.js';
+import { localName, otherName, useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // One course, opened from a tile (UI prototypes: explorer.html, the drawer). What the catalog stores, the groups
-// that list it, and a neutral mark when the student's own transcript has it. Prerequisites and offering terms have
-// no data yet (ADR 0011), so the drawer says so instead of showing any.
+// that list it, and a neutral mark when the student's own transcript has it. The drawer does not show prerequisites or
+// offering terms yet, though F12 records them (ADR 0011); its note still says they are not recorded.
 const props = defineProps<{ course: Course | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 
 const detail = useAsyncLoad(
   'the course',
   async () => (props.course ? auth.authed((token) => fetchCourse(token, props.course!.code)) : null),
   () => props.course?.code,
 );
-const glyph = computed(() => GROUPS.find((g) => g.id === props.group?.id)?.glyph ?? '');
-const name = computed(() => (props.course ? courseName(props.course, locale.lang) : ''));
-const other = computed(() => (props.course ? (locale.lang === 'en' ? props.course.nameVi : props.course.nameEn) : null));
+const glyph = computed(() => (props.group ? groupOf(props.group.id).glyph : ''));
+const name = computed(() => (props.course ? localName(props.course, locale.lang) : ''));
+const other = computed(() => (props.course ? otherName(props.course, locale.lang) : null));
 const periods = computed(() => {
   const course = props.course;
   if (!course) return [];
@@ -52,7 +53,7 @@ const periods = computed(() => {
           <h2 id="course-title">{{ name }}</h2>
           <p v-if="other" class="small t3">{{ other }}</p>
         </div>
-        <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="emit('close')"><Icon name="x" size="sm" /></button>
+        <button class="btn sm icon-only" type="button" :aria-label="common.close" @click="emit('close')"><Icon name="x" size="sm" /></button>
       </div>
       <dl class="kv">
         <dt>{{ m.code }}</dt>

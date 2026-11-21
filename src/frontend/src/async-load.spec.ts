@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, ref } from 'vue';
+import { HttpError } from './api.js';
 import { useAsyncLoad } from './async-load.js';
 
 function deferred<T>() {
@@ -44,6 +45,16 @@ describe('useAsyncLoad with a key', () => {
     await flushPromises();
 
     expect(state.status.value).toBe('loaded');
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('fails without logging a 401: the session is over and App.vue takes the student to sign in', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let state!: ReturnType<typeof useAsyncLoad<string>>;
+    mount(defineComponent({ setup: () => ((state = useAsyncLoad('the item', () => Promise.reject(new HttpError('/item', 401)))), () => null) }));
+    await flushPromises();
+
+    expect(state.status.value).toBe('failed');
     expect(consoleError).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { TranscriptRow } from './api.js';
 import { blankRow, fromRow, parseCredits, parseGrade, problems, toRow, yearChoices, type DraftRow } from './rows.js';
 
@@ -112,6 +112,16 @@ describe('blankRow', () => {
   it('starts in the current academic year when the table is empty', () => {
     expect(blankRow(0, [], new Date(2026, 10, 9)).year).toBe(2026);
     expect(blankRow(0, [], new Date(2026, 2, 1)).year).toBe(2025);
+  });
+
+  it('counts the academic year on the date in Vietnam, as the API does, not on the browser clock', () => {
+    vi.stubEnv('TZ', 'America/Los_Angeles');
+    try {
+      // Still 31 August in Los Angeles, already 1 September (academic year 2026) in Vietnam.
+      expect(blankRow(0, [], new Date('2026-08-31T18:00:00Z')).year).toBe(2026);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

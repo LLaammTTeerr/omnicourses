@@ -6,6 +6,7 @@ import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { COMMON_MESSAGES } from '../messages.js';
 import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
@@ -21,6 +22,7 @@ const auth = useAuth();
 const locale = useLocale();
 const route = useRoute();
 const m = useMessages(SHELL_MESSAGES);
+const common = useMessages(COMMON_MESSAGES);
 const initial = computed(() => auth.user?.displayName.trim()[0]?.toUpperCase() ?? '');
 
 const moreOpen = ref(false);
@@ -73,7 +75,7 @@ function backdrop(event: MouseEvent): void {
       <div class="more-body">
         <div class="more-head">
           <h2 id="more-title">{{ m.more }}</h2>
-          <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="moreOpen = false"><Icon name="x" size="sm" /></button>
+          <button class="btn sm icon-only" type="button" :aria-label="common.close" @click="moreOpen = false"><Icon name="x" size="sm" /></button>
         </div>
         <ul class="more-list">
           <li v-for="item in PHONE_MORE" :key="item.route">

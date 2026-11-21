@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { groupColour } from '../curriculum/present.js';
-import { GROUPS, groupClass } from '../groups.js';
+import { groupClass, groupColour, groupOf } from '../groups.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import type { PlanGroupCoverage } from './api.js';
-import type { AttachedIssues } from './board.js';
+import { termViolations, type AttachedIssues } from './board.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
 // The plan at a glance (the prototype's status strip): how many violations the rule engine finds in the terms and how
@@ -22,14 +21,13 @@ const m = useMessages(PLANNER_MESSAGES);
 
 const report = computed(() => props.attached?.report ?? null);
 /** Violations about a term or a course. Coverage shortfalls show in the groups beside. */
-const placementViolations = computed(() => report.value?.issues.filter((i) => i.kind === 'violation' && i.term !== null).length ?? 0);
+const placementViolations = computed(() => termViolations(report.value).length);
 /** Rules the engine could not check for lack of data. */
 const unknowns = computed(() => report.value?.issues.filter((i) => i.kind === 'unknown').length ?? 0);
-/** The engine's own graduation status. */
 const graduation = computed(() => report.value?.coverage.graduation ?? null);
 const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
   const colour = groupColour(group);
-  return { colour, glyph: GROUPS.find((g) => g.id === colour)!.glyph };
+  return { colour, glyph: groupOf(colour).glyph };
 };
 </script>
 

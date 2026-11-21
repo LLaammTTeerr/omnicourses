@@ -1,6 +1,5 @@
-import type { Program } from '../curriculum/api.js';
 import { goalTerms, parseTermKey, sameTerm, termKey, type Term } from '../terms.js';
-import { NO_INTERNSHIP, OFFERED_COHORTS, type Onboarding } from './api.js';
+import { NO_INTERNSHIP, type Onboarding } from './api.js';
 
 // The onboarding answers as a form edits them: every select holds a string, "" meaning not answered. Shared by the
 // wizard and the settings section, which save the same object (UC-01 A9).
@@ -49,25 +48,6 @@ export function goalTermChoices(saved: (Term | null)[], now: Date = new Date()):
   const terms = goalTerms(now);
   const old = saved.filter((term): term is Term => term !== null && !terms.some((t) => sameTerm(t, term)));
   return [...old, ...terms];
-}
-
-export interface ProgramChoice {
-  code: string;
-  program: Program | null;
-  /** The cohorts both offered in this release and with a curriculum. */
-  cohorts: number[];
-  /** Offered in this release (B1 §6 item 1); the others are listed but cannot be picked (UC-01 A7). */
-  offered: boolean;
-}
-
-/** Every program the API lists, the offered ones first; an offered program the list lacks still appears. */
-export function programChoices(programs: readonly Program[]): ProgramChoice[] {
-  const offered = Object.entries(OFFERED_COHORTS).map(([code, cohorts]): ProgramChoice => {
-    const program = programs.find((p) => p.code === code) ?? null;
-    return { code, program, cohorts: program ? cohorts.filter((c) => program.cohortYears.includes(c)) : [...cohorts], offered: true };
-  });
-  const others = programs.filter((p) => !Object.hasOwn(OFFERED_COHORTS, p.code)).map((program): ProgramChoice => ({ code: program.code, program, cohorts: [], offered: false }));
-  return [...offered, ...others];
 }
 
 /** The step onboarding resumes at (UC-01 A8): the program, the cohort, then the goal, which is optional. */
