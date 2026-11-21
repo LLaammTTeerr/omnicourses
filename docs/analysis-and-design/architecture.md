@@ -260,7 +260,7 @@ Seven components call the engine, all as readers of its answers:
 - `plans` validates every change to a plan live (performance NFR: under 300 ms).
 - `plan-generator` places courses term by term and asks the engine whether each placement is allowed ([ADR 0006](adr/0006-plan-generator.md)). It holds no rule of its own.
 - `advisor`'s tool handlers ask the engine to check a rule for the student.
-- `curriculum-admin` asks for final-state validation before a write commits ([ADR 0011](adr/0011-curriculum-administration.md)).
+- `curriculum-admin` will ask for final-state validation before a write commits (planned, [ADR 0011](adr/0011-curriculum-administration.md)). Until Triết's rule-engine interface exists, membership writes run with structural checks only, and credit totals stay read-only.
 - `guides` fills rule values, such as the student's credit cap, into a guide from B3 (UC-10 A3).
 
 **The AI gateway never decides a rule.** In the goal box, the model only turns a sentence into the planning-goal form; the student reviews it, and the planner then works over the engine. In the advisor, the gateway runs the tool loop: a tool handler, written by the `advisor` owner, calls the engine and returns its answer for the model to explain. Nothing the model returns is written back as a rule, a placement or a status.

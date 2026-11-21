@@ -1,6 +1,6 @@
 # ADR 0011: Curriculum administration and program-scoped permissions
 
-- Status: accepted by Lâm (Project Lead): the school-scope amendment on 9 November 2026, and the whole ADR on 12 November 2026, on Discord. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now)). Amended 15 November 2026: APCS courses are seeded as having no prerequisite (see [the amendment](#amendment-15-november-2026-apcs-courses-have-no-prerequisite)); corrected 21 November 2026: except CS469 before CS470. Acceptance records the scope exception and the audit deferral below and closes the prerequisite storage gate; [Implementation notes (12 November 2026)](#implementation-notes-12-november-2026) describe what `main` does where it differs from the text
+- Status: accepted by Lâm (Project Lead): the school-scope amendment on 9 November 2026, and the whole ADR on 12 November 2026, on Discord. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now)). Amended 15 November 2026: APCS courses are seeded as having no prerequisite (see [the amendment](#amendment-15-november-2026-apcs-courses-have-no-prerequisite)); corrected 21 November 2026: except CS469 before CS470. Acceptance records the scope exception and the audit deferral below and closes the prerequisite storage gate; [Implementation notes (as of 21 November 2026)](#implementation-notes-as-of-21-november-2026) describe what `main` does where it differs from the text
 - Date: 2026-11-03
 - Owner: Thắng (F12)
 - Deciders: Lâm (Project Lead), Triết (curriculum schema and rule engine)
@@ -30,7 +30,7 @@ Thắng's review listed three findings. At acceptance (12 November 2026) each is
 
 1. **Catalog read path for program administrators.** *Answered, with a gap.* `main` has the F4 read routes from [#65](https://github.com/LLaammTTeerr/omnicourses/pull/65) (`src/backend/src/curriculum/curriculum.controller.ts`), open to every signed-in user, ordinary students included: `GET /api/programs` (every program with its cohorts), `GET /api/programs/:program/curricula/:cohort` (the curriculum and its requirement groups with their UUIDs, and each course with `prerequisites` and `offeringTerms`, `null` when not recorded) and `GET /api/courses/:code` (one catalog course by exact code, with every group linking it). #74 added `GET /api/admin/programs`: only the programs the caller holds a program grant for, with their cohorts' curriculum IDs. None of these filters or paginates. **Gap:** no route lists or searches the shared catalog, for administrators or anyone else, so a program administrator links a course by a code they already know. A catalog listing/search route needs its permission, fields, filtering and pagination added here before it is built.
 2. **Rejecting unknown and immutable PATCH fields.** *Closed by #74.* Admin request bodies use `@StrictBody()` (`src/backend/src/curriculum-admin/strict-body.ts`), a custom parameter decorator the global pipe skips, validated by a route pipe with `whitelist` and `forbidNonWhitelisted`: an unknown, identifier or gated field (a credit total) answers `400 validation_failed` naming it. It covers requirement-group `POST`/`PATCH`, prerequisites and offering-terms `PUT`, and catalog `POST`/`PATCH`; the membership, access and `DELETE` routes take no body. The global `ValidationPipe` (`src/backend/src/bootstrap.ts`) still uses `whitelist: true` without `forbidNonWhitelisted` for every other route. The e2e test "rejects malformed codes, unknown fields and a gated credit total" (`src/backend/test/curriculum-admin.e2e-spec.ts`) proves it.
-3. **Field contracts outside courses.** *Answered for requirement groups; open for programs and curricula.* Requirement groups (`curriculum-admin.dto.ts`): `name` required, nonempty, at most 255 characters and unique within the curriculum; `kind` one of the stored kinds, refused on `PATCH` while the group stores a credit total; `officialNotes` nullable, blank stored as null; `curriculumId` and the totals are not accepted. No route on `main` creates or edits a program or a curriculum, so their field contract is not yet written. `curriculums.code` (`varchar(50) NOT NULL`, no uniqueness constraint in #23's migration) is written only by the seeds (`APCS2024`, `APCS2025`) and is read-only in `GET /api/admin/programs`; its format, uniqueness and immutability must be added here with the first program/cohort write route.
+3. **Field contracts outside courses.** *Answered for requirement groups; open for programs and curricula.* Requirement groups (`curriculum-admin.dto.ts`): `name` required, nonempty, at most 255 characters and unique within the curriculum; `kind` one of the stored kinds, refused on `PATCH` while the group stores a credit total; `officialNotes` nullable, blank stored as null; `curriculumId` and the totals are not accepted. No route on `main` creates or edits a program or a curriculum, so their field contract is not yet written. `curriculums.code` (`varchar(50) NOT NULL`, no uniqueness constraint in #23's migration) is written only by the seeds, in two formats: `APCS2024` and `APCS2025` (the APCS seeds), and nine codes of the form `CNTT-TCTA-<KEY>-2025` (the CLC 2025 seeds, `clc-2025-shared.ts`). It is read-only in `GET /api/admin/programs`; its format, uniqueness and immutability must be added here with the first program/cohort write route, and must accept both existing formats.
 
 ## Decisions
 
@@ -67,9 +67,9 @@ Granting is an idempotent upsert; repeating the same grant preserves its origina
 
 Account export includes only the recipient's grant rows. Purging a recipient removes their grants; purging a granter nulls `granted_by` and preserves other recipients' grants. Neither action deletes programs, curricula or courses. No new grant table may reach `users` only through another table. These properties must pass the existing account-export/purge e2e checks.
 
-### Audit trail: open before curriculum/catalog writes
+### Audit trail: decided, no change-history log in B2
 
-Neither #23's `updated_at` nor grant attribution records who changed a curriculum or catalog row. **Lâm and Triết must decide whether B2 requires a change-history log or explicitly defers it before those mutations are implemented.** No audit trail is claimed by this ADR. If included, the reviewed contract must define recorded operations and before/after fields, transaction failure behavior, read permissions and retention; Thắng adds the storage and acceptance cases here before coding. If deferred, record the missing history in B2's acceptance evidence.
+*Original question (before the decisions below, which answer it):* neither #23's `updated_at` nor grant attribution records who changed a curriculum or catalog row. Lâm and Triết must decide whether B2 requires a change-history log or explicitly defers it before those mutations are implemented. No audit trail is claimed by this ADR. If included, the reviewed contract must define recorded operations and before/after fields, transaction failure behavior, read permissions and retention; Thắng adds the storage and acceptance cases here before coding. If deferred, record the missing history in B2's acceptance evidence.
 
 **Decided (Lâm, 9 November 2026): deferred until after B3.** Curriculum and catalog writes may be implemented without a change-history log. B2's acceptance evidence records the missing history, and nothing in B2 or B3 may claim an audit trail. *Superseded by the 12 November 2026 decision below; kept as the record of what was decided first.*
 
@@ -89,7 +89,7 @@ The grant API rejects revoking the last active access manager with `409 last_acc
 
 ## Write boundary and API outline
 
-All routes below are the accepted outline, behind `/api/admin`, and require the existing bearer authentication. Not all of them exist yet: the [implementation notes](#implementation-notes-12-november-2026) list which ones `main` serves. The implementation supplies validated request/response DTOs with `@ApiProperty`, `@ApiBearerAuth()` and documented errors in OpenAPI 3.2.0. Controller names and internal helper names are implementation choices; authority checks and transaction boundaries are not.
+All routes below are the accepted outline, behind `/api/admin`, and require the existing bearer authentication. Not all of them exist yet: the [implementation notes](#implementation-notes-as-of-21-november-2026) list which ones `main` serves. The implementation supplies validated request/response DTOs with `@ApiProperty`, `@ApiBearerAuth()` and documented errors in OpenAPI 3.2.0. Controller names and internal helper names are implementation choices; authority checks and transaction boundaries are not.
 
 | Routes under `/api/admin` | Permission and behavior |
 | --- | --- |
@@ -132,7 +132,7 @@ Reject unsupported fields and nonexistent references before saving. Reconcile #2
 | `403 permission_required` | Missing current program, catalog or access-manager grant; the response identifies the permission kind, without disclosing another program's data. |
 | `404` | Item absent within the authorized scope, including mismatched nested IDs. |
 | `400 validation_failed` | Malformed/unsupported fields, invalid CSV or a deterministic validation failure; return field/row errors and rule-engine findings where applicable. |
-| `409` with a stable reason | Uniqueness conflict, `impact_changed`, `referenced_item`, or `last_access_manager`; no partial save. |
+| `409` with a stable reason | Uniqueness conflict, `impact_changed`, `referenced_item`, `last_access_manager`, or `recipient_deletion_pending`; no partial save. |
 | `413` | JSON body, decoded CSV bytes or data-record count exceeds the import limits below; no partial save. |
 
 Unexpected storage failures roll back and return the existing server-error response without SQL, credentials or private data. A lost response leaves the client in an unknown state: reload the saved resource before retrying or reporting success. Cancellation before confirmation sends no write.
@@ -209,7 +209,7 @@ Implement in dependency order: grants/bootstrap and program/cohort writes; group
 - **Membership writes go ahead with structural checks only.** Codes, ownership and references are checked; group-total final-state validation still waits for the rule-engine interface, and credit totals stay read-only (`400`) until then.
 - **Still partial:** program and cohort creation/editing, CSV import, the audit log (no change-history log in B2; whether B3 builds one is not decided, per the 12 November decision above) and the account screen's User ID field. F12 remains **partial**.
 
-### Implementation notes (12 November 2026)
+### Implementation notes (as of 21 November 2026)
 
 What `main` serves under `/api/admin` (`src/backend/src/curriculum-admin/*.controller.ts`), against the outline above:
 
@@ -228,7 +228,7 @@ What `main` serves under `/api/admin` (`src/backend/src/curriculum-admin/*.contr
 
 Other differences from the text:
 
-- Besides the codes in the response table, the write services answer `403 account_deletion_pending` when the caller's account is waiting for deletion, and `400 prerequisite_cycle` with the cycle (`admin-errors.ts`).
+- Besides the codes in the response table, the write services answer `403 account_deletion_pending` when the caller's account is waiting for deletion, and `400 prerequisite_cycle` with the cycle (`admin-errors.ts`). Granting a program or global permission (`PUT /access/users/:userId/programs/:programId` and `PUT …/global/:permission`) to an account waiting for deletion answers `409 recipient_deletion_pending` (`access-admin.service.ts`).
 - The administration screens and the account screen's **User ID** field are not built; no frontend route calls `/api/admin`.
 - The amendment says the curriculum PDFs print no prerequisites. Since then, [#75](https://github.com/LLaammTTeerr/omnicourses/pull/75) extracted the "Prior-course" lines of the APCS course-description booklet into `src/backend/src/database/seeds/apcs-prerequisites.ts`. Those lines are not loaded as rules. Since #111 (the [15 November amendment](#amendment-15-november-2026-apcs-courses-have-no-prerequisite)), `db:seed` writes one `course_prerequisite_lists` row per course of APCS 2024 and APCS 2025. An empty list means "no prerequisite"; CS470's list holds CS469. No seed writes `course_offering_terms`.
 
