@@ -5,7 +5,7 @@ import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
+import { fetchCurriculum, fetchPrograms, type Course, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -18,10 +18,10 @@ import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // The curriculum explorer (F4, UI prototypes: explorer.html without the prerequisite graph): the requirement groups
-// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API has
-// no prerequisites or offering terms yet, so nothing here says a course is open, locked or available; and whether a
-// course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's own transcript only adds a
-// neutral "in your transcript" mark.
+// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API
+// records no offering term yet, and no course that needs another, so nothing here says a course is open, locked or
+// available; and whether a course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's
+// own transcript only adds a neutral "in your transcript" mark.
 const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
@@ -73,8 +73,8 @@ const shown = computed(() =>
 const courseCount = computed(() => new Set(groups.value.flatMap(({ group }) => group.courses.map((course) => course.code))).size);
 const glyph = (id: GroupId) => GROUPS.find((g) => g.id === id)!.glyph;
 
-const open = shallowRef<{ course: Course; group: { id: GroupId; name: string } } | null>(null);
-function openCourse(course: Course, group: RequirementGroup, colour: GroupId): void {
+const open = shallowRef<{ course: CurriculumCourse; group: { id: GroupId; name: string } } | null>(null);
+function openCourse(course: CurriculumCourse, group: RequirementGroup, colour: GroupId): void {
   open.value = { course, group: { id: colour, name: group.name } };
 }
 

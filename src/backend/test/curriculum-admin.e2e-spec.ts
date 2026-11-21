@@ -192,7 +192,9 @@ describe('Curriculum administration API (e2e)', () => {
     const { body } = await as(admin.token).get('/api/programs/APCS/curricula/2024').expect(200);
     const seeded = (body.requirementGroups as ReadGroup[]).filter((g) => g.name !== groupName).flatMap((g) => g.courses);
     expect(seeded.length).toBeGreaterThan(0);
-    expect(seeded.every((c) => c.prerequisites === null && c.offeringTerms === null)).toBe(true);
+    // The seed records every APCS course as having no prerequisite (Project Lead, 15 November 2026) except CS470, which needs
+    // CS469 (printed in the curriculum PDF; 21 November 2026), and no offering term.
+    for (const c of seeded) expect([c.code, c.prerequisites, c.offeringTerms]).toEqual([c.code, c.code === 'CS470' ? ['CS469'] : [], null]);
   });
 
   it('round-trips offering terms, and clears both kinds back to not recorded', async () => {
@@ -209,12 +211,16 @@ describe('Curriculum administration API (e2e)', () => {
     expect([d.prerequisites, d.offeringTerms]).toEqual([null, null]);
   });
 
-  it('keeps an untouched curriculum, and another cohort of the same program, at not recorded', async () => {
-    for (const [program, year] of [[clcCode, 2025], ['APCS', 2025]] as const) {
+  it('keeps an untouched curriculum at not recorded, and another cohort of the same program as the seed left it', async () => {
+    // CLC: nothing recorded. APCS 2025: the seed's "no prerequisite" for every course but CS470 (CS469), which the writes to
+    // APCS 2024 did not change.
+    for (const [program, year, prerequisites] of [[clcCode, 2025, null], ['APCS', 2025, []]] as const) {
       const { body } = await as(stranger.token).get(`/api/programs/${program}/curricula/${year}`).expect(200);
       const courses = (body.requirementGroups as ReadGroup[]).flatMap((g) => g.courses);
       expect(courses.length).toBeGreaterThan(0);
-      expect(courses.every((c) => c.prerequisites === null && c.offeringTerms === null)).toBe(true);
+      for (const c of courses) {
+        expect([c.code, c.prerequisites, c.offeringTerms]).toEqual([c.code, program === 'APCS' && c.code === 'CS470' ? ['CS469'] : prerequisites, null]);
+      }
     }
   });
 

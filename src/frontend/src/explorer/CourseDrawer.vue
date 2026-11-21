@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
-import { fetchCourse, type Course } from '../curriculum/api.js';
+import { fetchCourse, type CurriculumCourse } from '../curriculum/api.js';
 import { courseName } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -11,9 +11,11 @@ import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // One course, opened from a tile (UI prototypes: explorer.html, the drawer). What the catalog stores, the groups
-// that list it, and a neutral mark when the student's own transcript has it. Prerequisites and offering terms have
-// no data yet (ADR 0011), so the drawer says so instead of showing any.
-const props = defineProps<{ course: Course | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
+// that list it, and a neutral mark when the student's own transcript has it. No offering term is recorded yet
+// (ADR 0011), so the drawer says so. A course its curriculum records as having no prerequisite (every APCS course
+// but CS470) says that, one with recorded prerequisites (CS470: CS469) lists them, and one with nothing recorded says
+// "not recorded", which is not the same.
+const props = defineProps<{ course: CurriculumCourse | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 const auth = useAuth();
@@ -25,6 +27,11 @@ const detail = useAsyncLoad(
   async () => (props.course ? auth.authed((token) => fetchCourse(token, props.course!.code)) : null),
   () => props.course?.code,
 );
+const prerequisiteNote = computed(() => {
+  const prerequisites = props.course?.prerequisites;
+  if (!prerequisites || props.course?.offeringTerms !== null) return m.value.noPrerequisites;
+  return prerequisites.length ? m.value.prerequisitesListed(prerequisites) : m.value.prerequisitesNone;
+});
 const glyph = computed(() => GROUPS.find((g) => g.id === props.group?.id)?.glyph ?? '');
 const name = computed(() => (props.course ? courseName(props.course, locale.lang) : ''));
 const other = computed(() => (props.course ? (locale.lang === 'en' ? props.course.nameVi : props.course.nameEn) : null));
@@ -79,7 +86,7 @@ const periods = computed(() => {
           </ul>
         </dd>
       </dl>
-      <p class="small t3" data-test="no-prerequisites"><Icon name="info" size="sm" class="inline" />{{ m.noPrerequisites }}</p>
+      <p class="small t3" data-test="no-prerequisites"><Icon name="info" size="sm" class="inline" />{{ prerequisiteNote }}</p>
       <p class="xs t3">{{ m.source }}</p>
     </template>
   </ModalDialog>

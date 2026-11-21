@@ -1,6 +1,6 @@
 # ADR 0011: Curriculum administration and program-scoped permissions
 
-- Status: proposed; not authorization to implement. Scope, audit and prerequisite decisions recorded on 9 November 2026; review findings below still open. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now))
+- Status: proposed; not authorization to implement. Scope, audit and prerequisite decisions recorded on 9 November 2026; review findings below still open. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now)). Amended 15 November 2026: APCS courses are seeded as having no prerequisite (see [the amendment](#amendment-15-november-2026-apcs-courses-have-no-prerequisite)); corrected 21 November 2026: except CS469 before CS470
 - Date: 2026-11-03
 - Owner: Thắng (F12)
 - Deciders: Lâm (Project Lead), Triết (curriculum schema and rule engine)
@@ -194,6 +194,28 @@ Implement in dependency order: grants/bootstrap and program/cohort writes; group
 - **Unknown fields (open item 2, closed).** Admin request bodies use `@StrictBody()`, a custom parameter decorator the global pipe skips, validated with `forbidNonWhitelisted`: an unknown, identifier or gated field answers `400 validation_failed` instead of being dropped.
 - **Membership writes go ahead with structural checks only.** Codes, ownership and references are checked; group-total final-state validation still waits for the rule-engine interface, and credit totals stay read-only (`400`) until then.
 - **Still partial:** program and cohort creation/editing, CSV import, the audit log (deferred past B3 above) and the account screen's User ID field. F12 remains **partial**.
+
+### Amendment, 15 November 2026: APCS courses have no prerequisite
+
+**Decided (Lâm, 15 November 2026, on the team Discord: "apcs have no prerequisite"; corrected by Lâm on 21 November 2026):** APCS courses have no prerequisite, except CS469 before CS470. That one rule is printed on p. 8 of the APCS 2024 curriculum PDF and p. 9 of the APCS 2025 one (the note under 7.3 "Kiến thức tốt nghiệp"), rule (iii): "Nếu sinh viên không hoàn thành CS469 sẽ không được tiếp tục thực hiện CS470." The PDFs print no prerequisite column, and for every other course the decision is the source. It replaces one sentence of the amendment above for APCS, "The seeds stay without them: no prerequisite or offering term is invented": the APCS seeds now carry the decision. Storage, the read API and the write routes are unchanged.
+
+| Decision | Alternatives rejected | Evidence |
+| --- | --- | --- |
+| **The seed records "no prerequisite" for every course of APCS 2024 and APCS 2025, except CS470.** `apcsNoPrerequisites` (`seeds/apcs-prerequisites.ts`) holds who decided, when and on what basis; both APCS seeds point at it (`CurriculumSeed.no_prerequisites`), and `db:seed` writes one `course_prerequisite_lists` row per course of the curriculum. The list has no `course_prerequisites`, so the read API answers `prerequisites: []` and the rule engine's check answers `none` instead of `not_recorded`. CLC seeds carry no such decision and stay `null`. | Entering 140 lists (69 courses of APCS 2024, 71 of APCS 2025) by hand through `PUT …/prerequisites`; a migration; a per-program "has no prerequisites" flag; making the rule engine treat a missing list as "none" for APCS. | The deploy runs `db:migrate` then `db:seed` (`deploy/server/omnicourse-deploy`), so the data reaches every environment with the code and a new database gets it too; a migration runs before the seed on an empty database and would write nothing there. A flag is a schema change, and the table above already rejected it. An engine special case would be a rule hidden in code instead of recorded data (AGENTS.md hard rule 1 keeps the engine deterministic over recorded data). `test/curriculum-seed.e2e-spec.ts`, `test/curriculum.e2e-spec.ts`. |
+| **Insert-only, like the rest of the seed.** `ON CONFLICT (curriculum_id, course_code) DO NOTHING`: a list a program administrator entered through F12, empty or not, is never changed. | Deleting and rewriting the lists on each run. | The seed's rule since #36: later admin edits survive a re-run. |
+| **CS470 needs CS469** (21 November 2026). `apcsNoPrerequisites.except` holds the printed sentence, its page per curriculum and the decision. The seed writes CS470's list with one `course_prerequisites` row for CS469, so the read API answers `prerequisites: ["CS469"]` and a plan that places CS470 before CS469 is passed gets `prerequisite_not_met`. "Không hoàn thành" means "has not completed": the schema has one kind only, "must be passed first" (Điều 3.1.c), and that is the kind stored. Like every seeded list, CS469 is written only together with a new CS470 list: a CS470 list that already exists, from an administrator or from an earlier run, is left as it is. | Leaving CS470 out of the "none" records, so it stays "not recorded" until it is entered through F12. | The PDFs (APCS 2024 p. 8, APCS 2025 p. 9); `curriculum-seeds.spec.ts` checks the sentence against the seeds' `official_notes`; `test/curriculum-seed.e2e-spec.ts`, `test/curriculum.e2e-spec.ts`. |
+| **Offering terms stay not recorded** (`null`), for APCS too. | Seeding every term as offered. | The decision covers prerequisites only; no source gives offering terms. |
+| **The booklet's "Prior-course" lines, and any older prerequisite table, are not rules** and are not loaded. | Loading the lines that resolve to a course. | The decision above. The lines stay in `apcs-prerequisites.ts` as printed text for the advisor's course descriptions. |
+
+Two consequences of insert-only, both the same as for a seeded group link today:
+
+- `DELETE …/prerequisites` on a seeded APCS course returns it to `null` only until the next deploy, whose seed records "none" again (CS469, for CS470). To give an APCS course a prerequisite, `PUT` the list; that survives.
+- A seeded APCS course now has a recorded rule, so unlinking it from its last group answers `409 referenced_item` ("prerequisites of … are recorded") until its list is deleted. The seed would link it again on the next deploy in any case.
+
+Not verified, and not decided or loaded:
+
+- **CS468 (Khóa luận tốt nghiệp) and CS404 (Thực tập thực tế)** are seeded as "no prerequisite" with the rest. Nobody has checked whether the school sets a credit or year gate for them. B2 cases must not treat "no prerequisite" as confirmed for these two.
+- **Rules (i) and (ii) of the same note are counting rules, not prerequisites**, and are a data gap. (i) A student who takes the capstone route must take both CS469 and CS470; the group's 10-credit minimum already gives the same result (ADR 0013). (ii) A student who takes CS469 and does not go on to CS470 gets no credit for CS469. The schema cannot store (ii), so the audit still counts a passed CS469's 5 credits toward the cohort total in that case (`rules/audit.ts` has no exception for it).
 
 ## Verification required with implementation
 

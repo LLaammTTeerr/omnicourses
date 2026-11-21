@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { apcs2024TeachingPlan } from './apcs-2024.teaching-plan.js';
 import { apcs2025TeachingPlan } from './apcs-2025.teaching-plan.js';
 import { apcsEquivalences } from './apcs-equivalences.js';
+import { apcsNoPrerequisites, apcsPrerequisites } from './apcs-prerequisites.js';
 import { clcEquivalences } from './clc-equivalences.js';
 import { COURSE_CODE_PATTERN, normalizePrintedCode } from '../../common/course-code.js';
 import { buildCatalog, CatalogConflictError, rowToCourse, seedLabel } from './catalog.js';
@@ -400,4 +401,42 @@ describe('APCS audit rules', () => {
       expect(notCounted).toEqual(['BAA00021', 'BAA00022', 'BAA00030']);
     },
   );
+});
+
+describe('prerequisites', () => {
+  it('records "no prerequisite" for APCS 2024 and 2025 only, as the Project Lead decided on 15 November 2026', () => {
+    expect(CURRICULUM_SEEDS.filter((s) => s.no_prerequisites).map((s) => s.curriculum.code)).toEqual(['APCS2024', 'APCS2025']);
+    for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) expect(seed.no_prerequisites).toBe(apcsNoPrerequisites);
+    expect(apcsNoPrerequisites).toMatchObject({ decided_by: 'Project Lead (Lâm)', date: '2026-11-15' });
+    // The source names the one printed exception and its correction.
+    expect(apcsNoPrerequisites.source).toContain('21 November 2026: none, except CS469 before CS470');
+  });
+
+  it('keeps one printed exception: CS470 needs CS469 in APCS 2024 and 2025 (p. 8 and p. 9), every other course has none', () => {
+    expect(apcsNoPrerequisites.except.map((e) => [e.code, e.requires, e.pages, e.decided_by, e.date])).toEqual([
+      ['CS470', ['CS469'], { APCS2024: 8, APCS2025: 9 }, 'Project Lead (Lâm)', '2026-11-21'],
+    ]);
+    for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) {
+      const code = seed.curriculum.code;
+      // What db:seed writes for each course of the curriculum: its printed prerequisites, or none.
+      const written = new Map(seed.no_prerequisites!.except.map((e) => [e.code, e.requires]));
+      const courses = [...new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))];
+      const withPrerequisites = courses.filter((c) => (written.get(c) ?? []).length > 0);
+      expect(withPrerequisites, code).toEqual(['CS470']);
+      expect(written.get('CS470'), code).toEqual(['CS469']);
+      expect(courses, code).toContain('CS469');
+      // The printed sentence is rule (iii) of the note under 7.3, on the page given, in the seed's transcription.
+      const graduation = seed.groups.find((g) => g.name === 'Kiến thức tốt nghiệp')!;
+      const [exception] = seed.no_prerequisites!.except;
+      expect(graduation.page, code).toBe(exception.pages[code]);
+      expect(graduation.official_notes!.toLowerCase(), code).toContain(`(iii) ${exception.printed.toLowerCase()}`);
+    }
+  });
+
+  it('loads none of the booklet\'s "Prior-course" lines as a rule, and no offering term', () => {
+    // Section 8 prints no prerequisite; the one printed rule (CS469 before CS470) is in 7.3 and lives in apcsNoPrerequisites.except.
+    for (const plan of TEACHING_PLANS) expect(plan.prerequisites, plan.curriculum).toEqual([]);
+    expect(apcsPrerequisites.offering_terms).toEqual([]);
+    expect(apcsPrerequisites.note).toContain('not rules and are not loaded');
+  });
 });

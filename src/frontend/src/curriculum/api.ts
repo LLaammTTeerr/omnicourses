@@ -2,8 +2,8 @@ import { request } from '../api.js';
 
 // The curriculum read DTOs of the API (F4, ADR 0005), written by hand; api.spec.ts checks them against
 // src/backend/openapi.json. They carry only what the database stores: prerequisites and offering terms are null
-// until F12 records them for a course of a curriculum (ADR 0011), and nothing here decides whether a student may
-// take a course (the rule engine does).
+// until they are recorded for a course of a curriculum (ADR 0011; APCS courses are recorded as having no
+// prerequisite), and nothing here decides whether a student may take a course (the rule engine does).
 
 export const TRAINING_TYPES = ['advanced', 'joint', 'high_quality', 'standard'] as const;
 /** QĐ 1175 Điều 6.4, 7.2 (ADR 0012): it sets the terms and the credit caps. */
