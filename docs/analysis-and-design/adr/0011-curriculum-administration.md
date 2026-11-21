@@ -75,6 +75,8 @@ Account export includes only the recipient's grant rows. Purging a recipient rem
 
 Decided (Lâm, 12 November 2026, on Discord): he answered "oke" to "audit history → defer to B3". B2 has no change-history log. Whether B3 builds one is not decided; Lâm decides when B3 is planned. Until a log ships, nothing may claim an audit trail.
 
+Lâm confirmed this reading on 21 November 2026, on Discord, when Dũng's review of #93 asked whether "defer to B3" meant that B3 builds the log: it does not; whether B3 builds one is decided when B3 is planned.
+
 This decision supersedes the 9 November one above. B2's acceptance evidence records the missing history. If a log is built, its contract (recorded operations, before/after fields, transaction failure behavior, read permission and retention) is added to this ADR first, under the actor rule below.
 
 A retained log describes shared curriculum/catalog changes, not a student's owned record. Its actor reference must be nullable `actor_id uuid REFERENCES users(id) ON DELETE SET NULL`, never `user_id`; account purge detaches the actor and preserves the change record. Do not duplicate actor names, email, student identifiers or credentials into the log payload. This does not change the recipient-owned grant tables above. Export/purge tests must prove the log is not exported as the actor's owned data and survives actor purge with `actor_id = NULL`.
