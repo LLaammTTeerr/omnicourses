@@ -1,0 +1,74 @@
+Run at 2026-11-21T09:41:06.840Z
+Values: {APCS}=d3f524f8-e51b-42dd-91ac-013b15d5e033 {APCS24}=4a941965-834b-4d5a-a9c3-91a0607c3cbc {KHMT}=74ce84b9-c698-43ea-8470-1988a50656a8 {KHMT25}=f7622c13-3e5b-4d6c-95b0-17308c767846 {KG}=307a0d8d-a333-418c-8399-ad4bd8fd74b3
+
+== TC-B2-ADM-02c: own program ==
+A1 GET /admin/programs → 200 {"programs":[{"id":"d3f524f8-e51b-42dd-91ac-013b15d5e033","code":"APCS","nameVi":"Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến","curricula":[{"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","cohortYear":2024},{"id":"872ae05e-3e7d-405a-ac3c-58ef4748e475","code":"APCS2025","cohortYear":2025}]}]}
+  OK  list holds APCS only, with cohorts 2024 and 2025
+A1 W PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 200 {"courseCode":"CS420","terms":[1,2]}
+  OK  W 200 { courseCode: CS420, terms: [1, 2] }
+  OK  curriculum lists CS420 with offeringTerms [1, 2] ([1,2])
+A1 clean-up DELETE /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 200 {"courseCode":"CS420","terms":null}
+  OK  clean-up 200 with terms null
+  OK  CS420 reads null again (null)
+
+== TC-B2-ADM-02d: other program ==
+A1 (1) PUT /admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/courses/CSC14001/offering-terms → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  (1) 403 program_admin
+A1 (2) PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/courses/CSC14001/offering-terms → 404 {"statusCode":404,"code":"not_found","message":"No such cohort in this program"}
+  OK  (2) 404 not_found "No such cohort in this program"
+A1 (3) PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/307a0d8d-a333-418c-8399-ad4bd8fd74b3/courses/CS420 → 404 {"statusCode":404,"code":"not_found","message":"No such requirement group in this cohort"}
+  OK  (3) 404 not_found "No such requirement group in this cohort"
+A2 W PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  A2 W 403 program_admin
+K1: CSC14001 offeringTerms=null; KG has 15 courses, CS420 in it: false
+  OK  CLC equals K0 (whole curriculum read)
+R: CS420 offeringTerms=null; GET /courses/ZZADM02 → 404; S1 list {"programs":[]}
+  OK  R shows nothing changed
+
+== TC-B2-ADM-02e: catalog only ==
+A3 GET /admin/programs → 200 {"programs":[]}
+  OK  A3 list { programs: [] }
+A3 C POST /admin/catalog/courses → 201 {"code":"ZZADM02","nameVi":"Học phần thử ADM-02","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+  OK  C 201
+A3 PATCH /admin/catalog/courses/ZZADM02 → 200 {"code":"ZZADM02","nameVi":"Học phần thử ADM-02","nameEn":null,"credits":4,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+  OK  PATCH 200 with credits 4
+A3 GET /courses/ZZADM02 → 200 {"code":"ZZADM02","nameVi":"Học phần thử ADM-02","nameEn":null,"credits":4,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[]}
+  OK  GET shows 4 credits and no memberships
+A3 W PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  W 403 program_admin
+  OK  CS420 still null (null)
+A3 clean-up DELETE /admin/catalog/courses/ZZADM02 → 204 (no body)
+  OK  clean-up 204
+A3 GET /courses/ZZADM02 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  OK  then 404
+
+== TC-B2-ADM-02f: access manager only ==
+A4 G PUT /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"8ca00334-e8f3-4cfc-b285-944db1a971a4","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-21T09:41:09.610Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+  OK  G 200: S1 holds APCS, grantedBy A4, no permissions
+A4 GET /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/grants → 200 {"userId":"8ca00334-e8f3-4cfc-b285-944db1a971a4","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-21T09:41:09.610Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+  OK  grants read the same
+A4 DELETE /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"8ca00334-e8f3-4cfc-b285-944db1a971a4","programs":[],"permissions":[]}
+  OK  DELETE 200 with programs [] and permissions []
+A4 GET /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/grants → 200 {"userId":"8ca00334-e8f3-4cfc-b285-944db1a971a4","programs":[],"permissions":[]}
+  OK  grants read empty
+A4 GET /admin/programs → 200 {"programs":[]}
+  OK  A4 list { programs: [] }
+A4 W PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  W 403 program_admin
+A4 C POST /admin/catalog/courses → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+  OK  C 403 catalog_maintainer
+R: CS420 offeringTerms=null; GET /courses/ZZADM02 → 404; S1 list {"programs":[]}
+  OK  R shows nothing changed
+
+== TC-B2-ADM-02g: revoked ==
+A4 DELETE /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[],"permissions":[]}
+  OK  DELETE 200 with programs []
+A1 (same token) W PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  W 403 program_admin
+A1 GET /admin/programs → 200 {"programs":[]}
+  OK  A1 list { programs: [] }
+  OK  CS420 still null (null)
+A4 restore PUT /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-21T09:41:11.412Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+  OK  restore 200 with APCS in programs
+
+Done: 0 mismatch(es).
