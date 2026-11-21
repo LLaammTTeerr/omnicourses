@@ -1,0 +1,33 @@
+Run at 2026-11-21T09:33:02.077Z
+User IDs: {"a1":"32addfef-209b-4eba-b728-dfacb9856ead","a2":"46054d9c-2960-42c7-a80c-53a520e0cb65","a3":"b41c5d8d-83f7-42b2-ab4b-a83810bd520e","a4":"925cb9c8-86de-4427-a8c8-72cf442dd074","s1":"8ca00334-e8f3-4cfc-b285-944db1a971a4"}
+
+== Pre-run: grants, as A4 ==
+GET /admin/access/users/{a1}/grants → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-21T09:28:58.251Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+GET /admin/access/users/{a2}/grants → 200 {"userId":"46054d9c-2960-42c7-a80c-53a520e0cb65","programs":[{"programId":"74ce84b9-c698-43ea-8470-1988a50656a8","programCode":"CNTT-TCTA-KHMT","grantedAt":"2026-11-21T09:28:58.251Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+GET /admin/access/users/{a3}/grants → 200 {"userId":"b41c5d8d-83f7-42b2-ab4b-a83810bd520e","programs":[],"permissions":[{"permission":"catalog_maintainer","grantedAt":"2026-11-21T09:28:58.251Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}]}
+GET /admin/access/users/{a4}/grants → 200 {"userId":"925cb9c8-86de-4427-a8c8-72cf442dd074","programs":[],"permissions":[{"permission":"access_manager","grantedAt":"2026-11-21T09:28:52.950Z","grantedBy":null}]}
+GET /admin/access/users/{s1}/grants → 200 {"userId":"8ca00334-e8f3-4cfc-b285-944db1a971a4","programs":[],"permissions":[]}
+{APCS24} = 4a941965-834b-4d5a-a9c3-91a0607c3cbc (GET /programs/APCS/curricula/2024)
+A1 GET /admin/programs → 200 {"programs":[{"id":"d3f524f8-e51b-42dd-91ac-013b15d5e033","code":"APCS","nameVi":"Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến","curricula":[{"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","cohortYear":2024},{"id":"872ae05e-3e7d-405a-ac3c-58ef4748e475","code":"APCS2025","cohortYear":2025}]}]}
+
+== R before the run ==
+R1 GET /programs/APCS/curricula/2024 → 200; CS420 offeringTerms = null
+R2 GET /courses/ZZADM02 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+R3 S1 GET /admin/programs → 200 {"programs":[]}
+
+== TC-B2-ADM-02a: signed out ==
+W PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 401 {"message":"Unauthorized","statusCode":401}
+C POST /admin/catalog/courses → 401 {"message":"Unauthorized","statusCode":401}
+G PUT /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 401 {"message":"Unauthorized","statusCode":401}
+R1 GET /programs/APCS/curricula/2024 → 200; CS420 offeringTerms = null
+R2 GET /courses/ZZADM02 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+R3 S1 GET /admin/programs → 200 {"programs":[]}
+
+== TC-B2-ADM-02b: S1, no role ==
+S1 GET /admin/programs → 200 {"programs":[]}
+W PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+C POST /admin/catalog/courses → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+G PUT /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 403 {"statusCode":403,"code":"permission_required","permission":"access_manager","message":"This needs the access_manager permission"}
+R1 GET /programs/APCS/curricula/2024 → 200; CS420 offeringTerms = null
+R2 GET /courses/ZZADM02 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+R3 S1 GET /admin/programs → 200 {"programs":[]}
