@@ -179,8 +179,8 @@ export interface PrintedSubtotal {
 }
 
 /**
- * A decision that no course of a curriculum has a prerequisite. It is not transcribed from a
- * PDF: it records who decided, when, and what the decision rests on.
+ * A decision that no course of a curriculum has a prerequisite, except the printed ones in `except`.
+ * It records who decided, when, and what the decision rests on.
  */
 export interface NoPrerequisitesDecision {
   decided_by: string;
@@ -188,6 +188,26 @@ export interface NoPrerequisitesDecision {
   date: string;
   /** Where the decision was stated, and whether an official document backs it. */
   source: string;
+  /**
+   * loaded: courses that do have a prerequisite, printed in the curriculum PDF. Each gets its
+   * `course_prerequisite_lists` row with one `course_prerequisites` row per code of `requires`: every one
+   * must be passed before the course is taken (QĐ 1175/QĐ-KHTN Điều 3.1.c; the schema has no other kind).
+   */
+  except: PrerequisiteException[];
+}
+
+/** A printed prerequisite rule that a "no prerequisite" decision keeps. */
+export interface PrerequisiteException {
+  code: string;
+  /** Codes that must be passed before `code`. */
+  requires: string[];
+  /** The printed sentence, verbatim. */
+  printed: string;
+  /** Page of the printed sentence, per curriculums.code. */
+  pages: Record<string, Page>;
+  decided_by: string;
+  /** ISO date of the decision to load it. */
+  date: string;
 }
 
 /** One curriculum, transcribed from its PDF(s). */
@@ -206,8 +226,9 @@ export interface CurriculumSeed {
   appendix: AppendixRow[];
   known_discrepancies: KnownDiscrepancy[];
   /**
-   * loaded: one `course_prerequisite_lists` row with no `course_prerequisites` per course of the
-   * curriculum, which the read API and the rule engine read as "no prerequisite" (ADR 0011).
+   * loaded: one `course_prerequisite_lists` row per course of the curriculum. It has no
+   * `course_prerequisites`, which the read API and the rule engine read as "no prerequisite" (ADR 0011),
+   * except for a course in `except`, whose list holds its printed prerequisites.
    * Absent: nothing is written, and the courses stay "not recorded".
    */
   no_prerequisites?: NoPrerequisitesDecision;
@@ -257,7 +278,10 @@ export interface TeachingPlan {
   /** curriculums.code of the curriculum the plan belongs to. */
   curriculum: string;
   note: string;
-  /** Prerequisites as printed. Neither APCS PDF prints any. */
+  /**
+   * Prerequisites as printed in section 8. Neither APCS PDF prints any there; the one printed rule,
+   * CS469 before CS470, is in the note under 7.3 (NoPrerequisitesDecision.except).
+   */
   prerequisites: { code: string; requires: string[]; page: Page }[];
   rows: TeachingPlanRow[];
   /** Courses of the curriculum that the plan places in no semester. */
@@ -269,8 +293,8 @@ export interface TeachingPlan {
 }
 
 // Prerequisites and offering terms as printed. Not loaded, and not rules: the Project Lead
-// decided on 15 November 2026 that APCS courses have no prerequisite (CurriculumSeed.no_prerequisites,
-// ADR 0011). The advisor's course descriptions still read the printed lines.
+// decided on 15 November 2026 that APCS courses have no prerequisite, except CS469 before CS470
+// (21 November 2026; CurriculumSeed.no_prerequisites, ADR 0011). The advisor's course descriptions still read the printed lines.
 
 /**
  * One course's "Prior-course" line in a course-description booklet. The line

@@ -45,7 +45,7 @@ const CURRICULUM: Curriculum = {
     group('0a02', 'Kiến thức Math', 'compulsory', [course('ZZ101', 'Giải tích thử'), course('ZZ102', 'Đại số thử', 3)], {
       officialNotes: 'Ghi chú thử của nhóm.',
     }),
-    // ZZ201 is recorded as having no prerequisite, as the seed records every APCS course.
+    // ZZ201 is recorded as having no prerequisite, as the seed records every APCS course but CS470.
     group('0a03', 'Kiến thức Computer Science (A): bắt buộc', 'compulsory', [{ ...course('ZZ201', 'Lập trình thử'), prerequisites: [] }]),
   ],
 };
@@ -170,6 +170,20 @@ describe('ExplorerView (F4)', () => {
     await flushPromises();
     expect(w.get('dialog[open] [data-test="no-prerequisites"]').text()).toBe('Không có môn tiên quyết. Chưa ghi nhận học kỳ mở môn.');
     expect(EXPLORER_MESSAGES.en.prerequisitesNone).toBe('No prerequisite. Offering terms are not recorded yet.');
+  });
+
+  it('lists the recorded prerequisites of a course, as the seed records CS469 for CS470, in both languages', async () => {
+    const withPrerequisite: Curriculum = {
+      ...CURRICULUM,
+      requirementGroups: CURRICULUM.requirementGroups.map((g) =>
+        g.name === 'Kiến thức Computer Science (A): bắt buộc' ? { ...g, courses: [...g.courses, { ...course('ZZ202', 'Đồ án thử'), prerequisites: ['ZZ201'] }] } : g,
+      ),
+    };
+    const { w } = await render({ 'GET /programs/APCS/curricula/2024': withPrerequisite });
+    await w.get('[data-test="course-ZZ202"]').trigger('click');
+    await flushPromises();
+    expect(w.get('dialog[open] [data-test="no-prerequisites"]').text()).toBe('Môn tiên quyết: ZZ201. Chưa ghi nhận học kỳ mở môn.');
+    expect(EXPLORER_MESSAGES.en.prerequisitesListed(['ZZ201'])).toBe('Prerequisites: ZZ201. Offering terms are not recorded yet.');
   });
 
   it('opens a course in a drawer, with its groups and a plain note that prerequisites are not recorded', async () => {

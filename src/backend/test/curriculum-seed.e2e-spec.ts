@@ -123,10 +123,10 @@ describe('db:seed', () => {
       combined_minimums: CURRICULUM_SEEDS.flatMap((s) => s.blocks.filter((b) => b.at_least)).length,
       combined_minimum_groups: CURRICULUM_SEEDS.flatMap((s) => s.blocks.filter((b) => b.at_least).flatMap((b) => b.groups)).length,
       requirement_group_overflows: groups.filter((g) => g.overflow_to !== undefined).length,
-      // One "no prerequisite" record per course of APCS 2024 and of APCS 2025 (Project Lead, 15 November 2026).
+      // One prerequisite list per course of APCS 2024 and of APCS 2025 (Project Lead, 15 and 21 November 2026).
       course_prerequisite_lists: APCS_SEEDS.flatMap((s) => [...new Set(s.groups.flatMap((g) => g.rows.map((r) => r.code)))]).length,
-      // No prerequisite and no offering term is seeded for any curriculum.
-      course_prerequisites: 0,
+      // One printed prerequisite per APCS curriculum: CS469 before CS470 (Project Lead, 21 November 2026). No offering term.
+      course_prerequisites: APCS_SEEDS.flatMap((s) => s.no_prerequisites!.except.flatMap((e) => e.requires)).length,
       course_offering_terms: 0,
     };
     // APCS 2024 and 2025: one combined minimum over two groups, and one overflow, each.
@@ -138,11 +138,14 @@ describe('db:seed', () => {
     expect(first.inserted.links).toBe(expected.requirement_group_courses);
     expect(first.inserted.prerequisite_lists).toBe(expected.course_prerequisite_lists);
     expect(expected.course_prerequisite_lists).toBeGreaterThan(0);
+    expect(expected.course_prerequisites).toBe(2);
+    expect(first.inserted.prerequisites).toBe(expected.course_prerequisites);
 
     const second = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
     expect(await counts(dataSource)).toEqual(afterFirst);
-    expect(second.inserted).toEqual({ programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0 });
+    expect(second.inserted).toEqual({ programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0, prerequisites: 0 });
     expect(second.skipped.prerequisite_lists).toBe(expected.course_prerequisite_lists);
+    expect(second.skipped.prerequisites).toBe(expected.course_prerequisites);
   });
 
   it('writes the printed totals and the decided catalog values', async () => {
@@ -197,7 +200,7 @@ describe('db:seed', () => {
     expect(await auditRules(dataSource)).toEqual(EXPECTED_AUDIT_RULES);
   });
 
-  it('records every APCS 2024 and 2025 course as having no prerequisite, and nothing for CLC', async () => {
+  it('records the prerequisites of every APCS 2024 and 2025 course (none, or CS469 for CS470), and nothing for CLC', async () => {
     const recorded = await recordedPrerequisiteLists(dataSource);
     for (const seed of CURRICULUM_SEEDS) {
       const courses = new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code))).size;
@@ -214,6 +217,15 @@ describe('db:seed', () => {
     expect(missing).toEqual([]);
   });
 
+  it('records CS469 as the one prerequisite of CS470 in APCS 2024 and 2025, and none for any other course', async () => {
+    const SEEDED = `SELECT c.code, p.course_code, p.prerequisite_code FROM course_prerequisites p
+                    JOIN curriculums c ON c.id = p.curriculum_id ORDER BY c.code, p.course_code, p.prerequisite_code`;
+    expect(await dataSource.query(SEEDED)).toEqual([
+      { code: 'APCS2024', course_code: 'CS470', prerequisite_code: 'CS469' },
+      { code: 'APCS2025', course_code: 'CS470', prerequisite_code: 'CS469' },
+    ]);
+  });
+
   it('fills the records in on a database seeded before they existed (the next deploy), and keeps what an administrator entered', async () => {
     const before = await recordedPrerequisiteLists(dataSource);
     // Production today: the curricula are there, no prerequisite is recorded.
@@ -227,11 +239,29 @@ describe('db:seed', () => {
     expect(await recordedPrerequisiteLists(dataSource)).toEqual(before);
     expect([report.inserted.prerequisite_lists, report.skipped.prerequisite_lists]).toEqual([before.APCS2024 + before.APCS2025 - 1, 1]);
     expect(report.inserted.links).toBe(0);
-    // The administrator's rule is still the only prerequisite anywhere.
-    expect(await dataSource.query(`SELECT c.code, p.course_code, p.prerequisite_code FROM course_prerequisites p JOIN curriculums c ON c.id = p.curriculum_id`)).toEqual([
+    expect([report.inserted.prerequisites, report.skipped.prerequisites]).toEqual([2, 0]);
+    // The administrator's rule is kept, and the printed CS469 before CS470 is written again with CS470's new list.
+    expect(
+      await dataSource.query(
+        `SELECT c.code, p.course_code, p.prerequisite_code FROM course_prerequisites p JOIN curriculums c ON c.id = p.curriculum_id ORDER BY 1, 2`,
+      ),
+    ).toEqual([
       { code: 'APCS2024', course_code: 'CS163', prerequisite_code: 'CS160' },
+      { code: 'APCS2024', course_code: 'CS470', prerequisite_code: 'CS469' },
+      { code: 'APCS2025', course_code: 'CS470', prerequisite_code: 'CS469' },
     ]);
-    await dataSource.query(`DELETE FROM course_prerequisites`);
+    await dataSource.query(`DELETE FROM course_prerequisites WHERE course_code = 'CS163'`);
+  });
+
+  it('leaves an existing list of CS470 as it is: the printed prerequisite comes only with a new list', async () => {
+    // An administrator cleared CS470's list in APCS 2025 (PUT with no prerequisite, F12).
+    const [{ id: apcs2025 }] = await dataSource.query(`SELECT id FROM curriculums WHERE code = 'APCS2025'`);
+    await dataSource.query(`DELETE FROM course_prerequisites WHERE curriculum_id = $1 AND course_code = 'CS470'`, [apcs2025]);
+
+    const report = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
+    expect([report.inserted.prerequisites, report.skipped.prerequisites]).toEqual([0, 2]);
+    expect(await dataSource.query(`SELECT course_code FROM course_prerequisites WHERE curriculum_id = $1`, [apcs2025])).toEqual([]);
+    await dataSource.query(`INSERT INTO course_prerequisites (curriculum_id, course_code, prerequisite_code) VALUES ($1, 'CS470', 'CS469')`, [apcs2025]);
   });
 
   it('keeps an admin edit to a group, and aborts on a catalog course edited to a new name', async () => {

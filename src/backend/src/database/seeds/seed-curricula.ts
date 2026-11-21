@@ -2,7 +2,7 @@ import type { DataSource, EntityManager } from 'typeorm';
 import { buildCatalog, CatalogConflictError, type CatalogConflict } from './catalog.js';
 import type { CatalogCourse, CatalogDecision, CurriculumSeed } from './seed-types.js';
 
-type SeededTable = 'programs' | 'curriculums' | 'requirement_groups' | 'courses' | 'links' | 'combined_minimums' | 'overflows' | 'prerequisite_lists';
+type SeededTable = 'programs' | 'curriculums' | 'requirement_groups' | 'courses' | 'links' | 'combined_minimums' | 'overflows' | 'prerequisite_lists' | 'prerequisites';
 
 export interface SeedReport {
   inserted: Record<SeededTable, number>;
@@ -24,9 +24,10 @@ const FIELDS_CHECKED_AGAINST_DATABASE = ['name_vi', 'credits'] as const;
  * different Vietnamese name or credit count aborts the whole run.
  *
  * A seed with `no_prerequisites` also records each of its courses as having no prerequisite: one
- * `course_prerequisite_lists` row and no `course_prerequisites` (ADR 0011). A course whose list
- * already exists, with or without prerequisites a program administrator entered, is left as it
- * is. A list an administrator deleted is written again by the next run, as a deleted link is.
+ * `course_prerequisite_lists` row and no `course_prerequisites` (ADR 0011). A course in its `except`
+ * list gets its printed prerequisites as `course_prerequisites` rows in the same list (APCS: CS469
+ * before CS470). A course whose list already exists, with or without prerequisites a program
+ * administrator entered, is left as it is: its prerequisites are written only with a new list. A list an administrator deleted is written again by the next run, as a deleted link is.
  * Offering terms are never seeded.
  */
 export async function seedCurricula(
@@ -37,8 +38,8 @@ export async function seedCurricula(
   const catalog = buildCatalog(seeds, decisions);
 
   const report: SeedReport = {
-    inserted: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0 },
-    skipped: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0 },
+    inserted: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0, prerequisites: 0 },
+    skipped: { programs: 0, curriculums: 0, requirement_groups: 0, courses: 0, links: 0, combined_minimums: 0, overflows: 0, prerequisite_lists: 0, prerequisites: 0 },
   };
   const count = (table: SeededTable, rows: unknown[]) => {
     if (rows.length) report.inserted[table]++;
@@ -173,15 +174,27 @@ export async function seedCurricula(
       }
 
       if (seed.no_prerequisites) {
+        const printed = new Map(seed.no_prerequisites.except.map((e) => [e.code, e.requires]));
         for (const code of new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))) {
-          count(
-            'prerequisite_lists',
-            await em.query(
-              `INSERT INTO course_prerequisite_lists (curriculum_id, course_code) VALUES ($1, $2)
-               ON CONFLICT (curriculum_id, course_code) DO NOTHING RETURNING course_code`,
-              [curriculumId, code],
-            ),
+          const list = await em.query(
+            `INSERT INTO course_prerequisite_lists (curriculum_id, course_code) VALUES ($1, $2)
+             ON CONFLICT (curriculum_id, course_code) DO NOTHING RETURNING course_code`,
+            [curriculumId, code],
           );
+          count('prerequisite_lists', list);
+          for (const prerequisite of printed.get(code) ?? []) {
+            if (!list.length) {
+              report.skipped.prerequisites++;
+              continue;
+            }
+            count(
+              'prerequisites',
+              await em.query(
+                `INSERT INTO course_prerequisites (curriculum_id, course_code, prerequisite_code) VALUES ($1, $2, $3) RETURNING course_code`,
+                [curriculumId, code, prerequisite],
+              ),
+            );
+          }
         }
       }
     }

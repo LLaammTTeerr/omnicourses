@@ -20,7 +20,7 @@ Feature status as of 2026-11-11. Feature numbers and names follow the [Vision](r
 | F1 Account and onboarding         | Live            | Sign-up, sign-in, onboarding (program, cohort, goals) and settings, including account export and deletion             |
 | F2 Transcript import              | Live            | Courses are entered by hand; the deterministic PDF reader comes in a later release                                     |
 | F3 Degree audit dashboard         | Live            | Dashboard and degree audit screens (#79), from the rule engine's `GET /api/users/me/audit`                             |
-| F4 Curriculum explorer            | Live            | Programs, a cohort's requirement groups and courses; APCS courses are recorded as having no prerequisite               |
+| F4 Curriculum explorer            | Live            | Programs, a cohort's requirement groups and courses, with their recorded prerequisites                                 |
 | F5 Semester roadmap planner       | Live            | Plans list, plan editor and plan checks from the rule engine (#78, #80, #81)                                           |
 | F6 AI plan generator              | Planned         |                                                                                                                        |
 | F7 What-if simulator              | Planned         |                                                                                                                        |
@@ -30,7 +30,7 @@ Feature status as of 2026-11-11. Feature numbers and names follow the [Vision](r
 | F11 Quicklinks and guides         | Live            | Guide pages are open without signing in; the first guides stay drafts until they are checked on the school portals     |
 | F12 Curriculum administration     | Live (API)      | Admin API for requirement groups, catalog courses, prerequisites, offering terms and access grants (#74); no screens yet |
 
-**Prerequisites:** every APCS 2024 and 2025 course is recorded as having no prerequisite (Project Lead's decision, 15 November 2026; no official document states it), so the planner's prerequisite check passes for them.
+**Prerequisites:** every APCS 2024 and 2025 course is recorded as having no prerequisite, except CS470, which needs CS469. That one rule is printed in the APCS curriculum PDFs (p. 8 for 2024, p. 9 for 2025); for the other courses the Project Lead's decision is the source (15 and 21 November 2026). The planner checks them against these records.
 
 **Known gap:** no offering terms are recorded yet, so the planner's check for them shows *Not recorded yet* instead of passing or failing a course.
 
