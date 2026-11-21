@@ -25,7 +25,7 @@ This file is a scaffold. Each section below gives one parent check from the test
 | A3 | `b2-a3@example.com` | ADM-02: catalog maintainer only |
 | A4 | `b2-a4@example.com` | ADM-02: access manager only |
 
-A1–A4 are new accounts, kept apart from the TRN and PLAN accounts. Sign-up gives them no role: Lâm grants each the role of the table (requested 21 November 2026).
+A1–A4 are new accounts, kept apart from the TRN and PLAN accounts. Sign-up gives them no role. On staging, on 21 November 2026, the bot made A4 the first access manager with `npm run admin:bootstrap`, and recorded A1–A3's grants as given by A4.
 
 **Synthetic transcripts.** Saved with `PUT /api/users/me/transcript`. They use catalog codes of APCS 2024 with made-up grades, and `ZZ` codes, which are in no curriculum. A save replaces the whole transcript.
 
@@ -260,13 +260,13 @@ Program A's administrator edits only program A, also through nested IDs. Only an
 - Depends on: the curriculum administration API of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; ADR 0011 (accepted). These cases call the API directly, as UC-11 A4 asks ("requests sent directly without using the screen"). They do not wait for the administration screens (not started): the screen's words for a refusal ("explains whether program, catalog or access-manager permission is missing", UC-11 A4) are checked when the screens land.
 - Not built, so not tested here: program creation (`POST /api/admin/programs`), which the ADR gives to the access manager ([implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-21-november-2026)). When it lands, add it to ADM-02f: an access manager creates a program and gets no editing grant on it.
 
-**Accounts and grants.** A1–A4 and S1 of §1. Sign-up gives no role; Lâm, as access manager, grants A1–A4 theirs with the user IDs they read from `GET /api/users/me`. Check the grants before the run: as A4, `GET /api/admin/access/users/{id}/grants` for each of A1–A4 and S1 shows exactly the grant of the table in §1, and none for S1. ADM-02a and b need no grant. Run the cases in order: ADM-02e and f clean up what they create, and ADM-02g removes A1's grant, then gives it back.
+**Accounts and grants.** A1–A4 and S1 of §1. Sign-up gives no role. On staging, the bot set the grants up from the user IDs that `GET /api/users/me` gives (§1); on another server, bootstrap A4 first, then grant A1–A3 as A4. A4 is the only active access manager, so removing A4's own grant is refused (ADR 0011, last-active-manager protection). Check the grants before the run: as A4, `GET /api/admin/access/users/{id}/grants` for each of A1–A4 and S1 shows exactly the grant of the table in §1, and none for S1. ADM-02a and b need no grant. Run the cases in order: ADM-02e and f clean up what they create, and ADM-02g removes A1's grant, then gives it back.
 
 **The values.** Program and cohort IDs are UUIDs; read them on staging before the run:
 
 | Name | Value | Where to read it |
 | --- | --- | --- |
-| `{APCS}` | APCS's program ID | As A1, `GET /api/admin/programs`: the `id` of `APCS`. Before A1 has the grant, ask Lâm (`GET /api/admin/access/programs`). |
+| `{APCS}` | APCS's program ID | As A1, `GET /api/admin/programs`: the `id` of `APCS`. Before A1 has the grant, as A4, `GET /api/admin/access/programs`. On staging it is `d3f524f8-e51b-42dd-91ac-013b15d5e033`. |
 | `{APCS24}` | The APCS 2024 cohort (curriculum) ID | The same answer, `curricula` with `cohortYear` 2024; or `id` of `GET /api/programs/APCS/curricula/2024`. |
 | `{KHMT}` | CNTT-TCTA-KHMT's program ID (CLC, Khoa học máy tính) | As A2, `GET /api/admin/programs`. |
 | `{KHMT25}` | The CNTT-TCTA-KHMT 2025 cohort ID | The same answer; or `id` of `GET /api/programs/CNTT-TCTA-KHMT/curricula/2025`. |
