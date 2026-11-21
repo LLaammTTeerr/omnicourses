@@ -7,3 +7,5 @@ See [Test plan v2](test-plan.md) for B0 carry-over, B1–B3 checks, performance 
 See [Browser tests](browser-tests.md) for Chromium installation, run commands, smoke-test scope and the pending real-API sign-in journey.
 
 [B1 detailed cases](test-cases-b1.md) expand the test plan's USER-01, GUIDE-01, PERF-01 and A11Y-01 checks; the other B1 checks are added with their owners' expected results. The [B1 test report](report-b1.md) records what happened to each B1 case and to the B0 cases run again on B1.
+
+[B2 detailed cases](test-cases-b2.md) is a scaffold for the B2 checks, the B1 regression run on B2 and the retests of B1 defects. Dũng writes the detailed cases.
