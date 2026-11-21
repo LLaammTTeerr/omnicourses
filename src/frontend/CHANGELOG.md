@@ -1,5 +1,17 @@
 # @omnicourse/frontend
 
+## 0.4.0
+
+### Minor Changes
+
+- [#111](https://github.com/LLaammTTeerr/omnicourses/pull/111) [`fd1f1ce`](https://github.com/LLaammTTeerr/omnicourses/commit/fd1f1cefa69107882be3c7535cbd28aa1847d6d6) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - APCS courses are now recorded as having no prerequisite, except Capstone Project II (CS470), which needs Capstone Project I (CS469) as the curriculum prints. The planner checks them instead of listing them as "not recorded yet", and the curriculum explorer shows each course's prerequisites; offering terms are still not recorded.
+
+- [#99](https://github.com/LLaammTTeerr/omnicourses/pull/99) [`b6892b7`](https://github.com/LLaammTTeerr/omnicourses/commit/b6892b75a6a0344927871cc370a1a707b87413c7) Thanks [@rakun68](https://github.com/rakun68)! - Add the calendar page: school dates by week and month, what is coming up, and each date's details.
+
+### Patch Changes
+
+- [#121](https://github.com/LLaammTTeerr/omnicourses/pull/121) [`5f5d915`](https://github.com/LLaammTTeerr/omnicourses/commit/5f5d915eb062dc3256bc6bcc0f0d4e71cbe8d068) Thanks [@Anhdung1478](https://github.com/Anhdung1478)! - A link inside a guide step now sits beside the step's text, instead of being squeezed one letter per line under the step number.
+
 ## 0.3.0
 
 ### Minor Changes
