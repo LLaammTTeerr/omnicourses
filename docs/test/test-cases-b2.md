@@ -2,7 +2,7 @@
 
 - Owner: Dũng
 - Build: B2, 29 November 2026. Test window 16–29 November ([test plan §8](test-plan.md#8-schedule-and-remaining-work)).
-- Version: 0.3, 21 November 2026. 0.3 follows Lâm's review of #130: it adds TRN-02g (a refused save keeps the earlier transcript) and TRN-02h (the other result types and a term 3 row), quotes PLAN-02e's malformed-code message with its field path, adds a 5xx answer to PLAN-02b, says that only `GET /api/plans/{id}` counts as PLAN-02c's re-read, corrects CM102's name, and marks TRN-02f's purge step blocked until Lâm decides on database access. 0.2 (21 November) wrote the cases of TC-B2-TRN-02 (§5) and TC-B2-PLAN-02 (§3), the two checks whose features are on staging and whose expected results are agreed, with the B2 accounts and synthetic transcripts of §1. Their steps were read from the code on `main` at `c7cf753` and have not been run. 0.1 (21 November) was the scaffold.
+- Version: 0.4, 21 November 2026. 0.4 writes the cases of TC-B2-ADM-02 (§6), program, catalog and access boundaries through the API, with the accounts A1–A4 (§1), and records that ADR 0011 is accepted. Their steps were read from the code on `main` at `fd1f1ce` and from staging's routes; they have not been run. 0.3 follows Lâm's review of #130: it adds TRN-02g (a refused save keeps the earlier transcript) and TRN-02h (the other result types and a term 3 row), quotes PLAN-02e's malformed-code message with its field path, adds a 5xx answer to PLAN-02b, says that only `GET /api/plans/{id}` counts as PLAN-02c's re-read, corrects CM102's name, and marks TRN-02f's purge step blocked until Lâm decides on database access. 0.2 (21 November) wrote the cases of TC-B2-TRN-02 (§5) and TC-B2-PLAN-02 (§3), the two checks whose features are on staging and whose expected results are agreed, with the B2 accounts and synthetic transcripts of §1. Their steps were read from the code on `main` at `c7cf753` and have not been run. 0.1 (21 November) was the scaffold.
 - Parent checks: test plan §5, rows `TC-B2-PLAN-01`, `TC-B2-PLAN-02`, `TC-B2-TRN-01`, `TC-B2-TRN-02` and `TC-B2-ADM-01` to `TC-B2-ADM-07`, `TC-B2-SHARE-01` and `TC-B2-NOTIF-01` of [B2 checks](test-plan.md#b2-checks), and `TC-B2-PERF-01`, `TC-B2-A11Y-01` and `TC-B2-OPS-01` of [Coverage and speed](test-plan.md#coverage-and-speed). Each detailed case has its parent's ID plus a letter, such as `TC-B2-PLAN-01a`. The text around the tables shortens it to `PLAN-01a`.
 
 This file is a scaffold. Each section below gives one parent check from the test plan, its owners and what must be built before it can run. Dũng writes the detailed cases in each table. Do not add steps or expected results that the test plan, the use cases or the feature owner do not state. Where the expected result is not agreed yet, the case is **blocked** and names what it waits for.
@@ -15,11 +15,17 @@ This file is a scaffold. Each section below gives one parent check from the test
 
 | Name | Email | Used for |
 | --- | --- | --- |
-| S1 | `b2-s1@example.com` | TRN-02a–e, g and h: transcript saves, the audit and the planner |
+| S1 | `b2-s1@example.com` | TRN-02a–e, g and h: transcript saves, the audit and the planner. ADM-02b: a student with no role; ADM-02f: the grant's recipient |
 | S2 | `b2-s2@example.com` | TRN-02f: export, then deletion and purge |
 | A | `b2-s3@example.com` | PLAN-02d and e: the student who sends crafted IDs |
 | B | `b2-s4@example.com` | PLAN-02d and e: the other student, whose plan must stay unchanged |
 | P | `b2-s5@example.com` | PLAN-02a–c: the planner's saved and unsaved states |
+| A1 | `b2-a1@example.com` | ADM-02: program administrator of APCS |
+| A2 | `b2-a2@example.com` | ADM-02: program administrator of CNTT-TCTA-KHMT, a CLC program |
+| A3 | `b2-a3@example.com` | ADM-02: catalog maintainer only |
+| A4 | `b2-a4@example.com` | ADM-02: access manager only |
+
+A1–A4 are new accounts, kept apart from the TRN and PLAN accounts. Sign-up gives them no role. On staging, on 21 November 2026, the bot made A4 the first access manager with `npm run admin:bootstrap`, and recorded A1–A3's grants as given by A4.
 
 **Synthetic transcripts.** Saved with `PUT /api/users/me/transcript`. They use catalog codes of APCS 2024 with made-up grades, and `ZZ` codes, which are in no curriculum. A save replaces the whole transcript.
 
@@ -232,7 +238,7 @@ For ADM-01 to ADM-07, [UC-11's Examples to test](../requirements/use-cases/UC-11
 
 **Decision blockers.** Test plan §2 and §8 say the F12 writes also wait for two decisions. Without them the expected results are not agreed, so the affected cases stay **blocked** even after the screens are merged:
 
-- The reviewed ADR 0011 for grants, roles, bootstrap and deletion. Its PR [#93](https://github.com/LLaammTTeerr/omnicourses/pull/93) is still open. It blocks every ADM case.
+- The reviewed ADR 0011 for grants, roles, bootstrap and deletion. *Closed:* Lâm accepted it on 12 November 2026, and [#93](https://github.com/LLaammTTeerr/omnicourses/pull/93) merged it. The cases take their expected results from its [response table](../analysis-and-design/adr/0011-curriculum-administration.md#validation-errors-and-removal) and [implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-21-november-2026).
 - Triết's rule-interface handoff for manual and CSV group links and for group-total checks. It blocks the cases that write group links or check group totals (ADM-03, ADM-04 and ADM-07 in particular).
 
 ### TC-B2-ADM-01: Global catalog permission
@@ -251,11 +257,45 @@ A catalog maintainer with no program grant edits a shared course after reviewing
 Program A's administrator edits only program A, also through nested IDs. Only an access manager creates programs or changes grants, and that role gives no editing grant; signed-out, ungranted and revoked users cannot write ([test plan row](test-plan.md#b2-checks)).
 
 - Owner: Thắng
-- Depends on: curriculum administration API (part done); administration screens (not started); reviewed ADR 0011 (#93, open).
+- Depends on: the curriculum administration API of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; ADR 0011 (accepted). These cases call the API directly, as UC-11 A4 asks ("requests sent directly without using the screen"). They do not wait for the administration screens (not started): the screen's words for a refusal ("explains whether program, catalog or access-manager permission is missing", UC-11 A4) are checked when the screens land.
+- Not built, so not tested here: program creation (`POST /api/admin/programs`), which the ADR gives to the access manager ([implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-21-november-2026)). When it lands, add it to ADM-02f: an access manager creates a program and gets no editing grant on it.
+
+**Accounts and grants.** A1–A4 and S1 of §1. Sign-up gives no role. On staging, the bot set the grants up from the user IDs that `GET /api/users/me` gives (§1); on another server, bootstrap A4 first, then grant A1–A3 as A4. A4 is the only active access manager, so removing A4's own grant is refused (ADR 0011, last-active-manager protection). Check the grants before the run: as A4, `GET /api/admin/access/users/{id}/grants` for each of A1–A4 and S1 shows exactly the grant of the table in §1, and none for S1. ADM-02a and b need no grant. Run the cases in order: ADM-02e and f clean up what they create, and ADM-02g removes A1's grant, then gives it back.
+
+**The values.** Program and cohort IDs are UUIDs; read them on staging before the run:
+
+| Name | Value | Where to read it |
+| --- | --- | --- |
+| `{APCS}` | APCS's program ID | As A1, `GET /api/admin/programs`: the `id` of `APCS`. Before A1 has the grant, as A4, `GET /api/admin/access/programs`. On staging it is `d3f524f8-e51b-42dd-91ac-013b15d5e033`. |
+| `{APCS24}` | The APCS 2024 cohort (curriculum) ID | The same answer, `curricula` with `cohortYear` 2024; or `id` of `GET /api/programs/APCS/curricula/2024`. |
+| `{KHMT}` | CNTT-TCTA-KHMT's program ID (CLC, Khoa học máy tính) | As A2, `GET /api/admin/programs`. |
+| `{KHMT25}` | The CNTT-TCTA-KHMT 2025 cohort ID | The same answer; or `id` of `GET /api/programs/CNTT-TCTA-KHMT/curricula/2025`. |
+| `{KG}` | A requirement group of CNTT-TCTA-KHMT 2025 | `GET /api/programs/CNTT-TCTA-KHMT/curricula/2025`: the `id` of "Kiến thức bắt buộc chuyên ngành". |
+| `{S1}`, `{A1}` | S1's and A1's user IDs | `GET /api/users/me` as each. |
+
+**The three writes**, one of each kind. Each body is valid, so a refusal can only come from the sign-in or the grant:
+
+| Name | Request | Kind |
+| --- | --- | --- |
+| W | `PUT /api/admin/programs/{APCS}/cohorts/{APCS24}/courses/CS420/offering-terms` with `{ "terms": [1, 2] }`. CS420 is an APCS 2024 elective that no other B2 case uses; on 21 November its offering terms were not recorded (`null`). | Program write |
+| C | `POST /api/admin/catalog/courses` with `{ "code": "ZZADM02", "nameVi": "Học phần thử ADM-02", "credits": 3 }`. `ZZ` codes are in no curriculum (§1). | Catalog write |
+| G | `PUT /api/admin/access/users/{S1}/programs/{APCS}`, no body: give S1 the APCS program grant. | Access-manager work |
+
+**Read-back R**, which shows that nothing changed: `GET /api/programs/APCS/curricula/2024` lists CS420 with `"offeringTerms": null`; `GET /api/courses/ZZADM02` answers **404**; as S1, `GET /api/admin/programs` answers `{ "programs": [] }`.
+
+A refusal answers **403** with `"code": "permission_required"` and `permission` naming the missing grant: `program_admin` for W, `catalog_maintainer` for C, `access_manager` for G ([ADR 0011, response table](../analysis-and-design/adr/0011-curriculum-administration.md#validation-errors-and-removal): "the response identifies the permission kind, without disclosing another program's data"). In every refused case, "No data changes" (UC-11 A4).
 
 | ID | Steps | Expected |
 | --- | --- | --- |
-| TC-B2-ADM-02a | TODO | TODO |
+| TC-B2-ADM-02a | **API, signed out.** In Swagger, **Logout** from **Authorize**, so requests carry no token. Send W, C and G. Then sign in as S1 and run R. | W, C and G each answer **401**. R shows nothing changed. |
+| TC-B2-ADM-02b | **API, no role.** Sign in as S1, a student with no F12 grant. Call `GET /api/admin/programs`, then send W, C and G. Run R. | The list is `{ "programs": [] }`. W, C and G each answer **403** `permission_required`, with `permission` `program_admin`, `catalog_maintainer` and `access_manager` in turn. R shows nothing changed. |
+| TC-B2-ADM-02c | **API, own program.** As A1, call `GET /api/admin/programs`. Send W. Call `GET /api/programs/APCS/curricula/2024`. *Clean-up:* as A1, `DELETE /api/admin/programs/{APCS}/cohorts/{APCS24}/courses/CS420/offering-terms`. | The list holds one program, APCS, with its cohorts 2024 and 2025. W answers **200** `{ "courseCode": "CS420", "terms": [1, 2] }`, and the curriculum lists CS420 with `"offeringTerms": [1, 2]`. The clean-up answers **200** with `"terms": null`, and CS420 reads `null` again. |
+| TC-B2-ADM-02d | **API, other program.** Call `GET /api/programs/CNTT-TCTA-KHMT/curricula/2025` and keep it as K0. As A1: (1) send W on CLC, `PUT /api/admin/programs/{KHMT}/cohorts/{KHMT25}/courses/CSC14001/offering-terms` with `{ "terms": [1, 2] }`; (2) the same request with APCS's ID and CLC's cohort, `PUT /api/admin/programs/{APCS}/cohorts/{KHMT25}/courses/CSC14001/offering-terms`; (3) CLC's group in an APCS path, `PUT /api/admin/programs/{APCS}/cohorts/{APCS24}/requirement-groups/{KG}/courses/CS420`, no body. Then, as A2, send W. Call `GET /api/programs/CNTT-TCTA-KHMT/curricula/2025` again, and run R. | (1) **403** `permission_required`, `program_admin`. (2) and (3) **404** `"code": "not_found"`: "No such cohort in this program" and "No such requirement group in this cohort". The ADR answers 404 for "item absent within the authorized scope, including mismatched nested IDs", and "a grant for program A with a group ID from B never authorizes a write to B". No answer shows CLC's data. A2's W answers **403** `program_admin`: a CLC grant gives nothing in APCS. CLC equals K0: CSC14001 still has `"offeringTerms": null`, and "Kiến thức bắt buộc chuyên ngành" has the same courses as in K0, without CS420. R shows nothing changed. |
+| TC-B2-ADM-02e | **API, catalog only.** As A3, call `GET /api/admin/programs`. Send C. Then `PATCH /api/admin/catalog/courses/ZZADM02` with `{ "credits": 4 }`, and `GET /api/courses/ZZADM02`. Send W. Run R's first read. *Clean-up:* as A3, `DELETE /api/admin/catalog/courses/ZZADM02`, then `GET /api/courses/ZZADM02`. | The list is `{ "programs": [] }`: a catalog grant edits no program. C answers **201**. The PATCH answers **200** with `"credits": 4`, saved at once because no curriculum links ZZADM02 (ADR 0011 amendment: "A course no curriculum links is saved directly"). The GET shows 4 credits and no memberships. W answers **403** `program_admin`, and CS420 is still `null`. The clean-up answers **204**, then **404**. |
+| TC-B2-ADM-02f | **API, access manager only.** As A4, send G, then call `GET /api/admin/access/users/{S1}/grants`. Then `DELETE /api/admin/access/users/{S1}/programs/{APCS}` and call the grants again. Then, as A4, call `GET /api/admin/programs`, send W and send C. Run R. | G answers **200**: S1's grants hold APCS in `programs`, with `grantedBy` A4's ID, and no `permissions`. The DELETE answers **200** with `"programs": []` and `"permissions": []`, and the grants read the same. A4's list is `{ "programs": [] }`. W answers **403** `program_admin` and C **403** `catalog_maintainer`: "No automatic curriculum/catalog editing rights" (ADR 0011, permission table). R shows nothing changed, S1 included. |
+| TC-B2-ADM-02g | **API, revoked.** Sign in as A1 and keep that token. As A4, `DELETE /api/admin/access/users/{A1}/programs/{APCS}`. As A1, with the same token, send W, then call `GET /api/admin/programs`. Run R's first read. *Restore:* as A4, `PUT /api/admin/access/users/{A1}/programs/{APCS}`, so the later ADM cases have A1. | The DELETE answers **200** with `"programs": []`. W answers **403** `program_admin`: the sign-in still works, but "completed revocation blocks the next write" (ADR 0011, transaction contract). A1's list is `{ "programs": [] }`. CS420 is still `null`. The restore answers **200** with APCS in `programs`. |
+
+Already automated: `curriculum-admin.e2e-spec.ts` covers a ("refuses the admin routes without a token"), b ("gives a signed-in user without a grant 403 on every kind of write, and no program to edit"), c and d with a CLC cohort in an APCS path ("lets the APCS administrator list APCS with its cohorts, and not write CLC, even through nested IDs"; it does not send a CLC group ID) and g ("blocks the next write once a grant is revoked"). `grant-scope.spec.ts` covers e's and f's default deny ("gives an access manager or a catalog maintainer no program and not each other") as a unit test only: no e2e test sends a program write as a catalog maintainer or an access manager. The manual run checks all of them on staging, with real accounts and grants.
 
 ### TC-B2-ADM-03: Cohorts and membership
 
