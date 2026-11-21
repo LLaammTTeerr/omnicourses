@@ -209,13 +209,13 @@ Implement in dependency order: grants/bootstrap and program/cohort writes; group
 
 Two consequences of insert-only, both the same as for a seeded group link today:
 
-- `DELETE …/prerequisites` on a seeded APCS course returns it to `null` only until the next deploy, whose seed records "none" again. To give an APCS course a prerequisite, `PUT` the list; that survives.
+- `DELETE …/prerequisites` on a seeded APCS course returns it to `null` only until the next deploy, whose seed records "none" again (CS469, for CS470). To give an APCS course a prerequisite, `PUT` the list; that survives.
 - A seeded APCS course now has a recorded rule, so unlinking it from its last group answers `409 referenced_item` ("prerequisites of … are recorded") until its list is deleted. The seed would link it again on the next deploy in any case.
 
 Not verified, and not decided or loaded:
 
 - **CS468 (Khóa luận tốt nghiệp) and CS404 (Thực tập thực tế)** are seeded as "no prerequisite" with the rest. Nobody has checked whether the school sets a credit or year gate for them. B2 cases must not treat "no prerequisite" as confirmed for these two.
-- **Rules (i) and (ii) of the same note are counting rules, not prerequisites**, and are a data gap. (i) A student who takes the capstone route must take both CS469 and CS470; the group's 10-credit minimum already gives the same result (ADR 0013). (ii) A student who takes CS469 and does not go on to CS470 gets no credit for CS469. The schema cannot store (ii), so the audit may still count CS469's 5 credits in that case.
+- **Rules (i) and (ii) of the same note are counting rules, not prerequisites**, and are a data gap. (i) A student who takes the capstone route must take both CS469 and CS470; the group's 10-credit minimum already gives the same result (ADR 0013). (ii) A student who takes CS469 and does not go on to CS470 gets no credit for CS469. The schema cannot store (ii), so the audit still counts a passed CS469's 5 credits toward the cohort total in that case (`rules/audit.ts` has no exception for it).
 
 ## Verification required with implementation
 
