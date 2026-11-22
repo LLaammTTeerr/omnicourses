@@ -1,0 +1,27 @@
+TRN-02setup run at 2026-11-21T17:16:45.311Z
+POST /auth/sign-in (b2-s2@example.com) → 401
+POST /auth/sign-up → 201
+GET /users/me → 200
+  b2-s2@example.com id 196bce8d-b078-47e0-96ff-91e864854a2f
+PUT /users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  OK  b2-s2@example.com onboarded to APCS 2024
+POST /auth/sign-in (b2-s3@example.com) → 401
+POST /auth/sign-up → 201
+GET /users/me → 200
+  b2-s3@example.com id 5731e68a-598f-4a20-8345-e5cdef615479
+PUT /users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  OK  b2-s3@example.com onboarded to APCS 2024
+POST /auth/sign-in (b2-s4@example.com) → 401
+POST /auth/sign-up → 201
+GET /users/me → 200
+  b2-s4@example.com id 2babf82f-585e-4c73-8b94-1d2a44b65e48
+PUT /users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  OK  b2-s4@example.com onboarded to APCS 2024
+POST /auth/sign-in (b2-s5@example.com) → 401
+POST /auth/sign-up → 201
+GET /users/me → 200
+  b2-s5@example.com id a7f61759-7834-4a6d-bb39-250040de057d
+PUT /users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  OK  b2-s5@example.com onboarded to APCS 2024
+
+Done: 0 mismatch(es).

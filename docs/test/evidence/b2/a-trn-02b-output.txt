@@ -1,0 +1,13 @@
+TRN-02b: the §5 snippet, run in the app's tab (Chrome, signed in as S1) through the JavaScript tool of Claude in Chrome
+instead of the DevTools console. Same code; it also collects the lines it logs. The token is read, never printed.
+start 2026-11-21T17:17:36.228Z token present: true
+1 200 200 B
+2 200 200 B
+3 200 200 B
+4 200 200 B
+5 200 200 B
+6 200 200 B
+7 200 200 B
+8 200 200 B
+9 200 200 B
+10 200 200 B

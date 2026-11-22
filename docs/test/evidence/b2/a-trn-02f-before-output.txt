@@ -1,0 +1,23 @@
+TRN-02f before run at 2026-11-21T17:21:09.490Z
+POST /auth/sign-in (b2-s2@example.com) → 200
+GET /users/me → 200
+  S2 id 196bce8d-b078-47e0-96ff-91e864854a2f
+GET /users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  OK  S2 onboarded to APCS 2024
+PUT /users/me/transcript → 200
+  OK  fixture save 200 with 45 rows
+GET /users/me/transcript → 200
+  OK  GET returns 45 rows, the fixture's rows
+GET /users/me/export → 200
+  OK  export 200
+  export tables: ai_usage(0), global_admin_grants(0), onboarding_answers(1), plan_placements(0), plans(0), program_admin_grants(0), sessions(2), transcript_rows(45)
+  first exported transcript row: {"id":"43599a07-6add-4c16-a4c4-d50dcb22e200","user_id":"196bce8d-b078-47e0-96ff-91e864854a2f","course_code":"CS160","course_name":"Nhập môn Tin học","credits":4,"result":"graded","grade":"8.5","term_year":2024,"term_number":1,"created_at":"2026-11-21T17:21:06.589Z"}
+  OK  tables.transcript_rows holds 45 rows, as many as the GET
+  OK  each exported row has the same code, name, credits, result, grade and term as the GET
+POST /auth/sign-in (b2-s1@example.com) → 200
+GET /users/me/transcript → 200 {"rows":[{"courseCode":"BAA00030","courseName":"Giáo dục quốc phòng - An ninh","credits":4,"result":"pass","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8.5,"term":{"year":2024,"number":1}},{"courseCode":"MTH252","courseName":"Vi tích phân II","credits":4,"result":"exempt","grade":null,"term":{"year":2024,"number":2}},{"courseCode":"PH212","courseName":"Vật lý đại cương II","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":2}},{"courseCode":"CS202","courseName":"Các hệ thống lập trình","credits":4,"result":"graded","grade":9,"term":{"year":2024,"number":3}},{"courseCode":"CS201","courseName":"Lập trình hệ thống","credits":4,"result":"in_progress","grade":null,"term":{"year":2025,"number":1}}]}
+  S1's transcript noted in docs/test/evidence/b2/a-trn-02f-s1-before.json (6 rows)
+DELETE /users/me → 202 {"purgeAfter":"2026-12-21T17:21:07.453Z"}
+  OK  DELETE /users/me answers 202
+
+Done: 0 mismatch(es).

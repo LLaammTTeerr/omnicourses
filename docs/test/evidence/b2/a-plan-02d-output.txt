@@ -1,0 +1,37 @@
+PLAN-02d run at 2026-11-21T17:26:05.676Z
+POST /auth/sign-in (b2-s3@example.com) → 200
+POST /auth/sign-in (b2-s4@example.com) → 200
+POST /plans → 201 {"id":"ea6b2438-5841-4b35-8e38-ed8f94926457","name":"B plan","curriculum":{"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","programCode":"APCS","cohortYear":2024},"createdAt":"2026-11-21T17:26:02.532Z","updatedAt":"2026-11-21T17:26:02.532Z","terms":[{"term":{"year":2026,"number":2},"placements":[{"kind":"course","courseCode":"CS163","requirementGroupId":null,"credits":null}]}]}
+  OK  B creates its plan (201)
+GET /plans/ea6b2438-5841-4b35-8e38-ed8f94926457 → 200
+  B's plan id ea6b2438-5841-4b35-8e38-ed8f94926457; B0 updatedAt 2026-11-21T17:26:02.532Z
+GET /plans/ea6b2438-5841-4b35-8e38-ed8f94926457 → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+GET /plans/00000000-0000-4000-8000-000000000000 → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  GET /plans/{id}: 404 "No plan with this id" for B's id, the same as for the unknown id
+GET /plans/ea6b2438-5841-4b35-8e38-ed8f94926457/issues → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+GET /plans/00000000-0000-4000-8000-000000000000/issues → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  GET /plans/{id}/issues: 404 "No plan with this id" for B's id, the same as for the unknown id
+POST /plans/ea6b2438-5841-4b35-8e38-ed8f94926457/issues → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+POST /plans/00000000-0000-4000-8000-000000000000/issues → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  POST /plans/{id}/issues: 404 "No plan with this id" for B's id, the same as for the unknown id
+POST /plans/ea6b2438-5841-4b35-8e38-ed8f94926457/issues/drops → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+POST /plans/00000000-0000-4000-8000-000000000000/issues/drops → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  POST /plans/{id}/issues/drops: 404 "No plan with this id" for B's id, the same as for the unknown id
+PATCH /plans/ea6b2438-5841-4b35-8e38-ed8f94926457 → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+PATCH /plans/00000000-0000-4000-8000-000000000000 → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  PATCH /plans/{id}: 404 "No plan with this id" for B's id, the same as for the unknown id
+PUT /plans/ea6b2438-5841-4b35-8e38-ed8f94926457/placements → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+PUT /plans/00000000-0000-4000-8000-000000000000/placements → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  PUT /plans/{id}/placements: 404 "No plan with this id" for B's id, the same as for the unknown id
+POST /plans/ea6b2438-5841-4b35-8e38-ed8f94926457/duplicate → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+POST /plans/00000000-0000-4000-8000-000000000000/duplicate → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  POST /plans/{id}/duplicate: 404 "No plan with this id" for B's id, the same as for the unknown id
+DELETE /plans/ea6b2438-5841-4b35-8e38-ed8f94926457 → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+DELETE /plans/00000000-0000-4000-8000-000000000000 → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  OK  DELETE /plans/{id}: 404 "No plan with this id" for B's id, the same as for the unknown id
+GET /plans → 200 {"plans":[]}
+  OK  A's list holds no plan of B's and no copy of it
+GET /plans/ea6b2438-5841-4b35-8e38-ed8f94926457 → 200
+  OK  B's plan equals B0, updatedAt included
+
+Done: 0 mismatch(es).
