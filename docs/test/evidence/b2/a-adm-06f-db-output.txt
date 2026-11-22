@@ -1,0 +1,19 @@
+ADM-06f database steps, run by Lâm's bot (SWE Bot) on staging and posted in the #136 Discord thread, 22 November 2026, copied by hand.
+e641029b-… is A6 (e641029b-391c-45f8-9737-c6ba13bc9970). The first queries ran after A6's deletion request, which only marks the account.
+
+--- Before the purge (03:56Z)
+users: b2-a6 e641029b-…  deletion_requested_at 2026-11-22 03:54:42.099+00  purge_after 2026-12-22 03:54:42.099+00
+shared data: programs 10 · curriculums 11 · groups 133 · courses 249 · links 1823
+A6's user tables:
+ ai_usage 0 · global_admin_grants 1 · onboarding_answers 1 · plan_placements 0
+ plans 0 · program_admin_grants 0 · sessions 4 · transcript_rows 0
+
+UPDATE users SET purge_after = now() - interval '1 minute' WHERE id = 'e641029b-…';
+UPDATE 1 → purge_after 2026-11-22 03:55:07+00
+
+--- After the purge (04:46Z): "The purge ran, and A6 is gone"
+users: e641029b-… (b2-a6) → 0 rows
+shared data: programs 10 · curriculums 11 · groups 133 · courses 249 · links 1823   (unchanged)
+A6's user tables:
+ ai_usage 0 · global_admin_grants 0 (was 1) · onboarding_answers 0 (was 1) · plan_placements 0
+ plans 0 · program_admin_grants 0 · sessions 0 (was 4) · transcript_rows 0
