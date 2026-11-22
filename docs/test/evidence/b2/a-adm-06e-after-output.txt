@@ -1,0 +1,12 @@
+ADM 06e-after run at 2026-11-22T03:54:43.769Z
+POST /auth/sign-in (b2-a4@example.com) → 200
+POST /auth/sign-in (b2-a6@example.com) → 200
+GET /admin/access/users/e641029b-391c-45f8-9737-c6ba13bc9970/grants → 200 {"userId":"e641029b-391c-45f8-9737-c6ba13bc9970","programs":[],"permissions":[{"permission":"catalog_maintainer","grantedAt":"2026-11-22T02:39:52.442Z","grantedBy":null}]}
+  OK  A6 still catalog_maintainer, grantedBy null
+GET /admin/access/users/1e18e2fe-224c-4f02-8d83-7e41bbb1339a/grants → 404 {"statusCode":404,"code":"not_found","message":"No account has this ID"}
+  OK  A5 grants 404 not_found
+POST /admin/catalog/courses → 201 {"code":"ZZADM06","nameVi":"Học phần thử ADM-06","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+  OK  A6 creates ZZADM06 201
+DELETE /admin/catalog/courses/ZZADM06 → 204 ""
+  OK  A6 deletes ZZADM06 204
+all OK

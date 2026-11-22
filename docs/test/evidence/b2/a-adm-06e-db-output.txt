@@ -1,0 +1,26 @@
+ADM-06e database steps, run by Lâm's bot (SWE Bot) on staging and posted in the #136 Discord thread, 22 November 2026, copied by hand.
+IDs are cut short by the bot: 1e18e2fe-… is A5 (1e18e2fe-224c-4f02-8d83-7e41bbb1339a), e641029b-… is A6 (e641029b-391c-45f8-9737-c6ba13bc9970).
+
+--- Before the purge (02:52Z)
+users:
+ b2-a5  1e18e2fe-…  deletion_requested_at 2026-11-22 02:41:10.388+00  purge_after 2026-12-22 02:41:10.388+00
+ b2-a6  e641029b-…  active (deletion_requested_at null)
+global_admin_grants (A5 or A6 as holder, or A5 as granter):
+ e641029b-… (A6)  catalog_maintainer  granted_by 1e18e2fe-… (A5)
+program_admin_grants: 0 rows
+A5's user tables:
+ ai_usage 0 · global_admin_grants 0 · onboarding_answers 1 · plan_placements 0
+ plans 0 · program_admin_grants 0 · sessions 3 · transcript_rows 0
+
+"A6 exists and holds A5's grant, so I purged A5:"
+UPDATE users SET purge_after = now() - interval '1 minute' WHERE id = '1e18e2fe-…';
+UPDATE 1 → purge_after 2026-11-22 02:51:47+00
+
+--- After the purge (03:48Z): "The purge ran, and A5 is gone"
+users: b2-a5 → 0 rows · b2-a6 e641029b-… still active
+global_admin_grants:
+ e641029b-… (A6)  catalog_maintainer  granted_by NULL   (was A5)
+program_admin_grants: 0 rows
+A5's user tables (1e18e2fe-…):
+ ai_usage 0 · global_admin_grants 0 · onboarding_answers 0 (was 1) · plan_placements 0
+ plans 0 · program_admin_grants 0 · sessions 0 (was 3) · transcript_rows 0

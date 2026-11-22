@@ -1,0 +1,17 @@
+ADM 06d run at 2026-11-22T02:41:12.235Z
+POST /auth/sign-in (b2-a4@example.com) → 200
+POST /auth/sign-in (b2-a6@example.com) → 200
+GET /users/me/export → 200
+GET /users/me/export → 200
+  OK  both 200
+  A4 grants: [{"user_id":"925cb9c8-86de-4427-a8c8-72cf442dd074","permission":"access_manager","granted_at":"string","granted_by":null}] []
+  A6 grants: [{"user_id":"e641029b-391c-45f8-9737-c6ba13bc9970","permission":"catalog_maintainer","granted_at":"string","granted_by":"1e18e2fe-224c-4f02-8d83-7e41bbb1339a"}] []
+  OK  A4 global_admin_grants: one row, its own access_manager, granted_by null
+  OK  A4 program_admin_grants []
+  OK  none of A1–A3's grants appears in A4's file
+  OK  A6 global_admin_grants: one row, catalog_maintainer, granted_by A5
+  OK  A6 program_admin_grants []
+  A4 export tables: ai_usage(0), global_admin_grants(1), onboarding_answers(1), plan_placements(0), plans(0), program_admin_grants(0), sessions(9), transcript_rows(0)
+  OK  A4 file: no credential key at any depth
+  OK  A4 file does not contain the bearer token of the request
+all OK

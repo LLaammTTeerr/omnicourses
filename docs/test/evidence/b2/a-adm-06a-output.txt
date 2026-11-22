@@ -1,0 +1,18 @@
+ADM 06a run at 2026-11-22T02:31:52.952Z
+POST /auth/sign-in (b2-a5@example.com) → 401
+POST /auth/sign-up → 201
+  OK  b2-a5@example.com sign-up 201
+PUT /users/me/onboarding → 200
+  OK  b2-a5@example.com onboarded to APCS 2024
+GET /users/me → 200
+  b2-a5@example.com id 1e18e2fe-224c-4f02-8d83-7e41bbb1339a
+GET /admin/programs → 200 {"programs":[]}
+  OK  A5 admin programs { programs: [] }
+GET /admin/access/programs → 403 {"statusCode":403,"code":"permission_required","permission":"access_manager","message":"This needs the access_manager permission"}
+  OK  A5 access programs 403 access_manager
+GET /users/me/export → 200
+  OK  export: program_admin_grants and global_admin_grants []
+POST /auth/sign-in (b2-a4@example.com) → 200
+GET /admin/access/users/1e18e2fe-224c-4f02-8d83-7e41bbb1339a/grants → 200 {"userId":"1e18e2fe-224c-4f02-8d83-7e41bbb1339a","programs":[],"permissions":[]}
+  OK  A4 reads programs [] and permissions []
+all OK
