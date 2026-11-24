@@ -54,7 +54,7 @@ C4Context
 
 **People.** One person plays several roles over time ([GLOSSARY: User](../../GLOSSARY.md)).
 
-- A **signed-out reader** can read guides ([ADR 0010](adr/0010-public-pages-and-guide-content.md)) and, once F9 ships, open a shared plan. An advisor needs no account.
+- A **signed-out reader** can read guides ([ADR 0010](adr/0010-public-pages-and-guide-content.md)) and open a shared plan through the API; the shared-plan page is not built yet. An advisor needs no account.
 - A **student** signs in for everything that uses their own data: transcript, degree audit, plans, the goal box and the advisor.
 - A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), accepted). F12's API (#74) edits requirement groups, course links, prerequisites, offering terms and catalog courses; programs and cohorts still enter only through reviewed seed files, and the administration screens are not built.
 
@@ -202,7 +202,7 @@ C4Component
     Component(guides, "guides", "built", "F11; rule values from B3")
   }
   Boundary(core, "Shared services and other planned modules", "REST API") {
-    Component(sharing, "sharing", "planned · Dũng", "F9 shared-plan read, through plans")
+    Component(sharing, "sharing", "API built · screens planned", "F9 shared-plan link and public read, through plans")
     Component(notifications, "notifications", "planned · Dũng", "F10 reminders, warnings")
     Component(ai, "ai gateway", "built", "LlmService: structured(), chat()")
     Component(rules, "rules: RulesService", "planned · Triết", "Deterministic rule engine in src/rules/, 80% statement gate")
@@ -247,7 +247,7 @@ Black lines are calls into the rule engine, purple lines calls to the AI gateway
 | `plans` | F5 planner, F7 what-if | Hoà | API 8 Nov; planner B2; what-if B3 | Vision F5, F7; UC-05, UC-06 |
 | `plan-generator` | F6 plan generator and goal box | Lâm | B3 | [ADR 0003](adr/0003-language-model-scope.md); [ADR 0006](adr/0006-plan-generator.md) |
 | `advisor` | F8 advisor chat | Dũng | B3 | [ADR 0003](adr/0003-language-model-scope.md), UC-08 |
-| `sharing` | F9 export and sharing | Dũng | B2 | [ADR 0010](adr/0010-public-pages-and-guide-content.md), UC-09 |
+| `sharing` | F9 export and sharing (the API is built; the screens and the PDF are not) | Dũng | B2 | [ADR 0010](adr/0010-public-pages-and-guide-content.md), UC-09 |
 | `notifications` | F10 notifications | Dũng | B2 | Vision F10, UC-12; delivery contract open |
 | `curriculum-admin` | F12 curriculum administration | Thắng | B2 | [ADR 0011](adr/0011-curriculum-administration.md) (accepted) |
 
@@ -331,7 +331,7 @@ C4Component
 | Authentication and sessions | Opaque 32-byte bearer token stored as SHA-256; 7-day expiry (`SESSION_TTL_DAYS`); rotation on refresh; revocation per device; argon2id passwords; same answer and timing for an unknown email and a wrong password. Every route needs a signed-in user by default. Feature modules use `@CurrentUser()` and never add their own guard. | `auth/`, global `AuthGuard` | [ADR 0002](adr/0002-authentication-and-sessions.md) |
 | Account export and deletion | Every table holding a student's data has `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Export reads every such table from the PostgreSQL catalog in one `REPEATABLE READ` snapshot, only the rows the student owns, and never selects columns named `*_hash`, `*_token`, `*_secret`, `*_key`, `*_password`, `*_sub`, `*_salt` or `*_seed` (snake_case or camelCase). Deletion asks for the password, revokes every session at once, and purges after 30 days (`ACCOUNT_DELETION_GRACE_DAYS`) unless the student signs in again. A key to `users` in another column is `ON DELETE SET NULL` (preferred) or `CASCADE`. An e2e test reads the catalog and fails on any table that breaks these rules. | `account/`, `test/user-table-rules.ts` | [ADR 0004](adr/0004-account-export-and-deletion.md) |
 | AI gateway limits | Only F6's goal box and F8. Per-user daily cap (`AI_DAILY_CALLS_PER_USER`, default 20); a call counts once it reaches the model. Monthly credit limit and training opt-out on the OpenRouter account. One failure type, 503 `ai_unavailable`, and every AI screen keeps a manual path. Usage rows hold no content. CI uses `FakeLlmService` and never calls OpenRouter. | `ai/` | [ADR 0003](adr/0003-language-model-scope.md) |
-| Public routes allow-list | Public today: health, sign-up, sign-in, the two guide reads, and the API docs pages where they are served (not in production). Planned: the shared-plan read. Only sign-up and sign-in write. `public-routes.e2e-spec.ts` calls every route in the OpenAPI document without a token and fails on any unexpected non-401, on a public write, and on a served route the document lacks. A new public route needs an ADR 0010 change. | `@Public()`, `test/public-routes.e2e-spec.ts` | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
+| Public routes allow-list | Public today: health, sign-up, sign-in, the two guide reads, the shared-plan read (`GET /api/shared-plans/{token}`), and the API docs pages where they are served (not in production). Only sign-up and sign-in write. `public-routes.e2e-spec.ts` calls every route in the OpenAPI document without a token and fails on any unexpected non-401, on a public write, and on a served route the document lacks. A new public route needs an ADR 0010 change. | `@Public()`, `test/public-routes.e2e-spec.ts` | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | Term encoding | A term is `{ year, number }`: `year` is the first calendar year of the academic year, `number` is 1, 2 or 3 in the order of the academic year: 3 is a third main term in a Tiên tiến, Liên kết or Chất lượng cao program such as APCS, and the summer term only in a đại trà program. SQL: `term_year smallint`, `term_number smallint CHECK (1, 2, 3)`. `terms/` still calls 3 the summer term; it changes with the rule engine. | `terms/term.ts`, `terms/term.dto.ts` | [ADR 0009](adr/0009-term-encoding.md), amended by [ADR 0012](adr/0012-credit-caps-by-training-type.md) |
 | Logging | Never log a prompt, a reply, tool arguments, a provider error message, a transcript row or any identity field (hard rule 3). AI errors are logged by name or status code only, through one helper. The purge logs counts, not accounts. Test data and seeds are synthetic. | `ai/` logging helper, `account/` | [ADR 0003](adr/0003-language-model-scope.md), AGENTS.md hard rule 3 |
 | Rate limits | `@nestjs/throttler`, per client address: 120 requests a minute by default, 10 a minute on sign-up, sign-in and account deletion. Runs before authentication, so unauthenticated floods are cut first. Behind a proxy, Express `trust proxy` must be set (`TRUST_PROXY`, `loopback` on the host) or every visitor shares one address. | `auth/rate-limits.ts`, `app.module.ts` | [ADR 0002](adr/0002-authentication-and-sessions.md), [ADR 0010](adr/0010-public-pages-and-guide-content.md) |

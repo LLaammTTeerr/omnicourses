@@ -50,6 +50,21 @@ The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/
 | A plan holds courses. | A placement is a course or a slot: credits held for a requirement group until a course is chosen. A plan can also be locked on one browser. Neither is in the specification. |
 | (none) | `POST /api/plans/{id}/issues` is built and tested, but no screen calls it since the batched drops route replaced it. |
 
+## UC-09 Share or export a plan (F9)
+
+Only the API is built (`src/backend/src/sharing/`, [ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026). No screen calls it yet.
+
+| Specification | As built | Follow-up |
+| --- | --- | --- |
+| The Share panel, the shared page with its banner, and **Download PDF** (steps 1–8, A1). | Not built. The API has the owner's routes (`GET`, `PUT`, `DELETE /api/plans/{id}/share`) and the reader's route (`GET /api/shared-plans/{token}`). | The screens; whether the PDF is the browser's print layout or a server file is still open (UC-09 §8) |
+| **Create link** creates a link; a plan already shared shows its link instead (steps 3–4, A4). | One request does both: `PUT /api/plans/{id}/share` creates the link when there is none and returns the live one when there is, with the choice about the name. `GET` shows the link without changing anything. | |
+| A reader sees the violations the rule engine finds, the same problems as the student (step 2, A9). | A reader sees the engine's issues that follow from the plan and its curriculum alone. Four issue codes that the engine decides from the transcript are left out: `prerequisite_not_met`, `already_passed`, `already_in_progress` and `requirement_not_covered`. Each would tell a reader what the owner passed, failed or is taking, and §7 says the transcript never appears. The answer names the codes left out (`issueCodesNotShown`), so the page can say so. | The Project Lead decides whether a reader may see them |
+| A reader sees the estimated graduation term (step 2, §7). | Not in the answer: nothing computes one (see UC-03 and UC-05). The coverage and `PlanCoverage.graduation` are left out too, because they count the transcript. | |
+| The prototype `shared.html` shows a row of passed courses and the coverage of each requirement group. | Neither is in the answer. UC-09 step 2 lists neither, and both come from the transcript. | With the decision above |
+| A reader sees the plan's "program, cohort and curriculum version" (step 2). | The answer gives the curriculum's code, cohort and names and the program's code and names, and no id. | |
+| The token is "at least as strong as a session token" (§7). | 32 random bytes. Unlike a session token it is stored readable, because A4 shows the live link again. | Hash-only storage would change A4 (ADR 0010, open point 2) |
+| The page tells search engines not to index it (§7). | The API's answers carry `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`, the "not shared" answer too. The page must add its own `noindex`. | The shared page |
+
 ## UC-10 Follow a school-task guide (F11)
 
 As the specification schedules: B1 has browsing, search and reading (steps 1–7, A1, A2, A5, A8). The parts that use the student's data (A3 program values from the rule engine, A4 courses from a plan) and reporting a problem (A6) are not built, and no guide route reads the signed-in user.
@@ -75,16 +90,17 @@ Only the school dates are built: the dates that a notification would announce, a
 | --- | --- |
 | The sessions list shows the place each device was last used (step 4). | A session stores the browser's user agent and its times; no place. |
 | Withdraw AI consent (A3). | Not built: no AI feature is built, and the only consent stored is `users.consent_at` from sign-up. |
-| The export holds notifications; deletion stops every shared link (A4, A5). | Neither notifications nor sharing exists. The export holds every table with a `user_id` key to `users`, whatever tables exist. |
+| The export holds notifications; deletion stops every shared link (A4, A5). | Notifications do not exist. A deletion request deletes every shared plan's link in the transaction that revokes the sessions, and a restored account gets none back (UC-09 A7). The export holds every table with a `user_id` key to `users`, whatever tables exist; a `plan_shares` row is exported without its token. |
 | 30 days of grace. | The default of `ACCOUNT_DELETION_GRACE_DAYS`; the deadline promised is stored in `users.purge_after`. |
 
 ## Use cases with no code on `main`
 
-- UC-06 what-if scenario (F7), UC-07 generate a plan (F6), UC-08 advisor chat (F8), UC-09 and UC-16 sharing (F9): not built. The AI gateway (`src/backend/src/ai/`) is built, and no feature module injects `LlmService` yet.
+- UC-06 what-if scenario (F7), UC-07 generate a plan (F6), UC-08 advisor chat (F8): not built. UC-09 and UC-16 sharing (F9): the API is built and tested (`src/backend/src/sharing/`, see UC-09 above); the single-page app has no sharing screen. The AI gateway (`src/backend/src/ai/`) is built, and no feature module injects `LlmService` yet.
 - UC-11, UC-17, UC-18 curriculum administration (F12): the API is built and tested (`src/backend/src/curriculum-admin/`); the single-page app has no administration screen. Their sequence diagrams are not drawn yet.
 
 ## Documents that lag the code
 
+- The [class model](class-model.md) has `PlanShare` in §1.4 and §1.7 only; §3 does not draw `SharingService` and its two controllers, and no sequence diagram of UC-09 is drawn.
 - [`architecture.md`](architecture.md) §4.2 and §5 still show `rules`, `audit`, `plans`, `curriculum-admin`, the session store and the student screens as planned; all are built.
 - [`architecture.md`](architecture.md) has no `academic-calendar` module and still lists F10 only as the planned `notifications` module; the school dates and the `/calendar` page are built ([class model](class-model.md) §1.6, §3.5).
 - [`sequence-diagrams/UC-01-sign-up-and-onboard.md`](sequence-diagrams/UC-01-sign-up-and-onboard.md) draws sign-up, sign-in and sessions; onboarding (`GET` and `PUT /api/users/me/onboarding`) has been built since and is not drawn.
