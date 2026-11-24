@@ -231,10 +231,12 @@ function dropLinkProblem(): void {
 /** `from`: the click that asked for it. Its button gets the focus back; not every browser focuses a button on a click. */
 function open(next: Ask, from: Event): void {
   const at = scope.value;
-  if (!at || stale.value) return;
+  if (!at) return;
+  // First: a link whose outcome is unknown makes the page stale, and a stale page opens no form.
+  dropLinkProblem();
+  if (stale.value) return;
   opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
   dialogWrites.clear();
-  dropLinkProblem();
   notice.value = null;
   late.value = null;
   dialog.value = { ...next, at };

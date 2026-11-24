@@ -676,6 +676,29 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       expect(get(w, 'group-panel').get('[data-test="admin-problem"]').attributes('data-code')).toBe('not_applied');
       expect((get(w, 'link-code').element as HTMLInputElement).value).toBe('ZZ105');
     });
+
+    it('asks for the reload before another write when a lost link cannot be checked, also from the Add group button', async () => {
+      let offline = false;
+      const { w, fetch } = await render({
+        [READ]: () => (offline ? lost() : Response.json(saved)),
+        [`PUT ${GROUPS}/${GROUP_BASE_ID}/courses/ZZ104`]: () => {
+          offline = true;
+          return lost();
+        },
+      });
+      await get(w, 'link-code').setValue('ZZ104');
+      await get(w, 'group-panel').get('form').trigger('submit');
+      await flushPromises();
+      expect(get(w, 'group-panel').get('[data-test="admin-problem"]').attributes('data-code')).toBe('unknown');
+
+      // The link may be saved: no other write starts before the saved data has been read.
+      await get(w, 'add-group').trigger('click');
+      await flushPromises();
+      expect(w.find('dialog[open]').exists()).toBe(false);
+      expect(has(w, 'curriculum-stale')).toBe(true);
+      expect(get(w, 'add-group').attributes('disabled')).toBeDefined();
+      expect(writes(fetch)).toHaveLength(1);
+    });
   });
 
   it('says so when a confirmed save cannot be shown, and reloads on request', async () => {
