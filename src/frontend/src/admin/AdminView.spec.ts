@@ -109,6 +109,15 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     expect(has(w, 'admin-no-permission')).toBe(true);
   });
 
+  it('does not carry a refused save over to the next visit of the page', async () => {
+    const { w, pinia } = await render('/admin/curriculum', { 'GET /admin/grants': PROGRAM_ADMIN, 'GET /admin/programs': { programs: [] } });
+    useAdminAccess(pinia).refusal = { permission: 'program_admin' };
+    await flushPromises();
+    expect(has(w, 'admin-refused')).toBe(true);
+    w.unmount();
+    expect(useAdminAccess(pinia).refusal).toBeNull();
+  });
+
   it('asks for the grants on every visit, and waits for the answer before it says anything', async () => {
     let answer!: (response: Response) => void;
     const fetch = mockApi({ 'GET /admin/grants': () => new Promise<Response>((resolve) => (answer = resolve)) });

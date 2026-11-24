@@ -130,6 +130,106 @@ describe('the administration screens at a phone width and on a desktop', () => {
   });
 });
 
+describe('the groups table with long printed rules', () => {
+  const RULE =
+    'Sinh viên tích lũy tối thiểu 12 tín chỉ trong nhóm này. Trong đó có ít nhất một học phần thực hành và không quá hai học phần thuộc cùng một hướng chuyên ngành. ' +
+    'Học phần đã tính cho nhóm khác không được tính lại. Sinh viên chọn hướng khóa luận phải hoàn thành cả hai học phần của hướng đó; nếu không, tín chỉ của học phần đầu không được tính. ' +
+    'Ghi chú này chép nguyên văn từ văn bản chính thức, mục 7.3.';
+  const NINE = curriculum(
+    Array.from({ length: 9 }, (_unused, i) =>
+      group(`00000000-0000-4000-8000-0000000009a${i}`, `Nhóm kiến thức thử số ${i + 1} của chương trình`, { kind: i % 2 ? 'elective' : 'compulsory', creditsTotalMin: i % 2 ? 12 : null, creditsTotal: i % 2 ? null : 24, officialNotes: RULE, courses: i === 0 ? BASE_GROUP.courses : [] }),
+    ),
+  );
+  const height = (el: Element | null | undefined) => el!.getBoundingClientRect().height;
+
+  it.each([
+    [400, 'vi', 270],
+    [400, 'en', 270],
+    [1280, 'vi', 130],
+    [1280, 'en', 130],
+  ] as const)('keeps a row compact at %i px in %s, with its actions on screen and the whole rule one key press away', async (width, lang, tallest) => {
+    await page.viewport(width, 844);
+    localStorage.setItem('omnicourse.lang', lang);
+    await open('/admin/curriculum', { 'GET /programs/ZZPROG/curricula/2024': NINE });
+    await expect.poll(() => document.querySelectorAll('[data-test="group-row"]').length).toBe(9);
+    const rows = [...document.querySelectorAll('[data-test="group-row"]')];
+    const notes = [...document.querySelectorAll('[data-test="group-note-row"]')];
+    for (const [i, row] of rows.entries()) {
+      // A group takes its row and the two lines of its rule, not a screen of text (a card with every value named, on a phone).
+      expect(height(row) + height(notes[i]), `group ${i + 1} at ${width} px (${lang})`).toBeLessThanOrEqual(tallest);
+      for (const button of row.querySelectorAll('button')) {
+        const box = button.getBoundingClientRect();
+        expect(box.left, button.textContent ?? '').toBeGreaterThanOrEqual(0);
+        expect(box.right, button.textContent ?? '').toBeLessThanOrEqual(window.innerWidth);
+      }
+    }
+    // Nothing of the table is off to the side.
+    const wrap = document.querySelector('.admin-groups')!.parentElement!;
+    expect(wrap.scrollWidth).toBeLessThanOrEqual(wrap.clientWidth);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+
+    // The rule is cut to two lines for the eye only. Its button is reached and pressed from the keyboard, says
+    // whether the rule is open, and then all of the text shows.
+    const note = notes[0]!.querySelector<HTMLElement>('[data-test="group-note"]')!;
+    const toggle = notes[0]!.querySelector<HTMLButtonElement>('[data-test="group-note-toggle"]')!;
+    expect(note.textContent).toBe(RULE);
+    expect(note.scrollHeight).toBeGreaterThan(note.clientHeight);
+    const before = height(note);
+    toggle.focus();
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(height(note)).toBeGreaterThan(before);
+    expect(note.scrollHeight).toBeLessThanOrEqual(note.clientHeight + 1);
+    expect(document.activeElement).toBe(toggle);
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(height(note)).toBe(before);
+  });
+
+  it('shows each course of the open group as a card on a phone, with its rules named and their controls on screen', async () => {
+    await page.viewport(400, 844);
+    await open('/admin/curriculum');
+    await expect.poll(() => document.querySelectorAll('[data-test="course-row"]').length).toBe(4);
+    for (const row of document.querySelectorAll('[data-test="course-row"]')) {
+      for (const button of row.querySelectorAll('button')) {
+        const box = button.getBoundingClientRect();
+        expect(box.left).toBeGreaterThanOrEqual(0);
+        expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+      }
+      // The column heads are not on screen at this width: each rule carries its own name.
+      expect(getComputedStyle(row.querySelector('[data-test="prerequisites"]')!, '::before').content).toBe('"Tiên quyết"');
+    }
+    const wrap = document.querySelector('.admin-courses')!.parentElement!;
+    expect(wrap.scrollWidth).toBeLessThanOrEqual(wrap.clientWidth);
+  });
+});
+
+describe('the program list of the access screen on a phone', () => {
+  it('shows a long program name whole, inside the screen', async () => {
+    const long = 'Cử nhân ngành Khoa học máy tính thử nghiệm - Chương trình Tiên tiến có tên rất dài';
+    await page.viewport(400, 844);
+    await open('/admin/access', { 'GET /admin/access/programs': { programs: [{ id: PROGRAM_ID, code: 'ZZPROG', nameVi: long }, ...accessPrograms().programs.slice(0, 1)] } });
+    await page.getByRole('textbox', { name: 'Mã người dùng' }).fill(authResult().user.id);
+    await userEvent.keyboard('{Enter}');
+    const select = page.getByRole('combobox', { name: 'Chương trình' });
+    await expect.element(select).toBeVisible();
+    await select.click();
+    const list = page.getByRole('listbox');
+    await expect.element(list).toBeVisible();
+    const box = (list.element() as HTMLElement).getBoundingClientRect();
+    expect(box.left).toBeGreaterThanOrEqual(0);
+    expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+    for (const option of (list.element() as HTMLElement).querySelectorAll<HTMLElement>('[role="option"]')) {
+      expect(option.getBoundingClientRect().right, option.textContent ?? '').toBeLessThanOrEqual(window.innerWidth);
+      // Not cut: the name wraps instead.
+      expect(option.scrollWidth, option.textContent ?? '').toBeLessThanOrEqual(option.clientWidth);
+    }
+    expect((list.element() as HTMLElement).textContent).toContain(long);
+    expect((list.element() as HTMLElement).scrollWidth).toBeLessThanOrEqual((list.element() as HTMLElement).clientWidth);
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+  });
+});
+
 describe('the administration dialogs with the keyboard', () => {
   it('opens a form from the keyboard, keeps the focus inside it, and gives the focus back on Escape, sending nothing', async () => {
     await page.viewport(1280, 800);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
@@ -46,6 +46,8 @@ watch(
   () => (pinnedRoute.value = null),
 );
 const pinned = computed(() => access.refusal !== null && pinnedRoute.value === route.name);
+// The message is about this visit: it does not wait for the next one.
+onBeforeUnmount(() => (access.refusal = null));
 async function release(): Promise<void> {
   access.refusal = null;
   // The button is gone, and maybe the section with it: the focus goes to the page's title.
@@ -143,5 +145,19 @@ usePageTitle(() => m.value.title);
 @media (max-width: 620px) {
   .admin-tools { padding: 6px 16px 16px; }
   .link-form .field { flex: 1 1 100%; }
+}
+/*
+ * Narrow: a row of an administration table is a card. The column heads leave the screen (kept for screen readers),
+ * each value shows its column's name from data-label, and the row's actions stay in view with no sideways scroll.
+ */
+@media (max-width: 760px) {
+  .admin-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .admin-cards, .admin-cards tbody { display: block; }
+  .admin-cards tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .admin-cards tbody tr:first-child { border-top: 0; }
+  .admin-section .admin-cards tr > th[scope='row'], .admin-section .admin-cards tr > td { display: block; padding: 0; border: 0; text-align: left; background: none; min-width: 0; }
+  .admin-cards td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 650; color: var(--ink-3); }
+  .admin-cards th[scope='row'], .admin-cards td.acts, .admin-cards td.wide { grid-column: 1 / -1; }
+  .admin-section .admin-cards .row-acts { justify-content: flex-start; flex-wrap: wrap; }
 }
 </style>

@@ -304,7 +304,7 @@ async function recheckDialog(): Promise<void> {
           <p class="small t2">{{ text.describe.program_admin }}</p>
           <p v-if="grants.programs.length === 0" class="small t3" data-test="access-no-programs">{{ text.noProgramGrants }}</p>
           <div v-else class="table-wrap">
-            <table class="table access-table">
+            <table class="table admin-cards access-table">
               <thead>
                 <tr>
                   <th scope="col">{{ text.columns.program }}</th>
@@ -316,9 +316,9 @@ async function recheckDialog(): Promise<void> {
               <tbody>
                 <tr v-for="grant in grants.programs" :key="grant.programId" data-test="access-program-grant" :data-program="grant.programCode">
                   <th scope="row"><span class="code">{{ grant.programCode }}</span></th>
-                  <td>{{ when(grant.grantedAt) }}</td>
-                  <td class="small" :class="grant.grantedBy ? 'mono' : 't3'">{{ grant.grantedBy ?? text.noGranter }}</td>
-                  <td class="r">
+                  <td :data-label="text.columns.grantedAt">{{ when(grant.grantedAt) }}</td>
+                  <td class="small wide granter" :class="grant.grantedBy ? 'mono' : 't3'" :data-label="text.columns.grantedBy">{{ grant.grantedBy ?? text.noGranter }}</td>
+                  <td class="r acts">
                     <button class="btn sm" type="button" :disabled="held" :aria-label="text.revokeLabel(text.programPermission(grant.programCode))" data-test="access-revoke-program" @click="askRevoke({ type: 'program', grant }, $event)">
                       <Icon name="lock" size="sm" />{{ text.revoke }}
                     </button>
@@ -348,7 +348,7 @@ async function recheckDialog(): Promise<void> {
         <section aria-labelledby="access-global-title">
           <h4 id="access-global-title">{{ text.global }}</h4>
           <div class="table-wrap">
-            <table class="table access-table">
+            <table class="table admin-cards access-table">
               <thead>
                 <tr>
                   <th scope="col">{{ text.columns.permission }}</th>
@@ -360,11 +360,11 @@ async function recheckDialog(): Promise<void> {
                 <tr v-for="permission in GLOBAL_PERMISSIONS" :key="permission" :data-test="`access-global-${permission}`" :data-state="globalGrantOf(permission) ? 'held' : 'not-held'">
                   <th scope="row">{{ m.permissions[permission] }}<span class="small t2 about">{{ text.describe[permission] }}</span></th>
                   <!-- Held or not, in words: the chip's colour is never the only cue. -->
-                  <td data-test="access-status">
+                  <td class="wide" data-test="access-status" :data-label="text.columns.status">
                     <span v-if="globalGrantOf(permission)" class="chip ok"><Icon name="check" size="sm" />{{ text.held(when(globalGrantOf(permission)!.grantedAt)) }}</span>
                     <span v-else class="chip">{{ text.notHeld }}</span>
                   </td>
-                  <td class="r">
+                  <td class="r acts">
                     <button
                       v-if="globalGrantOf(permission)"
                       :id="`access-action-${permission}`"
@@ -421,6 +421,11 @@ async function recheckDialog(): Promise<void> {
 .access-user h4 { font-size: 15px; font-weight: 650; margin: 0; }
 .access-user .table-wrap { border: 1px solid var(--edge); border-radius: 12px; }
 .access-table .about { display: block; font-weight: 400; max-width: 56ch; margin-top: 2px; }
+.access-table .granter { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .access-table tr { grid-template-columns: minmax(0, 1fr); }
+  .access-table td[data-label]::before { font-family: var(--font); }
+}
 .access-user .link-form .field { flex: 0 1 320px; }
 /* A program's name can be long: in the list it wraps and is read whole, and the list stays inside a phone's screen. */
 .admin-section .ui-select-list { max-width: min(420px, calc(100vw - 72px)); }

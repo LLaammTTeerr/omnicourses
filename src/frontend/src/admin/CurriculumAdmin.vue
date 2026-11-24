@@ -727,23 +727,18 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
   .admin-note { padding: 0 16px 8px; }
   .group-panel { padding: 16px; }
 }
-/* Narrow: a row is a card. The column heads go (kept for screen readers), each value shows its name, and the actions stay in view. */
+/* Narrow: each row is a card (the shared rules are in AdminView.vue). */
 @media (max-width: 760px) {
-  .admin-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .admin-cards, .admin-cards tbody { display: block; }
-  .admin-cards tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
-  .admin-cards tbody tr:first-child { border-top: 0; }
-  .admin-section .admin-cards tr > * { display: block; padding: 0; border: 0; text-align: left; background: none; min-width: 0; }
-  .admin-cards td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 650; color: var(--ink-3); }
-  .admin-cards th[scope='row'], .admin-cards td.acts, .admin-cards td.name { grid-column: 1 / -1; }
-  .admin-cards .row-acts { justify-content: flex-start; flex-wrap: wrap; }
   .admin-groups tr.on { background: var(--c-air); }
   .admin-groups tr.noted { padding-bottom: 6px; }
   .admin-groups tr.group-note { display: block; border-top: 0; padding-top: 0; }
   .admin-groups .note { padding-left: 0; }
   .admin-groups .group-name { min-width: 0; }
-  .admin-courses tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .admin-courses td.acts { justify-self: end; grid-column: auto; }
-  .admin-courses td[data-test] { grid-column: 1 / -1; }
+  /* A course: its code and the button that removes it on the first line, then its name and each rule with its name. */
+  .admin-courses tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .admin-courses th[scope='row'] { grid-column: 1; grid-row: 1; align-self: center; }
+  .admin-courses td.acts { grid-column: 2; grid-row: 1; }
+  .admin-courses td.name, .admin-courses td[data-label] { grid-column: 1 / -1; }
+  .admin-courses td.name { font-weight: 650; min-width: 0; }
 }
 </style>
