@@ -1167,6 +1167,83 @@
         "tags": [
           "curriculum-admin"
         ]
+      },
+      "post": {
+        "operationId": "ProgramAdminController_createProgram",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProgramDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created, with no training type. The creator gets no grant on it: an access manager grants the program to its administrator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgramDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`duplicate_code`: a program has this code already; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum-admin"
+        ]
       }
     },
     "/api/admin/grants": {
@@ -1995,6 +2072,398 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OfferingTermsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}": {
+      "patch": {
+        "operationId": "ProgramAdminController_updateProgram",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProgramDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved. A body that names the code or the training type is refused with 400, not ignored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgramDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/cohorts": {
+      "get": {
+        "operationId": "ProgramAdminController_listCohorts",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum-admin"
+        ]
+      },
+      "post": {
+        "operationId": "ProgramAdminController_createCohort",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCohortDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created empty: no requirement group, link or rule, and no credit total. No other cohort changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`duplicate_cohort`: the program has a cohort of this year. `duplicate_code`: a curriculum has this code. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/cohorts/{curriculumId}": {
+      "get": {
+        "operationId": "ProgramAdminController_getCohort",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "curriculumId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum-admin"
+        ]
+      },
+      "patch": {
+        "operationId": "ProgramAdminController_updateCohort",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "curriculumId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCohortDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved. A body that names the program, the cohort year, the code or the credit total is refused with 400, not ignored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CohortDetailsDto"
                 }
               }
             }
@@ -6811,6 +7280,262 @@
           "courseCode",
           "terms"
         ]
+      },
+      "CreateProgramDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "ZZ-PROG",
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:-[A-Z0-9]+)*$",
+            "description": "Trimmed and upper-cased, then checked. Unique among programs. Cannot change later: the read API and the onboarding answers name a program by it."
+          },
+          "nameVi": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255,
+            "description": "Blank is stored as null"
+          },
+          "faculty": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100,
+            "description": "The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null."
+          }
+        },
+        "required": [
+          "code",
+          "nameVi"
+        ]
+      },
+      "ProgramDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "nameVi": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "faculty": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "trainingType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "advanced",
+              "joint",
+              "high_quality",
+              "standard",
+              null
+            ],
+            "description": "Read-only here: no F12 route sets it. null: not recorded, so the rule engine checks no credit cap (ADR 0013)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "nameVi",
+          "nameEn",
+          "faculty",
+          "trainingType",
+          "updatedAt"
+        ]
+      },
+      "UpdateProgramDto": {
+        "type": "object",
+        "properties": {
+          "nameVi": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "faculty": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          }
+        }
+      },
+      "CohortDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The curriculum ID: the :curriculumId of the cohort routes"
+          },
+          "programId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cohortYear": {
+            "type": "number",
+            "example": 2024
+          },
+          "code": {
+            "type": "string",
+            "example": "APCS2024"
+          },
+          "nameVi": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "totalCreditsMin": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Read-only here until the rule-engine handoff (ADR 0011). null for a cohort created through F12."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "programId",
+          "cohortYear",
+          "code",
+          "nameVi",
+          "nameEn",
+          "language",
+          "totalCreditsMin",
+          "updatedAt"
+        ]
+      },
+      "CohortListDto": {
+        "type": "object",
+        "properties": {
+          "cohorts": {
+            "description": "The program's cohorts, oldest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CohortDetailsDto"
+            }
+          }
+        },
+        "required": [
+          "cohorts"
+        ]
+      },
+      "CreateCohortDto": {
+        "type": "object",
+        "properties": {
+          "cohortYear": {
+            "type": "number",
+            "example": 2026,
+            "minimum": 2000,
+            "maximum": 2100,
+            "description": "The year the cohort entered the program. One cohort per program and year. Cannot change later."
+          },
+          "code": {
+            "type": "string",
+            "example": "ZZ-PROG-2026",
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:-[A-Z0-9]+)*$",
+            "description": "The curriculum's code. Trimmed and upper-cased, then checked. Unique among all curricula. Cannot change later."
+          },
+          "nameVi": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255,
+            "description": "Blank is stored as null"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10,
+            "example": "en",
+            "description": "Language of instruction, as text. Blank is stored as null."
+          }
+        },
+        "required": [
+          "cohortYear",
+          "code",
+          "nameVi"
+        ]
+      },
+      "UpdateCohortDto": {
+        "type": "object",
+        "properties": {
+          "nameVi": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10
+          }
+        }
       },
       "CreateCourseDto": {
         "type": "object",

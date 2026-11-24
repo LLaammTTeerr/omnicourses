@@ -13,13 +13,15 @@ import { CsvImportService } from './csv-import.service.js';
 import { CurriculumAdminController } from './curriculum-admin.controller.js';
 import { CurriculumAdminService } from './curriculum-admin.service.js';
 import { ImportBodyGate } from './import-body-gate.js';
+import { ProgramAdminController } from './program-admin.controller.js';
+import { ProgramAdminService } from './program-admin.service.js';
 
 // F12 curriculum administration (ADR 0011): grants, program writes, catalog writes, CSV import. It writes
 // the tables the curriculum module maps and reads; it adds no authentication of its own.
 @Module({
   imports: [CurriculumModule, AuthModule, TypeOrmModule.forFeature([ProgramAdminGrant, GlobalAdminGrant])],
-  controllers: [CurriculumAdminController, CatalogAdminController, AccessAdminController, CsvImportController],
-  providers: [AdminWriteService, CurriculumAdminService, CatalogAdminService, AccessAdminService, CsvImportService, ImportBodyGate],
+  controllers: [CurriculumAdminController, ProgramAdminController, CatalogAdminController, AccessAdminController, CsvImportController],
+  providers: [AdminWriteService, CurriculumAdminService, ProgramAdminService, CatalogAdminService, AccessAdminService, CsvImportService, ImportBodyGate],
   // Other program-scoped writers (the academic calendar, ADR 0017) check grants through it.
   exports: [AdminWriteService],
 })

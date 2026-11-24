@@ -9,9 +9,9 @@ import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entitie
 // declared here (an identifier, a parent, a gated credit total) is a 400, never ignored.
 
 /** Present: validated. Absent: left as it is. */
-const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
+export const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
 /** Present and not null: validated. null clears the column. */
-const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
+export const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
 
 // ---- Programs the caller administers -------------------------------------------------------
 
