@@ -1,6 +1,6 @@
 # ADR 0015: The rule engine in the browser for the drag preview
 
-- Status: accepted
+- Status: accepted, not built yet. On `main` the planner still asks the server on every drag (`POST /api/plans/{id}/issues/drops`); [#95](https://github.com/LLaammTTeerr/omnicourses/issues/95) tracks the build.
 - Date: 2026-11-12
 - Deciders: Lâm (Project Lead), 12 Nov 2026 ([#95](https://github.com/LLaammTTeerr/omnicourses/issues/95#issuecomment-6824731321), with the rate limit of [#96](https://github.com/LLaammTTeerr/omnicourses/issues/96#issuecomment-6824732058))
 - Reviewers: Hoà (F5 planner), Triết (rule engine)
@@ -11,7 +11,7 @@ While a student drags or lifts a course in the planner (F5, UC-05), each term ro
 
 Today the preview asks the server. PR 90 first sent one request per row (about 14 per drag), which hit the global limit of 120 requests a minute per address ([ADR 0002](0002-authentication-and-sessions.md)), and a 429 left rows without a preview. It now sends one batched request per drag (`POST /api/plans/{id}/issues/drops`). That keeps a single student far from the limit, but every drag still costs a round trip before the rows are coloured, and the requests still count against a limit that students behind one campus address share.
 
-That shared limit is decided separately: the Project Lead accepted [#96](https://github.com/LLaammTTeerr/omnicourses/issues/96) on 12 Nov 2026. After sign-in the limit counts per student (120 a minute, keyed by `user.id`), and only a higher flood ceiling counts per address before sign-in; ADR 0002 changes with that PR. It removes the shared campus budget, not the round trip, so this ADR still stands.
+That shared limit is decided separately: the Project Lead accepted [#96](https://github.com/LLaammTTeerr/omnicourses/issues/96) on 12 Nov 2026. Once #96 is built, the limit counts per student after sign-in (120 a minute, keyed by `user.id`), and only a higher flood ceiling counts per address before sign-in; ADR 0002 changes with the PR that closes #96. Until then the code still limits per address (`src/backend/src/auth/rate-limits.ts`). It removes the shared campus budget, not the round trip, so this ADR still stands.
 
 The engine itself is pure: `checkPlan` in `src/backend/src/rules/plan-issues.ts` takes the board, the curriculum rules, the course rules, the transcript and the catalog credits, and returns the report. It imports only types and other pure functions, with no database, Nest or Node dependency.
 
