@@ -5,7 +5,7 @@ import { useLocale } from '../locale.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import { useAdminAccess } from './store.js';
-import { EVERY_GRANT, NO_GRANTS, PROGRAM_ADMIN } from './testing/fixtures.js';
+import { ACCESS_MANAGER, EVERY_GRANT, NO_GRANTS, PROGRAM_ADMIN } from './testing/fixtures.js';
 
 let wrapper: VueWrapper | undefined;
 let router: Router;
@@ -56,6 +56,38 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     const { w } = await render('/admin', { 'GET /admin/grants': EVERY_GRANT });
     expect(w.get('[data-test="admin-held"]').findAll('li').map((li) => li.text())).toEqual(['Quản trị chương trình · ZZPROG', 'Quản lý phân quyền', 'Quản lý danh mục học phần']);
     expect(has(w, 'admin-no-permission')).toBe(false);
+  });
+
+  it('opens the first section the user holds from /admin, and marks it in the tabs', async () => {
+    const { w } = await render('/admin', { 'GET /admin/grants': PROGRAM_ADMIN, 'GET /admin/programs': { programs: [] } });
+    expect(router.currentRoute.value.name).toBe('admin-curriculum');
+    const tab = w.get('[data-test="admin-tab-curriculum"]');
+    expect(tab.text()).toBe('Nhóm yêu cầu');
+    expect(tab.attributes('aria-current')).toBe('page');
+    expect(w.get('[data-test="admin-tabs"]').attributes('aria-label')).toBe('Mục quản trị');
+    expect(has(w, 'no-programs')).toBe(true);
+  });
+
+  it('names the permission a section needs when the user opens it without holding it, and loads nothing of it', async () => {
+    const { w, fetch } = await render('/admin/curriculum', { 'GET /admin/grants': ACCESS_MANAGER });
+    const denied = w.get('[data-test="admin-section-denied"]');
+    expect(denied.attributes('data-permission')).toBe('program_admin');
+    expect(denied.attributes('role')).toBe('alert');
+    expect(denied.text()).toBe('Mục này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó.');
+    expect(has(w, 'admin-tab-curriculum')).toBe(false);
+    expect(fetch.mock.calls.map(([url]) => String(url).split('/api')[1])).toEqual(['/admin/grants']);
+    useLocale().set('en');
+    await flushPromises();
+    expect(w.get('[data-test="admin-section-denied"]').text()).toBe('This section needs the “Program administrator” permission. Your account does not hold it.');
+  });
+
+  it('closes a section when its permission is revoked while it is open', async () => {
+    const { w, pinia } = await render('/admin/curriculum', { 'GET /admin/grants': PROGRAM_ADMIN, 'GET /admin/programs': { programs: [] } });
+    expect(has(w, 'no-programs')).toBe(true);
+    useAdminAccess(pinia).cache = { userId: NO_GRANTS.userId, grants: NO_GRANTS };
+    await flushPromises();
+    expect(has(w, 'no-programs')).toBe(false);
+    expect(has(w, 'admin-no-permission')).toBe(true);
   });
 
   it('asks for the grants on every visit, and waits for the answer before it says anything', async () => {
