@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import { fetchCourse, type Course, type CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
@@ -80,8 +81,20 @@ const settling = ref(false);
 const busy = computed(() => writes.busy.value || settling.value);
 const notice = ref<string | null>(null);
 let opener: HTMLElement | null = null;
+/** The code of the course the last write was about. */
+let written = '';
+/**
+ * A write about this course was left with its outcome unknown: what is on screen may be older than what is saved.
+ * No other write starts until that course has been read again.
+ */
+const stale = ref<string | null>(null);
+
+// A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
+// the request answers, so its result is said. A 401 has signed the user out, who may leave.
+onBeforeRouteLeave(() => !busy.value || !auth.signedIn);
 
 function open(next: Dialog, from: Event): void {
+  if (stale.value) return;
   opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
   writes.clear();
   review.value = null;
@@ -90,12 +103,27 @@ function open(next: Dialog, from: Event): void {
 }
 
 async function close(fallback = 'catalog-code'): Promise<void> {
+  // Left with its outcome unknown: the page may not show what is saved, and says so until that course is read again.
+  if (writes.problem.value?.outcome === 'unknown') stale.value = written;
   dialog.value = null;
   review.value = null;
   writes.clear();
   await nextTick();
-  (opener?.isConnected ? opener : document.getElementById(fallback))?.focus();
+  (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'catalog-reload' : fallback))?.focus();
   opener = null;
+}
+
+/** Reads the course of the write whose outcome was left unknown, and shows it: the page is up to date again. */
+async function reloadStale(): Promise<void> {
+  const of = stale.value;
+  if (!of) return;
+  try {
+    await refresh(of);
+    stale.value = null;
+    typed.value = of;
+  } catch (e) {
+    if (readFailure(e).kind !== 'signed_out') console.error('Reloading the catalog course failed:', e);
+  }
 }
 
 /** Cancel (UC-11 A6): the draft, and a review not yet confirmed, are dropped and nothing is sent. */
@@ -137,6 +165,7 @@ async function finish(result: WriteOutcome<Course>, of: string, saved: string): 
 async function create(values: CourseValues): Promise<void> {
   const body = newCourseBody(values);
   const stored = storedCode(values.code);
+  written = stored;
   const result = await writes.send(
     (token) => createCourse(token, body),
     async () => {
@@ -152,6 +181,7 @@ async function create(values: CourseValues): Promise<void> {
 async function correct(body: ImpactReview['body'], confirming: ImpactReview | null): Promise<void> {
   const of = course.value?.code;
   if (!of) return;
+  written = of;
   const result = await writes.send(
     (token) => updateCourse(token, of, confirming ? { ...body, confirmImpact: confirming.reviewVersion } : body),
     async () => {
@@ -190,6 +220,7 @@ async function confirmImpact(): Promise<void> {
 async function remove(): Promise<void> {
   const of = course.value?.code;
   if (!of) return;
+  written = of;
   const result = await writes.send(
     (token) => deleteCourse(token, of),
     async () => (await refresh(of)) === null,
@@ -237,11 +268,14 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
             <input id="catalog-code" v-model="typed" class="input mono" autocomplete="off" spellcheck="false" aria-describedby="catalog-hint" data-test="catalog-code" />
           </div>
           <button class="btn" type="submit" :disabled="!typed.trim() || status === 'loading'" data-test="catalog-find"><Icon name="search" size="sm" />{{ text.find }}</button>
-          <button class="btn" type="button" data-test="catalog-add" @click="open({ type: 'create' }, $event)"><Icon name="plus" size="sm" />{{ text.add }}</button>
+          <button class="btn" type="button" :disabled="stale !== null" data-test="catalog-add" @click="open({ type: 'create' }, $event)"><Icon name="plus" size="sm" />{{ text.add }}</button>
         </form>
         <p id="catalog-hint" class="hint">{{ text.lookupHint }}</p>
 
         <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="stale" class="callout warn" role="alert" data-test="catalog-stale">
+          <Icon name="alert" /><span>{{ m.stale }} <button id="catalog-reload" class="btn sm" type="button" data-test="catalog-reload" @click="reloadStale">{{ m.reload }}</button></span>
+        </p>
         <p v-if="status === 'loading'" class="t3" role="status">{{ m.loading }}</p>
         <p v-else-if="status === 'failed'" class="callout bad" role="alert" data-test="catalog-failed">
           <Icon name="alert" /><span>{{ text.lookupFailed }} <button class="btn sm" type="button" @click="find">{{ m.retry }}</button></span>
@@ -259,8 +293,8 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
             <p class="small t3" lang="en" data-test="catalog-name-en">{{ course.nameEn ?? '' }}</p>
           </div>
           <div class="head-actions">
-            <button class="btn sm" type="button" :aria-label="text.editLabel(course.code)" data-test="catalog-edit" @click="open({ type: 'edit' }, $event)"><Icon name="edit" size="sm" />{{ text.edit }}</button>
-            <button class="btn sm" type="button" :aria-label="text.deleteLabel(course.code)" data-test="catalog-delete" @click="open({ type: 'delete' }, $event)"><Icon name="trash" size="sm" />{{ text.delete }}</button>
+            <button class="btn sm" type="button" :disabled="stale !== null" :aria-label="text.editLabel(course.code)" data-test="catalog-edit" @click="open({ type: 'edit' }, $event)"><Icon name="edit" size="sm" />{{ text.edit }}</button>
+            <button class="btn sm" type="button" :disabled="stale !== null" :aria-label="text.deleteLabel(course.code)" data-test="catalog-delete" @click="open({ type: 'delete' }, $event)"><Icon name="trash" size="sm" />{{ text.delete }}</button>
           </div>
         </div>
         <dl class="catalog-facts">

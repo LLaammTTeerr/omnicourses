@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import type { CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
@@ -32,12 +32,36 @@ const shell = useMessages(SHELL_MESSAGES);
 const text = computed(() => m.value.catalog);
 
 const values = reactive<CourseValues>(courseValues(null));
+/** The course changed during a review, and the boxes the maintainer had not changed were brought up to date. */
+const rebased = ref(false);
 watch(
   () => props.open,
   (open) => {
-    if (open) Object.assign(values, courseValues(props.course), props.course ? {} : { code: props.startCode });
+    if (!open) return;
+    Object.assign(values, courseValues(props.course), props.course ? {} : { code: props.startCode });
+    rebased.value = false;
   },
   { immediate: true },
+);
+
+const title = ref<HTMLElement | null>(null);
+watch(
+  () => props.review,
+  async (review, before) => {
+    if (!props.open) return;
+    if (review?.changed && props.course) {
+      // Another session corrected the course meanwhile. The boxes this maintainer did not change follow the
+      // course as it is now; otherwise "Back" and Save would propose the old values again and undo that change.
+      const current = courseValues(props.course);
+      for (const field of EDITABLE_COURSE_FIELDS) if (!Object.hasOwn(review.body, field)) values[field] = current[field];
+      rebased.value = true;
+    }
+    // The form and the review replace each other, and the button that had the focus goes with them: the focus
+    // moves to the review's title, which a screen reader then reads, and back into the form on "Back".
+    await nextTick();
+    if (review) title.value?.focus();
+    else if (before) document.getElementById('course-nameVi')?.focus();
+  },
 );
 
 const NUMBERS = ['credits', 'theoryPeriods', 'labPeriods', 'exercisePeriods', 'projectPeriods'] as const;
@@ -58,7 +82,7 @@ const changes = computed(() =>
 
 <template>
   <ModalDialog :open="open" class="course-dialog" labelledby="course-dialog-title" :busy="busy" :busy-text="shell.working" data-test="course-dialog" @close="emit('close')">
-    <h2 id="course-dialog-title">{{ review ? text.reviewTitle : course ? text.dialogEdit(course.code) : text.dialogNew }}</h2>
+    <h2 id="course-dialog-title" ref="title" tabindex="-1">{{ review ? text.reviewTitle : course ? text.dialogEdit(course.code) : text.dialogNew }}</h2>
 
     <!-- The shared-impact review: nothing is saved until it is confirmed. -->
     <div v-if="review && course" class="admin-form" data-test="impact-review">
@@ -96,6 +120,7 @@ const changes = computed(() =>
     </div>
 
     <form v-else class="admin-form" novalidate @submit.prevent="emit('save', { ...values })">
+      <p v-if="rebased" class="callout info small" role="status" data-test="course-rebased"><Icon name="info" size="sm" /><span>{{ text.rebased }}</span></p>
       <div v-if="usedIn.length" class="callout warn small" data-test="shared-warning">
         <Icon name="alert" size="sm" />
         <div><b>{{ text.sharedWarningTitle }}</b><p>{{ text.sharedWarningText(usedIn.join(', ')) }}</p></div>
@@ -156,6 +181,7 @@ const changes = computed(() =>
 
 <style>
 dialog.modal.course-dialog { width: min(560px, calc(100vw - 24px)); }
+#course-dialog-title:focus { outline: none; }
 .course-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
 .impact-changes th[scope='row'] { text-align: left; font-size: 13.5px; color: var(--ink-2); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 600; }
 .impact-changes td { overflow-wrap: anywhere; }

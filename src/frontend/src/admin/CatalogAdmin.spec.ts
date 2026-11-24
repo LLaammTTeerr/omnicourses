@@ -6,7 +6,9 @@ import { useLocale } from '../locale.js';
 import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import { AFFECTED_2024, AFFECTED_2025, CATALOG_MAINTAINER, catalogCourse, SHARED_COURSE } from './testing/fixtures.js';
+import type { UserGrants } from './api.js';
+import { useAdminAccess } from './store.js';
+import { AFFECTED_2024, AFFECTED_2025, CATALOG_MAINTAINER, catalogCourse, NO_GRANTS, SHARED_COURSE } from './testing/fixtures.js';
 
 // Synthetic courses only (AGENTS.md hard rule 3).
 const NOT_FOUND = status(404, { statusCode: 404, message: 'No course has this code', error: 'Not Found' });
@@ -19,10 +21,12 @@ const impact = (code: 'impact_confirmation_required' | 'impact_changed', affecte
 let wrapper: VueWrapper | undefined;
 /** What the catalog has saved, by code: the read route answers from it. */
 let saved: Record<string, CourseDetail>;
+/** The grants the API answers for the signed-in maintainer; a test changes them as a revocation would. */
+let own: UserGrants;
 const read = (code: string) => [`GET /courses/${code}`, () => (saved[code] ? Response.json(saved[code]) : NOT_FOUND())] as const;
 
 async function render(routes: Record<string, unknown> = {}) {
-  const fetch = mockApi({ 'GET /admin/grants': CATALOG_MAINTAINER, ...Object.fromEntries(['ZZ101', 'ZZ200', 'ZZ999'].map(read)), ...routes });
+  const fetch = mockApi({ 'GET /admin/grants': () => Response.json(own), ...Object.fromEntries(['ZZ101', 'ZZ200', 'ZZ999'].map(read)), ...routes });
   const app = await setup('/admin/catalog');
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
@@ -64,6 +68,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     localStorage.clear();
     sessionStorage.clear();
     saved = { ZZ101: SHARED_COURSE, ZZ200: catalogCourse('ZZ200') };
+    own = CATALOG_MAINTAINER;
   });
   afterEach(() => {
     wrapper?.unmount();
@@ -308,6 +313,44 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       expect(get(w, 'catalog-credits').text()).toBe('Tín chỉ3');
     });
 
+    it('moves the focus to the review when it opens, and back into the form on "Back", so it is announced', async () => {
+      const { w } = await render({ [PATCH]: () => impact('impact_confirmation_required', [AFFECTED_2024, AFFECTED_2025], 'zz-review-1') });
+      const dialog = await startEdit(w);
+      // The form, with the Save button that had the focus, was replaced by the review: its title takes the focus.
+      expect(document.activeElement).toBe(dialog.get('#course-dialog-title').element);
+      expect(dialog.get('#course-dialog-title').attributes('tabindex')).toBe('-1');
+      expect(document.activeElement?.textContent).toBe('Xem lại ảnh hưởng trước khi lưu');
+      await press(w, 'impact-back');
+      expect(document.activeElement).toBe(get(dialog, 'course-nameVi').element);
+    });
+
+    it('brings the form up to date after the course changed during the review, so "Back" and Save do not undo the other change', async () => {
+      const { w, fetch } = await render({
+        [PATCH]: (init: RequestInit) => {
+          const body = sentBody(init) as Record<string, unknown>;
+          if (body.confirmImpact === undefined) return impact('impact_confirmation_required', [AFFECTED_2024, AFFECTED_2025], 'zz-review-' + calls(fetch, 'PATCH').length);
+          if (body.confirmImpact === 'zz-review-1') {
+            // Another maintainer corrected the English name and the lab periods meanwhile.
+            saved.ZZ101 = { ...SHARED_COURSE, nameEn: 'Test course ZZ101 (new)', labPeriods: 15 };
+            return impact('impact_changed', [AFFECTED_2024, AFFECTED_2025], 'zz-review-changed');
+          }
+          return impact('impact_changed', [AFFECTED_2024, AFFECTED_2025], 'zz-review-changed');
+        },
+      });
+      const dialog = await startEdit(w);
+      expect(dialog.find('[data-test="course-rebased"]').exists()).toBe(false);
+      await press(w, 'impact-confirm');
+      expect(dialog.find('[data-test="impact-changed"]').exists()).toBe(true);
+      await press(w, 'impact-back');
+      // The boxes the maintainer did not touch show the course as it is now; the ones they changed keep their text.
+      expect([value(dialog, 'course-nameEn'), value(dialog, 'course-labPeriods')]).toEqual(['Test course ZZ101 (new)', '15']);
+      expect([value(dialog, 'course-nameVi'), value(dialog, 'course-credits')]).toEqual(['Học phần thử ZZ101 (sửa)', '3']);
+      expect(get(dialog, 'course-rebased').text()).toBe('Học phần này đã được sửa ở nơi khác trong lúc bạn xem lại. Các ô bạn chưa sửa đã được cập nhật theo giá trị hiện tại.');
+      await submit(w);
+      // The new proposal holds only this maintainer's change: it does not put the old English name back.
+      expect(sentBody(calls(fetch, 'PATCH').at(-1)![1])).toEqual({ nameVi: 'Học phần thử ZZ101 (sửa)', credits: 3 });
+    });
+
     it('confirms nothing on Cancel, and goes back to the form with what was typed', async () => {
       const { w, fetch } = await render({ [PATCH]: () => impact('impact_confirmation_required', [AFFECTED_2024, AFFECTED_2025], 'zz-review-1') });
       const dialog = await startEdit(w);
@@ -446,6 +489,75 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(get(w, 'admin-notice').text()).toContain('Dữ liệu đã lưu có thay đổi này.');
     expect(has(w, 'catalog-course')).toBe(false);
     expect(useToast().message).toBe('');
+  });
+
+  it('keeps the new-course form, its draft and the refusal on screen when the catalog permission was revoked meanwhile (UC-11 A4)', async () => {
+    const { w, pinia } = await render({
+      'POST /admin/catalog/courses': () => {
+        own = NO_GRANTS;
+        return Response.json({ statusCode: 403, code: 'permission_required', permission: 'catalog_maintainer', message: 'x' }, { status: 403 });
+      },
+    });
+    const dialog = await open(w, 'catalog-add');
+    await get(dialog, 'course-code').setValue('ZZ300');
+    await get(dialog, 'course-nameVi').setValue('Môn đang nhập dở');
+    await submit(w);
+    await flushPromises();
+    expect(useAdminAccess(pinia).any).toBe(false);
+    expect(problem(w).text()).toBe('Thao tác này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó. Chưa lưu gì.');
+    expect(value(w.get('dialog[open]'), 'course-nameVi')).toBe('Môn đang nhập dở');
+    expect(has(w, 'admin-no-permission')).toBe(false);
+    await press(w, 'dialog-cancel');
+    expect(get(w, 'admin-refused').text()).toContain('“Quản lý danh mục học phần”');
+    expect(has(w, 'catalog-add')).toBe(true);
+  });
+
+  it('warns after Cancel on an unknown outcome, and reads the course of that write before another write', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let offline = false;
+    const { w, fetch } = await render({
+      'POST /admin/catalog/courses': () => {
+        saved.ZZ300 = catalogCourse('ZZ300', { nameVi: 'Môn thử mới', credits: 3 });
+        offline = true;
+        return lost();
+      },
+      'GET /courses/ZZ300': () => (offline ? lost() : Response.json(saved.ZZ300)),
+    });
+    await find(w, 'ZZ200');
+    const dialog = await open(w, 'catalog-add');
+    await get(dialog, 'course-code').setValue('ZZ300');
+    await get(dialog, 'course-nameVi').setValue('Môn thử mới');
+    await get(dialog, 'course-credits').setValue('3');
+    await submit(w);
+    expect(problem(w).attributes('data-code')).toBe('unknown');
+    expect(get(dialog, 'dialog-save').attributes('disabled')).toBeDefined();
+    await press(w, 'dialog-cancel');
+    expect(get(w, 'catalog-stale').text()).toContain('Những gì đang hiện có thể đã cũ.');
+    for (const control of ['catalog-add', 'catalog-edit', 'catalog-delete']) expect(get(w, control).attributes('disabled'), control).toBeDefined();
+
+    offline = false;
+    await get(w, 'catalog-reload').trigger('click');
+    await flushPromises();
+    expect(calls(fetch, 'GET').map(pathOf).at(-1)).toBe('/courses/ZZ300');
+    expect(has(w, 'catalog-stale')).toBe(false);
+    expect(get(w, 'catalog-course').attributes('data-course')).toBe('ZZ300');
+    expect(get(w, 'catalog-add').attributes('disabled')).toBeUndefined();
+    expect(calls(fetch, 'POST')).toHaveLength(1);
+  });
+
+  it('stays on the page while a write is out', async () => {
+    let answer!: (response: Response) => void;
+    const { w, router } = await render({ 'DELETE /admin/catalog/courses/ZZ200': () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await find(w, 'ZZ200');
+    await open(w, 'catalog-delete');
+    await press(w, 'confirm-yes');
+    await router.push('/admin/access').catch(() => {});
+    expect(router.currentRoute.value.name).toBe('admin-catalog');
+    answer(new Response(null, { status: 204 }));
+    await flushPromises();
+    expect(useToast().message).toBe('Đã xóa học phần ZZ200 khỏi danh mục.');
+    await router.push('/admin/access');
+    expect(router.currentRoute.value.name).toBe('admin-access');
   });
 
   it('says when a course cannot be loaded, and tries again', async () => {
