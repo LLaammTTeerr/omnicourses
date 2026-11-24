@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
+import { EVERY_GRANT, NO_GRANTS } from './admin/testing/fixtures.js';
 import App from './App.vue';
 import { useAuth } from './auth/store.js';
 import { session } from './auth/testing/fixtures.js';
@@ -12,8 +13,15 @@ import { setup } from './testing/signed-in.js';
 
 let wrapper: VueWrapper | undefined;
 
-async function render(path: string, signedIn: boolean) {
-  mockApi({ 'GET /health': HEALTHY, 'GET /guides': { guides: [] }, 'GET /auth/sessions': [session({ current: true })], 'GET /users/me/transcript': { rows: [] } });
+async function render(path: string, signedIn: boolean, routes: Record<string, unknown> = {}) {
+  mockApi({
+    'GET /health': HEALTHY,
+    'GET /guides': { guides: [] },
+    'GET /auth/sessions': [session({ current: true })],
+    'GET /users/me/transcript': { rows: [] },
+    'GET /admin/grants': NO_GRANTS,
+    ...routes,
+  });
   const { pinia, router } = await setup(path, { signedIn });
   wrapper = mount(App, { global: { plugins: [pinia, router] }, attachTo: document.body });
   await flushPromises();
@@ -42,6 +50,24 @@ describe('App shell', () => {
     expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(student.w.get('.side .nav a[href="/guides"]').classes()).toContain('router-link-active');
     expect(student.w.get('.side .me').text()).toContain('Sinh viên thử');
+  });
+
+  it('lists Administration in the sidebar only for a user who holds a grant, as the API says (ADR 0011)', async () => {
+    const holder = await render('/guides', true, { 'GET /admin/grants': EVERY_GRANT });
+    expect(holder.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
+    expect(holder.w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
+    holder.w.unmount();
+
+    // The API could not say: the entry stays out, and nothing else breaks.
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unknown = await render('/guides', true, { 'GET /admin/grants': () => new Response(null, { status: 503 }) });
+    expect(unknown.w.find('[data-test="nav-admin"]').exists()).toBe(false);
+    expect(unknown.w.findAll('.side .nav a')).toHaveLength(8);
+  });
+
+  it('asks for no grants while nobody is signed in', async () => {
+    await render('/guides', false);
+    expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url)).filter((url) => url.includes('/admin/'))).toEqual([]);
   });
 
   it('frames the privacy notice with the public header for a visitor, and links it from the footer', async () => {

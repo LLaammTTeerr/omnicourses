@@ -58,6 +58,16 @@ describe('request', () => {
     await expect(request('GET', '/things')).rejects.toMatchObject({ code: null });
   });
 
+  it('keeps the whole error body, for the fields an error adds beside its code', async () => {
+    const answer = { statusCode: 403, code: 'permission_required', permission: 'catalog_maintainer', message: 'This needs the catalog_maintainer permission' };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(answer, { status: 403 }));
+    await expect(request('PATCH', '/things')).rejects.toMatchObject({ status: 403, code: 'permission_required', body: answer });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(['not', 'an', 'object'], { status: 400 }));
+    await expect(request('PATCH', '/things')).rejects.toMatchObject({ status: 400, body: null });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('<html>', { status: 502 }));
+    await expect(request('PATCH', '/things')).rejects.toMatchObject({ status: 502, body: null });
+  });
+
   it('fails a call that gets no answer in time, with no status', async () => {
     hang();
     const timeout = vi.spyOn(AbortSignal, 'timeout');

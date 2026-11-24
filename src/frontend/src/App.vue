@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
+import { useAdminAccess } from './admin/store.js';
 import { useAuth } from './auth/store.js';
 import { useMessages } from './locale.js';
 import AppSidebar from './shell/AppSidebar.vue';
@@ -15,6 +16,7 @@ import ToastHost from './shell/ToastHost.vue';
 import TooltipHost from './shell/TooltipHost.vue';
 
 const auth = useAuth();
+const access = useAdminAccess();
 const route = useRoute();
 const router = useRouter();
 const sidebar = useSidebar();
@@ -37,6 +39,16 @@ watch(
     toast.show(m.value.sessionEnded);
     void router.replace({ name: 'sign-in', query: { redirect: route.fullPath } });
   },
+);
+
+// ADR 0011: the navigation lists Administration only for a user who holds a grant, so ask the API once per sign-in.
+// A failed load leaves the entry out; the administration page asks again when it is opened.
+watch(
+  () => auth.user?.id,
+  (userId) => {
+    if (userId) void access.load();
+  },
+  { immediate: true },
 );
 
 // ADR 0004: tell the student that signing in cancelled their pending deletion.

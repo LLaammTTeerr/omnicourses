@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryHistory } from 'vue-router';
 import { createAppRouter } from '../router.js';
-import { NAV, PHONE_MORE, PHONE_TABS, PUBLIC_NAV } from './nav.js';
+import { listed, NAV, PHONE_MORE, PHONE_TABS, PUBLIC_NAV } from './nav.js';
 
 const router = createAppRouter(createMemoryHistory());
 const record = (name: string) => router.getRoutes().find((route) => route.name === name);
@@ -23,6 +23,16 @@ describe('navigation', () => {
     const phone = [...PHONE_TABS, ...PHONE_MORE];
     expect(phone.every(Boolean)).toBe(true);
     expect(phone.map((item) => item.route).sort()).toEqual(NAV.map((item) => item.route).sort());
+  });
+
+  it('lists Administration only for a user who holds a grant (ADR 0011)', () => {
+    expect(NAV.filter((item) => item.grant).map((item) => item.route)).toEqual(['admin']);
+    expect(listed(NAV, false).map((item) => item.route)).not.toContain('admin');
+    expect(listed(NAV, true).map((item) => item.route)).toEqual(NAV.map((item) => item.route));
+    expect(listed(PHONE_MORE, false).map((item) => item.route)).toEqual(['calendar', 'transcript', 'guides', 'settings']);
+    expect(listed(PHONE_MORE, true).at(-1)!.route).toBe('admin');
+    // The page itself opens for any signed-in user and says "no permission": hiding the link is not the protection.
+    expect(record('admin')!.meta.auth).toBe('required');
   });
 
   it('shows visitors only pages they can read signed out', () => {

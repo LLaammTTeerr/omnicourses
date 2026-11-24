@@ -52,6 +52,45 @@ describe('SettingsView', () => {
     expect(w.text()).toContain('zz-student@example.com');
   });
 
+  it('shows the user ID read-only, to give to an access manager (ADR 0011)', async () => {
+    const { w } = await render();
+    const field = w.get('[data-test="user-id"]');
+    expect((field.element as HTMLInputElement).value).toBe('00000000-0000-4000-8000-000000000001');
+    expect(field.attributes('readonly')).toBeDefined();
+    expect(w.get('label[for="user-id"]').text()).toBe('Mã người dùng');
+    expect(w.get('#profile').text()).toContain('Đây là mã định danh, không phải mật khẩu.');
+  });
+
+  it('copies the user ID, says so, and keeps the focus on the button', async () => {
+    const writeText = vi.fn(async () => {});
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    const { w, fetch } = await render();
+    const calls = fetch.mock.calls.length;
+    const copy = w.get('[data-test="copy-user-id"]');
+    expect(copy.text()).toBe('Sao chép');
+    (copy.element as HTMLElement).focus();
+    await copy.trigger('click');
+    await flushPromises();
+    expect(writeText).toHaveBeenCalledExactlyOnceWith('00000000-0000-4000-8000-000000000001');
+    expect(useToast().message).toBe('Đã sao chép mã người dùng.');
+    expect(document.activeElement).toBe(copy.element);
+    // The ID is the one the session already holds: copying asks the API nothing.
+    expect(fetch.mock.calls.length).toBe(calls);
+    vi.unstubAllGlobals();
+  });
+
+  it('selects the user ID for a manual copy when the browser refuses the clipboard', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: vi.fn(() => Promise.reject(new DOMException('Denied', 'NotAllowedError'))) } });
+    const { w } = await render();
+    await w.get('[data-test="copy-user-id"]').trigger('click');
+    await flushPromises();
+    const field = w.get('[data-test="user-id"]').element as HTMLInputElement;
+    expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
+    expect(useToast().message).toBe('Chưa sao chép được. Mã đã được chọn sẵn: bấm Ctrl+C để sao chép.');
+    vi.unstubAllGlobals();
+  });
+
   it('lists the sessions, this device first, then the newest, each named after its browser (ADR 0002)', async () => {
     const { w } = await render();
     expect(rows(w).map((row) => row.get('td').text())).toEqual(['Chrome · Linux Thiết bị này', 'Safari · iPhone', 'Thiết bị không rõ']);

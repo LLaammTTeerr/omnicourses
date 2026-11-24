@@ -1,0 +1,97 @@
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { RouterView, type Router } from 'vue-router';
+import { useLocale } from '../locale.js';
+import { mockApi, status } from '../testing/fetch.js';
+import { setup } from '../testing/signed-in.js';
+import { useAdminAccess } from './store.js';
+import { EVERY_GRANT, NO_GRANTS, PROGRAM_ADMIN } from './testing/fixtures.js';
+
+let wrapper: VueWrapper | undefined;
+let router: Router;
+
+async function render(path: string, routes: Record<string, unknown>) {
+  const fetch = mockApi(routes);
+  const app = await setup(path);
+  router = app.router;
+  wrapper = mount(RouterView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
+  await flushPromises();
+  return { w: wrapper, fetch, ...app };
+}
+
+const has = (w: VueWrapper, test: string) => w.find(`[data-test="${test}"]`).exists();
+
+describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = undefined;
+    vi.restoreAllMocks();
+  });
+
+  it('tells a signed-in user without a grant that they have no permission, and where their user ID is', async () => {
+    const { w } = await render('/admin', { 'GET /admin/grants': NO_GRANTS });
+    expect(w.get('h1').text()).toBe('Quản trị');
+    const none = w.get('[data-test="admin-no-permission"]');
+    expect(none.get('h2').text()).toBe('Bạn không có quyền quản trị');
+    expect(none.text()).toContain('Tài khoản của bạn chưa được cấp quyền nào trong số đó.');
+    expect(none.get('a').attributes('href')).toBe('/settings#profile');
+    expect(has(w, 'admin-tabs')).toBe(false);
+    expect(has(w, 'admin-held')).toBe(false);
+    useLocale().set('en');
+    await flushPromises();
+    expect(w.get('[data-test="admin-no-permission"] h2').text()).toBe('You have no administration permission');
+  });
+
+  it('opens without the onboarding detour: an administrator need not be a student', async () => {
+    const { fetch } = await render('/admin', { 'GET /admin/grants': NO_GRANTS });
+    expect(router.currentRoute.value.name).toBe('admin');
+    expect(fetch.mock.calls.map(([url]) => String(url).split('/api')[1])).toEqual(['/admin/grants']);
+  });
+
+  it('lists the permissions the user holds', async () => {
+    const { w } = await render('/admin', { 'GET /admin/grants': EVERY_GRANT });
+    expect(w.get('[data-test="admin-held"]').findAll('li').map((li) => li.text())).toEqual(['Quản trị chương trình · ZZPROG', 'Quản lý phân quyền', 'Quản lý danh mục học phần']);
+    expect(has(w, 'admin-no-permission')).toBe(false);
+  });
+
+  it('asks for the grants on every visit, and waits for the answer before it says anything', async () => {
+    let answer!: (response: Response) => void;
+    const fetch = mockApi({ 'GET /admin/grants': () => new Promise<Response>((resolve) => (answer = resolve)) });
+    const app = await setup('/admin');
+    // An answer from an earlier visit: the grant has been revoked since.
+    useAdminAccess().cache = { userId: PROGRAM_ADMIN.userId, grants: PROGRAM_ADMIN };
+    wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
+    await flushPromises();
+    expect(wrapper.get('[data-test="admin-loading"]').text()).toBe('Đang tải…');
+    expect(has(wrapper, 'admin-held')).toBe(false);
+    expect(has(wrapper, 'admin-no-permission')).toBe(false);
+    answer(Response.json(NO_GRANTS));
+    await flushPromises();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(has(wrapper, 'admin-no-permission')).toBe(true);
+  });
+
+  it('says when the grants could not be checked, which is not "no permission", and tries again', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let calls = 0;
+    const { w } = await render('/admin', { 'GET /admin/grants': () => (calls++ === 0 ? new Response(null, { status: 503 }) : Response.json(NO_GRANTS)) });
+    expect(w.get('[data-test="admin-grants-failed"]').text()).toContain('Chưa kiểm tra được quyền quản trị của bạn.');
+    expect(has(w, 'admin-no-permission')).toBe(false);
+    await w.get('[data-test="admin-grants-failed"] button').trigger('click');
+    await flushPromises();
+    expect(has(w, 'admin-grants-failed')).toBe(false);
+    expect(has(w, 'admin-no-permission')).toBe(true);
+  });
+
+  it('sends a signed-out visitor to sign in first', async () => {
+    const fetch = mockApi({ 'GET /admin/grants': status(401) });
+    const app = await setup('/admin', { signedIn: false });
+    expect(app.router.currentRoute.value.name).toBe('sign-in');
+    expect(app.router.currentRoute.value.query.redirect).toBe('/admin');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});

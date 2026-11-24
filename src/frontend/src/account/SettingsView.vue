@@ -73,6 +73,23 @@ async function download(): Promise<void> {
 
 const deleting = ref(false);
 
+// ADR 0011: an access manager grants a permission to an exact user ID, and there is no user search, so the user
+// copies their own ID from here. It is `UserDto.id`, as GET /users/me and every sign-in answer give it.
+const userIdField = ref<HTMLInputElement | null>(null);
+async function copyUserId(): Promise<void> {
+  const id = auth.user?.id;
+  if (!id) return;
+  try {
+    await navigator.clipboard.writeText(id);
+    toast.show(m.value.userIdCopied);
+  } catch (e) {
+    // No clipboard permission, or a page not served over HTTPS: select the ID, so one key press copies it.
+    console.error('Copying the user ID failed:', e);
+    userIdField.value?.select();
+    toast.show(m.value.userIdNotCopied);
+  }
+}
+
 async function signOut(): Promise<void> {
   // Leave the private page first, so App.vue does not read the sign-out as a session that ended by itself.
   await router.push({ name: 'home' });
@@ -111,6 +128,13 @@ usePageTitle(() => m.value.title);
           <div class="srow">
             <div class="txt"><b>{{ m.email }}</b></div>
             <span class="value">{{ auth.user?.email }}</span>
+          </div>
+          <div class="srow">
+            <div class="txt"><label for="user-id"><b>{{ m.userId }}</b></label><p>{{ m.userIdNote }}</p></div>
+            <div class="user-id">
+              <input id="user-id" ref="userIdField" class="input mono" type="text" readonly :value="auth.user?.id" data-test="user-id" @focus="userIdField?.select()" />
+              <button class="btn sm" type="button" data-test="copy-user-id" @click="copyUserId"><Icon name="copy" size="sm" />{{ m.copy }}</button>
+            </div>
           </div>
           <div class="srow">
             <div class="txt"><b id="language-label">{{ m.language }}</b><p>{{ m.languageNote }}</p></div>
@@ -228,6 +252,8 @@ usePageTitle(() => m.value.title);
 .srow .txt p { font-size: 13.5px; color: var(--ink-2); }
 .srow .value { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .srow-note { padding: 0 22px 8px; }
+.user-id { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; min-width: 0; }
+.user-id .input { min-width: 0; font-size: 13px; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .danger-zone { border-color: var(--bad); box-shadow: 4px 4px 0 var(--bad); }
 .sign-out { justify-self: start; }
