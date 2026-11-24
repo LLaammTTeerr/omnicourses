@@ -143,8 +143,10 @@ describe('the groups table with long printed rules', () => {
   const height = (el: Element | null | undefined) => el!.getBoundingClientRect().height;
 
   it.each([
-    [400, 'vi', 270],
-    [400, 'en', 270],
+    // Font metrics differ between machines (CI measured 275 to 279 px where a laptop measured under 270), so the
+    // phone bound leaves room for that. A row was 448 px (vi) and 649 px (en) before the rule was cut to two lines.
+    [400, 'vi', 300],
+    [400, 'en', 300],
     [1280, 'vi', 130],
     [1280, 'en', 130],
   ] as const)('keeps a row compact at %i px in %s, with its actions on screen and the whole rule one key press away', async (width, lang, tallest) => {
@@ -157,6 +159,11 @@ describe('the groups table with long printed rules', () => {
     for (const [i, row] of rows.entries()) {
       // A group takes its row and the two lines of its rule, not a screen of text (a card with every value named, on a phone).
       expect(height(row) + height(notes[i]), `group ${i + 1} at ${width} px (${lang})`).toBeLessThanOrEqual(tallest);
+      // The exact property, whatever the font: the closed rule is two lines high at most.
+      const closed = notes[i]!.querySelector<HTMLElement>('[data-test="group-note"]')!;
+      const style = getComputedStyle(closed);
+      const line = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.6;
+      expect(height(closed), `rule of group ${i + 1} at ${width} px (${lang})`).toBeLessThanOrEqual(2 * line + 2);
       for (const button of row.querySelectorAll('button')) {
         const box = button.getBoundingClientRect();
         expect(box.left, button.textContent ?? '').toBeGreaterThanOrEqual(0);
