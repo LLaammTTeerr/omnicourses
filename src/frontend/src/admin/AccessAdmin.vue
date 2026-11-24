@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
@@ -49,11 +50,14 @@ const status = ref<'idle' | 'loading' | 'found' | 'refused' | 'failed'>('idle');
 const lookupFailure = shallowRef<Failure | null>(null);
 let latest = 0;
 
-/** Reads the user's saved grants again and shows them. Rejects when the API cannot say. */
+/** The same account: an ID is the same in capitals or small letters, and the API answers it as it was typed. */
+const sameId = (a: string | null | undefined, b: string | null | undefined): boolean => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+
+/** Reads the saved grants of `of` again, and shows them when `of` is still the user on screen. Rejects when the API cannot say. */
 async function refresh(of = userId.value): Promise<UserGrants> {
   const call = ++latest;
   const fresh = await auth.authed((token) => fetchUserGrants(token, of));
-  if (call === latest) show(fresh);
+  if (call === latest && sameId(of, userId.value)) show(fresh);
   return fresh;
 }
 
@@ -62,12 +66,14 @@ function show(saved: UserGrants): void {
   userId.value = saved.userId;
   status.value = 'found';
   // The access manager's own grants decide which sections this page offers them.
-  if (saved.userId === auth.user?.id) void access.load({ fresh: true });
+  if (sameId(saved.userId, auth.user?.id)) void access.load({ fresh: true });
 }
 
 async function find(): Promise<void> {
   const wanted = typed.value.trim();
-  if (!wanted) return;
+  // A grant or a revocation is out for the user on screen: its answer belongs to that panel, so the lookup waits.
+  if (!wanted || writing.value) return;
+  stale.value = false;
   notice.value = null;
   inlineWrites.clear();
   grants.value = null;
@@ -98,7 +104,7 @@ const lookupRefusal = computed(() => {
   return { code: 'refused', text: text.value.lookupFailed, errors: [] };
 });
 
-const own = computed(() => grants.value?.userId === auth.user?.id);
+const own = computed(() => sameId(grants.value?.userId, auth.user?.id));
 const when = (iso: string) => formatDateTime(iso, locale.lang);
 const globalGrantOf = (permission: GlobalPermission) => grants.value?.permissions.find((grant) => grant.permission === permission) ?? null;
 const programId = ref<string | null>(null);
@@ -111,12 +117,31 @@ type Revocation = { type: 'program'; grant: ProgramGrant } | { type: 'global'; p
 const revoking = shallowRef<Revocation | null>(null);
 const notice = ref<string | null>(null);
 let opener: HTMLElement | null = null;
+const writing = computed(() => inlineWrites.busy.value || dialogWrites.busy.value);
+/**
+ * A revocation was left with its outcome unknown: the grants on screen may be older than the saved ones. No other
+ * change starts until they have been read again.
+ */
+const stale = ref(false);
+/** No grant or revocation starts while the page may be out of date, or while an outcome is unknown. */
+const held = computed(() => stale.value || inlineWrites.problem.value?.outcome === 'unknown');
+
+// A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
+// the request answers, so its result is said. A 401 has signed the user out, who may leave.
+onBeforeRouteLeave(() => !writing.value || !auth.signedIn);
 
 const holdsProgram = (saved: UserGrants, id: string) => saved.programs.some((grant) => grant.programId === id);
 const holdsGlobal = (saved: UserGrants, permission: GlobalPermission) => saved.permissions.some((grant) => grant.permission === permission);
 
-/** Shows what a grant or a revocation left saved. Resolves true when it is saved. */
-function settle(result: WriteOutcome<UserGrants>, saved: string): boolean {
+/**
+ * Shows what a grant or a revocation for `of` left saved. Resolves true when it is saved. An answer about a user
+ * who is no longer the one on screen is dropped: it must not fill, or show a refusal in, another user's panel.
+ */
+function settle(result: WriteOutcome<UserGrants>, saved: string, of: string): boolean {
+  if (!sameId(of, userId.value)) {
+    inlineWrites.clear();
+    return false;
+  }
   if (result.outcome === 'saved') {
     show(result.value);
     toast.show(saved);
@@ -128,31 +153,32 @@ function settle(result: WriteOutcome<UserGrants>, saved: string): boolean {
 
 async function giveProgram(): Promise<void> {
   const [to, id] = [grants.value?.userId, programId.value];
-  if (!to || !id || inlineWrites.busy.value) return;
+  if (!to || !id || inlineWrites.busy.value || held.value) return;
   notice.value = null;
   const program = programs.data.value?.find((item) => item.id === id);
   const result = await inlineWrites.send(
     (token) => grantProgram(token, to, id),
     async () => holdsProgram(await refresh(to), id),
   );
-  if (settle(result, text.value.granted(text.value.programPermission(program?.code ?? id)))) programId.value = null;
+  if (settle(result, text.value.granted(text.value.programPermission(program?.code ?? id)), to)) programId.value = null;
 }
 
 async function giveGlobal(permission: GlobalPermission): Promise<void> {
   const to = grants.value?.userId;
-  if (!to || inlineWrites.busy.value) return;
+  if (!to || inlineWrites.busy.value || held.value) return;
   notice.value = null;
   const result = await inlineWrites.send(
     (token) => grantGlobal(token, to, permission),
     async () => holdsGlobal(await refresh(to), permission),
   );
-  settle(result, text.value.granted(m.value.permissions[permission]));
+  settle(result, text.value.granted(m.value.permissions[permission]), to);
   // The Grant button became a Revoke button: keep the focus on the control of the same permission.
   await nextTick();
   document.getElementById(`access-action-${permission}`)?.focus();
 }
 
 function askRevoke(next: Revocation, from: Event): void {
+  if (held.value) return;
   opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
   dialogWrites.clear();
   inlineWrites.clear();
@@ -162,11 +188,23 @@ function askRevoke(next: Revocation, from: Event): void {
 
 /** Closes the dialog and puts the focus back where it was, or on `fallback` when that control is gone. */
 async function closeDialog(fallback = 'access-user-id'): Promise<void> {
+  // Left with its outcome unknown: the grants on screen may not be the saved ones, and the page says so.
+  if (dialogWrites.problem.value?.outcome === 'unknown') stale.value = true;
   revoking.value = null;
   dialogWrites.clear();
   await nextTick();
-  (opener?.isConnected ? opener : document.getElementById(fallback))?.focus();
+  (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'access-reload' : fallback))?.focus();
   opener = null;
+}
+
+/** Reads the grants of the user on screen again: the page is up to date, and changes may start again. */
+async function reloadStale(): Promise<void> {
+  try {
+    await refresh();
+    stale.value = false;
+  } catch (e) {
+    if (readFailure(e).kind !== 'signed_out') console.error("Reloading a user's grants failed:", e);
+  }
 }
 
 /** Cancel (UC-11 A6): nothing is revoked and nothing is sent. */
@@ -193,7 +231,7 @@ async function revoke(): Promise<void> {
           (token) => revokeGlobal(token, from, current.permission),
           async () => !holdsGlobal(await refresh(from), current.permission),
         );
-  if (!settle(result, text.value.revoked(name))) return;
+  if (!settle(result, text.value.revoked(name), from)) return;
   // The Revoke button is gone with the grant: the focus goes to the control that can grant it again.
   await closeDialog(current.type === 'global' ? `access-action-${current.permission}` : 'access-program-select');
 }
@@ -236,7 +274,7 @@ async function recheckDialog(): Promise<void> {
               :aria-describedby="lookupRefusal?.errors.length ? 'access-hint access-user-id-error' : 'access-hint'"
             />
           </div>
-          <button class="btn" type="submit" :disabled="!typed.trim() || status === 'loading'" data-test="access-find"><Icon name="search" size="sm" />{{ text.find }}</button>
+          <button class="btn" type="submit" :disabled="!typed.trim() || status === 'loading' || writing" data-test="access-find"><Icon name="search" size="sm" />{{ text.find }}</button>
         </form>
         <p id="access-hint" class="hint">{{ text.hint }}</p>
         <FieldErrors id="access-user-id-error" :errors="lookupRefusal?.errors" />
@@ -256,6 +294,9 @@ async function recheckDialog(): Promise<void> {
           <span v-if="own" class="chip info" data-test="access-own">{{ text.ownAccount }}</span>
         </div>
         <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="stale" class="callout warn" role="alert" data-test="access-stale">
+          <Icon name="alert" /><span>{{ m.stale }} <button id="access-reload" class="btn sm" type="button" data-test="access-reload" @click="reloadStale">{{ m.reload }}</button></span>
+        </p>
         <ProblemNote :problem="inlineProblem" @reload="recheckInline" />
 
         <section aria-labelledby="access-programs-title">
@@ -278,7 +319,7 @@ async function recheckDialog(): Promise<void> {
                   <td>{{ when(grant.grantedAt) }}</td>
                   <td class="small" :class="grant.grantedBy ? 'mono' : 't3'">{{ grant.grantedBy ?? text.noGranter }}</td>
                   <td class="r">
-                    <button class="btn sm" type="button" :aria-label="text.revokeLabel(text.programPermission(grant.programCode))" data-test="access-revoke-program" @click="askRevoke({ type: 'program', grant }, $event)">
+                    <button class="btn sm" type="button" :disabled="held" :aria-label="text.revokeLabel(text.programPermission(grant.programCode))" data-test="access-revoke-program" @click="askRevoke({ type: 'program', grant }, $event)">
                       <Icon name="lock" size="sm" />{{ text.revoke }}
                     </button>
                   </td>
@@ -300,7 +341,7 @@ async function recheckDialog(): Promise<void> {
                 data-test="access-program"
               />
             </label>
-            <button class="btn" type="submit" :disabled="!programId || inlineWrites.busy.value" data-test="access-grant-program"><Icon name="key" size="sm" />{{ text.grantProgram }}</button>
+            <button class="btn" type="submit" :disabled="!programId || inlineWrites.busy.value || held" data-test="access-grant-program"><Icon name="key" size="sm" />{{ text.grantProgram }}</button>
           </form>
         </section>
 
@@ -329,6 +370,7 @@ async function recheckDialog(): Promise<void> {
                       :id="`access-action-${permission}`"
                       class="btn sm"
                       type="button"
+                      :disabled="held"
                       :aria-label="text.revokeLabel(m.permissions[permission])"
                       :data-test="`access-revoke-${permission}`"
                       @click="askRevoke({ type: 'global', permission }, $event)"
@@ -340,7 +382,7 @@ async function recheckDialog(): Promise<void> {
                       :id="`access-action-${permission}`"
                       class="btn sm"
                       type="button"
-                      :disabled="inlineWrites.busy.value"
+                      :disabled="inlineWrites.busy.value || held"
                       :aria-label="text.grantLabel(m.permissions[permission])"
                       :data-test="`access-grant-${permission}`"
                       @click="giveGlobal(permission)"
@@ -380,6 +422,9 @@ async function recheckDialog(): Promise<void> {
 .access-user .table-wrap { border: 1px solid var(--edge); border-radius: 12px; }
 .access-table .about { display: block; font-weight: 400; max-width: 56ch; margin-top: 2px; }
 .access-user .link-form .field { flex: 0 1 320px; }
+/* A program's name can be long: in the list it wraps and is read whole, and the list stays inside a phone's screen. */
+.admin-section .ui-select-list { max-width: min(420px, calc(100vw - 72px)); }
+.admin-section .ui-select-list li { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 620px) {
   .access-user { padding: 16px; }
 }

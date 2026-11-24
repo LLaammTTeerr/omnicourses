@@ -1,6 +1,7 @@
 import { flushPromises, mount, type DOMWrapper, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RouterView } from 'vue-router';
+import { useAuth } from '../auth/store.js';
 import { user } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { useToast } from '../shell/toast.js';
@@ -266,6 +267,105 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(has(w, 'access-user')).toBe(false);
     expect(get(w, 'admin-section-denied').attributes('data-permission')).toBe('access_manager');
     expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần']);
+  });
+
+  it('never lets a late answer about one user fill the panel of another: Find waits for the grant that is out', async () => {
+    const third = '00000000-0000-4000-8000-000000000003';
+    let answer!: (response: Response) => void;
+    saved = grants({ userId: OTHER_USER_ID });
+    const { w, fetch } = await render({
+      [`PUT ${USER}/global/catalog_maintainer`]: () => new Promise<Response>((resolve) => (answer = resolve)),
+      [`GET /admin/access/users/${third}/grants`]: grants({ userId: third, programs: [programGrant()] }),
+    });
+    await find(w, OTHER_USER_ID);
+    await click(w, 'access-grant-catalog_maintainer');
+    // The grant for the first user is out. Another ID is typed and sent from the keyboard.
+    expect(get(w, 'access-find').attributes('disabled')).toBeDefined();
+    await find(w, third);
+    expect(calls(fetch, 'GET').map(pathOf)).not.toContain(`/admin/access/users/${third}/grants`);
+    expect(get(w, 'access-shown-id').text()).toBe(OTHER_USER_ID);
+
+    answer(Response.json({ ...saved, permissions: [globalGrant('catalog_maintainer', { grantedBy: OWN_ID })] }));
+    await flushPromises();
+    expect(get(w, 'access-shown-id').text()).toBe(OTHER_USER_ID);
+    expect(state(w, 'catalog_maintainer')[0]).toBe('held');
+    // Now the other user can be looked up, and their panel is their own.
+    expect(get(w, 'access-find').attributes('disabled')).toBeUndefined();
+    await find(w, third);
+    expect(get(w, 'access-shown-id').text()).toBe(third);
+    expect(state(w, 'catalog_maintainer')[0]).toBe('not-held');
+  });
+
+  it('knows the access manager\'s own account when the ID is typed in capitals', async () => {
+    const capitals = 'ABCDEF00-0000-4000-8000-00000000000A';
+    const mine = capitals.toLowerCase();
+    saved = grants({ userId: capitals, permissions: [globalGrant('access_manager')] });
+    own = grants({ userId: mine, permissions: [globalGrant('access_manager')] });
+    const fetch = mockApi({
+      'GET /admin/grants': () => Response.json(own),
+      'GET /admin/access/programs': accessPrograms(),
+      [`GET /admin/access/users/${capitals}/grants`]: reply,
+      [`PUT /admin/access/users/${capitals}/global/catalog_maintainer`]: () => {
+        saved = { ...saved, permissions: [...saved.permissions, globalGrant('catalog_maintainer')] };
+        own = { ...saved, userId: mine };
+        return reply();
+      },
+    });
+    const app = await setup('/admin/access');
+    useAuth(app.pinia).user = user({ id: mine });
+    wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
+    await flushPromises();
+    await find(wrapper, capitals);
+    // The API answers the ID as it was typed; it is the same account.
+    expect(get(wrapper, 'access-own').text()).toBe('Tài khoản của bạn');
+    await click(wrapper, 'access-revoke-access_manager');
+    expect(wrapper.get('dialog[open]').text()).toContain('Đây là tài khoản của bạn: bạn sẽ mất quyền này ngay.');
+    await click(wrapper.get('dialog[open]'), 'confirm-no');
+    // A grant to themselves shows in the sections at once.
+    await click(wrapper, 'access-grant-catalog_maintainer');
+    expect(wrapper.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Phân quyền']);
+    expect(fetch).toHaveBeenCalled();
+  });
+
+  it('stays on the page while a grant is out', async () => {
+    let answer!: (response: Response) => void;
+    saved = grants({ userId: OTHER_USER_ID });
+    const { w, router } = await render({ [`PUT ${USER}/global/catalog_maintainer`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await find(w, OTHER_USER_ID);
+    await click(w, 'access-grant-catalog_maintainer');
+    await router.push('/admin/catalog').catch(() => {});
+    expect(router.currentRoute.value.name).toBe('admin-access');
+    answer(reply());
+    await flushPromises();
+    await router.push('/admin/catalog');
+    expect(router.currentRoute.value.name).toBe('admin-catalog');
+  });
+
+  it('warns after Cancel on a revocation whose outcome is unknown, and reads the grants again before another change', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let offline = false;
+    saved = grants({ userId: OTHER_USER_ID, programs: [programGrant()] });
+    const { w } = await render({
+      [`GET ${USER}/grants`]: () => (offline ? lost() : reply()),
+      [`DELETE ${USER}/programs/${PROGRAM_ID}`]: () => {
+        saved = { ...saved, programs: [] };
+        offline = true;
+        return lost();
+      },
+    });
+    await find(w, OTHER_USER_ID);
+    await click(get(w, 'access-program-grant'), 'access-revoke-program');
+    await click(w.get('dialog[open]'), 'confirm-yes');
+    expect(w.get('dialog[open] [data-test="admin-problem"]').attributes('data-code')).toBe('unknown');
+    expect(get(w.get('dialog[open]'), 'confirm-yes').attributes('disabled')).toBeDefined();
+    await click(w.get('dialog[open]'), 'confirm-no');
+    expect(get(w, 'access-stale').text()).toContain('Những gì đang hiện có thể đã cũ.');
+    expect(get(w, 'access-grant-catalog_maintainer').attributes('disabled')).toBeDefined();
+    offline = false;
+    await click(w, 'access-reload');
+    expect(has(w, 'access-stale')).toBe(false);
+    expect(has(w, 'access-no-programs')).toBe(true);
+    expect(get(w, 'access-grant-catalog_maintainer').attributes('disabled')).toBeUndefined();
   });
 
   describe('a grant or a revocation whose answer is lost (UC-11 A7)', () => {
