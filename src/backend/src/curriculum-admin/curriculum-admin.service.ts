@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { canonicalCourseCode } from '../common/course-code.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
+import { userGrants } from './access-admin.service.js';
 import { conflict, notFound, prerequisiteCycle, referencedItem, validationFailed } from './admin-errors.js';
 import { AdminWriteService } from './admin-write.service.js';
 import {
@@ -13,6 +14,7 @@ import {
   SetOfferingTermsDto,
   SetPrerequisitesDto,
   UpdateRequirementGroupDto,
+  UserGrantsDto,
 } from './curriculum-admin.dto.js';
 import { findPrerequisiteCycle } from './prerequisite-cycle.js';
 
@@ -56,6 +58,15 @@ export class CurriculumAdminService {
     }
     for (const p of programs.values()) p.curricula.sort((a, b) => a.cohortYear - b.cohortYear);
     return [...programs.values()].sort((a, b) => byText(a.code, b.code));
+  }
+
+  /**
+   * The caller's own grants, for the screens to show only what the caller may open. A read of
+   * the caller's rows only: it takes no user ID, so it cannot answer about anyone else. It
+   * authorises nothing: every write still checks the grants inside its own transaction.
+   */
+  ownGrants(callerId: string): Promise<UserGrantsDto> {
+    return userGrants(this.db.manager, callerId);
   }
 
   // ---- Requirement groups ------------------------------------------------------------------

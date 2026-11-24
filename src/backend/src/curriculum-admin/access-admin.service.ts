@@ -134,7 +134,7 @@ async function assertActiveRecipient(em: EntityManager, userId: string): Promise
 }
 
 /** The user's grants: IDs and scopes only, never identity or credentials (ADR 0011). */
-async function userGrants(em: EntityManager, userId: string): Promise<UserGrantsDto> {
+export async function userGrants(em: EntityManager, userId: string): Promise<UserGrantsDto> {
   const programs: { program_id: string; code: string; granted_at: Date; granted_by: string | null }[] = await em.query(
     `SELECT g."program_id", p."code", g."granted_at", g."granted_by" FROM "program_admin_grants" g
      JOIN "programs" p ON p."id" = g."program_id" WHERE g."user_id" = $1 ORDER BY p."code" COLLATE "C"`,
