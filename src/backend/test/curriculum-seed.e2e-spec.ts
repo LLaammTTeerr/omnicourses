@@ -123,9 +123,9 @@ describe('db:seed', () => {
       combined_minimums: CURRICULUM_SEEDS.flatMap((s) => s.blocks.filter((b) => b.at_least)).length,
       combined_minimum_groups: CURRICULUM_SEEDS.flatMap((s) => s.blocks.filter((b) => b.at_least).flatMap((b) => b.groups)).length,
       requirement_group_overflows: groups.filter((g) => g.overflow_to !== undefined).length,
-      // One prerequisite list per course of APCS 2024 and of APCS 2025 (Project Lead, 15 and 21 November 2026).
+      // One prerequisite list per course of APCS 2024 and of APCS 2025 (Project Lead, 15 and 24 November 2026).
       course_prerequisite_lists: APCS_SEEDS.flatMap((s) => [...new Set(s.groups.flatMap((g) => g.rows.map((r) => r.code)))]).length,
-      // One printed prerequisite per APCS curriculum: CS469 before CS470 (Project Lead, 21 November 2026). No offering term.
+      // One printed prerequisite per APCS curriculum: CS469 before CS470 (Project Lead, 24 November 2026). No offering term.
       course_prerequisites: APCS_SEEDS.flatMap((s) => s.no_prerequisites!.except.flatMap((e) => e.requires)).length,
       course_offering_terms: 0,
     };

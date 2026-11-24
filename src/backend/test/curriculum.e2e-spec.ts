@@ -112,7 +112,7 @@ describe('Curriculum API (e2e)', () => {
     const codes = [...new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))];
     expect(codes.length).toBeGreaterThan(0);
     expect(codes).toContain('CS470');
-    // CS469 before CS470: printed under 7.3 of both curriculum PDFs (Project Lead, 21 November 2026).
+    // CS469 before CS470: printed under 7.3 of both curriculum PDFs (Project Lead, 24 November 2026).
     for (const code of codes) {
       expect([code, read.get(code)?.prerequisites, read.get(code)?.offeringTerms]).toEqual([code, code === 'CS470' ? ['CS469'] : [], null]);
     }
