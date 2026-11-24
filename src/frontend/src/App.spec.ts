@@ -65,6 +65,23 @@ describe('App shell', () => {
     expect(unknown.w.findAll('.side .nav a')).toHaveLength(8);
   });
 
+  it('asks for the grants again on the next page when the first request failed, so the entry appears without a reload', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let down = true;
+    const { w, router } = await render('/guides', true, { 'GET /admin/grants': () => (down ? new Response(null, { status: 503 }) : Response.json(EVERY_GRANT)) });
+    expect(w.find('[data-test="nav-admin"]').exists()).toBe(false);
+    down = false;
+    await router.push('/privacy');
+    await flushPromises();
+    expect(w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
+    // Once it has an answer it does not ask on every page.
+    const asked = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/admin/grants')).length;
+    const before = asked();
+    await router.push('/guides');
+    await flushPromises();
+    expect(asked()).toBe(before);
+  });
+
   it('asks for no grants while nobody is signed in', async () => {
     await render('/guides', false);
     expect(vi.mocked(fetch).mock.calls.map(([url]) => String(url)).filter((url) => url.includes('/admin/'))).toEqual([]);

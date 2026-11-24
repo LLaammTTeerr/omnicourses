@@ -80,7 +80,7 @@ const described = (...ids: (string | false | undefined)[]) => ids.filter(Boolean
       <ProblemNote :problem="problem" @reload="emit('reload')" />
       <div class="acts">
         <button class="btn" type="button" :disabled="busy" data-test="dialog-cancel" @click="emit('close')">{{ m.cancel }}</button>
-        <button class="btn primary" type="submit" :disabled="busy" data-test="dialog-save">{{ busy ? m.saving : m.save }}</button>
+        <button class="btn primary" type="submit" :disabled="busy || problem?.reload" data-test="dialog-save">{{ busy ? m.saving : m.save }}</button>
       </div>
     </form>
   </ModalDialog>

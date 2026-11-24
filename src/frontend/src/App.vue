@@ -42,13 +42,20 @@ watch(
 );
 
 // ADR 0011: the navigation lists Administration only for a user who holds a grant, so ask the API once per sign-in.
-// A failed load leaves the entry out; the administration page asks again when it is opened.
+// A failed load leaves the entry out for now: it is asked again on the next page the user opens, and by the
+// administration page itself.
 watch(
   () => auth.user?.id,
   (userId) => {
     if (userId) void access.load();
   },
   { immediate: true },
+);
+watch(
+  () => route.fullPath,
+  () => {
+    if (auth.signedIn && access.failed) void access.load();
+  },
 );
 
 // ADR 0004: tell the student that signing in cancelled their pending deletion.

@@ -9,7 +9,8 @@ import ProblemNote from './ProblemNote.vue';
 
 // Asks before a removal (UC-11 A5): what will be removed, then Cancel or the removal. A refusal, such as what
 // still uses the item, is said here, and the dialog stays open. Busy: Cancel is disabled and Escape refused, as
-// the request still goes through.
+// the request still goes through. While the outcome of a removal is not known, it cannot be sent again: the
+// saved data is read first.
 defineProps<{ open: boolean; title: string; body: string; confirm: string; busy: boolean; problem: ProblemView | null }>();
 const emit = defineEmits<{ close: []; confirm: []; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
@@ -24,7 +25,7 @@ const shell = useMessages(SHELL_MESSAGES);
     <ProblemNote :problem="problem" @reload="emit('reload')" />
     <div class="acts">
       <button class="btn" type="button" autofocus :disabled="busy" data-test="confirm-no" @click="emit('close')">{{ m.cancel }}</button>
-      <button class="btn danger" type="button" :disabled="busy" data-test="confirm-yes" @click="emit('confirm')">{{ confirm }}</button>
+      <button class="btn danger" type="button" :disabled="busy || problem?.reload" data-test="confirm-yes" @click="emit('confirm')">{{ confirm }}</button>
     </div>
   </ModalDialog>
 </template>

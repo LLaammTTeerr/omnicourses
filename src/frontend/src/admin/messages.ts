@@ -17,7 +17,6 @@ interface CurriculumMessages {
   thisCohortOnly: string;
   loadFailed: string;
   noCurriculum: string;
-  stale: string;
   groupsTitle: (count: number) => string;
   addGroup: string;
   columns: { group: string; kind: string; credits: string; notes: string; courses: string; actions: string };
@@ -25,6 +24,11 @@ interface CurriculumMessages {
   creditsTotal: (credits: number) => string;
   creditsMin: (credits: number) => string;
   totalsReadOnly: string;
+  showMore: string;
+  showLess: string;
+  noteMoreLabel: (group: string) => string;
+  noteLessLabel: (group: string) => string;
+  cohortLabel: (program: string, year: number) => string;
   open: string;
   opened: string;
   openLabel: (group: string) => string;
@@ -128,6 +132,7 @@ interface CatalogMessages {
   affected: (program: string, year: number, curriculum: string) => string;
   reviewBack: string;
   reviewConfirm: string;
+  rebased: string;
 }
 
 /** Grants and revocations by user ID (access manager). */
@@ -183,6 +188,11 @@ interface AdminMessages {
   noPermissionHow: string;
   openSettings: string;
   sectionDenied: (permission: string) => string;
+  refused: (permission: string | null) => string;
+  refusedKept: string;
+  refusedReload: string;
+  stale: string;
+  earlier: (where: string, outcome: string) => string;
   save: string;
   saving: string;
   cancel: string;
@@ -228,6 +238,12 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
     noPermissionHow: 'Nếu bạn cần quyền, hãy gửi mã người dùng của bạn (ở trang Cài đặt) cho người quản lý phân quyền.',
     openSettings: 'Mở Cài đặt',
     sectionDenied: (permission) => `Mục này cần quyền “${permission}”. Tài khoản của bạn không có quyền đó.`,
+    refused: (permission) =>
+      permission ? `Lần lưu vừa rồi bị từ chối: thao tác đó cần quyền “${permission}”, mà tài khoản của bạn không có. Chưa lưu gì.` : 'Lần lưu vừa rồi bị từ chối vì tài khoản của bạn không có quyền làm thao tác đó. Chưa lưu gì.',
+    refusedKept: 'Trang này được giữ nguyên để bạn chép lại những gì đã nhập.',
+    refusedReload: 'Tải lại theo quyền hiện tại',
+    stale: 'Chưa tải lại được dữ liệu đã lưu. Những gì đang hiện có thể đã cũ. Tải lại trước khi sửa tiếp.',
+    earlier: (where, outcome) => `Về thao tác vừa gửi cho ${where}: ${outcome}`,
     save: 'Lưu',
     saving: 'Đang lưu…',
     cancel: 'Hủy',
@@ -289,7 +305,6 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       thisCohortOnly: 'Sửa ở đây chỉ đổi khóa này. Các khóa khác không bị ảnh hưởng.',
       loadFailed: 'Chưa tải được chương trình đào tạo của khóa này.',
       noCurriculum: 'Khóa này chưa có chương trình đào tạo.',
-      stale: 'Chưa tải lại được dữ liệu đã lưu. Những gì đang hiện có thể đã cũ.',
       groupsTitle: (count) => `${count} nhóm yêu cầu`,
       addGroup: 'Thêm nhóm',
       columns: { group: 'Nhóm', kind: 'Loại', credits: 'TC yêu cầu', notes: 'Ghi chú quy tắc', courses: 'Học phần', actions: 'Thao tác' },
@@ -297,6 +312,11 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       creditsTotal: (credits) => `${credits} TC`,
       creditsMin: (credits) => `Tối thiểu ${credits} TC`,
       totalsReadOnly: 'Số tín chỉ yêu cầu của nhóm chỉ để xem: trang này chưa sửa được.',
+      showMore: 'Xem thêm',
+      showLess: 'Thu gọn',
+      noteMoreLabel: (group) => `Xem hết ghi chú quy tắc của nhóm ${group}`,
+      noteLessLabel: (group) => `Thu gọn ghi chú quy tắc của nhóm ${group}`,
+      cohortLabel: (program, year) => `${program} · Khóa ${year}`,
       open: 'Mở',
       opened: 'Đang mở',
       openLabel: (group) => `Mở nhóm ${group}`,
@@ -408,6 +428,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       affected: (program, year, curriculum) => `${program} · Khóa ${year} (${curriculum})`,
       reviewBack: 'Quay lại sửa',
       reviewConfirm: 'Xác nhận và lưu',
+      rebased: 'Học phần này đã được sửa ở nơi khác trong lúc bạn xem lại. Các ô bạn chưa sửa đã được cập nhật theo giá trị hiện tại.',
     },
     access: {
       heading: 'Phân quyền quản trị',
@@ -465,6 +486,12 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
     noPermissionHow: 'If you need one, give your user ID (on the Settings page) to an access manager.',
     openSettings: 'Open Settings',
     sectionDenied: (permission) => `This section needs the “${permission}” permission. Your account does not hold it.`,
+    refused: (permission) =>
+      permission ? `The last save was refused: it needs the “${permission}” permission, which your account does not hold. Nothing was saved.` : 'The last save was refused, because your account may not do that. Nothing was saved.',
+    refusedKept: 'This page is kept as it was, so that you can copy what you entered.',
+    refusedReload: 'Reload with my current permissions',
+    stale: 'Could not reload the saved data. What is shown may be out of date. Reload before you edit again.',
+    earlier: (where, outcome) => `About the change just sent for ${where}: ${outcome}`,
     save: 'Save',
     saving: 'Saving…',
     cancel: 'Cancel',
@@ -526,7 +553,6 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       thisCohortOnly: 'An edit here changes this cohort only. Other cohorts are not affected.',
       loadFailed: 'Could not load the curriculum of this cohort.',
       noCurriculum: 'This cohort has no curriculum yet.',
-      stale: 'Could not reload the saved data. What is shown may be out of date.',
       groupsTitle: (count) => (count === 1 ? '1 requirement group' : `${count} requirement groups`),
       addGroup: 'Add group',
       columns: { group: 'Group', kind: 'Kind', credits: 'Credits required', notes: 'Rule notes', courses: 'Courses', actions: 'Actions' },
@@ -534,6 +560,11 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       creditsTotal: (credits) => `${credits} cr`,
       creditsMin: (credits) => `At least ${credits} cr`,
       totalsReadOnly: "A group's required credits are shown only: this page cannot change them yet.",
+      showMore: 'Show more',
+      showLess: 'Show less',
+      noteMoreLabel: (group) => `Show all of the rule notes of the group ${group}`,
+      noteLessLabel: (group) => `Show less of the rule notes of the group ${group}`,
+      cohortLabel: (program, year) => `${program} · Cohort ${year}`,
       open: 'Open',
       opened: 'Open now',
       openLabel: (group) => `Open the group ${group}`,
@@ -645,6 +676,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       affected: (program, year, curriculum) => `${program} · Cohort ${year} (${curriculum})`,
       reviewBack: 'Back to the form',
       reviewConfirm: 'Confirm and save',
+      rebased: 'This course was corrected elsewhere while you reviewed it. The boxes you did not change now show its current values.',
     },
     access: {
       heading: 'Administration access',

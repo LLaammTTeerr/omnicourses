@@ -131,6 +131,20 @@ describe('useWrites', () => {
     expect(write).toHaveBeenCalledTimes(1);
   });
 
+  it('sends nothing more while the outcome of the last write is unknown', async () => {
+    const writes = useWrites();
+    const offline = () => Promise.reject(new TypeError('Failed to fetch'));
+    await writes.send(offline, offline);
+    expect(writes.problem.value).toEqual({ outcome: 'unknown' });
+    const again = vi.fn(async () => 'saved');
+    expect(await writes.send(again, async () => true)).toEqual({ outcome: 'unknown' });
+    expect(again).not.toHaveBeenCalled();
+    expect(writes.problem.value).toEqual({ outcome: 'unknown' });
+    // Once the screen has dropped the problem (and says the page may be out of date), a write goes out again.
+    writes.clear();
+    expect(await writes.send(again, async () => true)).toEqual({ outcome: 'saved', value: 'saved' });
+  });
+
   it('clears the problem when the reload shows the change was saved after all', async () => {
     const writes = useWrites();
     let online = false;
@@ -167,6 +181,8 @@ describe('useWrites', () => {
     await vi.waitFor(() => expect(useAdminAccess().grants).toEqual(PROGRAM_ADMIN));
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(writes.problem.value).toEqual({ outcome: 'refused', failure: { kind: 'permission', permission: 'catalog_maintainer' } });
+    // The page keeps the refusal to show, whatever the grants turn out to be.
+    expect(useAdminAccess().refusal).toEqual({ permission: 'catalog_maintainer' });
   });
 
   it('signs the user out on a 401 and shows no problem: the shell takes them to sign in', async () => {

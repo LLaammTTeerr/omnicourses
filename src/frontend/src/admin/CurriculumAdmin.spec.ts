@@ -7,9 +7,16 @@ import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption, optionsOf } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
+import type { UserGrants } from './api.js';
+import { useAdminAccess } from './store.js';
 import {
   adminPrograms,
   BASE_GROUP,
+  CATALOG_MAINTAINER,
+  grants,
+  NO_GRANTS,
+  OTHER_PROGRAM_ID,
+  programGrant,
   course,
   curriculum,
   CURRICULUM_2025_ID,
@@ -31,12 +38,19 @@ const lost = () => {
   throw new TypeError('Failed to fetch');
 };
 
+/** A grant for each of the two programs the fixture lists. */
+const BOTH_PROGRAMS = grants({ programs: [programGrant({ programId: OTHER_PROGRAM_ID, programCode: 'ZZEMPTY' }), programGrant()] });
+const ONLY_EMPTY_PROGRAM = grants({ programs: [programGrant({ programId: OTHER_PROGRAM_ID, programCode: 'ZZEMPTY' })] });
+const NO_PROGRAM_PERMISSION = status(403, { statusCode: 403, code: 'permission_required', permission: 'program_admin', message: 'This needs the program_admin permission' });
+
 let wrapper: VueWrapper | undefined;
 /** What the API has saved: the read route answers it, so a test changes it as a write would. */
 let saved: Curriculum;
+/** The grants the API answers for the signed-in administrator; a test changes them as a revocation would. */
+let own: UserGrants;
 
 async function render(routes: Record<string, unknown> = {}) {
-  const fetch = mockApi({ 'GET /admin/grants': PROGRAM_ADMIN, 'GET /admin/programs': adminPrograms(), [READ]: () => Response.json(saved), ...routes });
+  const fetch = mockApi({ 'GET /admin/grants': () => Response.json(own), 'GET /admin/programs': adminPrograms(), [READ]: () => Response.json(saved), ...routes });
   const app = await setup('/admin/curriculum');
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
@@ -65,6 +79,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     localStorage.clear();
     sessionStorage.clear();
     saved = curriculum();
+    own = BOTH_PROGRAMS;
   });
   afterEach(() => {
     wrapper?.unmount();
@@ -79,10 +94,12 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(optionsOf(get(w, 'admin-cohort'))).toEqual(['Khóa 2024', 'Khóa 2025']);
     expect(get(w, 'curriculum-summary').text()).toContain('CTĐT thử khóa 2024 · ZZPROG2024');
     expect(get(w, 'groups-title').text()).toBe('2 nhóm yêu cầu');
-    expect(w.findAll('[data-test="group-row"]').map((row) => row.findAll('th, td').slice(0, 5).map((cell) => cell.text()))).toEqual([
-      ['</>Kiến thức cơ sở thử', 'Bắt buộc', '12 TC', '', '3'],
-      ['★Tự chọn thử', 'Tự chọn', 'Tối thiểu 8 TC', 'Chọn tối thiểu 8 tín chỉ.', '0'],
+    expect(w.findAll('[data-test="group-row"]').map((row) => row.findAll('th, td').slice(0, 4).map((cell) => cell.text()))).toEqual([
+      ['</>Kiến thức cơ sở thử', 'Bắt buộc', '12 TC', '3'],
+      ['★Tự chọn thử', 'Tự chọn', 'Tối thiểu 8 TC', '0'],
     ]);
+    // A group's printed rule sits on its own line under the row; a group without one has no such line.
+    expect(w.findAll('[data-test="group-note"]').map((note) => note.text())).toEqual(['Chọn tối thiểu 8 tín chỉ.']);
     // The first group is open, with its courses.
     expect(get(w, 'group-panel').get('h3').text()).toBe('Kiến thức cơ sở thử · 3 học phần');
     expect(groupRow(w, BASE_GROUP.name).get('[data-test="group-open"]').attributes('aria-expanded')).toBe('true');
@@ -684,6 +701,302 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await flushPromises();
     expect(has(w, 'curriculum-stale')).toBe(false);
     expect(w.findAll('[data-test="group-row"]')).toHaveLength(1);
+  });
+
+  describe('a save the API refuses because the grant was revoked meanwhile (UC-11 A4)', () => {
+    it('keeps the form, the draft and the refusal on screen when the only grant is gone, while the navigation loses its entry', async () => {
+      const { w, pinia } = await render({
+        [`POST ${GROUPS}`]: () => {
+          own = NO_GRANTS;
+          return NO_PROGRAM_PERMISSION();
+        },
+      });
+      await get(w, 'add-group').trigger('click');
+      await flushPromises();
+      await get(w.get('dialog[open]'), 'group-name').setValue('Nhóm đang nhập dở');
+      await get(w.get('dialog[open]'), 'group-kind-elective').setValue(true);
+      await submit(w);
+      await flushPromises();
+
+      // The grants were asked again: the navigation no longer lists Administration.
+      expect(useAdminAccess(pinia).any).toBe(false);
+      // The form is still there, with what was typed, and says why nothing was saved.
+      expect(problem(w).attributes('data-code')).toBe('permission_required');
+      expect(problem(w).text()).toBe('Thao tác này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó. Chưa lưu gì.');
+      expect((get(w.get('dialog[open]'), 'group-name').element as HTMLInputElement).value).toBe('Nhóm đang nhập dở');
+      expect(has(w, 'admin-no-permission')).toBe(false);
+
+      // After Cancel the page is kept, and still says that the save was refused, and why.
+      await get(w.get('dialog[open]'), 'dialog-cancel').trigger('click');
+      await flushPromises();
+      const refused = get(w, 'admin-refused');
+      expect(refused.attributes('role')).toBe('alert');
+      expect(refused.attributes('data-permission')).toBe('program_admin');
+      expect(refused.text()).toContain('Lần lưu vừa rồi bị từ chối: thao tác đó cần quyền “Quản trị chương trình”, mà tài khoản của bạn không có. Chưa lưu gì.');
+      expect(groupRow(w, BASE_GROUP.name).exists()).toBe(true);
+      expect(has(w, 'admin-no-permission')).toBe(false);
+
+      // Only when the administrator has read it does the page follow the grants they hold now.
+      await get(w, 'admin-refused-close').trigger('click');
+      await flushPromises();
+      expect(has(w, 'admin-refused')).toBe(false);
+      expect(has(w, 'admin-no-permission')).toBe(true);
+      expect(w.find('[data-test="group-row"]').exists()).toBe(false);
+    });
+
+    it('says the save was refused when the administrator still holds another kind of permission, and keeps the link form as typed', async () => {
+      const { w } = await render({
+        [`PUT ${GROUPS}/${GROUP_BASE_ID}/courses/ZZ104`]: () => {
+          own = CATALOG_MAINTAINER;
+          return NO_PROGRAM_PERMISSION();
+        },
+      });
+      await get(w, 'link-code').setValue('ZZ104');
+      await get(w, 'group-panel').get('form').trigger('submit');
+      await flushPromises();
+      await flushPromises();
+      // The sections follow the grants held now, but this one is not closed under the message.
+      expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần']);
+      expect(has(w, 'admin-section-denied')).toBe(false);
+      const note = get(w, 'group-panel').get('[data-test="admin-problem"]');
+      expect(note.attributes('data-code')).toBe('permission_required');
+      expect(note.text()).toContain('“Quản trị chương trình”');
+      expect((get(w, 'link-code').element as HTMLInputElement).value).toBe('ZZ104');
+      expect(get(w, 'admin-refused').text()).toContain('Lần lưu vừa rồi bị từ chối');
+      expect(get(w, 'admin-refused').text()).toContain('Trang này được giữ nguyên để bạn chép lại những gì đã nhập.');
+      useLocale().set('en');
+      await flushPromises();
+      expect(get(w, 'admin-refused').text()).toContain('The last save was refused: it needs the “Program administrator” permission, which your account does not hold. Nothing was saved.');
+      expect(get(w, 'admin-refused-close').text()).toBe('Reload with my current permissions');
+
+      await get(w, 'admin-refused-close').trigger('click');
+      await flushPromises();
+      expect(get(w, 'admin-section-denied').attributes('data-permission')).toBe('program_admin');
+      expect(has(w, 'group-panel')).toBe(false);
+    });
+
+    it('keeps the offering-terms form open with its choice', async () => {
+      const { w } = await render({
+        [`PUT ${COHORT}/courses/ZZ103/offering-terms`]: () => {
+          own = NO_GRANTS;
+          return NO_PROGRAM_PERMISSION();
+        },
+      });
+      await get(courseRow(w, 'ZZ103'), 'edit-terms').trigger('click');
+      await flushPromises();
+      await get(w.get('dialog[open]'), 'term-2').setValue(true);
+      await submit(w);
+      await flushPromises();
+      expect(problem(w).attributes('data-code')).toBe('permission_required');
+      expect((get(w.get('dialog[open]'), 'term-2').element as HTMLInputElement).checked).toBe(true);
+      expect(has(w, 'admin-no-permission')).toBe(false);
+    });
+
+    it('stops offering a program whose grant was revoked, once the refusal has been read, and never sends the kept draft to another program', async () => {
+      const { w, fetch } = await render({
+        'GET /admin/programs': () => Response.json(own === BOTH_PROGRAMS ? adminPrograms() : { programs: [adminPrograms().programs[0]] }),
+        [`PATCH ${GROUPS}/${GROUP_ELECTIVE_ID}`]: () => {
+          own = ONLY_EMPTY_PROGRAM;
+          return NO_PROGRAM_PERMISSION();
+        },
+      });
+      await get(groupRow(w, ELECTIVE_GROUP.name), 'group-edit').trigger('click');
+      await flushPromises();
+      await get(w.get('dialog[open]'), 'group-name').setValue('Tên khác');
+      await submit(w);
+      await flushPromises();
+      expect(problem(w).attributes('data-code')).toBe('permission_required');
+      // The administrator still holds a program grant, so the section stays; the page is kept until the refusal is read.
+      expect(optionsOf(get(w, 'admin-program'))).toHaveLength(2);
+      // A second Save of the kept draft goes to the same cohort, which refuses it again.
+      await submit(w);
+      await flushPromises();
+      expect(calls(fetch, 'PATCH').map(pathOf)).toEqual(Array(2).fill(`${GROUPS}/${GROUP_ELECTIVE_ID}`));
+      await get(w.get('dialog[open]'), 'dialog-cancel').trigger('click');
+      await flushPromises();
+      await get(w, 'admin-refused-close').trigger('click');
+      await flushPromises();
+      expect(optionsOf(get(w, 'admin-program'))).toEqual(['ZZEMPTY · Chương trình thử chưa có khóa']);
+      expect(has(w, 'no-cohorts')).toBe(true);
+    });
+
+    it('follows a change of the program grants that comes with no refusal at once', async () => {
+      const { w, pinia } = await render({ 'GET /admin/programs': () => Response.json(own === BOTH_PROGRAMS ? adminPrograms() : { programs: [adminPrograms().programs[0]] }) });
+      expect(optionsOf(get(w, 'admin-program'))).toHaveLength(2);
+      own = ONLY_EMPTY_PROGRAM;
+      useAdminAccess(pinia).cache = { userId: own.userId, grants: own };
+      await flushPromises();
+      expect(optionsOf(get(w, 'admin-program'))).toEqual(['ZZEMPTY · Chương trình thử chưa có khóa']);
+    });
+  });
+
+  describe('a lost answer is settled from the right saved data (UC-11 A7)', () => {
+    beforeEach(() => vi.spyOn(console, 'error').mockImplementation(() => {}));
+    const reads = (fetch: ReturnType<typeof mockApi>, year: number) => calls(fetch, 'GET').filter((call) => pathOf(call) === `/programs/ZZPROG/curricula/${year}`).length;
+
+    it('checks a link against the cohort it was sent to, after the administrator has moved to another cohort', async () => {
+      let lose!: () => void;
+      const other = curriculum([group('00000000-0000-4000-8000-000000000b01', 'Nhóm thử khóa 2025')], { id: CURRICULUM_2025_ID, code: 'ZZPROG2025', cohortYear: 2025, nameVi: 'CTĐT thử khóa 2025' });
+      const { w, fetch } = await render({
+        'GET /programs/ZZPROG/curricula/2025': other,
+        [`PUT ${GROUPS}/${GROUP_BASE_ID}/courses/ZZ104`]: () =>
+          new Promise<Response>((_resolve, reject) => {
+            lose = () => {
+              // The API linked the course in cohort 2024; only the answer is lost.
+              saved = curriculum([{ ...BASE_GROUP, courses: [...BASE_GROUP.courses, course('ZZ104')] }, ELECTIVE_GROUP]);
+              reject(new TypeError('Failed to fetch'));
+            };
+          }),
+      });
+      await get(w, 'link-code').setValue('ZZ104');
+      await get(w, 'group-panel').get('form').trigger('submit');
+      await flushPromises();
+      // The request is still out when the administrator opens another cohort.
+      await chooseOption(get(w, 'admin-cohort'), 'Khóa 2025');
+      await flushPromises();
+      expect(get(w, 'curriculum-summary').text()).toContain('ZZPROG2025');
+      const [before2024, before2025] = [reads(fetch, 2024), reads(fetch, 2025)];
+      lose();
+      await flushPromises();
+      // The saved data of cohort 2024 is read, not that of the cohort now on screen.
+      expect([reads(fetch, 2024), reads(fetch, 2025)]).toEqual([before2024 + 1, before2025]);
+      const late = get(w, 'admin-late');
+      expect(late.text()).toContain('ZZPROG · Khóa 2024');
+      expect(late.text()).toContain('Dữ liệu đã lưu có thay đổi này.');
+      // Nothing claims the link is missing, and cohort 2025 stays on screen untouched.
+      expect(w.find('[data-test="admin-problem"]').exists()).toBe(false);
+      expect(w.findAll('[data-test="group-row"]').map((row) => row.attributes('data-group-name'))).toEqual(['Nhóm thử khóa 2025']);
+    });
+
+    it('reads the saved data again for a new group even when a group of that name is already on screen', async () => {
+      const { w, fetch } = await render({ [`POST ${GROUPS}`]: lost });
+      const before = reads(fetch, 2024);
+      await get(w, 'add-group').trigger('click');
+      await flushPromises();
+      await get(w.get('dialog[open]'), 'group-name').setValue(ELECTIVE_GROUP.name);
+      await get(w.get('dialog[open]'), 'group-kind-elective').setValue(true);
+      await get(w.get('dialog[open]'), 'group-notes').setValue(ELECTIVE_GROUP.officialNotes!);
+      await submit(w);
+      // "OmniCourse reloaded the saved data" is said only after a reload.
+      expect(reads(fetch, 2024)).toBe(before + 1);
+      expect(problem(w).attributes('data-code')).toBe('not_applied');
+    });
+
+    it('finds a new group by an ID that was not there before, whatever its name', async () => {
+      const twin = group(NEW_GROUP_ID, 'Nhóm thử mới', { kind: 'elective' });
+      const { w } = await render({
+        [`POST ${GROUPS}`]: () => {
+          saved = curriculum([BASE_GROUP, twin, ELECTIVE_GROUP]);
+          return lost();
+        },
+      });
+      await get(w, 'add-group').trigger('click');
+      await flushPromises();
+      await get(w.get('dialog[open]'), 'group-name').setValue('Nhóm thử mới');
+      await get(w.get('dialog[open]'), 'group-kind-elective').setValue(true);
+      await submit(w);
+      expect(w.find('dialog[open]').exists()).toBe(false);
+      expect(get(w, 'admin-notice').text()).toContain('Dữ liệu đã lưu có thay đổi này.');
+      expect(get(w, 'group-panel').attributes('data-group-id')).toBe(NEW_GROUP_ID);
+    });
+
+    it('warns that the page may be out of date after Cancel on an unknown outcome, and asks for the reload before another write', async () => {
+      let offline = false;
+      const { w, fetch } = await render({
+        [READ]: () => (offline ? lost() : Response.json(saved)),
+        [`PATCH ${GROUPS}/${GROUP_ELECTIVE_ID}`]: () => {
+          saved = curriculum([BASE_GROUP, { ...ELECTIVE_GROUP, name: 'Tự chọn thử B' }]);
+          offline = true;
+          return lost();
+        },
+      });
+      await get(groupRow(w, ELECTIVE_GROUP.name), 'group-edit').trigger('click');
+      await flushPromises();
+      await get(w.get('dialog[open]'), 'group-name').setValue('Tự chọn thử B');
+      await submit(w);
+      expect(problem(w).attributes('data-code')).toBe('unknown');
+      // The same write cannot be sent again before the saved data has been read.
+      expect(get(w.get('dialog[open]'), 'dialog-save').attributes('disabled')).toBeDefined();
+      await submit(w);
+      expect(calls(fetch, 'PATCH')).toHaveLength(1);
+
+      await get(w.get('dialog[open]'), 'dialog-cancel').trigger('click');
+      await flushPromises();
+      expect(get(w, 'curriculum-stale').text()).toContain('Những gì đang hiện có thể đã cũ.');
+      for (const control of ['add-group', 'group-edit', 'group-delete', 'edit-prerequisites', 'edit-terms', 'unlink-course']) expect(get(w, control).attributes('disabled'), control).toBeDefined();
+      await get(w, 'link-code').setValue('ZZ104');
+      expect(get(w, 'link-submit').attributes('disabled')).toBeDefined();
+
+      offline = false;
+      await get(w, 'curriculum-reload').trigger('click');
+      await flushPromises();
+      expect(has(w, 'curriculum-stale')).toBe(false);
+      expect(groupRow(w, 'Tự chọn thử B').exists()).toBe(true);
+      expect(get(w, 'add-group').attributes('disabled')).toBeUndefined();
+      expect(get(w, 'link-submit').attributes('disabled')).toBeUndefined();
+    });
+  });
+
+  it('stays on the page while a write is out, and leaves once it is answered', async () => {
+    let answer!: (response: Response) => void;
+    const { w, router } = await render({ [`PATCH ${GROUPS}/${GROUP_ELECTIVE_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await get(groupRow(w, ELECTIVE_GROUP.name), 'group-edit').trigger('click');
+    await flushPromises();
+    await get(w.get('dialog[open]'), 'group-name').setValue('Tên khác');
+    await submit(w);
+    await router.push('/settings').catch(() => {});
+    expect(router.currentRoute.value.name).toBe('admin-curriculum');
+    expect(w.find('dialog[open]').exists()).toBe(true);
+    answer(NO_PROGRAM_PERMISSION());
+    await flushPromises();
+    expect(problem(w).attributes('data-code')).toBe('permission_required');
+  });
+
+  it('clears a refused link code\'s error when the administrator does something else', async () => {
+    const { w } = await render({
+      [`PUT ${GROUPS}/${GROUP_BASE_ID}/courses/a%20b!`]: status(400, { statusCode: 400, code: 'validation_failed', message: 'courseCode: "a b!" is not a course code (letters A-Z and digits, 2 to 20)' }),
+    });
+    await get(w, 'link-code').setValue('a b!');
+    await get(w, 'group-panel').get('form').trigger('submit');
+    await flushPromises();
+    expect(w.find('#link-error').exists()).toBe(true);
+    // Typing a new code: the old refusal is no longer about what is in the box.
+    await get(w, 'link-code').setValue('ZZ104');
+    expect(w.find('#link-error').exists()).toBe(false);
+    expect(get(w, 'group-panel').find('[data-test="admin-problem"]').exists()).toBe(false);
+
+    await get(w, 'link-code').setValue('a b!');
+    await get(w, 'group-panel').get('form').trigger('submit');
+    await flushPromises();
+    expect(w.find('#link-error').exists()).toBe(true);
+    // Another action on the page, here opening a form.
+    await get(courseRow(w, 'ZZ103'), 'edit-terms').trigger('click');
+    await flushPromises();
+    expect(w.find('#link-error').exists()).toBe(false);
+    expect(get(w, 'link-code').attributes('aria-invalid')).toBeUndefined();
+  });
+
+  it('shows a long printed rule in two lines with a control to read all of it, and a short one in full', async () => {
+    const long = 'Sinh viên chọn tối thiểu 12 tín chỉ trong nhóm này, trong đó có ít nhất một học phần thực hành, theo ghi chú in dưới bảng của văn bản chính thức năm 2024.';
+    saved = curriculum([BASE_GROUP, { ...ELECTIVE_GROUP, officialNotes: 'Chọn 8 tín chỉ.' }, group(NEW_GROUP_ID, 'Tự chọn thử khác', { kind: 'elective', officialNotes: long })]);
+    const { w } = await render();
+    const rows = w.findAll('[data-test="group-note-row"]');
+    expect(rows).toHaveLength(2);
+    // The short rule: all of it, and nothing to press.
+    expect(rows[0]!.get('[data-test="group-note"]').classes()).not.toContain('clamped');
+    expect(rows[0]!.find('[data-test="group-note-toggle"]').exists()).toBe(false);
+    // The long rule: the whole text is in the page, cut to two lines for the eye, with a button that says its state.
+    const note = rows[1]!.get('[data-test="group-note"]');
+    const toggle = rows[1]!.get('[data-test="group-note-toggle"]');
+    expect(note.text()).toBe(long);
+    expect(note.classes()).toContain('clamped');
+    expect([toggle.element.tagName, toggle.text(), toggle.attributes('aria-expanded'), toggle.attributes('aria-controls')]).toEqual(['BUTTON', 'Xem thêm', 'false', note.attributes('id')]);
+    expect(toggle.attributes('aria-label')).toBe('Xem hết ghi chú quy tắc của nhóm Tự chọn thử khác');
+    await toggle.trigger('click');
+    expect(note.classes()).not.toContain('clamped');
+    expect([toggle.text(), toggle.attributes('aria-expanded')]).toEqual(['Thu gọn', 'true']);
+    await toggle.trigger('click');
+    expect(note.classes()).toContain('clamped');
   });
 
   it('opens another cohort of the program, and says when a program has no cohort', async () => {

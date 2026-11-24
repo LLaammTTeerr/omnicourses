@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
-import { useAsyncLoad } from '../async-load.js';
+import { onBeforeRouteLeave } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, type Curriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
@@ -20,6 +20,7 @@ import {
   setPrerequisites,
   unlinkCourse,
   updateGroup,
+  type AdminProgram,
   type CohortRef,
 } from './api.js';
 import ConfirmDialog from './ConfirmDialog.vue';
@@ -47,6 +48,7 @@ import OfferingTermsDialog from './OfferingTermsDialog.vue';
 import PrerequisitesDialog from './PrerequisitesDialog.vue';
 import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
+import { useAdminAccess } from './store.js';
 import { useWrites, type WriteOutcome } from './write.js';
 
 // The curriculum editor of a program administrator (ADR 0011, UC-11 basic flow; UI prototypes: admin.html, "Nhóm
@@ -55,34 +57,82 @@ import { useWrites, type WriteOutcome } from './write.js';
 // shows what the API answers, and it computes no academic rule (AGENTS.md hard rule 1). The prototype's "Add
 // cohort", version line and credit-total editing have no route, so they are not here.
 const auth = useAuth();
+const access = useAdminAccess();
 const locale = useLocale();
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.curriculum);
 
 // ---------- Program and cohort: only the ones the API lists for this user ----------
-const programs = useAsyncLoad('the programs to administer', async () => (await auth.authed(fetchAdminPrograms)).programs);
+const programList = shallowRef<AdminProgram[] | null>(null);
+const programsStatus = ref<'loading' | 'loaded' | 'failed'>('loading');
+let programsCall = 0;
+
+/** `quiet`: the list is replaced when the answer is in, and the page stays as it is meanwhile. */
+async function loadPrograms(quiet = false): Promise<void> {
+  const call = ++programsCall;
+  if (!quiet) {
+    programList.value = null;
+    programsStatus.value = 'loading';
+  }
+  try {
+    const { programs } = await auth.authed(fetchAdminPrograms);
+    if (call !== programsCall) return;
+    programList.value = programs;
+    programsStatus.value = 'loaded';
+  } catch (e) {
+    if (call !== programsCall || readFailure(e).kind === 'signed_out') return;
+    console.error('Loading the programs to administer failed:', e);
+    if (!quiet) programsStatus.value = 'failed';
+  }
+}
+void loadPrograms();
+
 const picked = ref<{ programId: string; curriculumId: string | null } | null>(null);
 const program = computed(() => {
-  const list = programs.data.value ?? [];
+  const list = programList.value ?? [];
   return list.find((item) => item.id === picked.value?.programId) ?? list[0] ?? null;
 });
 const cohort = computed(() => program.value?.curricula.find((item) => item.id === picked.value?.curriculumId) ?? program.value?.curricula[0] ?? null);
-const target = computed<CohortRef | null>(() => (program.value && cohort.value ? { programId: program.value.id, curriculumId: cohort.value.id } : null));
+
+/** One cohort of one program: where a write goes, and where its saved data is read again. */
+interface Scope {
+  ref: CohortRef;
+  programCode: string;
+  cohortYear: number;
+}
+const scope = computed<Scope | null>(() =>
+  program.value && cohort.value ? { ref: { programId: program.value.id, curriculumId: cohort.value.id }, programCode: program.value.code, cohortYear: cohort.value.cohortYear } : null,
+);
+const onScreen = (of: Scope): boolean => scope.value?.ref.curriculumId === of.ref.curriculumId;
+
+// The program grants changed (one was revoked, or given): offer the programs the user holds now. While a refused
+// save is on screen the page is kept as it was (AdminView), and the list follows once the refusal has been read.
+const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
+const listedIds = computed(() => (programList.value ?? []).map((item) => item.id).sort().join());
+watch([grantedIds, () => access.refusal], () => {
+  if (!access.refusal && access.grants && programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void loadPrograms(true);
+});
 
 // ---------- The saved curriculum ----------
 const curriculum = shallowRef<Curriculum | null>(null);
 const status = ref<'loading' | 'loaded' | 'failed' | 'missing'>('loading');
-/** A reload after a write failed: what is on screen may be older than what is saved. */
+/**
+ * What is on screen may be older than what is saved: a reload after a save failed, or a write whose outcome is
+ * not known was left without reading the saved data. No other write starts until the reload has worked.
+ */
 const stale = ref(false);
 let latest = 0;
 
-/** Loads the saved curriculum again and keeps the page as it is meanwhile, so the focus and the open group stay. Rejects when it cannot. */
-async function refresh(): Promise<Curriculum> {
-  const call = ++latest;
-  const [of, at] = [program.value!, cohort.value!];
-  const fresh = await auth.authed((token) => fetchCurriculum(token, of.code, at.cohortYear));
-  if (call === latest) {
+/**
+ * Reads the saved curriculum of `of` again. When `of` is the cohort on screen it is shown, with the page kept as it
+ * is meanwhile, so the focus and the open group stay; a cohort the administrator has left is read and not shown.
+ * Rejects when it cannot.
+ */
+async function readSaved(of: Scope): Promise<Curriculum> {
+  const call = onScreen(of) ? ++latest : null;
+  const fresh = await auth.authed((token) => fetchCurriculum(token, of.programCode, of.cohortYear));
+  if (call !== null && call === latest && onScreen(of)) {
     curriculum.value = fresh;
     status.value = 'loaded';
     stale.value = false;
@@ -95,10 +145,11 @@ async function load(): Promise<void> {
   curriculum.value = null;
   stale.value = false;
   status.value = 'loading';
-  if (!cohort.value) return;
+  const of = scope.value;
+  if (!of) return;
   const call = latest + 1;
   try {
-    await refresh();
+    await readSaved(of);
   } catch (e) {
     if (call !== latest) return;
     const failure = readFailure(e);
@@ -108,13 +159,15 @@ async function load(): Promise<void> {
   }
 }
 
-/** After a write the API confirmed: show the saved values; a failed reload is said, not hidden. */
+/** Shows the saved values of the cohort on screen, after a write the API confirmed or on request; a failed reload is said, not hidden. */
 async function showSaved(): Promise<void> {
+  const of = scope.value;
+  if (!of) return;
   try {
-    await refresh();
+    await readSaved(of);
   } catch (e) {
     if (readFailure(e).kind === 'signed_out') return;
-    console.error('Reloading the curriculum after a save failed:', e);
+    console.error('Reloading the curriculum failed:', e);
     stale.value = true;
   }
 }
@@ -133,14 +186,26 @@ const glyph = (group: RequirementGroup) => GROUPS.find((item) => item.id === col
 const credits = (group: RequirementGroup) =>
   group.creditsTotal !== null ? text.value.creditsTotal(group.creditsTotal) : group.creditsTotalMin !== null ? text.value.creditsMin(group.creditsTotalMin) : m.value.notRecorded;
 
+// A printed rule can run to a paragraph. A long one shows two lines, with a button to read all of it, so the rows
+// stay short; a rule up to this length is always shown whole, so nothing is ever cut without that button.
+const LONG_NOTE = 120;
+const isLong = (notes: string) => notes.length > LONG_NOTE || notes.includes('\n');
+const expanded = ref<ReadonlySet<string>>(new Set());
+function toggleNote(groupId: string): void {
+  const next = new Set(expanded.value);
+  if (!next.delete(groupId)) next.add(groupId);
+  expanded.value = next;
+}
+
 // ---------- Writes ----------
-type Dialog =
+type Ask =
   | { type: 'group'; group: RequirementGroup | null }
   | { type: 'delete-group'; group: RequirementGroup }
   | { type: 'unlink'; group: RequirementGroup; course: CurriculumCourse }
   | { type: 'prerequisites'; course: CurriculumCourse }
   | { type: 'terms'; course: CurriculumCourse };
-const dialog = shallowRef<Dialog | null>(null);
+/** `at`: the cohort on screen when the form opened. Its write goes there, whatever is on screen when it is sent. */
+const dialog = shallowRef<(Ask & { at: Scope }) | null>(null);
 const dialogWrites = useWrites();
 const linkWrites = useWrites();
 /** A write is answered and the saved data is being shown: the dialog stays busy until then. */
@@ -148,22 +213,41 @@ const settling = ref(false);
 const busy = computed(() => dialogWrites.busy.value || settling.value);
 /** A lost answer that the reloaded data settled: said on the page, since the dialog has closed. */
 const notice = ref<string | null>(null);
+/** What became of a link sent for a cohort the administrator has since left: said on the page, with that cohort's name. */
+const late = shallowRef<{ tone: 'ok' | 'bad' | 'warn'; text: string; items: string[] } | null>(null);
 let opener: HTMLElement | null = null;
 
+// A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
+// the request answers, so its result is said. A 401 has signed the user out, who may leave.
+onBeforeRouteLeave(() => !(busy.value || linkWrites.busy.value) || !auth.signedIn);
+
+/** The link form's message is about the last code sent: it goes when the administrator does something else. */
+function dropLinkProblem(): void {
+  // An outcome that is still unknown is not forgotten: the page says it may be out of date.
+  if (linkWrites.problem.value?.outcome === 'unknown') stale.value = true;
+  linkWrites.clear();
+}
+
 /** `from`: the click that asked for it. Its button gets the focus back; not every browser focuses a button on a click. */
-function open(next: Dialog, from: Event): void {
+function open(next: Ask, from: Event): void {
+  const at = scope.value;
+  if (!at || stale.value) return;
   opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
   dialogWrites.clear();
+  dropLinkProblem();
   notice.value = null;
-  dialog.value = next;
+  late.value = null;
+  dialog.value = { ...next, at };
 }
 
 /** Closes the dialog and puts the focus back where it was, or on `fallback` when that control is gone. */
 async function close(fallback = 'add-group'): Promise<void> {
+  // Left with its outcome unknown: the page may not show what is saved, and says so until it is reloaded.
+  if (dialogWrites.problem.value?.outcome === 'unknown') stale.value = true;
   dialog.value = null;
   dialogWrites.clear();
   await nextTick();
-  (opener?.isConnected ? opener : document.getElementById(fallback))?.focus();
+  (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'curriculum-reload' : fallback))?.focus();
   opener = null;
 }
 
@@ -204,8 +288,9 @@ async function recheckLink(): Promise<void> {
 }
 
 async function saveGroup(entered: GroupValues): Promise<void> {
-  const [at, current] = [target.value, dialog.value];
-  if (!at || current?.type !== 'group') return;
+  const current = dialog.value;
+  if (current?.type !== 'group') return;
+  const { at } = current;
   const name = entered.name.trim();
   if (current.group) {
     const { id } = current.group;
@@ -216,48 +301,62 @@ async function saveGroup(entered: GroupValues): Promise<void> {
       return;
     }
     const result = await dialogWrites.send(
-      (token) => updateGroup(token, at, id, body),
+      (token) => updateGroup(token, at.ref, id, body),
       async () => {
-        const saved = (await refresh()).requirementGroups.find((group) => group.id === id);
+        const saved = (await readSaved(at)).requirementGroups.find((group) => group.id === id);
         return saved !== undefined && groupMatches(saved, entered);
       },
     );
     await finish(result, text.value.groupSaved(name));
     return;
   }
-  const existed = groups.value.some((group) => group.name === name);
+  // The new group is the one whose ID was not there before: a group of the same name already on screen is not it.
+  const before = new Set(onScreen(at) ? groups.value.map((group) => group.id) : []);
+  const isNew = (group: RequirementGroup) => !before.has(group.id) && groupMatches(group, entered);
   const result = await dialogWrites.send(
-    (token) => createGroup(token, at, newGroupBody(entered)),
-    // A group of this name that was there before is not this write: the API refuses a second one.
-    async () => !existed && (await refresh()).requirementGroups.some((group) => groupMatches(group, entered)),
+    (token) => createGroup(token, at.ref, newGroupBody(entered)),
+    async () => (await readSaved(at)).requirementGroups.some(isNew),
   );
   if (await finish(result, text.value.groupCreated(name))) {
-    const created = result.outcome === 'saved' ? result.value.id : groups.value.find((group) => group.name === name)?.id;
+    const created = result.outcome === 'saved' ? result.value.id : groups.value.find(isNew)?.id;
     if (created) openId.value = created;
   }
 }
 
 async function removeGroup(): Promise<void> {
-  const [at, current] = [target.value, dialog.value];
-  if (!at || current?.type !== 'delete-group') return;
+  const current = dialog.value;
+  if (current?.type !== 'delete-group') return;
+  const { at } = current;
   const { id, name } = current.group;
   const result = await dialogWrites.send(
-    (token) => deleteGroup(token, at, id),
-    async () => !(await refresh()).requirementGroups.some((group) => group.id === id),
+    (token) => deleteGroup(token, at.ref, id),
+    async () => !(await readSaved(at)).requirementGroups.some((group) => group.id === id),
   );
   await finish(result, text.value.groupDeleted(name));
 }
 
 const linkCode = ref('');
 async function link(): Promise<void> {
-  const [at, group, typed] = [target.value, openGroup.value, linkCode.value];
-  if (!at || !group || !typed.trim() || linkWrites.busy.value) return;
+  const [at, group, typed] = [scope.value, openGroup.value, linkCode.value];
+  if (!at || !group || !typed.trim() || linkWrites.busy.value || stale.value) return;
   notice.value = null;
+  late.value = null;
   const code = storedCode(typed);
   const result = await linkWrites.send(
-    (token) => linkCourse(token, at, group.id, typed),
-    async () => groupHas(await refresh(), group.id, code),
+    (token) => linkCourse(token, at.ref, group.id, typed),
+    async () => groupHas(await readSaved(at), group.id, code),
   );
+  if (!onScreen(at)) {
+    // The administrator opened another cohort while the request was out: the outcome is about the cohort it was
+    // sent to, and is said with that cohort's name, not under the link box of the cohort now on screen.
+    const where = text.value.cohortLabel(at.programCode, at.cohortYear);
+    const problem = linkWrites.problem.value && describeProblem(linkWrites.problem.value, m.value, LINK_FIELDS);
+    linkWrites.clear();
+    if (problem) late.value = { tone: problem.tone, text: m.value.earlier(where, problem.code === 'not_found' ? text.value.linkNotFound : problem.text), items: [...(problem.fields.courseCode ?? []), ...problem.items] };
+    else if (result.outcome === 'saved' || result.outcome === 'confirmed')
+      late.value = { tone: 'ok', text: m.value.earlier(where, result.outcome === 'saved' ? text.value.linked(code, group.name) : m.value.problem.confirmed), items: [] };
+    return;
+  }
   if (result.outcome !== 'saved' && result.outcome !== 'confirmed') return;
   linkCode.value = '';
   if (result.outcome === 'saved') {
@@ -269,25 +368,26 @@ async function link(): Promise<void> {
 }
 
 async function unlink(): Promise<void> {
-  const [at, current] = [target.value, dialog.value];
-  if (!at || current?.type !== 'unlink') return;
-  const { group, course } = current;
+  const current = dialog.value;
+  if (current?.type !== 'unlink') return;
+  const { at, group, course } = current;
   const result = await dialogWrites.send(
-    (token) => unlinkCourse(token, at, group.id, course.code),
-    async () => !groupHas(await refresh(), group.id, course.code),
+    (token) => unlinkCourse(token, at.ref, group.id, course.code),
+    async () => !groupHas(await readSaved(at), group.id, course.code),
   );
   await finish(result, text.value.unlinked(course.code), 'link-code');
 }
 
 async function savePrerequisites(choice: PrerequisiteChoice): Promise<void> {
-  const [at, current] = [target.value, dialog.value];
-  if (!at || current?.type !== 'prerequisites') return;
+  const current = dialog.value;
+  if (current?.type !== 'prerequisites') return;
+  const { at } = current;
   const { code } = current.course;
   const want = storedPrerequisites(choice);
   const result = await dialogWrites.send(
-    (token) => (choice.state === 'not_recorded' ? clearPrerequisites(token, at, code) : setPrerequisites(token, at, code, choice.state === 'none' ? [] : choice.codes)),
+    (token) => (choice.state === 'not_recorded' ? clearPrerequisites(token, at.ref, code) : setPrerequisites(token, at.ref, code, choice.state === 'none' ? [] : choice.codes)),
     async () => {
-      const saved = courseIn(await refresh(), code);
+      const saved = courseIn(await readSaved(at), code);
       return saved !== null && sameList(saved.prerequisites, want);
     },
   );
@@ -296,14 +396,15 @@ async function savePrerequisites(choice: PrerequisiteChoice): Promise<void> {
 
 /** No term: back to not recorded, since an offering list is never empty. */
 async function saveTerms(terms: number[]): Promise<void> {
-  const [at, current] = [target.value, dialog.value];
-  if (!at || current?.type !== 'terms') return;
+  const current = dialog.value;
+  if (current?.type !== 'terms') return;
+  const { at } = current;
   const { code } = current.course;
   const want = terms.length ? [...terms].sort((a, b) => a - b) : null;
   const result = await dialogWrites.send(
-    (token) => (terms.length ? setOfferingTerms(token, at, code, terms) : clearOfferingTerms(token, at, code)),
+    (token) => (terms.length ? setOfferingTerms(token, at.ref, code, terms) : clearOfferingTerms(token, at.ref, code)),
     async () => {
-      const saved = courseIn(await refresh(), code);
+      const saved = courseIn(await readSaved(at), code);
       return saved !== null && sameList(saved.offeringTerms, want);
     },
   );
@@ -344,14 +445,16 @@ watch(
     openId.value = null;
     linkCode.value = '';
     notice.value = null;
+    late.value = null;
     linkWrites.clear();
+    expanded.value = new Set();
     void load();
   },
   { immediate: true },
 );
 watch(openId, () => {
   linkCode.value = '';
-  linkWrites.clear();
+  dropLinkProblem();
 });
 
 const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites === null ? 'not-recorded' : course.prerequisites.length === 0 ? 'none' : 'recorded');
@@ -361,16 +464,16 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
   <section class="admin-section" aria-labelledby="curriculum-admin-title">
     <h2 id="curriculum-admin-title" class="sr-only">{{ text.heading }}</h2>
 
-    <p v-if="programs.status.value === 'loading'" class="t3" role="status">{{ m.loading }}</p>
-    <p v-else-if="programs.status.value === 'failed'" class="callout bad" role="alert" data-test="programs-failed">
-      <Icon name="alert" /><span>{{ text.programsFailed }} <button class="btn sm" type="button" @click="programs.reload">{{ m.retry }}</button></span>
+    <p v-if="programsStatus === 'loading'" class="t3" role="status">{{ m.loading }}</p>
+    <p v-else-if="programsStatus === 'failed'" class="callout bad" role="alert" data-test="programs-failed">
+      <Icon name="alert" /><span>{{ text.programsFailed }} <button class="btn sm" type="button" @click="loadPrograms()">{{ m.retry }}</button></span>
     </p>
     <p v-else-if="!program" class="callout" role="status" data-test="no-programs"><Icon name="info" /><span>{{ text.noPrograms }}</span></p>
     <template v-else>
       <div class="admin-banner">
         <label class="field">
           <span>{{ text.program }}</span>
-          <SelectMenu :model-value="program.id" :options="(programs.data.value ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" data-test="admin-program" @update:model-value="pickProgram" />
+          <SelectMenu :model-value="program.id" :options="(programList ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" data-test="admin-program" @update:model-value="pickProgram" />
         </label>
         <label v-if="program.curricula.length" class="field">
           <span>{{ text.cohort }}</span>
@@ -378,6 +481,17 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
         </label>
         <div v-if="curriculum" class="grow small" data-test="curriculum-summary">
           <b>{{ (locale.lang === 'en' && curriculum.nameEn) || curriculum.nameVi }} · {{ curriculum.code }}</b><br />{{ text.thisCohortOnly }}
+        </div>
+      </div>
+
+      <!-- The outcome of a link sent for a cohort the administrator has since left, with that cohort's name. -->
+      <div v-if="late" class="callout admin-late" :class="late.tone" :role="late.tone === 'ok' ? 'status' : 'alert'" data-test="admin-late">
+        <Icon :name="late.tone === 'ok' ? 'check' : 'alert'" />
+        <div>
+          <p>{{ late.text }}</p>
+          <ul v-if="late.items.length">
+            <li v-for="item in late.items" :key="item">{{ item }}</li>
+          </ul>
         </div>
       </div>
 
@@ -390,47 +504,73 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
       <template v-else-if="curriculum">
         <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
         <p v-if="stale" class="callout warn" role="alert" data-test="curriculum-stale">
-          <Icon name="alert" /><span>{{ text.stale }} <button class="btn sm" type="button" data-test="curriculum-reload" @click="showSaved">{{ m.reload }}</button></span>
+          <Icon name="alert" /><span>{{ m.stale }} <button id="curriculum-reload" class="btn sm" type="button" data-test="curriculum-reload" @click="showSaved">{{ m.reload }}</button></span>
         </p>
 
         <section class="card flush" aria-labelledby="groups-title">
           <div class="card-head">
             <h3 id="groups-title" data-test="groups-title">{{ text.groupsTitle(groups.length) }}</h3>
-            <button id="add-group" class="btn sm" type="button" data-test="add-group" @click="open({ type: 'group', group: null }, $event)"><Icon name="plus" size="sm" />{{ text.addGroup }}</button>
+            <button id="add-group" class="btn sm" type="button" :disabled="stale" data-test="add-group" @click="open({ type: 'group', group: null }, $event)"><Icon name="plus" size="sm" />{{ text.addGroup }}</button>
           </div>
           <p class="admin-note small t3">{{ text.totalsReadOnly }}</p>
           <p v-if="groups.length === 0" class="admin-empty t2" data-test="no-groups">{{ text.noGroups }}</p>
           <div v-else class="table-wrap">
-            <table class="table admin-groups">
+            <!-- On a narrow screen each row is a card (the styles below): every value with its name, the actions in view. -->
+            <table class="table admin-cards admin-groups">
               <thead>
                 <tr>
                   <th scope="col">{{ text.columns.group }}</th>
                   <th scope="col">{{ text.columns.kind }}</th>
                   <th scope="col">{{ text.columns.credits }}</th>
-                  <th scope="col">{{ text.columns.notes }}</th>
                   <th scope="col" class="r">{{ text.columns.courses }}</th>
                   <th scope="col"><span class="sr-only">{{ text.columns.actions }}</span></th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="group in groups" :key="group.id" :class="[groupClass(colour(group)), { on: group.id === openId }]" data-test="group-row" :data-group-id="group.id" :data-group-name="group.name">
-                  <th scope="row">
-                    <span class="group-name"><span class="glyph sm" aria-hidden="true">{{ glyph(group) }}</span>{{ group.name }}</span>
-                  </th>
-                  <td data-test="group-kind">{{ text.kinds[group.kind] }}</td>
-                  <td data-test="group-credits">{{ credits(group) }}</td>
-                  <td class="small t2 notes">{{ group.officialNotes }}</td>
-                  <td class="r">{{ group.courses.length }}</td>
-                  <td class="r">
-                    <div class="row-acts">
-                    <button class="btn sm" type="button" :aria-expanded="group.id === openId" aria-controls="group-panel" :aria-label="text.openLabel(group.name)" data-test="group-open" @click="openId = group.id">
-                      {{ group.id === openId ? text.opened : text.open }}
-                    </button>
-                    <button class="btn sm" type="button" :aria-label="text.editGroupLabel(group.name)" data-test="group-edit" @click="open({ type: 'group', group }, $event)"><Icon name="edit" size="sm" />{{ text.edit }}</button>
-                    <button class="btn sm" type="button" :aria-label="text.deleteGroupLabel(group.name)" data-test="group-delete" @click="open({ type: 'delete-group', group }, $event)"><Icon name="trash" size="sm" />{{ text.delete }}</button>
-                    </div>
-                  </td>
-                </tr>
+                <template v-for="group in groups" :key="group.id">
+                  <tr :class="[groupClass(colour(group)), { on: group.id === openId, noted: group.officialNotes }]" data-test="group-row" :data-group-id="group.id" :data-group-name="group.name">
+                    <th scope="row">
+                      <span class="group-name"><span class="glyph sm" aria-hidden="true">{{ glyph(group) }}</span>{{ group.name }}</span>
+                    </th>
+                    <td data-test="group-kind" :data-label="text.columns.kind">{{ text.kinds[group.kind] }}</td>
+                    <td data-test="group-credits" :data-label="text.columns.credits">{{ credits(group) }}</td>
+                    <td class="r" :data-label="text.columns.courses">{{ group.courses.length }}</td>
+                    <td class="r acts">
+                      <div class="row-acts">
+                        <button class="btn sm" type="button" :aria-expanded="group.id === openId" aria-controls="group-panel" :aria-label="text.openLabel(group.name)" data-test="group-open" @click="openId = group.id">
+                          {{ group.id === openId ? text.opened : text.open }}
+                        </button>
+                        <button class="btn sm" type="button" :disabled="stale" :aria-label="text.editGroupLabel(group.name)" data-test="group-edit" @click="open({ type: 'group', group }, $event)">
+                          <Icon name="edit" size="sm" />{{ text.edit }}
+                        </button>
+                        <button class="btn sm" type="button" :disabled="stale" :aria-label="text.deleteGroupLabel(group.name)" data-test="group-delete" @click="open({ type: 'delete-group', group }, $event)">
+                          <Icon name="trash" size="sm" />{{ text.delete }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <!-- The printed rule, on its own line under the row. All of a long one is a button away, never cut for good. -->
+                  <tr v-if="group.officialNotes" :class="['group-note', groupClass(colour(group)), { on: group.id === openId }]" data-test="group-note-row" :data-group-id="group.id">
+                    <td colspan="5">
+                      <div class="note">
+                        <span class="note-label">{{ text.columns.notes }}</span>
+                        <span :id="`group-note-${group.id}`" class="note-text" :class="{ clamped: isLong(group.officialNotes) && !expanded.has(group.id) }" data-test="group-note">{{ group.officialNotes }}</span>
+                        <button
+                          v-if="isLong(group.officialNotes)"
+                          class="link small"
+                          type="button"
+                          :aria-expanded="expanded.has(group.id)"
+                          :aria-controls="`group-note-${group.id}`"
+                          :aria-label="expanded.has(group.id) ? text.noteLessLabel(group.name) : text.noteMoreLabel(group.name)"
+                          data-test="group-note-toggle"
+                          @click="toggleNote(group.id)"
+                        >
+                          {{ expanded.has(group.id) ? text.showLess : text.showMore }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
               </tbody>
             </table>
           </div>
@@ -449,9 +589,10 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                   data-test="link-code"
                   :aria-invalid="linkProblem?.fields.courseCode ? 'true' : undefined"
                   :aria-describedby="linkProblem?.fields.courseCode ? 'link-hint link-error' : 'link-hint'"
+                  @input="dropLinkProblem"
                 />
               </div>
-              <button class="btn" type="submit" :disabled="!linkCode.trim() || linkWrites.busy.value" data-test="link-submit"><Icon name="plus" size="sm" />{{ text.linkSubmit }}</button>
+              <button class="btn" type="submit" :disabled="!linkCode.trim() || linkWrites.busy.value || stale" data-test="link-submit"><Icon name="plus" size="sm" />{{ text.linkSubmit }}</button>
             </form>
             <p id="link-hint" class="hint">{{ text.linkHint }}</p>
             <FieldErrors id="link-error" :errors="linkProblem?.fields.courseCode" />
@@ -459,7 +600,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
 
             <p v-if="openGroup.courses.length === 0" class="t2" data-test="no-courses">{{ text.noCourses }}</p>
             <div v-else class="table-wrap">
-              <table class="table admin-courses">
+              <table class="table admin-cards admin-courses">
                 <thead>
                   <tr>
                     <th scope="col">{{ text.courseColumns.code }}</th>
@@ -473,10 +614,10 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                 <tbody>
                   <tr v-for="course in openGroup.courses" :key="course.code" data-test="course-row" :data-course="course.code">
                     <th scope="row"><span class="code c">{{ course.code }}</span></th>
-                    <td>{{ courseName(course, locale.lang) }}</td>
-                    <td class="r">{{ course.credits }}</td>
+                    <td class="name">{{ courseName(course, locale.lang) }}</td>
+                    <td class="r" :data-label="text.courseColumns.credits">{{ course.credits }}</td>
                     <!-- Not recorded (unknown) and none (recorded) are different facts: each in its own words, never by colour alone. -->
-                    <td data-test="prerequisites" :data-state="prerequisiteState(course)">
+                    <td data-test="prerequisites" :data-state="prerequisiteState(course)" :data-label="text.courseColumns.prerequisites">
                       <div class="rule">
                         <span v-if="course.prerequisites === null" class="chip warn"><Icon name="info" size="sm" />{{ m.notRecorded }}</span>
                         <span v-else-if="course.prerequisites.length === 0" class="chip ok"><Icon name="check" size="sm" />{{ text.noPrerequisite }}</span>
@@ -484,6 +625,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                         <button
                           class="btn sm ghost icon-only"
                           type="button"
+                          :disabled="stale"
                           :aria-label="text.editPrerequisitesLabel(course.code)"
                           :title="text.editPrerequisitesLabel(course.code)"
                           data-test="edit-prerequisites"
@@ -493,13 +635,14 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                         </button>
                       </div>
                     </td>
-                    <td data-test="offering-terms" :data-state="course.offeringTerms === null ? 'not-recorded' : 'recorded'">
+                    <td data-test="offering-terms" :data-state="course.offeringTerms === null ? 'not-recorded' : 'recorded'" :data-label="text.courseColumns.terms">
                       <div class="rule">
                         <span v-if="course.offeringTerms === null" class="chip warn"><Icon name="info" size="sm" />{{ m.notRecorded }}</span>
                         <span v-else>{{ course.offeringTerms.map((term) => text.term(term)).join(', ') }}</span>
                         <button
                           class="btn sm ghost icon-only"
                           type="button"
+                          :disabled="stale"
                           :aria-label="text.editTermsLabel(course.code)"
                           :title="text.editTermsLabel(course.code)"
                           data-test="edit-terms"
@@ -509,10 +652,11 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                         </button>
                       </div>
                     </td>
-                    <td class="r">
+                    <td class="r acts">
                       <button
                         class="btn sm ghost icon-only"
                         type="button"
+                        :disabled="stale"
                         :aria-label="text.unlinkLabel(course.code)"
                         :title="text.unlinkLabel(course.code)"
                         data-test="unlink-course"
@@ -561,18 +705,45 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
 .admin-banner .field { min-width: 180px; }
 .admin-banner .grow { flex: 1; min-width: 200px; }
 :root[data-theme='dark'] .admin-banner { border-color: color-mix(in oklab, var(--info) 30%, var(--edge)); }
+.admin-late > div { display: grid; gap: 4px; min-width: 0; }
+.admin-late ul { margin: 0; padding-left: 18px; font-size: 14px; }
 .admin-note { padding: 0 22px 8px; }
 .admin-empty { padding: 24px 22px; }
 .admin-groups tr.on > * { background: var(--c-air); }
 .admin-groups .group-name { display: flex; gap: 10px; align-items: center; min-width: 160px; }
-.admin-groups .notes { max-width: 320px; white-space: pre-line; overflow-wrap: anywhere; }
+/* A row and the line of its printed rule read as one: no rule between them. */
+.admin-section .admin-groups tr.noted > * { border-bottom: 0; padding-bottom: 6px; }
+.admin-groups tr.group-note > td { padding-top: 0; }
+.admin-groups .note { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 13px; color: var(--ink-2); padding-left: 36px; }
+.admin-groups .note-label { font-size: 12px; font-weight: 650; color: var(--ink-3); }
+.admin-groups .note-text { flex: 1 1 320px; min-width: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.admin-groups .note-text.clamped { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .group-panel { border-top: 2px solid var(--edge); padding: 18px 22px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; background: var(--c-soft); border-radius: 0 0 var(--r) var(--r); }
 .group-panel .table-wrap { background: var(--surface); border: 1px solid var(--edge); border-radius: 12px; }
-.admin-courses td:nth-child(2) { min-width: 180px; overflow-wrap: anywhere; }
+.admin-courses td.name { min-width: 180px; overflow-wrap: anywhere; }
 .admin-courses .rule { display: flex; align-items: center; gap: 6px; }
 .admin-courses .codes { display: flex; flex-wrap: wrap; gap: 4px; }
 @media (max-width: 620px) {
   .admin-note { padding: 0 16px 8px; }
   .group-panel { padding: 16px; }
+}
+/* Narrow: a row is a card. The column heads go (kept for screen readers), each value shows its name, and the actions stay in view. */
+@media (max-width: 760px) {
+  .admin-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .admin-cards, .admin-cards tbody { display: block; }
+  .admin-cards tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .admin-cards tbody tr:first-child { border-top: 0; }
+  .admin-section .admin-cards tr > * { display: block; padding: 0; border: 0; text-align: left; background: none; min-width: 0; }
+  .admin-cards td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 650; color: var(--ink-3); }
+  .admin-cards th[scope='row'], .admin-cards td.acts, .admin-cards td.name { grid-column: 1 / -1; }
+  .admin-cards .row-acts { justify-content: flex-start; flex-wrap: wrap; }
+  .admin-groups tr.on { background: var(--c-air); }
+  .admin-groups tr.noted { padding-bottom: 6px; }
+  .admin-groups tr.group-note { display: block; border-top: 0; padding-top: 0; }
+  .admin-groups .note { padding-left: 0; }
+  .admin-groups .group-name { min-width: 0; }
+  .admin-courses tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-courses td.acts { justify-self: end; grid-column: auto; }
+  .admin-courses td[data-test] { grid-column: 1 / -1; }
 }
 </style>

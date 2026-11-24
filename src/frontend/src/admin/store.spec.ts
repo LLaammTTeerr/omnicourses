@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { nextTick } from 'vue';
 import { useAuth } from '../auth/store.js';
 import { user } from '../auth/testing/fixtures.js';
 import { mockApi, status } from '../testing/fetch.js';
@@ -94,6 +95,46 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     useAuth().clear();
     await expect(useAdminAccess().load()).resolves.toBeNull();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('forgets the grants at sign-out: the same account signing in again asks the API again', async () => {
+    let answer = EVERY_GRANT;
+    const fetch = mockApi({ 'GET /admin/grants': () => Response.json(answer) });
+    const access = useAdminAccess();
+    await access.load();
+    expect(access.any).toBe(true);
+    useAuth().clear();
+    await nextTick();
+    expect(access.cache).toBeNull();
+    // Signed out, the grants were revoked. The same account signs in again in this tab.
+    answer = NO_GRANTS;
+    signIn();
+    expect(access.any).toBe(false);
+    await access.load();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect([access.any, access.grants]).toEqual([false, NO_GRANTS]);
+  });
+
+  it('drops an answer that arrives after the sign-out it was asked before', async () => {
+    let answer!: (response: Response) => void;
+    mockApi({ 'GET /admin/grants': () => new Promise<Response>((resolve) => (answer = resolve)) });
+    const access = useAdminAccess();
+    const loading = access.load();
+    useAuth().clear();
+    await nextTick();
+    signIn();
+    answer(Response.json(EVERY_GRANT));
+    await loading;
+    expect([access.any, access.cache]).toEqual([false, null]);
+  });
+
+  it('keeps a refused save to show until it is read, and forgets it at sign-out', async () => {
+    const access = useAdminAccess();
+    access.refusal = { permission: 'program_admin' };
+    expect(access.refusal).toEqual({ permission: 'program_admin' });
+    useAuth().clear();
+    await nextTick();
+    expect(access.refusal).toBeNull();
   });
 
   it('never shows one account the grants of another', async () => {

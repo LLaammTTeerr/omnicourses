@@ -91,7 +91,7 @@ const changes = computed(() =>
       <div class="acts">
         <button class="btn" type="button" :disabled="busy" data-test="dialog-cancel" @click="emit('close')">{{ m.cancel }}</button>
         <button class="btn" type="button" :disabled="busy" data-test="impact-back" @click="emit('back')">{{ text.reviewBack }}</button>
-        <button class="btn primary" type="button" :disabled="busy" data-test="impact-confirm" @click="emit('confirm')">{{ busy ? m.saving : text.reviewConfirm }}</button>
+        <button class="btn primary" type="button" :disabled="busy || problem?.reload" data-test="impact-confirm" @click="emit('confirm')">{{ busy ? m.saving : text.reviewConfirm }}</button>
       </div>
     </div>
 
@@ -148,7 +148,7 @@ const changes = computed(() =>
       <ProblemNote :problem="problem" @reload="emit('reload')" />
       <div class="acts">
         <button class="btn" type="button" :disabled="busy" data-test="dialog-cancel" @click="emit('close')">{{ m.cancel }}</button>
-        <button class="btn primary" type="submit" :disabled="busy" data-test="dialog-save">{{ busy ? m.saving : m.save }}</button>
+        <button class="btn primary" type="submit" :disabled="busy || problem?.reload" data-test="dialog-save">{{ busy ? m.saving : m.save }}</button>
       </div>
     </form>
   </ModalDialog>
