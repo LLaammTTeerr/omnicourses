@@ -408,13 +408,18 @@ describe('prerequisites', () => {
     expect(CURRICULUM_SEEDS.filter((s) => s.no_prerequisites).map((s) => s.curriculum.code)).toEqual(['APCS2024', 'APCS2025']);
     for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) expect(seed.no_prerequisites).toBe(apcsNoPrerequisites);
     expect(apcsNoPrerequisites).toMatchObject({ decided_by: 'Project Lead (Lâm)', date: '2026-11-15' });
-    // The source names the one printed exception and its correction.
-    expect(apcsNoPrerequisites.source).toContain('21 November 2026: none, except CS469 before CS470');
+    // The source names the one printed exception, the day the seed began to record it, and who decided it and when.
+    expect(apcsNoPrerequisites.source).toContain('none, except CS469 before CS470');
+    expect(apcsNoPrerequisites.source).toContain('The seed has recorded it since 21 November 2026');
+    expect(apcsNoPrerequisites.source).toContain('the Project Lead decided it on the team Discord: "trust Thang"');
+    expect(apcsNoPrerequisites.source).toContain('On 24 November 2026');
+    // 21 November was not a ruling by the Project Lead: he left the choice open that day.
+    expect(apcsNoPrerequisites.source).not.toContain('Corrected by the Project Lead');
   });
 
   it('keeps one printed exception: CS470 needs CS469 in APCS 2024 and 2025 (p. 8 and p. 9), every other course has none', () => {
     expect(apcsNoPrerequisites.except.map((e) => [e.code, e.requires, e.pages, e.decided_by, e.date])).toEqual([
-      ['CS470', ['CS469'], { APCS2024: 8, APCS2025: 9 }, 'Project Lead (Lâm)', '2026-11-21'],
+      ['CS470', ['CS469'], { APCS2024: 8, APCS2025: 9 }, 'Project Lead (Lâm)', '2026-11-24'],
     ]);
     for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) {
       const code = seed.curriculum.code;

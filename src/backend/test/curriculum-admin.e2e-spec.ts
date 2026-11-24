@@ -193,7 +193,7 @@ describe('Curriculum administration API (e2e)', () => {
     const seeded = (body.requirementGroups as ReadGroup[]).filter((g) => g.name !== groupName).flatMap((g) => g.courses);
     expect(seeded.length).toBeGreaterThan(0);
     // The seed records every APCS course as having no prerequisite (Project Lead, 15 November 2026) except CS470, which needs
-    // CS469 (printed in the curriculum PDF; 21 November 2026), and no offering term.
+    // CS469 (printed in the curriculum PDF; Project Lead, 24 November 2026), and no offering term.
     for (const c of seeded) expect([c.code, c.prerequisites, c.offeringTerms]).toEqual([c.code, c.code === 'CS470' ? ['CS469'] : [], null]);
   });
 

@@ -206,7 +206,7 @@ export interface PrerequisiteException {
   /** Page of the printed sentence, per curriculums.code. */
   pages: Record<string, Page>;
   decided_by: string;
-  /** ISO date of the decision to load it. */
+  /** ISO date of the decision to keep it. The seed may have recorded the rule before that date. */
   date: string;
 }
 
@@ -294,7 +294,7 @@ export interface TeachingPlan {
 
 // Prerequisites and offering terms as printed. Not loaded, and not rules: the Project Lead
 // decided on 15 November 2026 that APCS courses have no prerequisite, except CS469 before CS470
-// (21 November 2026; CurriculumSeed.no_prerequisites, ADR 0011). The advisor's course descriptions still read the printed lines.
+// (decided on 24 November 2026; CurriculumSeed.no_prerequisites, ADR 0011). The advisor's course descriptions still read the printed lines.
 
 /**
  * One course's "Prior-course" line in a course-description booklet. The line

@@ -374,7 +374,7 @@ Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy
 | [0008 Real-browser test provider](adr/0008-browser-testing.md) | proposed | SPA browser tests (Vitest browser mode, Playwright Chromium); CI frontend job |
 | [0009 Term encoding](adr/0009-term-encoding.md) | proposed | `terms/`; `transcript`, `plans`, offering terms, `plan-generator` |
 | [0010 Public pages and guide content](adr/0010-public-pages-and-guide-content.md) | accepted | `guides`, `sharing`; the public routes allow-list and its e2e test; guides as content files plus seed |
-| [0011 Curriculum administration](adr/0011-curriculum-administration.md) | accepted (Lâm, 9 Nov 2026 for the school scope, 12 Nov 2026 in full); amended 9 Nov and 15 Nov (corrected 21 Nov) | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
+| [0011 Curriculum administration](adr/0011-curriculum-administration.md) | accepted (Lâm, 9 Nov 2026 for the school scope, 12 Nov 2026 in full); amended 9 Nov and 15 Nov (CS470 exception seeded 21 Nov, decided 24 Nov) | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
 | [0012 Credit caps by training type](adr/0012-credit-caps-by-training-type.md) | accepted; amends 0009 | `rules` (caps per training type, a training-type column on `programs`), `terms/`, `plans`, `plan-generator` |
 
 
