@@ -406,12 +406,14 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                   <td data-test="group-credits">{{ credits(group) }}</td>
                   <td class="small t2 notes">{{ group.officialNotes }}</td>
                   <td class="r">{{ group.courses.length }}</td>
-                  <td class="r acts">
+                  <td class="r">
+                    <div class="row-acts">
                     <button class="btn sm" type="button" :aria-expanded="group.id === openId" aria-controls="group-panel" :aria-label="text.openLabel(group.name)" data-test="group-open" @click="openId = group.id">
                       {{ group.id === openId ? text.opened : text.open }}
                     </button>
                     <button class="btn sm" type="button" :aria-label="text.editGroupLabel(group.name)" data-test="group-edit" @click="open({ type: 'group', group }, $event)"><Icon name="edit" size="sm" />{{ text.edit }}</button>
                     <button class="btn sm" type="button" :aria-label="text.deleteGroupLabel(group.name)" data-test="group-delete" @click="open({ type: 'delete-group', group }, $event)"><Icon name="trash" size="sm" />{{ text.delete }}</button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -460,23 +462,48 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                     <td class="r">{{ course.credits }}</td>
                     <!-- Not recorded (unknown) and none (recorded) are different facts: each in its own words, never by colour alone. -->
                     <td data-test="prerequisites" :data-state="prerequisiteState(course)">
-                      <span v-if="course.prerequisites === null" class="chip warn"><Icon name="info" size="sm" />{{ m.notRecorded }}</span>
-                      <span v-else-if="course.prerequisites.length === 0" class="chip ok"><Icon name="check" size="sm" />{{ text.noPrerequisite }}</span>
-                      <span v-else class="codes"><span v-for="code in course.prerequisites" :key="code" class="code">{{ code }}</span></span>
+                      <div class="rule">
+                        <span v-if="course.prerequisites === null" class="chip warn"><Icon name="info" size="sm" />{{ m.notRecorded }}</span>
+                        <span v-else-if="course.prerequisites.length === 0" class="chip ok"><Icon name="check" size="sm" />{{ text.noPrerequisite }}</span>
+                        <span v-else class="codes"><span v-for="code in course.prerequisites" :key="code" class="code">{{ code }}</span></span>
+                        <button
+                          class="btn sm ghost icon-only"
+                          type="button"
+                          :aria-label="text.editPrerequisitesLabel(course.code)"
+                          :title="text.editPrerequisitesLabel(course.code)"
+                          data-test="edit-prerequisites"
+                          @click="open({ type: 'prerequisites', course }, $event)"
+                        >
+                          <Icon name="edit" size="sm" />
+                        </button>
+                      </div>
                     </td>
                     <td data-test="offering-terms" :data-state="course.offeringTerms === null ? 'not-recorded' : 'recorded'">
-                      <span v-if="course.offeringTerms === null" class="chip warn"><Icon name="info" size="sm" />{{ m.notRecorded }}</span>
-                      <span v-else>{{ course.offeringTerms.map((term) => text.term(term)).join(', ') }}</span>
+                      <div class="rule">
+                        <span v-if="course.offeringTerms === null" class="chip warn"><Icon name="info" size="sm" />{{ m.notRecorded }}</span>
+                        <span v-else>{{ course.offeringTerms.map((term) => text.term(term)).join(', ') }}</span>
+                        <button
+                          class="btn sm ghost icon-only"
+                          type="button"
+                          :aria-label="text.editTermsLabel(course.code)"
+                          :title="text.editTermsLabel(course.code)"
+                          data-test="edit-terms"
+                          @click="open({ type: 'terms', course }, $event)"
+                        >
+                          <Icon name="edit" size="sm" />
+                        </button>
+                      </div>
                     </td>
-                    <td class="r acts">
-                      <button class="btn sm" type="button" :aria-label="text.editPrerequisitesLabel(course.code)" data-test="edit-prerequisites" @click="open({ type: 'prerequisites', course }, $event)">
-                        <Icon name="edit" size="sm" />{{ text.editPrerequisites }}
-                      </button>
-                      <button class="btn sm" type="button" :aria-label="text.editTermsLabel(course.code)" data-test="edit-terms" @click="open({ type: 'terms', course }, $event)">
-                        <Icon name="calendar" size="sm" />{{ text.editTerms }}
-                      </button>
-                      <button class="btn sm" type="button" :aria-label="text.unlinkLabel(course.code)" data-test="unlink-course" @click="open({ type: 'unlink', group: openGroup, course }, $event)">
-                        <Icon name="trash" size="sm" />{{ text.unlink }}
+                    <td class="r">
+                      <button
+                        class="btn sm ghost icon-only"
+                        type="button"
+                        :aria-label="text.unlinkLabel(course.code)"
+                        :title="text.unlinkLabel(course.code)"
+                        data-test="unlink-course"
+                        @click="open({ type: 'unlink', group: openGroup, course }, $event)"
+                      >
+                        <Icon name="trash" size="sm" />
                       </button>
                     </td>
                   </tr>
@@ -515,34 +542,22 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
 
 <style>
 /* The admin prototype (ui-prototypes/admin.html): the program and cohort banner, the groups table, one open group. */
-.admin-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .admin-banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: color-mix(in oklab, var(--hi) 55%, var(--surface)); border-radius: 16px; border: 1px solid var(--edge); flex-wrap: wrap; }
 .admin-banner .field { min-width: 180px; }
 .admin-banner .grow { flex: 1; min-width: 200px; }
 :root[data-theme='dark'] .admin-banner { border-color: color-mix(in oklab, var(--info) 30%, var(--edge)); }
 .admin-note { padding: 0 22px 8px; }
 .admin-empty { padding: 24px 22px; }
-.admin-groups th[scope='row'], .admin-courses th[scope='row'] { text-align: left; font-size: 14px; color: var(--ink); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 650; }
 .admin-groups tr.on > * { background: var(--c-air); }
 .admin-groups .group-name { display: flex; gap: 10px; align-items: center; min-width: 160px; }
 .admin-groups .notes { max-width: 320px; white-space: pre-line; overflow-wrap: anywhere; }
-.admin-section td.acts { white-space: nowrap; }
-.admin-section td.acts .btn + .btn { margin-left: 6px; }
 .group-panel { border-top: 2px solid var(--edge); padding: 18px 22px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; background: var(--c-soft); border-radius: 0 0 var(--r) var(--r); }
 .group-panel .table-wrap { background: var(--surface); border: 1px solid var(--edge); border-radius: 12px; }
-.link-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
-.link-form .field { flex: 0 1 220px; }
-.link-form label { font-weight: 650; font-size: 13.5px; }
+.admin-courses td:nth-child(2) { min-width: 180px; overflow-wrap: anywhere; }
+.admin-courses .rule { display: flex; align-items: center; gap: 6px; }
 .admin-courses .codes { display: flex; flex-wrap: wrap; gap: 4px; }
-.admin-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
-.admin-form label, .admin-form legend { font-weight: 650; font-size: 13.5px; }
-.admin-form .check { font-weight: 400; font-size: 14px; }
-.admin-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
-.admin-choices legend { padding: 0; margin-bottom: 6px; }
-.admin-form textarea.input { resize: vertical; min-height: 76px; }
 @media (max-width: 620px) {
   .admin-note { padding: 0 16px 8px; }
   .group-panel { padding: 16px; }
-  .link-form .field { flex: 1 1 100%; }
 }
 </style>

@@ -252,8 +252,9 @@ usePageTitle(() => m.value.title);
 .srow .txt p { font-size: 13.5px; color: var(--ink-2); }
 .srow .value { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .srow-note { padding: 0 22px 8px; }
-.user-id { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; min-width: 0; }
-.user-id .input { min-width: 0; font-size: 13px; }
+.user-id { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+/* The whole ID shows: 36 characters, in the fixed-width font. */
+.user-id .input { flex: 1 1 calc(36ch + 28px); width: calc(36ch + 28px); min-width: 0; font-size: 13px; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .danger-zone { border-color: var(--bad); box-shadow: 4px 4px 0 var(--bad); }
 .sign-out { justify-self: start; }

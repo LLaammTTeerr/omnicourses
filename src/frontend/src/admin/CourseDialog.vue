@@ -157,7 +157,7 @@ const changes = computed(() =>
 <style>
 dialog.modal.course-dialog { width: min(560px, calc(100vw - 24px)); }
 .course-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
-.impact-changes th[scope='row'] { text-align: left; font-size: 13.5px; color: var(--ink-2); padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 600; }
+.impact-changes th[scope='row'] { text-align: left; font-size: 13.5px; color: var(--ink-2); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 600; }
 .impact-changes td { overflow-wrap: anywhere; }
 .impact-list { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 2px; font-size: 14px; }
 </style>

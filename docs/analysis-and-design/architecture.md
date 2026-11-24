@@ -56,7 +56,7 @@ C4Context
 
 - A **signed-out reader** can read guides ([ADR 0010](adr/0010-public-pages-and-guide-content.md)) and, once F9 ships, open a shared plan. An advisor needs no account.
 - A **student** signs in for everything that uses their own data: transcript, degree audit, plans, the goal box and the advisor.
-- A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), accepted). F12's API (#74) edits requirement groups, course links, prerequisites, offering terms and catalog courses; programs and cohorts still enter only through reviewed seed files, and the administration screens are not built.
+- A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), accepted). F12's API (#74) edits requirement groups, course links, prerequisites, offering terms and catalog courses; programs and cohorts still enter only through reviewed seed files. The administration screens (#146, `src/frontend/src/admin/`) cover the routes that exist.
 
 **External systems.**
 
@@ -289,7 +289,7 @@ C4Component
     Component(session, "Session store", "planned · Hoà, Lâm", "Bearer token in memory or sessionStorage; refresh on start-up")
     Component(screens, "Student screens", "planned · Hoà, Lâm, Triết", "Sign-in, onboarding, transcript, audit, explorer, planner, goal box")
     Component(chat, "Advisor and sharing screens", "planned · Dũng", "F8 chat read with fetch; F9 shared plan")
-    Component(adminui, "Administration screens", "planned · Thắng", "F12 curriculum, catalog, grants")
+    Component(adminui, "Administration screens", "src/frontend/src/admin/", "F12 curriculum editor, catalog, access grants")
   }
 
   Rel(student, shell, "Opens", "HTTPS")
@@ -309,7 +309,6 @@ C4Component
   UpdateElementStyle(session, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
   UpdateElementStyle(screens, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
   UpdateElementStyle(chat, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(adminui, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
 
 | Component | Code | Responsibility |
@@ -322,7 +321,7 @@ C4Component
 | API types | `guides/api.ts`, `testing/contract.ts` | Request and response types are written by hand beside each API module. Specs check them against the committed contract `src/backend/openapi.json` through `testing/contract.ts`, so a renamed or missing field fails a test. `openapi-typescript` is not used: it requires TypeScript 5 and the repo pins 6.0.3 (decided 9 November 2026; revisit when it supports TypeScript 6). A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift. |
 | guides feature | `src/frontend/src/guides/` | F11 screens: `api.ts` (`fetchGuides`, `fetchGuide` with its not-found error), the list and guide views, diacritic-insensitive search, language fallback (`pick-text`), content links. `GUIDE_GROUPS` stays a frontend array for display order, checked at compile time against the contract's group enum. |
 | Home | `views/HomeView.vue`, `components/ApiStatus.vue` | Landing page and API health. |
-| Planned screens | | Sign-in and sign-up (Hoà), onboarding and transcript import with its review table (Lâm), degree audit and explorer (Triết), planner and what-if (Hoà), goal box (Lâm), advisor chat and shared-plan page (Dũng), administration (Thắng). Each feature gets its own folder like `guides/`. |
+| Planned screens | | Sign-in and sign-up (Hoà), onboarding and transcript import with its review table (Lâm), degree audit and explorer (Triết), planner and what-if (Hoà), goal box (Lâm), advisor chat and shared-plan page (Dũng). Each feature gets its own folder like `guides/`. |
 
 ## 6. Cross-cutting concerns
 

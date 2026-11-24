@@ -215,7 +215,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
         <h2 id="catalog-admin-title">{{ text.heading }}</h2>
         <span class="meta">{{ text.shared }}</span>
       </div>
-      <div class="catalog-tools">
+      <div class="admin-tools">
         <form class="link-form" novalidate @submit.prevent="find">
           <div class="field">
             <label for="catalog-code">{{ text.fields.code }}</label>
@@ -294,7 +294,6 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
 </template>
 
 <style>
-.catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 6px 22px 20px; }
 .catalog-course { border-top: 1px solid var(--edge); padding: 18px 22px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .catalog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .catalog-head h3 { font-size: 19px; margin-top: 6px; overflow-wrap: anywhere; }
@@ -305,7 +304,6 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
 .catalog-course h4 { font-size: 13.5px; font-weight: 650; margin: 0 0 6px; }
 .catalog-used { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 14px; }
 @media (max-width: 620px) {
-  .catalog-tools { padding: 6px 16px 16px; }
   .catalog-course { padding: 16px; }
 }
 </style>

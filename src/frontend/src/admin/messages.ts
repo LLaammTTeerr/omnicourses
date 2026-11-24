@@ -56,9 +56,7 @@ interface CurriculumMessages {
   courseColumns: { code: string; name: string; credits: string; prerequisites: string; terms: string; actions: string };
   noPrerequisite: string;
   term: (number: number) => string;
-  editPrerequisites: string;
   editPrerequisitesLabel: (course: string) => string;
-  editTerms: string;
   editTermsLabel: (course: string) => string;
   unlink: string;
   unlinkLabel: (course: string) => string;
@@ -330,9 +328,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       courseColumns: { code: 'Mã', name: 'Tên', credits: 'TC', prerequisites: 'Tiên quyết', terms: 'Kỳ mở', actions: 'Thao tác' },
       noPrerequisite: 'Không có tiên quyết',
       term: (number) => `HK${number}`,
-      editPrerequisites: 'Tiên quyết',
       editPrerequisitesLabel: (course) => `Sửa tiên quyết của ${course}`,
-      editTerms: 'Kỳ mở',
       editTermsLabel: (course) => `Sửa kỳ mở của ${course}`,
       unlink: 'Bỏ khỏi nhóm',
       unlinkLabel: (course) => `Bỏ ${course} khỏi nhóm`,
@@ -569,9 +565,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       courseColumns: { code: 'Code', name: 'Name', credits: 'Cr', prerequisites: 'Prerequisites', terms: 'Offering terms', actions: 'Actions' },
       noPrerequisite: 'No prerequisite',
       term: (number) => `Term ${number}`,
-      editPrerequisites: 'Prerequisites',
       editPrerequisitesLabel: (course) => `Edit the prerequisites of ${course}`,
-      editTerms: 'Offering terms',
       editTermsLabel: (course) => `Edit the offering terms of ${course}`,
       unlink: 'Remove from group',
       unlinkLabel: (course) => `Remove ${course} from the group`,

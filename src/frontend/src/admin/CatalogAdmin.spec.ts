@@ -40,7 +40,7 @@ const pathOf = (call: readonly unknown[]) => String(call[0]).split('/api')[1];
 
 async function find(w: VueWrapper, code: string) {
   await get(w, 'catalog-code').setValue(code);
-  await w.get('.catalog-tools form').trigger('submit');
+  await w.get('.admin-tools form').trigger('submit');
   await flushPromises();
 }
 async function open(w: VueWrapper, test: string) {

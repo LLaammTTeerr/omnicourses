@@ -54,7 +54,7 @@ const described = (...ids: (string | false | undefined)[]) => ids.filter(Boolean
         <p id="group-name-hint" class="hint">{{ m.curriculum.groupNameHint }}</p>
         <FieldErrors id="group-name-error" :errors="problem?.fields.name" />
       </div>
-      <fieldset class="field admin-choices" :aria-describedby="described('group-kind-hint', problem?.fields.kind && 'group-kind-error')" :aria-invalid="problem?.fields.kind ? 'true' : undefined">
+      <fieldset class="field admin-choices" :aria-describedby="described('group-kind-hint', problem?.fields.kind && 'group-kind-error')">
         <legend>{{ m.curriculum.groupKind }}</legend>
         <label v-for="option in REQUIREMENT_GROUP_KINDS" :key="option" class="check">
           <input v-model="kind" type="radio" name="group-kind" :value="option" :data-test="`group-kind-${option}`" />{{ m.curriculum.kinds[option] }}

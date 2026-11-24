@@ -89,4 +89,24 @@ usePageTitle(() => m.value.title);
 .admin-tabs a.router-link-active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); outline: 1px solid var(--edge); }
 .admin-none { display: grid; gap: 12px; justify-items: start; max-width: 640px; }
 .admin-none .ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); color: var(--ink-2); }
+
+/* Shared by the sections: a section's column, its lookup or link form, its tables, and the forms of its dialogs. */
+.admin-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.admin-tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 6px 22px 20px; }
+.link-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.link-form .field { flex: 0 1 220px; min-width: 0; }
+.link-form label { font-weight: 650; font-size: 13.5px; }
+.admin-section .table th[scope='row'] { text-align: left; font-size: 14px; color: var(--ink); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 650; }
+.admin-section .table tr:last-child th[scope='row'], dialog.modal .table tr:last-child th[scope='row'] { border-bottom: 0; }
+.admin-section .row-acts { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+.admin-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.admin-form label, .admin-form legend { font-weight: 650; font-size: 13.5px; }
+.admin-form .check { font-weight: 400; font-size: 14px; }
+.admin-choices { border: 0; margin: 0; padding: 0; min-width: 0; }
+.admin-choices legend { padding: 0; margin-bottom: 6px; }
+.admin-form textarea.input { resize: vertical; min-height: 76px; }
+@media (max-width: 620px) {
+  .admin-tools { padding: 6px 16px 16px; }
+  .link-form .field { flex: 1 1 100%; }
+}
 </style>

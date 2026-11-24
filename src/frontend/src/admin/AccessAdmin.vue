@@ -218,7 +218,7 @@ async function reload(): Promise<void> {
         <h2 id="access-admin-title">{{ text.heading }}</h2>
         <span class="meta">{{ text.lead }}</span>
       </div>
-      <div class="catalog-tools">
+      <div class="admin-tools">
         <form class="link-form access-lookup" novalidate @submit.prevent="find">
           <div class="field">
             <label for="access-user-id">{{ text.userId }}</label>
@@ -368,15 +368,13 @@ async function reload(): Promise<void> {
 </template>
 
 <style>
-.access-lookup .field { flex: 1 1 340px; max-width: 420px; }
+.link-form.access-lookup .field { flex: 1 1 360px; max-width: 420px; }
 .access-user { border-top: 1px solid var(--edge); padding: 18px 22px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .access-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .access-head h3 { overflow-wrap: anywhere; }
 .access-user section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .access-user h4 { font-size: 15px; font-weight: 650; margin: 0; }
 .access-user .table-wrap { border: 1px solid var(--edge); border-radius: 12px; }
-.access-table th[scope='row'] { text-align: left; font-size: 14px; color: var(--ink); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: normal; font-weight: 650; }
-.access-table tr:last-child th[scope='row'] { border-bottom: 0; }
 .access-table .about { display: block; font-weight: 400; max-width: 56ch; margin-top: 2px; }
 .access-user .link-form .field { flex: 0 1 320px; }
 @media (max-width: 620px) {
