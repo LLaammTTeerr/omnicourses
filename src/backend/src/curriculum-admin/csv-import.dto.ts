@@ -46,9 +46,6 @@ export class CatalogImportRowDto extends CourseDto {
   @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
 
-  @ApiProperty({ example: 2, description: 'The physical line the record starts on' })
-  line!: number;
-
   @ApiProperty({ enum: ['insert', 'update', 'no_op'], description: 'What confirming would do with this row. The other fields are the normalized values it would save.' })
   action!: 'insert' | 'update' | 'no_op';
 
@@ -89,11 +86,8 @@ export class CatalogImportPreviewDto extends ImportPreviewDto {
 }
 
 export class GroupLinkImportRowDto {
-  @ApiProperty({ example: 2 })
+  @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
-
-  @ApiProperty({ example: 2 })
-  line!: number;
 
   @ApiProperty({ enum: ['insert', 'no_op'], description: 'insert: confirming links the course to the group. no_op: it is linked already.' })
   action!: 'insert' | 'no_op';

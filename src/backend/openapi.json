@@ -2774,7 +2774,17 @@
             }
           },
           "413": {
-            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. Nothing is saved.",
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2865,7 +2875,17 @@
             }
           },
           "413": {
-            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. Nothing is saved.",
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2963,7 +2983,17 @@
             }
           },
           "413": {
-            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. Nothing is saved.",
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3071,7 +3101,17 @@
             }
           },
           "413": {
-            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. Nothing is saved.",
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6900,12 +6940,7 @@
           "record": {
             "type": "number",
             "example": 3,
-            "description": "The logical CSV record, counting the header as record 1. A blank line is not a record."
-          },
-          "line": {
-            "type": "number",
-            "example": 4,
-            "description": "The physical line the record starts on; it differs from `record` after a blank line or a quoted field that spans lines. For malformed quoting: the line where reading stopped."
+            "description": "The logical CSV record, counting the header as record 1: the row number in a spreadsheet. A blank line is not a record. For malformed quoting: the record where reading stopped."
           },
           "field": {
             "type": [
@@ -6922,7 +6957,6 @@
         },
         "required": [
           "record",
-          "line",
           "field",
           "message"
         ]
@@ -7007,11 +7041,6 @@
             "example": 2,
             "description": "The logical CSV record; the header is record 1"
           },
-          "line": {
-            "type": "number",
-            "example": 2,
-            "description": "The physical line the record starts on"
-          },
           "action": {
             "type": "string",
             "enum": [
@@ -7066,7 +7095,6 @@
           "exercisePeriods",
           "projectPeriods",
           "record",
-          "line",
           "action",
           "changedFields",
           "current",
@@ -7204,11 +7232,8 @@
         "properties": {
           "record": {
             "type": "number",
-            "example": 2
-          },
-          "line": {
-            "type": "number",
-            "example": 2
+            "example": 2,
+            "description": "The logical CSV record; the header is record 1"
           },
           "action": {
             "type": "string",
@@ -7234,7 +7259,6 @@
         },
         "required": [
           "record",
-          "line",
           "action",
           "requirementGroupName",
           "requirementGroupId",

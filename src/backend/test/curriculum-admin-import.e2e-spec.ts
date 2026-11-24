@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
@@ -153,9 +154,13 @@ describe('CSV import of catalog courses (e2e)', () => {
   });
 
   it('needs the catalog grant: a program administrator and a user without a grant get 403 on preview and confirm', async () => {
+    // The grant is checked before the file is read: without it, a file that is malformed, has
+    // another header or too many records gets the same 403 as a valid one, not a 400 or a 413.
+    const files = [FILE, `${COURSES_HEADER}\n${P}N2,"Tên" x,,3,,,,`, 'not,the,header\n1,2,3', `${COURSES_HEADER}\n${'x\n'.repeat(1001)}`];
     for (const account of [admin, stranger]) {
-      const refused = [await preview(FILE, account), await confirm(FILE, 'x', account)];
-      for (const res of refused) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'catalog_maintainer']);
+      for (const csv of files) {
+        for (const res of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'catalog_maintainer']);
+      }
     }
     expect(await course(`${P}N2`)).toBeUndefined();
   });
@@ -173,12 +178,11 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect(body).toEqual({
       fileType: 'catalog_courses',
       rows: [
-        // Record 2 starts on line 2 and ends on line 3: its English name holds a line break.
-        { record: 2, line: 2, action: 'insert', code: `${P}N1`, nameVi: 'Giải tích, phần 1', nameEn: 'Calculus "A"\nsecond line', credits: 4, ...periods, theoryPeriods: 45, changedFields: [], current: null, affectedCurricula: [] },
-        { record: 3, line: 4, action: 'insert', code: `${P}N2`, nameVi: 'Học phần mới', nameEn: null, credits: 3, ...periods, changedFields: [], current: null, affectedCurricula: [] },
+        // Record 2 takes two lines of the file: its English name holds a line break.
+        { record: 2, action: 'insert', code: `${P}N1`, nameVi: 'Giải tích, phần 1', nameEn: 'Calculus "A"\nsecond line', credits: 4, ...periods, theoryPeriods: 45, changedFields: [], current: null, affectedCurricula: [] },
+        { record: 3, action: 'insert', code: `${P}N2`, nameVi: 'Học phần mới', nameEn: null, credits: 3, ...periods, changedFields: [], current: null, affectedCurricula: [] },
         {
           record: 4,
-          line: 5,
           action: 'update',
           code: `${P}S`,
           nameVi: 'Shared course renamed',
@@ -191,7 +195,6 @@ describe('CSV import of catalog courses (e2e)', () => {
         },
         {
           record: 5,
-          line: 6,
           action: 'update',
           code: `${P}U`,
           nameVi: 'Unlinked course',
@@ -203,7 +206,7 @@ describe('CSV import of catalog courses (e2e)', () => {
           current: { code: `${P}U`, nameVi: 'Unlinked course', nameEn: null, credits: 4, ...periods },
           affectedCurricula: [],
         },
-        { record: 6, line: 7, action: 'no_op', code: `${P}K`, nameVi: 'Kept course', nameEn: 'Kept', credits: 2, ...periods, theoryPeriods: 30, changedFields: [], current: null, affectedCurricula: [] },
+        { record: 6, action: 'no_op', code: `${P}K`, nameVi: 'Kept course', nameEn: 'Kept', credits: 2, ...periods, theoryPeriods: 30, changedFields: [], current: null, affectedCurricula: [] },
       ],
       errors: [],
       summary: { inserts: 2, updates: 2, noOps: 1 },
@@ -230,15 +233,16 @@ describe('CSV import of catalog courses (e2e)', () => {
     ].join('\n');
     const { body } = await preview(bad).expect(200);
     expect(body.errors).toEqual([
-      { record: 2, line: 2, field: 'name_vi', message: 'a value is required' },
-      { record: 3, line: 3, field: 'code', message: '"zz.bad" is not a course code (letters A-Z and digits, 2 to 20)' },
-      { record: 4, line: 4, field: 'credits', message: expect.stringContaining('must be an integer number') },
-      { record: 5, line: 5, field: 'credits', message: expect.stringContaining('must be an integer number') },
-      { record: 5, line: 5, field: 'theory_periods', message: expect.stringContaining('must be an integer number') },
+      { record: 2, field: 'name_vi', message: 'should not be empty' },
+      { record: 3, field: 'code', message: '"zz.bad" is not a course code (letters A-Z and digits, 2 to 20)' },
+      // A value that is not a whole number: the two messages of manual entry.
+      { record: 4, field: 'credits', message: 'must not be less than 1; must be an integer number' },
+      { record: 5, field: 'credits', message: 'must not be less than 1; must be an integer number' },
+      { record: 5, field: 'theory_periods', message: 'must not be less than 0; must be an integer number' },
       // Identical to record 6 once the code is canonical: still an error.
-      { record: 7, line: 7, field: 'code', message: `${P}E5 is in record 6 already; a file names a course once` },
-      { record: 8, line: 8, field: null, message: 'has 7 fields; the template has 8' },
-      { record: 9, line: 9, field: 'credits', message: 'a value is required' },
+      { record: 7, field: 'code', message: `${P}E5 is in record 6 already; a file names a course once` },
+      { record: 8, field: null, message: 'has 7 fields; the template has 8' },
+      { record: 9, field: 'credits', message: 'must not be less than 1; must be an integer number' },
     ]);
     expect(body.reviewVersion).toBeNull();
     expect(body.rows.map((r: { code: string; action: string }) => [r.code, r.action])).toEqual([[`${P}E5`, 'insert']]);
@@ -249,7 +253,7 @@ describe('CSV import of catalog courses (e2e)', () => {
     // One bad row blocks the three good ones.
     const oneBad = [COURSES_HEADER, `${P}G1,Tên,,3,,,,`, `${P}G2,Tên,,3,,,,`, `${P}G3,Tên,,0,,,,`, `${P}G4,Tên,,3,,,,`].join('\n');
     const one = await preview(oneBad).expect(200);
-    expect([one.body.errors, one.body.reviewVersion, one.body.summary]).toEqual([[{ record: 4, line: 4, field: 'credits', message: 'must not be less than 1' }], null, { inserts: 3, updates: 0, noOps: 0 }]);
+    expect([one.body.errors, one.body.reviewVersion, one.body.summary]).toEqual([[{ record: 4, field: 'credits', message: 'must not be less than 1' }], null, { inserts: 3, updates: 0, noOps: 0 }]);
     expect((await confirm(oneBad, reviewed).expect(400)).body.code).toBe('validation_failed');
     expect((await savedCourses()).map((c) => c.code)).toEqual([`${P}K`, `${P}O`, `${P}S`, `${P}U`]);
   });
@@ -417,6 +421,47 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 4, updates: 1, noOps: 0 });
   });
 
+  it('saves 0 for a blank period count over a stored NULL, as a change the preview shows', async () => {
+    const code = `${P}NUL`;
+    await f.db.query(`INSERT INTO courses (code, name_vi, credits, theory_periods, lab_periods, exercise_periods, project_periods) VALUES ($1, 'Null periods', 3, NULL, NULL, 15, NULL)`, [code]);
+    const csv = `${COURSES_HEADER}\n${code},Null periods,,3,,,15,`;
+    const { body } = await preview(csv).expect(200);
+    expect(body.rows).toEqual([
+      {
+        record: 2,
+        action: 'update',
+        code,
+        nameVi: 'Null periods',
+        nameEn: null,
+        credits: 3,
+        theoryPeriods: 0,
+        labPeriods: 0,
+        exercisePeriods: 15,
+        projectPeriods: 0,
+        changedFields: ['theoryPeriods', 'labPeriods', 'projectPeriods'],
+        current: { code, nameVi: 'Null periods', nameEn: null, credits: 3, theoryPeriods: null, labPeriods: null, exercisePeriods: 15, projectPeriods: null },
+        affectedCurricula: [],
+      },
+    ]);
+    expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 0, updates: 1, noOps: 0 });
+    const periods = 'SELECT theory_periods, lab_periods, exercise_periods, project_periods FROM courses WHERE code = $1';
+    expect(await f.db.query(periods, [code])).toEqual([{ theory_periods: 0, lab_periods: 0, exercise_periods: 15, project_periods: 0 }]);
+    // Saved, so the same file is now a no-op.
+    expect((await preview(csv).expect(200)).body.summary).toEqual({ inserts: 0, updates: 0, noOps: 1 });
+  });
+
+  it('answers a non-numeric credit count in manual entry as before, and keeps the new 400 for a whole number above the bound', async () => {
+    const m = f.as(maintainer);
+    const text = await m.post('/api/admin/catalog/courses', { code: `${P}X1`, nameVi: 'Tên', credits: 'abc', theoryPeriods: '10' }).expect(400);
+    expect(text.body).toEqual({
+      statusCode: 400,
+      code: 'validation_failed',
+      message: ['credits must not be less than 1', 'credits must be an integer number', 'theoryPeriods must not be less than 0', 'theoryPeriods must be an integer number'],
+    });
+    expect((await m.patch(`/api/admin/catalog/courses/${P}K`, { credits: 'abc' }).expect(400)).body.message).toEqual(['credits must not be less than 1', 'credits must be an integer number']);
+    expect((await m.post('/api/admin/catalog/courses', { code: `${P}X1`, nameVi: 'Tên', credits: 2_147_483_648 }).expect(400)).body.message).toEqual(['credits must not be greater than 2147483647']);
+  });
+
   it('refuses a credit or period count above what the database stores, in manual entry as in a file', async () => {
     const m = f.as(maintainer);
     const tooLarge = 2_147_483_648;
@@ -427,7 +472,7 @@ describe('CSV import of catalog courses (e2e)', () => {
       expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
     }
     const { body } = await preview(`${COURSES_HEADER}\n${P}X1,Tên,,${tooLarge},,,,`).expect(200);
-    expect(body.errors).toEqual([{ record: 2, line: 2, field: 'credits', message: 'must not be greater than 2147483647' }]);
+    expect(body.errors).toEqual([{ record: 2, field: 'credits', message: 'must not be greater than 2147483647' }]);
   });
 });
 
@@ -477,9 +522,11 @@ describe('CSV import of group links (e2e)', () => {
   const FILE = () => `\uFEFF${LINKS_HEADER}\r\n ${one} , ${L.toLowerCase()}a \r\n${one},${L}B\r\n${TWO},${L}A\r\n`;
 
   it('needs the grant of the program in the route: 403 without it, 404 for a cohort of another program', async () => {
-    const csv = file([`${one},${L}A`]);
+    // The grant is checked before the file is read: 403 for a valid file, a malformed one and one with too many records.
     for (const account of [maintainer, stranger]) {
-      for (const res of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+      for (const csv of [file([`${one},${L}A`]), 'not,the,header\n1,2,3', file([`${one},"${L}"A`]), file(Array.from({ length: 1001 }, (_, n) => `${one},ZZ${n}`))]) {
+        for (const res of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+      }
     }
     const a = f.as(admin);
     // The APCS administrator on CLC: no grant. APCS in the path with a CLC cohort: not found.
@@ -487,6 +534,8 @@ describe('CSV import of group links (e2e)', () => {
       const body = { csv: file([`${clcOnly},${L}A`]), ...(step === 'confirm' && { reviewVersion: 'x' }) };
       expect((await a.post(`${cohortImports(f.clc, f.clcCurriculum)}/${step}`, body)).body).toMatchObject({ statusCode: 403, code: 'permission_required' });
       expect((await a.post(`${cohortImports(f.apcs, f.clcCurriculum)}/${step}`, body)).body).toMatchObject({ statusCode: 404, code: 'not_found' });
+      // The cohort is resolved before the file is read too.
+      expect((await a.post(`${cohortImports(f.apcs, f.clcCurriculum)}/${step}`, { ...body, csv: 'not,the,header' })).body).toMatchObject({ statusCode: 404, code: 'not_found' });
       expect((await a.post(`${cohortImports('not-a-uuid', f.apcs2024)}/${step}`, body)).body).toMatchObject({ statusCode: 400, code: 'validation_failed' });
     }
     expect(await links(gClc)).toEqual([]);
@@ -502,9 +551,9 @@ describe('CSV import of group links (e2e)', () => {
       programId: f.apcs,
       curriculumId: f.apcs2024,
       rows: [
-        { record: 2, line: 2, action: 'insert', requirementGroupName: one, requirementGroupId: g1, courseCode: `${L}A` },
-        { record: 3, line: 3, action: 'no_op', requirementGroupName: one, requirementGroupId: g1, courseCode: `${L}B` },
-        { record: 4, line: 4, action: 'insert', requirementGroupName: two, requirementGroupId: g2, courseCode: `${L}A` },
+        { record: 2, action: 'insert', requirementGroupName: one, requirementGroupId: g1, courseCode: `${L}A` },
+        { record: 3, action: 'no_op', requirementGroupName: one, requirementGroupId: g1, courseCode: `${L}B` },
+        { record: 4, action: 'insert', requirementGroupName: two, requirementGroupId: g2, courseCode: `${L}A` },
       ],
       errors: [],
       summary: { inserts: 2, updates: 0, noOps: 1 },
@@ -530,15 +579,15 @@ describe('CSV import of group links (e2e)', () => {
     const { body } = await preview(bad).expect(200);
     const noGroup = 'no requirement group of this cohort has this name; a file does not create groups';
     expect(body.errors).toEqual([
-      { record: 2, line: 2, field: 'requirement_group_name', message: noGroup },
-      { record: 3, line: 3, field: 'course_code', message: `No catalog course has the code ${L}ZZ; a catalog maintainer adds it first` },
-      { record: 5, line: 5, field: 'course_code', message: `this group and ${L}C are in record 4 already; a file names a link once` },
-      { record: 6, line: 6, field: 'requirement_group_name', message: 'a value is required' },
-      { record: 7, line: 7, field: 'course_code', message: 'a value is required' },
-      { record: 8, line: 8, field: 'course_code', message: '"zl-1" is not a course code (letters A-Z and digits, 2 to 20)' },
-      { record: 9, line: 9, field: 'requirement_group_name', message: noGroup },
-      { record: 9, line: 9, field: 'course_code', message: `No catalog course has the code ${L}ZY; a catalog maintainer adds it first` },
-      { record: 10, line: 10, field: null, message: 'has 3 fields; the template has 2' },
+      { record: 2, field: 'requirement_group_name', message: noGroup },
+      { record: 3, field: 'course_code', message: `No catalog course has the code ${L}ZZ; a catalog maintainer adds it first` },
+      { record: 5, field: 'course_code', message: `this group and ${L}C are in record 4 already; a file names a link once` },
+      { record: 6, field: 'requirement_group_name', message: 'a value is required' },
+      { record: 7, field: 'course_code', message: '"" is not a course code (letters A-Z and digits, 2 to 20)' },
+      { record: 8, field: 'course_code', message: '"zl-1" is not a course code (letters A-Z and digits, 2 to 20)' },
+      { record: 9, field: 'requirement_group_name', message: noGroup },
+      { record: 9, field: 'course_code', message: `No catalog course has the code ${L}ZY; a catalog maintainer adds it first` },
+      { record: 10, field: null, message: 'has 3 fields; the template has 2' },
     ]);
     expect([body.reviewVersion, body.summary]).toEqual([null, { inserts: 1, updates: 0, noOps: 0 }]);
     // The file is wrong whatever the database holds: 400, and the one good row is not saved.
@@ -758,6 +807,45 @@ describe('CSV import limits (e2e)', () => {
     }
   });
 
+  it('gives the 7 MiB parser only to a signed-in holder of the grant of the route: anyone else is refused at 100 KiB', async () => {
+    const stranger = await f.account();
+    const revoked = await f.account('catalog_maintainer');
+    await f.db.query('UPDATE sessions SET revoked_at = now() WHERE user_id = $1', [revoked.userId]);
+    const unparsed = { statusCode: 413, message: 'request entity too large' };
+    const large = { csv: 'a'.repeat(150 * 1024) };
+    const http = () => request(f.app.getHttpServer());
+    for (const route of routes()) {
+      // No token, and a 7 MiB body: the default parser refuses it on its declared length, as on any route.
+      expect((await http().post(route.path).set('Content-Type', 'application/json').send(JSON.stringify(bodyFor(route, 'a'.repeat(7 * MIB)))).expect(413)).body).toEqual(unparsed);
+      expect((await http().post(route.path).send(large).expect(413)).body).toEqual(unparsed);
+      // A token that is no session, a revoked session, a signed-in user without a grant, and the grant of the other route family.
+      const others = [{ token: 'no-such-session', userId: '' }, revoked, stranger, route.account === maintainer ? admin : maintainer];
+      for (const account of others) expect((await f.as(account).post(route.path, large).expect(413)).body).toEqual(unparsed);
+      // Under 100 KiB they reach the route and get its own answer.
+      await http().post(route.path).send(bodyFor(route, route.header)).expect(401);
+      expect((await f.as(stranger).post(route.path, bodyFor(route, route.header)).expect(403)).body.code).toBe('permission_required');
+    }
+    // A program grant opens the large parser for that program only.
+    const clcImports = `${cohortImports(f.clc, f.clcCurriculum)}/preview`;
+    expect((await f.as(admin).post(clcImports, large).expect(413)).body).toEqual(unparsed);
+    // The holder of the grant is still served above 100 KiB: the answer comes from the route, about the file.
+    expect((await f.as(maintainer).post(`${CATALOG}/preview`, large).expect(400)).body.code).toBe('validation_failed');
+    expect((await f.as(admin).post(`${links}/preview`, large).expect(400)).body.code).toBe('validation_failed');
+  });
+
+  it('refuses a compressed body with 415 on each of the four routes, for a holder of the grant as for anyone', async () => {
+    // About 7 KiB on the wire, 7 MiB once inflated; it is never inflated.
+    const bomb = gzipSync(JSON.stringify({ csv: 'a'.repeat(7 * MIB), reviewVersion: 'x' }));
+    expect(bomb.length).toBeLessThan(10 * 1024);
+    for (const route of routes()) {
+      for (const token of [route.account.token, null]) {
+        const test = request(f.app.getHttpServer()).post(route.path).set('Content-Type', 'application/json').set('Content-Encoding', 'gzip');
+        const refused = await (token ? test.set('Authorization', `Bearer ${token}`) : test).serialize((bytes) => bytes as string).send(bomb).expect(415);
+        expect(refused.body).toEqual({ statusCode: 415, code: 'unsupported_content_encoding', message: 'The import routes do not accept a compressed request body' });
+      }
+    }
+  });
+
   it('keeps the 100 KiB JSON limit on the other routes, which still take a body under it', async () => {
     const m = f.as(maintainer);
     const large = 'x'.repeat(100 * 1024);
@@ -785,7 +873,7 @@ describe('CSV import limits (e2e)', () => {
       ['/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm', ['post']],
     ]);
     for (const [, item] of imports) {
-      expect(Object.keys(item.post.responses)).toEqual(expect.arrayContaining(['200', '400', '401', '403', '404', '413']));
+      expect(Object.keys(item.post.responses)).toEqual(expect.arrayContaining(['200', '400', '401', '403', '404', '413', '415']));
       expect(item.post.security).toEqual([{ bearer: [] }]);
       expect(item.post.responses['400']).toMatchObject({ content: { 'application/json': { schema: { $ref: '#/components/schemas/ImportRejectedDto' } } } });
     }

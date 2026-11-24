@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, PayloadTooLargeException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, PayloadTooLargeException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import type { PermissionKind } from './grant-scope.js';
 
@@ -54,11 +54,8 @@ export class ImpactConfirmationDto extends AdminErrorDto {
 }
 
 export class ImportRowErrorDto {
-  @ApiProperty({ example: 3, description: 'The logical CSV record, counting the header as record 1. A blank line is not a record.' })
+  @ApiProperty({ example: 3, description: 'The logical CSV record, counting the header as record 1: the row number in a spreadsheet. A blank line is not a record. For malformed quoting: the record where reading stopped.' })
   record!: number;
-
-  @ApiProperty({ example: 4, description: 'The physical line the record starts on; it differs from `record` after a blank line or a quoted field that spans lines. For malformed quoting: the line where reading stopped.' })
-  line!: number;
 
   @ApiProperty({ type: String, nullable: true, example: 'credits', description: 'The CSV column, or null when the whole record is wrong' })
   field!: string | null;
@@ -93,5 +90,9 @@ export const importRejected = (message: string, errors: ImportRowErrorDto[]) => 
 
 /** The JSON body, the decoded CSV or its record count is over an import limit (ADR 0011). */
 export const payloadTooLarge = (message: string) => new PayloadTooLargeException({ statusCode: 413, code: 'payload_too_large', message });
+
+/** The import routes read a body as it is sent: they never inflate one (ADR 0011). */
+export const compressedBody = () =>
+  new UnsupportedMediaTypeException({ statusCode: 415, code: 'unsupported_content_encoding', message: 'The import routes do not accept a compressed request body' });
 
 export const referencedItem = (message: string, references: string[]) => conflict('referenced_item', message, { references });

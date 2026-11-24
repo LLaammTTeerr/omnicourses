@@ -5,7 +5,6 @@ import { MAX_INTEGER, wholeNumberOrText } from './curriculum-admin.dto.js';
 
 const row = (values: Partial<Record<CatalogColumn, string>>): CsvRow<CatalogColumn> => ({
   record: 2,
-  line: 2,
   values: { code: 'ZZ101', name_vi: 'Học phần thử', name_en: '', credits: '4', theory_periods: '', lab_periods: '', exercise_periods: '', project_periods: '', ...values },
 });
 const errorsOf = async (values: Partial<Record<CatalogColumn, string>>) => (await checkCatalogRow(row(values))).errors.map((e) => [e.field, e.message]);
@@ -29,22 +28,24 @@ describe('checkCatalogRow', () => {
   });
 
   it('refuses a number that is not a whole number, in the words of manual entry', async () => {
-    for (const credits of ['3.0', '1e2', '+3', '0x10', 'four']) {
-      expect(await errorsOf({ credits })).toEqual([['credits', expect.stringContaining('must be an integer number')]]);
+    // Text reaches the DTO as text: the two messages a string in a JSON body gets, and no third.
+    for (const credits of ['3.0', '1e2', '+3', '0x10', 'four', '-2']) {
+      expect(await errorsOf({ credits })).toEqual([['credits', 'must not be less than 1; must be an integer number']]);
     }
     expect(await errorsOf({ credits: '0' })).toEqual([['credits', 'must not be less than 1']]);
-    expect(await errorsOf({ credits: '-2' })).toEqual([['credits', expect.stringContaining('must be an integer number')]]);
-    expect(await errorsOf({ lab_periods: '1.5' })).toEqual([['lab_periods', expect.stringContaining('must be an integer number')]]);
+    expect(await errorsOf({ lab_periods: '1.5' })).toEqual([['lab_periods', 'must not be less than 0; must be an integer number']]);
+    // Only a real whole number above the bound gets the bound's message.
     expect(await errorsOf({ project_periods: String(MAX_INTEGER + 1) })).toEqual([['project_periods', `must not be greater than ${MAX_INTEGER}`]]);
-    expect(await errorsOf({ credits: '9'.repeat(400) })).toEqual([['credits', expect.any(String)]]);
+    expect(await errorsOf({ credits: '9'.repeat(30) })).toEqual([['credits', `must not be greater than ${MAX_INTEGER}`]]);
+    expect(await errorsOf({ credits: '9'.repeat(400) })).toEqual([['credits', 'must be an integer number']]);
     expect(await errorsOf({ credits: String(MAX_INTEGER) })).toEqual([]);
   });
 
-  it('names each missing required value once, by its CSV column', async () => {
+  it('refuses a missing code, name or credit count through the same validation, with no check of its own', async () => {
     expect(await errorsOf({ code: '', name_vi: '', credits: '' })).toEqual([
-      ['code', 'a value is required'],
-      ['name_vi', 'a value is required'],
-      ['credits', 'a value is required'],
+      ['code', '"" is not a course code (letters A-Z and digits, 2 to 20)'],
+      ['name_vi', 'should not be empty'],
+      ['credits', 'must not be less than 1; must be an integer number'],
     ]);
   });
 

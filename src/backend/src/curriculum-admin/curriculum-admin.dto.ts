@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, MaxLength, Min, ValidateBy, ValidateIf } from 'class-validator';
 import { trimString } from '../common/transforms.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
@@ -157,6 +157,19 @@ export class OfferingTermsDto {
 export const MAX_INTEGER = 2_147_483_647;
 
 /**
+ * Refuses a whole number above MAX_INTEGER, and nothing else: a value that is not a whole
+ * number passes here and is refused by @IsInt and @Min with the messages it always had.
+ */
+const StorableInteger = () =>
+  ValidateBy({
+    name: 'storableInteger',
+    validator: {
+      validate: (value: unknown) => !Number.isInteger(value) || (value as number) <= MAX_INTEGER,
+      defaultMessage: buildMessage((eachPrefix) => `${eachPrefix}$property must not be greater than ${MAX_INTEGER}`),
+    },
+  });
+
+/**
  * A whole number written as text (a CSV cell), as the number the DTOs below validate: digits
  * only. Anything else ("3.0", "1e2", "+3", "0x10", "-1") stays text, so @IsInt refuses it
  * exactly as it refuses a string in a JSON body. This is the only conversion a CSV value
@@ -186,35 +199,35 @@ export class CreateCourseDto {
   @ApiProperty({ minimum: 1, maximum: MAX_INTEGER })
   @IsInt()
   @Min(1)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   credits!: number;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER, description: 'Theory periods ("LT")' })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   theoryPeriods?: number | null;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER, description: 'Lab periods ("TH")' })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   labPeriods?: number | null;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER, description: 'Exercise periods ("BT")' })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   exercisePeriods?: number | null;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER, description: 'Project periods ("ĐT")' })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   projectPeriods?: number | null;
 }
 
@@ -242,35 +255,35 @@ export class UpdateCourseDto {
   @ifPresent
   @IsInt()
   @Min(1)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   credits?: number;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   theoryPeriods?: number | null;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   labPeriods?: number | null;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   exercisePeriods?: number | null;
 
   @ApiProperty({ type: Number, nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER })
   @ifSet
   @IsInt()
   @Min(0)
-  @Max(MAX_INTEGER)
+  @StorableInteger()
   projectPeriods?: number | null;
 
   @ApiProperty({

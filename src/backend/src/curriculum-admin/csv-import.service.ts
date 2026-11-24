@@ -39,7 +39,6 @@ type Action = 'insert' | 'update' | 'no_op';
 
 interface CatalogPlanRow {
   record: number;
-  line: number;
   code: string;
   values: CourseValues;
   action: Action;
@@ -51,7 +50,6 @@ interface CatalogPlanRow {
 
 interface LinkPlanRow {
   record: number;
-  line: number;
   groupName: string;
   groupId: string;
   code: string;
@@ -75,24 +73,21 @@ const COURSE_COLUMNS: Record<'code' | CourseField, CatalogColumn> = {
   exercisePeriods: 'exercise_periods',
   projectPeriods: 'project_periods',
 };
-const REQUIRED_COURSE_COLUMNS: CatalogColumn[] = ['code', 'name_vi', 'credits'];
-const REQUIRED = 'a value is required';
-
 /**
  * One catalog row checked as a manual `POST /admin/catalog/courses` body is: the same code
- * rule and the same CreateCourseDto, through the same strict validation. What is CSV-only is
- * the mapping of cells to fields: a blank `name_en` is null, a blank period count is absent
- * (saved as 0), and digits become a number. `code` comes back whenever it is a course code,
- * even on a row with another error, so that a repeated code is always reported.
+ * rule and the same CreateCourseDto, through the same strict validation, which also refuses
+ * a missing code, name or credit count. What is CSV-only is the mapping of cells to fields:
+ * a blank `name_en` is null, a blank number is absent (a period count is then saved as 0),
+ * and digits become a number. `code` comes back whenever it is a course code, even on a row
+ * with another error, so that a repeated code is always reported.
  */
 export async function checkCatalogRow(row: CsvRow<CatalogColumn>): Promise<{ code: string | null; values: CourseValues | null; errors: RowError[] }> {
   const cell = row.values;
-  const at = (field: string, message: string): RowError => ({ record: row.record, line: row.line, field, message });
-  const missing = REQUIRED_COURSE_COLUMNS.filter((column) => cell[column] === '');
-  const errors = missing.map((column) => at(column, REQUIRED));
+  const at = (field: string, message: string): RowError => ({ record: row.record, field, message });
+  const errors: RowError[] = [];
 
   const code = parseCourseCode(cell.code, 'code');
-  if (code.error !== null && cell.code !== '') errors.push(at('code', code.error.replace(/^code: /, '')));
+  if (code.error !== null) errors.push(at('code', code.error.replace(/^code: /, '')));
 
   const count = (text: string) => (text === '' ? undefined : wholeNumberOrText(text));
   const checked = await validateStrict(CreateCourseDto, {
@@ -107,7 +102,6 @@ export async function checkCatalogRow(row: CsvRow<CatalogColumn>): Promise<{ cod
   });
   for (const failed of checked.errors ?? []) {
     const column = COURSE_COLUMNS[failed.property as 'code' | CourseField] ?? failed.property;
-    if (missing.includes(column)) continue;
     const messages = Object.values(failed.constraints ?? {}).map((m) => (m.startsWith(`${failed.property} `) ? m.slice(failed.property.length + 1) : m));
     errors.push(at(column, messages.join('; ')));
   }
@@ -116,7 +110,7 @@ export async function checkCatalogRow(row: CsvRow<CatalogColumn>): Promise<{ cod
 
 const version = (...parts: unknown[]): string => createHash('sha256').update(JSON.stringify(parts)).digest('base64url');
 
-const publicErrors = (errors: RowError[]): ImportRowErrorDto[] => errors.map(({ record, line, field, message }) => ({ record, line, field, message }));
+const publicErrors = (errors: RowError[]): ImportRowErrorDto[] => errors.map(({ record, field, message }) => ({ record, field, message }));
 
 function inFileOrder(errors: RowError[], header: readonly string[]): RowError[] {
   const column = (e: RowError) => (e.field === null ? -1 : header.indexOf(e.field));
@@ -169,15 +163,19 @@ export class CsvImportService {
 
   // ---- Catalog courses ---------------------------------------------------------------------
 
+  // In every method the caller's grant is checked before the file is read, so a caller
+  // without it gets 403 for any file and learns nothing from a 400 or a 413. A confirmation
+  // checks once outside the write lock, reads the file, then checks again under the lock.
+
   previewCatalog(callerId: string, dto: ImportPreviewRequestDto): Promise<CatalogImportPreviewDto> {
-    const file = readCsv(dto.csv, CATALOG_COURSES_HEADER);
-    return this.guarded(async () => catalogPreview(await this.writes.read(callerId, CATALOG, (em) => this.planCatalog(em, file))));
+    return this.guarded(async () => catalogPreview(await this.writes.read(callerId, CATALOG, (em) => this.planCatalog(em, readCsv(dto.csv, CATALOG_COURSES_HEADER)))));
   }
 
   confirmCatalog(callerId: string, dto: ImportConfirmRequestDto): Promise<ImportResultDto> {
-    const file = readCsv(dto.csv, CATALOG_COURSES_HEADER);
-    return this.guarded(() =>
-      this.writes.run(callerId, CATALOG, async (em) => {
+    return this.guarded(async () => {
+      await this.writes.read(callerId, CATALOG, async () => undefined);
+      const file = readCsv(dto.csv, CATALOG_COURSES_HEADER);
+      return this.writes.run(callerId, CATALOG, async (em) => {
         const plan = await this.planCatalog(em, file);
         assertReviewed(plan, dto.reviewVersion);
         for (const row of plan.rows) {
@@ -185,8 +183,8 @@ export class CsvImportService {
           else if (row.change) await this.catalog.saveChange(em, row.code, row.change);
         }
         return { fileType: CATALOG_FILE, summary: summaryOf(plan.rows) };
-      }),
-    );
+      });
+    });
   }
 
   /**
@@ -198,7 +196,7 @@ export class CsvImportService {
    */
   private async planCatalog(em: EntityManager, file: CsvFile<CatalogColumn>): Promise<Plan<CatalogPlanRow>> {
     const errors: RowError[] = [...file.errors];
-    const valid: { record: number; line: number; code: string; values: CourseValues }[] = [];
+    const valid: { record: number; code: string; values: CourseValues }[] = [];
     const firstRecord = new Map<string, number>();
     for (const row of file.rows) {
       const checked = await checkCatalogRow(row);
@@ -207,11 +205,11 @@ export class CsvImportService {
       const first = firstRecord.get(checked.code);
       if (first !== undefined) {
         // ADR 0011: a repeated code is an error even when the two rows are identical.
-        errors.push({ record: row.record, line: row.line, field: 'code', message: `${checked.code} is in record ${first} already; a file names a course once` });
+        errors.push({ record: row.record, field: 'code', message: `${checked.code} is in record ${first} already; a file names a course once` });
         continue;
       }
       firstRecord.set(checked.code, row.record);
-      if (checked.values) valid.push({ record: row.record, line: row.line, code: checked.code, values: checked.values });
+      if (checked.values) valid.push({ record: row.record, code: checked.code, values: checked.values });
     }
 
     const saved = new Map<string, Course>();
@@ -236,14 +234,16 @@ export class CsvImportService {
   // ---- Group links -------------------------------------------------------------------------
 
   previewLinks(callerId: string, programId: string, curriculumId: string, dto: ImportPreviewRequestDto): Promise<GroupLinkImportPreviewDto> {
-    const file = readCsv(dto.csv, GROUP_LINKS_HEADER);
     return this.guarded(async () => {
-      const plan = await this.writes.read(callerId, { program: programId }, (em) => this.planLinks(em, programId, curriculumId, file));
+      const plan = await this.writes.read(callerId, { program: programId }, async (em) => {
+        await curriculumIn(em, programId, curriculumId);
+        return this.planLinks(em, programId, curriculumId, readCsv(dto.csv, GROUP_LINKS_HEADER));
+      });
       return {
         fileType: GROUP_LINKS_FILE,
         programId,
         curriculumId,
-        rows: plan.rows.map((r) => ({ record: r.record, line: r.line, action: r.action, requirementGroupName: r.groupName, requirementGroupId: r.groupId, courseCode: r.code })),
+        rows: plan.rows.map((r) => ({ record: r.record, action: r.action, requirementGroupName: r.groupName, requirementGroupId: r.groupId, courseCode: r.code })),
         errors: publicErrors(plan.errors),
         summary: summaryOf(plan.rows),
         reviewVersion: plan.reviewVersion,
@@ -252,21 +252,24 @@ export class CsvImportService {
   }
 
   confirmLinks(callerId: string, programId: string, curriculumId: string, dto: ImportConfirmRequestDto): Promise<ImportResultDto> {
-    const file = readCsv(dto.csv, GROUP_LINKS_HEADER);
-    return this.guarded(() =>
-      this.writes.run(callerId, { program: programId }, async (em) => {
+    return this.guarded(async () => {
+      await this.writes.read(callerId, { program: programId }, (em) => curriculumIn(em, programId, curriculumId));
+      const file = readCsv(dto.csv, GROUP_LINKS_HEADER);
+      return this.writes.run(callerId, { program: programId }, async (em) => {
+        await curriculumIn(em, programId, curriculumId);
         const plan = await this.planLinks(em, programId, curriculumId, file);
         assertReviewed(plan, dto.reviewVersion);
         for (const row of plan.rows) if (row.action === 'insert') await this.curricula.insertLink(em, row.groupId, row.code);
         return { fileType: GROUP_LINKS_FILE, summary: summaryOf(plan.rows) };
-      }),
-    );
+      });
+    });
   }
 
   /**
    * What each row would do to the links of the route's cohort: link the course to the group,
    * or nothing when it is linked already. The program and the cohort come from the route
-   * only; the file has no column for them.
+   * only; the file has no column for them. The caller has checked that the cohort belongs to
+   * the program (`curriculumIn`).
    *
    * LIMIT (ADR 0011, "Implementation notes"): the checks are structural only and are those of
    * the manual membership PUT: a canonical course code, a group of this cohort, a course of
@@ -277,7 +280,6 @@ export class CsvImportService {
    * call it here on the final set and put its revision into IMPORT_VALIDATION_REVISION.
    */
   private async planLinks(em: EntityManager, programId: string, curriculumId: string, file: CsvFile<GroupLinkColumn>): Promise<Plan<LinkPlanRow>> {
-    await curriculumIn(em, programId, curriculumId);
     const groups: { id: string; name: string }[] = await em.query('SELECT "id", "name" FROM "requirement_groups" WHERE "curriculum_id" = $1', [curriculumId]);
     const groupIdOf = new Map(groups.map((g) => [g.name, g.id]));
     const links: { requirement_group_id: string; course_code: string }[] = await em.query(
@@ -291,13 +293,15 @@ export class CsvImportService {
     const errors: RowError[] = [...file.errors];
     const rows: LinkPlanRow[] = [];
     const firstRecord = new Map<string, number>();
-    for (const { record, line, values } of file.rows) {
-      const at = (field: GroupLinkColumn, message: string, reference?: true): RowError => ({ record, line, field, message, ...(reference && { reference }) });
+    for (const { record, values } of file.rows) {
+      const at = (field: GroupLinkColumn, message: string, reference?: true): RowError => ({ record, field, message, ...(reference && { reference }) });
       const groupName = values.requirement_group_name;
       const code = parseCourseCode(values.course_code, 'course_code');
       const shape = [
-        ...(groupName === '' ? [at('requirement_group_name', REQUIRED)] : []),
-        ...(values.course_code === '' ? [at('course_code', REQUIRED)] : code.error !== null ? [at('course_code', code.error.replace(/^course_code: /, ''))] : []),
+        // The one check no manual route has: the manual PUT takes the group's ID from the
+        // path, and only a file can leave the name out. A blank code fails the code rule.
+        ...(groupName === '' ? [at('requirement_group_name', 'a value is required')] : []),
+        ...(code.error !== null ? [at('course_code', code.error.replace(/^course_code: /, ''))] : []),
       ];
       if (shape.length || code.code === null) {
         errors.push(...shape);
@@ -323,7 +327,7 @@ export class CsvImportService {
         errors.push(...references);
         continue;
       }
-      rows.push({ record, line, groupName, groupId, code: code.code, action: linked.has(`${groupId} ${code.code}`) ? 'no_op' : 'insert' });
+      rows.push({ record, groupName, groupId, code: code.code, action: linked.has(`${groupId} ${code.code}`) ? 'no_op' : 'insert' });
     }
     const reviewVersion = errors.length ? null : version(this.validationRevision(), GROUP_LINKS_FILE, programId, curriculumId, rows.map((r) => [r.groupName, r.groupId, r.code, r.action]));
     return { rows, errors: inFileOrder(errors, GROUP_LINKS_HEADER), reviewVersion };
@@ -358,7 +362,6 @@ function catalogPreview(plan: Plan<CatalogPlanRow>): CatalogImportPreviewDto {
     fileType: CATALOG_FILE,
     rows: plan.rows.map((r) => ({
       record: r.record,
-      line: r.line,
       action: r.action,
       ...course(r.code, r.values),
       changedFields: r.change?.changed ?? [],
