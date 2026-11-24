@@ -119,6 +119,9 @@ describe('Plan sharing API (e2e)', () => {
       expect(created.headers['cache-control']).toBe('no-store');
       expect((await read(created.body.token).expect(200)).body.ownerName).toBeNull();
 
+      // A request with no body at all is the same as an empty one: the same link, name hidden.
+      expect((await http().put(`/api/plans/${plan.id}/share`).set(auth).expect(200)).body).toEqual(created.body);
+
       // UC-09 A4: the plan already has a live link; it is shown again, not replaced.
       const shown = await http().get(`/api/plans/${plan.id}/share`).set(auth).expect(200);
       expect(shown.body).toEqual({ share: created.body });
@@ -303,6 +306,9 @@ describe('Plan sharing API (e2e)', () => {
         row(3, 'in_progress', null, 2029, 3), // placed again while in progress
         row(4, 'graded', 2.6, 2029, 1), // failed
         row(4, 'pass', null, 2029, 2), // retaken and passed
+        row(2, 'graded', 6.4, 2030, 1), // an attempt in the very term the plan places the course
+        row(6, 'fail', null, 2030, 2), // failed in one of the plan's terms
+        row(4, 'graded', 9.9, 2031, 1), // after the plan's last term
       ];
       await http().put('/api/users/me/transcript').set(owner.auth).send({ rows }).expect(200);
 
@@ -316,7 +322,7 @@ describe('Plan sharing API (e2e)', () => {
       const after = (await read(token).expect(200)).body;
       expect(after).toEqual(before);
       const text = JSON.stringify({ ...after, updatedAt: null });
-      for (const value of ['Transcript wording', '8.6', '9.4', '2.6', '"in_progress"', code(4)]) expect(text, value).not.toContain(value);
+      for (const value of ['Transcript wording', '8.6', '9.4', '2.6', '6.4', '9.9', '"in_progress"', '"fail"', code(4)]) expect(text, value).not.toContain(value);
     });
 
     // UC-09 A5: the link shows the plan as it is now, with the new last-changed date.

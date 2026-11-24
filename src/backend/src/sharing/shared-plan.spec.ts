@@ -61,6 +61,9 @@ const RICH_TRANSCRIPT = [
   graded('ZZN1', 4, 3, term(2024, 1)), // failed
   graded('ZZN1', 4, 6, term(2024, 2)), // retaken and passed
   graded('ZZT1', 10, 7, term(2024, 2)),
+  graded('ZZB1', 4, 6.4, term(2025, 1)), // an attempt in the very term the plan places the course
+  ungraded('ZZC2', 4, 'in_progress', term(2025, 2)), // a course the plan does not place, in one of the plan's terms
+  graded('ZZC3', 4, 9.9, term(2026, 1)), // after the plan's last term
 ];
 
 describe('the issue codes a reader sees', () => {
@@ -147,7 +150,7 @@ describe('sharedPlan', () => {
 
     expect(shared(RICH_TRANSCRIPT)).toEqual(shared([]));
     const text = JSON.stringify(shared(RICH_TRANSCRIPT));
-    for (const leaked of ['8.5', 'ZZN1', 'ZZA1', '"in_progress"', 'graded', 'Course ZZ', 'coverage', 'graduation']) expect(text).not.toContain(leaked);
+    for (const leaked of ['8.5', '6.4', '9.9', 'ZZN1', 'ZZA1', 'ZZC2', 'ZZC3', '"in_progress"', 'graded', 'Course ZZ', 'coverage', 'graduation']) expect(text).not.toContain(leaked);
   });
 
   it('holds exactly the listed fields, and no id', () => {
