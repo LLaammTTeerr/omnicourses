@@ -302,7 +302,7 @@ Not verified, and not decided or loaded:
 
 ### Amendment, 25 November 2026: CSV group links with structural checks only
 
-**Decided (Lâm, Project Lead, 25 November 2026, on the team Discord): "A".** He was asked to choose between A, "the CSV group-link import ships now, with the same structural checks as the manual route and no total check", and B, "only the CSV import of catalog courses ships", with the group-link import switched off until the rule-engine interface exists. Triết, who owns that interface, was asked in the same message to say if he saw a problem with A.
+**Decided (Lâm, Project Lead, 25 November 2026, on the team Discord): "A".** The question offered two options: A, "the CSV group-link import ships now, with the same structural checks as the manual route and no total check", and B, "only the CSV import of catalog courses ships", with the group-link import switched off until the rule-engine interface exists. Triết, who owns that interface, was asked in the same message to report any problem with A.
 
 The gate table above says that "manual group-link PUT/DELETE and CSV group-link preview/confirmation wait for" the rule-engine interface (typed final-state validation, group-total semantics, a source revision). The 9 November amendment let the manual membership `PUT` and `DELETE` go ahead "with structural checks only". It did not name the CSV group-link import. The import built on 25 November 2026 runs the same way, and this amendment records that.
 
