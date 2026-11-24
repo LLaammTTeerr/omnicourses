@@ -200,14 +200,17 @@ async function revoke(): Promise<void> {
 
 const inlineProblem = computed(() => (inlineWrites.problem.value ? describeProblem(inlineWrites.problem.value, m.value) : null));
 const dialogProblem = computed(() => (dialogWrites.problem.value ? describeProblem(dialogWrites.problem.value, m.value) : null));
-async function reload(): Promise<void> {
-  try {
-    await refresh();
-    inlineWrites.clear();
-    dialogWrites.clear();
-  } catch (e) {
-    if (readFailure(e).kind !== 'signed_out') console.error("Reloading a user's grants failed:", e);
-  }
+/**
+ * "Reload the data" after an unknown outcome (UC-11 A7): reads the user's grants again and says what they show of
+ * the same grant or revocation, which is not sent again.
+ */
+async function recheckInline(): Promise<void> {
+  if ((await inlineWrites.recheck())?.outcome === 'confirmed') notice.value = m.value.problem.confirmed;
+}
+async function recheckDialog(): Promise<void> {
+  if ((await dialogWrites.recheck())?.outcome !== 'confirmed') return;
+  await closeDialog();
+  notice.value = m.value.problem.confirmed;
 }
 </script>
 
@@ -253,7 +256,7 @@ async function reload(): Promise<void> {
           <span v-if="own" class="chip info" data-test="access-own">{{ text.ownAccount }}</span>
         </div>
         <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
-        <ProblemNote :problem="inlineProblem" @reload="reload" />
+        <ProblemNote :problem="inlineProblem" @reload="recheckInline" />
 
         <section aria-labelledby="access-programs-title">
           <h4 id="access-programs-title">{{ text.programs }}</h4>
@@ -362,7 +365,7 @@ async function reload(): Promise<void> {
       :problem="dialogProblem"
       @close="cancel"
       @confirm="revoke"
-      @reload="reload"
+      @reload="recheckDialog"
     />
   </section>
 </template>

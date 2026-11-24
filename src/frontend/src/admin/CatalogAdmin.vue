@@ -204,6 +204,21 @@ async function remove(): Promise<void> {
   else notice.value = m.value.problem.confirmed;
 }
 
+/**
+ * "Reload the data" after an unknown outcome (UC-11 A7): reads the course of the same write again, which is not
+ * sent again, and says what the catalog shows. Saved: the dialog closes with the notice. Not saved: it says so.
+ */
+async function recheck(): Promise<void> {
+  if ((await writes.recheck())?.outcome !== 'confirmed') return;
+  if (dialog.value?.type === 'delete') {
+    course.value = null;
+    status.value = 'idle';
+    typed.value = '';
+  } else typed.value = code.value;
+  await close();
+  notice.value = m.value.problem.confirmed;
+}
+
 const problem = computed(() => (writes.problem.value ? describeProblem(writes.problem.value, m.value, COURSE_FIELDS) : null));
 const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((field) => field !== 'nameVi' && field !== 'nameEn').map((field) => ({ field, value: course.value![field] })) : []));
 </script>
@@ -277,7 +292,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
       @save="save"
       @confirm="confirmImpact"
       @back="review = null"
-      @reload="showSaved(code)"
+      @reload="recheck"
     />
     <ConfirmDialog
       :open="dialog?.type === 'delete'"
@@ -288,7 +303,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
       :problem="dialog?.type === 'delete' ? problem : null"
       @close="cancel"
       @confirm="remove"
-      @reload="showSaved(code)"
+      @reload="recheck"
     />
   </section>
 </template>

@@ -107,6 +107,59 @@ describe('useWrites', () => {
     expect(writes.problem.value).toBeNull();
   });
 
+  it('settles an unknown outcome from the saved data when asked to reload, without sending the write again', async () => {
+    const writes = useWrites();
+    const write = vi.fn(() => Promise.reject(new TypeError('Failed to fetch')));
+    let landed: boolean | 'offline' = 'offline';
+    const check = vi.fn(async () => {
+      if (landed === 'offline') throw new TypeError('Failed to fetch');
+      return landed;
+    });
+    await writes.send(write, check);
+    expect(writes.problem.value).toEqual({ outcome: 'unknown' });
+
+    // Still offline: still unknown.
+    expect(await writes.recheck()).toEqual({ outcome: 'unknown' });
+    expect(writes.problem.value).toEqual({ outcome: 'unknown' });
+    // Back online, and the saved data does not have the change: say so.
+    landed = false;
+    expect(await writes.recheck()).toEqual({ outcome: 'not_applied' });
+    expect(writes.problem.value).toEqual({ outcome: 'not_applied' });
+    // Nothing is unknown any more, so there is nothing to check again.
+    expect(await writes.recheck()).toBeNull();
+    expect(check).toHaveBeenCalledTimes(3);
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the problem when the reload shows the change was saved after all', async () => {
+    const writes = useWrites();
+    let online = false;
+    await writes.send(
+      () => Promise.reject(new TypeError('Failed to fetch')),
+      async () => {
+        if (!online) throw new TypeError('Failed to fetch');
+        return true;
+      },
+    );
+    expect(writes.problem.value).toEqual({ outcome: 'unknown' });
+    online = true;
+    const rechecked = writes.recheck();
+    expect(writes.busy.value).toBe(true);
+    expect(await rechecked).toEqual({ outcome: 'confirmed' });
+    expect(writes.busy.value).toBe(false);
+    expect(writes.problem.value).toBeNull();
+  });
+
+  it('has nothing to check again after a refusal or a save', async () => {
+    const writes = useWrites();
+    const check = vi.fn(async () => true);
+    await writes.send(() => Promise.reject(refusal(409, 'duplicate_name')), check);
+    expect(await writes.recheck()).toBeNull();
+    await writes.send(async () => 'saved', check);
+    expect(await writes.recheck()).toBeNull();
+    expect(check).not.toHaveBeenCalled();
+  });
+
   it('asks for the grants again after a 403, since one was revoked', async () => {
     const fetch = mockApi({ 'GET /admin/grants': PROGRAM_ADMIN });
     const writes = useWrites();

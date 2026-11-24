@@ -395,12 +395,14 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     let offline = false;
     const { w, fetch } = await render({
       'POST /admin/catalog/courses': lost,
-      'GET /courses/ZZ300': () => (offline ? lost() : NOT_FOUND()),
+      'GET /courses/ZZ300': () => (offline ? lost() : saved.ZZ300 ? Response.json(saved.ZZ300) : NOT_FOUND()),
       'DELETE /admin/catalog/courses/ZZ200': () => {
         delete saved.ZZ200;
         return lost();
       },
     });
+    // Another course is on screen when the maintainer starts the new one.
+    await find(w, 'ZZ200');
     const dialog = await open(w, 'catalog-add');
     await get(dialog, 'course-code').setValue('ZZ300');
     await get(dialog, 'course-nameVi').setValue('Môn thử mới');
@@ -414,7 +416,27 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(problem(w).attributes('data-code')).toBe('unknown');
     expect(problem(w).text()).toContain('Chưa rõ thay đổi đã được lưu hay chưa.');
     expect(useToast().message).toBe('');
-    await press(w, 'dialog-cancel');
+
+    // Reload reads the course of this write again, not the course looked up before, and sends no second write.
+    offline = false;
+    await press(w, 'admin-reload');
+    expect(calls(fetch, 'GET').map(pathOf).at(-1)).toBe('/courses/ZZ300');
+    expect(problem(w).attributes('data-code')).toBe('not_applied');
+    expect(calls(fetch, 'POST')).toHaveLength(2);
+
+    // The same, when the catalog turns out to have the course: the dialog closes on the course that was created.
+    offline = true;
+    await submit(w);
+    expect(problem(w).attributes('data-code')).toBe('unknown');
+    saved.ZZ300 = catalogCourse('ZZ300', { nameVi: 'Môn thử mới', credits: 3 });
+    offline = false;
+    await press(w, 'admin-reload');
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(get(w, 'admin-notice').text()).toContain('Dữ liệu đã lưu có thay đổi này.');
+    expect(get(w, 'catalog-course').attributes('data-course')).toBe('ZZ300');
+    expect(value(w, 'catalog-code')).toBe('ZZ300');
+    expect(calls(fetch, 'POST')).toHaveLength(3);
+    expect(useToast().message).toBe('');
 
     // A deletion that went through, though its answer was lost: the catalog, read again, no longer has the course.
     await find(w, 'ZZ200');

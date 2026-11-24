@@ -571,11 +571,61 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       // The page still shows the values from before the write.
       expect(groupRow(w, 'Tự chọn thử').exists()).toBe(true);
 
+      // Reload reads the saved data again and settles the same write from it; the write itself is not sent again.
       offline = false;
       await get(w.get('dialog[open]'), 'admin-reload').trigger('click');
       await flushPromises();
       expect(calls(fetch, 'PATCH')).toHaveLength(1);
+      expect(w.find('dialog[open]').exists()).toBe(false);
+      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(useToast().message).toBe('');
       expect(groupRow(w, 'Tự chọn thử B').exists()).toBe(true);
+    });
+
+    it('replaces "unknown" with "not saved" when the reload shows the saved data without the change', async () => {
+      let offline = false;
+      const { w, fetch } = await render({
+        [READ]: () => (offline ? lost() : Response.json(saved)),
+        [`PATCH ${GROUPS}/${GROUP_ELECTIVE_ID}`]: () => {
+          offline = true;
+          return lost();
+        },
+        [`PUT ${GROUPS}/${GROUP_BASE_ID}/courses/ZZ104`]: () => {
+          offline = true;
+          return lost();
+        },
+      });
+      await editElective(w, 'Tự chọn thử B');
+      expect(problem(w).attributes('data-code')).toBe('unknown');
+      // Still offline: still unknown, and still no claim either way.
+      await get(w.get('dialog[open]'), 'admin-reload').trigger('click');
+      await flushPromises();
+      expect(problem(w).attributes('data-code')).toBe('unknown');
+      offline = false;
+      await get(w.get('dialog[open]'), 'admin-reload').trigger('click');
+      await flushPromises();
+      expect(problem(w).attributes('data-code')).toBe('not_applied');
+      expect(w.find('dialog[open] [data-test="admin-reload"]').exists()).toBe(false);
+      expect((get(w.get('dialog[open]'), 'group-name').element as HTMLInputElement).value).toBe('Tự chọn thử B');
+      expect(calls(fetch, 'PATCH')).toHaveLength(1);
+      await get(w.get('dialog[open]'), 'dialog-cancel').trigger('click');
+      await flushPromises();
+
+      // The link form, which has no dialog, settles the same way beside its box.
+      await get(w, 'link-code').setValue('ZZ104');
+      await get(w, 'group-panel').get('form').trigger('submit');
+      await flushPromises();
+      const note = () => get(w, 'group-panel').get('[data-test="admin-problem"]');
+      expect(note().attributes('data-code')).toBe('unknown');
+      saved = curriculum([{ ...BASE_GROUP, courses: [...BASE_GROUP.courses, course('ZZ104')] }, ELECTIVE_GROUP]);
+      offline = false;
+      await get(note(), 'admin-reload').trigger('click');
+      await flushPromises();
+      expect(get(w, 'group-panel').find('[data-test="admin-problem"]').exists()).toBe(false);
+      expect(get(w, 'admin-notice').text()).toContain('Dữ liệu đã lưu có thay đổi này.');
+      expect(courseRow(w, 'ZZ104').exists()).toBe(true);
+      expect((get(w, 'link-code').element as HTMLInputElement).value).toBe('');
+      expect(calls(fetch, 'PUT')).toHaveLength(1);
     });
 
     it('treats a server error the same way: unknown until the saved data is read', async () => {

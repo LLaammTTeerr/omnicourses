@@ -315,10 +315,13 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
       expect(note.text()).toContain('Chưa rõ thay đổi đã được lưu hay chưa.');
       expect(state(w, 'catalog_maintainer')[0]).toBe('not-held');
       expect(useToast().message).toBe('');
+      // Reload reads the grants again and settles the same grant from them; it is not sent again.
       offline = false;
       await click(note, 'admin-reload');
       expect(state(w, 'catalog_maintainer')[0]).toBe('held');
       expect(get(w, 'access-user').find('[data-test="admin-problem"]').exists()).toBe(false);
+      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(useToast().message).toBe('');
     });
 
     it('settles a lost revocation in the dialog', async () => {

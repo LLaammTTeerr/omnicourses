@@ -38,12 +38,17 @@ export async function settleWrite<T>(write: () => Promise<T>, landed: () => Prom
     lost = e;
   }
   console.error('An administration write got no answer:', lost);
+  return settleLost(landed);
+}
+
+/** What became of a write that got no answer, read from the saved data. It sends no write. */
+export async function settleLost(landed: () => Promise<boolean>): Promise<Exclude<WriteOutcome<never>, { outcome: 'saved' }>> {
   try {
     return { outcome: (await landed()) ? 'confirmed' : 'not_applied' };
   } catch (e) {
     const failure = readFailure(e);
     if (failure.kind === 'signed_out') return { outcome: 'refused', failure };
-    console.error('Reloading the saved data after it failed too:', e);
+    console.error('Reloading the saved data after a write got no answer failed:', e);
     return { outcome: 'unknown' };
   }
 }
@@ -57,15 +62,39 @@ export function useWrites() {
   const access = useAdminAccess();
   const busy = ref(false);
   const problem = shallowRef<Problem | null>(null);
+  /** How the last write is found again in the saved data, for `recheck`. */
+  let lastLanded: (() => Promise<boolean>) | null = null;
+
+  /** Keeps what the screen has to say about `result`. A session that ended needs no words: App.vue takes the user to sign in. */
+  function keep(result: WriteOutcome<unknown>): void {
+    const settled = result.outcome === 'saved' || result.outcome === 'confirmed' || (result.outcome === 'refused' && result.failure.kind === 'signed_out');
+    problem.value = settled ? null : (result as Problem);
+  }
 
   async function send<T>(write: (token: string) => Promise<T>, landed: () => Promise<boolean>): Promise<WriteOutcome<T>> {
     busy.value = true;
     problem.value = null;
+    lastLanded = landed;
     try {
       const result = await settleWrite(() => auth.authed(write), landed);
       if (result.outcome === 'refused' && result.failure.kind === 'permission') void access.load({ fresh: true });
-      // A session that ended needs no words here: App.vue takes the user to sign in.
-      if (result.outcome !== 'saved' && result.outcome !== 'confirmed' && !(result.outcome === 'refused' && result.failure.kind === 'signed_out')) problem.value = result;
+      keep(result);
+      return result;
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  /**
+   * After an unknown outcome: reads the saved data again and settles the same write from it, as `send` would have:
+   * confirmed, not applied, or still unknown. It sends no write. Resolves to null when there is nothing unknown.
+   */
+  async function recheck(): Promise<Exclude<WriteOutcome<never>, { outcome: 'saved' }> | null> {
+    if (busy.value || problem.value?.outcome !== 'unknown' || !lastLanded) return null;
+    busy.value = true;
+    try {
+      const result = await settleLost(lastLanded);
+      keep(result);
       return result;
     } finally {
       busy.value = false;
@@ -76,5 +105,5 @@ export function useWrites() {
     problem.value = null;
   }
 
-  return { busy, problem, send, clear };
+  return { busy, problem, send, recheck, clear };
 }

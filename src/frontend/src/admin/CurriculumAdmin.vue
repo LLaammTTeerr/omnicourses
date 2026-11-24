@@ -188,6 +188,21 @@ async function finish(result: WriteOutcome<unknown>, saved: string, fallback?: s
   }
 }
 
+/**
+ * "Reload the data" after an unknown outcome (UC-11 A7): reads the saved curriculum again and says what it shows
+ * of the same write, which is not sent again. Saved: the dialog closes with the notice. Not saved: it says so.
+ */
+async function recheckDialog(): Promise<void> {
+  if ((await dialogWrites.recheck())?.outcome !== 'confirmed') return;
+  await close();
+  notice.value = m.value.problem.confirmed;
+}
+async function recheckLink(): Promise<void> {
+  if ((await linkWrites.recheck())?.outcome !== 'confirmed') return;
+  linkCode.value = '';
+  notice.value = m.value.problem.confirmed;
+}
+
 async function saveGroup(entered: GroupValues): Promise<void> {
   const [at, current] = [target.value, dialog.value];
   if (!at || current?.type !== 'group') return;
@@ -440,7 +455,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
             </form>
             <p id="link-hint" class="hint">{{ text.linkHint }}</p>
             <FieldErrors id="link-error" :errors="linkProblem?.fields.courseCode" />
-            <ProblemNote :problem="linkProblem" @reload="showSaved" />
+            <ProblemNote :problem="linkProblem" @reload="recheckLink" />
 
             <p v-if="openGroup.courses.length === 0" class="t2" data-test="no-courses">{{ text.noCourses }}</p>
             <div v-else class="table-wrap">
@@ -515,7 +530,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
       </template>
     </template>
 
-    <GroupDialog :open="dialog?.type === 'group'" :group="dialog?.type === 'group' ? dialog.group : null" :busy="busy" :problem="groupProblem" @close="cancel" @save="saveGroup" @reload="showSaved" />
+    <GroupDialog :open="dialog?.type === 'group'" :group="dialog?.type === 'group' ? dialog.group : null" :busy="busy" :problem="groupProblem" @close="cancel" @save="saveGroup" @reload="recheckDialog" />
     <PrerequisitesDialog
       :open="dialog?.type === 'prerequisites'"
       :course="dialog?.type === 'prerequisites' ? dialog.course : null"
@@ -523,9 +538,9 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
       :problem="prerequisitesProblem"
       @close="cancel"
       @save="savePrerequisites"
-      @reload="showSaved"
+      @reload="recheckDialog"
     />
-    <OfferingTermsDialog :open="dialog?.type === 'terms'" :course="dialog?.type === 'terms' ? dialog.course : null" :busy="busy" :problem="termsProblem" @close="cancel" @save="saveTerms" @reload="showSaved" />
+    <OfferingTermsDialog :open="dialog?.type === 'terms'" :course="dialog?.type === 'terms' ? dialog.course : null" :busy="busy" :problem="termsProblem" @close="cancel" @save="saveTerms" @reload="recheckDialog" />
     <ConfirmDialog
       :open="dialog?.type === 'delete-group' || dialog?.type === 'unlink'"
       :title="confirmText.title"
@@ -535,7 +550,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
       :problem="confirmProblem"
       @close="cancel"
       @confirm="dialog?.type === 'unlink' ? unlink() : removeGroup()"
-      @reload="showSaved"
+      @reload="recheckDialog"
     />
   </section>
 </template>
