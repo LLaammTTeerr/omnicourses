@@ -1,6 +1,6 @@
 import { user } from '../../auth/testing/fixtures.js';
-import type { Curriculum, CurriculumCourse, RequirementGroup } from '../../curriculum/api.js';
-import type { AdminProgramList, GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../api.js';
+import type { CourseDetail, Curriculum, CurriculumCourse, RequirementGroup } from '../../curriculum/api.js';
+import type { AdminProgramList, AffectedCurriculum, GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../api.js';
 
 // Synthetic administration data (AGENTS.md hard rule 3): made-up programs, courses and account IDs.
 
@@ -96,6 +96,34 @@ export const curriculum = (requirementGroups: RequirementGroup[] = [BASE_GROUP, 
   totalCreditsMin: 120,
   requirementGroups,
   ...overrides,
+});
+
+// ---- The shared catalog ----
+
+/** A catalog course no curriculum links, unless memberships are given. */
+export const catalogCourse = (code: string, overrides: Partial<CourseDetail> = {}): CourseDetail => ({
+  code,
+  nameVi: `Học phần thử ${code}`,
+  nameEn: null,
+  credits: 4,
+  theoryPeriods: 45,
+  labPeriods: 30,
+  exercisePeriods: null,
+  projectPeriods: 0,
+  memberships: [],
+  ...overrides,
+});
+
+export const AFFECTED_2024: AffectedCurriculum = { curriculumId: CURRICULUM_ID, curriculumCode: 'ZZPROG2024', programCode: 'ZZPROG', cohortYear: 2024 };
+export const AFFECTED_2025: AffectedCurriculum = { curriculumId: CURRICULUM_2025_ID, curriculumCode: 'ZZPROG2025', programCode: 'ZZPROG', cohortYear: 2025 };
+
+/** ZZ101 as two cohorts link it. */
+export const SHARED_COURSE = catalogCourse('ZZ101', {
+  nameEn: 'Test course ZZ101',
+  memberships: [
+    { programCode: 'ZZPROG', cohortYear: 2024, curriculumCode: 'ZZPROG2024', requirementGroupId: GROUP_BASE_ID, requirementGroupName: 'Kiến thức cơ sở thử', kind: 'compulsory' },
+    { programCode: 'ZZPROG', cohortYear: 2025, curriculumCode: 'ZZPROG2025', requirementGroupId: '00000000-0000-4000-8000-000000000b01', requirementGroupName: 'Nhóm thử khóa 2025', kind: 'elective' },
+  ],
 });
 
 /** The API lists the global permissions by name. */

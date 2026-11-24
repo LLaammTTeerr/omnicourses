@@ -1,5 +1,5 @@
 import type { Course, CurriculumCourse, Curriculum, RequirementGroup, RequirementGroupKind } from '../curriculum/api.js';
-import type { CreateCourseBody, CreateGroupBody, Entered, UpdateCourseBody, UpdateGroupBody } from './api.js';
+import type { AffectedCurriculum, CreateCourseBody, CreateGroupBody, Entered, UpdateCourseBody, UpdateGroupBody } from './api.js';
 
 // What the administration forms hand to the API, and how a change is found again in reloaded data. Nothing here
 // judges a value: a form sends what was typed, and the API's refusal names the field (UC-11 A3). The few steps
@@ -125,6 +125,19 @@ export function courseChanges(saved: Course, values: CourseValues): Entered<Upda
     if (value !== saved[field]) (body as Record<string, unknown>)[field] = field === 'nameVi' ? values.nameVi : value;
   }
   return body;
+}
+
+/**
+ * The API's answer to a correction of a course that curricula link (409 impact_confirmation_required or
+ * impact_changed): what the catalog maintainer reviews before anything is saved (UC-11 A8).
+ */
+export interface ImpactReview {
+  /** The change exactly as it was sent. The confirmation sends the same fields again: the API's reviewVersion covers these values. */
+  body: Entered<UpdateCourseBody>;
+  affected: AffectedCurriculum[];
+  reviewVersion: string;
+  /** The API refused an earlier confirmation, because the values or the links had changed since it. */
+  changed: boolean;
 }
 
 /** The saved course has every value of `body` (the fields of a create or a correction, without confirmImpact). */

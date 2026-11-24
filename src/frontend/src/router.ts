@@ -11,6 +11,7 @@ import {
 } from 'vue-router';
 import SettingsView from './account/SettingsView.vue';
 import AdminView from './admin/AdminView.vue';
+import CatalogAdmin from './admin/CatalogAdmin.vue';
 import CurriculumAdmin from './admin/CurriculumAdmin.vue';
 import AuditView from './audit/AuditView.vue';
 import DashboardView from './audit/DashboardView.vue';
@@ -88,7 +89,10 @@ const routes: RouteRecordRaw[] = [
     component: AdminView,
     meta: { layout: 'app', auth: 'required', onboarding: 'optional' },
     // One child per entry of admin/sections.ts.
-    children: [{ path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin }],
+    children: [
+      { path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin },
+      { path: 'catalog', name: 'admin-catalog', component: CatalogAdmin },
+    ],
   },
   { path: '/:unknown(.*)*', redirect: '/' },
 ];
