@@ -95,7 +95,7 @@ T-K, every result type and a term 3 row. Only a `graded` row has a grade:
 
 - Done: calendar API (#108) and calendar page (#99); transcript storage.
 - In progress: planner drag-and-drop and live validation; curriculum administration API (part done).
-- Not started: transcript paste/type entry screen; curriculum administration screens and CSV import; notifications inbox; plan sharing and PDF export; nightly backup.
+- Not started: transcript paste/type entry screen; curriculum administration screens (the CSV import API is on `main` since 25 November 2026, with no screen); notifications inbox; plan sharing and PDF export; nightly backup.
 
 ## 2. TC-B2-PLAN-01: Editing and live validation
 
@@ -240,7 +240,7 @@ For ADM-01 to ADM-07, [UC-11's Examples to test](../requirements/use-cases/UC-11
 
 **Decision blockers.** Test plan §2 and §8 say the F12 writes also wait for two decisions. Without them the expected results are not agreed, so the affected cases stay **blocked** even after the screens are merged:
 
-- The reviewed ADR 0011 for grants, roles, bootstrap and deletion. *Closed:* Lâm accepted it on 12 November 2026, and [#93](https://github.com/LLaammTTeerr/omnicourses/pull/93) merged it. The cases take their expected results from its [response table](../analysis-and-design/adr/0011-curriculum-administration.md#validation-errors-and-removal) and [implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-21-november-2026).
+- The reviewed ADR 0011 for grants, roles, bootstrap and deletion. *Closed:* Lâm accepted it on 12 November 2026, and [#93](https://github.com/LLaammTTeerr/omnicourses/pull/93) merged it. The cases take their expected results from its [response table](../analysis-and-design/adr/0011-curriculum-administration.md#validation-errors-and-removal) and [implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-25-november-2026).
 - Triết's rule-interface handoff for manual and CSV group links and for group-total checks. It blocks the cases that write group links or check group totals (ADM-03, ADM-04 and ADM-07 in particular).
 
 ### TC-B2-ADM-01: Global catalog permission
@@ -249,7 +249,7 @@ A catalog maintainer with no program grant edits a shared course after reviewing
 
 - Owner: Thắng
 - Depends on: the catalog route `PATCH /api/admin/catalog/courses/{code}` of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; ADR 0011 (accepted). These cases call the API only, as ADM-02 does. The administration screens are not built: the catalog screen's impact review (UC-11 A8, the affected curricula shown before the maintainer confirms) and its refusal message are checked when the screens land.
-- How the review works on `main`: there is no preview route. The first `PATCH` of a course that a curriculum links answers `409 impact_confirmation_required`, with the affected curricula and a `reviewVersion`, and saves nothing. The same `PATCH` sent again with `"confirmImpact"` set to that `reviewVersion` saves it ([implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-21-november-2026)). The version covers the course's current values, the proposed values and the affected curricula, so it confirms exactly one change.
+- How the review works on `main`: there is no preview route. The first `PATCH` of a course that a curriculum links answers `409 impact_confirmation_required`, with the affected curricula and a `reviewVersion`, and saves nothing. The same `PATCH` sent again with `"confirmImpact"` set to that `reviewVersion` saves it ([implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-25-november-2026)). The version covers the course's current values, the proposed values and the affected curricula, so it confirms exactly one change.
 
 **Accounts.** A1 (APCS program administrator, no catalog grant) and A3 (catalog maintainer, no program grant), with the grants of ADM-02: check them as ADM-02's "Accounts and grants" says. `{APCS24}` is in ADM-02's values table.
 
@@ -271,7 +271,7 @@ Program A's administrator edits only program A, also through nested IDs. Only an
 
 - Owner: Thắng
 - Depends on: the curriculum administration API of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; ADR 0011 (accepted). These cases call the API directly, as UC-11 A4 asks ("requests sent directly without using the screen"). They do not wait for the administration screens (not started): the screen's words for a refusal ("explains whether program, catalog or access-manager permission is missing", UC-11 A4) are checked when the screens land.
-- Not built, so not tested here: program creation (`POST /api/admin/programs`), which the ADR gives to the access manager ([implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-21-november-2026)). When it lands, add it to ADM-02f: an access manager creates a program and gets no editing grant on it.
+- Not built, so not tested here: program creation (`POST /api/admin/programs`), which the ADR gives to the access manager ([implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-25-november-2026)). When it lands, add it to ADM-02f: an access manager creates a program and gets no editing grant on it.
 
 **Accounts and grants.** A1–A4 and S1 of §1. Sign-up gives no role. On staging, the bot set the grants up from the user IDs that `GET /api/users/me` gives (§1); on another server, bootstrap A4 first, then grant A1–A3 as A4. A4 is the only active access manager, so removing A4's own grant is refused (ADR 0011, last-active-manager protection). Check the grants before the run: as A4, `GET /api/admin/access/users/{id}/grants` for each of A1–A4 and S1 shows exactly the grant of the table in §1, and none for S1. ADM-02a and b need no grant. Run the cases in order: ADM-02e and f clean up what they create, and ADM-02g removes A1's grant, then gives it back.
 
@@ -383,7 +383,7 @@ Already automated: `curriculum-admin.e2e-spec.ts` covers a's no-grant list ("giv
 A synthetic CSV of courses or group links is parsed deterministically and shown as a preview with errors by row number. A file with any bad row saves nothing, a valid file saves in one transaction after confirmation with the same permission checks as manual entry, and importing it again creates no duplicates ([test plan row](test-plan.md#b2-checks)).
 
 - Owner: Thắng
-- Depends on: curriculum administration API (part done); CSV import and administration screens (not started); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
+- Depends on: curriculum administration API (part done); CSV import API (on `main` since 25 November 2026: [ADR 0011, CSV import as built](../analysis-and-design/adr/0011-curriculum-administration.md#csv-import-as-built-25-november-2026)); administration screens (not started); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
 
 | ID | Steps | Expected |
 | --- | --- | --- |

@@ -1,6 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { apiDocs, corsOrigin, trustProxy } from './config/env.js';
+import { importJsonBody } from './curriculum-admin/import-body-limit.js';
 
 const API_PREFIX = 'api';
 const OPENAPI_VERSION = '3.2.0';
@@ -11,6 +12,10 @@ export function configureApp(app: INestApplication): OpenAPIObject {
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: corsOrigin() });
+  // Here, so that the deployed app and the e2e app get the same limits: 7 MiB of JSON on the
+  // four CSV import routes (ADR 0011), the default 100 KiB everywhere else. After CORS, so
+  // that a browser can read its 413.
+  app.use(importJsonBody(API_PREFIX));
   const proxy = trustProxy();
   if (proxy) app.getHttpAdapter().getInstance().set('trust proxy', proxy);
   // Express answers `X-Powered-By: Express` unless told not to.

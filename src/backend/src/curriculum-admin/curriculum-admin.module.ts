@@ -7,15 +7,17 @@ import { GlobalAdminGrant, ProgramAdminGrant } from './admin-grant.entities.js';
 import { AdminWriteService } from './admin-write.service.js';
 import { CatalogAdminController } from './catalog-admin.controller.js';
 import { CatalogAdminService } from './catalog-admin.service.js';
+import { CsvImportController } from './csv-import.controller.js';
+import { CsvImportService } from './csv-import.service.js';
 import { CurriculumAdminController } from './curriculum-admin.controller.js';
 import { CurriculumAdminService } from './curriculum-admin.service.js';
 
-// F12 curriculum administration (ADR 0011): grants, program writes, catalog writes. It writes
+// F12 curriculum administration (ADR 0011): grants, program writes, catalog writes, CSV import. It writes
 // the tables the curriculum module maps and reads; it adds no authentication of its own.
 @Module({
   imports: [CurriculumModule, TypeOrmModule.forFeature([ProgramAdminGrant, GlobalAdminGrant])],
-  controllers: [CurriculumAdminController, CatalogAdminController, AccessAdminController],
-  providers: [AdminWriteService, CurriculumAdminService, CatalogAdminService, AccessAdminService],
+  controllers: [CurriculumAdminController, CatalogAdminController, AccessAdminController, CsvImportController],
+  providers: [AdminWriteService, CurriculumAdminService, CatalogAdminService, AccessAdminService, CsvImportService],
   // Other program-scoped writers (the academic calendar, ADR 0017) check grants through it.
   exports: [AdminWriteService],
 })

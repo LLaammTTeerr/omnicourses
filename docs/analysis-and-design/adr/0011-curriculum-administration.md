@@ -1,6 +1,6 @@
 # ADR 0011: Curriculum administration and program-scoped permissions
 
-- Status: accepted by Lâm (Project Lead): the school-scope amendment on 9 November 2026, and the whole ADR on 12 November 2026, on Discord. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now)). Amended 15 November 2026: APCS courses are seeded as having no prerequisite (see [the amendment](#amendment-15-november-2026-apcs-courses-have-no-prerequisite)); since 21 November 2026 the seed records one exception, CS469 before CS470, which Lâm decided on 24 November 2026. Acceptance records the scope exception and the audit deferral below and closes the prerequisite storage gate; [Implementation notes (as of 21 November 2026)](#implementation-notes-as-of-21-november-2026) describe what `main` does where it differs from the text
+- Status: accepted by Lâm (Project Lead): the school-scope amendment on 9 November 2026, and the whole ADR on 12 November 2026, on Discord. Amended 9 November 2026: prerequisites and offering terms built now (see [the amendment](#amendment-9-november-2026-prerequisites-and-offering-terms-now)). Amended 15 November 2026: APCS courses are seeded as having no prerequisite (see [the amendment](#amendment-15-november-2026-apcs-courses-have-no-prerequisite)); since 21 November 2026 the seed records one exception, CS469 before CS470, which Lâm decided on 24 November 2026. Acceptance records the scope exception and the audit deferral below and closes the prerequisite storage gate; [Implementation notes (as of 25 November 2026)](#implementation-notes-as-of-25-november-2026) describe what `main` does where it differs from the text
 - Date: 2026-11-03
 - Owner: Thắng (F12)
 - Deciders: Lâm (Project Lead), Triết (curriculum schema and rule engine)
@@ -91,7 +91,7 @@ The grant API rejects revoking the last active access manager with `409 last_acc
 
 ## Write boundary and API outline
 
-All routes below are the accepted outline, behind `/api/admin`, and require the existing bearer authentication. Not all of them exist yet: the [implementation notes](#implementation-notes-as-of-21-november-2026) list which ones `main` serves. The implementation supplies validated request/response DTOs with `@ApiProperty`, `@ApiBearerAuth()` and documented errors in OpenAPI 3.2.0. Controller names and internal helper names are implementation choices; authority checks and transaction boundaries are not.
+All routes below are the accepted outline, behind `/api/admin`, and require the existing bearer authentication. Not all of them exist yet: the [implementation notes](#implementation-notes-as-of-25-november-2026) list which ones `main` serves. The implementation supplies validated request/response DTOs with `@ApiProperty`, `@ApiBearerAuth()` and documented errors in OpenAPI 3.2.0. Controller names and internal helper names are implementation choices; authority checks and transaction boundaries are not.
 
 | Routes under `/api/admin` | Permission and behavior |
 | --- | --- |
@@ -183,7 +183,7 @@ The prerequisite API remains part of the requested F12 work. It is **blocked, no
 - **#23 merged and inspected again:** closed (`900b1b8`).
 - **ADR 0011 reviewed and accepted:** closed by Lâm's acceptance, with the scope exception and the audit-history deferral above.
 - **Prerequisite/offering-term storage:** closed by #74. Migration `1794230000000-create-curriculum-admin.ts` adds `course_prerequisite_lists`, `course_prerequisites` and `course_offering_terms`, keyed by curriculum. `prerequisite-cycle.ts` refuses cycles on write with `400 prerequisite_cycle`. The routes are `PUT`/`DELETE …/cohorts/:curriculumId/courses/:courseCode/prerequisites` and `…/offering-terms`.
-- **Rule-engine and impact interfaces:** still open for group totals. Membership writes run with structural checks only (amendment below), and credit totals stay read-only.
+- **Rule-engine and impact interfaces:** still open for group totals. Membership writes run with structural checks only (amendment below), and credit totals stay read-only. *Since 25 November 2026 the CSV group-link import runs the same way: the structural checks of the manual `PUT`, and no final-state group-total validation ([implementation notes](#csv-import-as-built-25-november-2026)).*
 - **Read and regression contracts:** the curriculum read API exists (#65; review finding 1 above). The cohort-preservation regression fixtures were not checked for this acceptance.
 
 After those handoffs, add concrete prerequisite/offering request and response DTOs and route cases to this ADR before implementing them. Their mutations require the stored program grant, current checks and transaction behavior above. Offering terms follow [ADR 0009](0009-term-encoding.md) as amended by [ADR 0012](0012-credit-caps-by-training-type.md): term numbers 1, 2 and 3, where 3 is a third main term in a Tiên tiến, Liên kết or Chất lượng cao program and the summer term only in a đại trà program, plus `term_year` when year-specific. A suggested study term is not an offering. No academic decision is delegated to a model.
@@ -209,9 +209,9 @@ Implement in dependency order: grants/bootstrap and program/cohort writes; group
 - **Shared-catalog review without a separate preview route.** `PATCH /catalog/courses/:code` on a course linked to any curriculum answers `409 impact_confirmation_required` with `affectedCurricula` and a `reviewVersion` (a hash of the current values, the proposed values and the affected curricula). Sending the same change with `confirmImpact: <reviewVersion>` saves it; any difference answers `409 impact_changed` with the new list. This is the confirmation flag the scope change asked for, kept safe against a stale review as this ADR requires. A course no curriculum links is saved directly.
 - **Unknown fields (open item 2, closed).** Admin request bodies use `@StrictBody()`, a custom parameter decorator the global pipe skips, validated with `forbidNonWhitelisted`: an unknown, identifier or gated field answers `400 validation_failed` instead of being dropped.
 - **Membership writes go ahead with structural checks only.** Codes, ownership and references are checked; group-total final-state validation still waits for the rule-engine interface, and credit totals stay read-only (`400`) until then.
-- **Still partial:** program and cohort creation/editing, CSV import, the audit log (no change-history log in B2; whether B3 builds one is not decided, per the 12 November decision above) and the account screen's User ID field. F12 remains **partial**.
+- **Still partial (as of 25 November 2026):** program and cohort creation/editing, the final-state group-total validation of group links (manual and CSV: structural checks only), the administration screens (no screen calls the CSV import yet), the audit log (no change-history log in B2; whether B3 builds one is not decided, per the 12 November decision above) and the account screen's User ID field. F12 remains **partial**.
 
-### Implementation notes (as of 21 November 2026)
+### Implementation notes (as of 25 November 2026)
 
 What `main` serves under `/api/admin` (`src/backend/src/curriculum-admin/*.controller.ts`), against the outline above:
 
@@ -225,8 +225,37 @@ What `main` serves under `/api/admin` (`src/backend/src/curriculum-admin/*.contr
 | Catalog `POST`, `PATCH`, `DELETE /catalog/courses/:courseCode` | Built. |
 | Catalog `GET /catalog/courses`, `GET /catalog/courses/:courseCode`, `POST …/preview` | Not built. The `PATCH` answers `409 impact_confirmation_required` instead of a preview route (amendment). Courses are read through `GET /api/courses/:code`. |
 | Access `GET /programs`, `GET /users/:userId/grants`, `PUT`/`DELETE` program and global grants | Built. |
-| CSV import preview/confirm, catalog and group links | Not built. `csv-parse` is not installed, and the 7 MiB import body limit is not configured. |
+| CSV import preview/confirm, catalog and group links | Built on 25 November 2026 (`csv-import.controller.ts`): `POST /catalog/imports/preview` and `/confirm` (catalog maintainer), `POST /programs/:programId/cohorts/:curriculumId/imports/preview` and `/confirm` (program grant). `csv-parse` `6.1.0` is installed, and `configureApp` (`bootstrap.ts`) gives these four routes the 7 MiB JSON limit; every other route keeps 100 KiB. Group links get structural checks only. See [CSV import as built](#csv-import-as-built-25-november-2026). |
 | `admin:bootstrap` | Built (`bootstrap-cli.ts`). |
+
+#### CSV import as built (25 November 2026)
+
+The four routes follow "CSV contract and UC-11 handoff". This is what `main` does where the text left a choice open, and where it differs from the text.
+
+Limits of what is built:
+
+- **Group links get structural checks only.** A row is checked exactly as the manual membership `PUT` checks a link: a canonical course code, a group of the route's cohort, a course of the catalog. The text asks for a validation of the proposed final set "through the agreed deterministic validation interface", group credit totals included. That rule-engine interface does not exist, and F12 may not invent a credit-total rule (AGENTS.md hard rule 1), so no such check runs. The group-total part of TC-B2-ADM-07 cannot pass until the interface exists. The place to call it is marked in `csv-import.service.ts` (`planLinks`).
+- **The review version holds no rule-source revision.** No validation source with a revision exists yet. `IMPORT_VALIDATION_REVISION` (`csv-import.service.ts`), a constant, is hashed into every `reviewVersion` in its place, through `CsvImportService.validationRevision()`. Change the constant when a check changes meaning: a review made before that deploy can then not be confirmed after it.
+- **No template download route.** The two headers are fixed and are in the OpenAPI summary of each preview route; the administration screen can build the template file from them. No screen calls the import yet.
+
+Choices the text left open:
+
+- **Answers.** A preview answers `200` with `rows` (the rows without an error, normalized, each with `insert`, `update` or `no_op`), `errors`, `summary` and `reviewVersion`, which is `null` while the file has any error. A file from which no row can be read answers `400 validation_failed` with `errors`: malformed quoting, another header, text that is not UTF-8. A confirmation answers `400 validation_failed` when the file has an error that holds whatever the database stores, and `409 impact_changed` for every other difference from the reviewed preview: another file, a changed saved value, a changed link, a group renamed or a course deleted since. The `409` carries no new version; the client previews again. The size bounds answer `413 payload_too_large`.
+- **What the review version covers.** Catalog file: the canonical rows in file order, what each row would do, and for each changed course the `reviewVersion` of the manual `PATCH` (`impactVersion`: saved values, proposed values, every curriculum linking the course). Group-links file: the route's program and cohort, the canonical rows, the ID each group name resolves to, and whether each link exists.
+- **Record numbers.** The header is record 1. A blank line is not a record. A record whose fields are all empty is ignored but keeps its number. Each row and error also carries `line`, the physical line the record starts on.
+- **Field counts.** A record with another number of fields than the template is a row error, and every such record is reported. The parser runs with `relax_column_count` for that reason only; `csv-file.ts` then requires the exact header and the exact count, and pads or drops nothing.
+- **Numbers.** A cell of digits only becomes a number (`wholeNumberOrText`, `curriculum-admin.dto.ts`); any other text reaches `CreateCourseDto` as text and is refused by the same `@IsInt` as a manual body. The parser casts nothing.
+- **Duplicates.** The second and later rows with the same canonical code, or the same group name and code, are the errors; each names the record that came first.
+- **Affected curricula.** The preview uses `AffectedCurriculumDto` as the manual `PATCH` does: `curriculumId`, `curriculumCode`, `programCode`, `cohortYear`. It has no `programId`, although the text lists one.
+- **Preview transaction.** `AdminWriteService.read`: one `REPEATABLE READ`, `READ ONLY` transaction, the caller's current grants checked first, no lock.
+
+Differences that reach manual entry or the rest of the app:
+
+- **A blank period count is 0, also over a stored `NULL`.** The period columns allow `NULL` ("the official table leaves the cell blank"), and a seeded course can hold one. A file row for such a course with a blank period cell is an update from `NULL` to 0, shown in the preview like any other change.
+- **A credit or period count above 2,147,483,647 is a `400`** in manual entry too (`@Max` on `CreateCourseDto` and `UpdateCourseDto`). Before, the manual routes answered `500` from the database.
+- **`express` `5.2.1` is a declared dependency of the backend.** The import body parser is `express.json`. The version is the one `@nestjs/platform-express` already installed.
+- **The 7 MiB parser runs before authentication**, as the default parser does. A request without a token can make the server read up to 7 MiB on these four paths before it gets its `401`.
+- **An unexpected failure of an import logs only its kind** (the error class and the SQLSTATE), and answers the usual `500`. Nest would log the error object, and a storage error holds the failed statement's parameters, which are rows of the file.
 
 Other differences from the text:
 
