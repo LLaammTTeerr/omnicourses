@@ -21,6 +21,7 @@ This file is a scaffold. Each section below gives one parent check from the test
 | B | `b2-s4@example.com` | PLAN-02d and e: the other student, whose plan must stay unchanged |
 | P | `b2-s5@example.com` | PLAN-02a–c: the planner's saved and unsaved states |
 | S6 | `b2-s6@example.com` | ADM-05c and d: the student whose transcript and plan name the test course |
+| Q | `b2-s7@example.com` | PERF-01 only: no transcript, one plan, the [PERF-01 board](evidence/b2/perf-01-plan.json) |
 | A1 | `b2-a1@example.com` | ADM-02 and ADM-05a and b: program administrator of APCS. ADM-01b: the program-only administrator |
 | A2 | `b2-a2@example.com` | ADM-02 and ADM-05b: program administrator of CNTT-TCTA-KHMT, a CLC program |
 | A3 | `b2-a3@example.com` | ADM-02, ADM-01 and ADM-05: catalog maintainer only. ADM-06c: deletes the test course in the clean-up |
@@ -414,12 +415,48 @@ Registration-window reminders, the term-start check-in and the warning after a s
 
 A planner edit shows its validation result in under 300 ms, measured in the browser from the edit to the rendered result. API time is measured separately for diagnosis only ([test plan row](test-plan.md#coverage-and-speed)).
 
+Sources: Vision §6 Performance; test plan §5, [Coverage and speed](test-plan.md#coverage-and-speed) and [Performance procedure](test-plan.md#performance-procedure); UC-05. The setup follows [B1's PERF-01](test-cases-b1.md#4-tc-b1-perf-01-dashboard-and-audit-load-time).
+
 - Owners: Thắng, Hoà, Triết
-- Depends on: planner drag-and-drop and live validation (in progress).
+- Depends on: planner drag-and-drop and live validation (in progress). The steps below are written against `main` on 24 November 2026, where an edit saves the board (`PUT /api/plans/{id}/placements`) and then checks it (`GET /api/plans/{id}/issues`), with no debounce. Before the run, Hoà confirms that the stop condition below still holds once live validation lands (open items below).
+
+**What is timed.** One edit: a keyboard move of one tile to another term row (UC-05 A1: Space lifts the focused tile, the arrows pick a row, Enter drops). The clock starts at the Enter `keydown`, which a capture listener on `window` stamps with `performance.now()`. It stops at the first animation frame where all of these hold: the moved tile is in its target row (`[data-test="term-<year>-<number>"]` holds `[data-test="tile-<code>"]`); `[data-test="issues-panel"]` has `aria-busy="false"`; `[data-test="issue-counts"]` has no `stale` class, so the report on screen is the one for the board on screen; and the edit's expected result (table below) is drawn. The script reads the drawn issues themselves, not a flag the app sets. A keyboard move is used instead of a mouse drag because its start is one exact event, and a scripted drag's own motion would be timed with it.
+
+**Fixture.** Account Q, onboarded to APCS 2024, with no transcript. Q has one plan, made with `POST /api/plans` with `"name": "PERF-01"`, `"programCode": "APCS"`, `"cohortYear": 2024` and the `terms` of [`evidence/b2/perf-01-plan.json`](evidence/b2/perf-01-plan.json), SHA-256 `312ef179af67d9fdabf6bf75c14683496405a29e6913a27e3d2adda5b64fd28b`. That board is B1's [completion fixture](../../src/backend/test/fixtures/apcs-2024-completion.json) as a plan: its 45 courses moved two years later (2026-1 to 2029-2, 11 terms, 10 to 20 credits each), with CS468 replaced by CS469 (in 2029-1) and CS470 (in 2029-2), so the one recorded APCS prerequisite can be broken. 46 placements. On the board as saved, the engine reports no violation and no flag, 46 `offering_terms_not_recorded` unknowns, and graduation `done`.
+
+**The four edits** (test plan, performance procedure step 3). Each was checked against the rule engine with the seeded APCS 2024 curriculum on 24 November 2026 (`POST /api/plans/{id}/issues` with the edited board). Triết confirms them; nobody works them out again.
+
+| Edit | Move | Keys after Space | Expected result drawn |
+| --- | --- | --- | --- |
+| V, valid placement | MTH346, 2028-1 → 2028-2 (18 → 14 and 10 → 14 credits) | ArrowDown ×1 | No `[data-test="issue-violation"]` and no `[data-test="issue-flag"]`; the same counts as the board as saved. |
+| P, prerequisite violation | CS470, 2029-2 → 2028-3, before CS469 | ArrowUp ×2 | One `issue-violation`, `prerequisite_not_met` for CS470 in 2028-3; `tile-CS470` holds `tile-issue-violation`. |
+| O, offering-term violation | CS420, 2028-1 → 2028-3 | ArrowDown ×2 | One `issue-violation`, `not_offered` for CS420 in 2028-3; `tile-CS420` holds `tile-issue-violation`. Needs CS420's offering terms set to `[1, 2]` first (PERF-01f). |
+| C, credit-cap violation | CS163, 2026-2 → 2026-1 (20 → 24 credits, above APCS's 22) | ArrowUp ×1 | One `issue-flag`, `load_above_maximum` for 2026-1; `term-2026-1` holds `row-issue-flag`. The engine reports a cap breach as a flag, not a violation: it cites the petition route and never blocks (ADR 0012). |
+
+Until the issue cards carry the issue code (open items below), the script finds an issue by the card's `issue-text`, which names the course (P, O) or the term (C).
+
+**Between runs.** Each run starts from the board as saved (performance procedure step 3). After each timed edit, press Ctrl+Z, and wait for the undo's report to be fresh with the saved board's counts before the next run. Undo is not timed. Before each series and after the last, `GET /api/plans/{id}` as Q must return the fixture's `terms` exactly; if it does not, stop and reload them with `PUT /api/plans/{id}/placements`.
+
+**Rate limit.** A run sends about five requests (the edit's save and check, the undo's save and check, and the lift's drop preview). The server allows 120 a minute from one address (ADR 0002), so pace the script at one run every 4 seconds or slower. A run that meets a 429 is void, because the planner waits 2 s and sends again: stop the series, record it, fix the pacing and rerun the series from its warm-ups, as the ADM run did.
+
+**Network profile and running.** The same as [B1's PERF-01](test-cases-b1.md#4-tc-b1-perf-01-dashboard-and-audit-load-time): 10 Mbps down, 2 Mbps up, 50 ms round trip, no packet loss, through `Network.emulateNetworkConditions`, with no CPU throttling, and provisional until the team agrees the profile. A Playwright script in Chrome, headed and in the foreground, saved with its raw output in `docs/test/evidence/b2/`. Q is the only active user, and nothing else runs on the server. For each series, record every duration, then the median, p95 and maximum; warm-ups are recorded and not counted. For diagnosis only, save the server time of the edit's `PUT` and `GET` from Resource Timing (`responseStart - requestStart`), so Hoà and Triết can find a slow part.
 
 | ID | Steps | Expected |
 | --- | --- | --- |
-| TC-B2-PERF-01a | TODO | TODO |
+| TC-B2-PERF-01a | **Fixture.** Hash the committed board: `git show <commit>:docs/test/evidence/b2/perf-01-plan.json \| sha256sum` (not the checked-out file, which a Windows `core.autocrlf` checkout changes). Sign in as Q, call `GET /api/users/me/transcript` and `GET /api/plans/{id}`. Without the network profile, open the plan in the planner, and make each of V, P and C once by hand, pressing Ctrl+Z after each. | The checksum matches; the transcript has no row; the plan has the fixture's 46 placements. The board as saved shows no violation or flag. Each edit draws its expected result, and Ctrl+Z brings back the saved board's counts. If a result is wrong, stop: that is a wrong validation result, not a slow one. File it against TC-B2-PLAN-01. |
+| TC-B2-PERF-01b | **Profile.** Turn the profile on. Request `/api/health` 10 times, then the largest JavaScript file of the build, and note the times in **Network**. | As B1's PERF-01b: every health request takes at least 50 ms, and the file takes about its size divided by 1.25 MB/s. Record the settings and the Chrome version. |
+| TC-B2-PERF-01c | **V.** In one browser context, with the plan open: 5 warm-up runs, then 30 measured runs of V. | All 30 runs under 300 ms, each with V's expected result. |
+| TC-B2-PERF-01d | **P.** The same, with P. | All 30 runs under 300 ms, each with P's expected result. |
+| TC-B2-PERF-01e | **C.** The same, with C. | All 30 runs under 300 ms, each with C's expected result. |
+| TC-B2-PERF-01f | **O.** *Setup:* as A1, `PUT /api/admin/programs/{APCS}/cohorts/{APCS24}/courses/CS420/offering-terms` with `{ "terms": [1, 2] }` (ADM-02's W), then reload the planner as Q. Run 5 warm-ups and 30 measured runs of O. *Clean-up:* as A1, ADM-02c's clean-up, and check that CS420 reads `"offeringTerms": null` in `GET /api/programs/APCS/curricula/2024`. Do not run it while an ADM case runs: ADM-02 and ADM-06 expect CS420's offering terms to be `null`. | After the setup, the board as saved shows 45 unknowns, not 46 (CS420's offering terms are now recorded) and still no violation. All 30 runs under 300 ms, each with O's expected result. The clean-up answers **200** with `"terms": null`. |
+
+A run of 300 ms or more fails its case, whatever the average, and it stays in the report even if a rerun passes (performance procedure, step 4). The same cases run again in B3 with the same fixture.
+
+**Open items before the run.**
+
+1. *Hoà:* when live validation lands, confirm that the stop condition still marks "the current validation result rendered". If the browser draws a result before the server's report (ADR 0015's drag preview), decide with Triết which one the 300 ms covers. The test plan's row says the result the student sees for the edit, including debounce, network, API and rendering.
+2. *Hoà:* give each issue card its code, for example `data-code="prerequisite_not_met"`, so that the script does not match message text.
+3. *Triết:* confirm the four expected results above.
 
 ## 10. TC-B2-A11Y-01: Usability of the B2 screens
 
