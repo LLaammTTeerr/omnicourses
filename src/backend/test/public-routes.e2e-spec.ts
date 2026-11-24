@@ -12,6 +12,8 @@ const PUBLIC_ROUTES = [
   // Guides hold only what the school publishes, so anyone may read them (ADR 0010).
   'GET /api/guides',
   'GET /api/guides/{id}',
+  // A shared plan opens from its link's token, read-only (UC-09, ADR 0010).
+  'GET /api/shared-plans/{token}',
   // The only public writes: they must stay open, or nobody can get in.
   'POST /api/auth/sign-up',
   'POST /api/auth/sign-in',
