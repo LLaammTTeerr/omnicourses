@@ -14,4 +14,5 @@ export interface AdminSection {
 export const ADMIN_SECTIONS: readonly AdminSection[] = [
   { id: 'curriculum', route: 'admin-curriculum', permission: 'program_admin' },
   { id: 'catalog', route: 'admin-catalog', permission: 'catalog_maintainer' },
+  { id: 'access', route: 'admin-access', permission: 'access_manager' },
 ];

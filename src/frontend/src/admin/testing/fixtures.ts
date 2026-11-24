@@ -1,6 +1,6 @@
 import { user } from '../../auth/testing/fixtures.js';
 import type { CourseDetail, Curriculum, CurriculumCourse, RequirementGroup } from '../../curriculum/api.js';
-import type { AdminProgramList, AffectedCurriculum, GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../api.js';
+import type { AccessProgramList, AdminProgramList, AffectedCurriculum, GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../api.js';
 
 // Synthetic administration data (AGENTS.md hard rule 3): made-up programs, courses and account IDs.
 
@@ -123,6 +123,19 @@ export const SHARED_COURSE = catalogCourse('ZZ101', {
   memberships: [
     { programCode: 'ZZPROG', cohortYear: 2024, curriculumCode: 'ZZPROG2024', requirementGroupId: GROUP_BASE_ID, requirementGroupName: 'Kiến thức cơ sở thử', kind: 'compulsory' },
     { programCode: 'ZZPROG', cohortYear: 2025, curriculumCode: 'ZZPROG2025', requirementGroupId: '00000000-0000-4000-8000-000000000b01', requirementGroupName: 'Nhóm thử khóa 2025', kind: 'elective' },
+  ],
+});
+
+// ---- Access management ----
+
+/** Another synthetic account, the one an access manager looks up. */
+export const OTHER_USER_ID = '00000000-0000-4000-8000-000000000002';
+
+/** Every program, as an access manager chooses from them. */
+export const accessPrograms = (): AccessProgramList => ({
+  programs: [
+    { id: OTHER_PROGRAM_ID, code: 'ZZEMPTY', nameVi: 'Chương trình thử chưa có khóa' },
+    { id: PROGRAM_ID, code: 'ZZPROG', nameVi: 'Chương trình thử' },
   ],
 });
 

@@ -10,6 +10,7 @@ import {
   type RouterScrollBehavior,
 } from 'vue-router';
 import SettingsView from './account/SettingsView.vue';
+import AccessAdmin from './admin/AccessAdmin.vue';
 import AdminView from './admin/AdminView.vue';
 import CatalogAdmin from './admin/CatalogAdmin.vue';
 import CurriculumAdmin from './admin/CurriculumAdmin.vue';
@@ -92,6 +93,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin },
       { path: 'catalog', name: 'admin-catalog', component: CatalogAdmin },
+      { path: 'access', name: 'admin-access', component: AccessAdmin },
     ],
   },
   { path: '/:unknown(.*)*', redirect: '/' },
