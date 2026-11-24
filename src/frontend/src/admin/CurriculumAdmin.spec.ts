@@ -944,12 +944,15 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await flushPromises();
     await get(w.get('dialog[open]'), 'group-name').setValue('Tên khác');
     await submit(w);
-    await router.push('/settings').catch(() => {});
+    await router.push('/admin/access').catch(() => {});
     expect(router.currentRoute.value.name).toBe('admin-curriculum');
     expect(w.find('dialog[open]').exists()).toBe(true);
     answer(NO_PROGRAM_PERMISSION());
     await flushPromises();
     expect(problem(w).attributes('data-code')).toBe('permission_required');
+    // The request is answered and its result is on screen: the administrator may leave.
+    await router.push('/admin/access');
+    expect(router.currentRoute.value.name).toBe('admin-access');
   });
 
   it('clears a refused link code\'s error when the administrator does something else', async () => {
@@ -991,10 +994,11 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(note.text()).toBe(long);
     expect(note.classes()).toContain('clamped');
     expect([toggle.element.tagName, toggle.text(), toggle.attributes('aria-expanded'), toggle.attributes('aria-controls')]).toEqual(['BUTTON', 'Xem thêm', 'false', note.attributes('id')]);
-    expect(toggle.attributes('aria-label')).toBe('Xem hết ghi chú quy tắc của nhóm Tự chọn thử khác');
+    // The name a screen reader says starts with the words on the button, then says which group.
+    expect(toggle.attributes('aria-label')).toBe('Xem thêm ghi chú quy tắc của nhóm Tự chọn thử khác');
     await toggle.trigger('click');
     expect(note.classes()).not.toContain('clamped');
-    expect([toggle.text(), toggle.attributes('aria-expanded')]).toEqual(['Thu gọn', 'true']);
+    expect([toggle.text(), toggle.attributes('aria-expanded'), toggle.attributes('aria-label')]).toEqual(['Thu gọn', 'true', 'Thu gọn ghi chú quy tắc của nhóm Tự chọn thử khác']);
     await toggle.trigger('click');
     expect(note.classes()).toContain('clamped');
   });
