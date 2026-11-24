@@ -184,11 +184,9 @@ The crafted boards of PLAN-02e. Each is `{ "terms": [ { "term": { "year": 2026, 
 | Unknown group | `{ "kind": "slot", "requirementGroupId": "00000000-0000-4000-8000-000000000000", "credits": 4 }` | "Requirement group 00000000-0000-4000-8000-000000000000 is not in the plan's curriculum" |
 | The same course twice | `{ "kind": "course", "courseCode": "CS160" }`, `{ "kind": "course", "courseCode": "CS160" }` | "course CS160 is placed twice" |
 
-## 4. TC-B2-TRN-01: Import and manual review
+## 4. TC-B2-TRN-01: Paste or type, then review
 
 The student enters transcript rows, then reviews, corrects, adds or removes rows before saving. Incomplete rows block the save, and cancel keeps the earlier record ([test plan row](test-plan.md#b2-checks)).
-
-> **Note: the plan row describes PDF import, which is dropped.** On 15 November 2026 the Project Lead decided that F2 is "paste the grades table, or type it in". PDF upload is dropped because the school portals give no transcript PDF. Write the cases in this section for paste and type entry, not for PDF upload. The test plan row and its 5 MB upload limit need an update to match: issue [#127](https://github.com/LLaammTTeerr/omnicourses/issues/127). Remove this note when #127 closes.
 
 - Owner: Lâm
 - Depends on: transcript storage (done); transcript paste/type entry screen (not started).
