@@ -32,7 +32,7 @@ ADR 0016 is claimed by the advisor harness (open PR #77), so this is 0017.
 ## Consequences
 
 - Hoà's calendar page reads one route. Thắng's admin screen needs the program ID from `GET /api/admin/programs` and the event IDs from the read route.
-- F10's inbox (Dũng) can generate reminders from `registration`, `add_drop` and `term_start` rows. Its delivery, timing and duplicate rules remain open in the test plan §8.
+- F10's inbox (Dũng) can generate reminders from `registration`, `add_drop` and `term_start` rows. Its delivery is decided: the in-app inbox only, with no email (Lâm, 12 November 2026). Its timing and duplicate rules remain open in the test plan §8.
 - Dates are only as good as the last entry. `updated_at` is returned so the page can say when the calendar was last changed, and `source_url` lets a student check the original.
 - A change history of edits is not kept, the same deferral as ADR 0011's audit trail for curriculum writes.
 - Adding a kind needs a migration (the CHECK) and an amendment here.
