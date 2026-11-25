@@ -78,7 +78,7 @@ export class CurriculumAdminController {
   @Delete(`${COHORT}/requirement-groups/:groupId`)
   @HttpCode(204)
   @ApiNoContentResponse({ description: 'Deleted.' })
-  @ApiConflictResponse({ type: ReferencedItemDto, description: '`referenced_item`: the group still links courses' })
+  @ApiConflictResponse({ type: ReferencedItemDto, description: '`referenced_item`: the group still links courses, or saved plans use it (`references` gives their count, never a plan or a student)' })
   deleteGroup(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
