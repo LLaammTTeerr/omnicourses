@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import request from 'supertest';
-import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { DataSource, QueryFailedError } from 'typeorm';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AcademicCalendarService } from '../src/academic-calendar/academic-calendar.service.js';
 import { Clock } from '../src/config/clock.js';
 import { NotificationSchedule } from '../src/notifications/notification-schedule.js';
 import { NotificationsService } from '../src/notifications/notifications.service.js';
@@ -334,6 +335,56 @@ describe('Notification inbox (e2e)', () => {
       ]);
     });
 
+    // Case B of the same per-kind key (ADR 0018, Consequences; as built, put to Dũng on 25 November 2026).
+    it('sends the seven-day notice of a date postponed by a week after its opening-day notice went out, and no second opening-day notice', async () => {
+      const s = await student(codeA);
+      onDay('2091-05-04');
+      const window = await enter('registration', '2091-05-04', { endsOn: '2091-05-20' });
+      await notifications.createDue();
+      expect(await stored(s, window)).toEqual(['registration_open']);
+
+      // Postponed to today + 7, the same day: the seven-day notice had not gone out, so it goes out now.
+      await as(adminA.token).patch(`${events(programA)}/${window}`, { startsOn: '2091-05-11' }).expect(200);
+      await notifications.createDue();
+      expect(await stored(s, window)).toEqual(['registration_open', 'registration_soon']);
+      const afterBoth = await total(window);
+      const held = (await inbox(s)).filter((n) => n.event?.id === window).map((n) => [n.kind, n.event?.startsOn]);
+      expect(held.sort()).toEqual([
+        ['registration_open', '2091-05-04'],
+        ['registration_soon', '2091-05-11'],
+      ]);
+
+      // The new opening day: the opening-day notice went out already, so nothing goes out.
+      onDay('2091-05-11');
+      await notifications.createDue();
+      expect(await total(window)).toBe(afterBoth);
+      expect(await seen(s, window)).toHaveLength(2);
+
+      // To announce the postponed date again, the administrator deletes it and enters it again: a new date.
+      await as(adminA.token).delete(`${events(programA)}/${window}`).expect(204);
+      const again = await enter('registration', '2091-05-11', { endsOn: '2091-05-20' });
+      expect(await seen(s, again)).toEqual(['registration_open']);
+      expect(await stored(s, window)).toEqual(['registration_open', 'registration_soon']);
+    });
+
+    // Case C of the same per-kind key (ADR 0018, Consequences; as built, put to Dũng on 25 November 2026).
+    it('sends the opening-day notice too when a term start that was announced today is changed to a registration window', async () => {
+      const s = await student(codeA);
+      onDay('2091-05-25');
+      const date = await enter('term_start', '2091-05-25');
+      await notifications.createDue();
+      expect(await stored(s, date)).toEqual(['term_start']);
+
+      await as(adminA.token).patch(`${events(programA)}/${date}`, { kind: 'registration' }).expect(200);
+      await notifications.createDue();
+      expect(await stored(s, date)).toEqual(['registration_open', 'term_start']);
+      // Two notifications of one school date, each once.
+      await notifications.createDue();
+      const held = (await inbox(s)).filter((n) => n.event?.id === date);
+      expect(held.map((n) => n.kind).sort()).toEqual(['registration_open', 'term_start']);
+      expect(new Set(held.map((n) => n.event?.startsOn))).toEqual(new Set(['2091-05-25']));
+    });
+
     // Rule 6: each student gets each notification once, whatever runs at the same time.
     it('makes one notification when several runs and reads happen at once', async () => {
       const [s, t] = [await student(codeA), await student(codeA)];
@@ -413,6 +464,24 @@ describe('Notification inbox (e2e)', () => {
       expect(holders).not.toContain(adminA.userId);
     });
 
+    it('creates on a read only the notifications of the student who reads', async () => {
+      const [reader, other] = [await student(codeA), await student(codeA)];
+      onDay('2091-06-01');
+      const term = await enter('term_start', '2091-06-01');
+      expect((await inbox(reader)).map((n) => n.event?.id)).toEqual([term]);
+      expect((await as(reader.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
+      // One row in all: every other student of the program still has none.
+      expect(await total(term)).toBe(1);
+      expect(await stored(other, term)).toEqual([]);
+
+      // Their own read makes theirs, and theirs alone.
+      expect((await as(other.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
+      expect(await total(term)).toBe(2);
+      // The run for everyone, as the timer does it, makes the rest.
+      await notifications.createDue();
+      expect(await total(term)).toBeGreaterThan(2);
+    });
+
     it('counts a program as soon as it is saved, before onboarding is finished', async () => {
       const unfinished = await student(codeA, false);
       onDay('2090-12-07');
@@ -475,6 +544,89 @@ describe('Notification inbox (e2e)', () => {
       onDay('2090-12-25');
       await notifications.createDue();
       expect(await stored(leaving, window)).toEqual(['registration_open']);
+    });
+  });
+
+  describe('when creating fails', () => {
+    let errors: string[];
+    const FAIL_ONE_DATE = 'zz_notifications_fail_one_date';
+
+    beforeEach(() => {
+      errors = [];
+      // Every error line of the app, the exception handler's included.
+      vi.spyOn(Logger.prototype, 'error').mockImplementation((...args: unknown[]) => void errors.push(args.map(String).join(' ')));
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('goes on with the other school dates when the statement of one date fails, and tries that date again the same day', async () => {
+      const [a, b] = [await student(codeA), await student(codeB)];
+      onDay('2091-07-01');
+      const bad = await enter('term_start', '2091-07-01', { title: 'Synthetic date whose statement fails' });
+      const good = await enter('registration', '2091-07-01');
+      const goodB = await enter('term_start', '2091-07-01', {}, adminB, programB);
+      // PostgreSQL itself refuses the rows of one date: a real failed statement, not a mock.
+      await db.query(`ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ${FAIL_ONE_DATE}`);
+      await db.query(`ALTER TABLE notifications ADD CONSTRAINT ${FAIL_ONE_DATE} CHECK (calendar_event_id IS DISTINCT FROM '${bad}'::uuid)`);
+      try {
+        // The run for everyone does not reject, and the dates of both programs are created.
+        await notifications.createDue();
+        expect(await stored(a, good)).toEqual(['registration_open']);
+        expect(await stored(b, goodB)).toEqual(['term_start']);
+        expect(await total(bad)).toBe(0);
+        // One line for the run: counts and the kind of failure, nothing of the statement.
+        expect(errors).toHaveLength(1);
+        expect(errors[0]).toMatch(/^Could not create the notifications of 1 of \d+ school date\(s\) that are due: QueryFailedError, SQLSTATE 23514$/);
+
+        // A read answers 200 with what is stored, and creates the caller's other date.
+        const reader = await student(codeA);
+        errors.length = 0;
+        expect((await inbox(reader)).map((n) => [n.kind, n.event?.id])).toEqual([['registration_open', good]]);
+        expect((await as(reader.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
+        expect(errors).toHaveLength(2);
+        for (const line of errors) expect(line).toMatch(/^Could not create the notifications of 1 of \d+ school date\(s\) that are due: QueryFailedError, SQLSTATE 23514$/);
+        for (const value of [a.userId, reader.userId, bad, 'Synthetic', codeA, 'INSERT', FAIL_ONE_DATE]) expect(errors.join('\n')).not.toContain(value);
+      } finally {
+        await db.query(`ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ${FAIL_ONE_DATE}`);
+      }
+      // The cause is gone and it is still the day: the next run creates what failed.
+      errors.length = 0;
+      await notifications.createDue();
+      expect(await stored(a, bad)).toEqual(['term_start']);
+      expect(errors).toEqual([]);
+    });
+
+    it('serves the stored notifications when the due dates cannot be read at all, and logs no statement and no parameter', async () => {
+      const s = await student(codeA);
+      onDay('2091-07-10');
+      await enter('term_start', '2091-07-10');
+      const before = await inbox(s);
+      expect(before).toHaveLength(1);
+
+      // What TypeORM throws for a refused statement: it carries the statement and its parameters.
+      const failure = new QueryFailedError(
+        `SELECT "e"."title" FROM "academic_calendar" "e" WHERE "e"."starts_on" IN ($1, $2) /* ${s.userId} */`,
+        ['2091-07-10', s.userId, 'Synthetic title in a parameter'],
+        Object.assign(new Error(`canceling statement due to statement timeout (${s.userId})`), { code: '57014' }),
+      );
+      const startingOn = vi.spyOn(app.get(AcademicCalendarService), 'startingOn').mockRejectedValue(failure);
+
+      expect((await as(s.token).get('/api/notifications').expect(200)).body).toEqual({ notifications: before, nextBefore: null });
+      expect((await as(s.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
+      expect(startingOn).toHaveBeenCalledTimes(2);
+      const line = 'Could not create the notifications that are due before a read: QueryFailedError, SQLSTATE 57014';
+      expect(errors).toEqual([line, line]);
+
+      // The timer logs the same kind of line, and does not stop.
+      await app.get(NotificationSchedule).tick();
+      expect(errors[2]).toBe('Could not create the notifications that are due: QueryFailedError, SQLSTATE 57014');
+      for (const value of [s.userId, 'Synthetic', 'SELECT', 'statement timeout', '2091-07-10']) expect(errors.join('\n')).not.toContain(value);
+
+      // Marking read does not create anything, so it does not depend on the failed read.
+      expect((await as(s.token).post(`/api/notifications/${before[0]!.id}/read`).expect(200)).body.readAt).not.toBeNull();
+      expect(errors).toHaveLength(3);
     });
   });
 
@@ -560,7 +712,7 @@ describe('Notification inbox (e2e)', () => {
     });
 
     it('refuses malformed query values with 400', async () => {
-      for (const query of ['?unread=yes', '?unread=1', '?kind=party', '?kind=term_start&kind=party', '?kind=term_start&kind=term_start', '?limit=0', '?limit=101', '?limit=ten', '?limit=1.5', '?before=42']) {
+      for (const query of ['?unread=yes', '?unread=1', '?kind=party', '?kind=term_start&kind=party', '?kind=term_start&kind=term_start', '?limit=0', '?limit=101', '?limit=ten', '?limit=1.5', '?limit=1e2', '?limit=0x10', '?limit=%2B5', '?limit=%205', '?limit=5&limit=6', '?before=42']) {
         const res = await as(owner.token).get(`/api/notifications${query}`);
         expect(res.status, query).toBe(400);
       }
