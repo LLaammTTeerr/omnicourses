@@ -13,6 +13,7 @@ import {
   SetOfferingTermsDto,
   SetPrerequisitesDto,
   UpdateRequirementGroupDto,
+  UserGrantsDto,
 } from './curriculum-admin.dto.js';
 import { CurriculumAdminService } from './curriculum-admin.service.js';
 import { StrictBody } from './strict-body.js';
@@ -33,6 +34,18 @@ export class CurriculumAdminController {
   @ApiOkResponse({ type: AdminProgramListDto, description: 'The programs the caller may administer, with their cohorts; empty without a grant.' })
   async programs(@CurrentUser() user: User): Promise<AdminProgramListDto> {
     return { programs: await this.admin.editablePrograms(user.id) };
+  }
+
+  // For any signed-in user: the screens ask it to decide whether to show the administration
+  // entry. It takes no user ID. An access manager reads another user's grants through
+  // GET /admin/access/users/:userId/grants.
+  @Get('admin/grants')
+  @ApiOkResponse({
+    type: UserGrantsDto,
+    description: "The caller's own program grants and global permissions; empty lists without a grant. Never another user's.",
+  })
+  grants(@CurrentUser() user: User): Promise<UserGrantsDto> {
+    return this.admin.ownGrants(user.id);
   }
 
   @Post(`${COHORT}/requirement-groups`)

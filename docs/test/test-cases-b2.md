@@ -97,7 +97,7 @@ T-K, every result type and a term 3 row. Only a `graded` row has a grade:
 
 - Done: calendar API (#108) and calendar page (#99); transcript storage.
 - In progress: planner drag-and-drop and live validation; curriculum administration API (part done).
-- Not started: transcript paste/type entry screen; curriculum administration screens (the CSV import API is on `main` since 25 November 2026, with no screen); notifications inbox; plan sharing and PDF export; nightly backup.
+- Not started: transcript paste/type entry screen; the screen for the CSV import of curriculum administration (the CSV import API is on `main` since 25 November 2026; the other administration screens are built, [#146](https://github.com/LLaammTTeerr/omnicourses/issues/146)); notifications inbox; plan sharing and PDF export; nightly backup.
 
 ## 2. TC-B2-PLAN-01: Editing and live validation
 
@@ -326,7 +326,7 @@ ADM-02i and j were read from #148's code at `1c3be28` and have not been run. `Ad
 Adding a second cohort, with its groups and links to existing catalog courses, leaves the first cohort's membership, saved plans and audit results unchanged and creates no duplicate courses. Duplicate program or cohort identifiers and invalid links are refused ([test plan row](test-plan.md#b2-checks)).
 
 - Owners: Thắng, Triết
-- Depends on: curriculum administration API (part done); administration screens (not started); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
+- Depends on: curriculum administration API (part done); administration screens (built for the routes that exist, #146; no program or cohort screen); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
 
 | ID | Steps | Expected |
 | --- | --- | --- |
@@ -337,7 +337,7 @@ Adding a second cohort, with its groups and links to existing catalog courses, l
 Removing one group link keeps the course and its other links. Deleting a course or other data that saved records still need is refused, deleting an unreferenced course needs catalog permission, and changing a linked course code is not an ordinary edit ([test plan row](test-plan.md#b2-checks)).
 
 - Owners: Thắng, Triết
-- Depends on: curriculum administration API (part done); administration screens (not started); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
+- Depends on: curriculum administration API (part done); administration screens (built for the routes that exist, #146; no program or cohort screen); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
 
 | ID | Steps | Expected |
 | --- | --- | --- |

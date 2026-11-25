@@ -1169,6 +1169,65 @@
         ]
       }
     },
+    "/api/admin/grants": {
+      "get": {
+        "operationId": "CurriculumAdminController_grants",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The caller's own program grants and global permissions; empty lists without a grant. Never another user's.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserGrantsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
     "/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups": {
       "post": {
         "operationId": "CurriculumAdminController_createGroup",
@@ -6409,6 +6468,93 @@
           "programs"
         ]
       },
+      "ProgramGrantDto": {
+        "type": "object",
+        "properties": {
+          "programId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "programCode": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grantedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Who granted it; null for the bootstrap or a purged account"
+          }
+        },
+        "required": [
+          "programId",
+          "programCode",
+          "grantedAt",
+          "grantedBy"
+        ]
+      },
+      "GlobalGrantDto": {
+        "type": "object",
+        "properties": {
+          "permission": {
+            "type": "string",
+            "enum": [
+              "catalog_maintainer",
+              "access_manager"
+            ]
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grantedBy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "permission",
+          "grantedAt",
+          "grantedBy"
+        ]
+      },
+      "UserGrantsDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "programs": {
+            "description": "By program code",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProgramGrantDto"
+            }
+          },
+          "permissions": {
+            "description": "By permission",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GlobalGrantDto"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "programs",
+          "permissions"
+        ]
+      },
       "CreateRequirementGroupDto": {
         "type": "object",
         "properties": {
@@ -6948,93 +7094,6 @@
         },
         "required": [
           "programs"
-        ]
-      },
-      "ProgramGrantDto": {
-        "type": "object",
-        "properties": {
-          "programId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "programCode": {
-            "type": "string",
-            "example": "APCS"
-          },
-          "grantedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "grantedBy": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid",
-            "description": "Who granted it; null for the bootstrap or a purged account"
-          }
-        },
-        "required": [
-          "programId",
-          "programCode",
-          "grantedAt",
-          "grantedBy"
-        ]
-      },
-      "GlobalGrantDto": {
-        "type": "object",
-        "properties": {
-          "permission": {
-            "type": "string",
-            "enum": [
-              "catalog_maintainer",
-              "access_manager"
-            ]
-          },
-          "grantedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "grantedBy": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
-          }
-        },
-        "required": [
-          "permission",
-          "grantedAt",
-          "grantedBy"
-        ]
-      },
-      "UserGrantsDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "programs": {
-            "description": "By program code",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ProgramGrantDto"
-            }
-          },
-          "permissions": {
-            "description": "By permission",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GlobalGrantDto"
-            }
-          }
-        },
-        "required": [
-          "userId",
-          "programs",
-          "permissions"
         ]
       },
       "ImportPreviewRequestDto": {

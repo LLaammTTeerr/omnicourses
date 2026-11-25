@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { HOME_SIGNED_IN } from '../auth/redirect.js';
+import { useAdminAccess } from '../admin/store.js';
 import { useAuth } from '../auth/store.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -9,19 +10,22 @@ import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
 import { SHELL_MESSAGES } from './messages.js';
-import { NAV } from './nav.js';
+import { listed, NAV } from './nav.js';
 import { isSidebarKey, useSidebar } from './sidebar.js';
 import ThemeButton from './ThemeButton.vue';
 
 // The signed-in sidebar (UI prototypes: app shell). Narrows to icons with the button at its foot or the `[` key;
 // in the narrow rail each label stays in the accessibility tree and shows as a tooltip.
 const auth = useAuth();
+const access = useAdminAccess();
 const locale = useLocale();
 const sidebar = useSidebar();
 const m = useMessages(SHELL_MESSAGES);
 
-const main = computed(() => NAV.filter((item) => item.section === 'main'));
-const account = computed(() => NAV.filter((item) => item.section === 'account'));
+// Administration is listed only for a user who holds a grant (App.vue asks the API once per sign-in).
+const nav = computed(() => listed(NAV, access.any));
+const main = computed(() => nav.value.filter((item) => item.section === 'main'));
+const account = computed(() => nav.value.filter((item) => item.section === 'account'));
 const initials = computed(() =>
   (auth.user?.displayName ?? '')
     .split(/\s+/)
@@ -43,11 +47,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
   <aside class="side">
     <BrandLink :to="HOME_SIGNED_IN" />
     <nav class="nav" :aria-label="m.nav">
-      <RouterLink v-for="item in main" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }" :title="tip(item.label[locale.lang])">
+      <RouterLink v-for="item in main" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }" :title="tip(item.label[locale.lang])" :data-test="`nav-${item.route}`">
         <span class="ico"><Icon :name="item.icon" /></span><span class="tx">{{ item.label[locale.lang] }}</span>
       </RouterLink>
       <span class="nav-label" aria-hidden="true"><span class="tx">{{ m.account }}</span></span>
-      <RouterLink v-for="item in account" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }" :title="tip(item.label[locale.lang])">
+      <RouterLink v-for="item in account" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }" :title="tip(item.label[locale.lang])" :data-test="`nav-${item.route}`">
         <span class="ico"><Icon :name="item.icon" /></span><span class="tx">{{ item.label[locale.lang] }}</span>
       </RouterLink>
     </nav>
