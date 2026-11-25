@@ -1,0 +1,32 @@
+2026-11-25T06:16:42.143Z a-screens 07j
+2026-11-25T06:16:42.396Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-a3@example.com → 200
+  console: (1) 1,000 records 200 {"summary":{"inserts":1000,"updates":0,"noOps":0},"errors":0}
+  console: 
+  console: (2) 1,001 records 413 {"code":"payload_too_large","message":"The CSV has more than 1000 data records"}
+  console: 
+  console: (3) 1 MiB + 1 byte 413 {"code":"payload_too_large","message":"The CSV is larger than 1 MiB of UTF-8 text"}
+  console: 
+  console: (4) JSON body of 6.3 MiB 413 <html>
+<head><title>413 Request Entity Too Large</title></head>
+<body>
+<cente
+  console: 
+  console: (5) JSON body of 7.2 MiB 413 <html>
+<head><title>413 Request Entity Too Large</title></head>
+<body>
+<cente
+ok   ADM-07j: (1) 200, no code, inserts 1000, 0 errors | observed: (1) 1,000 records 200 {"summary":{"inserts":1000,"updates":0,"noOps":0},"errors":0}
+ok   ADM-07j: (2) 413 payload_too_large "The CSV has more than 1000 data records" | observed: (2) 1,001 records 413 {"code":"payload_too_large","message":"The CSV has more than 1000 data records"}
+ok   ADM-07j: (3) 413 payload_too_large "The CSV is larger than 1 MiB of UTF-8 text" | observed: (3) 1 MiB + 1 byte 413 {"code":"payload_too_large","message":"The CSV is larger than 1 MiB of UTF-8 text"}
+FAIL ADM-07j: (4) the same 413 as (3), as JSON (not nginx's HTML page) | observed: (4) JSON body of 6.3 MiB 413 <html>
+<head><title>413 Request Entity Too Large</title></head>
+<body>
+<cente
+FAIL ADM-07j: (5) 413 payload_too_large "The request body is larger than 7 MiB", as JSON | observed: (5) JSON body of 7.2 MiB 413 <html>
+<head><title>413 Request Entity Too Large</title></head>
+<body>
+<cente
+  API GET /courses/ZZL0001 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+ok   ADM-07j: GET /courses/ZZL0001 404
+2026-11-25T06:16:48.311Z 2 FAIL(S)

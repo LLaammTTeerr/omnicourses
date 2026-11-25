@@ -1,0 +1,28 @@
+ADM pre run at 2026-11-25T06:02:50.675Z
+POST /auth/sign-in (b2-a4@example.com) → 200
+GET /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/grants → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-21T09:41:11.412Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+GET /admin/access/users/46054d9c-2960-42c7-a80c-53a520e0cb65/grants → 200 {"userId":"46054d9c-2960-42c7-a80c-53a520e0cb65","programs":[{"programId":"74ce84b9-c698-43ea-8470-1988a50656a8","programCode":"CNTT-TCTA-KHMT","grantedAt":"2026-11-21T09:28:58.251Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+GET /admin/access/users/b41c5d8d-83f7-42b2-ab4b-a83810bd520e/grants → 200 {"userId":"b41c5d8d-83f7-42b2-ab4b-a83810bd520e","programs":[],"permissions":[{"permission":"catalog_maintainer","grantedAt":"2026-11-21T09:28:58.251Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}]}
+GET /admin/access/users/925cb9c8-86de-4427-a8c8-72cf442dd074/grants → 200 {"userId":"925cb9c8-86de-4427-a8c8-72cf442dd074","programs":[],"permissions":[{"permission":"access_manager","grantedAt":"2026-11-21T09:28:52.950Z","grantedBy":null}]}
+GET /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/grants → 200 {"userId":"8ca00334-e8f3-4cfc-b285-944db1a971a4","programs":[],"permissions":[]}
+  OK  A1: APCS only
+  OK  A2: CNTT-TCTA-KHMT only
+  OK  A3: catalog_maintainer only
+  OK  A4: access_manager only, grantedBy null
+  OK  S1: no grant
+GET /programs/APCS/curricula/2024 → 200
+  OK  CS420 offeringTerms null in APCS 2024
+  OK  APCS 2024 has no group "Nhóm thử ADM-02k…"
+GET /courses/ZZADM07A → 404
+  OK  GET /courses/ZZADM07A 404
+GET /courses/ZZADM07B → 404
+  OK  GET /courses/ZZADM07B 404
+GET /courses/ZZADM99 → 404
+  OK  GET /courses/ZZADM99 404
+GET /courses/ZZADM05S → 404
+  OK  GET /courses/ZZADM05S 404
+GET /courses/ZZL0001 → 404
+  OK  GET /courses/ZZL0001 404
+GET /courses/BAA00104 → 200
+  BAA00104 nameEn "History of Vietnamese Communist Party"
+All checks OK

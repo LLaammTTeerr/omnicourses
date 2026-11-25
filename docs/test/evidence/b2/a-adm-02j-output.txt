@@ -1,0 +1,23 @@
+2026-11-25T06:10:37.479Z a-screens 02j
+2026-11-25T06:10:37.737Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-a1@example.com → 200
+  API POST /auth/sign-in (b2-a4@example.com) → 200
+  API GET /admin/access/programs → 200
+ok   ADM-02j: CS420's Kỳ mở reads "Chưa ghi nhận" before | observed: Chưa ghi nhận
+  API DELETE /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[],"permissions":[]}
+ok   ADM-02j: A4 revokes A1's APCS grant (200)
+ok   ADM-02j: Lưu sends one PUT, answered 403 | observed: PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms 403
+ok   ADM-02j: dialog stays open with HK1 and HK2 ticked, note "Thao tác này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó. Chưa lưu gì." | observed: Thao tác này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó. Chưa lưu gì.
+ok   ADM-02j: Quản trị leaves the sidebar at once
+ok   ADM-02j: after Hủy: the group table stays, with the red banner and "Trang này được giữ nguyên để bạn chép lại những gì đã nhập." | observed: Lần lưu vừa rồi bị từ chối: thao tác đó cần quyền “Quản trị chương trình”, mà tài khoản của bạn không có. Chưa lưu gì.
+
+Trang này được giữ nguyên để bạn chép lại những gì đã nhập.
+
+Tải lại theo quyền hiện tại
+ok   ADM-02j: after Tải lại theo quyền hiện tại: focus on the heading "Quản trị", card "Bạn không có quyền quản trị" | observed: h1 #admin-title Quản trị
+  API GET /programs/APCS/curricula/2024 → 200
+ok   ADM-02j: CS420 still reads offeringTerms null
+  API PUT /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-25T06:10:50.588Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+  API GET /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/grants → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-25T06:10:50.588Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+ok   ADM-02j: restore 200, A1 holds APCS again
+2026-11-25T06:10:51.450Z All checks ok
