@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { HOME_SIGNED_IN } from '../auth/redirect.js';
+import { useAdminAccess } from '../admin/store.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { groupClass } from '../groups.js';
@@ -10,7 +11,7 @@ import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
 import { SHELL_MESSAGES } from './messages.js';
-import { PHONE_MORE, PHONE_TABS } from './nav.js';
+import { listed, PHONE_MORE, PHONE_TABS } from './nav.js';
 import ThemeButton from './ThemeButton.vue';
 
 // Below 960 px the sidebar gives way to a top bar and a tab bar at the bottom (UI prototypes). `part` picks which.
@@ -18,6 +19,7 @@ import ThemeButton from './ThemeButton.vue';
 // page behind it inert, closes on Escape and gives focus back to "More".
 defineProps<{ part: 'top' | 'tabs' }>();
 const auth = useAuth();
+const access = useAdminAccess();
 const locale = useLocale();
 const route = useRoute();
 const m = useMessages(SHELL_MESSAGES);
@@ -25,7 +27,9 @@ const initial = computed(() => auth.user?.displayName.trim()[0]?.toUpperCase() ?
 
 const moreOpen = ref(false);
 /** The page in "More" the student is on, if any: "More" then shows as the current tab, in that page's colour. */
-const inMore = computed(() => PHONE_MORE.find((item) => route.matched.some((record) => record.name === item.route)) ?? null);
+// Administration is under "More" only for a user who holds a grant, as in the sidebar.
+const more = computed(() => listed(PHONE_MORE, access.any));
+const inMore = computed(() => more.value.find((item) => route.matched.some((record) => record.name === item.route)) ?? null);
 // Following a link, or going back, closes the sheet.
 watch(() => route.fullPath, () => (moreOpen.value = false));
 
@@ -76,8 +80,8 @@ function backdrop(event: MouseEvent): void {
           <button class="btn sm icon-only" type="button" :aria-label="m.close" @click="moreOpen = false"><Icon name="x" size="sm" /></button>
         </div>
         <ul class="more-list">
-          <li v-for="item in PHONE_MORE" :key="item.route">
-            <RouterLink :class="groupClass(item.group)" :to="{ name: item.route }" @click="moreOpen = false">
+          <li v-for="item in more" :key="item.route">
+            <RouterLink :class="groupClass(item.group)" :to="{ name: item.route }" :data-test="`more-${item.route}`" @click="moreOpen = false">
               <Icon :name="item.icon" /><span>{{ item.label[locale.lang] }}</span>
             </RouterLink>
           </li>

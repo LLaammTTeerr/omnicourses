@@ -10,6 +10,10 @@ import {
   type RouterScrollBehavior,
 } from 'vue-router';
 import SettingsView from './account/SettingsView.vue';
+import AccessAdmin from './admin/AccessAdmin.vue';
+import AdminView from './admin/AdminView.vue';
+import CatalogAdmin from './admin/CatalogAdmin.vue';
+import CurriculumAdmin from './admin/CurriculumAdmin.vue';
 import AuditView from './audit/AuditView.vue';
 import DashboardView from './audit/DashboardView.vue';
 import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
@@ -76,6 +80,22 @@ const routes: RouteRecordRaw[] = [
   },
   { path: '/transcript', name: 'transcript', component: TranscriptView, meta: { layout: 'app', auth: 'required' } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { layout: 'app', auth: 'required', onboarding: 'optional' } },
+  // F12 administration (ADR 0011). Open to every signed-in user: the page asks the API for their grants and says so
+  // when they hold none, and the API checks every request. Onboarding is optional, since an administrator need not
+  // be a student of an offered program. The sections are children, so the navigation's link stays marked in each;
+  // /admin itself has none, and AdminView then opens the first section the user holds.
+  {
+    path: '/admin',
+    name: 'admin',
+    component: AdminView,
+    meta: { layout: 'app', auth: 'required', onboarding: 'optional' },
+    // One child per entry of admin/sections.ts.
+    children: [
+      { path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin },
+      { path: 'catalog', name: 'admin-catalog', component: CatalogAdmin },
+      { path: 'access', name: 'admin-access', component: AccessAdmin },
+    ],
+  },
   { path: '/:unknown(.*)*', redirect: '/' },
 ];
 

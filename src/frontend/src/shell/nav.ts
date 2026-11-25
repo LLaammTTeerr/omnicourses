@@ -16,6 +16,11 @@ export interface NavItem {
   group: GroupId;
   /** `main` under the brand, `account` under the "Account" label. */
   section: 'main' | 'account';
+  /**
+   * Listed only for a user who holds an administration grant (ADR 0011). The API tells the screens who does (GET
+   * /admin/grants) and checks every request itself, so a hidden link is a convenience, never the protection.
+   */
+  grant?: true;
 }
 
 export const NAV: readonly NavItem[] = [
@@ -27,17 +32,21 @@ export const NAV: readonly NavItem[] = [
   { route: 'plans', icon: 'columns', label: { vi: 'Lộ trình', en: 'Plans' }, group: 'elec', section: 'main' },
   { route: 'guides', icon: 'book', label: { vi: 'Hướng dẫn', en: 'Guides' }, group: 'math', section: 'main' },
   { route: 'settings', icon: 'sliders', label: { vi: 'Cài đặt', en: 'Settings' }, group: 'thesis', section: 'account' },
+  { route: 'admin', icon: 'db', label: { vi: 'Quản trị', en: 'Administration' }, group: 'thesis', section: 'account', grant: true },
 ];
+
+/** The items to list for this user: an item that needs a grant only when they hold one. */
+export const listed = (items: readonly NavItem[], holdsGrant: boolean): readonly NavItem[] => items.filter((item) => !item.grant || holdsGrant);
 
 const pick = (...routes: string[]): readonly NavItem[] => routes.map((route) => NAV.find((item) => item.route === route)!);
 
 /**
- * The phone tab bar: four tabs, then "More" for the rest, since all seven do not fit at 400 px in English. The bar
+ * The phone tab bar: four tabs, then "More" for the rest, since all of them do not fit at 400 px in English. The bar
  * takes the UI prototypes' look (ui-prototypes/assets/shell.js), not their list of tabs. Every NAV item is in one of
  * the two lists (nav.spec.ts); the desktop sidebar lists them all.
  */
 export const PHONE_TABS: readonly NavItem[] = pick('dashboard', 'plans', 'audit', 'explorer');
-export const PHONE_MORE: readonly NavItem[] = pick('calendar', 'transcript', 'guides', 'settings');
+export const PHONE_MORE: readonly NavItem[] = pick('calendar', 'transcript', 'guides', 'settings', 'admin');
 
 /** The pages a visitor who is not signed in can open from the public header. */
 export const PUBLIC_NAV: readonly NavItem[] = NAV.filter((item) => item.route === 'guides');

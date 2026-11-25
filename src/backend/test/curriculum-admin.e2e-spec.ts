@@ -129,6 +129,32 @@ describe('Curriculum administration API (e2e)', () => {
     expect([access.status, access.body.permission]).toEqual([403, 'access_manager']);
   });
 
+  it("tells any signed-in user their own grants, and never another user's", async () => {
+    await http().get('/api/admin/grants').expect(401);
+    // No grant: empty lists, not a 403, so the screens can hide the administration entry.
+    expect((await as(stranger.token).get('/api/admin/grants').expect(200)).body).toEqual({ userId: stranger.userId, programs: [], permissions: [] });
+    expect((await as(admin.token).get('/api/admin/grants').expect(200)).body).toEqual({
+      userId: admin.userId,
+      programs: [{ programId: apcs, programCode: 'APCS', grantedAt: expect.any(String), grantedBy: manager.userId }],
+      permissions: [],
+    });
+    expect((await as(maintainer.token).get('/api/admin/grants').expect(200)).body).toEqual({
+      userId: maintainer.userId,
+      programs: [],
+      permissions: [{ permission: 'catalog_maintainer', grantedAt: expect.any(String), grantedBy: manager.userId }],
+    });
+    expect((await as(manager.token).get('/api/admin/grants').expect(200)).body).toEqual({
+      userId: manager.userId,
+      programs: [],
+      permissions: [{ permission: 'access_manager', grantedAt: expect.any(String), grantedBy: null }],
+    });
+    // The route reads no ID from the request: naming another user changes nothing.
+    const asked = await as(stranger.token).get(`/api/admin/grants?userId=${admin.userId}`).expect(200);
+    expect(asked.body).toEqual({ userId: stranger.userId, programs: [], permissions: [] });
+    // The answer carries grants only: no email, name or credential.
+    expect(Object.keys(asked.body).sort()).toEqual(['permissions', 'programs', 'userId']);
+  });
+
   it('lets the APCS administrator list APCS with its cohorts, and not write CLC, even through nested IDs', async () => {
     const { body } = await as(admin.token).get('/api/admin/programs').expect(200);
     expect(body.programs).toEqual([
