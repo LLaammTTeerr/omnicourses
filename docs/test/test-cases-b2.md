@@ -394,7 +394,7 @@ A synthetic CSV of courses or group links is parsed deterministically and shown 
 A signed-out reader of a shared plan sees only the allowed read-only data, with rule-engine violations shown in the view and the PDF. Revoked, old, dead and unknown links stay closed, the page is `noindex`, and every new public route joins the allow-list in `src/backend/test/public-routes.e2e-spec.ts` ([test plan row](test-plan.md#b2-checks)).
 
 - Owners: Dũng, Hoà
-- Depends on: plan sharing and PDF export (not started).
+- Depends on: plan sharing and PDF export. The API is built (#153); the Share panel, the shared page and the PDF are not started.
 
 | ID | Steps | Expected |
 | --- | --- | --- |

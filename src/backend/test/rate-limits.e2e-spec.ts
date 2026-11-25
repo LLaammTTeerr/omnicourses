@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -26,6 +27,17 @@ describe('Rate limits (e2e)', () => {
   it('refuses the 121st request within a minute on a route without a password', async () => {
     for (let i = 0; i < 120; i++) await http().get('/api/health').expect(200);
     await http().get('/api/health').expect(429);
+  });
+
+  // UC-09 §7, ADR 0010: a shared plan's public route is limited like any other, so tokens cannot be
+  // guessed in bulk. A guess that opens nothing counts too.
+  it('refuses the 121st guess of a shared-plan link within a minute', async () => {
+    const guess = () => http().get(`/api/shared-plans/${randomBytes(32).toString('base64url')}`);
+    for (let i = 0; i < 120; i++) await guess().expect(404);
+    const refused = await guess().expect(429);
+    // The refusal is an answer under the public path too: not indexed, not cached (ADR 0010).
+    expect(refused.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(refused.headers['cache-control']).toBe('no-store');
   });
 });
 
