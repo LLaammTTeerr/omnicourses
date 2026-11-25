@@ -203,7 +203,7 @@ C4Component
   }
   Boundary(core, "Shared services and other planned modules", "REST API") {
     Component(sharing, "sharing", "planned · Dũng", "F9 shared-plan read, through plans")
-    Component(notifications, "notifications", "planned · Dũng", "F10 reminders, warnings")
+    Component(notifications, "notifications", "API built · Dũng", "F10 inbox: school dates, changed transcript")
     Component(ai, "ai gateway", "built", "LlmService: structured(), chat()")
     Component(rules, "rules: RulesService", "planned · Triết", "Deterministic rule engine in src/rules/, 80% statement gate")
     Component(transcript, "transcript", "built", "rowsFor()")
@@ -234,7 +234,6 @@ C4Component
   UpdateElementStyle(advisor, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
   UpdateElementStyle(admin, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
   UpdateElementStyle(sharing, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(notifications, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
 
 Black lines are calls into the rule engine, purple lines calls to the AI gateway, green lines reads of the transcript through `rowsFor()`. `sharing` reads plans through one read-only method of `plans`, and `notifications` warns when a saved transcript changes; those two links are left out of the drawing.

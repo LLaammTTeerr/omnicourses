@@ -1,6 +1,6 @@
 # Class model
 
-- Drawn from the code on `main` on 15 November 2026 (commit `47e4ba3`), not from the UI prototypes or the use-case specifications. Every class, attribute, relation and method below exists in `src/`; each diagram names its source files. The academic calendar (§1.6, §3.5 and the `calendar/` row of §4) was added from `main` on 17 November 2026 (commit `b6892b7`).
+- Drawn from the code on `main` on 15 November 2026 (commit `47e4ba3`), not from the UI prototypes or the use-case specifications. Every class, attribute, relation and method below exists in `src/`; each diagram names its source files. The academic calendar (§1.6, §3.5 and the `calendar/` row of §4) was added from `main` on 17 November 2026 (commit `b6892b7`). The notification inbox (§1.8, §3.6, and the three methods it reads in §3.2 and §3.5) was added on 25 November 2026 with the code of [ADR 0018](adr/0018-notification-inbox.md); it is built in the API only, so §4 has no row for it.
 - Where the built code differs from a use-case specification, the code is drawn and the difference is listed in [Design vs. use-case specification differences](design-differences.md).
 - Level: this is the fourth C4 level (code) under the [software architecture document](architecture.md). The matching behaviour is in the [sequence diagrams](sequence-diagrams/README.md).
 
@@ -380,7 +380,7 @@ classDiagram
 
 | When this row is deleted | These rows go with it (`CASCADE`) | The delete is refused while these exist (`RESTRICT`) | These rows stay, with the column cleared (`SET NULL`) |
 | --- | --- | --- | --- |
-| `User` | `Session`, `OnboardingAnswers`, `TranscriptRow`, `AiUsage`, `Plan`, `PlanPlacement`, `ProgramAdminGrant` and `GlobalAdminGrant` the user holds | none | grants the user gave (`granted_by`); `AcademicCalendarEvent` rows the user created or last changed (`created_by`, `updated_by`) |
+| `User` | `Session`, `OnboardingAnswers`, `TranscriptRow`, `AiUsage`, `Plan`, `PlanPlacement`, `Notification`, `ProgramAdminGrant` and `GlobalAdminGrant` the user holds | none | grants the user gave (`granted_by`); `AcademicCalendarEvent` rows the user created or last changed (`created_by`, `updated_by`) |
 | `Program` | none | `Curriculum`, `ProgramAdminGrant`, `AcademicCalendarEvent` | none |
 | `Curriculum` | `RequirementGroup`, `CombinedMinimum`, `CoursePrerequisiteList`, `CourseOfferingTerm` | `Plan` | none |
 | `RequirementGroup` | `RequirementGroupCourse`, `CombinedMinimumGroup`, `RequirementGroupOverflow` | `PlanPlacement` slots | none |
@@ -389,6 +389,49 @@ classDiagram
 | `Guide` | `GuideText` | none | none |
 
 The account purge relies on the first row: one `DELETE FROM users` removes everything the student owns ([ADR 0004](adr/0004-account-export-and-deletion.md); `src/backend/test/account.e2e-spec.ts`, with the rules in `user-table-rules.ts`, fails on a table that would escape it).
+
+Deleting an `AcademicCalendarEvent` deletes no `Notification` and clears nothing in one: the two tables have no foreign key between them (§1.8).
+
+### 1.8 Notification inbox
+
+Sources: `notifications/notification.entity.ts`, `notifications/notification-kinds.ts`; migration `create-notifications` ([ADR 0018](adr/0018-notification-inbox.md), proposed).
+
+```mermaid
+classDiagram
+    direction LR
+    class User {
+        id : uuid PK
+    }
+    class Notification {
+        id : uuid PK
+        userId : uuid FK
+        kind : NotificationKind
+        calendarEventId : uuid? no foreign key
+        programCode : varchar 50?
+        academicYear : smallint?
+        term : smallint?
+        startsOn : date?
+        endsOn : date?
+        title : varchar 255?
+        titleEn : varchar 255?
+        readAt : timestamptz?
+    }
+    class NotificationKind {
+        <<enumeration>>
+        registration_soon
+        registration_open
+        term_start
+        transcript_changed
+    }
+    Notification "0..*" --> "1" User : user_id CASCADE
+    Notification ..> NotificationKind
+```
+
+- The table is `notifications`. One row is one notification of one student. `user_id` is `ON DELETE CASCADE`, so the account export reads the rows and the purge deletes them ([ADR 0004](adr/0004-account-export-and-deletion.md)).
+- `calendarEventId` holds the ID of the `AcademicCalendarEvent` (§1.6) that the notification announces. It has no foreign key on purpose: the notification stays when an administrator deletes the school date. `programCode`, `academicYear`, `term`, `startsOn`, `endsOn`, `title` and `titleEn` are a copy of that date, taken when the notification is made and never updated.
+- `uq_notifications_user_event_kind` is unique on (`user_id`, `calendar_event_id`, `kind`): a student gets each notification of a school date once, also when the date moves. A `transcript_changed` row has no school date, and PostgreSQL treats NULLs as distinct, so the key does not limit it.
+- Checks: `ck_notifications_kind` (the four kinds), `ck_notifications_event` (`calendar_event_id` is NULL exactly for `transcript_changed`) and `ck_notifications_snapshot` (the copy is all set, except the optional `term` and `title_en`, with a school date, and all NULL without one). The index `ix_notifications_user_created` is on (`user_id`, `created_at`, `id`).
+- A row holds no sentence, no URL, no grade, no course code and no rule value. `createdAt` and `readAt` are written from the injected `Clock`, not from the database's time.
 
 ## 2. Rule engine
 
@@ -883,6 +926,7 @@ classDiagram
     }
     class OnboardingService {
         +answersFor(userId) OnboardingDto
+        +userIdsByProgram(programCodes, onlyUserId) Map
         +save(userId, dto) OnboardingDto
     }
     class TranscriptController {
@@ -891,6 +935,7 @@ classDiagram
     }
     class TranscriptService {
         +rowsFor(userId) TranscriptEntry list
+        +onSaved(listener)
         +replace(userId, rows) TranscriptEntry list
     }
     class CurriculumController {
@@ -1142,6 +1187,7 @@ classDiagram
         +create(callerId, programId, dto) AcademicCalendarEventDto
         +update(callerId, programId, eventId, dto) AcademicCalendarEventDto
         +remove(callerId, programId, eventId)
+        +startingOn(days, kinds) CalendarEventStart list
         -onboardingProgram(userId)
     }
     class AcademicCalendarDto {
@@ -1164,10 +1210,88 @@ classDiagram
 - Writing: a program administrator of that program. Each write runs inside `AdminWriteService.run` with the need `{ program: programId }`, so it uses F12's grant check, write lock and error codes, and has no guard of its own ([ADR 0011](adr/0011-curriculum-administration.md)). `AcademicCalendarModule` imports `CurriculumAdminModule`, which exports `AdminWriteService`. `StrictBody` refuses a body field that `CreateCalendarEventDto` or `UpdateCalendarEventDto` does not declare.
 - Checks before a write: `IsCalendarDate` refuses a date that is not a real `YYYY-MM-DD` day; `datesProblem` refuses an `endsOn` before `startsOn` and a `startsOn` outside the academic year's two calendar years; `sourceUrl` must start with lowercase `https://`. `eventIn` answers 404 for an event of another program. `eventDto` leaves out `createdBy` and `updatedBy`.
 - The single-page app only reads: the `calendar/` folder (§4). No screen calls the write routes yet.
+- `startingOn` has no route. It is the read-only method the notification inbox calls (§3.6): the dates of the given kinds whose first day is one of the given days, in every program, as `CalendarEventStart` (the program code, the kind, the days and the titles; no notes, no source link, no actor ID). `AcademicCalendarModule` exports the service for it.
 
 | Controller | Routes |
 | --- | --- |
 | `AcademicCalendarController` | `GET /academic-calendar`; `POST /admin/programs/{programId}/calendar-events`; `PATCH`, `DELETE /admin/programs/{programId}/calendar-events/{eventId}` |
+
+### 3.6 Notification inbox
+
+Sources: `notifications/`, `config/clock.ts`, `transcript/transcript-change.ts` ([ADR 0018](adr/0018-notification-inbox.md), proposed).
+
+```mermaid
+classDiagram
+    direction LR
+    class NotificationsController {
+        +list(user, query) NotificationListDto
+        +unreadCount(user) UnreadCountDto
+        +markAllRead(user) UnreadCountDto
+        +markRead(user, id) NotificationDto
+    }
+    class NotificationsService {
+        +onModuleInit()
+        +createDue(onlyUserId) number
+        +list(userId, query) NotificationListDto
+        +unreadCount(userId) UnreadCountDto
+        +markRead(userId, id) NotificationDto
+        +markAllRead(userId) UnreadCountDto
+        -transcriptSaved(tx, save)
+    }
+    class NotificationSchedule {
+        +onApplicationBootstrap()
+        +onModuleDestroy()
+        +tick()
+    }
+    class Clock {
+        +now() Date
+    }
+    class NotificationDto {
+        id : uuid
+        kind : NotificationKind
+        createdAt : Date
+        readAt : Date?
+        event : NotificationEventDto?
+        links : NotificationLink list
+    }
+    class TranscriptSave {
+        userId : string
+        wasEmpty : boolean
+        changed : boolean
+    }
+    class AcademicCalendarService {
+        +startingOn(days, kinds) CalendarEventStart list
+    }
+    class OnboardingService {
+        +userIdsByProgram(programCodes, onlyUserId) Map
+    }
+    class TranscriptService {
+        +onSaved(listener)
+    }
+    NotificationsController --> NotificationsService
+    NotificationSchedule --> NotificationsService : createDue, on a timer
+    NotificationSchedule --> Clock
+    NotificationsService --> Clock
+    NotificationsService --> AcademicCalendarService : dates that start today or in 7 days
+    NotificationsService --> OnboardingService : students of a program
+    NotificationsService --> TranscriptService : registers a listener
+    NotificationsService ..> TranscriptSave
+    NotificationsService ..> NotificationDto
+    NotificationsService ..> Notification
+    class Notification
+```
+
+- `createDue` creates every notification that is due on today's day in Vietnam (`vietnamDate(clock.now())`) and does not exist yet. `notificationsDue` (in `notification-kinds.ts`) is strict: `registration_soon` only on the day 7 days before a `registration` date starts, `registration_open` and `term_start` only on the first day. A day that has passed makes nothing.
+- Recipients: the students whose saved onboarding program is the date's program at that moment, without the accounts waiting for deletion. One `INSERT … SELECT … ON CONFLICT DO NOTHING` per school date and kind writes all their rows.
+- Two callers run `createDue`. `NotificationSchedule` runs it for everyone when the app starts and then on a timer: every 10 minutes, and at 00:00 in Vietnam when that comes first (`msUntilNextRun`). The timer is unref'd and stops when the app closes. `list` and `unreadCount` run it first for the caller alone, so a school date entered for today shows at once.
+- The transcript: `TranscriptService.replace` (§3.2) calls its listeners inside the save's transaction with a `TranscriptSave`. The service writes one `transcript_changed` row through that transaction when `changed` is true and `wasEmpty` is false. A save that fails leaves no row, and the listener is never given a transcript row.
+- Reading: the caller's own notifications only; no route takes a user ID. `list` orders by `createdAt` then `id`, both descending, and takes the filters `unread` and `kind`, `limit` (default 50, at most 100) and `before` (the ID of the last notification of the previous page). `NotificationDto.links` holds keys (`calendar`, `planner`, `audit`), never a URL. Another student's ID, an unknown ID and a malformed ID (`NotificationIdPipe`) all answer 404 `not_found`.
+- `markRead` and `markAllRead` can be repeated without effect: `readAt` keeps the first time.
+- No screen calls these routes yet: the single-page app has no bell and no inbox (§4).
+
+| Controller | Routes |
+| --- | --- |
+| `NotificationsController` | `GET /notifications`; `GET /notifications/unread-count`; `POST /notifications/read-all`; `POST /notifications/{id}/read` |
 
 ## 4. Single-page app modules
 
@@ -1205,7 +1329,8 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `ProgramAdminGrant`, `GlobalAdminGrant`, `AdminWriteService`, the three administration services and controllers | 1.3, 3.3 | F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
 | `Guide`, `GuideText`, `GuideContent`, `GuidesService` | 1.5, 3.4 | F11 | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | `AiUsage`, `LlmService`, `GatewayLlmService`, `AiCostGuard`, `ModelClient` | 1.1, 3.4 | F6 goal box and F8 (gateway only; neither feature is built) | [ADR 0003](adr/0003-language-model-scope.md) |
-| `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView` | 1.6, 3.5, 4 | F10 school dates (the dates and the calendar page; the notification inbox is not built) | [ADR 0017](adr/0017-academic-calendar.md) (proposed) |
-| (no classes yet) | | F7 what-if, F9 sharing, F10 notification inbox | [ADR 0006](adr/0006-plan-generator.md) for F6's planner; not built |
+| `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView` | 1.6, 3.5, 4 | F10 school dates (the dates and the calendar page) | [ADR 0017](adr/0017-academic-calendar.md) (proposed) |
+| `Notification`, `NotificationsService`, `NotificationSchedule`, `NotificationsController`, `Clock`, `TranscriptSave` | 1.8, 3.6 | F10 notification inbox (the API only; the bell and the inbox screen are not built) | [ADR 0018](adr/0018-notification-inbox.md) (proposed) |
+| (no classes yet) | | F7 what-if, F9 sharing | [ADR 0006](adr/0006-plan-generator.md) for F6's planner; not built |
 
 The stack these classes are written in is [ADR 0001](adr/0001-technology-stack.md); how they are tested in a browser is [ADR 0008](adr/0008-browser-testing.md).

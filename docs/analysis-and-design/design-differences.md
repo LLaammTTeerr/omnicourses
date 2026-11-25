@@ -1,6 +1,6 @@
 # Design vs. use-case specification differences
 
-The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/README.md) draw the code on `main` as of 15 November 2026; UC-12 below was rewritten on 25 November 2026 with the notification inbox API ([ADR 0018](adr/0018-notification-inbox.md)). Where that code differs from a use-case specification ([`docs/requirements/use-cases/`](../requirements/use-cases/README.md), and the Use-Case Specification v1.0 in [`report/assignments/PA2/uc-specs.tex`](../../report/assignments/PA2/uc-specs.tex)), the code is drawn and the difference is listed here. Each "not built" below was checked by searching `src/` for the code it would need.
+The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/README.md) draw the code on `main` as of 15 November 2026 (the class model also draws the academic calendar and the notification inbox, added later); UC-12 below was rewritten on 25 November 2026 with the notification inbox API ([ADR 0018](adr/0018-notification-inbox.md)). Where that code differs from a use-case specification ([`docs/requirements/use-cases/`](../requirements/use-cases/README.md), and the Use-Case Specification v1.0 in [`report/assignments/PA2/uc-specs.tex`](../../report/assignments/PA2/uc-specs.tex)), the code is drawn and the difference is listed here. Each "not built" below was checked by searching `src/` for the code it would need.
 
 ## UC-01 Sign up and onboard
 
@@ -92,6 +92,5 @@ The school dates and their calendar page are built ([ADR 0017](adr/0017-academic
 ## Documents that lag the code
 
 - [`architecture.md`](architecture.md) §4.2 and §5 still show `rules`, `audit`, `plans`, `curriculum-admin`, the session store and the student screens as planned; all are built.
-- [`architecture.md`](architecture.md) has no `academic-calendar` module and still draws `notifications` as planned; the school dates and the `/calendar` page are built ([class model](class-model.md) §1.6, §3.5), and so is the notification inbox API ([ADR 0018](adr/0018-notification-inbox.md)).
-- The [class model](class-model.md) (drawn from `main` as of 15 November 2026) has no class of the `notifications` module and still says that the notification inbox is not built.
+- [`architecture.md`](architecture.md) has no `academic-calendar` module in §4.1, and no `notifications` module there either: §4.2 names `notifications` with its API built. The school dates and the `/calendar` page are built ([class model](class-model.md) §1.6, §3.5), and so is the notification inbox API ([class model](class-model.md) §1.8, §3.6; [ADR 0018](adr/0018-notification-inbox.md)).
 - [`sequence-diagrams/UC-01-sign-up-and-onboard.md`](sequence-diagrams/UC-01-sign-up-and-onboard.md) draws sign-up, sign-in and sessions; onboarding (`GET` and `PUT /api/users/me/onboarding`) has been built since and is not drawn.
