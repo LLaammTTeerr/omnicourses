@@ -3,7 +3,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import { Program } from '../curriculum/program.entity.js';
 import { notFound, validationFailed } from '../curriculum-admin/admin-errors.js';
 import { AdminWriteService } from '../curriculum-admin/admin-write.service.js';
-import { AcademicCalendarEvent } from './academic-calendar-event.entity.js';
+import { AcademicCalendarEvent, type CalendarEventKind } from './academic-calendar-event.entity.js';
 import {
   AcademicCalendarDto,
   AcademicCalendarEventDto,
@@ -31,6 +31,22 @@ export function datesProblem({ academicYear, startsOn, endsOn }: EventDates): st
   const year = yearOf(startsOn);
   if (year !== academicYear && year !== academicYear + 1) return `startsOn: ${startsOn} is outside the academic year ${academicYear}–${academicYear + 1}`;
   return null;
+}
+
+/**
+ * What another module may read of a school date (ADR 0018): its program, kind, days and titles.
+ * No notes, no source link and no actor IDs.
+ */
+export interface CalendarEventStart {
+  id: string;
+  programCode: string;
+  academicYear: number;
+  term: 1 | 2 | 3 | null;
+  kind: CalendarEventKind;
+  startsOn: string;
+  endsOn: string;
+  title: string;
+  titleEn: string | null;
 }
 
 const blankToNull = (value: string | null | undefined): string | null => (value === undefined || value === null || value.trim() === '' ? null : value);
@@ -85,6 +101,35 @@ export class AcademicCalendarService {
     if (query.to) qb.andWhere('e.startsOn <= :to', { to: query.to });
     const events = await qb.orderBy('e.startsOn', 'ASC').addOrderBy('e.endsOn', 'ASC').addOrderBy('e.title', 'ASC').addOrderBy('e.id', 'ASC').getMany();
     return { program: programDto(program), events: events.map(eventDto) };
+  }
+
+  /**
+   * The dates of the given kinds whose first day is one of `days`, in every program, in a fixed
+   * order. Read-only: the notification inbox asks which dates start today or in seven days
+   * (ADR 0018). It grants nothing: the same dates are open to every signed-in user through list().
+   */
+  async startingOn(days: readonly string[], kinds: readonly CalendarEventKind[]): Promise<CalendarEventStart[]> {
+    if (!days.length || !kinds.length) return [];
+    const events = await this.db
+      .getRepository(AcademicCalendarEvent)
+      .createQueryBuilder('e')
+      .innerJoinAndSelect('e.program', 'p')
+      .where('e.startsOn IN (:...days)', { days })
+      .andWhere('e.kind IN (:...kinds)', { kinds })
+      .orderBy('e.startsOn', 'ASC')
+      .addOrderBy('e.id', 'ASC')
+      .getMany();
+    return events.map((e) => ({
+      id: e.id,
+      programCode: e.program.code,
+      academicYear: e.academicYear,
+      term: e.term,
+      kind: e.kind,
+      startsOn: e.startsOn,
+      endsOn: e.endsOn,
+      title: e.title,
+      titleEn: e.titleEn,
+    }));
   }
 
   create(callerId: string, programId: string, dto: CreateCalendarEventDto): Promise<AcademicCalendarEventDto> {

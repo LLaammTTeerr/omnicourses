@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Term } from '../terms/term.js';
+import { sameEntries, type TranscriptSaveListener } from './transcript-change.js';
 import { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
 
@@ -10,6 +11,8 @@ import { TranscriptRow } from './transcript-row.entity.js';
 // whether a grade passes belong to the rule engine (AGENTS.md hard rule 1).
 @Injectable()
 export class TranscriptService {
+  private readonly saveListeners = new Set<TranscriptSaveListener>();
+
   constructor(
     private readonly db: DataSource,
     @InjectRepository(TranscriptRow) private readonly rows: Repository<TranscriptRow>,
@@ -22,6 +25,16 @@ export class TranscriptService {
     return rows.map(toEntry);
   }
 
+  /**
+   * Registers a listener for every save, called inside the save's transaction (ADR 0018); returns
+   * the function that removes it. The notification inbox uses it, so this module does not know
+   * the inbox. The listener is told that the transcript changed, never what it holds.
+   */
+  onSaved(listener: TranscriptSaveListener): () => void {
+    this.saveListeners.add(listener);
+    return () => void this.saveListeners.delete(listener);
+  }
+
   /** Replaces the whole transcript with the reviewed rows (UC-02 step 7, A5), all or nothing. */
   async replace(userId: string, rows: TranscriptEntry[]): Promise<TranscriptEntry[]> {
     await this.db.transaction(async (tx) => {
@@ -29,8 +42,15 @@ export class TranscriptService {
       // NO KEY UPDATE conflicts with itself but not with the KEY SHARE lock of a foreign-key
       // check, so inserts that reference the user (a sign-in's session) don't wait.
       await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
+      // Read under the lock: what this save replaces is what the previous save committed.
+      const before = (await tx.findBy(TranscriptRow, { userId })).map(toEntry);
       await tx.delete(TranscriptRow, { userId });
       await tx.insert(TranscriptRow, rows.map((r) => toEntity(userId, r)));
+      if (!this.saveListeners.size) return;
+      // Compared as stored (a grade is numeric(3,1)), not as sent.
+      const after = (await tx.findBy(TranscriptRow, { userId })).map(toEntry);
+      const save = { userId, wasEmpty: before.length === 0, changed: !sameEntries(before, after) };
+      for (const listener of this.saveListeners) await listener(tx, save);
     });
     return this.rowsFor(userId);
   }
