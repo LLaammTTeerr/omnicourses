@@ -15,6 +15,8 @@ export class HttpError extends Error {
     readonly details: string[] = [],
     /** The machine-readable `code` of the error body, such as `onboarding_required` on a 409, or null. */
     readonly code: string | null = null,
+    /** The whole JSON error body, for the fields an error adds beside `code` (the `permission` of a 403); null when it is not a JSON object. */
+    readonly body: Readonly<Record<string, unknown>> | null = null,
   ) {
     super(`${method} ${path} failed: ${status}`);
     this.name = 'HttpError';
@@ -40,14 +42,15 @@ export interface RequestOptions {
  */
 export const REQUEST_TIMEOUT_MS = 30_000;
 
-async function errorBody(res: Response): Promise<{ details: string[]; code: string | null }> {
+async function errorBody(res: Response): Promise<{ details: string[]; code: string | null; body: Record<string, unknown> | null }> {
   try {
-    const body: unknown = await res.json();
-    const { message, code } = body && typeof body === 'object' ? (body as { message?: unknown; code?: unknown }) : {};
+    const parsed: unknown = await res.json();
+    const body = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+    const { message, code } = body ?? {};
     const details = Array.isArray(message) ? message.filter((m): m is string => typeof m === 'string') : typeof message === 'string' ? [message] : [];
-    return { details, code: typeof code === 'string' ? code : null };
+    return { details, code: typeof code === 'string' ? code : null, body };
   } catch {
-    return { details: [], code: null };
+    return { details: [], code: null, body: null };
   }
 }
 
@@ -64,8 +67,8 @@ export async function send(method: string, path: string, { body, token, signal, 
     ...(signals.length > 0 && { signal: signals.length === 1 ? signals[0] : AbortSignal.any(signals) }),
   });
   if (!res.ok) {
-    const { details, code } = await errorBody(res);
-    throw new HttpError(path, res.status, method, details, code);
+    const { details, code, body } = await errorBody(res);
+    throw new HttpError(path, res.status, method, details, code, body);
   }
   return res;
 }

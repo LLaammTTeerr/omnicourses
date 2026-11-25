@@ -95,7 +95,7 @@ T-K, every result type and a term 3 row. Only a `graded` row has a grade:
 
 - Done: calendar API (#108) and calendar page (#99); transcript storage.
 - In progress: planner drag-and-drop and live validation; curriculum administration API (part done).
-- Not started: transcript paste/type entry screen; curriculum administration screens (the CSV import API is on `main` since 25 November 2026, with no screen); notifications inbox; plan sharing and PDF export; nightly backup.
+- Not started: transcript paste/type entry screen; the screen for the CSV import of curriculum administration (the CSV import API is on `main` since 25 November 2026; the other administration screens are built, [#146](https://github.com/LLaammTTeerr/omnicourses/issues/146)); notifications inbox; plan sharing and PDF export; nightly backup.
 
 ## 2. TC-B2-PLAN-01: Editing and live validation
 
@@ -248,7 +248,7 @@ For ADM-01 to ADM-07, [UC-11's Examples to test](../requirements/use-cases/UC-11
 A catalog maintainer with no program grant edits a shared course after reviewing every affected curriculum, and both programs read the correction. A program-only administrator cannot make that write, and cohort-specific values are refused ([test plan row](test-plan.md#b2-checks)).
 
 - Owner: Thắng
-- Depends on: the catalog route `PATCH /api/admin/catalog/courses/{code}` of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; ADR 0011 (accepted). These cases call the API only, as ADM-02 does. The administration screens are not built: the catalog screen's impact review (UC-11 A8, the affected curricula shown before the maintainer confirms) and its refusal message are checked when the screens land.
+- Depends on: the catalog route `PATCH /api/admin/catalog/courses/{code}` of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; ADR 0011 (accepted). These cases call the API only, as ADM-02 does. The administration screens are built since [#146](https://github.com/LLaammTTeerr/omnicourses/issues/146) (`/admin/catalog`), but these cases do not use them: the catalog screen's impact review (UC-11 A8, the affected curricula shown before the maintainer confirms) and its refusal message still need screen cases of their own.
 - How the review works on `main`: there is no preview route. The first `PATCH` of a course that a curriculum links answers `409 impact_confirmation_required`, with the affected curricula and a `reviewVersion`, and saves nothing. The same `PATCH` sent again with `"confirmImpact"` set to that `reviewVersion` saves it ([implementation notes](../analysis-and-design/adr/0011-curriculum-administration.md#implementation-notes-as-of-25-november-2026)). The version covers the course's current values, the proposed values and the affected curricula, so it confirms exactly one change.
 
 **Accounts.** A1 (APCS program administrator, no catalog grant) and A3 (catalog maintainer, no program grant), with the grants of ADM-02: check them as ADM-02's "Accounts and grants" says. `{APCS24}` is in ADM-02's values table.
@@ -316,7 +316,7 @@ Already automated: `curriculum-admin.e2e-spec.ts` covers a ("refuses the admin r
 Adding a second cohort, with its groups and links to existing catalog courses, leaves the first cohort's membership, saved plans and audit results unchanged and creates no duplicate courses. Duplicate program or cohort identifiers and invalid links are refused ([test plan row](test-plan.md#b2-checks)).
 
 - Owners: Thắng, Triết
-- Depends on: curriculum administration API (part done); administration screens (not started); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
+- Depends on: curriculum administration API (part done); administration screens (built for the routes that exist, #146; no program or cohort screen); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
 
 | ID | Steps | Expected |
 | --- | --- | --- |
@@ -327,7 +327,7 @@ Adding a second cohort, with its groups and links to existing catalog courses, l
 Removing one group link keeps the course and its other links. Deleting a course or other data that saved records still need is refused, deleting an unreferenced course needs catalog permission, and changing a linked course code is not an ordinary edit ([test plan row](test-plan.md#b2-checks)).
 
 - Owners: Thắng, Triết
-- Depends on: curriculum administration API (part done); administration screens (not started); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
+- Depends on: curriculum administration API (part done); administration screens (built for the routes that exist, #146; no program or cohort screen); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
 
 | ID | Steps | Expected |
 | --- | --- | --- |
@@ -361,7 +361,7 @@ Already automated: `curriculum-admin.e2e-spec.ts` covers a's code check, for a 1
 The first access manager is set up in a controlled way, sign-up gives no privilege, and every write checks the current grant. Grant rows reference users as AGENTS.md requires, and account export and deletion cover them without deleting shared program or catalog data ([test plan row](test-plan.md#b2-checks)).
 
 - Owners: Thắng, Lâm
-- Depends on: the grant routes and `admin:bootstrap` of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; account export and deletion (B1); ADR 0011 (accepted). These cases call the API; the bootstrap and the purge need the server, and Lâm's bot runs them (§1, "Database"). When a case reaches its server step, write "ADM-06b ready", "ADM-06e ready" or "ADM-06f ready" in the PR's thread, one at a time, and record the output the bot posts. Before purging A5, the bot checks that A6 still exists. The grant screen and the account screen's **User ID** field with **Copy** (ADR 0011) are not built, and are checked when the screens land.
+- Depends on: the grant routes and `admin:bootstrap` of [#74](https://github.com/LLaammTTeerr/omnicourses/pull/74), on staging; account export and deletion (B1); ADR 0011 (accepted). These cases call the API; the bootstrap and the purge need the server, and Lâm's bot runs them (§1, "Database"). When a case reaches its server step, write "ADM-06b ready", "ADM-06e ready" or "ADM-06f ready" in the PR's thread, one at a time, and record the output the bot posts. Before purging A5, the bot checks that A6 still exists. The grant screen (`/admin/access`) and the account screen's **User ID** field with **Copy** (ADR 0011) are built since [#146](https://github.com/LLaammTTeerr/omnicourses/issues/146), but these cases do not use them: they still need screen cases of their own.
 - Not tested on staging: recovery when no active access manager is left. It would take A4's role away; `curriculum-admin.e2e-spec.ts` covers it.
 - A bootstrap that succeeds is not repeated here. The bot bootstrapped A4 on 21 November 2026 (§1), and [the ADM-02 run](evidence/b2/results-2026-11-21.md) recorded the result: A4 holds `access_manager` with `grantedBy: null`. The command's output was not kept, so that run shows the outcome only. `curriculum-admin.e2e-spec.ts` covers the command itself ("refuses an unknown account and one waiting for deletion, then makes the first access manager once").
 
@@ -383,7 +383,7 @@ Already automated: `curriculum-admin.e2e-spec.ts` covers a's no-grant list ("giv
 A synthetic CSV of courses or group links is parsed deterministically and shown as a preview with errors by row number. A file with any bad row saves nothing, a valid file saves in one transaction after confirmation with the same permission checks as manual entry, and importing it again creates no duplicates ([test plan row](test-plan.md#b2-checks)).
 
 - Owner: Thắng
-- Depends on: curriculum administration API (part done); CSV import API (on `main` since 25 November 2026: [ADR 0011, CSV import as built](../analysis-and-design/adr/0011-curriculum-administration.md#csv-import-as-built-25-november-2026)); administration screens (not started); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
+- Depends on: curriculum administration API (part done); CSV import API (on `main` since 25 November 2026: [ADR 0011, CSV import as built](../analysis-and-design/adr/0011-curriculum-administration.md#csv-import-as-built-25-november-2026)); administration screens (built for the routes that existed before the CSV import, #146; the CSV import has no screen yet, [#151](https://github.com/LLaammTTeerr/omnicourses/issues/151)); reviewed ADR 0011 (#93, open); Triết's rule-interface handoff.
 
 | ID | Steps | Expected |
 | --- | --- | --- |

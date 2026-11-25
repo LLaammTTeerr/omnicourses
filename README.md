@@ -28,7 +28,7 @@ Feature status as of 2026-11-11. Feature numbers and names follow the [Vision](r
 | F9 Plan export and sharing        | Planned         |                                                                                                                        |
 | F10 Notifications                 | Planned         |                                                                                                                        |
 | F11 Quicklinks and guides         | Live            | Guide pages are open without signing in; the first guides stay drafts until they are checked on the school portals     |
-| F12 Curriculum administration     | Live (API)      | Admin API for requirement groups, catalog courses, prerequisites, offering terms and access grants (#74); no screens yet |
+| F12 Curriculum administration     | Live (API)      | Admin API for requirement groups, catalog courses, prerequisites, offering terms and access grants (#74); administration screens for those routes (#146); no program or cohort creation and no CSV import yet |
 
 **Prerequisites:** every APCS 2024 and 2025 course is recorded as having no prerequisite, except CS470, which needs CS469. That one rule is printed in the APCS curriculum PDFs (p. 8 for 2024, p. 9 for 2025), and the Project Lead decided on 24 November 2026 to keep it; for the other courses the Project Lead's decision of 15 November 2026 is the source. The planner checks them against these records.
 
