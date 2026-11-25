@@ -198,6 +198,8 @@ const errors = computed<ImportRowError[]>(() => (refusal.value?.kind === 'file' 
 const writes = useWrites();
 /** The preview made again to settle a confirmation that got no answer. */
 let landedPreview: { target: Target; csv: string; result: ImportPreview } | null = null;
+/** Where the last confirmation went, and the text it sent: its outcome is said for that file and that target. */
+let sent: { target: Target; csv: string } | null = null;
 
 onBeforeRouteLeave(() => !(writes.busy.value || previewing.value) || !auth.signedIn);
 
@@ -220,6 +222,7 @@ async function confirm(): Promise<void> {
   notice.value = null;
   changed.value = false;
   landedPreview = null;
+  sent = { target: of, csv };
   const result = await writes.send(
     (token) => (of.cohort ? confirmLinkImport(token, of.cohort, csv, version) : confirmCatalogImport(token, csv, version)),
     // A file already saved previews as nothing to do: no error, nothing new, nothing changed.
@@ -245,9 +248,9 @@ async function settle(outcome: string, summary: { inserts: number; updates: numb
   }
   // Not saved: what is saved now is the preview just made.
   if (outcome === 'not_applied' && landedPreview) preview.value = landedPreview;
-  if (failure?.kind === 'review_changed' && preview.value) {
-    // Nothing was saved, and the 409 carries no new review: preview the same file again.
-    const { target: of, csv } = preview.value;
+  if (failure?.kind === 'review_changed' && sent) {
+    // Nothing was saved, and the 409 carries no new review: preview the same file again, for the same target.
+    const { target: of, csv } = sent;
     writes.clear();
     await show(of, csv);
     changed.value = true;
@@ -297,10 +300,13 @@ const changesOf = (row: CatalogImportRow) =>
   );
 const chip = { insert: 'ok', update: 'warn', no_op: '' } as const;
 
+// While a confirmation is out the target stays as it was sent, so its outcome is said for that target.
 function pickProgram(programId: string): void {
+  if (writes.busy.value) return;
   picked.value = { programId, curriculumId: null };
 }
 function pickCohort(curriculumId: string): void {
+  if (writes.busy.value) return;
   if (program.value) picked.value = { programId: program.value.id, curriculumId };
 }
 </script>
@@ -334,11 +340,11 @@ function pickCohort(curriculumId: string): void {
           <div v-else class="import-target" role="group" :aria-label="text.target">
             <label class="field">
               <span>{{ m.curriculum.program }}</span>
-              <SelectMenu :model-value="program.id" :options="(programList ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" data-test="import-program" @update:model-value="pickProgram" />
+              <SelectMenu :model-value="program.id" :options="(programList ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" :disabled="writes.busy.value" data-test="import-program" @update:model-value="pickProgram" />
             </label>
             <label v-if="program.curricula.length" class="field">
               <span>{{ m.curriculum.cohort }}</span>
-              <SelectMenu :model-value="cohort?.id" :options="program.curricula.map((item) => ({ value: item.id, label: m.curriculum.cohortOption(item.cohortYear) }))" data-test="import-cohort" @update:model-value="pickCohort" />
+              <SelectMenu :model-value="cohort?.id" :options="program.curricula.map((item) => ({ value: item.id, label: m.curriculum.cohortOption(item.cohortYear) }))" :disabled="writes.busy.value" data-test="import-cohort" @update:model-value="pickCohort" />
             </label>
             <p v-else class="callout" role="status" data-test="import-no-cohort"><Icon name="info" /><span>{{ text.noCohort }}</span></p>
           </div>

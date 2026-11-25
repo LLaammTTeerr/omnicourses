@@ -342,6 +342,29 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     expect((get(w, 'import-header').element as HTMLInputElement).value.startsWith('code,name_vi')).toBe(true);
   });
 
+  it('keeps the program and the cohort while a confirmation is out, and says its 409 for the cohort it was sent to (#165)', async () => {
+    let answer: (response: Response) => void = () => {};
+    let previews = 0;
+    const { w, fetch } = await render(`/admin/import?type=group_links&program=${PROGRAM_ID}&cohort=${CURRICULUM_ID}`, {
+      [`POST ${LINKS(CURRICULUM_ID)}/preview`]: () => Response.json({ ...linkPreview(), curriculumId: CURRICULUM_ID, reviewVersion: `zz-review-${++previews}` }),
+      [`POST ${LINKS(CURRICULUM_ID)}/confirm`]: () => new Promise<Response>((resolve) => (answer = resolve)),
+    });
+    await choose(w, LINKS_CSV);
+    await previewFile(w);
+    await get(w, 'import-confirm').trigger('click');
+    await flushPromises();
+    expect(disabled(w, 'import-program')).toBe(true);
+    expect(disabled(w, 'import-cohort')).toBe(true);
+    answer(Response.json({ statusCode: 409, code: 'impact_changed', message: 'The file changed since the preview' }, { status: 409 }));
+    await flushPromises();
+    expect(get(w, 'import-cohort').text()).toContain('Khóa 2024');
+    expect(has(w, 'import-changed')).toBe(true);
+    expect(previews).toBe(2);
+    expect(disabled(w, 'import-program')).toBe(false);
+    expect(disabled(w, 'import-cohort')).toBe(false);
+    expect(posts(fetch).map(([path]) => path)).toEqual([`${LINKS(CURRICULUM_ID)}/preview`, `${LINKS(CURRICULUM_ID)}/confirm`, `${LINKS(CURRICULUM_ID)}/preview`]);
+  });
+
   it('says when nothing in the file would change, and offers no confirmation', async () => {
     const { w } = await render('/admin/import?type=catalog_courses', { [`POST ${CATALOG}/preview`]: appliedPreview() });
     await choose(w, CATALOG_CSV);
