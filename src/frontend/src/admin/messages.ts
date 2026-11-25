@@ -29,6 +29,7 @@ interface CurriculumMessages {
   noteMoreLabel: (group: string) => string;
   noteLessLabel: (group: string) => string;
   cohortLabel: (program: string, year: number) => string;
+  groupLabel: (program: string, year: number, group: string) => string;
   open: string;
   opened: string;
   openLabel: (group: string) => string;
@@ -317,6 +318,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       noteMoreLabel: (group) => `Xem thêm ghi chú quy tắc của nhóm ${group}`,
       noteLessLabel: (group) => `Thu gọn ghi chú quy tắc của nhóm ${group}`,
       cohortLabel: (program, year) => `${program} · Khóa ${year}`,
+      groupLabel: (program, year, group) => `nhóm “${group}” (${program} · Khóa ${year})`,
       open: 'Mở',
       opened: 'Đang mở',
       openLabel: (group) => `Mở nhóm ${group}`,
@@ -565,6 +567,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       noteMoreLabel: (group) => `Show more of the rule notes of the group ${group}`,
       noteLessLabel: (group) => `Show less of the rule notes of the group ${group}`,
       cohortLabel: (program, year) => `${program} · Cohort ${year}`,
+      groupLabel: (program, year, group) => `the group “${group}” (${program} · Cohort ${year})`,
       open: 'Open',
       opened: 'Open now',
       openLabel: (group) => `Open the group ${group}`,

@@ -1094,4 +1094,21 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(w.get('dialog[open] h2').text()).toBe('Offering terms of ZZ101');
     expect(w.get('dialog[open]').findAll('label.check').map((label) => label.text())).toEqual(['Term 1', 'Term 2', 'Term 3']);
   });
+
+  it('says the late answer of a link sent for another group with that group, not under the box of the group now open (#160)', async () => {
+    let answer!: (res: Response) => void;
+    const { w } = await render({ [`PUT ${GROUPS}/${GROUP_BASE_ID}/courses/ZZ999`]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+    await get(w, 'link-code').setValue('ZZ999');
+    await get(w, 'group-panel').get('form').trigger('submit');
+    await flushPromises();
+    await groupRow(w, ELECTIVE_GROUP.name).get('[data-test="group-open"]').trigger('click');
+    await flushPromises();
+    answer(Response.json({ statusCode: 404, code: 'not_found', message: 'x' }, { status: 404 }));
+    await flushPromises();
+    expect(get(w, 'group-panel').attributes('data-group-id')).toBe(GROUP_ELECTIVE_ID);
+    expect(get(w, 'group-panel').find('[data-test="admin-problem"]').exists()).toBe(false);
+    expect(get(w, 'admin-late').text()).toContain(BASE_GROUP.name);
+    expect(get(w, 'admin-late').text()).toContain('Không tìm thấy');
+  });
+
 });

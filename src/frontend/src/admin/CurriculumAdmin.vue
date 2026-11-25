@@ -348,10 +348,10 @@ async function link(): Promise<void> {
     (token) => linkCourse(token, at.ref, group.id, typed),
     async () => groupHas(await readSaved(at), group.id, code),
   );
-  if (!onScreen(at)) {
-    // The administrator opened another cohort while the request was out: the outcome is about the cohort it was
-    // sent to, and is said with that cohort's name, not under the link box of the cohort now on screen.
-    const where = text.value.cohortLabel(at.programCode, at.cohortYear);
+  if (!onScreen(at) || openId.value !== group.id) {
+    // The administrator opened another cohort, or another group, while the request was out: the outcome is about
+    // the group it was sent to, and is said with that group's name, not under the link box now on screen.
+    const where = onScreen(at) ? text.value.groupLabel(at.programCode, at.cohortYear, group.name) : text.value.cohortLabel(at.programCode, at.cohortYear);
     const problem = linkWrites.problem.value && describeProblem(linkWrites.problem.value, m.value, LINK_FIELDS);
     linkWrites.clear();
     if (problem) late.value = { tone: problem.tone, text: m.value.earlier(where, problem.code === 'not_found' ? text.value.linkNotFound : problem.text), items: [...(problem.fields.courseCode ?? []), ...problem.items] };
