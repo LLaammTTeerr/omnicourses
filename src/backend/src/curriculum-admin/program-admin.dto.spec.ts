@@ -105,3 +105,48 @@ describe('UpdateCohortDto', () => {
     }
   });
 });
+
+// PostgreSQL counts a varchar's length in code points and refuses U+0000 in any text. Each text
+// field checks both, so a value the route accepts never makes the insert fail with a 500.
+describe('the text fields of the program and cohort DTOs', () => {
+  const FIELDS: [Type<object>, object, string, number][] = [
+    [CreateProgramDto, PROGRAM, 'nameVi', 255],
+    [CreateProgramDto, PROGRAM, 'nameEn', 255],
+    [CreateProgramDto, PROGRAM, 'faculty', 100],
+    [UpdateProgramDto, {}, 'nameVi', 255],
+    [UpdateProgramDto, {}, 'nameEn', 255],
+    [UpdateProgramDto, {}, 'faculty', 100],
+    [CreateCohortDto, COHORT, 'nameVi', 255],
+    [CreateCohortDto, COHORT, 'nameEn', 255],
+    [CreateCohortDto, COHORT, 'language', 10],
+    [UpdateCohortDto, {}, 'nameVi', 255],
+    [UpdateCohortDto, {}, 'nameEn', 255],
+    [UpdateCohortDto, {}, 'language', 10],
+  ];
+
+  it('refuses a null character anywhere in the value', async () => {
+    for (const [dto, base, field] of FIELDS) {
+      for (const value of ['\u0000', 'a\u0000b', 'ab\u0000']) {
+        expect([dto.name, field, await errorsOf(dto, { ...base, [field]: value })]).toEqual([dto.name, field, [`${field} must not contain a null character (U+0000)`]]);
+      }
+    }
+  });
+
+  it('counts the length in code points, as PostgreSQL does', async () => {
+    for (const [dto, base, field, max] of FIELDS) {
+      const refused = [
+        // MaxLength alone counts this as max: it skips a variation selector after a character.
+        'x'.repeat(max - 1) + '\u2764\uFE0F',
+        'x'.repeat(max + 1),
+        '\u{1F600}'.repeat(max + 1),
+      ];
+      for (const value of refused) {
+        expect([dto.name, field, [...value].length, await errorsOf(dto, { ...base, [field]: value })]).toEqual([dto.name, field, max + 1, [`${field} must be shorter than or equal to ${max} characters`]]);
+      }
+      // An emoji is one code point but two UTF-16 units: max of them fit.
+      for (const value of ['x'.repeat(max), '\u{1F600}'.repeat(max), 'x'.repeat(max - 2) + '\u2764\uFE0F']) {
+        expect([dto.name, field, await errorsOf(dto, { ...base, [field]: value })]).toEqual([dto.name, field, []]);
+      }
+    }
+  });
+});

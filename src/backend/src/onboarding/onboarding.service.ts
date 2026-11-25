@@ -20,6 +20,26 @@ export class OnboardingService {
     return toOnboarding(await this.answers.findOneBy({ userId }));
   }
 
+  /**
+   * The IDs of the students whose saved program is one of `programCodes`, by program code. With
+   * `onlyUserId`, that student alone, or nobody. Read-only: the notification inbox addresses the
+   * students of a program with it (ADR 0018). A program counts as soon as it is saved, finished
+   * or not, the same rule as the calendar's default program (ADR 0017).
+   */
+  async userIdsByProgram(programCodes: readonly string[], onlyUserId?: string): Promise<Map<string, string[]>> {
+    const byProgram = new Map<string, string[]>();
+    if (!programCodes.length) return byProgram;
+    const rows: { user_id: string; program_code: string }[] = onlyUserId
+      ? await this.db.query('SELECT "user_id", "program_code" FROM "onboarding_answers" WHERE "user_id" = $2 AND "program_code" = ANY($1::varchar[])', [programCodes, onlyUserId])
+      : await this.db.query('SELECT "user_id", "program_code" FROM "onboarding_answers" WHERE "program_code" = ANY($1::varchar[]) ORDER BY "user_id"', [programCodes]);
+    for (const { user_id, program_code } of rows) {
+      const ids = byProgram.get(program_code);
+      if (ids) ids.push(user_id);
+      else byProgram.set(program_code, [user_id]);
+    }
+    return byProgram;
+  }
+
   /** Replaces every answer. finished_at keeps the first Finish; finished false clears it. */
   async save(userId: string, dto: OnboardingDto): Promise<OnboardingDto> {
     const c = toColumns(dto);

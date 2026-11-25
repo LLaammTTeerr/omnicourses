@@ -7,6 +7,7 @@ import { CurriculumModule } from './curriculum/curriculum.module.js';
 import { CurriculumAdminModule } from './curriculum-admin/curriculum-admin.module.js';
 import { GuidesModule } from './guides/guides.module.js';
 import { HealthModule } from './health/health.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { OnboardingModule } from './onboarding/onboarding.module.js';
 import { PlansModule } from './plans/plans.module.js';
 import { SharingModule } from './sharing/sharing.module.js';
@@ -17,4 +18,4 @@ import { UsersModule } from './users/users.module.js';
 // order Nest meets the modules. AccountModule is last because it imports SharingModule (a deletion
 // request stops the shared plans' links): listed earlier, it would pull that module and the ones it
 // imports ahead of the rest and reorder the whole contract.
-export const FEATURE_MODULES = [HealthModule, UsersModule, AuthModule, AiModule, TranscriptModule, GuidesModule, CurriculumModule, OnboardingModule, AuditModule, PlansModule, CurriculumAdminModule, AcademicCalendarModule, SharingModule, AccountModule];
+export const FEATURE_MODULES = [HealthModule, UsersModule, AuthModule, AiModule, TranscriptModule, GuidesModule, CurriculumModule, OnboardingModule, AuditModule, PlansModule, CurriculumAdminModule, AcademicCalendarModule, SharingModule, NotificationsModule, AccountModule];

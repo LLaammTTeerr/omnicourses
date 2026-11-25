@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import { buildMessage, IsInt, IsNotEmpty, IsString, Matches, Max, Min, ValidateBy } from 'class-validator';
 import { trimString } from '../common/transforms.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { ADMIN_CODE_MAX_LENGTH, ADMIN_CODE_MESSAGE, ADMIN_CODE_PATTERN, canonicalAdminCode } from './admin-code.js';
@@ -19,6 +19,31 @@ export const COHORT_YEAR_MIN = 2000;
 export const COHORT_YEAR_MAX = 2100;
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
+
+/**
+ * A text column's length as PostgreSQL counts it: in code points. class-validator's MaxLength
+ * does not count a variation selector (U+FE0E, U+FE0F) after a character, so a value it accepts
+ * could still be too long for varchar(n), and the insert would fail with a 500. Same words as
+ * MaxLength's refusal.
+ */
+const MaxCodePoints = (max: number) =>
+  ValidateBy({
+    name: 'maxCodePoints',
+    constraints: [max],
+    validator: {
+      validate: (value: unknown) => typeof value === 'string' && [...value].length <= max,
+      defaultMessage: buildMessage((each) => `${each}$property must be shorter than or equal to $constraint1 characters`),
+    },
+  });
+
+/** PostgreSQL refuses U+0000 in any text value, with a 500 if it got that far. */
+const NoNullCharacter = ValidateBy({
+  name: 'noNullCharacter',
+  validator: {
+    validate: (value: unknown) => typeof value === 'string' && !value.includes('\u0000'),
+    defaultMessage: buildMessage((each) => `${each}$property must not contain a null character (U+0000)`),
+  },
+});
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
 
 // ---- Programs ------------------------------------------------------------------------------
@@ -32,29 +57,32 @@ export class CreateProgramDto {
   })
   @canonicalCode
   @IsString()
-  @MaxLength(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
   @ApiProperty({ maxLength: 255 })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   nameVi!: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, description: 'Blank is stored as null' })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   nameEn?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 100, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(100)
+  @NoNullCharacter
+  @MaxCodePoints(100)
   faculty?: string | null;
 }
 
@@ -66,22 +94,25 @@ export class UpdateProgramDto {
   @ifPresent
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   nameVi?: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   nameEn?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 100 })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(100)
+  @NoNullCharacter
+  @MaxCodePoints(100)
   faculty?: string | null;
 }
 
@@ -111,7 +142,7 @@ export class ProgramDetailsDto {
 // ---- Cohorts (curriculums rows) ------------------------------------------------------------
 
 export class CreateCohortDto {
-  @ApiProperty({ example: 2026, minimum: COHORT_YEAR_MIN, maximum: COHORT_YEAR_MAX, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
+  @ApiProperty({ type: 'integer', example: 2026, minimum: COHORT_YEAR_MIN, maximum: COHORT_YEAR_MAX, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
   @IsInt()
   @Min(COHORT_YEAR_MIN)
   @Max(COHORT_YEAR_MAX)
@@ -125,29 +156,32 @@ export class CreateCohortDto {
   })
   @canonicalCode
   @IsString()
-  @MaxLength(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
   @ApiProperty({ maxLength: 255 })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   nameVi!: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, description: 'Blank is stored as null' })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   nameEn?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 10, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(10)
+  @NoNullCharacter
+  @MaxCodePoints(10)
   language?: string | null;
 }
 
@@ -159,22 +193,25 @@ export class UpdateCohortDto {
   @ifPresent
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   nameVi?: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   nameEn?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 10 })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(10)
+  @NoNullCharacter
+  @MaxCodePoints(10)
   language?: string | null;
 }
 
@@ -185,7 +222,7 @@ export class CohortDetailsDto {
   @ApiProperty({ format: 'uuid' })
   programId!: string;
 
-  @ApiProperty({ example: 2024 })
+  @ApiProperty({ type: 'integer', example: 2024 })
   cohortYear!: number;
 
   @ApiProperty({ example: 'APCS2024' })
