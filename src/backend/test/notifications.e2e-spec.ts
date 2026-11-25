@@ -130,7 +130,7 @@ describe('Notification inbox (e2e)', () => {
     await app?.close();
   });
 
-  it('maps the table exactly as migration 1795564800000 creates it', async () => {
+  it('maps the table exactly as migration 1795575059760 creates it', async () => {
     const { upQueries } = await db.driver.createSchemaBuilder().log();
     expect(upQueries.map((q) => q.query).filter((q) => q.includes('"notifications"'))).toEqual([]);
   });

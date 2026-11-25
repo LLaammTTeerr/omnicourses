@@ -2,7 +2,7 @@ import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, 
 import { User } from '../users/user.entity.js';
 import type { NotificationKind } from './notification-kinds.js';
 
-// Table of migration 1795564800000 (ADR 0018): one row per notification of one student.
+// Table of migration 1795575059760 (ADR 0018): one row per notification of one student.
 // user_id cascades, so account export and deletion cover it with no extra code (ADR 0004).
 // calendar_event_id has no foreign key on purpose: a notification already sent stays readable
 // when an administrator deletes the school date, so the row keeps a copy of what it announced.

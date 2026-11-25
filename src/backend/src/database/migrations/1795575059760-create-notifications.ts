@@ -7,8 +7,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 // was about (SET NULL would also free the uniqueness key). The row keeps a copy of the date.
 // The uniqueness key is (user, event, kind), never the date: a moved date and two runs at once
 // both insert nothing twice. NULLs are distinct, so transcript notifications are not limited.
-export class CreateNotifications1795564800000 implements MigrationInterface {
-  name = 'CreateNotifications1795564800000';
+export class CreateNotifications1795575059760 implements MigrationInterface {
+  name = 'CreateNotifications1795575059760';
 
   async up(q: QueryRunner): Promise<void> {
     await q.query(`
