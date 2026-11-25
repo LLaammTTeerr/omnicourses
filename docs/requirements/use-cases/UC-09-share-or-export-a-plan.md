@@ -29,7 +29,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 
    It also says what a reader will not see: the student's grades, email, transcript and other plans. The student's display name is hidden unless the student ticks **Show my name**.
 
-   The checks that come from the student's transcript are hidden unless the student ticks **Show the checks from my transcript**: prerequisites not met, courses already passed or in progress, requirements not covered, the coverage of each requirement and the estimated graduation term. When the box is ticked, the system tells the student plainly that a reader can then tell which courses the student has passed or is taking, though never a grade. When it is not ticked, the system says that a reader will be told that some checks are not shown.
+   The checks that come from the student's transcript are hidden unless the student ticks **Show the checks from my transcript**: prerequisites not met, courses already passed or in progress, requirements not covered, the coverage of each requirement and the estimated graduation term. When the box is ticked, the system tells the student plainly that a reader can then tell which courses the student has passed, failed or is taking, though never a grade. When it is not ticked, the system says that a reader will be told that some checks are not shown.
 
    The system warns that anyone who has the link can open it. The student can change both boxes later without getting a new link.
 3. The student presses **Create link**.
@@ -70,7 +70,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 
 ## 7. Special requirements
 
-- **Privacy** (AGENTS.md hard rule 3; Vision §6, Luật 91/2025/QH15): a reader sees only the content listed in step 2. Grades, email, student ID and transcript rows never appear in the shared view or the PDF. When the student chose to show the checks from the transcript, a reader can tell from those checks which courses the student has passed or is taking; without that choice, nothing a reader sees depends on the transcript. The page tells search engines not to index it (`noindex`).
+- **Privacy** (AGENTS.md hard rule 3; Vision §6, Luật 91/2025/QH15): a reader sees only the content listed in step 2. Grades, email, student ID and transcript rows never appear in the shared view or the PDF. When the student chose to show the checks from the transcript, a reader can tell from those checks which courses the student has passed, failed or is taking; without that choice, nothing a reader sees depends on the transcript, and the transcript is not read. The page tells search engines not to index it (`noindex`).
 - **Security:** the link holds a random token at least as strong as a session token (32 random bytes, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)), so it cannot be found by guessing. The shared page is one of the public routes of ADR 0010: it needs no sign-in, only reads, and is rate-limited like other routes (120 requests a minute per address).
 - **Academic rules** (AGENTS.md hard rule 1): the violations and the estimated graduation term in the shared view and the PDF come from the rule engine, computed against the curriculum version the plan was made with.
 - **Usability:** the shared view works from 360 px wide and by keyboard, in Vietnamese and English (the reader's browser language). The PDF is readable when printed in black and white: violations are marked in words, not only by colour.

@@ -644,6 +644,7 @@ classDiagram
     class PlanIssuesProvider {
         <<interface>>
         issuesFor(userId, plan) PlanIssuesReport
+        issuesWithoutTranscript(plan) PlanIssuesReport
         issuesForBoards(userId, plan, boards) PlanIssuesReport list
     }
     class PlanIssuesReport {
@@ -743,6 +744,7 @@ classDiagram
     class RulesService {
         +auditFor(userId) AuditOutcome
         +issuesFor(userId, plan) PlanIssuesReport
+        +issuesWithoutTranscript(plan) PlanIssuesReport
         +issuesForBoards(userId, plan, boards) PlanIssuesReport list
         +degreeAudit
         +checkTermLoad
@@ -932,6 +934,7 @@ classDiagram
     class RulesService {
         +auditFor(userId) AuditOutcome
         +issuesFor(userId, plan) PlanIssuesReport
+        +issuesWithoutTranscript(plan) PlanIssuesReport
         +issuesForBoards(userId, plan, boards) PlanIssuesReport list
     }
     class PlanIssuesProvider {
