@@ -381,6 +381,66 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
     }
   });
 
+  it('fits the group-links preview and the program and cohort pickers inside the screen at 360 px', async () => {
+    await page.viewport(360, 800);
+    const LINKS = `/admin/programs/${PROGRAM_ID}/cohorts/${CURRICULUM_ID}/imports`;
+    const LINK_PREVIEW = {
+      fileType: 'group_links',
+      programId: PROGRAM_ID,
+      curriculumId: CURRICULUM_ID,
+      errors: [],
+      summary: { inserts: 1, updates: 0, noOps: 1 },
+      reviewVersion: 'zz-review-links',
+      rows: [
+        { record: 2, action: 'insert', requirementGroupName: LONG, requirementGroupId: GROUP_BASE_ID, courseCode: 'ZZ20CHARACTERSCODE01' },
+        { record: 3, action: 'no_op', requirementGroupName: LONG, requirementGroupId: GROUP_BASE_ID, courseCode: 'ZZ101' },
+      ],
+    };
+    for (const lang of ['vi', 'en']) {
+      localStorage.setItem('omnicourse.lang', lang);
+      const fits = (what: string) => expect(document.documentElement.scrollWidth, `${what} (${lang})`).toBeLessThanOrEqual(window.innerWidth);
+      await open(`/admin/import?type=group_links&program=${PROGRAM_ID}&cohort=${CURRICULUM_ID}`, { ...routes, [`POST ${LINKS}/preview`]: LINK_PREVIEW });
+      await expect.poll(() => q('import-cohort')).not.toBeNull();
+      for (const picker of ['import-program', 'import-cohort']) inside(picker, q(picker)!);
+      fits('the pickers');
+      const input = page.getByLabelText(/^(Tệp CSV|CSV file)$/);
+      await userEvent.upload(input, new File([`requirement_group_name,course_code\n${LONG},ZZ20CHARACTERSCODE01\n${LONG},ZZ101\n`], 'zz-thu.csv', { type: 'text/csv' }));
+      await expect.poll(() => q('import-file-read')).not.toBeNull();
+      q('import-preview')!.click();
+      await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(2);
+      expect(q('import-result')!.textContent).toContain(LONG);
+      fits('the group-links preview');
+      inside('the preview', q('import-result')!);
+      for (const wrap of document.querySelectorAll<HTMLElement>('.table-wrap')) inside('a table box', wrap);
+      for (const row of document.querySelectorAll<HTMLElement>('[data-test="import-row"]')) {
+        for (const cell of row.querySelectorAll<HTMLElement>('th, td')) inside(`a cell of record ${row.dataset.record}`, cell);
+        const [action, code] = [row.querySelector('.chip')!.getBoundingClientRect(), row.querySelector('.code')!.getBoundingClientRect()];
+        expect(action.right <= code.left || action.bottom <= code.top, `the action of record ${row.dataset.record} clear of its course`).toBe(true);
+      }
+      for (const picker of ['import-program', 'import-cohort']) inside(picker, q(picker)!);
+      close();
+    }
+  });
+
+  it('confirms a previewed file from the keyboard, once', async () => {
+    await page.viewport(1280, 800);
+    await open('/admin/import?type=catalog_courses', {
+      ...routes,
+      'POST /admin/catalog/imports/preview': { ...PREVIEW, errors: [], reviewVersion: 'zz-review-1' },
+      'POST /admin/catalog/imports/confirm': { fileType: 'catalog_courses', summary: { inserts: 1, updates: 1, noOps: 0 } },
+    });
+    await previewCsv();
+    const confirm = page.getByRole('button', { name: 'Xác nhận và lưu' });
+    await expect.element(confirm).toBeEnabled();
+    (confirm.element() as HTMLElement).focus();
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => q('import-result')).toBeNull();
+    const confirms = vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/confirm'));
+    expect(confirms.map(([, init]) => JSON.parse(String(init?.body)).reviewVersion)).toEqual(['zz-review-1']);
+    // The focus goes back to the file box, for the next file.
+    await expect.element(page.getByLabelText('Tệp CSV')).toHaveFocus();
+  });
+
   it('chooses a file, previews it and cancels from the keyboard, sending no confirmation', async () => {
     await page.viewport(1280, 800);
     await open('/admin/import?type=catalog_courses', { ...routes, 'POST /admin/catalog/imports/preview': { ...PREVIEW, errors: [], reviewVersion: 'zz-review-1' } });
