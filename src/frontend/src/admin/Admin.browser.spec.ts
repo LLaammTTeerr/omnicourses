@@ -290,3 +290,101 @@ describe('the administration dialogs with the keyboard', () => {
     await expect.element(row('ZZ103').getByText('Chưa ghi nhận').first()).toBeVisible();
   });
 });
+
+describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9)', () => {
+  const HEADER = 'code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods';
+  const CSV = `${HEADER}\nZZ300,${LONG},,4,45,30,,\nZZ101,Học phần thử ZZ101,,3,45,30,,0\n`;
+  const plain = { nameEn: null, theoryPeriods: 45, labPeriods: 30, exercisePeriods: null, projectPeriods: null };
+  const AFFECTED = { curriculumId: CURRICULUM_ID, curriculumCode: 'ZZPROG2024', programCode: 'ZZPROG', cohortYear: 2024 };
+  const PREVIEW = {
+    fileType: 'catalog_courses',
+    errors: [{ record: 4, field: 'credits', message: `credits must be an integer number; ${LONG}` }],
+    summary: { inserts: 1, updates: 1, noOps: 0 },
+    reviewVersion: null,
+    rows: [
+      { record: 2, action: 'insert', code: 'ZZ300', nameVi: LONG, credits: 4, ...plain, changedFields: [], current: null, affectedCurricula: [] },
+      { record: 3, action: 'update', code: 'ZZ101', nameVi: 'Học phần thử ZZ101', credits: 3, ...plain, projectPeriods: 0, changedFields: ['credits', 'projectPeriods'], current: { code: 'ZZ101', nameVi: 'Học phần thử ZZ101', credits: 4, ...plain }, affectedCurricula: [AFFECTED] },
+    ],
+    affectedCurricula: [AFFECTED],
+  };
+  const PROGRAM = { code: 'ZZPROG', nameVi: 'Chương trình thử', nameEn: null, faculty: 'Khoa thử', trainingType: null, cohortYears: [2024] };
+  const COHORT_DETAILS = { id: CURRICULUM_ID, programId: PROGRAM_ID, cohortYear: 2024, code: 'ZZPROG2024', nameVi: 'CTĐT thử khóa 2024', nameEn: null, language: 'vi', totalCreditsMin: null, updatedAt: '2026-11-25T02:00:00.000Z' };
+  const routes = { 'POST /admin/catalog/imports/preview': PREVIEW, 'GET /programs': { programs: [PROGRAM] }, [`GET ${COHORT}`]: COHORT_DETAILS };
+  const q = (test: string) => document.querySelector<HTMLElement>(`[data-test="${test}"]`);
+
+  async function previewCsv() {
+    const input = page.getByLabelText(/^(Tệp CSV|CSV file)$/);
+    await userEvent.upload(input, new File([CSV], 'zz-thu.csv', { type: 'text/csv' }));
+    await expect.poll(() => q('import-file-read')).not.toBeNull();
+    q('import-preview')!.click();
+    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(2);
+  }
+  function inside(what: string, element: HTMLElement) {
+    const box = element.getBoundingClientRect();
+    expect(box.left, what).toBeGreaterThanOrEqual(0);
+    expect(box.right, what).toBeLessThanOrEqual(window.innerWidth);
+  }
+
+  it.each([360, 1280])('fit inside the screen at %i px, in Vietnamese and in English', async (width) => {
+    await page.viewport(width, 800);
+    for (const lang of ['vi', 'en']) {
+      localStorage.setItem('omnicourse.lang', lang);
+      const fits = (what: string) => expect(document.documentElement.scrollWidth, `${what} at ${width} px (${lang})`).toBeLessThanOrEqual(window.innerWidth);
+
+      await open('/admin/import?type=catalog_courses', routes);
+      await expect.element(page.getByRole('heading', { name: lang === 'vi' ? 'Nhập từ tệp CSV' : 'Import from a CSV file' })).toBeVisible();
+      fits('the import screen');
+      await previewCsv();
+      // Errors and actions in words, not by colour.
+      expect(q('import-errors')!.textContent).toContain(lang === 'vi' ? 'Bản ghi 4' : 'Record 4');
+      expect(q('import-result')!.textContent).toContain(LONG);
+      fits('the import preview');
+      for (const test of ['import-errors', 'import-result', 'import-affected']) inside(test, q(test)!);
+      // A wide table scrolls inside its own box, never the page.
+      for (const wrap of document.querySelectorAll<HTMLElement>('.table-wrap')) inside('a table box', wrap);
+      close();
+
+      await open('/admin/curriculum', routes);
+      await expect.poll(() => q('program-edit')).not.toBeNull();
+      for (const button of ['program-edit', 'cohort-edit', 'cohort-add']) {
+        await expect.poll(() => (q(button) as HTMLButtonElement | null)?.disabled).toBe(false);
+        q(button)!.click();
+        const dialog = page.getByRole('dialog');
+        await expect.element(dialog).toBeVisible();
+        const element = dialog.element() as HTMLElement;
+        inside(button, element);
+        expect(element.scrollWidth, button).toBeLessThanOrEqual(element.clientWidth);
+        await userEvent.keyboard('{Escape}');
+        await expect.element(dialog).not.toBeInTheDocument();
+      }
+      fits('the curriculum banner');
+      close();
+
+      await open('/admin/access', routes);
+      await expect.poll(() => q('program-add')).not.toBeNull();
+      q('program-add')!.click();
+      const dialog = page.getByRole('dialog');
+      await expect.element(dialog).toBeVisible();
+      inside('the new program dialog', dialog.element() as HTMLElement);
+      fits('the access screen with the new program dialog');
+      close();
+    }
+  });
+
+  it('chooses a file, previews it and cancels from the keyboard, sending no confirmation', async () => {
+    await page.viewport(1280, 800);
+    await open('/admin/import?type=catalog_courses', { ...routes, 'POST /admin/catalog/imports/preview': { ...PREVIEW, errors: [], reviewVersion: 'zz-review-1' } });
+    const input = page.getByLabelText('Tệp CSV');
+    await userEvent.upload(input, new File([CSV], 'zz-thu.csv', { type: 'text/csv' }));
+    await expect.poll(() => q('import-file-read')).not.toBeNull();
+    (input.element() as HTMLElement).focus();
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByRole('button', { name: 'Xem trước' })).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(2);
+    q('import-cancel')!.focus();
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => q('import-result')).toBeNull();
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/confirm'))).toEqual([]);
+  });
+});
