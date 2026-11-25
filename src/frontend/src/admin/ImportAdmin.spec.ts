@@ -230,7 +230,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
   it.each([
     [403, { statusCode: 403, code: 'permission_required', permission: 'catalog_maintainer', message: 'x' }, 'permission_required', 'Thao tác này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó. Chưa lưu gì.'],
     [404, { statusCode: 404, code: 'not_found', message: 'No such cohort in this program' }, 'not_found', 'Không tìm thấy mục này. Có thể nó đã bị xóa, hoặc không thuộc chương trình này. Chưa lưu gì.'],
-    [413, { statusCode: 413, code: 'payload_too_large', message: 'x' }, 'payload_too_large', 'Tệp vượt giới hạn của máy chủ: 1 MiB và 1.000 bản ghi. Chia thành nhiều tệp nhỏ hơn. Chưa lưu gì.'],
+    [413, { statusCode: 413, code: 'payload_too_large', message: 'x' }, 'payload_too_large', 'Yêu cầu vượt giới hạn kích thước của máy chủ. Một tệp CSV được tối đa 1 MiB và 1.000 bản ghi khi tài khoản có quyền nhập loại tệp đó; nếu không, một yêu cầu chỉ được tối đa 100 KiB. Chia tệp thành nhiều tệp nhỏ hơn. Chưa lưu gì.'],
     [415, { statusCode: 415, code: 'unsupported_content_encoding', message: 'x' }, 'unsupported_content_encoding', 'Máy chủ không nhận yêu cầu đã nén. Chưa lưu gì.'],
   ])('says a %i refusal of the preview in words', async (code, body, reason, words) => {
     const { w } = await render('/admin/import?type=catalog_courses', { [`POST ${CATALOG}/preview`]: status(code, body), 'GET /admin/grants': () => Response.json(own) });
@@ -240,6 +240,14 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     expect(note.attributes('data-code')).toBe(reason);
     expect(note.text()).toBe(words);
     expect(has(w, 'import-confirm')).toBe(false);
+  });
+
+  it('words a 413 so it is also true for the 100 KiB limit of a caller without the grant, in English too', async () => {
+    const { w } = await render('/admin/import?type=catalog_courses', { [`POST ${CATALOG}/preview`]: status(413) });
+    useLocale().set('en');
+    await choose(w, CATALOG_CSV);
+    await previewFile(w);
+    expect(get(w, 'admin-problem').text()).toBe('The request is over a size limit of the server. A CSV file may have up to 1 MiB and 1,000 records when your account may import that type of file; otherwise a request may have only up to 100 KiB. Split the file into smaller files. Nothing was saved.');
   });
 
   it('sends no file over 1 MiB, with more than 1,000 records, or that is not UTF-8, and says why', async () => {
