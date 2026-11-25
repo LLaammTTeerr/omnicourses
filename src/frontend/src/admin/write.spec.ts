@@ -192,4 +192,16 @@ describe('useWrites', () => {
     expect(writes.problem.value).toBeNull();
     expect(useAuth().signedIn).toBe(false);
   });
+
+  it('says signed out, and sends and reloads nothing, when the session is already gone (#160)', async () => {
+    useAuth().token = null;
+    const writes = useWrites();
+    const write = vi.fn(async () => 'saved');
+    const landed = vi.fn(async () => true);
+    expect(await writes.send(write, landed)).toEqual({ outcome: 'refused', failure: { kind: 'signed_out' } });
+    expect(write).not.toHaveBeenCalled();
+    expect(landed).not.toHaveBeenCalled();
+    expect(writes.problem.value).toBeNull();
+  });
+
 });

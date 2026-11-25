@@ -76,6 +76,11 @@ export function useWrites() {
     // While the outcome of the last write is not known, nothing more is sent: the saved data is read first
     // (`recheck`), or the screen drops the problem and says that it may be out of date.
     if (problem.value?.outcome === 'unknown') return { outcome: 'unknown' };
+    // No session: nothing can be sent, so nothing is unknown. App.vue takes the user to sign in.
+    if (!auth.token) {
+      problem.value = null;
+      return { outcome: 'refused', failure: { kind: 'signed_out' } };
+    }
     busy.value = true;
     problem.value = null;
     lastLanded = landed;
