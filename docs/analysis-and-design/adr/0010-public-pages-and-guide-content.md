@@ -31,7 +31,7 @@ Lâm decided these points on 30 October 2026, in answer to Dũng's questions on 
 
 ### Shared plans as built (amended 25 November 2026)
 
-The API of F9 was built on 25 November 2026 (`src/backend/src/sharing/`). The points below are what the first table left to the implementation. They were chosen in the implementation pull request. Three of them were open questions: what a reader sees of the checks that come from the transcript, how the token is stored, and where the PDF is made. Dũng, the owner of F9, answered the three on the team Discord on 25 November 2026; the answers are marked "agreed by Dũng" below. **The Project Lead accepts or changes every point of this amendment in the review of that pull request.**
+The API of F9 was built on 25 November 2026 (`src/backend/src/sharing/`). The points below are what the first table left to the implementation. They were chosen in the implementation pull request. Three of them were open questions: what a reader sees of the checks that come from the transcript, how the token is stored, and where the PDF is made. Dũng, the owner of F9, answered the three on the team Discord on 25 November 2026; the answers are marked "agreed by Dũng" below. Lâm, the Project Lead, accepted those three answers on 25 November 2026 (see below). The other points of this table were chosen in the implementation pull request (#153), which Dũng reviewed and approved as the owner of F9 after an independent review; the Project Lead did not review them one by one. They stand as the design as built, and a later change to any of them needs an amendment here.
 
 | Decision | Alternatives rejected | Evidence |
 | --- | --- | --- |
