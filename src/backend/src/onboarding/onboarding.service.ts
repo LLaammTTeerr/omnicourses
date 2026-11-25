@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Term } from '../terms/term.js';
+import { isOfferedCohort } from './onboarding-options.js';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { NO_INTERNSHIP, OnboardingDto } from './onboarding.dto.js';
 
@@ -14,6 +15,15 @@ export class OnboardingService {
     private readonly db: DataSource,
     @InjectRepository(OnboardingAnswers) private readonly answers: Repository<OnboardingAnswers>,
   ) {}
+
+  /**
+   * True when onboarding offers this program and cohort to students (OFFERED_COHORTS). The one
+   * place other modules ask it: the plans API refuses a new plan for any other cohort (Project
+   * Lead, 25 November 2026), so a plan and an onboarding answer are offered the same cohorts.
+   */
+  offers(programCode: string, cohortYear: number): boolean {
+    return isOfferedCohort(programCode, cohortYear);
+  }
 
   /** The saved answers; every answer null and finished false before the first save. */
   async answersFor(userId: string): Promise<OnboardingDto> {

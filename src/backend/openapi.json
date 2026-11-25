@@ -709,7 +709,7 @@
             }
           },
           "400": {
-            "description": "No curriculum for this program and cohort, or a placement is invalid; nothing is saved."
+            "description": "Onboarding does not offer this program and cohort to students (message \"Onboarding does not offer {program} {cohort} to students\"), no curriculum for this program and cohort, or a placement is invalid; nothing is saved."
           },
           "401": {
             "description": "Missing, expired or revoked token"
@@ -1037,6 +1037,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Onboarding does not offer the plan's program and cohort to students: the copy would be a new plan on it. The original stays readable and editable; nothing is saved."
           },
           "401": {
             "description": "Missing, expired or revoked token"
@@ -1500,7 +1503,7 @@
             }
           },
           "409": {
-            "description": "`referenced_item`: the group still links courses",
+            "description": "`referenced_item`: the group still links courses, or saved plans use it (`references` gives their count, never a plan or a student)",
             "content": {
               "application/json": {
                 "schema": {
