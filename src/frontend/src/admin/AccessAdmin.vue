@@ -28,7 +28,7 @@ import ProblemNote from './ProblemNote.vue';
 import { useAdminAccess } from './store.js';
 import { useWrites, type WriteOutcome } from './write.js';
 
-// Grants and revocations of an access manager (ADR 0011, UC-11 A2, section 8). A user is found by their exact user
+// Grants and revocations of an access manager (ADR 0011, UC-11 section 8). A user is found by their exact user
 // ID, which they copy from Settings: the API has no user directory and no search. The answer holds grants only,
 // never a name or an email. The API decides everything: it refuses a recipient waiting for deletion and the
 // revocation of the last active access manager, and this page says so in words.
