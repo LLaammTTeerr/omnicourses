@@ -37,6 +37,9 @@ const rows: TranscriptEntry[] = [
 // unique per run and removed in afterAll. Every date is in 2090 or 2091 and the injected clock
 // is set there too, so a run that creates notifications for everyone never meets a date another
 // e2e file, or a developer, entered in the shared database.
+/** The CHECK constraint the failure test adds to make PostgreSQL refuse the rows of one date. */
+const FAIL_ONE_DATE = 'zz_notifications_fail_one_date';
+
 describe('Notification inbox (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
@@ -112,6 +115,8 @@ describe('Notification inbox (e2e)', () => {
     app = await bootApp((builder) => builder.overrideProvider(Clock).useValue(clock));
     db = app.get(DataSource);
     notifications = app.get(NotificationsService);
+    // A run killed inside the failure test below can leave its constraint behind.
+    await db.query(`ALTER TABLE notifications DROP CONSTRAINT IF EXISTS ${FAIL_ONE_DATE}`);
     const insertProgram = async (code: string) => ((await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, $2) RETURNING id`, [code, `Chương trình ${code}`])) as { id: string }[])[0]!.id;
     programA = await insertProgram(codeA);
     programB = await insertProgram(codeB);
@@ -549,7 +554,6 @@ describe('Notification inbox (e2e)', () => {
 
   describe('when creating fails', () => {
     let errors: string[];
-    const FAIL_ONE_DATE = 'zz_notifications_fail_one_date';
 
     beforeEach(() => {
       errors = [];
@@ -585,7 +589,8 @@ describe('Notification inbox (e2e)', () => {
         errors.length = 0;
         expect((await inbox(reader)).map((n) => [n.kind, n.event?.id])).toEqual([['registration_open', good]]);
         expect((await as(reader.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
-        expect(errors).toHaveLength(2);
+        // Two failed reads in the same minute: the first is logged, the second is not (ADR 0018, decision 15).
+        expect(errors).toHaveLength(1);
         for (const line of errors) expect(line).toMatch(/^Could not create the notifications of 1 of \d+ school date\(s\) that are due: QueryFailedError, SQLSTATE 23514$/);
         for (const value of [a.userId, reader.userId, bad, 'Synthetic', codeA, 'INSERT', FAIL_ONE_DATE]) expect(errors.join('\n')).not.toContain(value);
       } finally {
@@ -617,16 +622,18 @@ describe('Notification inbox (e2e)', () => {
       expect((await as(s.token).get('/api/notifications/unread-count').expect(200)).body).toEqual({ unread: 1 });
       expect(startingOn).toHaveBeenCalledTimes(2);
       const line = 'Could not create the notifications that are due before a read: QueryFailedError, SQLSTATE 57014';
-      expect(errors).toEqual([line, line]);
+      // The second read fails within the same minute and is not logged (ADR 0018, decision 15). The
+      // first line may count the reads of the test above that were not logged.
+      expect(errors.map((l) => l.replace(/ \(\d+ more failed read\(s\) since the last line were not logged\)$/, ''))).toEqual([line]);
 
       // The timer logs the same kind of line, and does not stop.
       await app.get(NotificationSchedule).tick();
-      expect(errors[2]).toBe('Could not create the notifications that are due: QueryFailedError, SQLSTATE 57014');
+      expect(errors[1]).toBe('Could not create the notifications that are due: QueryFailedError, SQLSTATE 57014');
       for (const value of [s.userId, 'Synthetic', 'SELECT', 'statement timeout', '2091-07-10']) expect(errors.join('\n')).not.toContain(value);
 
       // Marking read does not create anything, so it does not depend on the failed read.
       expect((await as(s.token).post(`/api/notifications/${before[0]!.id}/read`).expect(200)).body.readAt).not.toBeNull();
-      expect(errors).toHaveLength(3);
+      expect(errors).toHaveLength(2);
     });
   });
 
