@@ -20,7 +20,7 @@ export class ImportPreviewRequestDto {
 }
 
 export class ImportConfirmRequestDto {
-  @ApiProperty({ description: `${CSV_DESCRIPTION} Exactly the text that was previewed.` })
+  @ApiProperty({ description: `${CSV_DESCRIPTION} The file that was previewed. The review version covers the rows after parsing: line endings, spaces around a field and the letter case of a course code do not count, and any other difference is refused.` })
   @IsString()
   csv!: string;
 

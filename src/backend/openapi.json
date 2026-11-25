@@ -7190,7 +7190,7 @@
         "properties": {
           "csv": {
             "type": "string",
-            "description": "The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records. Exactly the text that was previewed."
+            "description": "The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records. The file that was previewed. The review version covers the rows after parsing: line endings, spaces around a field and the letter case of a course code do not count, and any other difference is refused."
           },
           "reviewVersion": {
             "type": "string",
