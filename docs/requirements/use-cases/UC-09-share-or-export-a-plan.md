@@ -72,7 +72,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 
 - **Privacy** (AGENTS.md hard rule 3; Vision §6, Luật 91/2025/QH15): a reader sees only the content listed in step 2. Grades, email, student ID and transcript rows never appear in the shared view or the PDF. When the student chose to show the checks from the transcript, a reader can tell from those checks which courses the student has passed, failed or is taking; without that choice, nothing a reader sees depends on the transcript, and the transcript is not read. The page tells search engines not to index it (`noindex`).
 - **Security:** the link holds a random token at least as strong as a session token (32 random bytes, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)), so it cannot be found by guessing. The shared page is one of the public routes of ADR 0010: it needs no sign-in, only reads, and is rate-limited like other routes (120 requests a minute per address).
-- **Academic rules** (AGENTS.md hard rule 1): the violations and the estimated graduation term in the shared view and the PDF come from the rule engine, computed against the curriculum version the plan was made with.
+- **Academic rules** (AGENTS.md hard rule 1): the violations, and the estimated graduation term once it is computed (see **Gap** below), in the shared view and the PDF come from the rule engine, computed against the curriculum version the plan was made with.
 - **Usability:** the shared view works from 360 px wide and by keyboard, in Vietnamese and English (the reader's browser language). The PDF is readable when printed in black and white: violations are marked in words, not only by colour.
 
 ## 8. Additional information
@@ -87,7 +87,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 - The shared page opens without signing in. This changes ADR 0002 and is recorded in ADR 0010.
 - Sharing is Dũng's own `sharing` module. It reads plans only through a read-only method that Hoà's `PlansService` exports (ADR 0010).
 
-**Agreed by Dũng, owner of F9** (25 Nov 2026, team Discord). The Project Lead accepts or changes these in the review of the implementation pull request ([ADR 0010](../../analysis-and-design/adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026):
+**Agreed by Dũng, owner of F9, and accepted by Lâm, Project Lead** (25 Nov 2026, team Discord; Lâm answered "yes"). Recorded in [ADR 0010](../../analysis-and-design/adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026:
 - The student chooses, for each link, whether a reader sees the checks that come from the transcript (step 2, A9, §7). The choice is off unless the student turns it on, it can be changed on a live link, and the PDF follows it (A1).
 - The PDF is made in the browser, as a print layout of the shared view. Nothing is made on the server.
 - The link's token is stored so that it can be shown again (A4), not as a hash.
