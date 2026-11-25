@@ -402,10 +402,10 @@ A signed-out reader of a shared plan sees only the allowed read-only data, with 
 
 ## 8. TC-B2-NOTIF-01: Notifications
 
-Registration-window reminders, the term-start check-in and the warning after a saved transcript change reach the right student from the right event, and never come from a cancelled or failed save. Exact delivery, timing and repeat checks wait for the F10 contract ([test plan row](test-plan.md#b2-checks)).
+Registration-window reminders, the term-start check-in and the warning after a saved transcript change reach the right student from the right event, and never come from a cancelled or failed save. Delivery, timing and repeat checks follow the F10 rules that Dũng decided on 25 November 2026 ([test plan §8](test-plan.md#8-schedule-and-remaining-work), [ADR 0018](../analysis-and-design/adr/0018-notification-inbox.md)); the cases below are not written yet.
 
 - Owner: Dũng
-- Depends on: calendar API (#108) and calendar page (#99) (done); notifications inbox (not started).
+- Depends on: calendar API (#108) and calendar page (#99) (done); notification inbox API (built, [ADR 0018](../analysis-and-design/adr/0018-notification-inbox.md), proposed); inbox screens (not started).
 
 | ID | Steps | Expected |
 | --- | --- | --- |
