@@ -2714,6 +2714,424 @@
         ]
       }
     },
+    "/api/admin/catalog/imports/preview": {
+      "post": {
+        "description": "Writes nothing. A row error does not fail the request: it is listed in `errors`, and `reviewVersion` is null.",
+        "operationId": "CsvImportController_previewCatalog",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPreviewRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogImportPreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a catalog courses file. Header: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/catalog/imports/confirm": {
+      "post": {
+        "description": "Saves the whole file in one transaction, or nothing. Rows the file does not name are left as they are.",
+        "operationId": "CsvImportController_confirmCatalog",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportConfirmRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`impact_changed`: the file, the saved values or the references differ from the reviewed preview. Nothing is saved; preview again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a previewed catalog courses file",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview": {
+      "post": {
+        "description": "Writes nothing. A row error does not fail the request: it is listed in `errors`, and `reviewVersion` is null.",
+        "operationId": "CsvImportController_previewLinks",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "curriculumId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPreviewRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupLinkImportPreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a group-links file for this cohort. Header: requirement_group_name,course_code",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm": {
+      "post": {
+        "description": "Saves the whole file in one transaction, or nothing. Rows the file does not name are left as they are.",
+        "operationId": "CsvImportController_confirmLinks",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "curriculumId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportConfirmRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`impact_changed`: the file, the saved values or the references differ from the reviewed preview. Nothing is saved; preview again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a previewed group-links file for this cohort",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
     "/api/academic-calendar": {
       "get": {
         "operationId": "AcademicCalendarController_list",
@@ -6154,7 +6572,8 @@
           },
           "credits": {
             "type": "number",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 2147483647
           },
           "theoryPeriods": {
             "type": [
@@ -6162,6 +6581,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Theory periods (\"LT\")"
           },
           "labPeriods": {
@@ -6170,6 +6590,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Lab periods (\"TH\")"
           },
           "exercisePeriods": {
@@ -6178,6 +6599,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Exercise periods (\"BT\")"
           },
           "projectPeriods": {
@@ -6186,6 +6608,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Project periods (\"ĐT\")"
           }
         },
@@ -6273,35 +6696,40 @@
           },
           "credits": {
             "type": "number",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 2147483647
           },
           "theoryPeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "labPeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "exercisePeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "projectPeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "confirmImpact": {
             "type": "string",
@@ -6492,6 +6920,408 @@
           "userId",
           "programs",
           "permissions"
+        ]
+      },
+      "ImportPreviewRequestDto": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records."
+          }
+        },
+        "required": [
+          "csv"
+        ]
+      },
+      "ImportRowErrorDto": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "number",
+            "example": 3,
+            "description": "The logical CSV record, counting the header as record 1: the row number in a spreadsheet. A blank line is not a record. For malformed quoting: the record where reading stopped."
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "credits",
+            "description": "The CSV column, or null when the whole record is wrong"
+          },
+          "message": {
+            "type": "string",
+            "example": "must be an integer number"
+          }
+        },
+        "required": [
+          "record",
+          "field",
+          "message"
+        ]
+      },
+      "ImportSummaryDto": {
+        "type": "object",
+        "properties": {
+          "inserts": {
+            "type": "number",
+            "example": 12,
+            "description": "Rows that are new"
+          },
+          "updates": {
+            "type": "number",
+            "example": 3,
+            "description": "Rows that change a saved course; always 0 for group links"
+          },
+          "noOps": {
+            "type": "number",
+            "example": 40,
+            "description": "Rows equal to what is saved already"
+          }
+        },
+        "required": [
+          "inserts",
+          "updates",
+          "noOps"
+        ]
+      },
+      "CatalogImportRowDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CSC10001",
+            "pattern": "^[A-Z0-9]{2,20}$"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Nhập môn lập trình"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credits": {
+            "type": "number",
+            "example": 4
+          },
+          "theoryPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Theory periods (\"LT\"); null where the official table leaves the cell blank"
+          },
+          "labPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Lab periods (\"TH\")"
+          },
+          "exercisePeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Exercise periods (\"BT\")"
+          },
+          "projectPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Project periods (\"ĐT\")"
+          },
+          "record": {
+            "type": "number",
+            "example": 2,
+            "description": "The logical CSV record; the header is record 1"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "insert",
+              "update",
+              "no_op"
+            ],
+            "description": "What confirming would do with this row. The other fields are the normalized values it would save."
+          },
+          "changedFields": {
+            "type": "array",
+            "description": "For an update: the fields whose saved value differs",
+            "items": {
+              "type": "string",
+              "enum": [
+                "nameVi",
+                "nameEn",
+                "credits",
+                "theoryPeriods",
+                "labPeriods",
+                "exercisePeriods",
+                "projectPeriods"
+              ]
+            }
+          },
+          "current": {
+            "description": "For an update: the saved course as it is now. Otherwise null.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CourseDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "affectedCurricula": {
+            "description": "For an update: every curriculum that links the course and will read the new values",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AffectedCurriculumDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn",
+          "credits",
+          "theoryPeriods",
+          "labPeriods",
+          "exercisePeriods",
+          "projectPeriods",
+          "record",
+          "action",
+          "changedFields",
+          "current",
+          "affectedCurricula"
+        ]
+      },
+      "CatalogImportPreviewDto": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "description": "Every error of the file, by record. Any error blocks the whole file.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorDto"
+            }
+          },
+          "summary": {
+            "description": "Counts over `rows`",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImportSummaryDto"
+              }
+            ]
+          },
+          "reviewVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Send it back with the same csv to the matching confirm route. null while the file has an error: such a file cannot be confirmed."
+          },
+          "fileType": {
+            "type": "string",
+            "enum": [
+              "catalog_courses"
+            ]
+          },
+          "rows": {
+            "description": "The rows without an error, normalized, in file order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogImportRowDto"
+            }
+          },
+          "affectedCurricula": {
+            "description": "The union over every changed course: each curriculum that will read new values",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AffectedCurriculumDto"
+            }
+          }
+        },
+        "required": [
+          "errors",
+          "summary",
+          "reviewVersion",
+          "fileType",
+          "rows",
+          "affectedCurricula"
+        ]
+      },
+      "ImportRejectedDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 409
+          },
+          "code": {
+            "type": "string",
+            "example": "referenced_item"
+          },
+          "message": {
+            "type": "object",
+            "description": "English text for the developer; the screen words its own message from `code`"
+          },
+          "errors": {
+            "description": "Present when a CSV file is refused: where it is wrong. Absent for a malformed request body.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorDto"
+            }
+          }
+        },
+        "required": [
+          "statusCode",
+          "code",
+          "message"
+        ]
+      },
+      "ImportConfirmRequestDto": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records. The file that was previewed. The review version covers the rows after parsing: line endings, spaces around a field and the letter case of a course code do not count, and any other difference is refused."
+          },
+          "reviewVersion": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "The reviewVersion of the preview of this file. It is refused once the file, the saved values or the references it covers have changed."
+          }
+        },
+        "required": [
+          "csv",
+          "reviewVersion"
+        ]
+      },
+      "ImportResultDto": {
+        "type": "object",
+        "properties": {
+          "fileType": {
+            "type": "string",
+            "enum": [
+              "catalog_courses",
+              "group_links"
+            ]
+          },
+          "summary": {
+            "description": "What the one transaction saved",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImportSummaryDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "fileType",
+          "summary"
+        ]
+      },
+      "GroupLinkImportRowDto": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "number",
+            "example": 2,
+            "description": "The logical CSV record; the header is record 1"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "insert",
+              "no_op"
+            ],
+            "description": "insert: confirming links the course to the group. no_op: it is linked already."
+          },
+          "requirementGroupName": {
+            "type": "string",
+            "description": "The group's name, trimmed; it matched a group of the route's cohort exactly"
+          },
+          "requirementGroupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "courseCode": {
+            "type": "string",
+            "example": "CSC10001",
+            "description": "Trimmed and upper-cased; a course of the catalog"
+          }
+        },
+        "required": [
+          "record",
+          "action",
+          "requirementGroupName",
+          "requirementGroupId",
+          "courseCode"
+        ]
+      },
+      "GroupLinkImportPreviewDto": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "description": "Every error of the file, by record. Any error blocks the whole file.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorDto"
+            }
+          },
+          "summary": {
+            "description": "Counts over `rows`",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImportSummaryDto"
+              }
+            ]
+          },
+          "reviewVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Send it back with the same csv to the matching confirm route. null while the file has an error: such a file cannot be confirmed."
+          },
+          "fileType": {
+            "type": "string",
+            "enum": [
+              "group_links"
+            ]
+          },
+          "programId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The route's program; no CSV field can change it"
+          },
+          "curriculumId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The route's cohort; no CSV field can change it"
+          },
+          "rows": {
+            "description": "The rows without an error, normalized, in file order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupLinkImportRowDto"
+            }
+          }
+        },
+        "required": [
+          "errors",
+          "summary",
+          "reviewVersion",
+          "fileType",
+          "programId",
+          "curriculumId",
+          "rows"
         ]
       },
       "CalendarProgramDto": {

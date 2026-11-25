@@ -18,12 +18,21 @@ import { findPrerequisiteCycle } from './prerequisite-cycle.js';
 
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
-/** A course code from a path or body, canonical (UC-11 step 5), or a 400. */
-export function courseCodeOr400(input: string, field = 'courseCode'): string {
+/** A course code as an administrator gave it, canonical (UC-11 step 5), or why it is not one. */
+export function parseCourseCode(input: string, field = 'courseCode'): { code: string; error: null } | { code: null; error: string } {
   const code = canonicalCourseCode(input);
-  if (!code) throw validationFailed(`${field}: "${input}" is not a course code (letters A-Z and digits, 2 to 20)`);
-  return code;
+  return code ? { code, error: null } : { code: null, error: `${field}: "${input}" is not a course code (letters A-Z and digits, 2 to 20)` };
 }
+
+/** A course code from a path or body, canonical, or a 400. */
+export function courseCodeOr400(input: string, field = 'courseCode'): string {
+  const parsed = parseCourseCode(input, field);
+  if (parsed.error !== null) throw validationFailed(parsed.error);
+  return parsed.code;
+}
+
+/** What a link answers when the catalog lacks the course: linking never creates one. */
+export const noCatalogCourse = (code: string): string => `No catalog course has the code ${code}; a catalog maintainer adds it first`;
 
 // Program-administrator writes (ADR 0011): requirement groups, their course links, and the
 // prerequisites and offering terms of a curriculum's courses. Every write runs under the F12
@@ -106,14 +115,25 @@ export class CurriculumAdminService {
     const code = courseCodeOr400(rawCode);
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await groupIn(em, programId, curriculumId, groupId);
-      // Selecting a catalog course is not permission to change it (ADR 0011).
-      const [course] = await em.query('SELECT 1 FROM "courses" WHERE "code" = $1', [code]);
-      if (!course) throw notFound(`No catalog course has the code ${code}; a catalog maintainer adds it first`);
-      await em.query(
-        'INSERT INTO "requirement_group_courses" ("requirement_group_id", "course_code") VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [groupId, code],
-      );
+      if (!(await this.catalogHas(em, code))) throw notFound(noCatalogCourse(code));
+      await this.insertLink(em, groupId, code);
     });
+  }
+
+  // The two steps of a link, inside the caller's write transaction. The manual PUT above and
+  // the CSV import (csv-import.service.ts) both go through them, so a link is checked and
+  // saved one way. The checks are structural only: the group-total final-state validation of
+  // ADR 0011 waits for a rule-engine interface that does not exist yet.
+
+  /** Selecting a catalog course is not permission to change it (ADR 0011). */
+  async catalogHas(em: EntityManager, code: string): Promise<boolean> {
+    const [course] = await em.query('SELECT 1 FROM "courses" WHERE "code" = $1', [code]);
+    return Boolean(course);
+  }
+
+  /** Creates the link, or leaves the existing one. */
+  async insertLink(em: EntityManager, groupId: string, code: string): Promise<void> {
+    await em.query('INSERT INTO "requirement_group_courses" ("requirement_group_id", "course_code") VALUES ($1, $2) ON CONFLICT DO NOTHING', [groupId, code]);
   }
 
   unlinkCourse(callerId: string, programId: string, curriculumId: string, groupId: string, rawCode: string): Promise<void> {
@@ -215,7 +235,7 @@ export class CurriculumAdminService {
 }
 
 /** The curriculum, only if it belongs to the path's program. */
-async function curriculumIn(em: EntityManager, programId: string, curriculumId: string): Promise<void> {
+export async function curriculumIn(em: EntityManager, programId: string, curriculumId: string): Promise<void> {
   const [row] = await em.query('SELECT 1 FROM "curriculums" WHERE "id" = $1 AND "program_id" = $2', [curriculumId, programId]);
   if (!row) throw notFound('No such cohort in this program');
 }
