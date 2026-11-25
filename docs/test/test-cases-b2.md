@@ -96,8 +96,8 @@ T-K, every result type and a term 3 row. Only a `graded` row has a grade:
 
 **Build status on 25 November 2026.** The "Depends on" line of each section uses this status:
 
-- Done: calendar API (#108) and calendar page (#99); transcript storage, and typed entry on the **Transcript** screen (#70); the CSV import API (#147); the administration screens for the routes that exist (#148, issue [#146](https://github.com/LLaammTTeerr/omnicourses/issues/146)); the plan sharing API (#153).
-- In progress: planner drag-and-drop and live validation; curriculum administration API (part done: no program or cohort writes; [#161](https://github.com/LLaammTTeerr/omnicourses/pull/161), open, adds them); the notifications inbox API (#156, open).
+- Done: calendar API (#108) and calendar page (#99); transcript storage, and typed entry on the **Transcript** screen (#70); the CSV import API (#147); the administration screens for the routes that exist (#148, issue [#146](https://github.com/LLaammTTeerr/omnicourses/issues/146)); the plan sharing API (#153); the notification inbox API (#156).
+- In progress: planner drag-and-drop and live validation; curriculum administration API (part done: no program or cohort writes; [#161](https://github.com/LLaammTTeerr/omnicourses/pull/161), open, adds them).
 - Not started: transcript paste entry; the screen for the CSV import ([#151](https://github.com/LLaammTTeerr/omnicourses/issues/151)); the notifications inbox screen; the Share panel, the shared page and the PDF export; nightly backup.
 
 ## 2. TC-B2-PLAN-01: Editing and live validation
