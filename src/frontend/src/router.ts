@@ -14,6 +14,7 @@ import AccessAdmin from './admin/AccessAdmin.vue';
 import AdminView from './admin/AdminView.vue';
 import CatalogAdmin from './admin/CatalogAdmin.vue';
 import CurriculumAdmin from './admin/CurriculumAdmin.vue';
+import ImportAdmin from './admin/ImportAdmin.vue';
 import AuditView from './audit/AuditView.vue';
 import DashboardView from './audit/DashboardView.vue';
 import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
@@ -93,6 +94,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin },
       { path: 'catalog', name: 'admin-catalog', component: CatalogAdmin },
+      { path: 'import', name: 'admin-import', component: ImportAdmin },
       { path: 'access', name: 'admin-access', component: AccessAdmin },
     ],
   },

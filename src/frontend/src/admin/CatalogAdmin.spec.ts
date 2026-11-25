@@ -78,7 +78,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
 
   it('opens a course by its exact code, written as the catalog stores codes, with the curricula that use it', async () => {
     const { w, fetch } = await render();
-    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Danh mục học phần']);
+    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV']);
     expect(w.get('#catalog-admin-title').text()).toBe('Danh mục học phần dùng chung');
     expect(get(w, 'catalog-find').attributes('disabled')).toBeDefined();
     await find(w, ' zz101 ');

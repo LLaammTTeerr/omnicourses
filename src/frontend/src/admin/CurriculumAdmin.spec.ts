@@ -41,6 +41,20 @@ const lost = () => {
 /** A grant for each of the two programs the fixture lists. */
 const BOTH_PROGRAMS = grants({ programs: [programGrant({ programId: OTHER_PROGRAM_ID, programCode: 'ZZEMPTY' }), programGrant()] });
 const ONLY_EMPTY_PROGRAM = grants({ programs: [programGrant({ programId: OTHER_PROGRAM_ID, programCode: 'ZZEMPTY' })] });
+const NEW_COHORT_ID = '00000000-0000-4000-8000-0000000000c9';
+const PROGRAM_DETAILS = { code: 'ZZPROG', nameVi: 'Chương trình thử', nameEn: null, faculty: 'Khoa thử', trainingType: null, cohortYears: [2024, 2025] };
+const cohortDetails = (overrides: Record<string, unknown> = {}) => ({
+  id: CURRICULUM_ID,
+  programId: PROGRAM_ID,
+  cohortYear: 2024,
+  code: 'ZZPROG2024',
+  nameVi: 'CTĐT thử khóa 2024',
+  nameEn: null,
+  language: 'vi',
+  totalCreditsMin: null,
+  updatedAt: '2026-11-25T02:00:00.000Z',
+  ...overrides,
+});
 const NO_PROGRAM_PERMISSION = status(403, { statusCode: 403, code: 'permission_required', permission: 'program_admin', message: 'This needs the program_admin permission' });
 
 let wrapper: VueWrapper | undefined;
@@ -89,7 +103,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
 
   it('offers only the programs and cohorts the API lists for this user, and shows the groups of the chosen cohort', async () => {
     const { w } = await render();
-    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Nhóm yêu cầu']);
+    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Nhóm yêu cầu', 'Nhập CSV']);
     expect(optionsOf(get(w, 'admin-program'))).toEqual(['ZZEMPTY · Chương trình thử chưa có khóa', 'ZZPROG · Chương trình thử']);
     expect(optionsOf(get(w, 'admin-cohort'))).toEqual(['Khóa 2024', 'Khóa 2025']);
     expect(get(w, 'curriculum-summary').text()).toContain('CTĐT thử khóa 2024 · ZZPROG2024');
@@ -106,10 +120,12 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(w.findAll('[data-test="course-row"]').map((row) => row.attributes('data-course'))).toEqual(['ZZ101', 'ZZ102', 'ZZ103']);
   });
 
-  it('builds no control for what has no route: no cohort or program creation, no import, no credit-total box', async () => {
+  it('builds no control for what has no route: no program creation here, no credit-total or training-type box', async () => {
     const { w } = await render();
-    expect(w.text()).not.toMatch(/Thêm khóa|Thêm chương trình|CSV/);
+    // Program creation is the access manager's, on the access screen; the import has its own section.
+    expect(w.text()).not.toMatch(/Thêm chương trình/);
     expect(w.find('input[type="file"]').exists()).toBe(false);
+    expect(get(w, 'open-import').attributes('href')).toBe(`/admin/import?type=group_links&program=${PROGRAM_ID}&cohort=${CURRICULUM_ID}`);
     await get(w, 'add-group').trigger('click');
     await flushPromises();
     expect(w.get('dialog[open]').findAll('input, textarea').map((field) => field.attributes('id') ?? field.attributes('name'))).toEqual(['group-name', 'group-kind', 'group-kind', 'group-notes']);
@@ -779,7 +795,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await flushPromises();
       await flushPromises();
       // The sections follow the grants held now, but this one is not closed under the message.
-      expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần']);
+      expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV']);
       expect(has(w, 'admin-section-denied')).toBe(false);
       const note = get(w, 'group-panel').get('[data-test="admin-problem"]');
       expect(note.attributes('data-code')).toBe('permission_required');
@@ -1045,7 +1061,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
 
     await chooseOption(get(w, 'admin-program'), 'ZZEMPTY · Chương trình thử chưa có khóa');
     await flushPromises();
-    expect(get(w, 'no-cohorts').text()).toBe('Chương trình này chưa có khóa nào. Trang này chưa thêm khóa được.');
+    expect(get(w, 'no-cohorts').text()).toBe('Chương trình này chưa có khóa nào. Bấm “Thêm khóa” để thêm khóa đầu tiên.');
     expect(has(w, 'admin-cohort')).toBe(false);
     expect(has(w, 'add-group')).toBe(false);
   });
@@ -1111,4 +1127,156 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(get(w, 'admin-late').text()).toContain('Không tìm thấy');
   });
 
+});
+
+describe("CurriculumAdmin (UC-11 A1): the program's details and its cohorts", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    saved = curriculum();
+    own = BOTH_PROGRAMS;
+  });
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = undefined;
+    vi.restoreAllMocks();
+  });
+
+  /** The programs the API lists, with a cohort of 2026 once it was created. */
+  const withNewCohort = () => {
+    const list = adminPrograms();
+    list.programs[1]!.curricula.push({ id: NEW_COHORT_ID, code: 'ZZ-PROG-2026', cohortYear: 2026 });
+    return list;
+  };
+
+  it("edits the program's details from what the read API holds, sending only what changed, with no training-type box", async () => {
+    const { w, fetch } = await render({
+      'GET /programs': { programs: [PROGRAM_DETAILS] },
+      [`PATCH /admin/programs/${PROGRAM_ID}`]: () => Response.json({ ...PROGRAM_DETAILS, id: PROGRAM_ID, nameEn: 'Test program', updatedAt: '2026-11-25T03:00:00.000Z' }),
+    });
+    await get(w, 'program-edit').trigger('click');
+    await flushPromises();
+    const dialog = w.get('dialog[open]');
+    expect(dialog.get('h2').text()).toBe('Sửa chương trình ZZPROG');
+    expect(dialog.findAll('input, select, textarea').map((field) => field.attributes('id'))).toEqual(['program-code', 'program-nameVi', 'program-nameEn', 'program-faculty']);
+    expect(get(dialog, 'program-code').attributes('readonly')).toBeDefined();
+    expect((get(dialog, 'program-faculty').element as HTMLInputElement).value).toBe('Khoa thử');
+    expect(get(dialog, 'program-not-here').text()).toContain('Loại hình đào tạo');
+    await get(dialog, 'program-nameEn').setValue('Test program');
+    await submit(w);
+    expect(writes(fetch).map((call) => [pathOf(call), sentBody(call[1])])).toEqual([[`/admin/programs/${PROGRAM_ID}`, { nameEn: 'Test program' }]]);
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(useToast().message).toBe('Đã lưu chương trình ZZPROG.');
+    // The programs are listed again, for the name in the program list.
+    expect(calls(fetch, 'GET').filter((call) => pathOf(call) === '/admin/programs')).toHaveLength(2);
+  });
+
+  it('adds a cohort, then opens it empty; the cohort box takes no credit total', async () => {
+    let listed = adminPrograms();
+    const { w, fetch } = await render({
+      'GET /admin/programs': () => Response.json(listed),
+      [`POST /admin/programs/${PROGRAM_ID}/cohorts`]: () => {
+        listed = withNewCohort();
+        return Response.json(cohortDetails({ id: NEW_COHORT_ID, cohortYear: 2026, code: 'ZZ-PROG-2026', nameVi: 'Khóa thử 2026', language: null }), { status: 201 });
+      },
+      'GET /programs/ZZPROG/curricula/2026': curriculum([], { id: NEW_COHORT_ID, code: 'ZZ-PROG-2026', cohortYear: 2026, nameVi: 'Khóa thử 2026' }),
+    });
+    await get(w, 'cohort-add').trigger('click');
+    await flushPromises();
+    const dialog = w.get('dialog[open]');
+    expect(dialog.get('h2').text()).toBe('Khóa mới của ZZPROG');
+    expect(dialog.findAll('input').map((field) => field.attributes('id'))).toEqual(['cohort-cohortYear', 'cohort-code', 'cohort-nameVi', 'cohort-nameEn', 'cohort-language']);
+    await get(dialog, 'cohort-cohortYear').setValue(' 2026 ');
+    await get(dialog, 'cohort-code').setValue('zz-prog-2026');
+    await get(dialog, 'cohort-nameVi').setValue('Khóa thử 2026');
+    await submit(w);
+    expect(writes(fetch).map((call) => sentBody(call[1]))).toEqual([{ cohortYear: 2026, code: 'zz-prog-2026', nameVi: 'Khóa thử 2026', nameEn: null, language: null }]);
+    expect(useToast().message).toBe('Đã thêm khóa 2026. Khóa này chưa có nhóm yêu cầu nào.');
+    expect(optionsOf(get(w, 'admin-cohort'))).toEqual(['Khóa 2024', 'Khóa 2025', 'Khóa 2026']);
+    expect(get(w, 'curriculum-summary').text()).toContain('Khóa thử 2026 · ZZ-PROG-2026');
+    expect(has(w, 'no-groups')).toBe(true);
+  });
+
+  it('says a second cohort of a year, and a curriculum code in use, in words, and keeps the dialog as typed', async () => {
+    let code = 'duplicate_cohort';
+    const { w } = await render({ [`POST /admin/programs/${PROGRAM_ID}/cohorts`]: () => Response.json({ statusCode: 409, code, message: 'x' }, { status: 409 }) });
+    await get(w, 'cohort-add').trigger('click');
+    await flushPromises();
+    await get(w.get('dialog[open]'), 'cohort-cohortYear').setValue('2024');
+    await submit(w);
+    expect(problem(w).attributes('data-code')).toBe('duplicate_cohort');
+    expect(problem(w).text()).toBe('Chương trình này đã có khóa của năm này. Chưa lưu gì.');
+    code = 'duplicate_code';
+    await submit(w);
+    expect(problem(w).text()).toBe('Đã có chương trình đào tạo mang mã này. Chưa lưu gì.');
+    expect((get(w.get('dialog[open]'), 'cohort-cohortYear').element as HTMLInputElement).value).toBe('2024');
+  });
+
+  it('offers "Add a cohort" for a program that has none yet, and no cohort to edit', async () => {
+    const { w } = await render();
+    await chooseOption(get(w, 'admin-program'), 'ZZEMPTY · Chương trình thử chưa có khóa');
+    await flushPromises();
+    expect(get(w, 'no-cohorts').text()).toBe('Chương trình này chưa có khóa nào. Bấm “Thêm khóa” để thêm khóa đầu tiên.');
+    expect(has(w, 'cohort-add')).toBe(true);
+    expect(has(w, 'cohort-edit')).toBe(false);
+    expect(has(w, 'open-import')).toBe(false);
+  });
+
+  it('edits a cohort from its saved details; its year and code stay as they are', async () => {
+    let details = cohortDetails();
+    const { w, fetch } = await render({
+      [`GET ${COHORT}`]: () => Response.json(details),
+      [`PATCH ${COHORT}`]: (init: RequestInit | undefined) => {
+        details = { ...details, ...(sentBody(init) as object) };
+        saved = curriculum(undefined, { nameEn: 'Test curriculum 2024' });
+        return Response.json(details);
+      },
+    });
+    await get(w, 'cohort-edit').trigger('click');
+    await flushPromises();
+    const dialog = w.get('dialog[open]');
+    expect(dialog.get('h2').text()).toBe('Sửa khóa 2024 của ZZPROG');
+    expect(['cohort-cohortYear', 'cohort-code'].map((test) => get(dialog, test).attributes('readonly'))).toEqual(['', '']);
+    await get(dialog, 'cohort-nameEn').setValue('Test curriculum 2024');
+    await submit(w);
+    expect(writes(fetch).map((call) => sentBody(call[1]))).toEqual([{ nameEn: 'Test curriculum 2024' }]);
+    expect(useToast().message).toBe('Đã lưu khóa 2024.');
+  });
+
+  it('settles a new cohort whose answer was lost from the saved cohorts, and sends it once', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let listed = adminPrograms();
+    const { w, fetch } = await render({
+      'GET /admin/programs': () => Response.json(listed),
+      [`POST /admin/programs/${PROGRAM_ID}/cohorts`]: () => {
+        listed = withNewCohort();
+        throw new TypeError('Failed to fetch');
+      },
+      [`GET /admin/programs/${PROGRAM_ID}/cohorts`]: () =>
+        Response.json({ cohorts: [cohortDetails(), cohortDetails({ id: NEW_COHORT_ID, cohortYear: 2026, code: 'ZZ-PROG-2026', nameVi: 'Khóa thử 2026', language: null })] }),
+      'GET /programs/ZZPROG/curricula/2026': curriculum([], { id: NEW_COHORT_ID, code: 'ZZ-PROG-2026', cohortYear: 2026, nameVi: 'Khóa thử 2026' }),
+    });
+    await get(w, 'cohort-add').trigger('click');
+    await flushPromises();
+    const dialog = w.get('dialog[open]');
+    await get(dialog, 'cohort-cohortYear').setValue('2026');
+    await get(dialog, 'cohort-code').setValue('ZZ-PROG-2026');
+    await get(dialog, 'cohort-nameVi').setValue('Khóa thử 2026');
+    await submit(w);
+    expect(calls(fetch, 'POST')).toHaveLength(1);
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+    expect(get(w, 'curriculum-summary').text()).toContain('ZZ-PROG-2026');
+  });
+
+  it('sends nothing on Cancel', async () => {
+    const { w, fetch } = await render();
+    await get(w, 'cohort-add').trigger('click');
+    await flushPromises();
+    await get(w.get('dialog[open]'), 'cohort-cohortYear').setValue('2030');
+    await get(w.get('dialog[open]'), 'dialog-cancel').trigger('click');
+    await flushPromises();
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(writes(fetch)).toEqual([]);
+  });
 });

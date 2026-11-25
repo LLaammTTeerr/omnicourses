@@ -8,6 +8,7 @@ import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import {
+  createProgram,
   fetchAccessPrograms,
   fetchUserGrants,
   GLOBAL_PERMISSIONS,
@@ -22,16 +23,19 @@ import {
 import ConfirmDialog from './ConfirmDialog.vue';
 import { byField, readFailure, type Failure } from './errors.js';
 import FieldErrors from './FieldErrors.vue';
+import { newProgramBody, PROGRAM_FIELDS, storedCode, type ProgramValues } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
+import ProgramDialog from './ProgramDialog.vue';
 import { useAdminAccess } from './store.js';
 import { useWrites, type WriteOutcome } from './write.js';
 
 // Grants and revocations of an access manager (ADR 0011, UC-11 section 8). A user is found by their exact user
 // ID, which they copy from Settings: the API has no user directory and no search. The answer holds grants only,
 // never a name or an email. The API decides everything: it refuses a recipient waiting for deletion and the
-// revocation of the last active access manager, and this page says so in words.
+// revocation of the last active access manager, and this page says so in words. An access manager also creates a
+// program here (UC-11 A2): it gets no grant on it, and the new program is at once in the list to grant from.
 const auth = useAuth();
 const access = useAdminAccess();
 const locale = useLocale();
@@ -128,7 +132,7 @@ const held = computed(() => stale.value || inlineWrites.problem.value?.outcome =
 
 // A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
 // the request answers, so its result is said. A 401 has signed the user out, who may leave.
-onBeforeRouteLeave(() => !writing.value || !auth.signedIn);
+onBeforeRouteLeave(() => !(writing.value || programWrites.busy.value) || !auth.signedIn);
 
 const holdsProgram = (saved: UserGrants, id: string) => saved.programs.some((grant) => grant.programId === id);
 const holdsGlobal = (saved: UserGrants, permission: GlobalPermission) => saved.permissions.some((grant) => grant.permission === permission);
@@ -235,6 +239,72 @@ async function revoke(): Promise<void> {
   // The Revoke button is gone with the grant: the focus goes to the control that can grant it again.
   await closeDialog(current.type === 'global' ? `access-action-${current.permission}` : 'access-program-select');
 }
+
+// ---------- A new program (UC-11 A2) ----------
+const programWrites = useWrites();
+const programOpen = ref(false);
+const programSettling = ref(false);
+const programBusy = computed(() => programWrites.busy.value || programSettling.value);
+let programOpener: HTMLElement | null = null;
+
+function openProgram(from: Event): void {
+  programOpener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
+  programWrites.clear();
+  notice.value = null;
+  programOpen.value = true;
+}
+
+async function closeProgram(): Promise<void> {
+  programOpen.value = false;
+  programWrites.clear();
+  await nextTick();
+  (programOpener?.isConnected ? programOpener : document.getElementById('program-add'))?.focus();
+  programOpener = null;
+}
+
+function cancelProgram(): void {
+  if (!programBusy.value) void closeProgram();
+}
+
+/** The access manager's list of programs has the new one: found again by its code and name after a lost answer. */
+async function programListed(values: ProgramValues): Promise<boolean> {
+  const { programs: listed } = await auth.authed(fetchAccessPrograms);
+  return listed.some((item) => item.code === storedCode(values.code) && item.nameVi === values.nameVi.trim());
+}
+
+async function endProgram(outcome: 'saved' | 'confirmed', code: string): Promise<void> {
+  programSettling.value = true;
+  try {
+    // The grant form lists the new program at once.
+    await programs.reload();
+    await closeProgram();
+    if (outcome === 'saved') toast.show(m.value.programs.programCreated(code));
+    else programNotice.value = m.value.problem.confirmed;
+  } finally {
+    programSettling.value = false;
+  }
+}
+
+const programNotice = ref<string | null>(null);
+async function saveProgram(values: ProgramValues): Promise<void> {
+  programNotice.value = null;
+  const result = await programWrites.send(
+    (token) => createProgram(token, newProgramBody(values)),
+    () => programListed(values),
+  );
+  if (result.outcome === 'saved' || result.outcome === 'confirmed') await endProgram(result.outcome, result.outcome === 'saved' ? result.value.code : storedCode(values.code));
+}
+
+async function recheckProgram(): Promise<void> {
+  if ((await programWrites.recheck())?.outcome === 'confirmed') await endProgram('confirmed', '');
+}
+
+const programProblem = computed(() => {
+  if (!programWrites.problem.value) return null;
+  const problem = describeProblem(programWrites.problem.value, m.value, PROGRAM_FIELDS);
+  // A program has this code, not a catalog course.
+  return problem.code === 'duplicate_code' ? { ...problem, text: m.value.programs.duplicateProgramCode } : problem;
+});
 
 const inlineProblem = computed(() => (inlineWrites.problem.value ? describeProblem(inlineWrites.problem.value, m.value) : null));
 const dialogProblem = computed(() => (dialogWrites.problem.value ? describeProblem(dialogWrites.problem.value, m.value) : null));
@@ -398,6 +468,18 @@ async function recheckDialog(): Promise<void> {
       </div>
     </div>
 
+    <section class="card flush" aria-labelledby="access-new-program-title" data-test="access-new-program">
+      <div class="card-head">
+        <h2 id="access-new-program-title">{{ m.programs.programsTitle }}</h2>
+        <button id="program-add" class="btn sm" type="button" :disabled="programBusy" data-test="program-add" @click="openProgram"><Icon name="plus" size="sm" />{{ m.programs.addProgram }}</button>
+      </div>
+      <div class="admin-tools">
+        <p class="small t2">{{ m.programs.programsLead }}</p>
+        <p v-if="programNotice" class="callout ok" role="status" data-test="program-notice"><Icon name="check" /><span>{{ programNotice }}</span></p>
+      </div>
+    </section>
+
+    <ProgramDialog :open="programOpen" :program="null" :busy="programBusy" :problem="programProblem" @close="cancelProgram" @save="saveProgram" @reload="recheckProgram" />
     <ConfirmDialog
       :open="revoking !== null"
       :title="text.revokeTitle"

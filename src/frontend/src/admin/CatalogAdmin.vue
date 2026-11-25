@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import { onBeforeRouteLeave, RouterLink } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import { fetchCourse, type Course, type CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
@@ -269,6 +269,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
       <div class="card-head">
         <h2 id="catalog-admin-title">{{ text.heading }}</h2>
         <span class="meta">{{ text.shared }}</span>
+        <RouterLink class="btn sm" :to="{ name: 'admin-import', query: { type: 'catalog_courses' } }" data-test="open-import">{{ text.importLink }}</RouterLink>
       </div>
       <div class="admin-tools">
         <form class="link-form" novalidate @submit.prevent="find">
