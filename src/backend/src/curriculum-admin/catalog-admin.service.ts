@@ -9,7 +9,13 @@ import { AdminWriteService } from './admin-write.service.js';
 import { COURSE_FIELDS, type CourseField, CreateCourseDto, UpdateCourseDto } from './curriculum-admin.dto.js';
 import { courseCodeOr400 } from './curriculum-admin.service.js';
 
-type CourseValues = Pick<Course, CourseField>;
+export type CourseValues = Pick<Course, CourseField>;
+
+/** A change to one stored course: the values it would have, and the fields that differ. */
+export interface CourseChange {
+  proposed: CourseValues;
+  changed: CourseField[];
+}
 
 /**
  * The version of a shared-course change that a catalog maintainer reviews (ADR 0011): the
@@ -34,16 +40,7 @@ export class CatalogAdminService {
     const code = courseCodeOr400(dto.code, 'code');
     return this.writes.run(callerId, { permission: 'catalog_maintainer' }, async (em) => {
       if (await em.getRepository(Course).existsBy({ code })) throw conflict('duplicate_code', `The catalog already has ${code}`);
-      await em.getRepository(Course).insert({
-        code,
-        nameVi: dto.nameVi,
-        nameEn: blankToNull(dto.nameEn),
-        credits: dto.credits,
-        theoryPeriods: dto.theoryPeriods ?? 0,
-        labPeriods: dto.labPeriods ?? 0,
-        exercisePeriods: dto.exercisePeriods ?? 0,
-        projectPeriods: dto.projectPeriods ?? 0,
-      });
+      await this.insertCourse(em, code, newCourseValues(dto));
       return courseDto(await em.getRepository(Course).findOneByOrFail({ code }));
     });
   }
@@ -53,17 +50,11 @@ export class CatalogAdminService {
     return this.writes.run(callerId, { permission: 'catalog_maintainer' }, async (em) => {
       const course = await em.getRepository(Course).findOneBy({ code });
       if (!course) throw notFound(`No catalog course has the code ${code}`);
-      const proposed: CourseValues = { ...course };
-      for (const field of COURSE_FIELDS) {
-        const value = dto[field];
-        if (value !== undefined) (proposed as Record<CourseField, unknown>)[field] = field === 'nameEn' ? blankToNull(value as string | null) : value;
-      }
-      const changed = COURSE_FIELDS.filter((f) => proposed[f] !== course[f]);
-      if (!changed.length) return courseDto(course);
+      const change = courseChange(course, dto);
+      if (!change.changed.length) return courseDto(course);
 
-      const affected = await affectedCurricula(em, code);
+      const { affected, reviewVersion } = await this.reviewChange(em, code, course, change.proposed);
       if (affected.length) {
-        const reviewVersion = impactVersion(code, course, proposed, affected);
         if (dto.confirmImpact === undefined) {
           throw conflict('impact_confirmation_required', `${code} is shared: the change reaches every curriculum listed; confirm with confirmImpact`, {
             affectedCurricula: affected,
@@ -74,10 +65,30 @@ export class CatalogAdminService {
           throw conflict('impact_changed', `${code} or the curricula linking it changed since the review; review again`, { affectedCurricula: affected, reviewVersion });
         }
       }
-      // update() sets updated_at with the change (ADR 0011).
-      await em.getRepository(Course).update({ code }, Object.fromEntries(changed.map((f) => [f, proposed[f]])));
+      await this.saveChange(em, code, change);
       return courseDto(await em.getRepository(Course).findOneByOrFail({ code }));
     });
+  }
+
+  // The steps of a catalog write, inside the caller's transaction. Manual entry above and the
+  // CSV import (csv-import.service.ts) both go through them, so a course is reviewed and
+  // saved one way (ADR 0011: "Manual entry and CSV confirmation use the same transactional
+  // write/validation services").
+
+  /** Saves a course the catalog does not have yet. */
+  async insertCourse(em: EntityManager, code: string, values: CourseValues): Promise<void> {
+    await em.getRepository(Course).insert({ code, ...values });
+  }
+
+  /** What a maintainer reviews before a stored course changes: who reads it, and the version of that review. */
+  async reviewChange(em: EntityManager, code: string, current: CourseValues, proposed: CourseValues): Promise<{ affected: AffectedCurriculumDto[]; reviewVersion: string }> {
+    const affected = await affectedCurricula(em, code);
+    return { affected, reviewVersion: impactVersion(code, current, proposed, affected) };
+  }
+
+  /** Saves the changed fields. update() sets updated_at with the change (ADR 0011). */
+  async saveChange(em: EntityManager, code: string, change: CourseChange): Promise<void> {
+    await em.getRepository(Course).update({ code }, Object.fromEntries(change.changed.map((f) => [f, change.proposed[f]])));
   }
 
   /**
@@ -124,3 +135,26 @@ async function countOf(em: EntityManager, code: string, table: string, column: s
 }
 
 const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
+
+/** The values a new course is saved with: a blank English name is null, an absent period count is 0. */
+export function newCourseValues(dto: CreateCourseDto): CourseValues {
+  return {
+    nameVi: dto.nameVi,
+    nameEn: blankToNull(dto.nameEn),
+    credits: dto.credits,
+    theoryPeriods: dto.theoryPeriods ?? 0,
+    labPeriods: dto.labPeriods ?? 0,
+    exercisePeriods: dto.exercisePeriods ?? 0,
+    projectPeriods: dto.projectPeriods ?? 0,
+  };
+}
+
+/** The stored course with the given fields replaced; a field left undefined keeps its value. */
+export function courseChange(course: CourseValues, fields: Partial<CourseValues>): CourseChange {
+  const proposed: CourseValues = Object.fromEntries(COURSE_FIELDS.map((f) => [f, course[f]])) as CourseValues;
+  for (const field of COURSE_FIELDS) {
+    const value = fields[field];
+    if (value !== undefined) (proposed as Record<CourseField, unknown>)[field] = field === 'nameEn' ? blankToNull(value as string | null) : value;
+  }
+  return { proposed, changed: COURSE_FIELDS.filter((f) => proposed[f] !== course[f]) };
+}

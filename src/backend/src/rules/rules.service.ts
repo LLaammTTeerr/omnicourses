@@ -6,6 +6,7 @@ import { OnboardingService } from '../onboarding/onboarding.service.js';
 import { courseCodesOf, type BoardTerm } from '../plans/plan-board.js';
 import type { PlanIssuesProvider, PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
+import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
 import { degreeAudit } from './audit.js';
 import type { DegreeAudit } from './audit-types.js';
@@ -58,12 +59,27 @@ export class RulesService implements PlanIssuesProvider {
     return report!;
   }
 
-  async issuesForBoards(userId: string, plan: PlanDto, boards: readonly BoardTerm[][]): Promise<PlanIssuesReport[]> {
+  issuesForBoards(userId: string, plan: PlanDto, boards: readonly BoardTerm[][]): Promise<PlanIssuesReport[]> {
+    return this.check(plan, boards, this.transcript.rowsFor(userId));
+  }
+
+  /**
+   * The same check with an empty transcript, which is never read: no student is named. For a caller
+   * that shows only what the plan and its curriculum say (a shared plan whose owner did not choose
+   * to show the transcript's checks, ADR 0010). What the report says of prerequisites met, courses
+   * already passed or in progress and coverage is then nobody's, and must not be shown.
+   */
+  async issuesWithoutTranscript(plan: PlanDto): Promise<PlanIssuesReport> {
+    const [report] = await this.check(plan, [plan.terms], []);
+    return report!;
+  }
+
+  private async check(plan: PlanDto, boards: readonly BoardTerm[][], entries: readonly TranscriptEntry[] | Promise<readonly TranscriptEntry[]>): Promise<PlanIssuesReport[]> {
     const { id: curriculumId, programCode, cohortYear } = plan.curriculum;
     const [rules, courseRules, transcript, catalogCredits] = await Promise.all([
       this.curriculum.rulesFor(programCode, cohortYear),
       this.courseRules.rulesFor(curriculumId),
-      this.transcript.rowsFor(userId),
+      entries,
       this.catalog.courseCredits([...new Set(boards.flatMap(courseCodesOf))]),
     ]);
     // ON DELETE RESTRICT keeps a plan's curriculum (ADR 0014), so this is a broken invariant.

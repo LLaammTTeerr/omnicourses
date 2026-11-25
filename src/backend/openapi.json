@@ -300,35 +300,6 @@
         ]
       }
     },
-    "/api/users/me/export": {
-      "get": {
-        "operationId": "AccountController_export",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Everything OmniCourse holds about the signed-in user, as a JSON download.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountExportDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing, expired or revoked token"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "users"
-        ]
-      }
-    },
     "/api/users/me/transcript": {
       "get": {
         "operationId": "TranscriptController_get",
@@ -2714,6 +2685,424 @@
         ]
       }
     },
+    "/api/admin/catalog/imports/preview": {
+      "post": {
+        "description": "Writes nothing. A row error does not fail the request: it is listed in `errors`, and `reviewVersion` is null.",
+        "operationId": "CsvImportController_previewCatalog",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPreviewRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogImportPreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a catalog courses file. Header: code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/catalog/imports/confirm": {
+      "post": {
+        "description": "Saves the whole file in one transaction, or nothing. Rows the file does not name are left as they are.",
+        "operationId": "CsvImportController_confirmCatalog",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportConfirmRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`impact_changed`: the file, the saved values or the references differ from the reviewed preview. Nothing is saved; preview again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a previewed catalog courses file",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview": {
+      "post": {
+        "description": "Writes nothing. A row error does not fail the request: it is listed in `errors`, and `reviewVersion` is null.",
+        "operationId": "CsvImportController_previewLinks",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "curriculumId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportPreviewRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupLinkImportPreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a group-links file for this cohort. Header: requirement_group_name,course_code",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
+    "/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm": {
+      "post": {
+        "description": "Saves the whole file in one transaction, or nothing. Rows the file does not name are left as they are.",
+        "operationId": "CsvImportController_confirmLinks",
+        "parameters": [
+          {
+            "name": "programId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "curriculumId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportConfirmRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRejectedDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "403": {
+            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionRequiredDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`not_found`: nothing with this ID or code within the authorised scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`impact_changed`: the file, the saved values or the references differ from the reviewed preview. Nothing is saved; preview again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`payload_too_large`: the JSON body is over 7 MiB, the CSV over 1 MiB of UTF-8, or it has more than 1,000 data records. A caller without a session or without the grant this route needs is limited to 100 KiB of JSON, like on every other route. Nothing is saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`unsupported_content_encoding`: the request has a Content-Encoding. These routes never inflate a body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a previewed group-links file for this cohort",
+        "tags": [
+          "curriculum-admin"
+        ]
+      }
+    },
     "/api/academic-calendar": {
       "get": {
         "operationId": "AcademicCalendarController_list",
@@ -3027,6 +3416,205 @@
           "academic-calendar"
         ]
       }
+    },
+    "/api/plans/{id}/share": {
+      "get": {
+        "operationId": "PlanShareController_state",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The live link of the plan, or `share: null` when the plan is not shared.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanShareStateDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sharing"
+        ]
+      },
+      "put": {
+        "operationId": "PlanShareController_share",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "description": "The choices to set. A request with no body, or with `{}`, sets none.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The plan is shared. A plan that was not shared gets a new link; a link stopped earlier stays dead. A plan already shared keeps its link and takes the choices that are sent (`showName`, `showTranscriptChecks`); a choice left out stays as it is. Anyone who holds the link can open it, without signing in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanShareDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not an object, or `showName` or `showTranscriptChecks` is sent and is not a boolean (`null` included)."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sharing"
+        ]
+      },
+      "delete": {
+        "operationId": "PlanShareController_stop",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The plan is not shared any more: its link stops working at once. The same answer when it was not shared."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "No plan with this id among the signed-in student’s plans (another student’s plan included)."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sharing"
+        ]
+      }
+    },
+    "/api/shared-plans/{token}": {
+      "get": {
+        "operationId": "SharedPlansController_read",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "The token of a shared plan's link.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plan as it is now, read-only: its name, curriculum, terms and the rule engine's issues that follow from the plan alone. When the owner chose it for this link, also the issues the engine decides from the owner's transcript and the coverage. Never grades, email, transcript rows, other plans or an id. No sign-in needed. This answer, the 404 and the 429 of this path are sent with `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedPlanDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No live link has this token. One answer, with the same body, for a link that was stopped, whose plan or account was deleted, that was mistyped or that never existed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSharedDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "sharing"
+        ]
+      }
+    },
+    "/api/users/me/export": {
+      "get": {
+        "operationId": "AccountController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Everything OmniCourse holds about the signed-in user, as a JSON download.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountExportDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
+      }
     }
   },
   "info": {
@@ -3210,61 +3798,6 @@
           "createdAt",
           "expiresAt",
           "current"
-        ]
-      },
-      "AccountExportDto": {
-        "type": "object",
-        "properties": {
-          "exportedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "user": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "The users row, without credentials."
-          },
-          "tables": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": true
-              }
-            },
-            "description": "Every row this user owns (user_id), by table name, without credentials."
-          }
-        },
-        "required": [
-          "exportedAt",
-          "user",
-          "tables"
-        ]
-      },
-      "DeleteAccountDto": {
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": "string",
-            "description": "The current password, asked again before deleting."
-          }
-        },
-        "required": [
-          "password"
-        ]
-      },
-      "DeletionScheduledDto": {
-        "type": "object",
-        "properties": {
-          "purgeAfter": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Signing in before this time cancels the deletion."
-          }
-        },
-        "required": [
-          "purgeAfter"
         ]
       },
       "TermDto": {
@@ -6154,7 +6687,8 @@
           },
           "credits": {
             "type": "number",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 2147483647
           },
           "theoryPeriods": {
             "type": [
@@ -6162,6 +6696,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Theory periods (\"LT\")"
           },
           "labPeriods": {
@@ -6170,6 +6705,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Lab periods (\"TH\")"
           },
           "exercisePeriods": {
@@ -6178,6 +6714,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Exercise periods (\"BT\")"
           },
           "projectPeriods": {
@@ -6186,6 +6723,7 @@
               "null"
             ],
             "minimum": 0,
+            "maximum": 2147483647,
             "description": "Project periods (\"ĐT\")"
           }
         },
@@ -6273,35 +6811,40 @@
           },
           "credits": {
             "type": "number",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 2147483647
           },
           "theoryPeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "labPeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "exercisePeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "projectPeriods": {
             "type": [
               "number",
               "null"
             ],
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 2147483647
           },
           "confirmImpact": {
             "type": "string",
@@ -6492,6 +7035,408 @@
           "userId",
           "programs",
           "permissions"
+        ]
+      },
+      "ImportPreviewRequestDto": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records."
+          }
+        },
+        "required": [
+          "csv"
+        ]
+      },
+      "ImportRowErrorDto": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "number",
+            "example": 3,
+            "description": "The logical CSV record, counting the header as record 1: the row number in a spreadsheet. A blank line is not a record. For malformed quoting: the record where reading stopped."
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "credits",
+            "description": "The CSV column, or null when the whole record is wrong"
+          },
+          "message": {
+            "type": "string",
+            "example": "must be an integer number"
+          }
+        },
+        "required": [
+          "record",
+          "field",
+          "message"
+        ]
+      },
+      "ImportSummaryDto": {
+        "type": "object",
+        "properties": {
+          "inserts": {
+            "type": "number",
+            "example": 12,
+            "description": "Rows that are new"
+          },
+          "updates": {
+            "type": "number",
+            "example": 3,
+            "description": "Rows that change a saved course; always 0 for group links"
+          },
+          "noOps": {
+            "type": "number",
+            "example": 40,
+            "description": "Rows equal to what is saved already"
+          }
+        },
+        "required": [
+          "inserts",
+          "updates",
+          "noOps"
+        ]
+      },
+      "CatalogImportRowDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CSC10001",
+            "pattern": "^[A-Z0-9]{2,20}$"
+          },
+          "nameVi": {
+            "type": "string",
+            "example": "Nhập môn lập trình"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credits": {
+            "type": "number",
+            "example": 4
+          },
+          "theoryPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Theory periods (\"LT\"); null where the official table leaves the cell blank"
+          },
+          "labPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Lab periods (\"TH\")"
+          },
+          "exercisePeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Exercise periods (\"BT\")"
+          },
+          "projectPeriods": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Project periods (\"ĐT\")"
+          },
+          "record": {
+            "type": "number",
+            "example": 2,
+            "description": "The logical CSV record; the header is record 1"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "insert",
+              "update",
+              "no_op"
+            ],
+            "description": "What confirming would do with this row. The other fields are the normalized values it would save."
+          },
+          "changedFields": {
+            "type": "array",
+            "description": "For an update: the fields whose saved value differs",
+            "items": {
+              "type": "string",
+              "enum": [
+                "nameVi",
+                "nameEn",
+                "credits",
+                "theoryPeriods",
+                "labPeriods",
+                "exercisePeriods",
+                "projectPeriods"
+              ]
+            }
+          },
+          "current": {
+            "description": "For an update: the saved course as it is now. Otherwise null.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CourseDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "affectedCurricula": {
+            "description": "For an update: every curriculum that links the course and will read the new values",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AffectedCurriculumDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn",
+          "credits",
+          "theoryPeriods",
+          "labPeriods",
+          "exercisePeriods",
+          "projectPeriods",
+          "record",
+          "action",
+          "changedFields",
+          "current",
+          "affectedCurricula"
+        ]
+      },
+      "CatalogImportPreviewDto": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "description": "Every error of the file, by record. Any error blocks the whole file.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorDto"
+            }
+          },
+          "summary": {
+            "description": "Counts over `rows`",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImportSummaryDto"
+              }
+            ]
+          },
+          "reviewVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Send it back with the same csv to the matching confirm route. null while the file has an error: such a file cannot be confirmed."
+          },
+          "fileType": {
+            "type": "string",
+            "enum": [
+              "catalog_courses"
+            ]
+          },
+          "rows": {
+            "description": "The rows without an error, normalized, in file order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogImportRowDto"
+            }
+          },
+          "affectedCurricula": {
+            "description": "The union over every changed course: each curriculum that will read new values",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AffectedCurriculumDto"
+            }
+          }
+        },
+        "required": [
+          "errors",
+          "summary",
+          "reviewVersion",
+          "fileType",
+          "rows",
+          "affectedCurricula"
+        ]
+      },
+      "ImportRejectedDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 409
+          },
+          "code": {
+            "type": "string",
+            "example": "referenced_item"
+          },
+          "message": {
+            "type": "object",
+            "description": "English text for the developer; the screen words its own message from `code`"
+          },
+          "errors": {
+            "description": "Present when a CSV file is refused: where it is wrong. Absent for a malformed request body.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorDto"
+            }
+          }
+        },
+        "required": [
+          "statusCode",
+          "code",
+          "message"
+        ]
+      },
+      "ImportConfirmRequestDto": {
+        "type": "object",
+        "properties": {
+          "csv": {
+            "type": "string",
+            "description": "The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records. The file that was previewed. The review version covers the rows after parsing: line endings, spaces around a field and the letter case of a course code do not count, and any other difference is refused."
+          },
+          "reviewVersion": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "The reviewVersion of the preview of this file. It is refused once the file, the saved values or the references it covers have changed."
+          }
+        },
+        "required": [
+          "csv",
+          "reviewVersion"
+        ]
+      },
+      "ImportResultDto": {
+        "type": "object",
+        "properties": {
+          "fileType": {
+            "type": "string",
+            "enum": [
+              "catalog_courses",
+              "group_links"
+            ]
+          },
+          "summary": {
+            "description": "What the one transaction saved",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImportSummaryDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "fileType",
+          "summary"
+        ]
+      },
+      "GroupLinkImportRowDto": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "number",
+            "example": 2,
+            "description": "The logical CSV record; the header is record 1"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "insert",
+              "no_op"
+            ],
+            "description": "insert: confirming links the course to the group. no_op: it is linked already."
+          },
+          "requirementGroupName": {
+            "type": "string",
+            "description": "The group's name, trimmed; it matched a group of the route's cohort exactly"
+          },
+          "requirementGroupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "courseCode": {
+            "type": "string",
+            "example": "CSC10001",
+            "description": "Trimmed and upper-cased; a course of the catalog"
+          }
+        },
+        "required": [
+          "record",
+          "action",
+          "requirementGroupName",
+          "requirementGroupId",
+          "courseCode"
+        ]
+      },
+      "GroupLinkImportPreviewDto": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "description": "Every error of the file, by record. Any error blocks the whole file.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportRowErrorDto"
+            }
+          },
+          "summary": {
+            "description": "Counts over `rows`",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImportSummaryDto"
+              }
+            ]
+          },
+          "reviewVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Send it back with the same csv to the matching confirm route. null while the file has an error: such a file cannot be confirmed."
+          },
+          "fileType": {
+            "type": "string",
+            "enum": [
+              "group_links"
+            ]
+          },
+          "programId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The route's program; no CSV field can change it"
+          },
+          "curriculumId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The route's cohort; no CSV field can change it"
+          },
+          "rows": {
+            "description": "The rows without an error, normalized, in file order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupLinkImportRowDto"
+            }
+          }
+        },
+        "required": [
+          "errors",
+          "summary",
+          "reviewVersion",
+          "fileType",
+          "programId",
+          "curriculumId",
+          "rows"
         ]
       },
       "CalendarProgramDto": {
@@ -6797,6 +7742,628 @@
             "maxLength": 2000
           }
         }
+      },
+      "PlanShareDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "q3T0c6mJm0mB1bqT8mWl2k0E1e8b6Zb1K3w1r5yX9aA",
+            "description": "The token of the live link: 32 random bytes in base64url. The page builds the link from it. Anyone who holds it reads the plan, so treat it as a secret."
+          },
+          "showName": {
+            "type": "boolean",
+            "description": "Whether a reader sees the owner's display name."
+          },
+          "showTranscriptChecks": {
+            "type": "boolean",
+            "description": "Whether a reader sees the checks that come from the owner's transcript, and the coverage. When true, the page must tell the owner that a reader can tell which courses they passed, failed or are taking."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this link was created."
+          }
+        },
+        "required": [
+          "token",
+          "showName",
+          "showTranscriptChecks",
+          "createdAt"
+        ]
+      },
+      "PlanShareStateDto": {
+        "type": "object",
+        "properties": {
+          "share": {
+            "description": "The live link of the plan, or null when the plan is not shared. A plan has at most one.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanShareDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "share"
+        ]
+      },
+      "SharePlanDto": {
+        "type": "object",
+        "properties": {
+          "showName": {
+            "type": "boolean",
+            "description": "Whether a reader sees the owner's display name. Left out: unchanged on a live link, hidden on a new one."
+          },
+          "showTranscriptChecks": {
+            "type": "boolean",
+            "description": "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed, failed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one."
+          }
+        }
+      },
+      "SharedProgramDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "APCS"
+          },
+          "nameVi": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "nameVi",
+          "nameEn"
+        ]
+      },
+      "SharedCurriculumDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "APCS2024",
+            "description": "The curriculum version the plan was made with."
+          },
+          "cohortYear": {
+            "type": "number",
+            "example": 2024
+          },
+          "nameVi": {
+            "type": "string"
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "program": {
+            "$ref": "#/components/schemas/SharedProgramDto"
+          }
+        },
+        "required": [
+          "code",
+          "cohortYear",
+          "nameVi",
+          "nameEn",
+          "program"
+        ]
+      },
+      "SharedPlacementDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "course",
+              "slot"
+            ],
+            "description": "course: a course of the catalog. slot: credits held for a requirement group, no course chosen yet."
+          },
+          "courseCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "CS161",
+            "description": "Null for a slot."
+          },
+          "nameVi": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The course's Vietnamese name. Null for a slot, and for a course the catalog no longer has."
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "A course's catalog credits, or a slot's. Null for a course the catalog no longer has."
+          },
+          "requirementGroupName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A slot's requirement group. Null for a course."
+          }
+        },
+        "required": [
+          "kind",
+          "courseCode",
+          "nameVi",
+          "nameEn",
+          "credits",
+          "requirementGroupName"
+        ]
+      },
+      "SharedPlanTermDto": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/TermDto"
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "main",
+              "summer",
+              null
+            ],
+            "description": "null: the program's training type is not recorded."
+          },
+          "credits": {
+            "type": "number",
+            "example": 16,
+            "description": "The term's load as the rule engine counts it: courses at their catalog credits plus slots at theirs."
+          },
+          "caps": {
+            "description": "The credit caps of the term (ADR 0012); null when the training type is not recorded.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreditCapsDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "placements": {
+            "description": "In order.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedPlacementDto"
+            }
+          }
+        },
+        "required": [
+          "term",
+          "kind",
+          "credits",
+          "caps",
+          "placements"
+        ]
+      },
+      "SharedPlanIssueDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "prerequisite_not_met",
+              "prerequisites_not_recorded",
+              "not_offered",
+              "offering_terms_not_recorded",
+              "load_below_minimum",
+              "load_above_maximum",
+              "caps_not_checked",
+              "load_not_checked",
+              "placed_twice",
+              "already_passed",
+              "already_in_progress",
+              "not_in_curriculum",
+              "credits_not_recorded",
+              "requirement_not_covered"
+            ],
+            "description": "As in GET /plans/{id}/issues. Never a code listed in `issueCodesNotShown`."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "violation",
+              "flag",
+              "unknown"
+            ],
+            "description": "violation: breaks a rule. flag: allowed, worth a look. unknown: not recorded, not checked."
+          },
+          "term": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "The placement's index in its term's placements; null for an issue of the whole term."
+          },
+          "courseCode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "CS161"
+          },
+          "offeredTermNumbers": {
+            "description": "not_offered: the term numbers the course is taught in.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "credits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Load and coverage issues: the credits counted."
+          },
+          "limit": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Load and coverage issues: the limit compared with."
+          },
+          "citation": {
+            "type": "string",
+            "example": "QĐ 1175/QĐ-KHTN Điều 7.2",
+            "description": "Where the rule comes from."
+          },
+          "message": {
+            "type": "string",
+            "description": "An English sentence, for a screen that does not word the code itself."
+          },
+          "missingCourseCodes": {
+            "description": "Only when the owner chose to show the transcript's checks. prerequisite_not_met: the prerequisites missing. requirement_not_covered of a compulsory group: its courses neither passed nor placed.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requirementGroupName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only when the owner chose to show the transcript's checks. requirement_not_covered of a requirement group: its name."
+          },
+          "combinedMinimumName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only when the owner chose to show the transcript's checks. requirement_not_covered of a combined minimum: its name. A requirement_not_covered with neither name is about the cohort total."
+          }
+        },
+        "required": [
+          "code",
+          "kind",
+          "term",
+          "position",
+          "courseCode",
+          "offeredTermNumbers",
+          "credits",
+          "limit",
+          "citation",
+          "message"
+        ]
+      },
+      "SharedGroupCoverageDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Kiến thức Math"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "compulsory",
+              "elective"
+            ]
+          },
+          "requiredCredits": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "null: the group has no minimum of its own."
+          },
+          "credits": {
+            "type": "number",
+            "description": "Credits passed, in progress or placed, toward the cohort total."
+          },
+          "remainingCredits": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "met": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "requiredCredits",
+          "credits",
+          "remainingCredits",
+          "met"
+        ]
+      },
+      "SharedCombinedMinimumCoverageDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Kiến thức tự chọn"
+          },
+          "creditsMin": {
+            "type": "number",
+            "example": 43
+          },
+          "credits": {
+            "type": "number"
+          },
+          "remainingCredits": {
+            "type": "number"
+          },
+          "met": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "creditsMin",
+          "credits",
+          "remainingCredits",
+          "met"
+        ]
+      },
+      "SharedPlanCoverageDto": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedGroupCoverageDto"
+            }
+          },
+          "combinedMinimums": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedCombinedMinimumCoverageDto"
+            }
+          },
+          "totalRequired": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "The cohort total; null when not recorded."
+          },
+          "totalCredits": {
+            "type": "number",
+            "description": "Credits toward the cohort total with the plan completed."
+          },
+          "totalRemaining": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "graduation": {
+            "type": "string",
+            "enum": [
+              "done",
+              "not_yet"
+            ],
+            "description": "done: every requirement the data can check would be met with the plan completed; the school still checks the rest (Điều 17.3)."
+          }
+        },
+        "required": [
+          "groups",
+          "combinedMinimums",
+          "totalRequired",
+          "totalCredits",
+          "totalRemaining",
+          "graduation"
+        ]
+      },
+      "SharedPlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Main plan"
+          },
+          "ownerName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The owner's display name, only when they chose to show it; null otherwise."
+          },
+          "curriculum": {
+            "$ref": "#/components/schemas/SharedCurriculumDto"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the plan was last changed. The answer always shows the plan as it is now."
+          },
+          "terms": {
+            "description": "Terms oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedPlanTermDto"
+            }
+          },
+          "issues": {
+            "description": "The rule engine's issues of the plan, in the engine's order: the ones that follow from the plan and its curriculum alone, and, when the owner chose it, the ones the engine decides from the owner's transcript too. [] when it finds none of them.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SharedPlanIssueDto"
+            }
+          },
+          "issueCodesNotShown": {
+            "type": "array",
+            "description": "The issue codes this answer does not hold, because the engine decides them from the owner's transcript and the owner did not choose to show them. [] when the owner chose to show them. When it is not empty, the page must say that these checks are not shown: an empty `issues` is not a pass of them.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "prerequisite_not_met",
+                "prerequisites_not_recorded",
+                "not_offered",
+                "offering_terms_not_recorded",
+                "load_below_minimum",
+                "load_above_maximum",
+                "caps_not_checked",
+                "load_not_checked",
+                "placed_twice",
+                "already_passed",
+                "already_in_progress",
+                "not_in_curriculum",
+                "credits_not_recorded",
+                "requirement_not_covered"
+              ]
+            }
+          },
+          "coverage": {
+            "description": "Only when the owner chose to show the transcript's checks: the curriculum as it would stand with every placement and every course in progress passed. It counts the owner's passed courses, so it is left out otherwise.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SharedPlanCoverageDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "ownerName",
+          "curriculum",
+          "updatedAt",
+          "terms",
+          "issues",
+          "issueCodesNotShown"
+        ]
+      },
+      "NotSharedDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 404
+          },
+          "message": {
+            "type": "string",
+            "example": "This plan is not shared"
+          },
+          "error": {
+            "type": "string",
+            "example": "Not Found"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "error"
+        ]
+      },
+      "AccountExportDto": {
+        "type": "object",
+        "properties": {
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The users row, without credentials."
+          },
+          "tables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "description": "Every row this user owns (user_id), by table name, without credentials."
+          }
+        },
+        "required": [
+          "exportedAt",
+          "user",
+          "tables"
+        ]
+      },
+      "DeleteAccountDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "The current password, asked again before deleting."
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "DeletionScheduledDto": {
+        "type": "object",
+        "properties": {
+          "purgeAfter": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Signing in before this time cancels the deletion."
+          }
+        },
+        "required": [
+          "purgeAfter"
+        ]
       }
     }
   }

@@ -10,6 +10,23 @@ import { Program } from './program.entity.js';
 import { RequirementGroupCourse } from './requirement-group-course.entity.js';
 import type { RequirementGroup } from './requirement-group.entity.js';
 
+/** A catalog course as a plan tile names it. */
+export interface CourseSummary {
+  nameVi: string;
+  nameEn: string | null;
+  credits: number;
+}
+
+export interface CurriculumLabels {
+  code: string;
+  cohortYear: number;
+  nameVi: string;
+  nameEn: string | null;
+  program: { code: string; nameVi: string; nameEn: string | null };
+  /** Requirement group id to its name. */
+  groupNames: Map<string, string>;
+}
+
 /** Code-point order: the same on every machine, unlike a locale collation. */
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -100,6 +117,31 @@ export class CurriculumService {
     if (!wellFormed.length) return new Map();
     const rows = await this.courses.find({ select: { code: true, credits: true }, where: { code: In(wellFormed) } });
     return new Map(rows.map((c) => [c.code, c.credits]));
+  }
+
+  /** Catalog name and credits by code, for the codes among these that the catalog has, in one query (a whole plan at once). */
+  async courseSummaries(codes: readonly string[]): Promise<Map<string, CourseSummary>> {
+    const wellFormed = [...new Set(codes)].filter(isCourseCode);
+    if (!wellFormed.length) return new Map();
+    const rows = await this.courses.find({ select: { code: true, nameVi: true, nameEn: true, credits: true }, where: { code: In(wellFormed) } });
+    return new Map(rows.map((c) => [c.code, { nameVi: c.nameVi, nameEn: c.nameEn, credits: c.credits }]));
+  }
+
+  /**
+   * What a screen needs to name a curriculum without listing its courses: its code, cohort and names,
+   * its program, and the name of each requirement group. Null when there is no such curriculum.
+   */
+  async curriculumLabels(curriculumId: string): Promise<CurriculumLabels | null> {
+    const row = await this.curriculums.findOne({ where: { id: curriculumId }, relations: { program: true, requirementGroups: true } });
+    if (!row) return null;
+    return {
+      code: row.code,
+      cohortYear: row.cohortYear,
+      nameVi: row.nameVi,
+      nameEn: row.nameEn,
+      program: { code: row.program.code, nameVi: row.program.nameVi, nameEn: row.program.nameEn },
+      groupNames: new Map(row.requirementGroups.map((g) => [g.id, g.name])),
+    };
   }
 
   /** The ids of the requirement groups of one curriculum; empty when there is none. */

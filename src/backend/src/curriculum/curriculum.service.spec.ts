@@ -184,6 +184,29 @@ describe('CurriculumService bulk reads for plans', () => {
     expect(none.find).not.toHaveBeenCalled();
   });
 
+  it('gives the catalog name and credits of the codes it has, in one query, never asking about a malformed or repeated code', async () => {
+    const { svc, find } = bulk({ courses: [{ ...course('ZZ001', 3), nameEn: 'Test course' }] });
+    expect(await svc.courseSummaries(['ZZ001', 'ZZ002', 'ZZ001', 'zz003'])).toEqual(new Map([['ZZ001', { nameVi: 'Học phần ZZ001', nameEn: 'Test course', credits: 3 }]]));
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(find.mock.calls[0][0].where.code)).toContain('["ZZ001","ZZ002"]');
+    const none = bulk();
+    expect(await none.svc.courseSummaries(['bad code'])).toEqual(new Map());
+    expect(none.find).not.toHaveBeenCalled();
+  });
+
+  it('names a curriculum, its program and its requirement groups, or answers null', async () => {
+    const labels = await bulk({ curriculum }).svc.curriculumLabels('c1');
+    expect(labels).toEqual({
+      code: 'ZZ2030',
+      cohortYear: 2030,
+      nameVi: 'Chương trình đào tạo thử',
+      nameEn: null,
+      program: { code: 'ZZ', nameVi: 'Chương trình thử', nameEn: 'Test program' },
+      groupNames: new Map([['g2', 'Tự chọn'], ['g1', 'Bắt buộc']]),
+    });
+    await expect(bulk({ curriculum: null }).svc.curriculumLabels('c9')).resolves.toBeNull();
+  });
+
   it('lists the requirement group ids of a curriculum, none for an unknown one', async () => {
     expect(await bulk().svc.requirementGroupIds('c1')).toEqual(new Set(['g1', 'g2']));
     expect(await bulk({ curriculum: null }).svc.requirementGroupIds('c9')).toEqual(new Set());
