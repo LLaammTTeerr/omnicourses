@@ -154,4 +154,16 @@ describe('App shell', () => {
     expect(document.documentElement.dataset.theme).toBe(before === 'dark' ? 'light' : 'dark');
     expect(button.text()).not.toBe(label);
   });
+
+  it('stops asking for the grants on each page after three failures in a row (#160)', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { router } = await render('/guides', true, { 'GET /admin/grants': () => new Response(null, { status: 503 }) });
+    for (const path of ['/privacy', '/guides', '/privacy', '/guides', '/privacy', '/guides']) {
+      await router.push(path);
+      await flushPromises();
+    }
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/admin/grants'))).toHaveLength(3);
+    expect(logged.mock.calls.filter(([text]) => String(text).includes('administration grants'))).toHaveLength(3);
+  });
+
 });
