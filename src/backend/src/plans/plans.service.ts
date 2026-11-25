@@ -33,12 +33,22 @@ export class PlansService {
     return rows.map((plan) => ({ ...summary(plan), preview: preview(byPlan.get(plan.id) ?? []) }));
   }
 
-  /** One of the student's plans with its placements, or a 404. */
-  async get(userId: string, planId: string): Promise<PlanDto> {
+  /**
+   * One of the student's plans with its placements, or null. It writes nothing: this is the one
+   * method the sharing module reads a plan through (ADR 0010), for the owner a share row names.
+   */
+  async find(userId: string, planId: string): Promise<PlanDto | null> {
     const plan = await this.plans.findOne({ where: { id: planId, userId }, relations: { curriculum: { program: true } } });
-    if (!plan) throw notFound();
+    if (!plan) return null;
     const rows = await this.placements.find({ where: { planId } });
     return { ...summary(plan), terms: toBoard(rows) };
+  }
+
+  /** One of the student's plans with its placements, or a 404. */
+  async get(userId: string, planId: string): Promise<PlanDto> {
+    const plan = await this.find(userId, planId);
+    if (!plan) throw notFound();
+    return plan;
   }
 
   /** A new plan against the curriculum of one cohort, empty or with a whole board (UC-07 step 10). */

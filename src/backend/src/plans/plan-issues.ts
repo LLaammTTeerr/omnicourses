@@ -143,6 +143,12 @@ export interface PlanIssuesReport {
 export interface PlanIssuesProvider {
   /** Every issue of the student's plan, checked against the plan's own curriculum. Never blocks saving (ADR 0012). */
   issuesFor(userId: string, plan: PlanDto): Promise<PlanIssuesReport>;
+  /**
+   * The check with an empty transcript, which is not read (no student is named): only what follows
+   * from the plan and its curriculum is true of anyone. For the shared plan of an owner who did not
+   * choose to show the transcript's checks (ADR 0010).
+   */
+  issuesWithoutTranscript(plan: PlanDto): Promise<PlanIssuesReport>;
   /** The same check on several boards of one plan, the inputs read once: the planner's drag preview. */
   issuesForBoards(userId: string, plan: PlanDto, boards: readonly BoardTerm[][]): Promise<PlanIssuesReport[]>;
 }
