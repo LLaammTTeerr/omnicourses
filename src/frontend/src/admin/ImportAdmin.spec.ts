@@ -365,6 +365,28 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     expect(posts(fetch).map(([path]) => path)).toEqual([`${LINKS(CURRICULUM_ID)}/preview`, `${LINKS(CURRICULUM_ID)}/confirm`, `${LINKS(CURRICULUM_ID)}/preview`]);
   });
 
+  it('drops the old preview and says nothing was saved when the preview after a 409 fails (#165)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let previews = 0;
+    const { w, fetch } = await render('/admin/import?type=catalog_courses', {
+      [`POST ${CATALOG}/preview`]: () => {
+        if (++previews === 1) return Response.json(catalogPreview());
+        throw new TypeError('Failed to fetch');
+      },
+      [`POST ${CATALOG}/confirm`]: status(409, { statusCode: 409, code: 'impact_changed', message: 'The file changed since the preview' }),
+    });
+    await choose(w, CATALOG_CSV);
+    await previewFile(w);
+    await press(w, 'import-confirm');
+    expect(previews).toBe(2);
+    expect(has(w, 'import-changed')).toBe(false);
+    expect(has(w, 'import-row')).toBe(false);
+    expect(has(w, 'import-confirm')).toBe(false);
+    expect(has(w, 'import-preview-failed')).toBe(true);
+    expect(get(w, 'admin-problem').attributes('data-code')).toBe('impact_changed');
+    expect(posts(fetch).filter(([path]) => path === `${CATALOG}/confirm`)).toHaveLength(1);
+  });
+
   it('says when nothing in the file would change, and offers no confirmation', async () => {
     const { w } = await render('/admin/import?type=catalog_courses', { [`POST ${CATALOG}/preview`]: appliedPreview() });
     await choose(w, CATALOG_CSV);

@@ -157,19 +157,27 @@ watch(targetKey, dropPreview);
 const runPreview = (of: Target, csv: string): Promise<ImportPreview> =>
   auth.authed<ImportPreview>((token) => (of.cohort ? previewLinkImport(token, of.cohort, csv) : previewCatalogImport(token, csv)));
 
-/** Previews `csv` for `of` and shows it. A preview writes nothing, so it is never in doubt: it is simply asked again. */
-async function show(of: Target, csv: string): Promise<void> {
+/**
+ * Previews `csv` for `of` and shows it. A preview writes nothing, so it is never in doubt: it is simply asked again.
+ * Resolves to 'shown', to 'failed' (the preview on screen, if any, is dropped), or to 'stale' when another preview
+ * or another target took its place.
+ */
+async function show(of: Target, csv: string): Promise<'shown' | 'failed' | 'stale'> {
   const call = ++latest;
   previewing.value = true;
   previewLost.value = false;
   refusal.value = null;
   try {
     const result = await runPreview(of, csv);
-    if (call === latest) preview.value = { target: of, csv, result };
+    if (call !== latest) return 'stale';
+    preview.value = { target: of, csv, result };
+    return 'shown';
   } catch (e) {
-    if (call !== latest) return;
+    if (call !== latest) return 'stale';
+    // An older preview must not stay on screen, with a Confirm for its review version, as if it were the new one.
+    preview.value = null;
     const failure = readFailure(e);
-    if (failure.kind === 'signed_out') return;
+    if (failure.kind === 'signed_out') return 'failed';
     if (failure.kind === 'no_answer') {
       console.error('Previewing an import file failed:', e);
       previewLost.value = true;
@@ -177,6 +185,7 @@ async function show(of: Target, csv: string): Promise<void> {
       refusal.value = failure;
       if (failure.kind === 'permission') void access.load({ fresh: true });
     }
+    return 'failed';
   } finally {
     if (call === latest) previewing.value = false;
   }
@@ -251,9 +260,12 @@ async function settle(outcome: string, summary: { inserts: number; updates: numb
   if (failure?.kind === 'review_changed' && sent) {
     // Nothing was saved, and the 409 carries no new review: preview the same file again, for the same target.
     const { target: of, csv } = sent;
+    const refused = writes.problem.value;
     writes.clear();
-    await show(of, csv);
-    changed.value = true;
+    const shown = await show(of, csv);
+    if (shown === 'shown') changed.value = true;
+    // No new preview: say that nothing was saved, beside why the preview failed.
+    else if (shown === 'failed') writes.problem.value = refused;
   }
 }
 
@@ -389,6 +401,7 @@ function pickCohort(curriculumId: string): void {
           <Icon name="alert" /><span>{{ text.previewFailed }} <button class="btn sm" type="button" @click="previewDraft">{{ m.retry }}</button></span>
         </p>
         <ProblemNote :problem="refusalView" />
+        <ProblemNote v-if="!preview && !errors.length" :problem="confirmProblem" />
       </div>
 
       <section v-if="preview || errors.length" class="import-preview" aria-labelledby="import-preview-title" data-test="import-result">
