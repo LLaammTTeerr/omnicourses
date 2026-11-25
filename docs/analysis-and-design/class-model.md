@@ -274,6 +274,7 @@ classDiagram
         userId : uuid FK
         shareToken : varchar 43, unique
         showName : boolean = false
+        showTranscriptChecks : boolean = false
     }
     Plan "0..*" --> "1" User : user_id CASCADE
     Plan "0..*" --> "1" Curriculum : curriculum_id RESTRICT
@@ -289,7 +290,7 @@ classDiagram
 - `PlanPlacement` carries its own `userId`, and its key to `plans` is the pair (`plan_id`, `user_id`), so a placement can never belong to another student's plan and the account export finds the rows directly ([ADR 0004](adr/0004-account-export-and-deletion.md), [ADR 0014](adr/0014-plan-model.md)).
 - `PlanPlacement.courseCode` has no foreign key to `courses`; `PlansService.checkBoard` checks the code against the catalog on every save.
 - `Plan.curriculumId` is `RESTRICT`: a plan keeps the curriculum it was made against.
-- `PlanShare` is the live link of a shared plan (UC-09, [ADR 0010](adr/0010-public-pages-and-guide-content.md)): at most one row per plan, and no row means "not shared", because stopping a link deletes its row. Its key to `plans` is the pair (`plan_id`, `user_id`), like a placement's. `shareToken` is 32 random bytes in base64url; its column name ends in `_token`, so the account export never selects it.
+- `PlanShare` is the live link of a shared plan (UC-09, [ADR 0010](adr/0010-public-pages-and-guide-content.md)): at most one row per plan, and no row means "not shared", because stopping a link deletes its row. Its key to `plans` is the pair (`plan_id`, `user_id`), like a placement's. `shareToken` is 32 random bytes in base64url; its column name ends in `_token`, so the account export never selects it. `showName` and `showTranscriptChecks` are the owner's two choices for the link, both off unless the owner turns them on: the display name, and the checks the rule engine decides from the owner's transcript.
 
 ### 1.5 Guides
 

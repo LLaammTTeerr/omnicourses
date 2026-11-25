@@ -24,10 +24,14 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 2. The system shows what a reader of the link will see:
    - the plan's name, program, cohort and curriculum version;
    - each term with its courses and credits;
-   - the estimated graduation term and the violations the rule engine finds;
+   - the violations the rule engine finds from the plan and its curriculum alone, such as a credit cap exceeded or a course placed in a term it is not taught in;
    - when the plan was last changed.
 
-   It also says what a reader will not see: the student's grades, email, transcript and other plans. The student's display name is hidden unless the student ticks **Show my name**. The system warns that anyone who has the link can open it.
+   It also says what a reader will not see: the student's grades, email, transcript and other plans. The student's display name is hidden unless the student ticks **Show my name**.
+
+   The checks that come from the student's transcript are hidden unless the student ticks **Show the checks from my transcript**: prerequisites not met, courses already passed or in progress, requirements not covered, the coverage of each requirement and the estimated graduation term. When the box is ticked, the system tells the student plainly that a reader can then tell which courses the student has passed or is taking, though never a grade. When it is not ticked, the system says that a reader will be told that some checks are not shown.
+
+   The system warns that anyone who has the link can open it. The student can change both boxes later without getting a new link.
 3. The student presses **Create link**.
 4. The system creates an unguessable link for this plan and shows it with a **Copy** button.
 5. The student copies the link and sends it to their advisor through any channel, such as email or chat. OmniCourse sends nothing itself.
@@ -39,7 +43,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 
 **A1. Download as PDF.**
 1. At step 1 the student presses **Download PDF** instead.
-2. The system makes a PDF with the same content as the shared view (step 2), plus the date it was made, on A4 pages.
+2. The system makes a PDF with the same content as the shared view (step 2), plus the date it was made, on A4 pages. The PDF follows the same choice about the checks from the transcript as the link: they are in the PDF only when the student ticked the box, with the same warning.
 3. The browser saves the file. No link is created, and the file is not kept on the server.
 
 **A2. Stop sharing.** The student opens the plan's **Share** panel and presses **Stop sharing**. The link stops working at once. Anyone who opens it sees "This plan is not shared", the same page as for a link that never existed, so the page does not reveal whether a plan was there.
@@ -56,7 +60,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 
 **A8. Unknown or mistyped link.** Someone opens a link that does not match a live shared plan. The system shows the A2 page.
 
-**A9. Plan with violations.** The plan breaks an academic rule, for example a credit cap exceeded. Sharing is still allowed. The shared view and the PDF show the violations as the rule engine reports them, so the advisor sees the same problems as the student.
+**A9. Plan with violations.** The plan breaks an academic rule, for example a credit cap exceeded. Sharing is still allowed. The shared view and the PDF show the violations as the rule engine reports them. The advisor sees the same problems as the student only when the student chose to show the checks from the transcript (step 2). Otherwise the checks that come from the transcript are left out, and the page and the PDF say that some checks are not shown, so that an empty list does not read as a plan with no problem.
 
 ## 6. Postconditions
 
@@ -66,7 +70,7 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 
 ## 7. Special requirements
 
-- **Privacy** (AGENTS.md hard rule 3; Vision §6, Luật 91/2025/QH15): a reader sees only the content listed in step 2. Grades, email, student ID and the transcript never appear in the shared view or the PDF. The page tells search engines not to index it (`noindex`).
+- **Privacy** (AGENTS.md hard rule 3; Vision §6, Luật 91/2025/QH15): a reader sees only the content listed in step 2. Grades, email, student ID and transcript rows never appear in the shared view or the PDF. When the student chose to show the checks from the transcript, a reader can tell from those checks which courses the student has passed or is taking; without that choice, nothing a reader sees depends on the transcript. The page tells search engines not to index it (`noindex`).
 - **Security:** the link holds a random token at least as strong as a session token (32 random bytes, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)), so it cannot be found by guessing. The shared page is one of the public routes of ADR 0010: it needs no sign-in, only reads, and is rate-limited like other routes (120 requests a minute per address).
 - **Academic rules** (AGENTS.md hard rule 1): the violations and the estimated graduation term in the shared view and the PDF come from the rule engine, computed against the curriculum version the plan was made with.
 - **Usability:** the shared view works from 360 px wide and by keyboard, in Vietnamese and English (the reader's browser language). The PDF is readable when printed in black and white: violations are marked in words, not only by colour.
@@ -83,6 +87,11 @@ A student gives one of their plans to someone else, usually a lecturer or academ
 - The shared page opens without signing in. This changes ADR 0002 and is recorded in ADR 0010.
 - Sharing is Dũng's own `sharing` module. It reads plans only through a read-only method that Hoà's `PlansService` exports (ADR 0010).
 
-**Open:** whether the PDF is made in the browser (a print layout) or on the server. This is a design decision for the implementation PR.
+**Agreed by Dũng, owner of F9** (25 Nov 2026, team Discord). The Project Lead accepts or changes these in the review of the implementation pull request ([ADR 0010](../../analysis-and-design/adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026):
+- The student chooses, for each link, whether a reader sees the checks that come from the transcript (step 2, A9, §7). The choice is off unless the student turns it on, it can be changed on a live link, and the PDF follows it (A1).
+- The PDF is made in the browser, as a print layout of the shared view. Nothing is made on the server.
+- The link's token is stored so that it can be shown again (A4), not as a hash.
+
+**Gap:** nothing computes the estimated graduation term yet (step 2, §7), so neither the shared view nor the PDF can show it. When the rule engine computes it, it goes under the choice about the checks from the transcript.
 
 **Out of scope:** comments from the advisor on the plan, sharing inside a cohort (Vision "community features"), and sending the link by email from OmniCourse (no mail sender before B3, UC-01).
