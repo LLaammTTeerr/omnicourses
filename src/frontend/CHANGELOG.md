@@ -1,5 +1,13 @@
 # @omnicourse/frontend
 
+## 0.5.0
+
+### Minor Changes
+
+- [#165](https://github.com/LLaammTTeerr/omnicourses/pull/165) [`e7bd617`](https://github.com/LLaammTTeerr/omnicourses/commit/e7bd61715c048906ceb6467e6e4baee8af990b36) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The administration screens can now import catalog courses or a cohort's group links from a CSV file, with a preview to confirm or cancel, and let access managers add programs and program administrators edit their program and add or edit its cohorts.
+
+- [#148](https://github.com/LLaammTTeerr/omnicourses/pull/148) [`684f148`](https://github.com/LLaammTTeerr/omnicourses/commit/684f1486a93b0840c40332922ce51bd9959bc7d5) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Add the administration screens: a program administrator edits a cohort's requirement groups, courses, prerequisites and offering terms, a catalog maintainer maintains the shared course catalog, an access manager grants and revokes permissions by user ID, and Settings shows your user ID to copy.
+
 ## 0.4.0
 
 ### Minor Changes
