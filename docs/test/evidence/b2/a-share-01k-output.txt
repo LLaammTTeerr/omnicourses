@@ -1,0 +1,12 @@
+2026-11-25T13:22:28Z
+    120 404
+      1 429
+2026-11-25T13:23:21Z
+one more, curl -sI:
+HTTP/1.1 429 Too Many Requests
+X-Robots-Tag: noindex, nofollow
+Cache-Control: no-store
+Retry-After: 60
+after a minute:
+2026-11-25T13:24:27Z
+404
