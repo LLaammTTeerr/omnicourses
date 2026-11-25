@@ -101,6 +101,8 @@ describe('Notification inbox (e2e)', () => {
   /** The same through a read: the service's list(), the code behind GET /api/notifications. */
   const seen = async (user: Account, eventId: string): Promise<string[]> =>
     (await notifications.list(user.userId, {})).notifications.filter((n) => n.event?.id === eventId).map((n) => n.kind);
+  /** How many notifications exist for one school date of this run, whoever holds them. */
+  const total = async (eventId: string): Promise<number> => ((await db.query('SELECT count(*)::int AS n FROM notifications WHERE calendar_event_id = $1', [eventId])) as { n: number }[])[0]!.n;
   const transcriptNotices = async (user: Account): Promise<number> =>
     ((await db.query(`SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND kind = 'transcript_changed'`, [user.userId])) as { n: number }[])[0]!.n;
   const save = (user: Account, body: TranscriptEntry[]) => as(user.token).put('/api/users/me/transcript', { rows: body });
@@ -163,7 +165,9 @@ describe('Notification inbox (e2e)', () => {
       });
       // Rule 6: a second read and a second run the same day make nothing new.
       expect(await inbox(s)).toEqual([soon]);
-      expect(await notifications.createDue()).toBe(0);
+      await notifications.createDue();
+      await notifications.createDue();
+      expect(await total(window)).toBe(1);
 
       for (const between of ['2090-03-14', '2090-03-19']) {
         onDay(between);
@@ -278,9 +282,10 @@ describe('Notification inbox (e2e)', () => {
       onDay('2090-09-01');
       const window = await enter('registration', '2090-09-20');
       onDay('2090-09-12');
-      expect(await notifications.createDue()).toBe(0);
+      await notifications.createDue();
       onDay('2090-09-14');
       await notifications.createDue();
+      expect(await total(window)).toBe(0);
       expect(await seen(s, window)).toEqual([]);
       onDay('2090-09-20');
       expect(await seen(s, window)).toEqual(['registration_open']);
@@ -295,11 +300,13 @@ describe('Notification inbox (e2e)', () => {
       // The run for everyone, as the timer does it: every student of the program now holds the notice.
       await notifications.createDue();
       expect(await stored(s, window)).toEqual(['registration_soon']);
+      const afterSoon = await total(window);
 
       // Moved five days later: the day seven days before the new date makes no second notice.
       await as(adminA.token).patch(`${events(programA)}/${window}`, { startsOn: '2090-10-25', title: 'Synthetic registration, moved' }).expect(200);
       onDay('2090-10-18');
-      expect(await notifications.createDue()).toBe(0);
+      await notifications.createDue();
+      expect(await total(window)).toBe(afterSoon);
       expect(await seen(s, window)).toEqual(['registration_soon']);
       // The old opening day passes with nothing. The opening notice had not gone out, so it goes out on the new day.
       onDay('2090-10-20');
@@ -307,12 +314,15 @@ describe('Notification inbox (e2e)', () => {
       onDay('2090-10-25');
       await notifications.createDue();
       expect(await stored(s, window)).toEqual(['registration_open', 'registration_soon']);
+      const afterOpen = await total(window);
+      expect(afterOpen).toBe(2 * afterSoon);
 
       // Moved again after both went out: nothing more, on any of the new days.
       await as(adminA.token).patch(`${events(programA)}/${window}`, { startsOn: '2090-10-31' }).expect(200);
       for (const day of ['2090-10-24', '2090-10-31']) {
         onDay(day);
-        expect(await notifications.createDue()).toBe(0);
+        await notifications.createDue();
+        expect(await total(window)).toBe(afterOpen);
         expect(await seen(s, window)).toEqual(['registration_open', 'registration_soon']);
       }
 
@@ -371,8 +381,8 @@ describe('Notification inbox (e2e)', () => {
         ids.push(await enter(kind, '2090-11-20'), await enter(kind, '2090-11-27'));
       }
       expect(await inbox(s)).toEqual([]);
-      expect(await notifications.createDue()).toBe(0);
-      for (const id of ids) expect(await stored(s, id)).toEqual([]);
+      await notifications.createDue();
+      for (const id of ids) expect(await total(id)).toBe(0);
     });
   });
 
@@ -384,7 +394,7 @@ describe('Notification inbox (e2e)', () => {
       const termB = await enter('term_start', '2090-12-05', { title: 'Synthetic term start of program B' }, adminB, programB);
       onDay('2090-12-05');
       // The run for everyone, as the timer does it.
-      expect(await notifications.createDue()).toBeGreaterThanOrEqual(3);
+      await notifications.createDue();
       for (const a of [a1, a2]) {
         expect(await stored(a, termA)).toEqual(['term_start']);
         expect(await stored(a, termB)).toEqual([]);
