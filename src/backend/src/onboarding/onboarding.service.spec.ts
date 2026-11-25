@@ -1,7 +1,8 @@
+import type { DataSource, Repository } from 'typeorm';
 import { describe, expect, it } from 'vitest';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { OnboardingDto } from './onboarding.dto.js';
-import { toColumns, toOnboarding } from './onboarding.service.js';
+import { OnboardingService, toColumns, toOnboarding } from './onboarding.service.js';
 
 const row = (columns: Partial<OnboardingAnswers>): OnboardingAnswers =>
   ({ userId: '00000000-0000-4000-8000-000000000000', finishedAt: null, createdAt: new Date(), updatedAt: new Date(), ...columns }) as OnboardingAnswers;
@@ -38,5 +39,16 @@ describe('onboarding answers and their columns', () => {
   it('reads finished from finished_at (USER-01l)', () => {
     const dto: OnboardingDto = { program: 'APCS', cohort: 2024, targetGraduationTerm: null, creditsPerTerm: null, internshipTerm: null, finished: false };
     expect(toOnboarding(asRow(dto, null)).finished).toBe(false);
+  });
+});
+
+describe('OnboardingService.offers', () => {
+  // The answer the plans API asks for (Project Lead, 25 November 2026): exactly onboarding's own offer.
+  it('offers the cohorts onboarding offers, and no other cohort or program', () => {
+    const onboarding = new OnboardingService({} as DataSource, {} as Repository<OnboardingAnswers>);
+    expect([onboarding.offers('APCS', 2024), onboarding.offers('APCS', 2025)]).toEqual([true, true]);
+    for (const [program, cohort] of [['APCS', 2023], ['APCS', 2026], ['CLC', 2024], ['apcs', 2024], ['toString', 2024]] as const) {
+      expect(onboarding.offers(program, cohort)).toBe(false);
+    }
   });
 });

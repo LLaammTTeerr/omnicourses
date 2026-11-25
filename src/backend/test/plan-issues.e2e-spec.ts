@@ -4,6 +4,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bootApp } from './support/app.js';
+import { offerAlso } from './support/offer.js';
 import { signedInUser } from './support/users.js';
 
 // GET /api/plans/{id}/issues (ADR 0014) against PostgreSQL. A synthetic Tiên tiến curriculum
@@ -35,6 +36,7 @@ describe('Plan issues API (e2e)', () => {
 
   beforeAll(async () => {
     app = await bootApp();
+    offerAlso(app, program, [2030]);
     db = app.get(DataSource);
     // Tiên tiến: 10–22 credits in every term (ADR 0012). Total 16: Core 8 (1, 2) + Electives ≥ 8 (3, 4, 5). Course 6 is in no group.
     const [{ id: programId }] = await db.query(`INSERT INTO programs (code, name_vi, training_type) VALUES ($1, 'Chương trình thử', 'advanced') RETURNING id`, [program]);

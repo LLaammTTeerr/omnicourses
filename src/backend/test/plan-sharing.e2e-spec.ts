@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 import { bootApp } from './support/app.js';
+import { offerAlso } from './support/offer.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
 // F9 shared plans against PostgreSQL (UC-09, ADR 0010; test plan row TC-B2-SHARE-01). A synthetic
@@ -74,6 +75,7 @@ describe('Plan sharing API (e2e)', () => {
 
   beforeAll(async () => {
     app = await bootApp();
+    offerAlso(app, program, [2030]);
     db = app.get(DataSource);
     // Tiên tiến: 10–22 credits in every term (ADR 0012). Core 8 (1, 2) + Electives ≥ 8 (3, 4, 5); course 6 is in no group.
     const [{ id: programId }] = await db.query(`INSERT INTO programs (code, name_vi, name_en, training_type) VALUES ($1, 'Chương trình thử', 'Test program', 'advanced') RETURNING id`, [program]);
