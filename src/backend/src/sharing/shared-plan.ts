@@ -2,16 +2,17 @@ import type { CourseSummary, CurriculumLabels } from '../curriculum/curriculum.s
 import { PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, type PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
 import type { Term } from '../terms/term.js';
-import type { SharedPlacementDto, SharedPlanDto, SharedPlanIssueDto } from './sharing.dto.js';
+import type { SharedPlacementDto, SharedPlanCoverageDto, SharedPlanDto, SharedPlanIssueDto } from './sharing.dto.js';
 
 // What a reader of a shared plan's link gets (UC-09 step 2, ADR 0010). A pure function: the rule
 // engine's report of the plan goes in, and only the listed fields come out, built one by one. It
 // decides no academic rule (AGENTS.md hard rule 1): it copies the engine's answers or leaves them out.
 
 /**
- * The issue codes a reader sees: the ones the engine works out from the plan and its curriculum
- * alone. A code is listed here by a person's decision, so a code the engine gains later stays
- * hidden until someone adds it (shared-plan.spec.ts fails until it is classified).
+ * The issue codes every reader sees: the ones the engine works out from the plan and its curriculum
+ * alone. A code is listed here or in TRANSCRIPT_ISSUE_CODES by a person's decision, so a code the
+ * engine gains later stays hidden from every reader until someone adds it (shared-plan.spec.ts
+ * fails until it is classified).
  */
 export const SHARED_ISSUE_CODES = [
   'prerequisites_not_recorded',
@@ -28,14 +29,23 @@ export const SHARED_ISSUE_CODES = [
 export type SharedIssueCode = (typeof SHARED_ISSUE_CODES)[number];
 
 /**
- * The codes a reader never sees, because the engine reads the owner's transcript to decide them:
- * each one, by being there or by being absent, says which courses the owner has passed, failed or
- * is taking (UC-09 §7: the transcript never appears). The answer names them, so the page can say
- * that these checks are not shown instead of letting "no issue" read as a pass.
+ * The codes the engine decides from the owner's transcript: each one, by being there or by being
+ * absent, says which courses the owner has passed or is taking. A reader sees them, and the
+ * coverage they add up to, only when the owner chose it for the link (ADR 0010). They carry no
+ * grade and no term of a transcript row: their terms are the plan's.
  */
-export const WITHHELD_ISSUE_CODES: PlanIssueCode[] = PLAN_ISSUE_CODES.filter((code) => !(SHARED_ISSUE_CODES as readonly PlanIssueCode[]).includes(code));
+export const TRANSCRIPT_ISSUE_CODES = ['prerequisite_not_met', 'already_passed', 'already_in_progress', 'requirement_not_covered'] as const satisfies readonly PlanIssueCode[];
 
-const isShared = (issue: PlanIssue): issue is PlanIssue & { code: SharedIssueCode } => (SHARED_ISSUE_CODES as readonly PlanIssueCode[]).includes(issue.code);
+const notAmong = (shown: readonly PlanIssueCode[]): PlanIssueCode[] => PLAN_ISSUE_CODES.filter((code) => !shown.includes(code));
+
+/**
+ * The codes a reader does not see unless the owner chose to show the transcript's checks. The
+ * answer names them, so the page can say that these checks are not shown instead of letting "no
+ * issue" read as a pass.
+ */
+export const WITHHELD_ISSUE_CODES: PlanIssueCode[] = notAmong(SHARED_ISSUE_CODES);
+
+const WITH_TRANSCRIPT_CHECKS: readonly PlanIssueCode[] = [...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES];
 
 const termKey = (t: Term): string => `${t.year}-${t.number}`;
 const copyTerm = (t: Term): Term => ({ year: t.year, number: t.number });
@@ -49,9 +59,66 @@ export interface SharedPlanSource {
   curriculum: CurriculumLabels;
   /** The owner's display name when they chose to show it, else null. */
   ownerName: string | null;
+  /** Whether the owner chose to show the checks that come from their transcript. Left out: no. */
+  showTranscriptChecks?: boolean;
 }
 
-export function sharedPlan({ plan, report, courses, curriculum, ownerName }: SharedPlanSource): SharedPlanDto {
+/** A plan-and-curriculum issue, as every reader gets it. */
+const sharedIssue = (i: PlanIssue): SharedPlanIssueDto => ({
+  code: i.code,
+  kind: i.kind,
+  term: i.term ? copyTerm(i.term) : null,
+  position: i.position,
+  courseCode: i.courseCode,
+  offeredTermNumbers: [...i.offeredTermNumbers],
+  credits: i.credits,
+  limit: i.limit,
+  citation: i.citation,
+  message: i.message,
+});
+
+/** The name the engine's own coverage gives an id. A missing one is a broken report, never a silent null. */
+function nameOf(names: ReadonlyMap<string, string>, id: string | null, what: string): string | null {
+  if (id === null) return null;
+  const name = names.get(id);
+  if (name === undefined) throw new Error(`The rule engine reported an issue of a ${what} that its coverage does not list`);
+  return name;
+}
+
+/** The engine's coverage without its ids: a reader gets names only. */
+function sharedCoverage({ coverage }: PlanIssuesReport): SharedPlanCoverageDto {
+  return {
+    groups: coverage.groups.map((g) => ({ name: g.name, kind: g.kind, requiredCredits: g.requiredCredits, credits: g.credits, remainingCredits: g.remainingCredits, met: g.met })),
+    combinedMinimums: coverage.combinedMinimums.map((m) => ({ name: m.name, creditsMin: m.creditsMin, credits: m.credits, remainingCredits: m.remainingCredits, met: m.met })),
+    totalRequired: coverage.totalRequired,
+    totalCredits: coverage.totalCredits,
+    totalRemaining: coverage.totalRemaining,
+    graduation: coverage.graduation,
+  };
+}
+
+/**
+ * What the owner's choice adds: the four transcript codes among the issues, three more fields on
+ * every issue (a requirement group or combined minimum by name instead of by id), and the coverage.
+ */
+function withTranscriptChecks(report: PlanIssuesReport): Pick<SharedPlanDto, 'issues' | 'issueCodesNotShown' | 'coverage'> {
+  const groupNames = new Map(report.coverage.groups.map((g) => [g.id, g.name]));
+  const minimumNames = new Map(report.coverage.combinedMinimums.map((m) => [m.id, m.name]));
+  return {
+    issues: report.issues
+      .filter((i) => WITH_TRANSCRIPT_CHECKS.includes(i.code))
+      .map((i) => ({
+        ...sharedIssue(i),
+        missingCourseCodes: [...i.missingCourseCodes],
+        requirementGroupName: nameOf(groupNames, i.requirementGroupId, 'requirement group'),
+        combinedMinimumName: nameOf(minimumNames, i.combinedMinimumId, 'combined minimum'),
+      })),
+    issueCodesNotShown: notAmong(WITH_TRANSCRIPT_CHECKS),
+    coverage: sharedCoverage(report),
+  };
+}
+
+export function sharedPlan({ plan, report, courses, curriculum, ownerName, showTranscriptChecks = false }: SharedPlanSource): SharedPlanDto {
   const loads = new Map(report.terms.map((load) => [termKey(load.term), load]));
   return {
     name: plan.name,
@@ -83,20 +150,8 @@ export function sharedPlan({ plan, report, courses, curriculum, ownerName }: Sha
         }),
       };
     }),
-    issues: report.issues.filter(isShared).map(
-      (i): SharedPlanIssueDto => ({
-        code: i.code,
-        kind: i.kind,
-        term: i.term ? copyTerm(i.term) : null,
-        position: i.position,
-        courseCode: i.courseCode,
-        offeredTermNumbers: [...i.offeredTermNumbers],
-        credits: i.credits,
-        limit: i.limit,
-        citation: i.citation,
-        message: i.message,
-      }),
-    ),
-    issueCodesNotShown: [...WITHHELD_ISSUE_CODES],
+    ...(showTranscriptChecks
+      ? withTranscriptChecks(report)
+      : { issues: report.issues.filter((i) => (SHARED_ISSUE_CODES as readonly PlanIssueCode[]).includes(i.code)).map(sharedIssue), issueCodesNotShown: [...WITHHELD_ISSUE_CODES] }),
   };
 }

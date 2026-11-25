@@ -19,10 +19,17 @@ const FOREIGN_KEY_VIOLATION = '23503';
 interface ShareRow {
   share_token: string;
   show_name: boolean;
+  show_transcript_checks: boolean;
   created_at: Date;
 }
-const toDto = (row: ShareRow): PlanShareDto => ({ token: row.share_token, showName: row.show_name, createdAt: row.created_at });
-const SHARE_COLUMNS = '"share_token", "show_name", "created_at"';
+const toDto = (row: ShareRow): PlanShareDto => ({ token: row.share_token, showName: row.show_name, showTranscriptChecks: row.show_transcript_checks, createdAt: row.created_at });
+const SHARE_COLUMNS = '"share_token", "show_name", "show_transcript_checks", "created_at"';
+
+/** The owner's choices for a link. A choice left out keeps what the link has, and is off on a new link. */
+export interface ShareChoices {
+  showName?: boolean;
+  showTranscriptChecks?: boolean;
+}
 
 // F9 shared plans (UC-09, ADR 0010). The owner creates, reads and stops the one live link of a
 // plan; anyone who holds the link's token reads the plan. This module writes only its own table
@@ -46,10 +53,10 @@ export class SharingService {
 
   /**
    * Shares one of the student's plans. A plan already shared keeps its link (UC-09 A4) and takes
-   * the new choice about the name; a plan not shared gets a new token, so a link stopped earlier
-   * stays dead (A3).
+   * the choices that are sent; a plan not shared gets a new token, so a link stopped earlier stays
+   * dead (A3). Only an explicit true turns a choice on.
    */
-  async share(userId: string, planId: string, showName: boolean): Promise<PlanShareDto> {
+  async share(userId: string, planId: string, choices: ShareChoices = {}): Promise<PlanShareDto> {
     await this.plans.get(userId, planId);
     let rows: ShareRow[];
     try {
@@ -59,13 +66,18 @@ export class SharingService {
         // then delete it: either way no link outlives the request.
         const [active] = await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 AND "deletion_requested_at" IS NULL FOR SHARE', [userId]);
         if (!active) return [];
-        // One statement: two requests at once end with one row and the same token. The WHERE keeps
-        // the update on the caller's own row, whatever the check above saw.
+        // One statement: two requests at once end with one row and the same token. A choice that
+        // was not sent (null) is off on a new row and unchanged on a live one. The WHERE keeps the
+        // update on the caller's own row, whatever the check above saw.
         return tx.query(
-          `INSERT INTO "plan_shares" ("plan_id", "user_id", "share_token", "show_name") VALUES ($1, $2, $3, $4)
-           ON CONFLICT ("plan_id") DO UPDATE SET "show_name" = EXCLUDED."show_name" WHERE "plan_shares"."user_id" = EXCLUDED."user_id"
+          `INSERT INTO "plan_shares" ("plan_id", "user_id", "share_token", "show_name", "show_transcript_checks")
+           VALUES ($1, $2, $3, COALESCE($4::boolean, false), COALESCE($5::boolean, false))
+           ON CONFLICT ("plan_id") DO UPDATE SET
+             "show_name" = COALESCE($4::boolean, "plan_shares"."show_name"),
+             "show_transcript_checks" = COALESCE($5::boolean, "plan_shares"."show_transcript_checks")
+           WHERE "plan_shares"."user_id" = EXCLUDED."user_id"
            RETURNING ${SHARE_COLUMNS}`,
-          [planId, userId, newShareToken(), showName],
+          [planId, userId, newShareToken(), choices.showName ?? null, choices.showTranscriptChecks ?? null],
         );
       });
     } catch (error) {
@@ -95,8 +107,9 @@ export class SharingService {
   async read(token: string): Promise<SharedPlanDto> {
     if (!isShareToken(token)) throw notShared();
     // display_name is read only when the owner chose to show it. An account waiting for deletion opens nothing (A7).
-    const [share]: { planId: string; userId: string; ownerName: string | null }[] = await this.db.query(
-      `SELECT s."plan_id" AS "planId", s."user_id" AS "userId", CASE WHEN s."show_name" THEN u."display_name" END AS "ownerName"
+    const [share]: { planId: string; userId: string; ownerName: string | null; showTranscriptChecks: boolean }[] = await this.db.query(
+      `SELECT s."plan_id" AS "planId", s."user_id" AS "userId", s."show_transcript_checks" AS "showTranscriptChecks",
+              CASE WHEN s."show_name" THEN u."display_name" END AS "ownerName"
        FROM "plan_shares" s JOIN "users" u ON u."id" = s."user_id"
        WHERE s."share_token" = $1 AND u."deletion_requested_at" IS NULL`,
       [token],
@@ -112,6 +125,7 @@ export class SharingService {
     ]);
     // ON DELETE RESTRICT keeps a plan's curriculum (ADR 0014), so this is a broken invariant.
     if (!curriculum) throw new Error('The curriculum of a shared plan is missing');
-    return sharedPlan({ plan, report, courses, curriculum, ownerName: share.ownerName });
+    // Only an explicit true from the row shows the transcript's checks.
+    return sharedPlan({ plan, report, courses, curriculum, ownerName: share.ownerName, showTranscriptChecks: share.showTranscriptChecks === true });
   }
 }

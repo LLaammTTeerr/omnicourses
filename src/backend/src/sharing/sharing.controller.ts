@@ -33,12 +33,12 @@ export class PlanShareController {
   @ApiOkResponse({
     type: PlanShareDto,
     description:
-      'The plan is shared. A plan that was not shared gets a new link; a link stopped earlier stays dead. A plan already shared keeps its link and takes the new `showName`. Anyone who holds the link can open it, without signing in.',
+      'The plan is shared. A plan that was not shared gets a new link; a link stopped earlier stays dead. A plan already shared keeps its link and takes the choices that are sent (`showName`, `showTranscriptChecks`); a choice left out stays as it is. Anyone who holds the link can open it, without signing in.',
   })
-  @ApiBadRequestResponse({ description: '`showName` is not a boolean.' })
+  @ApiBadRequestResponse({ description: '`showName` or `showTranscriptChecks` is not a boolean.' })
   @ApiNotFoundResponse({ description: NOT_FOUND })
   share(@CurrentUser() user: User, @PlanId() id: string, @Body() dto: SharePlanDto): Promise<PlanShareDto> {
-    return this.sharing.share(user.id, id, dto.showName ?? false);
+    return this.sharing.share(user.id, id, { showName: dto.showName, showTranscriptChecks: dto.showTranscriptChecks });
   }
 
   @Delete()
@@ -64,7 +64,7 @@ export class SharedPlansController {
   @ApiOkResponse({
     type: SharedPlanDto,
     description:
-      "The plan as it is now, read-only: its name, curriculum, terms and the rule engine's issues that follow from the plan alone. Never grades, email, the transcript, other plans or an id. No sign-in needed. Sent with `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`.",
+      "The plan as it is now, read-only: its name, curriculum, terms and the rule engine's issues that follow from the plan alone. When the owner chose it for this link, also the issues the engine decides from the owner's transcript and the coverage. Never grades, email, transcript rows, other plans or an id. No sign-in needed. Sent with `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`.",
   })
   @ApiNotFoundResponse({
     type: NotSharedDto,

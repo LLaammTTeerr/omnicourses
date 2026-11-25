@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { CourseSummary, CurriculumLabels } from '../curriculum/curriculum.service.js';
 import type { BoardTerm, Placement } from '../plans/plan-board.js';
-import { PLAN_ISSUE_CODES } from '../plans/plan-issues.js';
+import { PLAN_ISSUE_CODES, type PlanIssue, type PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
 import { checkPlan } from '../rules/plan-issues.js';
 import { graded, term, ungraded, zzCurriculum } from '../rules/testing/fixtures.js';
 import type { Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { SHARED_ISSUE_CODES, sharedPlan, WITHHELD_ISSUE_CODES } from './shared-plan.js';
+import { SHARED_ISSUE_CODES, sharedPlan, TRANSCRIPT_ISSUE_CODES, WITHHELD_ISSUE_CODES } from './shared-plan.js';
 
 // Synthetic curriculum, plan and transcripts only (AGENTS.md hard rule 3). The report comes from
 // the real rule engine (checkPlan), so these tests see what a reader would get, not a hand-made report.
@@ -72,6 +72,13 @@ describe('the issue codes a reader sees', () => {
     expect([...SHARED_ISSUE_CODES, ...WITHHELD_ISSUE_CODES].sort()).toEqual([...PLAN_ISSUE_CODES].sort());
     expect([...WITHHELD_ISSUE_CODES].sort()).toEqual(['already_in_progress', 'already_passed', 'prerequisite_not_met', 'requirement_not_covered']);
     expect(new Set(SHARED_ISSUE_CODES).size).toBe(SHARED_ISSUE_CODES.length);
+  });
+
+  // The codes the owner may choose to show are a list a person wrote too, not "whatever the engine reports".
+  it('lists the four transcript codes one by one, so every code is in exactly one of the two lists', () => {
+    expect([...TRANSCRIPT_ISSUE_CODES].sort()).toEqual([...WITHHELD_ISSUE_CODES].sort());
+    expect([...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES].sort()).toEqual([...PLAN_ISSUE_CODES].sort());
+    expect(new Set([...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES]).size).toBe(PLAN_ISSUE_CODES.length);
   });
 });
 
@@ -183,5 +190,126 @@ describe('sharedPlan', () => {
   it('refuses a report that is not of this board', () => {
     const report = checkPlan({ planId: plan.id, rules, courseRules, transcript: [], terms: [BOARD[0]!], catalogCredits: new Map() });
     expect(() => sharedPlan({ plan, report, courses: catalog, curriculum: labels, ownerName: null })).toThrow(/no load for term 2025-2/);
+  });
+});
+
+// The owner's choice for a link (ADR 0010, amended 25 November 2026): with it on, a reader also gets
+// the checks the engine decides from the transcript, and the coverage. Never a grade, a transcript
+// row or an id.
+describe('sharedPlan when the owner shows the checks that come from their transcript', () => {
+  const sharedWith = (transcript: TranscriptEntry[], ownerName: string | null = null) =>
+    sharedPlan({ plan, report: reportWith(transcript), courses: catalog, curriculum: labels, ownerName, showTranscriptChecks: true });
+  const groupName = (id: string | null) => (id === null ? null : `Group ${id}`);
+  /** The owner's own issue as a reader gets it: every field, with a group or combined minimum by name instead of by id. */
+  const asReader = ({ requirementGroupId, combinedMinimumId, ...rest }: PlanIssue) => ({
+    ...rest,
+    requirementGroupName: groupName(requirementGroupId),
+    combinedMinimumName: combinedMinimumId === null ? null : 'B + C',
+  });
+  const allKeys = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value.flatMap(allKeys);
+    if (value && typeof value === 'object' && !(value instanceof Date)) return Object.entries(value).flatMap(([k, v]) => [k, ...allKeys(v)]);
+    return [];
+  };
+
+  it("gives every issue the owner sees, in the engine's order, and names no code as not shown", () => {
+    for (const transcript of [[], RICH_TRANSCRIPT]) {
+      const report = reportWith(transcript);
+      const body = sharedWith(transcript);
+      expect(body.issues).toEqual(report.issues.map(asReader));
+      expect(body.issueCodesNotShown).toEqual([]);
+    }
+    const codes = (transcript: TranscriptEntry[]) => sharedWith(transcript).issues.map((i) => i.code);
+    expect(codes([])).toEqual(expect.arrayContaining(['prerequisite_not_met', 'requirement_not_covered']));
+    expect(codes(RICH_TRANSCRIPT)).toEqual(expect.arrayContaining(['already_passed', 'already_in_progress', 'requirement_not_covered']));
+  });
+
+  // requirement_not_covered has three forms; the owner's route tells them apart by which id is set, a reader by which name is.
+  it('names the requirement group or the combined minimum of a requirement that is not covered, and neither for the cohort total', () => {
+    const uncovered = sharedWith([]).issues.filter((i) => i.code === 'requirement_not_covered');
+    const form = (i: (typeof uncovered)[number]) => [i.requirementGroupName, i.combinedMinimumName, i.credits, i.limit, i.missingCourseCodes];
+    // With no transcript: group a-bb (ZZA1, ZZA2) has ZZA2 placed and still needs ZZA1; B + C has ZZB1 4 + ZZC1 4 + the slot 3 = 11 of 12.
+    expect(uncovered.map(form)).toContainEqual(['Group a-bb', null, 4, 8, ['ZZA1']]);
+    expect(uncovered.map(form)).toContainEqual([null, 'B + C', 11, 12, []]);
+    const total = uncovered.filter((i) => i.requirementGroupName === null && i.combinedMinimumName === null);
+    expect(total).toHaveLength(1);
+    expect(total[0]).toMatchObject({ limit: 38, term: null, courseCode: null });
+    expect(sharedWith([]).issues.find((i) => i.code === 'prerequisite_not_met')).toMatchObject({ courseCode: 'ZZB1', missingCourseCodes: ['ZZA1'], requirementGroupName: null, combinedMinimumName: null });
+  });
+
+  it("gives the engine's coverage and graduation status by name, with no id", () => {
+    const report = reportWith(RICH_TRANSCRIPT);
+    const { coverage } = sharedWith(RICH_TRANSCRIPT);
+    expect(coverage).toEqual({
+      groups: report.coverage.groups.map(({ id: _id, ...rest }) => rest),
+      combinedMinimums: report.coverage.combinedMinimums.map(({ id: _id, ...rest }) => rest),
+      totalRequired: report.coverage.totalRequired,
+      totalCredits: report.coverage.totalCredits,
+      totalRemaining: report.coverage.totalRemaining,
+      graduation: report.coverage.graduation,
+    });
+    expect(coverage).toMatchObject({ totalRequired: 38, graduation: 'not_yet' });
+    expect(coverage!.groups.map((g) => g.name)).toEqual(report.coverage.groups.map((g) => `Group ${g.id}`));
+    expect(coverage!.combinedMinimums.map((m) => m.name)).toEqual(['B + C']);
+  });
+
+  it('holds exactly the fields of the answer without the choice, plus the coverage and three fields on each issue', () => {
+    const body = sharedWith(RICH_TRANSCRIPT, 'Test Student');
+    expect(Object.keys(body).sort()).toEqual(['coverage', 'curriculum', 'issueCodesNotShown', 'issues', 'name', 'ownerName', 'terms', 'updatedAt']);
+    expect(body.issues.length).toBeGreaterThan(0);
+    for (const i of body.issues) {
+      expect(Object.keys(i).sort()).toEqual(['citation', 'code', 'combinedMinimumName', 'courseCode', 'credits', 'kind', 'limit', 'message', 'missingCourseCodes', 'offeredTermNumbers', 'position', 'requirementGroupName', 'term']);
+    }
+    expect(Object.keys(body.coverage!).sort()).toEqual(['combinedMinimums', 'graduation', 'groups', 'totalCredits', 'totalRemaining', 'totalRequired']);
+    for (const g of body.coverage!.groups) expect(Object.keys(g).sort()).toEqual(['credits', 'kind', 'met', 'name', 'remainingCredits', 'requiredCredits']);
+    for (const m of body.coverage!.combinedMinimums) expect(Object.keys(m).sort()).toEqual(['credits', 'creditsMin', 'met', 'name', 'remainingCredits']);
+    // The rest of the answer is the same as without the choice.
+    const { coverage: _coverage, issues: _issues, issueCodesNotShown: _notShown, ...rest } = body;
+    const { issues: _offIssues, issueCodesNotShown: _offNotShown, ...offRest } = shared(RICH_TRANSCRIPT, 'Test Student');
+    expect(rest).toEqual(offRest);
+    // No key that could carry an id, a grade or a transcript row, at any depth.
+    const everyKey = new Set(allKeys(body));
+    for (const key of ['id', 'planId', 'requirementGroupId', 'combinedMinimumId', 'grade', 'result', 'courseName', 'userId', 'email']) expect(everyKey, key).not.toContain(key);
+  });
+
+  // Dũng's condition for the choice: a reader can tell what was passed or is in progress, and nothing more of the transcript.
+  it('holds no grade, no transcript row and no id, whatever the transcript holds', () => {
+    const text = JSON.stringify(sharedWith(RICH_TRANSCRIPT, 'Test Student'));
+    // The distinctive grades of RICH_TRANSCRIPT, the transcript's own course names, and the ids of the plan and its curriculum.
+    for (const leaked of ['8.5', '6.4', '9.9', 'Course ZZ', '"grade"', '"graded"', '"in_progress"', '"result"', plan.id, plan.curriculum.id]) expect(text, leaked).not.toContain(leaked);
+    // Every term in an issue is a term of the plan, never the term of a transcript row (2024-1 … 2026-1 here).
+    for (const i of sharedWith(RICH_TRANSCRIPT).issues) if (i.term) expect(BOARD.map((b) => b.term)).toContainEqual(i.term);
+  });
+
+  it('leaves the answer without the choice exactly as it was', () => {
+    const off = sharedPlan({ plan, report: reportWith(RICH_TRANSCRIPT), courses: catalog, curriculum: labels, ownerName: null, showTranscriptChecks: false });
+    expect(off).toEqual(shared(RICH_TRANSCRIPT));
+    expect(off).toEqual(shared([]));
+    expect(Object.keys(off)).not.toContain('coverage');
+  });
+
+  // A code the engine gains later is in neither list: no reader sees it, with or without the choice, until a person classifies it.
+  it('hides a code that nobody has classified, with or without the choice', () => {
+    const report = reportWith([]);
+    const future = { ...report.issues[0]!, code: 'graded_below_five' } as unknown as PlanIssue;
+    const withFuture: PlanIssuesReport = { ...report, issues: [future, ...report.issues] };
+    for (const showTranscriptChecks of [false, true]) {
+      const body = sharedPlan({ plan, report: withFuture, courses: catalog, curriculum: labels, ownerName: null, showTranscriptChecks });
+      expect(body.issues.map((i) => i.code as string)).not.toContain('graded_below_five');
+      expect(body.issues).toHaveLength(sharedPlan({ plan, report, courses: catalog, curriculum: labels, ownerName: null, showTranscriptChecks }).issues.length);
+    }
+  });
+
+  // A name that cannot be found must not become null: null means "the cohort total".
+  it('refuses an issue of a group or combined minimum that the coverage does not list', () => {
+    const report = reportWith([]);
+    const stray = (field: 'requirementGroupId' | 'combinedMinimumId'): PlanIssuesReport => ({
+      ...report,
+      issues: report.issues.map((i) => (i.code === 'requirement_not_covered' && i.requirementGroupId === null && i.combinedMinimumId === null ? { ...i, [field]: 'no-such-id' } : i)),
+    });
+    const build = (r: PlanIssuesReport, showTranscriptChecks: boolean) => () => sharedPlan({ plan, report: r, courses: catalog, curriculum: labels, ownerName: null, showTranscriptChecks });
+    expect(build(stray('requirementGroupId'), true)).toThrow(/requirement group that its coverage does not list/);
+    expect(build(stray('combinedMinimumId'), true)).toThrow(/combined minimum that its coverage does not list/);
+    expect(build(stray('requirementGroupId'), false)).not.toThrow();
   });
 });

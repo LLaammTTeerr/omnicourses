@@ -1,21 +1,33 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 import { CreditCapsDto } from '../audit/audit.dto.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { PLACEMENT_KINDS, type PlacementKind } from '../plans/plan-board.js';
 import { PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlanIssueCode, type PlanIssueKind } from '../plans/plan-issues.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
 import { TermDto } from '../terms/term.dto.js';
-import { SHARED_ISSUE_CODES, type SharedIssueCode } from './shared-plan.js';
 
 // F9 sharing (UC-09, ADR 0010). Two contracts: what the owner sees of their link, and what a
 // reader of the link sees of the plan. The second lists every field on purpose: a reader gets
 // these and nothing else (UC-09 step 2).
 
+// Both choices follow one rule: only an explicit true turns a choice on, an explicit false turns it
+// off, and a field left out keeps what the link has (off on a new link). So a page that sends one
+// choice never changes the other.
 export class SharePlanDto {
-  @ApiProperty({ required: false, default: false, description: "Whether a reader sees the owner's display name. Left out: hidden." })
+  @ApiProperty({ required: false, description: "Whether a reader sees the owner's display name. Left out: unchanged on a live link, hidden on a new one." })
   @IsOptional()
   @IsBoolean()
   showName?: boolean;
+
+  @ApiProperty({
+    required: false,
+    description:
+      "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one.",
+  })
+  @IsOptional()
+  @IsBoolean()
+  showTranscriptChecks?: boolean;
 }
 
 export class PlanShareDto {
@@ -27,6 +39,9 @@ export class PlanShareDto {
 
   @ApiProperty({ description: "Whether a reader sees the owner's display name." })
   showName!: boolean;
+
+  @ApiProperty({ description: "Whether a reader sees the checks that come from the owner's transcript, and the coverage. When true, the page must tell the owner that a reader can tell which courses they passed or are taking." })
+  showTranscriptChecks!: boolean;
 
   @ApiProperty({ type: String, format: 'date-time', description: 'When this link was created.' })
   createdAt!: Date;
@@ -103,8 +118,8 @@ export class SharedPlanTermDto {
 }
 
 export class SharedPlanIssueDto {
-  @ApiProperty({ enum: SHARED_ISSUE_CODES, description: 'As in GET /plans/{id}/issues, without the codes that depend on the transcript.' })
-  code!: SharedIssueCode;
+  @ApiProperty({ enum: PLAN_ISSUE_CODES, description: 'As in GET /plans/{id}/issues. Never a code listed in `issueCodesNotShown`.' })
+  code!: PlanIssueCode;
 
   @ApiProperty({ enum: PLAN_ISSUE_KINDS, description: 'violation: breaks a rule. flag: allowed, worth a look. unknown: not recorded, not checked.' })
   kind!: PlanIssueKind;
@@ -121,10 +136,10 @@ export class SharedPlanIssueDto {
   @ApiProperty({ type: [Number], description: 'not_offered: the term numbers the course is taught in.' })
   offeredTermNumbers!: number[];
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Load issues: the credits counted.' })
+  @ApiProperty({ type: Number, nullable: true, description: 'Load and coverage issues: the credits counted.' })
   credits!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Load issues: the limit compared with.' })
+  @ApiProperty({ type: Number, nullable: true, description: 'Load and coverage issues: the limit compared with.' })
   limit!: number | null;
 
   @ApiProperty({ example: 'QĐ 1175/QĐ-KHTN Điều 7.2', description: 'Where the rule comes from.' })
@@ -132,6 +147,84 @@ export class SharedPlanIssueDto {
 
   @ApiProperty({ description: 'An English sentence, for a screen that does not word the code itself.' })
   message!: string;
+
+  @ApiProperty({
+    type: [String],
+    required: false,
+    description:
+      "Only when the owner chose to show the transcript's checks. prerequisite_not_met: the prerequisites missing. requirement_not_covered of a compulsory group: its courses neither passed nor placed.",
+  })
+  missingCourseCodes?: string[];
+
+  @ApiProperty({ type: String, nullable: true, required: false, description: "Only when the owner chose to show the transcript's checks. requirement_not_covered of a requirement group: its name." })
+  requirementGroupName?: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    required: false,
+    description:
+      "Only when the owner chose to show the transcript's checks. requirement_not_covered of a combined minimum: its name. A requirement_not_covered with neither name is about the cohort total.",
+  })
+  combinedMinimumName?: string | null;
+}
+
+export class SharedGroupCoverageDto {
+  @ApiProperty({ example: 'Kiến thức Math' })
+  name!: string;
+
+  @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS })
+  kind!: RequirementGroupKind;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'null: the group has no minimum of its own.' })
+  requiredCredits!: number | null;
+
+  @ApiProperty({ description: 'Credits passed, in progress or placed, toward the cohort total.' })
+  credits!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  remainingCredits!: number | null;
+
+  @ApiProperty()
+  met!: boolean;
+}
+
+export class SharedCombinedMinimumCoverageDto {
+  @ApiProperty({ example: 'Kiến thức tự chọn' })
+  name!: string;
+
+  @ApiProperty({ example: 43 })
+  creditsMin!: number;
+
+  @ApiProperty()
+  credits!: number;
+
+  @ApiProperty()
+  remainingCredits!: number;
+
+  @ApiProperty()
+  met!: boolean;
+}
+
+/** The rule engine's coverage of the plan (PlanCoverage of GET /plans/{id}/issues), by name and with no id. */
+export class SharedPlanCoverageDto {
+  @ApiProperty({ type: [SharedGroupCoverageDto] })
+  groups!: SharedGroupCoverageDto[];
+
+  @ApiProperty({ type: [SharedCombinedMinimumCoverageDto] })
+  combinedMinimums!: SharedCombinedMinimumCoverageDto[];
+
+  @ApiProperty({ type: Number, nullable: true, description: 'The cohort total; null when not recorded.' })
+  totalRequired!: number | null;
+
+  @ApiProperty({ description: 'Credits toward the cohort total with the plan completed.' })
+  totalCredits!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  totalRemaining!: number | null;
+
+  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every requirement the data can check would be met with the plan completed; the school still checks the rest (Điều 17.3).' })
+  graduation!: 'done' | 'not_yet';
 }
 
 /** Everything a reader of a shared plan's link gets (UC-09 step 2). No field identifies the owner except `ownerName`, when they chose it. */
@@ -153,7 +246,8 @@ export class SharedPlanDto {
 
   @ApiProperty({
     type: [SharedPlanIssueDto],
-    description: "The rule engine's issues of the plan that follow from the plan and its curriculum alone, in the engine's order. [] when it finds none of them.",
+    description:
+      "The rule engine's issues of the plan, in the engine's order: the ones that follow from the plan and its curriculum alone, and, when the owner chose it, the ones the engine decides from the owner's transcript too. [] when it finds none of them.",
   })
   issues!: SharedPlanIssueDto[];
 
@@ -161,9 +255,17 @@ export class SharedPlanDto {
     enum: PLAN_ISSUE_CODES,
     isArray: true,
     description:
-      "The issue codes this answer never holds, because the engine decides them from the owner's transcript, which is not shared. The same list for every plan. The page must say that these checks are not shown: an empty `issues` is not a pass of them.",
+      "The issue codes this answer does not hold, because the engine decides them from the owner's transcript and the owner did not choose to show them. [] when the owner chose to show them. When it is not empty, the page must say that these checks are not shown: an empty `issues` is not a pass of them.",
   })
   issueCodesNotShown!: PlanIssueCode[];
+
+  @ApiProperty({
+    type: SharedPlanCoverageDto,
+    required: false,
+    description:
+      "Only when the owner chose to show the transcript's checks: the curriculum as it would stand with every placement and every course in progress passed. It counts the owner's passed courses, so it is left out otherwise.",
+  })
+  coverage?: SharedPlanCoverageDto;
 }
 
 export const NOT_SHARED_MESSAGE = 'This plan is not shared';

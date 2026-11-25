@@ -34,6 +34,7 @@ describe('Plan sharing API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   let curriculumId: string;
+  let core: string;
   let electives: string;
   const http = () => request(app.getHttpServer());
 
@@ -88,7 +89,7 @@ describe('Plan sharing API (e2e)', () => {
       for (const n of members) await db.query(`INSERT INTO requirement_group_courses (requirement_group_id, course_code) VALUES ($1, $2)`, [id, code(n)]);
       return id as string;
     };
-    await group('Core', 'compulsory', 8, null, [1, 2]);
+    core = await group('Core', 'compulsory', 8, null, [1, 2]);
     electives = await group('Electives', 'elective', null, 8, [3, 4, 5]);
     // Recorded: 1 has no prerequisite, 2 needs 1. Offered: 1 in term 1, 2 in term 2, 3 in every term. The rest is not recorded.
     for (const n of [1, 2]) await db.query(`INSERT INTO course_prerequisite_lists (curriculum_id, course_code) VALUES ($1, $2)`, [curriculumId, code(n)]);
@@ -114,8 +115,8 @@ describe('Plan sharing API (e2e)', () => {
       expect((await http().get(`/api/plans/${plan.id}/share`).set(auth).expect(200)).body).toEqual({ share: null });
 
       const created = await http().put(`/api/plans/${plan.id}/share`).set(auth).send({}).expect(200);
-      expect(keys(created.body)).toEqual(['createdAt', 'showName', 'token']);
-      expect(created.body).toMatchObject({ token: expect.stringMatching(TOKEN), showName: false });
+      expect(keys(created.body)).toEqual(['createdAt', 'showName', 'showTranscriptChecks', 'token']);
+      expect(created.body).toMatchObject({ token: expect.stringMatching(TOKEN), showName: false, showTranscriptChecks: false });
       expect(created.headers['cache-control']).toBe('no-store');
       expect((await read(created.body.token).expect(200)).body.ownerName).toBeNull();
 
@@ -133,16 +134,22 @@ describe('Plan sharing API (e2e)', () => {
       expect(named).toEqual({ ...created.body, showName: true });
       expect((await read(created.body.token).expect(200)).body.ownerName).toBe('Test Student');
 
-      // Left out again: hidden again.
-      expect((await http().put(`/api/plans/${plan.id}/share`).set(auth).send({}).expect(200)).body.showName).toBe(false);
+      // Left out: the choice stays as it is. Only an explicit false hides the name again.
+      expect((await http().put(`/api/plans/${plan.id}/share`).set(auth).send({}).expect(200)).body).toEqual(named);
+      expect((await http().put(`/api/plans/${plan.id}/share`).set(auth).expect(200)).body).toEqual(named);
+      expect((await read(created.body.token).expect(200)).body.ownerName).toBe('Test Student');
+      expect((await http().put(`/api/plans/${plan.id}/share`).set(auth).send({ showName: false }).expect(200)).body).toEqual(created.body);
       expect((await read(created.body.token).expect(200)).body.ownerName).toBeNull();
       expect(await db.query('SELECT 1 FROM plan_shares WHERE plan_id = $1', [plan.id])).toHaveLength(1);
     });
 
-    it('refuses a showName that is not a boolean, and shares nothing', async () => {
+    it('refuses a choice that is not a boolean, and shares nothing', async () => {
       const { auth } = await student();
       const plan = await newPlan(auth);
       await http().put(`/api/plans/${plan.id}/share`).set(auth).send({ showName: 'yes' }).expect(400);
+      for (const value of ['true', 1, 'yes', {}]) await http().put(`/api/plans/${plan.id}/share`).set(auth).send({ showTranscriptChecks: value }).expect(400);
+      // One bad choice refuses the whole request, the good one with it.
+      await http().put(`/api/plans/${plan.id}/share`).set(auth).send({ showName: true, showTranscriptChecks: 'yes' }).expect(400);
       expect((await http().get(`/api/plans/${plan.id}/share`).set(auth).expect(200)).body).toEqual({ share: null });
     });
 
@@ -404,6 +411,159 @@ describe('Plan sharing API (e2e)', () => {
     });
   });
 
+  // ADR 0010, amended 25 November 2026: the owner chooses, for each link, whether a reader sees the
+  // checks that come from the owner's transcript. Off unless the owner turns it on.
+  describe('when the owner shows the checks that come from their transcript', () => {
+    // 2030-1: 2 needs 1, which is nowhere; 3 is in progress in the transcript. 2030-2: 5 is already passed; 6 is in no group.
+    // Core (1, 2): only 2 is placed, 4 of 8 credits, 1 missing. Electives: 3 + 5 = 8 of 8. Total: 4 + 8 = 12 of 16.
+    const checksBoard = () => [
+      { term: { year: 2030, number: 1 }, placements: [course(code(2)), course(code(3))] },
+      { term: { year: 2030, number: 2 }, placements: [course(code(5)), course(code(6))] },
+    ];
+    const row = (n: number, result: string, grade: number | null, year: number, number: number) => ({ courseCode: code(n), courseName: 'Transcript wording', credits: 4, result, grade, term: { year, number } });
+    // Distinctive grades: none of these digits can appear in the answer by chance once updatedAt is left out.
+    // 5 is passed, 3 is in progress, 4 is failed (so it adds nothing to Electives).
+    const transcript = [row(5, 'graded', 8.6, 2029, 1), row(3, 'in_progress', null, 2029, 3), row(4, 'graded', 2.6, 2029, 1)];
+    const putShare = (auth: Record<string, string>, planId: string, body: Record<string, unknown>) => http().put(`/api/plans/${planId}/share`).set(auth).send(body).expect(200);
+
+    it('shows a reader the same issues and coverage as the owner, with no grade, transcript row or id, and takes them away again', async () => {
+      const owner = await student();
+      await http().put('/api/users/me/transcript').set(owner.auth).send({ rows: transcript }).expect(200);
+      const plan = await newPlan(owner.auth, { terms: checksBoard() });
+      const token = await share(owner.auth, plan.id);
+      const off = (await read(token).expect(200)).body;
+      expect(keys(off)).toEqual(KEYS.plan);
+      expect(off.issueCodesNotShown).toHaveLength(4);
+
+      // Turned on, on the live link: the same token.
+      expect((await putShare(owner.auth, plan.id, { showTranscriptChecks: true })).body).toMatchObject({ token, showName: false, showTranscriptChecks: true });
+      const own = (await http().get(`/api/plans/${plan.id}/issues`).set(owner.auth).expect(200)).body;
+      const on = (await read(token).expect(200)).body;
+
+      // The owner's own report has all four transcript codes, so the comparison below covers each.
+      expect([...new Set(own.issues.map((i: { code: string }) => i.code))]).toEqual(expect.arrayContaining(['prerequisite_not_met', 'already_passed', 'already_in_progress', 'requirement_not_covered']));
+      // The reader's issues are the owner's own, one for one and in order, with a requirement group by name instead of by id.
+      const groupNames = new Map<string, string>(own.coverage.groups.map((g: { id: string; name: string }) => [g.id, g.name]));
+      const asReader = ({ requirementGroupId, combinedMinimumId, ...rest }: Record<string, unknown>) => {
+        expect(combinedMinimumId).toBeNull(); // this curriculum has no combined minimum
+        return { ...rest, requirementGroupName: requirementGroupId === null ? null : groupNames.get(requirementGroupId as string), combinedMinimumName: null };
+      };
+      expect(on.issues).toEqual(own.issues.map(asReader));
+      expect(on.issueCodesNotShown).toEqual([]);
+      const brief = (i: Record<string, unknown>) => [i.code, i.courseCode, i.requirementGroupName, i.missingCourseCodes, i.credits, i.limit];
+      const transcriptIssues = on.issues.filter((i: { code: string }) => off.issueCodesNotShown.includes(i.code));
+      expect(transcriptIssues.map(brief)).toEqual([
+        ['prerequisite_not_met', code(2), null, [code(1)], null, null],
+        ['already_in_progress', code(3), null, [], null, null],
+        ['already_passed', code(5), null, [], null, null],
+        ['requirement_not_covered', null, 'Core', [code(1)], 4, 8],
+        ['requirement_not_covered', null, null, [], 12, 16],
+      ]);
+      // Every term in an issue is a term of the plan, never the term of a transcript row (2029).
+      for (const i of on.issues) if (i.term) expect(i.term.year).toBe(2030);
+
+      // The coverage and the graduation status are the owner's own, without the ids.
+      const { groups, combinedMinimums, ...totals } = own.coverage;
+      expect(on.coverage).toEqual({ ...totals, combinedMinimums, groups: groups.map(({ id: _id, ...rest }: { id: string }) => rest) });
+      expect(on.coverage).toMatchObject({ totalRequired: 16, totalCredits: 12, totalRemaining: 4, graduation: 'not_yet', combinedMinimums: [] });
+      expect(on.coverage.groups).toEqual([
+        { name: 'Core', kind: 'compulsory', requiredCredits: 8, credits: 4, remainingCredits: 4, met: false },
+        { name: 'Electives', kind: 'elective', requiredCredits: 8, credits: 8, remainingCredits: 0, met: true },
+      ]);
+
+      // The full key set with the choice on: the fields without it, the coverage, and three more fields on each issue.
+      expect(keys(on)).toEqual([...KEYS.plan, 'coverage'].sort());
+      expect(keys(on.curriculum)).toEqual(KEYS.curriculum);
+      expect(keys(on.curriculum.program)).toEqual(KEYS.program);
+      for (const t of on.terms) {
+        expect(keys(t)).toEqual(KEYS.term);
+        for (const p of t.placements) expect(keys(p)).toEqual(KEYS.placement);
+      }
+      for (const i of on.issues) expect(keys(i)).toEqual([...KEYS.issue, 'combinedMinimumName', 'missingCourseCodes', 'requirementGroupName'].sort());
+      expect(keys(on.coverage)).toEqual(['combinedMinimums', 'graduation', 'groups', 'totalCredits', 'totalRemaining', 'totalRequired']);
+      for (const g of on.coverage.groups) expect(keys(g)).toEqual(['credits', 'kind', 'met', 'name', 'remainingCredits', 'requiredCredits']);
+      // Everything else in the answer is what it was.
+      const { coverage: _c, issues: _i, issueCodesNotShown: _n, ...rest } = on;
+      const { issues: _oi, issueCodesNotShown: _on, ...offRest } = off;
+      expect(rest).toEqual(offRest);
+
+      // No grade, no transcript row, no email, no id of the plan, the owner, the curriculum or a group. (updatedAt is
+      // left out of the search: its digits could match a grade by chance. The word "grade" alone is in the engine's
+      // "grade improvement" sentence, so the search is for the key and the values.)
+      const text = JSON.stringify({ ...on, updatedAt: null });
+      const forbidden = ['8.6', '2.6', code(4), 'Transcript wording', '"grade"', '"result"', '"courseName"', '"graded"', '"in_progress"', owner.userId, owner.email, 'Test Student', plan.id, curriculumId, core, electives, '"id"', 'Id"', 'password', 'email'];
+      for (const value of forbidden) expect(text, value).not.toContain(value);
+
+      // The name choice sent alone does not touch this one, and the other way round: still the same link.
+      expect((await putShare(owner.auth, plan.id, { showName: true })).body).toMatchObject({ token, showName: true, showTranscriptChecks: true });
+      expect((await putShare(owner.auth, plan.id, {})).body).toMatchObject({ token, showName: true, showTranscriptChecks: true });
+      expect((await http().get(`/api/plans/${plan.id}/share`).set(owner.auth).expect(200)).body.share).toMatchObject({ token, showName: true, showTranscriptChecks: true });
+      const named = (await read(token).expect(200)).body;
+      expect(named).toEqual({ ...on, ownerName: 'Test Student' });
+
+      // Turned off again: the earlier answer, exactly, on the same link.
+      expect((await putShare(owner.auth, plan.id, { showTranscriptChecks: false })).body).toMatchObject({ token, showName: true, showTranscriptChecks: false });
+      expect((await read(token).expect(200)).body).toEqual({ ...off, ownerName: 'Test Student' });
+      expect((await putShare(owner.auth, plan.id, { showName: false })).body).toMatchObject({ token, showName: false, showTranscriptChecks: false });
+      expect((await read(token).expect(200)).body).toEqual(off);
+      expect(await db.query('SELECT 1 FROM plan_shares WHERE plan_id = $1', [plan.id])).toHaveLength(1);
+    });
+
+    // The transcript changes what a reader sees only while the choice is on.
+    it('follows the transcript while the choice is on, and not while it is off', async () => {
+      const owner = await student();
+      const plan = await newPlan(owner.auth, { terms: checksBoard() });
+      const token = await share(owner.auth, plan.id, { showTranscriptChecks: true });
+      const codes = async () => (await read(token).expect(200)).body.issues.map((i: { code: string }) => i.code);
+      expect(await codes()).not.toContain('already_passed');
+      await http().put('/api/users/me/transcript').set(owner.auth).send({ rows: transcript }).expect(200);
+      expect(await codes()).toContain('already_passed');
+
+      await putShare(owner.auth, plan.id, { showTranscriptChecks: false });
+      const off = (await read(token).expect(200)).body;
+      await http().put('/api/users/me/transcript').set(owner.auth).send({ rows: [] }).expect(200);
+      expect((await read(token).expect(200)).body).toEqual(off);
+    });
+
+    it('starts a new link with the choice off, also after a link with the choice on was stopped', async () => {
+      const { auth } = await student();
+      const plan = await newPlan(auth);
+      const first = await share(auth, plan.id, { showName: true, showTranscriptChecks: true });
+      expect(keys((await read(first).expect(200)).body)).toContain('coverage');
+      await http().delete(`/api/plans/${plan.id}/share`).set(auth).expect(204);
+      const again = (await putShare(auth, plan.id, {})).body;
+      expect(again).toMatchObject({ showName: false, showTranscriptChecks: false });
+      expect(again.token).not.toBe(first);
+      const body = (await read(again.token).expect(200)).body;
+      expect(keys(body)).toEqual(KEYS.plan);
+      expect(body.ownerName).toBeNull();
+    });
+
+    it('gives two requests at once the same link, whatever choices they send', async () => {
+      const { auth } = await student();
+      const plan = await newPlan(auth);
+      const bodies = [{ showTranscriptChecks: true }, { showName: true }, { showTranscriptChecks: true }, {}];
+      const answers = await Promise.all(bodies.map((body) => http().put(`/api/plans/${plan.id}/share`).set(auth).send(body)));
+      expect(answers.map((a) => a.status)).toEqual([200, 200, 200, 200]);
+      expect(new Set(answers.map((a) => a.body.token)).size).toBe(1);
+      // Nobody sent false, so both choices end on, whatever the order the requests ran in.
+      expect(await db.query('SELECT show_name, show_transcript_checks FROM plan_shares WHERE plan_id = $1', [plan.id])).toEqual([{ show_name: true, show_transcript_checks: true }]);
+    });
+
+    it("lets nobody but the owner turn the choice on", async () => {
+      const owner = await student();
+      const plan = await newPlan(owner.auth);
+      const token = await share(owner.auth, plan.id);
+      const intruder = await student();
+      await http().put(`/api/plans/${plan.id}/share`).set(intruder.auth).send({ showTranscriptChecks: true }).expect(404);
+      await http().put(`/api/plans/${plan.id}/share`).send({ showTranscriptChecks: true }).expect(401);
+      await http().put(`/api/shared-plans/${token}`).send({ showTranscriptChecks: true });
+      const body = (await read(`${token}?showTranscriptChecks=true`).expect(200)).body;
+      expect(keys(body)).toEqual(KEYS.plan);
+      expect(await db.query('SELECT show_transcript_checks FROM plan_shares WHERE plan_id = $1', [plan.id])).toEqual([{ show_transcript_checks: false }]);
+    });
+  });
+
   describe('links that open nothing', () => {
     it('gives one answer to an unknown, a malformed, a stopped and a deleted-plan link', async () => {
       const { auth } = await student();
@@ -528,7 +688,12 @@ describe('Plan sharing API (e2e)', () => {
       const plan = await newPlan(auth);
       const token = await share(auth, plan.id, { showName: true });
       const res = await http().get('/api/users/me/export').set(auth).expect(200);
-      expect(res.body.tables.plan_shares).toEqual([{ id: expect.any(String), plan_id: plan.id, user_id: userId, show_name: true, created_at: expect.any(String) }]);
+      expect(res.body.tables.plan_shares).toEqual([{ id: expect.any(String), plan_id: plan.id, user_id: userId, show_name: true, show_transcript_checks: false, created_at: expect.any(String) }]);
+      // The other choice is exported like the first.
+      await share(auth, plan.id, { showTranscriptChecks: true });
+      const again = await http().get('/api/users/me/export').set(auth).expect(200);
+      expect(again.body.tables.plan_shares).toEqual([{ id: expect.any(String), plan_id: plan.id, user_id: userId, show_name: true, show_transcript_checks: true, created_at: expect.any(String) }]);
+      expect(JSON.stringify(again.body)).not.toContain(token);
       expect(JSON.stringify(res.body)).not.toContain(token);
       // The token is stored, so the check above is not passing on an empty column.
       expect(await db.query('SELECT share_token FROM plan_shares WHERE plan_id = $1', [plan.id])).toEqual([{ share_token: token }]);
