@@ -1,6 +1,6 @@
 import { QueryFailedError } from 'typeorm';
 import { describe, expect, it } from 'vitest';
-import { failureKind } from './failure-kind.js';
+import { failureKind, failureStack } from './failure-kind.js';
 
 describe('failureKind', () => {
   it('names the class of an error and nothing of its message', () => {
@@ -23,5 +23,27 @@ describe('failureKind', () => {
     expect(failureKind('synthetic')).toBe('string');
     expect(failureKind(null)).toBe('object');
     expect(failureKind(undefined)).toBe('undefined');
+  });
+});
+
+describe('failureStack', () => {
+  it('keeps the frames of an error that is not a database error, and drops the line with its message', () => {
+    const error = new TypeError('Cannot read properties of undefined (reading synthetic-id)');
+    const stack = failureStack(error);
+    expect(stack).toBeDefined();
+    expect(stack!.split('\n').every((line) => /^\s+at /.test(line))).toBe(true);
+    expect(stack).toContain('failure-kind.spec.ts');
+    expect(stack).not.toContain('synthetic-id');
+    expect(stack).not.toContain('TypeError');
+  });
+
+  it('gives nothing for a refused statement: the class and the SQLSTATE are all it may log', () => {
+    const driverError = Object.assign(new Error('violates foreign key constraint'), { code: '23503' });
+    expect(failureStack(new QueryFailedError('INSERT INTO "notifications" …', ['synthetic-id'], driverError))).toBeUndefined();
+  });
+
+  it('gives nothing for a thrown value that is not an error, or an error without frames', () => {
+    expect(failureStack('synthetic')).toBeUndefined();
+    expect(failureStack(Object.assign(new Error('synthetic'), { stack: 'Error: synthetic' }))).toBeUndefined();
   });
 });

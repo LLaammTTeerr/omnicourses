@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/com
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { AcademicCalendarService, type CalendarEventStart } from '../academic-calendar/academic-calendar.service.js';
-import { failureKind } from '../common/failure-kind.js';
+import { failureKind, failureStack } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { vietnamDate } from '../config/time.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
@@ -13,6 +13,9 @@ import { Notification } from './notification.entity.js';
 import { DEFAULT_PAGE_SIZE, NotificationDto, NotificationListDto, NotificationsQueryDto, UnreadCountDto } from './notifications.dto.js';
 
 /** Unknown, malformed and another student's ID answer the same 404: the answer never tells them apart. */
+/** At most one line a minute about the failures of reads (ADR 0018, decision 15). */
+export const READ_FAILURE_LOG_INTERVAL_MS = 60_000;
+
 export const notificationNotFound = () => new NotFoundException({ statusCode: 404, code: 'not_found', message: 'No notification with this ID' });
 
 // One statement per school date and kind, for every recipient at once. The recipients are the
@@ -57,6 +60,10 @@ export function notificationDto(n: Notification): NotificationDto {
 @Injectable()
 export class NotificationsService implements OnModuleInit {
   private readonly logger = new Logger(NotificationsService.name);
+  /** When a read last logged a failure, in this process; null until one does. */
+  private readFailureLoggedAt: number | null = null;
+  /** The reads whose failure was not logged since that line. */
+  private readFailuresNotLogged = 0;
 
   constructor(
     private readonly db: DataSource,
@@ -95,6 +102,7 @@ export class NotificationsService implements OnModuleInit {
     let created = 0;
     let statements = 0;
     const failures: string[] = [];
+    let stack: string | undefined;
     for (const { event, kind } of due) {
       const userIds = students.get(event.programCode);
       if (!userIds?.length) continue;
@@ -118,10 +126,11 @@ export class NotificationsService implements OnModuleInit {
         created += rows.length;
       } catch (error) {
         failures.push(failureKind(error));
+        stack ??= failureStack(error);
       }
     }
     // One line for the run, counts and failure kinds only: no student, no date, no title.
-    if (failures.length) this.logger.error(`Could not create the notifications of ${failures.length} of ${statements} school date(s) that are due: ${[...new Set(failures)].join('; ')}`);
+    if (failures.length) this.logFailure(onlyUserId !== undefined, `Could not create the notifications of ${failures.length} of ${statements} school date(s) that are due: ${[...new Set(failures)].join('; ')}`, stack);
     return created;
   }
 
@@ -134,8 +143,28 @@ export class NotificationsService implements OnModuleInit {
     try {
       await this.createDue(userId);
     } catch (error) {
-      this.logger.error(`Could not create the notifications that are due before a read: ${failureKind(error)}`);
+      this.logFailure(true, `Could not create the notifications that are due before a read: ${failureKind(error)}`, failureStack(error));
     }
+  }
+
+  /**
+   * Logs a failure to create notifications. A run for everyone (the timer) logs every time. A read
+   * logs the first failure, then at most one line a minute while failures go on, by the injected
+   * clock: every inbox read would otherwise log the same line while a cause lasts.
+   */
+  private logFailure(forRead: boolean, line: string, stack: string | undefined): void {
+    if (forRead) {
+      const now = this.clock.now().getTime();
+      if (this.readFailureLoggedAt !== null && now - this.readFailureLoggedAt < READ_FAILURE_LOG_INTERVAL_MS) {
+        this.readFailuresNotLogged++;
+        return;
+      }
+      if (this.readFailuresNotLogged) line += ` (${this.readFailuresNotLogged} more failed read(s) since the last line were not logged)`;
+      this.readFailureLoggedAt = now;
+      this.readFailuresNotLogged = 0;
+    }
+    if (stack) this.logger.error(line, stack);
+    else this.logger.error(line);
   }
 
   /** The caller's notifications, newest first, after creating the ones due today for the caller alone. */

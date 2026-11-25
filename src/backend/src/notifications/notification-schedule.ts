@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
-import { failureKind } from '../common/failure-kind.js';
+import { failureKind, failureStack } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { msUntilVietnamMidnight } from '../config/time.js';
 import { NotificationsService } from './notifications.service.js';
@@ -45,8 +45,12 @@ export class NotificationSchedule implements OnApplicationBootstrap, OnModuleDes
       // A count only: never a student, a title or a date (AGENTS.md hard rule 3).
       if (created) this.logger.log(`Created ${created} notification(s)`);
     } catch (error) {
-      // The error's class and its SQLSTATE only: a database message can quote row values.
-      this.logger.error(`Could not create the notifications that are due: ${failureKind(error)}`);
+      // The error's class and its SQLSTATE only: a database message can quote row values. The
+      // frames of an error that is not a database error, to find the code that threw it.
+      const stack = failureStack(error);
+      const line = `Could not create the notifications that are due: ${failureKind(error)}`;
+      if (stack) this.logger.error(line, stack);
+      else this.logger.error(line);
     }
     if (this.stopped) return;
     clearTimeout(this.timer);

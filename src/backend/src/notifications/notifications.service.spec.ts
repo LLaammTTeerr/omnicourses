@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CalendarEventStart } from '../academic-calendar/academic-calendar.service.js';
 import type { TranscriptSaveListener } from '../transcript/transcript-change.js';
 import { Notification } from './notification.entity.js';
-import { notificationDto, NotificationsService } from './notifications.service.js';
+import { notificationDto, NotificationsService, READ_FAILURE_LOG_INTERVAL_MS } from './notifications.service.js';
 
 // Synthetic dates and IDs only (AGENTS.md hard rule 3). The database behaviour (the uniqueness
 // key, the recipients filter) is tested in test/notifications.e2e-spec.ts.
@@ -154,8 +154,53 @@ describe('NotificationsService', () => {
       expect(await service.unreadCount('u1')).toEqual({ unread: 3 });
       expect(await service.list('u1', {})).toEqual({ notifications: [], nextBefore: null });
       const line = 'Could not create the notifications that are due before a read: QueryFailedError, SQLSTATE 57014';
-      expect(errors).toEqual([line, line]);
+      // The second read fails the same way within the minute: not logged again (decision 15).
+      expect(errors).toEqual([line]);
       expect(errors.join()).not.toMatch(/synthetic-user-id|Synthetic title|INSERT/);
+    });
+
+    it('logs the first failed read, then at most one line a minute while reads go on failing', async () => {
+      calendar.startingOn.mockRejectedValue(refused('57014'));
+      const line = 'Could not create the notifications that are due before a read: QueryFailedError, SQLSTATE 57014';
+      for (let i = 0; i < 103; i++) await service.unreadCount('u1');
+      expect(errors).toEqual([line]);
+      clock.at = new Date(clock.at.getTime() + READ_FAILURE_LOG_INTERVAL_MS - 1);
+      await service.list('u1', {});
+      expect(errors).toEqual([line]);
+      clock.at = new Date(clock.at.getTime() + 1);
+      await service.unreadCount('u1');
+      expect(errors).toEqual([line, `${line} (103 more failed read(s) since the last line were not logged)`]);
+      // A failed statement inside a read's run falls under the same limit.
+      calendar.startingOn.mockResolvedValue([event({ id: 'bad', kind: 'term_start', startsOn: '2090-03-13', programCode: 'ZZB' })]);
+      db.query.mockRejectedValue(refused('23514'));
+      await service.list('u1', {});
+      expect(errors).toHaveLength(2);
+    });
+
+    it('logs every failed run for everyone: the limit is for reads only', async () => {
+      db.query.mockRejectedValue(refused('23514'));
+      await service.createDue();
+      await service.createDue();
+      expect(errors).toHaveLength(2);
+    });
+
+    it('logs the frames of a failure that is not a database error, and never its message', async () => {
+      const lines: unknown[][] = [];
+      vi.spyOn(Logger.prototype, 'error').mockImplementation((...args: unknown[]) => void lines.push(args));
+      onboarding.userIdsByProgram.mockRejectedValue(new TypeError('Cannot read synthetic-user-id'));
+      await service.unreadCount('u1');
+      expect(lines).toHaveLength(1);
+      expect(lines[0]![0]).toBe('Could not create the notifications that are due before a read: TypeError');
+      expect(String(lines[0]![1])).toMatch(/^\s+at /);
+      expect(lines.flat().join('\n')).not.toContain('synthetic-user-id');
+    });
+
+    it('logs no stack for a refused statement: its class and SQLSTATE only', async () => {
+      const lines: unknown[][] = [];
+      vi.spyOn(Logger.prototype, 'error').mockImplementation((...args: unknown[]) => void lines.push(args));
+      db.query.mockRejectedValue(refused('23514'));
+      await service.createDue();
+      expect(lines).toEqual([['Could not create the notifications of 4 of 4 school date(s) that are due: QueryFailedError, SQLSTATE 23514']]);
     });
   });
 

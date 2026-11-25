@@ -104,6 +104,10 @@ describe('NotificationSchedule', () => {
     await expect(schedule.tick()).resolves.toBeUndefined();
     expect(error).toHaveBeenCalledTimes(1);
     expect(String(error.mock.calls[0]![0])).toBe('Could not create the notifications that are due: Error');
+    // Not a database error: the frames of its stack follow, and never its message.
+    const stack = String(error.mock.calls[0]![1]);
+    expect(stack).toMatch(/^\s+at /);
+    expect(stack).not.toContain('synthetic-id');
     await vi.advanceTimersByTimeAsync(RUN_INTERVAL_MS);
     expect(createDue).toHaveBeenCalledTimes(2);
   });
