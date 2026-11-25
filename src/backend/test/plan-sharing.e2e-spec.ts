@@ -2,8 +2,9 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
+import { TranscriptService } from '../src/transcript/transcript.service.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
@@ -150,7 +151,26 @@ describe('Plan sharing API (e2e)', () => {
       for (const value of ['true', 1, 'yes', {}]) await http().put(`/api/plans/${plan.id}/share`).set(auth).send({ showTranscriptChecks: value }).expect(400);
       // One bad choice refuses the whole request, the good one with it.
       await http().put(`/api/plans/${plan.id}/share`).set(auth).send({ showName: true, showTranscriptChecks: 'yes' }).expect(400);
+      // null is not "left out": a choice that is sent is a boolean.
+      for (const body of [{ showName: null }, { showTranscriptChecks: null }, { showName: true, showTranscriptChecks: null }]) await http().put(`/api/plans/${plan.id}/share`).set(auth).send(body).expect(400);
+      // The body is an object or nothing: an array is not read as "no choice".
+      for (const body of [[], [{ showName: true }], [true]]) await http().put(`/api/plans/${plan.id}/share`).set(auth).send(body).expect(400);
+      for (const raw of ['null', 'true', '"showName"', '{"showName":']) await http().put(`/api/plans/${plan.id}/share`).set(auth).set('Content-Type', 'application/json').send(raw).expect(400);
       expect((await http().get(`/api/plans/${plan.id}/share`).set(auth).expect(200)).body).toEqual({ share: null });
+    });
+
+    it('shares with no body at all and with an empty object, both with every choice off', async () => {
+      const { auth } = await student();
+      const noBody = await newPlan(auth);
+      const created = (await http().put(`/api/plans/${noBody.id}/share`).set(auth).expect(200)).body;
+      expect(created).toMatchObject({ token: expect.stringMatching(TOKEN), showName: false, showTranscriptChecks: false });
+      const empty = await newPlan(auth, { name: 'Second plan' });
+      expect((await http().put(`/api/plans/${empty.id}/share`).set(auth).send({}).expect(200)).body).toMatchObject({ token: expect.stringMatching(TOKEN), showName: false, showTranscriptChecks: false });
+      // On a live link both change nothing, whatever the link's choices are.
+      const chosen = (await http().put(`/api/plans/${noBody.id}/share`).set(auth).send({ showName: true, showTranscriptChecks: true }).expect(200)).body;
+      expect(chosen).toEqual({ ...created, showName: true, showTranscriptChecks: true });
+      expect((await http().put(`/api/plans/${noBody.id}/share`).set(auth).expect(200)).body).toEqual(chosen);
+      expect((await http().put(`/api/plans/${noBody.id}/share`).set(auth).send({}).expect(200)).body).toEqual(chosen);
     });
 
     it('gives two requests at once the same link', async () => {
@@ -434,6 +454,15 @@ describe('Plan sharing API (e2e)', () => {
       const off = (await read(token).expect(200)).body;
       expect(keys(off)).toEqual(KEYS.plan);
       expect(off.issueCodesNotShown).toHaveLength(4);
+      // With the choice off the engine is not given the transcript. What a reader gets is still what
+      // the owner's own report says, transcript and all, once the four transcript codes are taken out.
+      const ownReport = (await http().get(`/api/plans/${plan.id}/issues`).set(owner.auth).expect(200)).body;
+      const planOnly = ownReport.issues
+        .filter((i: { code: string }) => !off.issueCodesNotShown.includes(i.code))
+        .map(({ requirementGroupId: _g, combinedMinimumId: _m, missingCourseCodes: _c, ...rest }: Record<string, unknown>) => rest);
+      expect(planOnly.length).toBeGreaterThan(0);
+      expect(off.issues).toEqual(planOnly);
+      expect(off.terms.map(({ term, kind, credits, caps }: Record<string, unknown>) => ({ term, kind, credits, caps }))).toEqual(ownReport.terms);
 
       // Turned on, on the live link: the same token.
       expect((await putShare(owner.auth, plan.id, { showTranscriptChecks: true })).body).toMatchObject({ token, showName: false, showTranscriptChecks: true });
@@ -525,6 +554,79 @@ describe('Plan sharing API (e2e)', () => {
       expect((await read(token).expect(200)).body).toEqual(off);
     });
 
+    // The review of the pull request found this: a failed attempt shows too. Course 1 is on the board, and
+    // course 2 needs it. The transcript then holds course 1 failed in the very term the plan places it.
+    it('shows a reader, like the owner, that a placed course was failed, and only while the choice is on', async () => {
+      const owner = await student();
+      // 2030-1: 1 and 3. 2030-2: 2 (taught in term 2, needs 1) and 5.
+      const terms = [
+        { term: { year: 2030, number: 1 }, placements: [course(code(1)), course(code(3))] },
+        { term: { year: 2030, number: 2 }, placements: [course(code(2)), course(code(5))] },
+      ];
+      const plan = await newPlan(owner.auth, { terms });
+      const token = await share(owner.auth, plan.id);
+      const offBefore = (await read(token).expect(200)).body;
+      const issuesOf = async () => (await http().get(`/api/plans/${plan.id}/issues`).set(owner.auth).expect(200)).body;
+      // Before the transcript, nothing is wrong with course 1 or its place before course 2.
+      const codesOf = (r: { issues: { code: string }[] }) => r.issues.map((i) => i.code);
+      expect(codesOf(await issuesOf())).not.toContain('prerequisite_not_met');
+
+      // Course 1 failed with 2.6 in 2030 term 1, where the plan places it.
+      await http().put('/api/users/me/transcript').set(owner.auth).send({ rows: [row(1, 'graded', 2.6, 2030, 1)] }).expect(200);
+      const own = await issuesOf();
+
+      // Off: the answer is exactly what it was before the transcript.
+      expect((await read(token).expect(200)).body).toEqual(offBefore);
+
+      // On: the reader's issues are the owner's own. They say that course 2's prerequisite, course 1, is not
+      // met and that Core still needs course 1, although course 1 is on the board: so it was failed.
+      await putShare(owner.auth, plan.id, { showTranscriptChecks: true });
+      const on = (await read(token).expect(200)).body;
+      const groupNames = new Map<string, string>(own.coverage.groups.map((g: { id: string; name: string }) => [g.id, g.name]));
+      const asReader = ({ requirementGroupId, combinedMinimumId: _m, ...rest }: Record<string, unknown>) => ({
+        ...rest,
+        requirementGroupName: requirementGroupId === null ? null : groupNames.get(requirementGroupId as string),
+        combinedMinimumName: null,
+      });
+      expect(on.issues).toEqual(own.issues.map(asReader));
+      const brief = (i: Record<string, unknown>) => [i.code, i.courseCode, i.requirementGroupName, i.missingCourseCodes];
+      const shown = on.issues.filter((i: { code: string }) => offBefore.issueCodesNotShown.includes(i.code)).map(brief);
+      expect(shown).toContainEqual(['prerequisite_not_met', code(2), null, [code(1)]]);
+      expect(shown).toContainEqual(['requirement_not_covered', null, 'Core', [code(1)]]);
+      // The grade itself, the result and the transcript's wording are nowhere.
+      const text = JSON.stringify({ ...on, updatedAt: null });
+      for (const value of ['2.6', 'Transcript wording', '"grade"', '"result"', '"graded"', '"fail"', '"courseName"']) expect(text, value).not.toContain(value);
+
+      // Off again: unchanged, still.
+      await putShare(owner.auth, plan.id, { showTranscriptChecks: false });
+      expect((await read(token).expect(200)).body).toEqual(offBefore);
+    });
+
+    // With the choice off the transcript is not read at all, so the time an answer takes cannot depend on it either.
+    it('reads the transcript for a reader only while the choice is on', async () => {
+      const owner = await student();
+      await http().put('/api/users/me/transcript').set(owner.auth).send({ rows: transcript }).expect(200);
+      const plan = await newPlan(owner.auth, { terms: checksBoard() });
+      const token = await share(owner.auth, plan.id);
+      const rowsFor = vi.spyOn(app.get(TranscriptService, { strict: false }), 'rowsFor');
+      try {
+        await read(token).expect(200);
+        await read(token).expect(200);
+        expect(rowsFor).not.toHaveBeenCalled();
+
+        await putShare(owner.auth, plan.id, { showTranscriptChecks: true });
+        await read(token).expect(200);
+        expect(rowsFor.mock.calls).toEqual([[owner.userId]]);
+
+        rowsFor.mockClear();
+        await putShare(owner.auth, plan.id, { showTranscriptChecks: false });
+        await read(token).expect(200);
+        expect(rowsFor).not.toHaveBeenCalled();
+      } finally {
+        rowsFor.mockRestore();
+      }
+    });
+
     it('starts a new link with the choice off, also after a link with the choice on was stopped', async () => {
       const { auth } = await student();
       const plan = await newPlan(auth);
@@ -557,10 +659,38 @@ describe('Plan sharing API (e2e)', () => {
       const intruder = await student();
       await http().put(`/api/plans/${plan.id}/share`).set(intruder.auth).send({ showTranscriptChecks: true }).expect(404);
       await http().put(`/api/plans/${plan.id}/share`).send({ showTranscriptChecks: true }).expect(401);
-      await http().put(`/api/shared-plans/${token}`).send({ showTranscriptChecks: true });
+      // The public path has no write: the framework answers that there is no such route.
+      const write = await http().put(`/api/shared-plans/${token}`).send({ showTranscriptChecks: true }).expect(404);
+      expect(write.body.message).toBe(`Cannot PUT /api/shared-plans/${token}`);
       const body = (await read(`${token}?showTranscriptChecks=true`).expect(200)).body;
       expect(keys(body)).toEqual(KEYS.plan);
       expect(await db.query('SELECT show_transcript_checks FROM plan_shares WHERE plan_id = $1', [plan.id])).toEqual([{ show_transcript_checks: false }]);
+    });
+  });
+
+  // ADR 0010: every answer under the public route's path carries the two headers, also the answers
+  // that the route's own code never makes.
+  describe('answers under /api/shared-plans that are not a plan', () => {
+    const expectHeaders = (res: request.Response, why: string) => {
+      expect(res.headers['x-robots-tag'], why).toBe('noindex, nofollow');
+      expect(res.headers['cache-control'], why).toBe('no-store');
+    };
+
+    it('carry noindex and no-store: a longer path, the bare path, a path that cannot be decoded, another method', async () => {
+      const { auth } = await student();
+      const token = await share(auth, (await newPlan(auth)).id);
+      const longer = await http().get(`/api/shared-plans/${token}/more`).expect(404);
+      expect(longer.body.message).toBe(`Cannot GET /api/shared-plans/${token}/more`);
+      expectHeaders(longer, 'a longer path');
+      expectHeaders(await http().get('/api/shared-plans').expect(404), 'the bare path');
+      expectHeaders(await http().get('/api/shared-plans/').expect(404), 'the bare path with a slash');
+      const undecodable = await http().get('/api/shared-plans/%E0%A4%A');
+      expect(undecodable.status).toBe(400);
+      expectHeaders(undecodable, 'a path that cannot be decoded');
+      expectHeaders(await http().post(`/api/shared-plans/${token}`).send({}).expect(404), 'another method');
+      // A path that only starts with the same letters is another route, and none of this module's.
+      const other = await http().get('/api/shared-plansx');
+      expect(other.headers['x-robots-tag']).toBeUndefined();
     });
   });
 

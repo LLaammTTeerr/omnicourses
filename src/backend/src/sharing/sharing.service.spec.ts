@@ -39,7 +39,7 @@ function service(found: { share?: Record<string, unknown> | null; plan?: PlanDto
     courseSummaries: vi.fn().mockResolvedValue(new Map([['ZZ001', { nameVi: 'Học phần thử', nameEn: null, credits: 4 }]])),
     curriculumLabels: vi.fn().mockResolvedValue(found.labels === undefined ? labels : found.labels),
   };
-  const issues = { issuesFor: vi.fn().mockResolvedValue(report), issuesForBoards: vi.fn() };
+  const issues = { issuesFor: vi.fn().mockResolvedValue(report), issuesWithoutTranscript: vi.fn().mockResolvedValue(report), issuesForBoards: vi.fn() };
   const svc = new SharingService(db as unknown as DataSource, plans as unknown as PlansService, catalog as unknown as CurriculumService, issues as unknown as PlanIssuesProvider);
   return { svc, db, tx, plans, catalog, issues };
 }
@@ -60,6 +60,7 @@ describe('SharingService.read', () => {
     expect(db.query).toHaveBeenCalledExactlyOnceWith(expect.any(String), [token]);
     expect(plans.find).not.toHaveBeenCalled();
     expect(issues.issuesFor).not.toHaveBeenCalled();
+    expect(issues.issuesWithoutTranscript).not.toHaveBeenCalled();
   });
 
   // The plan was deleted after its link was found: the same answer, not the plans module's 404.
@@ -67,6 +68,7 @@ describe('SharingService.read', () => {
     const { svc, issues } = service({ plan: null });
     await expect(svc.read(newShareToken())).rejects.toEqual(NOT_SHARED);
     expect(issues.issuesFor).not.toHaveBeenCalled();
+    expect(issues.issuesWithoutTranscript).not.toHaveBeenCalled();
   });
 
   // The read uses no column of users but display_name, and that one only when the owner chose it (AGENTS.md: never read password_hash).
@@ -79,13 +81,17 @@ describe('SharingService.read', () => {
     expect(sql).not.toMatch(/\*|password_hash|email|google_sub/);
   });
 
-  // The issues are the rule engine's, asked for the very plan that is shown and for its owner: the board and its issues cannot disagree.
-  it('asks the rule engine about the plan it shows, read through the owner the link names', async () => {
+  // The issues are the rule engine's, asked for the very plan that is shown: the board and its issues cannot disagree.
+  // Without the owner's choice the engine is asked without the transcript and is not even told whose plan it is,
+  // so neither the answer nor the time it takes can depend on the transcript.
+  it('asks the rule engine about the plan it shows, read through the owner the link names, and without the transcript', async () => {
     const { svc, plans, issues, catalog } = service({ share: { planId: 'p1', userId: 'u1', ownerName: 'Test Student' } });
     const body = await svc.read(newShareToken());
     expect(plans.find).toHaveBeenCalledExactlyOnceWith('u1', 'p1');
-    expect(issues.issuesFor).toHaveBeenCalledExactlyOnceWith('u1', plan);
-    expect(issues.issuesFor.mock.calls[0]![1]).toBe(plan);
+    expect(issues.issuesWithoutTranscript).toHaveBeenCalledExactlyOnceWith(plan);
+    expect(issues.issuesWithoutTranscript.mock.calls[0]![0]).toBe(plan);
+    expect(issues.issuesFor).not.toHaveBeenCalled();
+    expect(issues.issuesForBoards).not.toHaveBeenCalled();
     expect(catalog.courseSummaries).toHaveBeenCalledWith(['ZZ001']);
     expect(catalog.curriculumLabels).toHaveBeenCalledWith('c1');
     expect(body).toMatchObject({ name: 'Main plan', ownerName: 'Test Student', terms: [{ credits: 4, placements: [{ courseCode: 'ZZ001', nameVi: 'Học phần thử', credits: 4 }] }] });
@@ -93,14 +99,22 @@ describe('SharingService.read', () => {
 
   // The owner's choice (ADR 0010): the checks that come from the transcript reach a reader only when the link's row says so.
   it('adds the transcript’s checks and the coverage only when the link says the owner chose them', async () => {
-    const on = await service({ share: { planId: 'p1', userId: 'u1', ownerName: null, showTranscriptChecks: true } }).svc.read(newShareToken());
+    const chosen = service({ share: { planId: 'p1', userId: 'u1', ownerName: null, showTranscriptChecks: true } });
+    const on = await chosen.svc.read(newShareToken());
     expect(on.coverage).toEqual({ groups: [], combinedMinimums: [], totalRequired: null, totalCredits: 0, totalRemaining: null, graduation: 'not_yet' });
     expect(on.issueCodesNotShown).toEqual([]);
+    // Only then is the engine asked with the owner's transcript, for the very plan that is shown.
+    expect(chosen.issues.issuesFor).toHaveBeenCalledExactlyOnceWith('u1', plan);
+    expect(chosen.issues.issuesFor.mock.calls[0]![1]).toBe(plan);
+    expect(chosen.issues.issuesWithoutTranscript).not.toHaveBeenCalled();
 
     for (const value of [false, undefined, null, 'true', 1]) {
-      const off = await service({ share: { planId: 'p1', userId: 'u1', ownerName: null, showTranscriptChecks: value } }).svc.read(newShareToken());
+      const notChosen = service({ share: { planId: 'p1', userId: 'u1', ownerName: null, showTranscriptChecks: value } });
+      const off = await notChosen.svc.read(newShareToken());
       expect(Object.keys(off), String(value)).not.toContain('coverage');
       expect(off.issueCodesNotShown, String(value)).toEqual(['prerequisite_not_met', 'already_passed', 'already_in_progress', 'requirement_not_covered']);
+      expect(notChosen.issues.issuesFor, String(value)).not.toHaveBeenCalled();
+      expect(notChosen.issues.issuesWithoutTranscript, String(value)).toHaveBeenCalledExactlyOnceWith(plan);
     }
     const { svc, db } = service();
     await svc.read(newShareToken());

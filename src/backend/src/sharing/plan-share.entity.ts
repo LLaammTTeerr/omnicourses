@@ -42,7 +42,7 @@ export class PlanShare {
   /**
    * Whether a reader sees the checks the rule engine decides from the owner's transcript, with the
    * coverage they add up to. Off unless the owner chooses: with it on, a reader can tell which
-   * courses the owner has passed or is taking (ADR 0010).
+   * courses the owner has passed, failed or is taking (ADR 0010).
    */
   @Column({ name: 'show_transcript_checks', type: 'boolean', default: false })
   showTranscriptChecks!: boolean;

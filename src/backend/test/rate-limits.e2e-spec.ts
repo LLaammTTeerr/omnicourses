@@ -34,7 +34,10 @@ describe('Rate limits (e2e)', () => {
   it('refuses the 121st guess of a shared-plan link within a minute', async () => {
     const guess = () => http().get(`/api/shared-plans/${randomBytes(32).toString('base64url')}`);
     for (let i = 0; i < 120; i++) await guess().expect(404);
-    await guess().expect(429);
+    const refused = await guess().expect(429);
+    // The refusal is an answer under the public path too: not indexed, not cached (ADR 0010).
+    expect(refused.headers['x-robots-tag']).toBe('noindex, nofollow');
+    expect(refused.headers['cache-control']).toBe('no-store');
   });
 });
 

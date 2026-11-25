@@ -30,7 +30,7 @@ export type SharedIssueCode = (typeof SHARED_ISSUE_CODES)[number];
 
 /**
  * The codes the engine decides from the owner's transcript: each one, by being there or by being
- * absent, says which courses the owner has passed or is taking. A reader sees them, and the
+ * absent, says which courses the owner has passed, failed or is taking. A reader sees them, and the
  * coverage they add up to, only when the owner chose it for the link (ADR 0010). They carry no
  * grade and no term of a transcript row: their terms are the plan's.
  */

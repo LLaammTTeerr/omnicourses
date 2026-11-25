@@ -13,7 +13,7 @@ export class CreatePlanShares1795564800000 implements MigrationInterface {
     // shown the live link again (A4); its name ends in _token, so the account export never selects it.
     // show_name and show_transcript_checks are the owner's two choices for the link, both off unless
     // the owner turns them on: the display name, and the checks the rule engine decides from the
-    // owner's transcript (which tell a reader what the owner passed or is taking).
+    // owner's transcript (which tell a reader what the owner passed, failed or is taking).
     await q.query(`
       CREATE TABLE "plan_shares" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -118,14 +118,16 @@ export class SharingService {
     const plan = await this.plans.find(share.userId, share.planId);
     // Deleted since the row was read.
     if (!plan) throw notShared();
+    // Only an explicit true from the row shows the transcript's checks. Without it the transcript is
+    // not read at all, so neither the answer nor the time it takes depends on what the transcript holds.
+    const showTranscriptChecks = share.showTranscriptChecks === true;
     const [report, courses, curriculum] = await Promise.all([
-      this.issues.issuesFor(share.userId, plan),
+      showTranscriptChecks ? this.issues.issuesFor(share.userId, plan) : this.issues.issuesWithoutTranscript(plan),
       this.catalog.courseSummaries(courseCodesOf(plan.terms)),
       this.catalog.curriculumLabels(plan.curriculum.id),
     ]);
     // ON DELETE RESTRICT keeps a plan's curriculum (ADR 0014), so this is a broken invariant.
     if (!curriculum) throw new Error('The curriculum of a shared plan is missing');
-    // Only an explicit true from the row shows the transcript's checks.
-    return sharedPlan({ plan, report, courses, curriculum, ownerName: share.ownerName, showTranscriptChecks: share.showTranscriptChecks === true });
+    return sharedPlan({ plan, report, courses, curriculum, ownerName: share.ownerName, showTranscriptChecks });
   }
 }

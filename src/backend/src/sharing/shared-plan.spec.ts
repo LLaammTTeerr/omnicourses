@@ -272,7 +272,7 @@ describe('sharedPlan when the owner shows the checks that come from their transc
     for (const key of ['id', 'planId', 'requirementGroupId', 'combinedMinimumId', 'grade', 'result', 'courseName', 'userId', 'email']) expect(everyKey, key).not.toContain(key);
   });
 
-  // Dũng's condition for the choice: a reader can tell what was passed or is in progress, and nothing more of the transcript.
+  // The limit of the choice: a reader can tell which courses were passed, failed or are in progress, and nothing more of the transcript.
   it('holds no grade, no transcript row and no id, whatever the transcript holds', () => {
     const text = JSON.stringify(sharedWith(RICH_TRANSCRIPT, 'Test Student'));
     // The distinctive grades of RICH_TRANSCRIPT, the transcript's own course names, and the ids of the plan and its curriculum.

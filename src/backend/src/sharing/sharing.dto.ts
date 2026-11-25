@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, ValidateIf } from 'class-validator';
 import { CreditCapsDto } from '../audit/audit.dto.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { PLACEMENT_KINDS, type PlacementKind } from '../plans/plan-board.js';
@@ -11,21 +11,24 @@ import { TermDto } from '../terms/term.dto.js';
 // reader of the link sees of the plan. The second lists every field on purpose: a reader gets
 // these and nothing else (UC-09 step 2).
 
+/** A choice that is sent must be a boolean: null is refused, not read as "left out". */
+const ifSent = ValidateIf((_: object, value: unknown) => value !== undefined);
+
 // Both choices follow one rule: only an explicit true turns a choice on, an explicit false turns it
 // off, and a field left out keeps what the link has (off on a new link). So a page that sends one
 // choice never changes the other.
 export class SharePlanDto {
   @ApiProperty({ required: false, description: "Whether a reader sees the owner's display name. Left out: unchanged on a live link, hidden on a new one." })
-  @IsOptional()
+  @ifSent
   @IsBoolean()
   showName?: boolean;
 
   @ApiProperty({
     required: false,
     description:
-      "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one.",
+      "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed, failed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one.",
   })
-  @IsOptional()
+  @ifSent
   @IsBoolean()
   showTranscriptChecks?: boolean;
 }
@@ -40,7 +43,7 @@ export class PlanShareDto {
   @ApiProperty({ description: "Whether a reader sees the owner's display name." })
   showName!: boolean;
 
-  @ApiProperty({ description: "Whether a reader sees the checks that come from the owner's transcript, and the coverage. When true, the page must tell the owner that a reader can tell which courses they passed or are taking." })
+  @ApiProperty({ description: "Whether a reader sees the checks that come from the owner's transcript, and the coverage. When true, the page must tell the owner that a reader can tell which courses they passed, failed or are taking." })
   showTranscriptChecks!: boolean;
 
   @ApiProperty({ type: String, format: 'date-time', description: 'When this link was created.' })

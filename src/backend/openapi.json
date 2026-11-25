@@ -3054,7 +3054,8 @@
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
+          "description": "The choices to set. A request with no body, or with `{}`, sets none.",
           "content": {
             "application/json": {
               "schema": {
@@ -3075,7 +3076,7 @@
             }
           },
           "400": {
-            "description": "`showName` or `showTranscriptChecks` is not a boolean."
+            "description": "The body is not an object, or `showName` or `showTranscriptChecks` is sent and is not a boolean (`null` included)."
           },
           "401": {
             "description": "Missing, expired or revoked token"
@@ -3143,7 +3144,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The plan as it is now, read-only: its name, curriculum, terms and the rule engine's issues that follow from the plan alone. When the owner chose it for this link, also the issues the engine decides from the owner's transcript and the coverage. Never grades, email, transcript rows, other plans or an id. No sign-in needed. Sent with `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`.",
+            "description": "The plan as it is now, read-only: its name, curriculum, terms and the rule engine's issues that follow from the plan alone. When the owner chose it for this link, also the issues the engine decides from the owner's transcript and the coverage. Never grades, email, transcript rows, other plans or an id. No sign-in needed. Every answer under this path, this one, the 404 and the 429 included, is sent with `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6926,7 +6927,7 @@
           },
           "showTranscriptChecks": {
             "type": "boolean",
-            "description": "Whether a reader sees the checks that come from the owner's transcript, and the coverage. When true, the page must tell the owner that a reader can tell which courses they passed or are taking."
+            "description": "Whether a reader sees the checks that come from the owner's transcript, and the coverage. When true, the page must tell the owner that a reader can tell which courses they passed, failed or are taking."
           },
           "createdAt": {
             "type": "string",
@@ -6969,7 +6970,7 @@
           },
           "showTranscriptChecks": {
             "type": "boolean",
-            "description": "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one."
+            "description": "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed, failed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one."
           }
         }
       },
