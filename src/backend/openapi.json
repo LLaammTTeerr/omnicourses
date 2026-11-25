@@ -1215,16 +1215,6 @@
               }
             }
           },
-          "404": {
-            "description": "`not_found`: nothing with this ID or code within the authorised scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminErrorDto"
-                }
-              }
-            }
-          },
           "409": {
             "description": "`duplicate_code`: a program has this code already; nothing is saved",
             "content": {
@@ -2129,6 +2119,7 @@
             "required": true,
             "in": "path",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -2207,6 +2198,7 @@
             "required": true,
             "in": "path",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -2273,6 +2265,7 @@
             "required": true,
             "in": "path",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -2361,6 +2354,7 @@
             "required": true,
             "in": "path",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2369,6 +2363,7 @@
             "required": true,
             "in": "path",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -2435,6 +2430,7 @@
             "required": true,
             "in": "path",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           },
@@ -2443,6 +2439,7 @@
             "required": true,
             "in": "path",
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -7408,7 +7405,7 @@
             "format": "uuid"
           },
           "cohortYear": {
-            "type": "number",
+            "type": "integer",
             "example": 2024
           },
           "code": {
@@ -7473,7 +7470,7 @@
         "type": "object",
         "properties": {
           "cohortYear": {
-            "type": "number",
+            "type": "integer",
             "example": 2026,
             "minimum": 2000,
             "maximum": 2100,
