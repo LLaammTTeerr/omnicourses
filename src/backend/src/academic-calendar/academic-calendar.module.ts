@@ -11,5 +11,7 @@ import { AcademicCalendarService } from './academic-calendar.service.js';
   imports: [CurriculumAdminModule, TypeOrmModule.forFeature([AcademicCalendarEvent])],
   controllers: [AcademicCalendarController],
   providers: [AcademicCalendarService],
+  // The notification inbox reads which dates start on a day through startingOn() (ADR 0018).
+  exports: [AcademicCalendarService],
 })
 export class AcademicCalendarModule {}
