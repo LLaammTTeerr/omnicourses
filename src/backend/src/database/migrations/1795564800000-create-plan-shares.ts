@@ -11,6 +11,9 @@ export class CreatePlanShares1795564800000 implements MigrationInterface {
     // is always its plan owner's; its own user_id makes export and purge cover it (ADR 0004).
     // share_token is 32 random bytes in base64url. It is kept readable because the owner must be
     // shown the live link again (A4); its name ends in _token, so the account export never selects it.
+    // show_name and show_transcript_checks are the owner's two choices for the link, both off unless
+    // the owner turns them on: the display name, and the checks the rule engine decides from the
+    // owner's transcript (which tell a reader what the owner passed or is taking).
     await q.query(`
       CREATE TABLE "plan_shares" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -18,6 +21,7 @@ export class CreatePlanShares1795564800000 implements MigrationInterface {
         "user_id" uuid NOT NULL,
         "share_token" varchar(43) NOT NULL,
         "show_name" boolean NOT NULL DEFAULT false,
+        "show_transcript_checks" boolean NOT NULL DEFAULT false,
         "created_at" timestamptz NOT NULL DEFAULT now(),
         CONSTRAINT "plan_shares_pkey" PRIMARY KEY ("id"),
         CONSTRAINT "uq_plan_shares_plan_id" UNIQUE ("plan_id"),
