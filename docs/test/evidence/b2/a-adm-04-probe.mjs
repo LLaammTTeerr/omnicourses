@@ -17,7 +17,7 @@ const signIn = async (email) => {
   if (r.status !== 200) process.exit(2);
   return r.body.token;
 };
-// The sign-in answer holds the token; print only the status line above, never the body.
+// Every answer is printed (its first 400 characters), the sign-in answer too; the token in it is replaced by "…" below.
 console.log(`ADM-04 probe at ${new Date().toISOString()}`);
 const quiet = console.log;
 console.log = (line) => quiet(String(line).replace(/"token":"[^"]+"/g, '"token":"…"'));
