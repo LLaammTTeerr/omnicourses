@@ -510,7 +510,7 @@ function pickCohort(curriculumId: string): void {
 .import-changes { margin: 0; padding-left: 16px; font-size: 13px; }
 .import-affected > div { display: grid; gap: 4px; min-width: 0; }
 .import-affected ul { margin: 0; padding-left: 18px; font-size: 14px; }
-.import-acts { justify-content: flex-end; }
+.import-acts { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 620px) {
   .import-preview { padding: 16px; }
 }

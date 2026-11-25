@@ -342,6 +342,9 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
       for (const test of ['import-errors', 'import-result', 'import-affected']) inside(test, q(test)!);
       // A wide table scrolls inside its own box, never the page.
       for (const wrap of document.querySelectorAll<HTMLElement>('.table-wrap')) inside('a table box', wrap);
+      // Cancel and Confirm stand apart, so neither is pressed for the other.
+      const [cancelBox, confirmBox] = [q('import-cancel')!.getBoundingClientRect(), q('import-confirm')!.getBoundingClientRect()];
+      expect(cancelBox.right < confirmBox.left || cancelBox.bottom < confirmBox.top, 'a gap between Cancel and Confirm').toBe(true);
       close();
 
       await open('/admin/curriculum', routes);
