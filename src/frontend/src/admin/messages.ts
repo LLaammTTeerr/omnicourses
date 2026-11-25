@@ -222,7 +222,6 @@ interface ImportMessages {
   cancelled: string;
   saved: (inserts: number, updates: number) => string;
   reviewChanged: string;
-  openImport: string;
 }
 
 /** Grants and revocations by user ID (access manager). */
@@ -661,7 +660,6 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       cancelled: 'Đã bỏ tệp. Chưa lưu gì.',
       saved: (inserts, updates) => `Đã lưu tệp: ${inserts} thêm mới, ${updates} cập nhật.`,
       reviewChanged: 'Từ lúc xem trước, tệp hoặc dữ liệu đã lưu đã đổi. Chưa lưu gì. Kết quả dưới đây là bản xem trước mới: xem lại rồi xác nhận lần nữa.',
-      openImport: 'Nhập CSV',
     },
   },
   en: {
@@ -1004,7 +1002,6 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       cancelled: 'Dropped the file. Nothing was saved.',
       saved: (inserts, updates) => `Saved the file: ${inserts} new, ${updates} changed.`,
       reviewChanged: 'The file or the saved data changed since the preview. Nothing was saved. Below is a new preview: review it, then confirm again.',
-      openImport: 'CSV import',
     },
   },
 };
