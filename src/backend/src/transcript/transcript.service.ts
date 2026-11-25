@@ -42,11 +42,16 @@ export class TranscriptService {
       // NO KEY UPDATE conflicts with itself but not with the KEY SHARE lock of a foreign-key
       // check, so inserts that reference the user (a sign-in's session) don't wait.
       await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
+      // With no listener nothing compares the rows, so neither read runs.
+      if (!this.saveListeners.size) {
+        await tx.delete(TranscriptRow, { userId });
+        await tx.insert(TranscriptRow, rows.map((r) => toEntity(userId, r)));
+        return;
+      }
       // Read under the lock: what this save replaces is what the previous save committed.
       const before = (await tx.findBy(TranscriptRow, { userId })).map(toEntry);
       await tx.delete(TranscriptRow, { userId });
       await tx.insert(TranscriptRow, rows.map((r) => toEntity(userId, r)));
-      if (!this.saveListeners.size) return;
       // Compared as stored (a grade is numeric(3,1)), not as sent.
       const after = (await tx.findBy(TranscriptRow, { userId })).map(toEntry);
       const save = { userId, wasEmpty: before.length === 0, changed: !sameEntries(before, after) };

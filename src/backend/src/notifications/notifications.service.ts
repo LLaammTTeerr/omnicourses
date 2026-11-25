@@ -12,10 +12,10 @@ import { type CalendarNotificationKind, LINKS_OF, notificationsDue, NOTIFYING_EV
 import { Notification } from './notification.entity.js';
 import { DEFAULT_PAGE_SIZE, NotificationDto, NotificationListDto, NotificationsQueryDto, UnreadCountDto } from './notifications.dto.js';
 
-/** Unknown, malformed and another student's ID answer the same 404: the answer never tells them apart. */
 /** At most one line a minute about the failures of reads (ADR 0018, decision 15). */
 export const READ_FAILURE_LOG_INTERVAL_MS = 60_000;
 
+/** Unknown, malformed and another student's ID answer the same 404: the answer never tells them apart. */
 export const notificationNotFound = () => new NotFoundException({ statusCode: 404, code: 'not_found', message: 'No notification with this ID' });
 
 // One statement per school date and kind, for every recipient at once. The recipients are the
