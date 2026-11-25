@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
+import { OnboardingService } from '../onboarding/onboarding.service.js';
 import { TermDto } from '../terms/term.dto.js';
 import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, Placement, toBoard, toRows, withPlacement } from './plan-board.js';
 import { PlanPlacement } from './plan-placement.entity.js';
@@ -10,6 +11,13 @@ import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plan
 
 /** The answer for a plan that is missing or someone else's: the same, so it reveals nothing. */
 const notFound = () => new NotFoundException('No plan with this id');
+
+/**
+ * The answer for a new plan on a cohort onboarding does not offer (Project Lead, 25 November 2026,
+ * option A). A cohort entered through F12 has a curriculum before it has its requirements, and a
+ * plan on it would be checked against an empty curriculum (ADR 0011, "Visibility to students").
+ */
+const notOffered = (programCode: string, cohortYear: number) => new BadRequestException(`Onboarding does not offer ${programCode} ${cohortYear} to students`);
 
 // A student's plans (F5, ADR 0014): the placements they saved, nothing more. It decides no
 // academic rule (AGENTS.md hard rule 1): a plan that breaks one is saved as it is, and the rule
@@ -22,6 +30,7 @@ export class PlansService {
     @InjectRepository(Plan) private readonly plans: Repository<Plan>,
     @InjectRepository(PlanPlacement) private readonly placements: Repository<PlanPlacement>,
     private readonly curriculum: CurriculumService,
+    private readonly onboarding: OnboardingService,
   ) {}
 
   /** The student's plans, oldest first, each with a preview of its placements. */
@@ -51,8 +60,12 @@ export class PlansService {
     return plan;
   }
 
-  /** A new plan against the curriculum of one cohort, empty or with a whole board (UC-07 step 10). */
+  /**
+   * A new plan against the curriculum of one cohort, empty or with a whole board (UC-07 step 10).
+   * Only for a cohort onboarding offers; a plan saved earlier on another cohort stays readable.
+   */
   async create(userId: string, input: { name: string; programCode: string; cohortYear: number; terms?: BoardTerm[] }): Promise<PlanDto> {
+    if (!this.onboarding.offers(input.programCode, input.cohortYear)) throw notOffered(input.programCode, input.cohortYear);
     const curriculumId = await this.curriculum.findCurriculumId(input.programCode, input.cohortYear);
     if (!curriculumId) throw new BadRequestException('No curriculum for this program and cohort');
     const terms = input.terms ?? [];
@@ -72,12 +85,21 @@ export class PlansService {
     return this.get(userId, planId);
   }
 
-  /** A copy with the same curriculum and placements, for trying a change (UC-05 A6, a what-if copy for UC-06). */
+  /**
+   * A copy with the same curriculum and placements, for trying a change (UC-05 A6, a what-if copy
+   * for UC-06). The copy is a new plan, so it too needs a cohort onboarding offers.
+   */
   async duplicate(userId: string, planId: string, name?: string): Promise<PlanDto> {
     const id = await this.db.transaction(async (tx) => {
       // FOR SHARE: a save of the original in progress finishes first, so the copy is never half of it.
-      const [source] = await tx.query('SELECT "curriculum_id", "name" FROM "plans" WHERE "id" = $1 AND "user_id" = $2 FOR SHARE', [planId, userId]);
+      const [source] = await tx.query(
+        `SELECT p."curriculum_id", p."name", pr."code" AS "program_code", c."cohort_year"
+         FROM "plans" p JOIN "curriculums" c ON c."id" = p."curriculum_id" JOIN "programs" pr ON pr."id" = c."program_id"
+         WHERE p."id" = $1 AND p."user_id" = $2 FOR SHARE OF p`,
+        [planId, userId],
+      );
       if (!source) throw notFound();
+      if (!this.onboarding.offers(source.program_code, source.cohort_year)) throw notOffered(source.program_code, source.cohort_year);
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId: source.curriculum_id, name: name ?? source.name });
       const copyId = identifiers[0].id as string;
       await tx.query(

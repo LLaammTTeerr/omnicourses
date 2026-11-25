@@ -38,7 +38,10 @@ export class PlansController {
 
   @Post()
   @ApiCreatedResponse({ type: PlanDto })
-  @ApiBadRequestResponse({ description: 'No curriculum for this program and cohort, or a placement is invalid; nothing is saved.' })
+  @ApiBadRequestResponse({
+    description:
+      'Onboarding does not offer this program and cohort to students (message "Onboarding does not offer {program} {cohort} to students"), no curriculum for this program and cohort, or a placement is invalid; nothing is saved.',
+  })
   create(@CurrentUser() user: User, @Body() dto: CreatePlanDto): Promise<PlanDto> {
     return this.plans.create(user.id, dto);
   }
@@ -107,6 +110,10 @@ export class PlansController {
   @Post(':id/duplicate')
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiCreatedResponse({ type: PlanDto, description: 'The new copy; the original is unchanged.' })
+  @ApiBadRequestResponse({
+    description:
+      "Onboarding does not offer the plan's program and cohort to students: the copy would be a new plan on it. The original stays readable and editable; nothing is saved.",
+  })
   @ApiNotFoundResponse({ description: NOT_FOUND })
   duplicate(@CurrentUser() user: User, @PlanId() id: string, @Body() dto: DuplicatePlanDto): Promise<PlanDto> {
     return this.plans.duplicate(user.id, id, dto.name);

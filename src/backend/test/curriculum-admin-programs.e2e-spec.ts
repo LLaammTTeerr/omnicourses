@@ -4,6 +4,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bootApp } from './support/app.js';
+import { offerAlso } from './support/offer.js';
 import { signedInUser } from './support/users.js';
 
 // TC-B2-ADM-02 and TC-B2-ADM-03 (ADR 0011, "Verification required with implementation"; UC-11
@@ -80,6 +81,7 @@ describe('Program and cohort administration API (e2e)', () => {
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
+    offerAlso(app, codeB, [2024]);
     [manager, adminA, adminB, maintainer, stranger] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, adminA, adminB, maintainer, stranger);
     // The fixture's access manager and catalog maintainer; the bootstrap command has its own tests.
@@ -389,19 +391,26 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
     await app?.close();
   });
 
-  // Not a decision: this pins what the code does today, so that a change to it is seen. ADR 0011
-  // leaves open both what the rule engine should answer for a cohort with no requirement group
-  // ("Cohort credit total") and whether a plan may be saved against a cohort still being entered
-  // ("Visibility to students"). When a human decides either, change this test with the decision.
-  it('pins an undecided answer (ADR 0011 open questions 2 and 4): a direct plan for an empty cohort is saved, and its check reads graduation done', async () => {
-    await as(adminA).post(cohortsPath(programA), { cohortYear: 2026, code: `${codeA}-2026`, nameVi: 'Khóa thử trống' }).expect(201);
+  // ADR 0011 open question 4 ("Visibility to students") is decided: the Project Lead chose on 25
+  // November 2026 (option A) that the plans API refuses a cohort onboarding does not offer, so a
+  // direct request can no longer pin a plan to a cohort still being entered. This file runs with
+  // onboarding's real offer. Open question 2 ("Cohort credit total") is still open: a plan saved
+  // on such a cohort before the decision reads graduation done, and this test still pins that
+  // answer so that a change to it is seen. When a human decides it, change the test with it.
+  it('refuses a direct plan for an empty cohort onboarding does not offer (Project Lead, 25 November 2026), and an older plan there still reads graduation done (ADR 0011 open question 2)', async () => {
+    const { id: curriculumId } = (await as(adminA).post(cohortsPath(programA), { cohortYear: 2026, code: `${codeA}-2026`, nameVi: 'Khóa thử trống' }).expect(201)).body;
     // A student who never chose the program: no onboarding answer, only a direct request.
     const student = await signedInUser(app);
     users.push(student);
-    const plan = await as(student).post('/api/plans', { name: 'zz-e2e empty cohort', programCode: codeA, cohortYear: 2026 }).expect(201);
-    expect(plan.body.curriculum).toMatchObject({ code: `${codeA}-2026`, programCode: codeA, cohortYear: 2026 });
+    const refused = await as(student).post('/api/plans', { name: 'zz-e2e empty cohort', programCode: codeA, cohortYear: 2026 }).expect(400);
+    expect(refused.body.message).toBe(`Onboarding does not offer ${codeA} 2026 to students`);
+    expect(await db.query('SELECT id FROM plans WHERE user_id = $1', [student.userId])).toEqual([]);
 
-    const { body: issues } = await as(student).get(`/api/plans/${plan.body.id}/issues`).expect(200);
+    // A plan saved before the decision is not changed or removed, and it still reads.
+    const [{ id }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'zz-e2e empty cohort') RETURNING id`, [student.userId, curriculumId]);
+    const plan = await as(student).get(`/api/plans/${id}`).expect(200);
+    expect(plan.body.curriculum).toMatchObject({ code: `${codeA}-2026`, programCode: codeA, cohortYear: 2026 });
+    const { body: issues } = await as(student).get(`/api/plans/${id}/issues`).expect(200);
     expect(issues.coverage).toMatchObject({ groups: [], combinedMinimums: [], totalRequired: null, graduation: 'done' });
   });
 
@@ -524,6 +533,7 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
+    offerAlso(app, P, [2024]);
     [manager, admin, maintainer, student] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, admin, maintainer, student);
     await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($2, 'catalog_maintainer')`, [manager.userId, maintainer.userId]);
