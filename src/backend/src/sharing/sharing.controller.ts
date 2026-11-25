@@ -76,7 +76,7 @@ export class SharedPlansController {
   @ApiOkResponse({
     type: SharedPlanDto,
     description:
-      "The plan as it is now, read-only: its name, curriculum, terms and the rule engine's issues that follow from the plan alone. When the owner chose it for this link, also the issues the engine decides from the owner's transcript and the coverage. Never grades, email, transcript rows, other plans or an id. No sign-in needed. Every answer under this path, this one, the 404 and the 429 included, is sent with `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`.",
+      "The plan as it is now, read-only: its name, curriculum, terms and the rule engine's issues that follow from the plan alone. When the owner chose it for this link, also the issues the engine decides from the owner's transcript and the coverage. Never grades, email, transcript rows, other plans or an id. No sign-in needed. This answer, the 404 and the 429 of this path are sent with `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`.",
   })
   @ApiNotFoundResponse({
     type: NotSharedDto,
