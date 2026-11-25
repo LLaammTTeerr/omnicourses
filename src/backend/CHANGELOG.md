@@ -1,5 +1,27 @@
 # @omnicourse/backend
 
+## 0.5.0
+
+### Minor Changes
+
+- [#147](https://github.com/LLaammTTeerr/omnicourses/pull/147) [`2363714`](https://github.com/LLaammTTeerr/omnicourses/commit/2363714172efd087340bdd76b2d885a4972c163f) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Catalog maintainers and program administrators can now enter many courses, or many course-to-group links, from one CSV file: the API previews what each row would add or change, lists every bad row by its number, and saves the whole file only after confirmation, or nothing.
+
+- [#161](https://github.com/LLaammTTeerr/omnicourses/pull/161) [`bd1d46e`](https://github.com/LLaammTTeerr/omnicourses/commit/bd1d46e6267a3294d6874a4207063fb3e6195908) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Access managers can now create a program, and program administrators can edit their program's names and faculty and add or edit its cohorts, through the administration API. A new cohort starts empty and changes nothing in the other cohorts.
+
+- [#148](https://github.com/LLaammTTeerr/omnicourses/pull/148) [`684f148`](https://github.com/LLaammTTeerr/omnicourses/commit/684f1486a93b0840c40332922ce51bd9959bc7d5) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Add the administration screens: a program administrator edits a cohort's requirement groups, courses, prerequisites and offering terms, a catalog maintainer maintains the shared course catalog, an access manager grants and revokes permissions by user ID, and Settings shows your user ID to copy.
+
+- [#156](https://github.com/LLaammTTeerr/omnicourses/pull/156) [`c1701b9`](https://github.com/LLaammTTeerr/omnicourses/commit/c1701b9c4474ebd7c5b0f31aaf464b5420fc5091) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Notification inbox API: a student gets a notification 7 days before a registration window of their program opens, on the day it opens, on the first day of a term, and each time they save a transcript that differs from the saved one; they can list the notifications, see how many are unread and mark them read.
+
+- [#153](https://github.com/LLaammTTeerr/omnicourses/pull/153) [`e669a0b`](https://github.com/LLaammTTeerr/omnicourses/commit/e669a0b579bf24126070e03b2013131d1e4d7d88) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Share a plan with a read-only link: the API creates, shows and stops the link of a plan, and anyone who holds the link can read the plan without signing in. The reader never gets grades, the email, transcript rows or other plans, and gets the checks that come from the transcript only when the owner chooses to show them.
+
+### Patch Changes
+
+- [#165](https://github.com/LLaammTTeerr/omnicourses/pull/165) [`e7bd617`](https://github.com/LLaammTTeerr/omnicourses/commit/e7bd61715c048906ceb6467e6e4baee8af990b36) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The API description of the two administration reads (programs and grants) now lists only the answers they can give.
+
+- [#172](https://github.com/LLaammTTeerr/omnicourses/pull/172) [`72ae3f1`](https://github.com/LLaammTTeerr/omnicourses/commit/72ae3f16161e6a334ade8996a9f4bd3b2415b5d1) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Deleting a requirement group that saved plans still use now answers 409 `referenced_item` ("Saved plans use the group") instead of a server error, and the group stays.
+
+- [#169](https://github.com/LLaammTTeerr/omnicourses/pull/169) [`8bcc498`](https://github.com/LLaammTTeerr/omnicourses/commit/8bcc498585c42b2b44396a629c3eef96ab1dbf32) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - A new plan, or a copy of one, can only use a program and cohort that onboarding offers; plans saved earlier on another cohort still open.
+
 ## 0.4.0
 
 ### Minor Changes
