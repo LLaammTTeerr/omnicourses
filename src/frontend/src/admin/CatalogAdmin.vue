@@ -76,6 +76,11 @@ async function find(): Promise<void> {
 type Dialog = { type: 'create' } | { type: 'edit' } | { type: 'delete' };
 const dialog = shallowRef<Dialog | null>(null);
 const review = shallowRef<ImpactReview | null>(null);
+/**
+ * The course an edit dialog was opened for, as it was then. A reload while the dialog is open can find the course
+ * gone; the dialog stays about this course, and Save still sends the correction, so the API says what became of it.
+ */
+const editing = shallowRef<CourseDetail | null>(null);
 const writes = useWrites();
 const settling = ref(false);
 const busy = computed(() => writes.busy.value || settling.value);
@@ -99,6 +104,7 @@ function open(next: Dialog, from: Event): void {
   writes.clear();
   review.value = null;
   notice.value = null;
+  editing.value = next.type === 'edit' ? course.value : null;
   dialog.value = next;
 }
 
@@ -107,6 +113,7 @@ async function close(fallback = 'catalog-code'): Promise<void> {
   if (writes.problem.value?.outcome === 'unknown') stale.value = written;
   dialog.value = null;
   review.value = null;
+  editing.value = null;
   writes.clear();
   await nextTick();
   (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'catalog-reload' : fallback))?.focus();
@@ -179,7 +186,7 @@ async function create(values: CourseValues): Promise<void> {
 
 /** Sends a correction, with the review it confirms if any. A 409 that asks for a review opens it; nothing is saved then. */
 async function correct(body: ImpactReview['body'], confirming: ImpactReview | null): Promise<void> {
-  const of = course.value?.code;
+  const of = (course.value ?? editing.value)?.code;
   if (!of) return;
   written = of;
   const result = await writes.send(
@@ -202,8 +209,10 @@ async function correct(body: ImpactReview['body'], confirming: ImpactReview | nu
 
 async function save(values: CourseValues): Promise<void> {
   if (dialog.value?.type === 'create') return create(values);
-  if (!course.value) return;
-  const body = courseChanges(course.value, values);
+  // The course as now saved; the one the dialog opened for when a reload found it gone.
+  const base = course.value && course.value.code === editing.value?.code ? course.value : editing.value;
+  if (!base) return;
+  const body = courseChanges(base, values);
   if (Object.keys(body).length === 0) {
     await close();
     toast.show(text.value.noChange);
@@ -317,7 +326,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
 
     <CourseDialog
       :open="dialog?.type === 'create' || dialog?.type === 'edit'"
-      :course="dialog?.type === 'edit' ? course : null"
+      :course="dialog?.type === 'edit' ? (course ?? editing) : null"
       :start-code="status === 'missing' ? code : ''"
       :busy="busy"
       :problem="dialog?.type === 'delete' ? null : problem"

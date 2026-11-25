@@ -1,5 +1,6 @@
 import { request } from '../api.js';
 import type { Course, RequirementGroupKind } from '../curriculum/api.js';
+import { segment } from '../path-segment.js';
 
 // The F12 administration DTOs of the API (ADR 0011), written by hand; api.spec.ts checks them, and every address
 // called here, against src/backend/openapi.json. The API decides every permission and every value: these calls
@@ -192,14 +193,6 @@ export interface ImpactConfirmationBody extends AdminErrorBody {
 
 // ---- Calls -----------------------------------------------------------------------------------------------------
 
-/**
- * One path segment. A segment of only dots would be resolved by the browser as a relative path, so the request
- * would reach another address; a trailing space keeps it one segment, and the API then refuses it as a value.
- */
-const segment = (value: string): string => {
-  const encoded = encodeURIComponent(value);
-  return /^\.+$/.test(encoded) ? `${encoded}%20` : encoded;
-};
 const cohortPath = (cohort: CohortRef) => `/admin/programs/${segment(cohort.programId)}/cohorts/${segment(cohort.curriculumId)}`;
 const groupPath = (cohort: CohortRef, groupId: string) => `${cohortPath(cohort)}/requirement-groups/${segment(groupId)}`;
 const rulePath = (cohort: CohortRef, courseCode: string) => `${cohortPath(cohort)}/courses/${segment(courseCode)}`;
