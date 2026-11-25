@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform, type TransformFnParams, Type } from 'class-transformer';
+import { Transform, type TransformFnParams } from 'class-transformer';
 import { ArrayMaxSize, ArrayUnique, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 import { TERM_NUMBERS } from '../terms/term.js';
 import { NOTIFICATION_KINDS, NOTIFICATION_LINKS, type NotificationKind, type NotificationLink } from './notification-kinds.js';
@@ -15,6 +15,8 @@ const KIND_DOC =
 
 /** A query string is text: only the words true and false are booleans, anything else fails validation. */
 const queryBoolean = ({ value }: TransformFnParams): unknown => (value === 'true' ? true : value === 'false' ? false : value);
+/** Plain decimal digits only become a number: Number() would also read 1e2, 0x10, ' 5 ' and ''. Anything else fails validation. */
+const queryInteger = ({ value }: TransformFnParams): unknown => (typeof value === 'string' && /^[0-9]{1,9}$/.test(value) ? Number(value) : value);
 /** `?kind=a` arrives as a string and `?kind=a&kind=b` as an array. */
 const queryList = ({ value }: TransformFnParams): unknown => (value === undefined || Array.isArray(value) ? value : [value]);
 
@@ -36,7 +38,7 @@ export class NotificationsQueryDto {
 
   @ApiProperty({ required: false, type: 'integer', minimum: 1, maximum: MAX_PAGE_SIZE, default: DEFAULT_PAGE_SIZE, description: 'How many notifications at most' })
   @IsOptional()
-  @Type(() => Number)
+  @Transform(queryInteger)
   @IsInt()
   @Min(1)
   @Max(MAX_PAGE_SIZE)

@@ -36,6 +36,14 @@ describe('NotificationsQueryDto', () => {
     for (const limit of ['0', '101', '-1', '1.5', 'ten', '']) expect(parse({ limit }).errors, limit).toEqual(['limit']);
   });
 
+  // Number() reads all of these as a number from 1 to 100.
+  it('reads limit from plain decimal digits only', () => {
+    expect(parse({ limit: '007' }).dto.limit).toBe(7);
+    for (const limit of ['1e2', '1E1', '0x10', '0b11', '0o17', '+5', ' 5', '5 ', '5.0', '1_0', '٥', ['5', '6'], '99999999999999999999']) {
+      expect(parse({ limit }).errors, String(limit)).toEqual(['limit']);
+    }
+  });
+
   it('takes a UUID as the page cursor', () => {
     expect(parse({ before: '00000000-0000-4000-8000-000000000000' }).errors).toEqual([]);
     for (const before of ['42', '', 'not-a-uuid']) expect(parse({ before }).errors, before).toEqual(['before']);
