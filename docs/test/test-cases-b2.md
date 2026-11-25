@@ -405,7 +405,7 @@ A signed-out reader of a shared plan sees only the allowed read-only data, with 
 Registration-window reminders, the term-start check-in and the warning after a saved transcript change reach the right student from the right event, and never come from a cancelled or failed save. Exact delivery, timing and repeat checks wait for the F10 contract ([test plan row](test-plan.md#b2-checks)).
 
 - Owner: Dũng
-- Depends on: calendar API (#108) and calendar page (#99) (done); notifications inbox (not started).
+- Depends on: calendar API (#108) and calendar page (#99) (done); notification inbox API (built, [ADR 0018](../analysis-and-design/adr/0018-notification-inbox.md), proposed); inbox screens (not started).
 
 | ID | Steps | Expected |
 | --- | --- | --- |
