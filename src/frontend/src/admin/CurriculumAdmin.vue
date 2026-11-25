@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import { onBeforeRouteLeave, RouterLink } from 'vue-router';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, type Curriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
+import { fetchCurriculum, fetchPrograms, type Curriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour } from '../curriculum/present.js';
 import { GROUPS, groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -12,21 +12,31 @@ import { useToast } from '../shell/toast.js';
 import {
   clearOfferingTerms,
   clearPrerequisites,
+  createCohort,
   createGroup,
   deleteGroup,
   fetchAdminPrograms,
+  fetchCohort,
+  fetchCohorts,
   linkCourse,
   setOfferingTerms,
   setPrerequisites,
   unlinkCourse,
+  updateCohort,
   updateGroup,
+  updateProgram,
   type AdminProgram,
+  type CohortDetails,
   type CohortRef,
 } from './api.js';
+import CohortDialog from './CohortDialog.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import { readFailure } from './errors.js';
 import FieldErrors from './FieldErrors.vue';
 import {
+  COHORT_FIELDS,
+  cohortChanges,
+  cohortMatches,
   courseIn,
   GROUP_FIELDS,
   groupChanges,
@@ -34,19 +44,27 @@ import {
   groupMatches,
   LINK_FIELDS,
   newGroupBody,
+  newCohortBody,
   PREREQUISITE_FIELDS,
+  PROGRAM_FIELDS,
+  programChanges,
+  programMatches,
   sameList,
   storedCode,
   storedPrerequisites,
   TERM_FIELDS,
+  type CohortValues,
   type GroupValues,
   type PrerequisiteChoice,
+  type ProgramValues,
+  type SavedProgram,
 } from './forms.js';
 import GroupDialog from './GroupDialog.vue';
 import { ADMIN_MESSAGES } from './messages.js';
 import OfferingTermsDialog from './OfferingTermsDialog.vue';
 import PrerequisitesDialog from './PrerequisitesDialog.vue';
-import { describeProblem } from './problem.js';
+import { describeProblem, type ProblemView } from './problem.js';
+import ProgramDialog from './ProgramDialog.vue';
 import ProblemNote from './ProblemNote.vue';
 import { useAdminAccess } from './store.js';
 import { useWrites, type WriteOutcome } from './write.js';
@@ -54,8 +72,9 @@ import { useWrites, type WriteOutcome } from './write.js';
 // The curriculum editor of a program administrator (ADR 0011, UC-11 basic flow; UI prototypes: admin.html, "Nhóm
 // yêu cầu"): the requirement groups of one granted program and cohort, the courses each links, and each course's
 // prerequisites and offering terms in that cohort. Every check is the API's: the page sends what was entered and
-// shows what the API answers, and it computes no academic rule (AGENTS.md hard rule 1). The prototype's "Add
-// cohort", version line and credit-total editing have no route, so they are not here.
+// shows what the API answers, and it computes no academic rule (AGENTS.md hard rule 1). The program administrator
+// also edits the program's details, adds a cohort and edits one (UC-11 A1; "Thêm khóa" in the prototype). The
+// prototype's version line, the training type and credit-total editing have no route, so they are not here.
 const auth = useAuth();
 const access = useAdminAccess();
 const locale = useLocale();
@@ -219,7 +238,7 @@ let opener: HTMLElement | null = null;
 
 // A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
 // the request answers, so its result is said. A 401 has signed the user out, who may leave.
-onBeforeRouteLeave(() => !(busy.value || linkWrites.busy.value) || !auth.signedIn);
+onBeforeRouteLeave(() => !(busy.value || linkWrites.busy.value || programBusy.value) || !auth.signedIn);
 
 /** The link form's message is about the last code sent: it goes when the administrator does something else. */
 function dropLinkProblem(): void {
@@ -348,10 +367,10 @@ async function link(): Promise<void> {
     (token) => linkCourse(token, at.ref, group.id, typed),
     async () => groupHas(await readSaved(at), group.id, code),
   );
-  if (!onScreen(at)) {
-    // The administrator opened another cohort while the request was out: the outcome is about the cohort it was
-    // sent to, and is said with that cohort's name, not under the link box of the cohort now on screen.
-    const where = text.value.cohortLabel(at.programCode, at.cohortYear);
+  if (!onScreen(at) || openId.value !== group.id) {
+    // The administrator opened another cohort, or another group, while the request was out: the outcome is about
+    // the group it was sent to, and is said with that group's name, not under the link box now on screen.
+    const where = onScreen(at) ? text.value.groupLabel(at.programCode, at.cohortYear, group.name) : text.value.cohortLabel(at.programCode, at.cohortYear);
     const problem = linkWrites.problem.value && describeProblem(linkWrites.problem.value, m.value, LINK_FIELDS);
     linkWrites.clear();
     if (problem) late.value = { tone: problem.tone, text: m.value.earlier(where, problem.code === 'not_found' ? text.value.linkNotFound : problem.text), items: [...(problem.fields.courseCode ?? []), ...problem.items] };
@@ -412,6 +431,178 @@ async function saveTerms(terms: number[]): Promise<void> {
   );
   await finish(result, terms.length ? text.value.termsSaved(code) : text.value.termsCleared(code));
 }
+
+// ---------- The program's details and its cohorts (UC-11 A1) ----------
+// Their own dialog and writes: they do not depend on the curriculum on screen, and a program with no cohort yet
+// still offers "Add a cohort".
+type ProgramAsk =
+  | { type: 'program'; programId: string; saved: SavedProgram }
+  | { type: 'add-cohort'; programId: string; programCode: string }
+  | { type: 'edit-cohort'; ref: CohortRef; programCode: string; saved: CohortDetails };
+const programDialog = shallowRef<ProgramAsk | null>(null);
+const programWrites = useWrites();
+const programSettling = ref(false);
+const programBusy = computed(() => programWrites.busy.value || programSettling.value);
+/** The details to edit could not be read: said in the banner, with nothing opened. */
+const detailsFailed = ref<string | null>(null);
+const opening = ref(false);
+let programOpener: HTMLElement | null = null;
+
+/** The program's details as the read API gives them: GET /admin/programs lists only its code and Vietnamese name. */
+async function readProgram(code: string): Promise<SavedProgram | null> {
+  const { programs } = await auth.authed(fetchPrograms);
+  return programs.find((item) => item.code === code) ?? null;
+}
+
+async function openProgramDialog(load: () => Promise<ProgramAsk | null>, from: Event, failed: string): Promise<void> {
+  if (opening.value || programBusy.value) return;
+  programOpener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
+  detailsFailed.value = null;
+  notice.value = null;
+  opening.value = true;
+  try {
+    const next = await load();
+    programWrites.clear();
+    if (next) programDialog.value = next;
+    else detailsFailed.value = failed;
+  } catch (e) {
+    if (readFailure(e).kind === 'signed_out') return;
+    console.error('Loading the details to edit failed:', e);
+    detailsFailed.value = failed;
+  } finally {
+    opening.value = false;
+  }
+}
+
+function editProgram(from: Event): void {
+  const of = program.value;
+  if (!of) return;
+  void openProgramDialog(
+    async () => {
+      const saved = await readProgram(of.code);
+      return saved && { type: 'program', programId: of.id, saved };
+    },
+    from,
+    m.value.programs.programLoadFailed,
+  );
+}
+
+function addCohort(from: Event): void {
+  const of = program.value;
+  if (!of) return;
+  void openProgramDialog(async () => ({ type: 'add-cohort', programId: of.id, programCode: of.code }), from, '');
+}
+
+function editCohort(from: Event): void {
+  const of = scope.value;
+  if (!of) return;
+  void openProgramDialog(
+    async () => ({ type: 'edit-cohort', ref: of.ref, programCode: of.programCode, saved: await auth.authed((token) => fetchCohort(token, of.ref)) }),
+    from,
+    m.value.programs.cohortLoadFailed,
+  );
+}
+
+async function closeProgramDialog(): Promise<void> {
+  programDialog.value = null;
+  programWrites.clear();
+  await nextTick();
+  (programOpener?.isConnected && !(programOpener as HTMLButtonElement).disabled ? programOpener : document.getElementById('cohort-add'))?.focus();
+  programOpener = null;
+}
+
+function cancelProgramDialog(): void {
+  if (!programBusy.value) void closeProgramDialog();
+}
+
+/** Ends a program or cohort write: the programs are listed again, then the dialog closes with its result. */
+async function finishProgram(result: WriteOutcome<unknown>, saved: string, after?: () => void): Promise<void> {
+  if (result.outcome !== 'saved' && result.outcome !== 'confirmed') return;
+  programSettling.value = true;
+  try {
+    await loadPrograms(true);
+    after?.();
+    await closeProgramDialog();
+    if (result.outcome === 'saved') toast.show(saved);
+    else notice.value = m.value.problem.confirmed;
+  } finally {
+    programSettling.value = false;
+  }
+}
+
+async function saveProgramDetails(values: ProgramValues): Promise<void> {
+  const current = programDialog.value;
+  if (current?.type !== 'program') return;
+  const { programId, saved } = current;
+  const body = programChanges(saved, values);
+  if (Object.keys(body).length === 0) {
+    await closeProgramDialog();
+    toast.show(m.value.programs.noChange);
+    return;
+  }
+  const result = await programWrites.send(
+    (token) => updateProgram(token, programId, body),
+    async () => {
+      const found = await readProgram(saved.code);
+      return found !== null && programMatches(found, values);
+    },
+  );
+  await finishProgram(result, m.value.programs.programSaved(saved.code));
+}
+
+async function saveCohort(values: CohortValues): Promise<void> {
+  const current = programDialog.value;
+  if (current?.type === 'edit-cohort') {
+    const { ref: at, saved } = current;
+    const body = cohortChanges(saved, values);
+    if (Object.keys(body).length === 0) {
+      await closeProgramDialog();
+      toast.show(m.value.programs.noChange);
+      return;
+    }
+    const result = await programWrites.send(
+      (token) => updateCohort(token, at, body),
+      async () => cohortMatches(await auth.authed((token) => fetchCohort(token, at)), values),
+    );
+    // The curriculum's names are on screen: show the saved ones.
+    if (result.outcome === 'saved' || result.outcome === 'confirmed') await showSaved();
+    await finishProgram(result, m.value.programs.cohortSaved(saved.cohortYear));
+    return;
+  }
+  if (current?.type !== 'add-cohort') return;
+  const { programId } = current;
+  let created: string | null = null;
+  const result = await programWrites.send(
+    (token) => createCohort(token, programId, newCohortBody(values)),
+    async () => {
+      const { cohorts } = await auth.authed((token) => fetchCohorts(token, programId));
+      created = cohorts.find((item) => cohortMatches(item, values, true))?.id ?? null;
+      return created !== null;
+    },
+  );
+  if (result.outcome === 'saved') created = result.value.id;
+  // The new cohort is opened: it has no group yet.
+  await finishProgram(result, m.value.programs.cohortCreated(values.cohortYear.trim()), () => {
+    if (created) picked.value = { programId, curriculumId: created };
+  });
+}
+
+/** "Reload the data" after an unknown outcome: the same write is settled from the saved data, not sent again. */
+async function recheckProgram(): Promise<void> {
+  const result = await programWrites.recheck();
+  if (result?.outcome === 'confirmed') await finishProgram(result, '');
+}
+
+const programProblem = computed<ProblemView<(typeof PROGRAM_FIELDS)[number]> | null>(() => {
+  if (programDialog.value?.type !== 'program' || !programWrites.problem.value) return null;
+  return describeProblem(programWrites.problem.value, m.value, PROGRAM_FIELDS);
+});
+const cohortProblem = computed<ProblemView<(typeof COHORT_FIELDS)[number]> | null>(() => {
+  if (!programDialog.value || programDialog.value.type === 'program' || !programWrites.problem.value) return null;
+  const problem = describeProblem(programWrites.problem.value, m.value, COHORT_FIELDS);
+  // A curriculum has this code, not a catalog course.
+  return problem.code === 'duplicate_code' ? { ...problem, text: m.value.programs.duplicateCohortCode } : problem;
+});
 
 // ---------- What a write that is not known to be saved says ----------
 const groupProblem = computed(() => (dialog.value?.type === 'group' && dialogWrites.problem.value ? describeProblem(dialogWrites.problem.value, m.value, GROUP_FIELDS) : null));
@@ -484,7 +675,17 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
         <div v-if="curriculum" class="grow small" data-test="curriculum-summary">
           <b>{{ (locale.lang === 'en' && curriculum.nameEn) || curriculum.nameVi }} · {{ curriculum.code }}</b><br />{{ text.thisCohortOnly }}
         </div>
+        <div class="banner-acts">
+          <button id="program-edit" class="btn sm" type="button" :disabled="opening || programBusy" :aria-label="m.programs.editProgramLabel(program.code)" data-test="program-edit" @click="editProgram">
+            <Icon name="edit" size="sm" />{{ m.programs.editProgram }}
+          </button>
+          <button v-if="cohort" id="cohort-edit" class="btn sm" type="button" :disabled="opening || programBusy" :aria-label="m.programs.editCohortLabel(cohort.cohortYear)" data-test="cohort-edit" @click="editCohort">
+            <Icon name="edit" size="sm" />{{ m.programs.editCohort }}
+          </button>
+          <button id="cohort-add" class="btn sm" type="button" :disabled="opening || programBusy" data-test="cohort-add" @click="addCohort"><Icon name="plus" size="sm" />{{ m.programs.addCohort }}</button>
+        </div>
       </div>
+      <p v-if="detailsFailed" class="callout bad" role="alert" data-test="details-failed"><Icon name="alert" /><span>{{ detailsFailed }}</span></p>
 
       <!-- The outcome of a link sent for a cohort the administrator has since left, with that cohort's name. -->
       <div v-if="late" class="callout admin-late" :class="late.tone" :role="late.tone === 'ok' ? 'status' : 'alert'" data-test="admin-late">
@@ -497,6 +698,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
         </div>
       </div>
 
+      <p v-if="notice && !curriculum" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
       <p v-if="!cohort" class="callout" role="status" data-test="no-cohorts"><Icon name="info" /><span>{{ text.noCohorts }}</span></p>
       <p v-else-if="status === 'loading'" class="t3" role="status">{{ m.loading }}</p>
       <p v-else-if="status === 'missing'" class="callout" role="status" data-test="no-curriculum"><Icon name="info" /><span>{{ text.noCurriculum }}</span></p>
@@ -512,7 +714,16 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
         <section class="card flush" aria-labelledby="groups-title">
           <div class="card-head">
             <h3 id="groups-title" data-test="groups-title">{{ text.groupsTitle(groups.length) }}</h3>
-            <button id="add-group" class="btn sm" type="button" :disabled="stale" data-test="add-group" @click="open({ type: 'group', group: null }, $event)"><Icon name="plus" size="sm" />{{ text.addGroup }}</button>
+            <div class="head-acts">
+              <RouterLink
+                v-if="scope"
+                class="btn sm"
+                :to="{ name: 'admin-import', query: { type: 'group_links', program: scope.ref.programId, cohort: scope.ref.curriculumId } }"
+                data-test="open-import"
+                >{{ text.importLink }}</RouterLink
+              >
+              <button id="add-group" class="btn sm" type="button" :disabled="stale" data-test="add-group" @click="open({ type: 'group', group: null }, $event)"><Icon name="plus" size="sm" />{{ text.addGroup }}</button>
+            </div>
           </div>
           <p class="admin-note small t3">{{ text.totalsReadOnly }}</p>
           <p v-if="groups.length === 0" class="admin-empty t2" data-test="no-groups">{{ text.noGroups }}</p>
@@ -686,6 +897,25 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
       @save="savePrerequisites"
       @reload="recheckDialog"
     />
+    <ProgramDialog
+      :open="programDialog?.type === 'program'"
+      :program="programDialog?.type === 'program' ? programDialog.saved : null"
+      :busy="programBusy"
+      :problem="programProblem"
+      @close="cancelProgramDialog"
+      @save="saveProgramDetails"
+      @reload="recheckProgram"
+    />
+    <CohortDialog
+      :open="programDialog?.type === 'add-cohort' || programDialog?.type === 'edit-cohort'"
+      :program-code="programDialog && programDialog.type !== 'program' ? programDialog.programCode : ''"
+      :cohort="programDialog?.type === 'edit-cohort' ? programDialog.saved : null"
+      :busy="programBusy"
+      :problem="cohortProblem"
+      @close="cancelProgramDialog"
+      @save="saveCohort"
+      @reload="recheckProgram"
+    />
     <OfferingTermsDialog :open="dialog?.type === 'terms'" :course="dialog?.type === 'terms' ? dialog.course : null" :busy="busy" :problem="termsProblem" @close="cancel" @save="saveTerms" @reload="recheckDialog" />
     <ConfirmDialog
       :open="dialog?.type === 'delete-group' || dialog?.type === 'unlink'"
@@ -706,6 +936,8 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
 .admin-banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: color-mix(in oklab, var(--hi) 55%, var(--surface)); border-radius: 16px; border: 1px solid var(--edge); flex-wrap: wrap; }
 .admin-banner .field { min-width: 180px; }
 .admin-banner .grow { flex: 1; min-width: 200px; }
+.admin-banner .banner-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-section .card-head .head-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 :root[data-theme='dark'] .admin-banner { border-color: color-mix(in oklab, var(--info) 30%, var(--edge)); }
 .admin-late > div { display: grid; gap: 4px; min-width: 0; }
 .admin-late ul { margin: 0; padding-left: 18px; font-size: 14px; }

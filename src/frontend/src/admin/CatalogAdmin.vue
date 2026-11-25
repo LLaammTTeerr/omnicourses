@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import { onBeforeRouteLeave, RouterLink } from 'vue-router';
 import { useAuth } from '../auth/store.js';
+import { isCourseCode } from '../course-code.js';
 import { fetchCourse, type Course, type CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
@@ -30,6 +31,8 @@ const course = shallowRef<CourseDetail | null>(null);
 /** The code last looked up, as the catalog stores codes. */
 const code = ref('');
 const status = ref<'idle' | 'loading' | 'found' | 'missing' | 'failed'>('idle');
+/** A missing course can be created with its code only when the API accepts that code: `..` is never a course. */
+const creatable = computed(() => status.value === 'missing' && isCourseCode(code.value));
 let latest = 0;
 
 /** The saved course, or null when the catalog has none with this code. Rejects when the API cannot say. */
@@ -76,6 +79,11 @@ async function find(): Promise<void> {
 type Dialog = { type: 'create' } | { type: 'edit' } | { type: 'delete' };
 const dialog = shallowRef<Dialog | null>(null);
 const review = shallowRef<ImpactReview | null>(null);
+/**
+ * The course an edit dialog was opened for, as it was then. A reload while the dialog is open can find the course
+ * gone; the dialog stays about this course, and Save still sends the correction, so the API says what became of it.
+ */
+const editing = shallowRef<CourseDetail | null>(null);
 const writes = useWrites();
 const settling = ref(false);
 const busy = computed(() => writes.busy.value || settling.value);
@@ -99,6 +107,7 @@ function open(next: Dialog, from: Event): void {
   writes.clear();
   review.value = null;
   notice.value = null;
+  editing.value = next.type === 'edit' ? course.value : null;
   dialog.value = next;
 }
 
@@ -107,6 +116,7 @@ async function close(fallback = 'catalog-code'): Promise<void> {
   if (writes.problem.value?.outcome === 'unknown') stale.value = written;
   dialog.value = null;
   review.value = null;
+  editing.value = null;
   writes.clear();
   await nextTick();
   (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'catalog-reload' : fallback))?.focus();
@@ -179,7 +189,7 @@ async function create(values: CourseValues): Promise<void> {
 
 /** Sends a correction, with the review it confirms if any. A 409 that asks for a review opens it; nothing is saved then. */
 async function correct(body: ImpactReview['body'], confirming: ImpactReview | null): Promise<void> {
-  const of = course.value?.code;
+  const of = (course.value ?? editing.value)?.code;
   if (!of) return;
   written = of;
   const result = await writes.send(
@@ -202,8 +212,10 @@ async function correct(body: ImpactReview['body'], confirming: ImpactReview | nu
 
 async function save(values: CourseValues): Promise<void> {
   if (dialog.value?.type === 'create') return create(values);
-  if (!course.value) return;
-  const body = courseChanges(course.value, values);
+  // The course as now saved; the one the dialog opened for when a reload found it gone.
+  const base = course.value && course.value.code === editing.value?.code ? course.value : editing.value;
+  if (!base) return;
+  const body = courseChanges(base, values);
   if (Object.keys(body).length === 0) {
     await close();
     toast.show(text.value.noChange);
@@ -260,6 +272,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
       <div class="card-head">
         <h2 id="catalog-admin-title">{{ text.heading }}</h2>
         <span class="meta">{{ text.shared }}</span>
+        <RouterLink class="btn sm" :to="{ name: 'admin-import', query: { type: 'catalog_courses' } }" data-test="open-import">{{ text.importLink }}</RouterLink>
       </div>
       <div class="admin-tools">
         <form class="link-form" novalidate @submit.prevent="find">
@@ -281,7 +294,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
           <Icon name="alert" /><span>{{ text.lookupFailed }} <button class="btn sm" type="button" @click="find">{{ m.retry }}</button></span>
         </p>
         <p v-else-if="status === 'missing'" class="callout" role="status" data-test="catalog-not-found">
-          <Icon name="info" /><span>{{ text.notFound(code) }} {{ text.notFoundAdd }}</span>
+          <Icon name="info" /><span>{{ text.notFound(code) }} {{ creatable ? text.notFoundAdd : text.notACode }}</span>
         </p>
       </div>
 
@@ -317,8 +330,8 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
 
     <CourseDialog
       :open="dialog?.type === 'create' || dialog?.type === 'edit'"
-      :course="dialog?.type === 'edit' ? course : null"
-      :start-code="status === 'missing' ? code : ''"
+      :course="dialog?.type === 'edit' ? (course ?? editing) : null"
+      :start-code="creatable ? code : ''"
       :busy="busy"
       :problem="dialog?.type === 'delete' ? null : problem"
       :review="review"

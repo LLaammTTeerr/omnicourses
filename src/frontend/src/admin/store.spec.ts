@@ -151,4 +151,37 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     await access.load();
     expect([access.any, access.grants?.userId]).toEqual([false, other]);
   });
+
+  it('starts a fresh load even while an older one is out, and keeps only the newest answer (#160)', async () => {
+    const answers: ((res: Response) => void)[] = [];
+    const fetch = mockApi({ 'GET /admin/grants': () => new Promise<Response>((resolve) => answers.push(resolve)) });
+    const access = useAdminAccess();
+    const before = access.load();
+    // A grant changed after the first request left: a fresh load must ask again, not wait for the older answer.
+    const fresh = access.load({ fresh: true });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    answers[1]!(Response.json(NO_GRANTS));
+    await fresh;
+    answers[0]!(Response.json(PROGRAM_ADMIN));
+    await before;
+    expect(access.grants).toEqual(NO_GRANTS);
+  });
+
+  it('stops asking on its own after three failed loads in a row, and asks again when told to (#160)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let fail = true;
+    const fetch = mockApi({ 'GET /admin/grants': () => (fail ? new Response(null, { status: 503 }) : Response.json(PROGRAM_ADMIN)) });
+    const access = useAdminAccess();
+    await access.load();
+    expect(access.retryable).toBe(true);
+    await access.load({ fresh: true });
+    await access.load({ fresh: true });
+    expect([access.failed, access.retryable]).toEqual([true, false]);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    // The page's own Try again still asks, and an answer starts the count again.
+    fail = false;
+    await access.load({ fresh: true });
+    expect([access.failed, access.retryable, access.any]).toEqual([false, false, true]);
+  });
+
 });

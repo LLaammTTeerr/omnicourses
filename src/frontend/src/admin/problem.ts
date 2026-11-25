@@ -26,6 +26,14 @@ function refusal<F extends string>(failure: Failure, m: AdminText, fields: reado
       const split = byField(failure.details, fields);
       return { code: 'validation_failed', text: m.problem.validation, items: split.other, fields: split.fields, serverText: true };
     }
+    case 'file':
+      return { code: 'validation_failed', text: m.problem.file, items: failure.errors.map((error) => m.importRowError(error.record, error.field, error.message)), fields: {}, serverText: true };
+    case 'review_changed':
+      return { code: 'impact_changed', text: m.problem.reviewChanged, items: [], fields: {} };
+    case 'too_large':
+      return { code: 'payload_too_large', text: m.problem.tooLarge, items: [], fields: {} };
+    case 'compressed':
+      return { code: 'unsupported_content_encoding', text: m.problem.compressed, items: [], fields: {} };
     case 'cycle':
       return { code: 'prerequisite_cycle', text: m.problem.cycle(failure.cycle), items: [], fields: {} };
     case 'permission':

@@ -1,5 +1,17 @@
 import type { Course, CurriculumCourse, Curriculum, RequirementGroup, RequirementGroupKind } from '../curriculum/api.js';
-import type { AffectedCurriculum, CreateCourseBody, CreateGroupBody, Entered, UpdateCourseBody, UpdateGroupBody } from './api.js';
+import type {
+  AffectedCurriculum,
+  CohortDetails,
+  CreateCohortBody,
+  CreateCourseBody,
+  CreateGroupBody,
+  CreateProgramBody,
+  Entered,
+  UpdateCohortBody,
+  UpdateCourseBody,
+  UpdateGroupBody,
+  UpdateProgramBody,
+} from './api.js';
 
 // What the administration forms hand to the API, and how a change is found again in reloaded data. Nothing here
 // judges a value: a form sends what was typed, and the API's refusal names the field (UC-11 A3). The few steps
@@ -148,3 +160,78 @@ export function courseHas(saved: Course, body: Entered<UpdateCourseBody> | Enter
     return saved[field] === (typeof want === 'string' ? want.trim() : want);
   });
 }
+
+// ---- Programs and cohorts (UC-11 A1, A2) -----------------------------------------------------------------------
+// No box for the training type or a credit total: the API accepts neither (ADR 0011, "Programs and cohorts as built").
+
+export const PROGRAM_FIELDS = ['code', 'nameVi', 'nameEn', 'faculty'] as const;
+export type ProgramField = (typeof PROGRAM_FIELDS)[number];
+export type ProgramValues = Record<ProgramField, string>;
+/** A program's details as saved; the code never changes. */
+export type SavedProgram = { code: string; nameVi: string; nameEn: string | null; faculty: string | null };
+
+export const programValues = (saved: SavedProgram | null): ProgramValues => ({
+  code: saved?.code ?? '',
+  nameVi: saved?.nameVi ?? '',
+  nameEn: saved?.nameEn ?? '',
+  faculty: saved?.faculty ?? '',
+});
+
+export const newProgramBody = (values: ProgramValues): Entered<CreateProgramBody> => ({
+  code: values.code,
+  nameVi: values.nameVi,
+  nameEn: blankToNull(values.nameEn),
+  faculty: blankToNull(values.faculty),
+});
+
+/** Only the fields that differ from the saved program; empty when nothing changed. */
+export function programChanges(saved: SavedProgram, values: ProgramValues): Entered<UpdateProgramBody> {
+  const body: Entered<UpdateProgramBody> = {};
+  if (values.nameVi.trim() !== saved.nameVi) body.nameVi = values.nameVi;
+  if (blankToNull(values.nameEn) !== saved.nameEn) body.nameEn = blankToNull(values.nameEn);
+  if (blankToNull(values.faculty) !== saved.faculty) body.faculty = blankToNull(values.faculty);
+  return body;
+}
+
+/** The saved program reads as the form was filled in (a create also matches its code). */
+export const programMatches = (saved: SavedProgram, values: ProgramValues, withCode = false): boolean =>
+  (!withCode || saved.code === storedCode(values.code)) &&
+  saved.nameVi === values.nameVi.trim() &&
+  saved.nameEn === blankToNull(values.nameEn) &&
+  saved.faculty === blankToNull(values.faculty);
+
+export const COHORT_FIELDS = ['cohortYear', 'code', 'nameVi', 'nameEn', 'language'] as const;
+export type CohortField = (typeof COHORT_FIELDS)[number];
+export type CohortValues = Record<CohortField, string>;
+
+export const cohortValues = (saved: CohortDetails | null): CohortValues => ({
+  cohortYear: saved ? String(saved.cohortYear) : '',
+  code: saved?.code ?? '',
+  nameVi: saved?.nameVi ?? '',
+  nameEn: saved?.nameEn ?? '',
+  language: saved?.language ?? '',
+});
+
+export const newCohortBody = (values: CohortValues): Entered<CreateCohortBody> => ({
+  cohortYear: enteredNumber(values.cohortYear),
+  code: values.code,
+  nameVi: values.nameVi,
+  nameEn: blankToNull(values.nameEn),
+  language: blankToNull(values.language),
+});
+
+/** Only the fields that differ from the saved cohort; the year and the code never change. */
+export function cohortChanges(saved: CohortDetails, values: CohortValues): Entered<UpdateCohortBody> {
+  const body: Entered<UpdateCohortBody> = {};
+  if (values.nameVi.trim() !== saved.nameVi) body.nameVi = values.nameVi;
+  if (blankToNull(values.nameEn) !== saved.nameEn) body.nameEn = blankToNull(values.nameEn);
+  if (blankToNull(values.language) !== saved.language) body.language = blankToNull(values.language);
+  return body;
+}
+
+/** The saved cohort reads as the form was filled in (a create also matches its year and code). */
+export const cohortMatches = (saved: CohortDetails, values: CohortValues, withIdentity = false): boolean =>
+  (!withIdentity || (String(saved.cohortYear) === values.cohortYear.trim() && saved.code === storedCode(values.code))) &&
+  saved.nameVi === values.nameVi.trim() &&
+  saved.nameEn === blankToNull(values.nameEn) &&
+  saved.language === blankToNull(values.language);

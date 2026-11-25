@@ -5,7 +5,7 @@ import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { ADMIN_MESSAGES } from './messages.js';
-import { ADMIN_SECTIONS } from './sections.js';
+import { ADMIN_SECTIONS, opens } from './sections.js';
 import { useAdminAccess } from './store.js';
 
 // F12 administration (ADR 0011, UC-11; UI prototypes: admin.html): the frame around the sections. It asks the API
@@ -28,10 +28,12 @@ async function check(): Promise<void> {
 }
 onMounted(check);
 
-const sections = computed(() => ADMIN_SECTIONS.filter((section) => access.holds(section.permission)));
+const sections = computed(() => ADMIN_SECTIONS.filter((section) => opens(section, access.holds)));
 /** The section the address names, if any. */
 const wanted = computed(() => ADMIN_SECTIONS.find((section) => section.route === route.name) ?? null);
-const denied = computed(() => (wanted.value && !access.holds(wanted.value.permission) ? wanted.value : null));
+const denied = computed(() => (wanted.value && !opens(wanted.value, access.holds) ? wanted.value : null));
+/** The permissions a denied section needs, by name: "A" or "A or B". */
+const deniedNames = computed(() => (denied.value ? m.value.anyOf(denied.value.permissions.map((permission) => m.value.permissions[permission])) : ''));
 
 // A save refused for lack of a permission (useWrites keeps it in the store): the section it came from stays on
 // screen, whatever the grants are now, until the user asks for the page as their permissions stand.
@@ -107,8 +109,8 @@ usePageTitle(() => m.value.title);
             {{ m.sectionNames[section.id] }}
           </RouterLink>
         </nav>
-        <p v-if="denied && !pinned" class="callout bad" role="alert" data-test="admin-section-denied" :data-permission="denied.permission">
-          <Icon name="lock" /><span>{{ m.sectionDenied(m.permissions[denied.permission]) }}</span>
+        <p v-if="denied && !pinned" class="callout bad" role="alert" data-test="admin-section-denied" :data-permission="denied.permissions.join(' ')">
+          <Icon name="lock" /><span>{{ m.sectionDenied(deniedNames) }}</span>
         </p>
         <RouterView v-else />
       </template>

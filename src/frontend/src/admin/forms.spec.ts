@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   blankToNull,
+  cohortChanges,
+  cohortMatches,
+  cohortValues,
+  newCohortBody,
+  newProgramBody,
+  programChanges,
+  programMatches,
+  programValues,
   courseChanges,
   courseHas,
   courseIn,
@@ -117,5 +125,46 @@ describe('finding a change again in reloaded data (UC-11 A7)', () => {
     expect(courseHas(saved, { credits: 'ba' })).toBe(false);
     // A create that left a period box out says nothing about that field.
     expect(courseHas(saved, { code: 'zz200', nameVi: 'Tên mới', nameEn: null, credits: 3 })).toBe(true);
+  });
+});
+
+describe('the program and cohort forms (UC-11 A1, A2): what is typed, and nothing the API does not take', () => {
+  const PROGRAM = { code: 'ZZ-NEW', nameVi: 'Chương trình thử', nameEn: null, faculty: 'Khoa thử' };
+  const COHORT = {
+    id: '00000000-0000-4000-8000-0000000000c9',
+    programId: '00000000-0000-4000-8000-0000000000a1',
+    cohortYear: 2026,
+    code: 'ZZ-NEW-2026',
+    nameVi: 'Khóa thử 2026',
+    nameEn: null,
+    language: 'vi',
+    totalCreditsMin: null,
+    updatedAt: '2026-11-25T02:00:00.000Z',
+  };
+
+  it('builds a new program with the code as typed, blank boxes as null, and no training type', () => {
+    expect(newProgramBody({ code: ' zz-new ', nameVi: ' Chương trình thử ', nameEn: ' ', faculty: '' })).toEqual({ code: ' zz-new ', nameVi: ' Chương trình thử ', nameEn: null, faculty: null });
+  });
+
+  it('sends only the changed program details, never the code, and recognises them once saved', () => {
+    expect(programChanges(PROGRAM, programValues(PROGRAM))).toEqual({});
+    const typed = { ...programValues(PROGRAM), nameEn: 'Test program', faculty: ' ' };
+    expect(programChanges(PROGRAM, typed)).toEqual({ nameEn: 'Test program', faculty: null });
+    expect(programMatches({ ...PROGRAM, nameEn: 'Test program', faculty: null }, typed)).toBe(true);
+    expect(programMatches(PROGRAM, typed)).toBe(false);
+    expect(programMatches(PROGRAM, { ...programValues(PROGRAM), code: ' zz-new ' }, true)).toBe(true);
+  });
+
+  it('builds a new cohort with the year as a number when it reads as one, and no credit total', () => {
+    expect(newCohortBody({ cohortYear: ' 2026 ', code: 'zz-new-2026', nameVi: 'Khóa thử', nameEn: '', language: ' ' })).toEqual({ cohortYear: 2026, code: 'zz-new-2026', nameVi: 'Khóa thử', nameEn: null, language: null });
+    // A typing mistake goes as typed: the API refuses it and names the field.
+    expect(newCohortBody({ ...cohortValues(null), cohortYear: '2O26' }).cohortYear).toBe('2O26');
+  });
+
+  it('sends only the changed cohort details, never the year or the code, and recognises a new cohort by them', () => {
+    expect(cohortChanges(COHORT, cohortValues(COHORT))).toEqual({});
+    expect(cohortChanges(COHORT, { ...cohortValues(COHORT), cohortYear: '2027', code: 'X', language: '' })).toEqual({ language: null });
+    expect(cohortMatches(COHORT, { ...cohortValues(COHORT), code: 'zz-new-2026 ' }, true)).toBe(true);
+    expect(cohortMatches(COHORT, { ...cohortValues(COHORT), cohortYear: '2025' }, true)).toBe(false);
   });
 });

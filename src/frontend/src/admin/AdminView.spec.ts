@@ -73,6 +73,7 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     expect(all.w.findAll('.admin-tabs a').map((a) => [a.text(), a.attributes('href')])).toEqual([
       ['Nhóm yêu cầu', '/admin/curriculum'],
       ['Danh mục học phần', '/admin/catalog'],
+      ['Nhập CSV', '/admin/import'],
       ['Phân quyền', '/admin/access'],
     ]);
     expect(all.w.get('[data-test="admin-tab-access"]').attributes('aria-current')).toBe('page');
@@ -85,6 +86,11 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     await router.push('/admin/catalog');
     await flushPromises();
     expect(manager.w.get('[data-test="admin-section-denied"]').text()).toBe('Mục này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó.');
+    // The import opens with either of the two permissions whose files it takes, and names both when neither is held.
+    await router.push('/admin/import');
+    await flushPromises();
+    expect(manager.w.get('[data-test="admin-section-denied"]').attributes('data-permission')).toBe('catalog_maintainer program_admin');
+    expect(manager.w.get('[data-test="admin-section-denied"]').text()).toBe('Mục này cần quyền “Quản lý danh mục học phần” hoặc “Quản trị chương trình”. Tài khoản của bạn không có quyền đó.');
   });
 
   it('names the permission a section needs when the user opens it without holding it, and loads nothing of it', async () => {

@@ -42,8 +42,8 @@ watch(
 );
 
 // ADR 0011: the navigation lists Administration only for a user who holds a grant, so ask the API once per sign-in.
-// A failed load leaves the entry out for now: it is asked again on the next page the user opens, and by the
-// administration page itself.
+// A failed load leaves the entry out for now: it is asked again on the next page the user opens, up to three failures
+// in a row (MAX_FAILED_LOADS), and by the administration page itself.
 watch(
   () => auth.user?.id,
   (userId) => {
@@ -54,7 +54,7 @@ watch(
 watch(
   () => route.fullPath,
   () => {
-    if (auth.signedIn && access.failed) void access.load();
+    if (auth.signedIn && access.retryable) void access.load();
   },
 );
 

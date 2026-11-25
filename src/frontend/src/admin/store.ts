@@ -10,6 +10,9 @@ import { fetchOwnGrants, GLOBAL_PERMISSIONS, type PermissionKind, type UserGrant
 // to one account: they are forgotten at sign-out, so nothing of one sign-in shows in the next, even of the same
 // account.
 
+/** After this many failed loads in a row, only the administration page's own Try again asks once more. */
+export const MAX_FAILED_LOADS = 3;
+
 interface Owned {
   userId: string;
   grants: UserGrants;
@@ -22,6 +25,10 @@ export const useAdminAccess = defineStore('admin-access', () => {
   /** The account whose last load failed. */
   const failedFor = ref<string | null>(null);
   let pending: { userId: string; load: Promise<UserGrants | null> } | null = null;
+  /** Counts the loads started: only the answer to the newest one is kept, so an older answer never wins. */
+  let started = 0;
+  /** Loads that failed in a row for this account: the shell stops asking on its own after MAX_FAILED_LOADS. */
+  const failures = ref(0);
   /** Counts the sign-ins and sign-outs: an answer asked for in one is not kept in the next. */
   let signIn = 0;
   /**
@@ -36,6 +43,7 @@ export const useAdminAccess = defineStore('admin-access', () => {
     () => {
       signIn++;
       pending = null;
+      failures.value = 0;
       cache.value = null;
       failedFor.value = null;
       refusal.value = null;
@@ -56,30 +64,38 @@ export const useAdminAccess = defineStore('admin-access', () => {
   /** At least one grant: the navigation shows the administration entry. */
   const any = computed(() => held.value.length > 0);
   const holds = (permission: PermissionKind): boolean => held.value.includes(permission);
+  /** The last load failed, and not so often in a row that asking again on the next page would only add noise. */
+  const retryable = computed(() => failed.value && failures.value < MAX_FAILED_LOADS);
 
   /**
    * The grants, from the API the first time for each account, or again with `fresh`. Never rejects: a failed load
-   * sets `failed`, keeps what was loaded before, and resolves to null.
+   * sets `failed`, keeps what was loaded before, and resolves to null. A load without `fresh` joins one that is
+   * out; a fresh one always asks, since the grants may have changed after the other request left.
    */
   function load({ fresh = false }: { fresh?: boolean } = {}): Promise<UserGrants | null> {
     const userId = auth.user?.id;
     if (!userId) return Promise.resolve(null);
     if (!fresh && grants.value) return Promise.resolve(grants.value);
-    if (pending?.userId !== userId) {
+    if (fresh || pending?.userId !== userId) {
       const during = signIn;
-      const current = () => during === signIn && auth.user?.id === userId;
+      const mine = ++started;
+      const current = () => during === signIn && auth.user?.id === userId && mine === started;
       const run: Promise<UserGrants | null> = auth.authed(fetchOwnGrants).then(
         (loaded) => {
           if (current()) {
             cache.value = { userId, grants: loaded };
             failedFor.value = null;
+            failures.value = 0;
           }
           return loaded;
         },
         (e: unknown) => {
           // A 401 has signed the user out (App.vue takes them to sign in); anything else is worth a line.
           if (statusOf(e) !== 401) console.error('Loading the administration grants failed:', e);
-          if (current()) failedFor.value = userId;
+          if (current()) {
+            failedFor.value = userId;
+            failures.value++;
+          }
           return null;
         },
       );
@@ -88,8 +104,8 @@ export const useAdminAccess = defineStore('admin-access', () => {
         if (pending?.load === run) pending = null;
       });
     }
-    return pending.load;
+    return pending!.load;
   }
 
-  return { cache, grants, failed, held, any, holds, load, refusal };
+  return { cache, grants, failed, retryable, held, any, holds, load, refusal };
 });

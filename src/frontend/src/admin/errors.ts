@@ -1,12 +1,12 @@
 import { HttpError } from '../api.js';
-import { PERMISSION_KINDS, type AffectedCurriculum, type PermissionKind } from './api.js';
+import { PERMISSION_KINDS, type AffectedCurriculum, type ImportRowError, type PermissionKind } from './api.js';
 
 // What a failed administration call means, read from the API's answer (ADR 0011, "Validation, errors and
 // removal"). The stable `code` of the error body decides, not the HTTP status: a prerequisite cycle is a 400 and a
 // referenced item a 409, and both are refusals that saved nothing. Nothing here judges a value itself.
 
 /** The 409 reasons that need no further step from the screen. */
-export const CONFLICT_CODES = ['duplicate_name', 'duplicate_code', 'referenced_item', 'last_access_manager', 'recipient_deletion_pending'] as const;
+export const CONFLICT_CODES = ['duplicate_name', 'duplicate_code', 'duplicate_cohort', 'referenced_item', 'last_access_manager', 'recipient_deletion_pending'] as const;
 export type ConflictCode = (typeof CONFLICT_CODES)[number];
 
 export type Failure =
@@ -14,6 +14,14 @@ export type Failure =
   | { kind: 'signed_out' }
   /** 400 validation_failed: the API's messages, each starting with the field it names. */
   | { kind: 'validation'; details: string[] }
+  /** 400 validation_failed for a CSV import file: where the file is wrong, by record. */
+  | { kind: 'file'; details: string[]; errors: ImportRowError[] }
+  /** 409 impact_changed of an import confirmation: the file, the saved data or the links changed since the preview. */
+  | { kind: 'review_changed' }
+  /** 413: the file or the request is over a size or record limit. */
+  | { kind: 'too_large' }
+  /** 415: the request was compressed, which the import routes refuse. */
+  | { kind: 'compressed' }
   /** 400 prerequisite_cycle: from the edited course back to it. */
   | { kind: 'cycle'; cycle: string[] }
   /** 403 permission_required: the grant the caller lacks, or null when the answer does not name one. */
@@ -41,6 +49,12 @@ function affected(value: unknown): AffectedCurriculum[] | null {
   return rows;
 }
 
+function rowErrors(value: unknown[]): ImportRowError[] {
+  return value
+    .filter((item): item is ImportRowError => typeof (item as ImportRowError)?.record === 'number' && typeof (item as ImportRowError).message === 'string')
+    .map((item) => ({ record: item.record, field: typeof item.field === 'string' ? item.field : null, message: item.message }));
+}
+
 /** Reads a failed call. Anything that is not an answer from the API is `no_answer`. */
 export function readFailure(error: unknown): Failure {
   if (!(error instanceof HttpError)) return { kind: 'no_answer' };
@@ -49,6 +63,7 @@ export function readFailure(error: unknown): Failure {
   if (status === 401) return { kind: 'signed_out' };
   // A gateway or the API itself failed: a write may or may not have been committed.
   if (status >= 500) return { kind: 'no_answer' };
+  if (code === 'validation_failed' && Array.isArray(body.errors)) return { kind: 'file', details, errors: rowErrors(body.errors) };
   if (code === 'validation_failed') return { kind: 'validation', details };
   if (code === 'prerequisite_cycle') return { kind: 'cycle', cycle: strings(body.cycle) };
   if (code === 'permission_required') {
@@ -59,7 +74,12 @@ export function readFailure(error: unknown): Failure {
   if (code === 'impact_confirmation_required' || code === 'impact_changed') {
     const rows = affected(body.affectedCurricula);
     if (rows && typeof body.reviewVersion === 'string') return { kind: 'impact', changed: code === 'impact_changed', affected: rows, reviewVersion: body.reviewVersion };
+    // An import confirmation: the 409 carries no new review, the file is previewed again.
+    if (code === 'impact_changed') return { kind: 'review_changed' };
   }
+  // A 413 may come from the body parser, before the route, with no code of its own.
+  if (status === 413) return { kind: 'too_large' };
+  if (status === 415 || code === 'unsupported_content_encoding') return { kind: 'compressed' };
   if ((CONFLICT_CODES as readonly (string | null)[]).includes(code)) return { kind: 'conflict', code: code as ConflictCode, references: strings(body.references) };
   // The read routes answer a plain 404 without a code.
   if (code === 'not_found' || (status === 404 && code === null)) return { kind: 'not_found' };

@@ -290,3 +290,171 @@ describe('the administration dialogs with the keyboard', () => {
     await expect.element(row('ZZ103').getByText('Chưa ghi nhận').first()).toBeVisible();
   });
 });
+
+describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2, A9)', () => {
+  const HEADER = 'code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods';
+  const CSV = `${HEADER}\nZZ300,${LONG},,4,45,30,,\nZZ101,Học phần thử ZZ101,,3,45,30,,0\n`;
+  const plain = { nameEn: null, theoryPeriods: 45, labPeriods: 30, exercisePeriods: null, projectPeriods: null };
+  const AFFECTED = { curriculumId: CURRICULUM_ID, curriculumCode: 'ZZPROG2024', programCode: 'ZZPROG', cohortYear: 2024 };
+  const PREVIEW = {
+    fileType: 'catalog_courses',
+    errors: [{ record: 4, field: 'credits', message: `credits must be an integer number; ${LONG}` }],
+    summary: { inserts: 1, updates: 1, noOps: 0 },
+    reviewVersion: null,
+    rows: [
+      { record: 2, action: 'insert', code: 'ZZ300', nameVi: LONG, credits: 4, ...plain, changedFields: [], current: null, affectedCurricula: [] },
+      { record: 3, action: 'update', code: 'ZZ101', nameVi: 'Học phần thử ZZ101', credits: 3, ...plain, projectPeriods: 0, changedFields: ['credits', 'projectPeriods'], current: { code: 'ZZ101', nameVi: 'Học phần thử ZZ101', credits: 4, ...plain }, affectedCurricula: [AFFECTED] },
+      { record: 5, action: 'no_op', code: 'ZZ20CHARACTERSCODE01', nameVi: 'Học phần thử', credits: 3, ...plain, changedFields: [], current: null, affectedCurricula: [] },
+    ],
+    affectedCurricula: [AFFECTED],
+  };
+  const PROGRAM = { code: 'ZZPROG', nameVi: 'Chương trình thử', nameEn: null, faculty: 'Khoa thử', trainingType: null, cohortYears: [2024] };
+  const COHORT_DETAILS = { id: CURRICULUM_ID, programId: PROGRAM_ID, cohortYear: 2024, code: 'ZZPROG2024', nameVi: 'CTĐT thử khóa 2024', nameEn: null, language: 'vi', totalCreditsMin: null, updatedAt: '2026-11-25T02:00:00.000Z' };
+  const routes = { 'POST /admin/catalog/imports/preview': PREVIEW, 'GET /programs': { programs: [PROGRAM] }, [`GET ${COHORT}`]: COHORT_DETAILS };
+  const q = (test: string) => document.querySelector<HTMLElement>(`[data-test="${test}"]`);
+
+  async function previewCsv() {
+    const input = page.getByLabelText(/^(Tệp CSV|CSV file)$/);
+    await userEvent.upload(input, new File([CSV], 'zz-thu.csv', { type: 'text/csv' }));
+    await expect.poll(() => q('import-file-read')).not.toBeNull();
+    q('import-preview')!.click();
+    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(3);
+  }
+  function inside(what: string, element: HTMLElement) {
+    const box = element.getBoundingClientRect();
+    expect(box.left, what).toBeGreaterThanOrEqual(0);
+    expect(box.right, what).toBeLessThanOrEqual(window.innerWidth);
+  }
+
+  it.each([360, 1280])('fit inside the screen at %i px, in Vietnamese and in English', async (width) => {
+    await page.viewport(width, 800);
+    for (const lang of ['vi', 'en']) {
+      localStorage.setItem('omnicourse.lang', lang);
+      const fits = (what: string) => expect(document.documentElement.scrollWidth, `${what} at ${width} px (${lang})`).toBeLessThanOrEqual(window.innerWidth);
+
+      await open('/admin/import?type=catalog_courses', routes);
+      await expect.element(page.getByRole('heading', { name: lang === 'vi' ? 'Nhập từ tệp CSV' : 'Import from a CSV file' })).toBeVisible();
+      fits('the import screen');
+      await previewCsv();
+      // Errors and actions in words, not by colour.
+      expect(q('import-errors')!.textContent).toContain(lang === 'vi' ? 'Bản ghi 4' : 'Record 4');
+      expect(q('import-result')!.textContent).toContain(LONG);
+      fits('the import preview');
+      for (const test of ['import-errors', 'import-result', 'import-affected']) inside(test, q(test)!);
+      // A wide table scrolls inside its own box, never the page.
+      for (const wrap of document.querySelectorAll<HTMLElement>('.table-wrap')) inside('a table box', wrap);
+      // Each action stays inside its own cell, clear of the code beside it.
+      for (const row of document.querySelectorAll<HTMLElement>('[data-test="import-row"]')) {
+        const [action, code] = [row.querySelector('.chip')!.getBoundingClientRect(), row.querySelector('.code')!.getBoundingClientRect()];
+        expect(action.right <= code.left || action.bottom <= code.top, `the action of record ${row.dataset.record} clear of its code`).toBe(true);
+        expect(action.right, `the action of record ${row.dataset.record} inside its cell`).toBeLessThanOrEqual(row.querySelector('.chip')!.parentElement!.getBoundingClientRect().right + 0.5);
+      }
+      // Cancel and Confirm stand apart, so neither is pressed for the other.
+      const [cancelBox, confirmBox] = [q('import-cancel')!.getBoundingClientRect(), q('import-confirm')!.getBoundingClientRect()];
+      expect(cancelBox.right < confirmBox.left || cancelBox.bottom < confirmBox.top, 'a gap between Cancel and Confirm').toBe(true);
+      close();
+
+      await open('/admin/curriculum', routes);
+      await expect.poll(() => q('program-edit')).not.toBeNull();
+      for (const button of ['program-edit', 'cohort-edit', 'cohort-add']) {
+        await expect.poll(() => (q(button) as HTMLButtonElement | null)?.disabled).toBe(false);
+        q(button)!.click();
+        const dialog = page.getByRole('dialog');
+        await expect.element(dialog).toBeVisible();
+        const element = dialog.element() as HTMLElement;
+        inside(button, element);
+        expect(element.scrollWidth, button).toBeLessThanOrEqual(element.clientWidth);
+        await userEvent.keyboard('{Escape}');
+        await expect.element(dialog).not.toBeInTheDocument();
+      }
+      fits('the curriculum banner');
+      close();
+
+      await open('/admin/access', routes);
+      await expect.poll(() => q('program-add')).not.toBeNull();
+      q('program-add')!.click();
+      const dialog = page.getByRole('dialog');
+      await expect.element(dialog).toBeVisible();
+      inside('the new program dialog', dialog.element() as HTMLElement);
+      fits('the access screen with the new program dialog');
+      close();
+    }
+  });
+
+  it('fits the group-links preview and the program and cohort pickers inside the screen at 360 px', async () => {
+    await page.viewport(360, 800);
+    const LINKS = `/admin/programs/${PROGRAM_ID}/cohorts/${CURRICULUM_ID}/imports`;
+    const LINK_PREVIEW = {
+      fileType: 'group_links',
+      programId: PROGRAM_ID,
+      curriculumId: CURRICULUM_ID,
+      errors: [],
+      summary: { inserts: 1, updates: 0, noOps: 1 },
+      reviewVersion: 'zz-review-links',
+      rows: [
+        { record: 2, action: 'insert', requirementGroupName: LONG, requirementGroupId: GROUP_BASE_ID, courseCode: 'ZZ20CHARACTERSCODE01' },
+        { record: 3, action: 'no_op', requirementGroupName: LONG, requirementGroupId: GROUP_BASE_ID, courseCode: 'ZZ101' },
+      ],
+    };
+    for (const lang of ['vi', 'en']) {
+      localStorage.setItem('omnicourse.lang', lang);
+      const fits = (what: string) => expect(document.documentElement.scrollWidth, `${what} (${lang})`).toBeLessThanOrEqual(window.innerWidth);
+      await open(`/admin/import?type=group_links&program=${PROGRAM_ID}&cohort=${CURRICULUM_ID}`, { ...routes, [`POST ${LINKS}/preview`]: LINK_PREVIEW });
+      await expect.poll(() => q('import-cohort')).not.toBeNull();
+      for (const picker of ['import-program', 'import-cohort']) inside(picker, q(picker)!);
+      fits('the pickers');
+      const input = page.getByLabelText(/^(Tệp CSV|CSV file)$/);
+      await userEvent.upload(input, new File([`requirement_group_name,course_code\n${LONG},ZZ20CHARACTERSCODE01\n${LONG},ZZ101\n`], 'zz-thu.csv', { type: 'text/csv' }));
+      await expect.poll(() => q('import-file-read')).not.toBeNull();
+      q('import-preview')!.click();
+      await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(2);
+      expect(q('import-result')!.textContent).toContain(LONG);
+      fits('the group-links preview');
+      inside('the preview', q('import-result')!);
+      for (const wrap of document.querySelectorAll<HTMLElement>('.table-wrap')) inside('a table box', wrap);
+      for (const row of document.querySelectorAll<HTMLElement>('[data-test="import-row"]')) {
+        for (const cell of row.querySelectorAll<HTMLElement>('th, td')) inside(`a cell of record ${row.dataset.record}`, cell);
+        const [action, code] = [row.querySelector('.chip')!.getBoundingClientRect(), row.querySelector('.code')!.getBoundingClientRect()];
+        expect(action.right <= code.left || action.bottom <= code.top, `the action of record ${row.dataset.record} clear of its course`).toBe(true);
+      }
+      for (const picker of ['import-program', 'import-cohort']) inside(picker, q(picker)!);
+      close();
+    }
+  });
+
+  it('confirms a previewed file from the keyboard, once', async () => {
+    await page.viewport(1280, 800);
+    await open('/admin/import?type=catalog_courses', {
+      ...routes,
+      'POST /admin/catalog/imports/preview': { ...PREVIEW, errors: [], reviewVersion: 'zz-review-1' },
+      'POST /admin/catalog/imports/confirm': { fileType: 'catalog_courses', summary: { inserts: 1, updates: 1, noOps: 0 } },
+    });
+    await previewCsv();
+    const confirm = page.getByRole('button', { name: 'Xác nhận và lưu' });
+    await expect.element(confirm).toBeEnabled();
+    (confirm.element() as HTMLElement).focus();
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => q('import-result')).toBeNull();
+    const confirms = vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/confirm'));
+    expect(confirms.map(([, init]) => JSON.parse(String(init?.body)).reviewVersion)).toEqual(['zz-review-1']);
+    // The focus goes back to the file box, for the next file.
+    await expect.element(page.getByLabelText('Tệp CSV')).toHaveFocus();
+  });
+
+  it('chooses a file, previews it and cancels from the keyboard, sending no confirmation', async () => {
+    await page.viewport(1280, 800);
+    await open('/admin/import?type=catalog_courses', { ...routes, 'POST /admin/catalog/imports/preview': { ...PREVIEW, errors: [], reviewVersion: 'zz-review-1' } });
+    const input = page.getByLabelText('Tệp CSV');
+    await userEvent.upload(input, new File([CSV], 'zz-thu.csv', { type: 'text/csv' }));
+    await expect.poll(() => q('import-file-read')).not.toBeNull();
+    (input.element() as HTMLElement).focus();
+    await userEvent.keyboard('{Tab}');
+    await expect.element(page.getByRole('button', { name: 'Xem trước' })).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(3);
+    q('import-cancel')!.focus();
+    await userEvent.keyboard('{Enter}');
+    await expect.poll(() => q('import-result')).toBeNull();
+    expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/confirm'))).toEqual([]);
+  });
+});

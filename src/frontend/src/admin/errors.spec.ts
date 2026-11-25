@@ -123,4 +123,32 @@ describe('readReference', () => {
   it('keeps a sentence it does not know as the API wrote it', () => {
     expect(readReference('5 new things name it')).toEqual({ kind: 'other', text: '5 new things name it' });
   });
+
+});
+
+describe('readFailure for the CSV import and the program routes (UC-11 A1, A2, A9)', () => {
+  it('keeps the record-numbered errors of a file the API could not read', () => {
+    const failure = readFailure(
+      answer(400, { statusCode: 400, code: 'validation_failed', message: 'The CSV does not have the header of this template', errors: [{ record: 1, field: null, message: 'the header must be exactly: a,b' }, { record: 'x' }] }),
+    );
+    expect(failure).toEqual({ kind: 'file', details: ['The CSV does not have the header of this template'], errors: [{ record: 1, field: null, message: 'the header must be exactly: a,b' }] });
+  });
+
+  it('reads a 409 impact_changed without a new review as a changed import, to preview again', () => {
+    expect(readFailure(answer(409, { statusCode: 409, code: 'impact_changed', message: 'x' }))).toEqual({ kind: 'review_changed' });
+  });
+
+  it('reads a 413 as too large, with the code or without it (the body parser answers before the route)', () => {
+    expect(readFailure(answer(413, { statusCode: 413, code: 'payload_too_large', message: 'x' }))).toEqual({ kind: 'too_large' });
+    expect(readFailure(answer(413, { statusCode: 413, message: 'request entity too large' }))).toEqual({ kind: 'too_large' });
+    expect(readFailure(answer(413, null))).toEqual({ kind: 'too_large' });
+  });
+
+  it('reads a 415 as a compressed body', () => {
+    expect(readFailure(answer(415, { statusCode: 415, code: 'unsupported_content_encoding', message: 'x' }))).toEqual({ kind: 'compressed' });
+  });
+
+  it('reads a second cohort of the same year as a conflict', () => {
+    expect(readFailure(answer(409, { statusCode: 409, code: 'duplicate_cohort', message: 'x' }))).toEqual({ kind: 'conflict', code: 'duplicate_cohort', references: [] });
+  });
 });

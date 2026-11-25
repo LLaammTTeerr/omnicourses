@@ -78,7 +78,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
 
   it('opens a course by its exact code, written as the catalog stores codes, with the curricula that use it', async () => {
     const { w, fetch } = await render();
-    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Danh mục học phần']);
+    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV']);
     expect(w.get('#catalog-admin-title').text()).toBe('Danh mục học phần dùng chung');
     expect(get(w, 'catalog-find').attributes('disabled')).toBeDefined();
     await find(w, ' zz101 ');
@@ -590,4 +590,53 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(get(dialog, 'impact-count').text()).toBe('1 curriculum affected');
     expect(get(dialog, 'impact-confirm').text()).toBe('Confirm and save');
   });
+
+  it('still saves, and says what the API answers, when the course was reloaded as missing while its dialog is open (#160)', async () => {
+    let patches = 0;
+    const { w, fetch } = await render({
+      'PATCH /admin/catalog/courses/ZZ200': () => {
+        patches++;
+        if (patches === 1) {
+          // Deleted elsewhere while the answer was lost: the reload finds no course.
+          delete saved.ZZ200;
+          throw new TypeError('Failed to fetch');
+        }
+        return Response.json({ statusCode: 404, code: 'not_found', message: 'No course has this code' }, { status: 404 });
+      },
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await find(w, 'ZZ200');
+    const dialog = await open(w, 'catalog-edit');
+    await get(dialog, 'course-nameVi').setValue('Tên thử mới');
+    await submit(w);
+    expect(problem(w).attributes('data-code')).toBe('not_applied');
+    // The dialog is still about ZZ200, and Save still does something.
+    expect(w.get('dialog[open] h2').text()).toBe('Sửa học phần ZZ200');
+    await submit(w);
+    expect(calls(fetch, 'PATCH')).toHaveLength(2);
+    expect(problem(w).attributes('data-code')).toBe('not_found');
+  });
+
+  it('offers to create a missing course only when its code has the format the API accepts (#160)', async () => {
+    const { w } = await render({ 'GET /courses/..%20': NOT_FOUND, 'GET /courses/ZZ-1': NOT_FOUND });
+    for (const typed of ['..', 'zz-1']) {
+      await find(w, typed);
+      const note = get(w, 'catalog-not-found').text();
+      expect(note).not.toContain('Thêm học phần');
+      expect(note).toContain('Mã học phần gồm 2 đến 20 chữ cái A–Z hoặc chữ số');
+      const dialog = await open(w, 'catalog-add');
+      expect(value(dialog, 'course-code')).toBe('');
+      await press(w, 'dialog-cancel');
+    }
+    // A code in the format still gets the offer.
+    await find(w, 'zz999');
+    expect(get(w, 'catalog-not-found').text()).toContain('Bấm “Thêm học phần”');
+  });
+
+  it('keeps a typed code of only dots one path segment, so the lookup reaches the course route (#160)', async () => {
+    const { w, fetch } = await render({ 'GET /courses/..%20': NOT_FOUND });
+    await find(w, '..');
+    expect(fetch.mock.calls.map(pathOf)).toEqual(['/admin/grants', '/courses/..%20']);
+  });
+
 });

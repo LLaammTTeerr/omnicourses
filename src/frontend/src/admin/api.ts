@@ -1,5 +1,6 @@
 import { request } from '../api.js';
 import type { Course, RequirementGroupKind } from '../curriculum/api.js';
+import { segment } from '../path-segment.js';
 
 // The F12 administration DTOs of the API (ADR 0011), written by hand; api.spec.ts checks them, and every address
 // called here, against src/backend/openapi.json. The API decides every permission and every value: these calls
@@ -59,6 +60,69 @@ export interface AdminProgramList {
 export interface CohortRef {
   programId: string;
   curriculumId: string;
+}
+
+// ---- Programs and cohorts (UC-11 A1, A2) ----------------------------------------------------------------------
+
+/** A new program. The training type is not accepted by the API (ADR 0011, "Programs and cohorts as built"). */
+export interface CreateProgramBody {
+  code: string;
+  nameVi: string;
+  nameEn?: string | null;
+  faculty?: string | null;
+}
+
+/** Only the fields to change. The code and the training type cannot change here: the API refuses them. */
+export interface UpdateProgramBody {
+  nameVi?: string;
+  nameEn?: string | null;
+  faculty?: string | null;
+}
+
+export interface ProgramDetails {
+  id: string;
+  code: string;
+  nameVi: string;
+  nameEn: string | null;
+  faculty: string | null;
+  /** Read-only: no administration route sets it. */
+  trainingType: string | null;
+  updatedAt: string;
+}
+
+/** A new cohort: one curriculum of the program, created empty. No credit total is accepted. */
+export interface CreateCohortBody {
+  cohortYear: number;
+  code: string;
+  nameVi: string;
+  nameEn?: string | null;
+  language?: string | null;
+}
+
+/** Only the fields to change. The program, the year, the code and the credit total cannot change here. */
+export interface UpdateCohortBody {
+  nameVi?: string;
+  nameEn?: string | null;
+  language?: string | null;
+}
+
+export interface CohortDetails {
+  /** The curriculum ID. */
+  id: string;
+  programId: string;
+  cohortYear: number;
+  code: string;
+  nameVi: string;
+  nameEn: string | null;
+  language: string | null;
+  /** Read-only: null for a cohort created here. */
+  totalCreditsMin: number | null;
+  updatedAt: string;
+}
+
+export interface CohortList {
+  /** Oldest first. */
+  cohorts: CohortDetails[];
 }
 
 // ---- Requirement groups ----------------------------------------------------------------------------------------
@@ -155,6 +219,93 @@ export interface AccessProgramList {
   programs: AccessProgram[];
 }
 
+// ---- CSV import (UC-11 A9) -------------------------------------------------------------------------------------
+
+export const IMPORT_FILE_TYPES = ['catalog_courses', 'group_links'] as const;
+export type ImportFileType = (typeof IMPORT_FILE_TYPES)[number];
+
+/** The exact first line of each file type (ADR 0011, "CSV contract and UC-11 handoff"). */
+export const IMPORT_HEADERS: Record<ImportFileType, readonly string[]> = {
+  catalog_courses: ['code', 'name_vi', 'name_en', 'credits', 'theory_periods', 'lab_periods', 'exercise_periods', 'project_periods'],
+  group_links: ['requirement_group_name', 'course_code'],
+};
+
+/** The input limits of the API; it checks them itself, and decides. */
+export const IMPORT_MAX_BYTES = 1024 * 1024;
+export const IMPORT_MAX_RECORDS = 1000;
+
+export interface ImportPreviewBody {
+  /** The whole file as text. */
+  csv: string;
+}
+
+export interface ImportConfirmBody {
+  /** The same file that was previewed. */
+  csv: string;
+  reviewVersion: string;
+}
+
+/** Where a file is wrong: by record (the header is record 1), never by line. */
+export interface ImportRowError {
+  record: number;
+  /** The CSV column, or null for the whole record. */
+  field: string | null;
+  /** English text from the API. */
+  message: string;
+}
+
+export interface ImportSummary {
+  inserts: number;
+  updates: number;
+  noOps: number;
+}
+
+export interface CatalogImportRow extends Course {
+  record: number;
+  action: 'insert' | 'update' | 'no_op';
+  /** For an update: the fields whose saved value differs. */
+  changedFields: (keyof Course)[];
+  /** For an update: the course as saved now. */
+  current: Course | null;
+  affectedCurricula: AffectedCurriculum[];
+}
+
+export interface GroupLinkImportRow {
+  record: number;
+  action: 'insert' | 'no_op';
+  requirementGroupName: string;
+  requirementGroupId: string;
+  courseCode: string;
+}
+
+interface ImportPreviewBase {
+  errors: ImportRowError[];
+  summary: ImportSummary;
+  /** null while the file has an error: such a file cannot be confirmed. */
+  reviewVersion: string | null;
+}
+
+export interface CatalogImportPreview extends ImportPreviewBase {
+  fileType: 'catalog_courses';
+  rows: CatalogImportRow[];
+  /** Every curriculum that will read new values. */
+  affectedCurricula: AffectedCurriculum[];
+}
+
+export interface GroupLinkImportPreview extends ImportPreviewBase {
+  fileType: 'group_links';
+  programId: string;
+  curriculumId: string;
+  rows: GroupLinkImportRow[];
+}
+
+export type ImportPreview = CatalogImportPreview | GroupLinkImportPreview;
+
+export interface ImportResult {
+  fileType: ImportFileType;
+  summary: ImportSummary;
+}
+
 // ---- Error bodies ----------------------------------------------------------------------------------------------
 
 /** Every F12 error: the screen words its message from `code`; `message` is English text for a developer. */
@@ -185,6 +336,11 @@ export interface AffectedCurriculum {
   cohortYear: number;
 }
 
+/** A refused import file (400 validation_failed): where it is wrong. Absent for a malformed request body. */
+export interface ImportRejectedBody extends AdminErrorBody {
+  errors?: ImportRowError[];
+}
+
 export interface ImpactConfirmationBody extends AdminErrorBody {
   affectedCurricula: AffectedCurriculum[];
   reviewVersion: string;
@@ -192,14 +348,6 @@ export interface ImpactConfirmationBody extends AdminErrorBody {
 
 // ---- Calls -----------------------------------------------------------------------------------------------------
 
-/**
- * One path segment. A segment of only dots would be resolved by the browser as a relative path, so the request
- * would reach another address; a trailing space keeps it one segment, and the API then refuses it as a value.
- */
-const segment = (value: string): string => {
-  const encoded = encodeURIComponent(value);
-  return /^\.+$/.test(encoded) ? `${encoded}%20` : encoded;
-};
 const cohortPath = (cohort: CohortRef) => `/admin/programs/${segment(cohort.programId)}/cohorts/${segment(cohort.curriculumId)}`;
 const groupPath = (cohort: CohortRef, groupId: string) => `${cohortPath(cohort)}/requirement-groups/${segment(groupId)}`;
 const rulePath = (cohort: CohortRef, courseCode: string) => `${cohortPath(cohort)}/courses/${segment(courseCode)}`;
@@ -210,6 +358,17 @@ export const fetchOwnGrants = (token: string) => request<UserGrants>('GET', '/ad
 
 /** The programs the caller holds a program grant for, with their cohorts. */
 export const fetchAdminPrograms = (token: string) => request<AdminProgramList>('GET', '/admin/programs', { token });
+
+/** Needs the access-manager permission. 409 duplicate_code. The creator gets no grant on the new program. */
+export const createProgram = (token: string, body: Entered<CreateProgramBody>) => request<ProgramDetails>('POST', '/admin/programs', { token, body });
+export const updateProgram = (token: string, programId: string, body: Entered<UpdateProgramBody>) =>
+  request<ProgramDetails>('PATCH', `/admin/programs/${segment(programId)}`, { token, body });
+export const fetchCohorts = (token: string, programId: string) => request<CohortList>('GET', `/admin/programs/${segment(programId)}/cohorts`, { token });
+/** 409 duplicate_cohort (a cohort of this year) or duplicate_code (a curriculum with this code). */
+export const createCohort = (token: string, programId: string, body: Entered<CreateCohortBody>) =>
+  request<CohortDetails>('POST', `/admin/programs/${segment(programId)}/cohorts`, { token, body });
+export const fetchCohort = (token: string, cohort: CohortRef) => request<CohortDetails>('GET', cohortPath(cohort), { token });
+export const updateCohort = (token: string, cohort: CohortRef, body: Entered<UpdateCohortBody>) => request<CohortDetails>('PATCH', cohortPath(cohort), { token, body });
 
 export const createGroup = (token: string, cohort: CohortRef, body: Entered<CreateGroupBody>) =>
   request<AdminGroup>('POST', `${cohortPath(cohort)}/requirement-groups`, { token, body });
@@ -259,3 +418,14 @@ export const grantGlobal = (token: string, userId: string, permission: GlobalPer
 /** 409 last_access_manager when it would leave no active access manager. */
 export const revokeGlobal = (token: string, userId: string, permission: GlobalPermission) =>
   request<UserGrants>('DELETE', `${userPath(userId)}/global/${segment(permission)}`, { token });
+
+/** Writes nothing. A row error is in `errors`, not a failed request; 400 when no row can be read at all. */
+export const previewCatalogImport = (token: string, csv: string) =>
+  request<CatalogImportPreview>('POST', '/admin/catalog/imports/preview', { token, body: { csv } satisfies ImportPreviewBody });
+/** Saves the whole file or nothing. 409 impact_changed: preview again. */
+export const confirmCatalogImport = (token: string, csv: string, reviewVersion: string) =>
+  request<ImportResult>('POST', '/admin/catalog/imports/confirm', { token, body: { csv, reviewVersion } satisfies ImportConfirmBody });
+export const previewLinkImport = (token: string, cohort: CohortRef, csv: string) =>
+  request<GroupLinkImportPreview>('POST', `${cohortPath(cohort)}/imports/preview`, { token, body: { csv } satisfies ImportPreviewBody });
+export const confirmLinkImport = (token: string, cohort: CohortRef, csv: string, reviewVersion: string) =>
+  request<ImportResult>('POST', `${cohortPath(cohort)}/imports/confirm`, { token, body: { csv, reviewVersion } satisfies ImportConfirmBody });

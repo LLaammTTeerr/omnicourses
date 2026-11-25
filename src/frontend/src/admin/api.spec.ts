@@ -6,7 +6,25 @@ import * as api from './api.js';
 import {
   GLOBAL_PERMISSIONS,
   PERMISSION_KINDS,
+  IMPORT_HEADERS,
   type AccessProgram,
+  type CatalogImportPreview,
+  type CatalogImportRow,
+  type CohortDetails,
+  type CohortList,
+  type CreateCohortBody,
+  type CreateProgramBody,
+  type GroupLinkImportPreview,
+  type GroupLinkImportRow,
+  type ImportConfirmBody,
+  type ImportPreviewBody,
+  type ImportRejectedBody,
+  type ImportResult,
+  type ImportRowError,
+  type ImportSummary,
+  type ProgramDetails,
+  type UpdateCohortBody,
+  type UpdateProgramBody,
   type AccessProgramList,
   type AdminCurriculum,
   type AdminErrorBody,
@@ -63,6 +81,70 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     ['OfferingTermsDto', { courseCode: 'required', terms: 'required' } satisfies Shape<OfferingTerms>],
     ['CreateCourseDto', { code: 'required', nameVi: 'required', nameEn: 'optional', credits: 'required', ...periods } satisfies Shape<CreateCourseBody>],
     ['UpdateCourseDto', { nameVi: 'optional', nameEn: 'optional', credits: 'optional', ...periods, confirmImpact: 'optional' } satisfies Shape<UpdateCourseBody>],
+    ['CreateProgramDto', { code: 'required', nameVi: 'required', nameEn: 'optional', faculty: 'optional' } satisfies Shape<CreateProgramBody>],
+    ['UpdateProgramDto', { nameVi: 'optional', nameEn: 'optional', faculty: 'optional' } satisfies Shape<UpdateProgramBody>],
+    [
+      'ProgramDetailsDto',
+      { id: 'required', code: 'required', nameVi: 'required', nameEn: 'required', faculty: 'required', trainingType: 'required', updatedAt: 'required' } satisfies Shape<ProgramDetails>,
+    ],
+    ['CreateCohortDto', { cohortYear: 'required', code: 'required', nameVi: 'required', nameEn: 'optional', language: 'optional' } satisfies Shape<CreateCohortBody>],
+    ['UpdateCohortDto', { nameVi: 'optional', nameEn: 'optional', language: 'optional' } satisfies Shape<UpdateCohortBody>],
+    [
+      'CohortDetailsDto',
+      {
+        id: 'required',
+        programId: 'required',
+        cohortYear: 'required',
+        code: 'required',
+        nameVi: 'required',
+        nameEn: 'required',
+        language: 'required',
+        totalCreditsMin: 'required',
+        updatedAt: 'required',
+      } satisfies Shape<CohortDetails>,
+    ],
+    ['CohortListDto', { cohorts: 'required' } satisfies Shape<CohortList>],
+    ['ImportPreviewRequestDto', { csv: 'required' } satisfies Shape<ImportPreviewBody>],
+    ['ImportConfirmRequestDto', { csv: 'required', reviewVersion: 'required' } satisfies Shape<ImportConfirmBody>],
+    ['ImportRowErrorDto', { record: 'required', field: 'required', message: 'required' } satisfies Shape<ImportRowError>],
+    ['ImportSummaryDto', { inserts: 'required', updates: 'required', noOps: 'required' } satisfies Shape<ImportSummary>],
+    [
+      'CatalogImportRowDto',
+      {
+        code: 'required',
+        nameVi: 'required',
+        nameEn: 'required',
+        credits: 'required',
+        theoryPeriods: 'required',
+        labPeriods: 'required',
+        exercisePeriods: 'required',
+        projectPeriods: 'required',
+        record: 'required',
+        action: 'required',
+        changedFields: 'required',
+        current: 'required',
+        affectedCurricula: 'required',
+      } satisfies Shape<CatalogImportRow>,
+    ],
+    [
+      'CatalogImportPreviewDto',
+      { errors: 'required', summary: 'required', reviewVersion: 'required', fileType: 'required', rows: 'required', affectedCurricula: 'required' } satisfies Shape<CatalogImportPreview>,
+    ],
+    ['GroupLinkImportRowDto', { record: 'required', action: 'required', requirementGroupName: 'required', requirementGroupId: 'required', courseCode: 'required' } satisfies Shape<GroupLinkImportRow>],
+    [
+      'GroupLinkImportPreviewDto',
+      {
+        errors: 'required',
+        summary: 'required',
+        reviewVersion: 'required',
+        fileType: 'required',
+        programId: 'required',
+        curriculumId: 'required',
+        rows: 'required',
+      } satisfies Shape<GroupLinkImportPreview>,
+    ],
+    ['ImportResultDto', { fileType: 'required', summary: 'required' } satisfies Shape<ImportResult>],
+    ['ImportRejectedDto', { ...error, errors: 'optional' } satisfies Shape<ImportRejectedBody>],
     ['AccessProgramListDto', { programs: 'required' } satisfies Shape<AccessProgramList>],
     ['AccessProgramDto', { id: 'required', code: 'required', nameVi: 'required' } satisfies Shape<AccessProgram>],
     ['AdminErrorDto', error satisfies Shape<AdminErrorBody>],
@@ -73,6 +155,14 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     ['ImpactConfirmationDto', { ...error, affectedCurricula: 'required', reviewVersion: 'required' } satisfies Shape<ImpactConfirmationBody>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+  });
+
+  it('offers the exact header of each file type, as each preview route names it', () => {
+    const summary = (path: string) => (contract.paths as Record<string, { post?: { summary?: string } }>)[path]!.post!.summary!;
+    expect(summary('/api/admin/catalog/imports/preview').endsWith(`Header: ${IMPORT_HEADERS.catalog_courses.join(',')}`)).toBe(true);
+    expect(summary('/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview').endsWith(`Header: ${IMPORT_HEADERS.group_links.join(',')}`)).toBe(true);
+    expect(contractEnum('CatalogImportRowDto', 'action')).toEqual(['insert', 'no_op', 'update']);
+    expect(contractEnum('GroupLinkImportRowDto', 'action')).toEqual(['insert', 'no_op']);
   });
 
   it('has the permissions of the contract', () => {
@@ -103,6 +193,16 @@ const CALLS: [name: string, call: () => Promise<unknown>, method: string, path: 
   ['createCourse', () => api.createCourse(TOKEN, { code: 'ZZ101', nameVi: 'Môn thử', credits: 4 }), 'post', '/api/admin/catalog/courses'],
   ['updateCourse', () => api.updateCourse(TOKEN, 'ZZ101', { credits: 3 }), 'patch', '/api/admin/catalog/courses/{courseCode}'],
   ['deleteCourse', () => api.deleteCourse(TOKEN, 'ZZ101'), 'delete', '/api/admin/catalog/courses/{courseCode}'],
+  ['createProgram', () => api.createProgram(TOKEN, { code: 'ZZ-NEW', nameVi: 'Chương trình thử' }), 'post', '/api/admin/programs'],
+  ['updateProgram', () => api.updateProgram(TOKEN, COHORT.programId, { faculty: null }), 'patch', '/api/admin/programs/{programId}'],
+  ['fetchCohorts', () => api.fetchCohorts(TOKEN, COHORT.programId), 'get', '/api/admin/programs/{programId}/cohorts'],
+  ['createCohort', () => api.createCohort(TOKEN, COHORT.programId, { cohortYear: 2026, code: 'ZZ-NEW-2026', nameVi: 'Khóa thử' }), 'post', '/api/admin/programs/{programId}/cohorts'],
+  ['fetchCohort', () => api.fetchCohort(TOKEN, COHORT), 'get', '/api/admin/programs/{programId}/cohorts/{curriculumId}'],
+  ['updateCohort', () => api.updateCohort(TOKEN, COHORT, { language: 'en' }), 'patch', '/api/admin/programs/{programId}/cohorts/{curriculumId}'],
+  ['previewCatalogImport', () => api.previewCatalogImport(TOKEN, 'x'), 'post', '/api/admin/catalog/imports/preview'],
+  ['confirmCatalogImport', () => api.confirmCatalogImport(TOKEN, 'x', 'zz-review'), 'post', '/api/admin/catalog/imports/confirm'],
+  ['previewLinkImport', () => api.previewLinkImport(TOKEN, COHORT, 'x'), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview'],
+  ['confirmLinkImport', () => api.confirmLinkImport(TOKEN, COHORT, 'x', 'zz-review'), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm'],
   ['fetchAccessPrograms', () => api.fetchAccessPrograms(TOKEN), 'get', '/api/admin/access/programs'],
   ['fetchUserGrants', () => api.fetchUserGrants(TOKEN, USER), 'get', '/api/admin/access/users/{userId}/grants'],
   ['grantProgram', () => api.grantProgram(TOKEN, USER, COHORT.programId), 'put', '/api/admin/access/users/{userId}/programs/{programId}'],
@@ -142,7 +242,16 @@ describe('administration addresses against the contract', () => {
     await api.setOfferingTerms(TOKEN, COHORT, 'ZZ102', [2]);
     await api.updateCourse(TOKEN, 'ZZ101', { credits: 3, confirmImpact: 'zz-review' });
     await api.grantGlobal(TOKEN, USER, 'access_manager');
-    expect(fetch.mock.calls.map(([, init]) => init?.body)).toEqual(['{"prerequisites":[]}', '{"terms":[2]}', '{"credits":3,"confirmImpact":"zz-review"}', undefined]);
+    await api.previewLinkImport(TOKEN, COHORT, 'a,b\n');
+    await api.confirmCatalogImport(TOKEN, 'a,b\n', 'zz-review');
+    expect(fetch.mock.calls.map(([, init]) => init?.body)).toEqual([
+      '{"prerequisites":[]}',
+      '{"terms":[2]}',
+      '{"credits":3,"confirmImpact":"zz-review"}',
+      undefined,
+      JSON.stringify({ csv: 'a,b\n' }),
+      JSON.stringify({ csv: 'a,b\n', reviewVersion: 'zz-review' }),
+    ]);
   });
 
   it('keeps a typed value one path segment, whatever it holds', async () => {

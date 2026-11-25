@@ -245,7 +245,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     const before = calls(fetch, 'GET').filter((call) => pathOf(call) === '/admin/grants').length;
     await click(w, 'access-grant-catalog_maintainer');
     expect(calls(fetch, 'GET').filter((call) => pathOf(call) === '/admin/grants').length).toBe(before + 1);
-    expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Phân quyền']);
+    expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV', 'Phân quyền']);
   });
 
   it('warns before the access manager revokes their own permission, then closes the section they no longer hold', async () => {
@@ -266,7 +266,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(useToast().message).toBe('Đã thu hồi quyền “Quản lý phân quyền”.');
     expect(has(w, 'access-user')).toBe(false);
     expect(get(w, 'admin-section-denied').attributes('data-permission')).toBe('access_manager');
-    expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần']);
+    expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV']);
   });
 
   it('never lets a late answer about one user fill the panel of another: Find waits for the grant that is out', async () => {
@@ -323,7 +323,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     await click(wrapper.get('dialog[open]'), 'confirm-no');
     // A grant to themselves shows in the sections at once.
     await click(wrapper, 'access-grant-catalog_maintainer');
-    expect(wrapper.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Phân quyền']);
+    expect(wrapper.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV', 'Phân quyền']);
     expect(fetch).toHaveBeenCalled();
   });
 
@@ -466,5 +466,91 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(globalRow(w, 'catalog_maintainer').findAll('td')[0]!.text()).toContain('Held');
     await click(get(w, 'access-program-grant'), 'access-revoke-program');
     expect(w.get('dialog[open]').text()).toContain('This user will lose the permission “Program administrator of ZZPROG”.');
+  });
+});
+
+describe('AccessAdmin (UC-11 A2): an access manager adds a program', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    own = ACCESS_MANAGER;
+    saved = grants({ userId: OTHER_USER_ID });
+  });
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = undefined;
+    vi.restoreAllMocks();
+  });
+
+  const NEW_PROGRAM = { id: '00000000-0000-4000-8000-0000000000a9', code: 'ZZ-NEW', nameVi: 'Chương trình thử mới' };
+  const created = () => Response.json({ ...NEW_PROGRAM, nameEn: null, faculty: null, trainingType: null, updatedAt: '2026-11-25T02:00:00.000Z' }, { status: 201 });
+
+  async function fill(w: VueWrapper) {
+    await click(w, 'program-add');
+    const dialog = w.get('dialog[open]');
+    await get(dialog, 'program-code').setValue(' zz-new ');
+    await get(dialog, 'program-nameVi').setValue('Chương trình thử mới');
+    await w.get('dialog[open] form').trigger('submit');
+    await flushPromises();
+  }
+
+  it('creates the program with what was typed, then lists it to grant, and says nobody administers it yet', async () => {
+    let listed = accessPrograms();
+    const { w, fetch } = await render({
+      'GET /admin/access/programs': () => Response.json(listed),
+      'POST /admin/programs': () => {
+        listed = { programs: [...accessPrograms().programs, NEW_PROGRAM] };
+        return created();
+      },
+    });
+    await click(w, 'program-add');
+    const dialog = w.get('dialog[open]');
+    expect(dialog.get('h2').text()).toBe('Chương trình mới');
+    // No box for the training type: the API takes none.
+    expect(dialog.findAll('input').map((field) => field.attributes('id'))).toEqual(['program-code', 'program-nameVi', 'program-nameEn', 'program-faculty']);
+    await get(dialog, 'dialog-cancel').trigger('click');
+    await flushPromises();
+    expect(writes(fetch)).toEqual([]);
+
+    await fill(w);
+    expect(writes(fetch).map((call) => [pathOf(call), JSON.parse(String(call[1]?.body))])).toEqual([['/admin/programs', { code: ' zz-new ', nameVi: 'Chương trình thử mới', nameEn: null, faculty: null }]]);
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(useToast().message).toBe('Đã tạo chương trình ZZ-NEW. Chưa ai quản trị chương trình này: cấp quyền quản trị chương trình cho người phụ trách.');
+    await find(w, OTHER_USER_ID);
+    expect(optionsOf(get(w, 'access-program'))).toContain('ZZ-NEW · Chương trình thử mới');
+    expect(document.activeElement?.getAttribute('data-test')).not.toBe('dialog-save');
+  });
+
+  it('says a program code in use in words, under the program, not the catalog', async () => {
+    const { w } = await render({ 'POST /admin/programs': status(409, { statusCode: 409, code: 'duplicate_code', message: 'x' }) });
+    await fill(w);
+    const note = w.get('dialog[open] [data-test="admin-problem"]');
+    expect(note.text()).toBe('Đã có chương trình mang mã này. Chưa lưu gì.');
+    useLocale().set('en');
+    await flushPromises();
+    expect(w.get('dialog[open] [data-test="admin-problem"]').text()).toBe('A program has this code already. Nothing was saved.');
+  });
+
+  it('settles a lost answer from the list of programs, and sends the program once', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let listed = accessPrograms();
+    const { w, fetch } = await render({
+      'GET /admin/access/programs': () => Response.json(listed),
+      'POST /admin/programs': () => {
+        listed = { programs: [...accessPrograms().programs, NEW_PROGRAM] };
+        throw new TypeError('Failed to fetch');
+      },
+    });
+    await fill(w);
+    expect(calls(fetch, 'POST')).toHaveLength(1);
+    expect(w.find('dialog[open]').exists()).toBe(false);
+    expect(get(w, 'program-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+  });
+
+  it('says when the lost program is not in the list, and keeps the dialog to try again', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render({ 'POST /admin/programs': lost });
+    await fill(w);
+    expect(w.get('dialog[open] [data-test="admin-problem"]').attributes('data-code')).toBe('not_applied');
   });
 });

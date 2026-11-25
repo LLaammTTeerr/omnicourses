@@ -2,7 +2,8 @@ import type { RequirementGroupKind } from '../curriculum/api.js';
 import type { Lang } from '../locale.js';
 import type { PermissionKind } from './api.js';
 import type { ConflictCode, Reference } from './errors.js';
-import type { CourseField } from './forms.js';
+import type { CohortField, CourseField, ProgramField } from './forms.js';
+import type { ImportFileType } from './api.js';
 import type { AdminSection } from './sections.js';
 
 /** The curriculum editor: requirement groups, their courses, prerequisites and offering terms (program grant). */
@@ -29,6 +30,7 @@ interface CurriculumMessages {
   noteMoreLabel: (group: string) => string;
   noteLessLabel: (group: string) => string;
   cohortLabel: (program: string, year: number) => string;
+  groupLabel: (program: string, year: number, group: string) => string;
   open: string;
   opened: string;
   openLabel: (group: string) => string;
@@ -56,6 +58,7 @@ interface CurriculumMessages {
   linkSubmit: string;
   linkHint: string;
   linkNotFound: string;
+  importLink: string;
   linked: (course: string, group: string) => string;
   courseColumns: { code: string; name: string; credits: string; prerequisites: string; terms: string; actions: string };
   noPrerequisite: string;
@@ -96,7 +99,9 @@ interface CatalogMessages {
   lookupHint: string;
   notFound: (code: string) => string;
   notFoundAdd: string;
+  notACode: string;
   lookupFailed: string;
+  importLink: string;
   fields: Record<CourseField, string>;
   blank: string;
   usedIn: string;
@@ -133,6 +138,90 @@ interface CatalogMessages {
   reviewBack: string;
   reviewConfirm: string;
   rebased: string;
+}
+
+/** Programs (created by an access manager) and their cohorts (program grant), UC-11 A1 and A2. */
+interface ProgramMessages {
+  programsTitle: string;
+  programsLead: string;
+  addProgram: string;
+  editProgram: string;
+  editProgramLabel: (program: string) => string;
+  programNew: string;
+  programEdit: (program: string) => string;
+  fields: Record<ProgramField, string>;
+  codeHint: string;
+  codeFixed: string;
+  blankHint: string;
+  programNotHere: string;
+  programCreated: (program: string) => string;
+  programSaved: (program: string) => string;
+  duplicateProgramCode: string;
+  programLoadFailed: string;
+  addCohort: string;
+  editCohort: string;
+  editCohortLabel: (year: number) => string;
+  cohortNew: (program: string) => string;
+  cohortEdit: (program: string, year: number) => string;
+  cohortFields: Record<CohortField, string>;
+  cohortYearHint: string;
+  cohortCodeHint: string;
+  languageHint: string;
+  identityFixed: string;
+  cohortNotHere: string;
+  cohortCreated: (year: string) => string;
+  cohortSaved: (year: number) => string;
+  duplicateCohortCode: string;
+  cohortLoadFailed: string;
+  noChange: string;
+}
+
+/** CSV bulk entry (UC-11 A9): catalog courses, or group links of one cohort. */
+interface ImportMessages {
+  heading: string;
+  lead: string;
+  typeLegend: string;
+  types: Record<ImportFileType, string>;
+  typeHints: Record<ImportFileType, string>;
+  target: string;
+  programsFailed: string;
+  noPrograms: string;
+  noCohort: string;
+  template: string;
+  templateHint: string;
+  copyHeader: string;
+  headerCopied: string;
+  headerNotCopied: string;
+  downloadTemplate: string;
+  file: string;
+  fileHint: string;
+  fileChosen: (name: string, size: string) => string;
+  notUtf8: string;
+  unreadable: string;
+  tooBig: (size: string) => string;
+  tooMany: (count: number) => string;
+  preview: string;
+  previewing: string;
+  previewFailed: string;
+  previewTitle: string;
+  summary: (inserts: number, updates: number, noOps: number) => string;
+  errorsTitle: (count: number) => string;
+  errorsNote: string;
+  errorColumns: { record: string; field: string; message: string };
+  wholeRecord: string;
+  rowsTitle: (count: number) => string;
+  columns: { record: string; action: string; code: string; name: string; credits: string; changes: string; group: string; course: string };
+  actions: { insert: string; update: string; no_op: string };
+  change: (field: string, from: string, to: string) => string;
+  affectedTitle: (count: number) => string;
+  affectedLead: string;
+  nothingToSave: string;
+  confirmLead: string;
+  confirm: string;
+  cancel: string;
+  cancelled: string;
+  saved: (inserts: number, updates: number) => string;
+  reviewChanged: string;
 }
 
 /** Grants and revocations by user ID (access manager). */
@@ -198,6 +287,10 @@ interface AdminMessages {
   cancel: string;
   close: string;
   notRecorded: string;
+  /** Names of permissions, any one of which is enough: “A” or “B”. */
+  anyOf: (names: string[]) => string;
+  /** One error of an import file, by its record number (the header is record 1), never a line number. */
+  importRowError: (record: number, field: string | null, message: string) => string;
   /** What a failed write means, each from the API's error code (ADR 0011). */
   problem: {
     validation: string;
@@ -208,6 +301,10 @@ interface AdminMessages {
     notFound: string;
     conflict: Record<ConflictCode, string>;
     impact: string;
+    file: string;
+    reviewChanged: string;
+    tooLarge: string;
+    compressed: string;
     rateLimited: string;
     refused: (status: number) => string;
     confirmed: string;
@@ -218,6 +315,8 @@ interface AdminMessages {
   curriculum: CurriculumMessages;
   catalog: CatalogMessages;
   access: AccessMessages;
+  programs: ProgramMessages;
+  import: ImportMessages;
 }
 
 export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
@@ -225,7 +324,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
     title: 'Quản trị',
     lead: 'Nhập và sửa chương trình đào tạo theo văn bản chính thức của trường. Dữ liệu do người nhập và kiểm tra, không do AI trích xuất.',
     sections: 'Mục quản trị',
-    sectionNames: { curriculum: 'Nhóm yêu cầu', catalog: 'Danh mục học phần', access: 'Phân quyền' },
+    sectionNames: { curriculum: 'Nhóm yêu cầu', catalog: 'Danh mục học phần', import: 'Nhập CSV', access: 'Phân quyền' },
     permissions: { program_admin: 'Quản trị chương trình', catalog_maintainer: 'Quản lý danh mục học phần', access_manager: 'Quản lý phân quyền' },
     yourPermissions: 'Quyền của bạn',
     programGrant: (program) => `Quản trị chương trình · ${program}`,
@@ -249,6 +348,8 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
     cancel: 'Hủy',
     close: 'Đóng',
     notRecorded: 'Chưa ghi nhận',
+    anyOf: (names) => names.join('” hoặc “'),
+    importRowError: (record, field, message) => `Bản ghi ${record}${field ? `, cột ${field}` : ''}: ${message}`,
     problem: {
       validation: 'Máy chủ từ chối giá trị đã nhập. Chưa lưu gì.',
       serverAnswered: 'Máy chủ trả lời:',
@@ -259,11 +360,16 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       conflict: {
         duplicate_name: 'Khóa này đã có một nhóm yêu cầu cùng tên. Chưa lưu gì.',
         duplicate_code: 'Danh mục đã có học phần mang mã này. Chưa lưu gì.',
+        duplicate_cohort: 'Chương trình này đã có khóa của năm này. Chưa lưu gì.',
         referenced_item: 'Chưa gỡ được vì còn chỗ đang dùng mục này. Chưa đổi gì. Gỡ các chỗ sau trước:',
         last_access_manager: 'Đây là người quản lý phân quyền cuối cùng còn hoạt động. Cấp quyền này cho người khác trước khi thu hồi. Chưa đổi gì.',
         recipient_deletion_pending: 'Tài khoản đó đang chờ xóa nên không nhận quyền được. Chưa cấp gì.',
       },
       impact: 'Học phần này dùng chung cho nhiều chương trình đào tạo, nên cần xem lại ảnh hưởng trước khi lưu. Chưa lưu gì.',
+      file: 'Máy chủ không đọc được tệp này. Chưa lưu gì. Sửa tệp theo các lỗi sau:',
+      reviewChanged: 'Tệp, hoặc dữ liệu đã lưu, đã đổi từ lúc xem trước. Chưa lưu gì. Xem trước lại rồi xác nhận lần nữa.',
+      tooLarge: 'Yêu cầu vượt giới hạn kích thước của máy chủ. Một tệp CSV được tối đa 1 MiB và 1.000 bản ghi khi tài khoản có quyền nhập loại tệp đó; nếu không, một yêu cầu chỉ được tối đa 100 KiB. Chia tệp thành nhiều tệp nhỏ hơn. Chưa lưu gì.',
+      compressed: 'Máy chủ không nhận yêu cầu đã nén. Chưa lưu gì.',
       rateLimited: 'Quá nhiều yêu cầu. Đợi một phút rồi thử lại. Chưa lưu gì.',
       refused: (status) => `Máy chủ từ chối yêu cầu (mã ${status}). Chưa lưu gì.`,
       confirmed: 'Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.',
@@ -301,7 +407,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       cohortOption: (year) => `Khóa ${year}`,
       programsFailed: 'Chưa tải được các chương trình bạn quản trị.',
       noPrograms: 'Bạn chưa được cấp quyền quản trị chương trình nào.',
-      noCohorts: 'Chương trình này chưa có khóa nào. Trang này chưa thêm khóa được.',
+      noCohorts: 'Chương trình này chưa có khóa nào. Bấm “Thêm khóa” để thêm khóa đầu tiên.',
       thisCohortOnly: 'Sửa ở đây chỉ đổi khóa này. Các khóa khác không bị ảnh hưởng.',
       loadFailed: 'Chưa tải được chương trình đào tạo của khóa này.',
       noCurriculum: 'Khóa này chưa có chương trình đào tạo.',
@@ -317,6 +423,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       noteMoreLabel: (group) => `Xem thêm ghi chú quy tắc của nhóm ${group}`,
       noteLessLabel: (group) => `Thu gọn ghi chú quy tắc của nhóm ${group}`,
       cohortLabel: (program, year) => `${program} · Khóa ${year}`,
+      groupLabel: (program, year, group) => `nhóm “${group}” (${program} · Khóa ${year})`,
       open: 'Mở',
       opened: 'Đang mở',
       openLabel: (group) => `Mở nhóm ${group}`,
@@ -345,6 +452,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       linkHint: 'Nhập mã của một học phần đã có trong danh mục, ví dụ CS101. Học phần mới do người quản lý danh mục tạo.',
       linkNotFound: 'Không tìm thấy: danh mục không có học phần mang mã này, hoặc nhóm này vừa bị xóa. Học phần mới do người quản lý danh mục tạo trước. Chưa lưu gì.',
       linked: (course, group) => `Đã thêm ${course} vào nhóm ${group}.`,
+      importLink: 'Nhập học phần vào nhóm từ tệp CSV',
       courseColumns: { code: 'Mã', name: 'Tên', credits: 'TC', prerequisites: 'Tiên quyết', terms: 'Kỳ mở', actions: 'Thao tác' },
       noPrerequisite: 'Không có tiên quyết',
       term: (number) => `HK${number}`,
@@ -382,7 +490,9 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       lookupHint: 'Danh mục chưa có trang liệt kê hay tìm theo tên. Nhập đúng mã của học phần.',
       notFound: (code) => `Danh mục không có học phần mang mã ${code}.`,
       notFoundAdd: 'Bấm “Thêm học phần” để tạo học phần mới với mã này.',
+      notACode: 'Mã học phần gồm 2 đến 20 chữ cái A–Z hoặc chữ số, nên không thể tạo học phần với mã này.',
       lookupFailed: 'Chưa tải được học phần.',
+      importLink: 'Nhập học phần từ tệp CSV',
       fields: {
         code: 'Mã học phần',
         nameVi: 'Tên tiếng Việt',
@@ -468,12 +578,95 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       revokeBody: (permission) => `Người dùng này sẽ mất quyền “${permission}”. Lần ghi tiếp theo của họ cần quyền đó sẽ bị từ chối.`,
       revokeOwn: 'Đây là tài khoản của bạn: bạn sẽ mất quyền này ngay.',
     },
+    programs: {
+      programsTitle: 'Chương trình',
+      programsLead: 'Tạo chương trình mới theo văn bản chính thức. Người tạo không tự có quyền quản trị chương trình đó: sau khi tạo, cấp quyền quản trị chương trình cho người phụ trách.',
+      addProgram: 'Thêm chương trình',
+      editProgram: 'Sửa chương trình',
+      editProgramLabel: (program) => `Sửa thông tin chương trình ${program}`,
+      programNew: 'Chương trình mới',
+      programEdit: (program) => `Sửa chương trình ${program}`,
+      fields: { code: 'Mã chương trình', nameVi: 'Tên tiếng Việt', nameEn: 'Tên tiếng Anh', faculty: 'Khoa quản lý' },
+      codeHint: 'Chữ in hoa và số, các phần nối bằng một dấu gạch ngang, ví dụ ZZ-PROG. Không đổi được sau khi tạo.',
+      codeFixed: 'Mã không đổi được ở đây.',
+      blankHint: 'Để trống nếu văn bản chính thức không ghi.',
+      programNotHere: 'Loại hình đào tạo (quyết định mức tín chỉ mỗi học kỳ) chưa nhập được ở đây.',
+      programCreated: (program) => `Đã tạo chương trình ${program}. Chưa ai quản trị chương trình này: cấp quyền quản trị chương trình cho người phụ trách.`,
+      programSaved: (program) => `Đã lưu chương trình ${program}.`,
+      duplicateProgramCode: 'Đã có chương trình mang mã này. Chưa lưu gì.',
+      programLoadFailed: 'Chưa tải được thông tin của chương trình. Thử lại.',
+      addCohort: 'Thêm khóa',
+      editCohort: 'Sửa khóa',
+      editCohortLabel: (year) => `Sửa thông tin khóa ${year}`,
+      cohortNew: (program) => `Khóa mới của ${program}`,
+      cohortEdit: (program, year) => `Sửa khóa ${year} của ${program}`,
+      cohortFields: { cohortYear: 'Năm vào học', code: 'Mã chương trình đào tạo của khóa', nameVi: 'Tên tiếng Việt', nameEn: 'Tên tiếng Anh', language: 'Ngôn ngữ giảng dạy' },
+      cohortYearHint: 'Năm khóa này vào học, ví dụ 2026. Mỗi chương trình có một khóa cho mỗi năm.',
+      cohortCodeHint: 'Chữ in hoa và số, các phần nối bằng một dấu gạch ngang, ví dụ ZZ-PROG-2026. Không trùng với chương trình đào tạo nào khác.',
+      languageHint: 'Ví dụ vi hoặc en. Để trống nếu văn bản chính thức không ghi.',
+      identityFixed: 'Năm vào học và mã không đổi được sau khi tạo.',
+      cohortNotHere: 'Khóa mới chưa có nhóm yêu cầu nào; các khóa khác không đổi. Tổng số tín chỉ của khóa chưa nhập được ở đây.',
+      cohortCreated: (year) => `Đã thêm khóa ${year}. Khóa này chưa có nhóm yêu cầu nào.`,
+      cohortSaved: (year) => `Đã lưu khóa ${year}.`,
+      duplicateCohortCode: 'Đã có chương trình đào tạo mang mã này. Chưa lưu gì.',
+      cohortLoadFailed: 'Chưa tải được thông tin của khóa. Thử lại.',
+      noChange: 'Không có gì thay đổi, nên chưa gửi gì.',
+    },
+    import: {
+      heading: 'Nhập từ tệp CSV',
+      lead: 'Tệp được đọc trong trình duyệt rồi gửi lên để xem trước. Chưa lưu gì cho đến khi bạn xác nhận. Máy chủ không giữ tệp.',
+      typeLegend: 'Loại tệp',
+      types: { catalog_courses: 'Học phần của danh mục dùng chung', group_links: 'Học phần của các nhóm yêu cầu trong một khóa' },
+      typeHints: {
+        catalog_courses: 'Thêm học phần mới, hoặc sửa học phần đã có theo mã. Sửa một học phần dùng chung sẽ đổi mọi chương trình đào tạo dùng nó.',
+        group_links: 'Thêm học phần đã có trong danh mục vào nhóm, theo đúng tên nhóm của khóa đã chọn. Tệp không tạo nhóm, không tạo học phần và không gỡ gì.',
+      },
+      target: 'Nhập vào',
+      programsFailed: 'Chưa tải được các chương trình bạn quản trị.',
+      noPrograms: 'Bạn chưa quản trị chương trình nào.',
+      noCohort: 'Chương trình này chưa có khóa nào để nhập vào.',
+      template: 'Tiêu đề của tệp',
+      templateHint: 'Dòng đầu của tệp phải đúng như sau. Mỗi dòng tiếp theo là một bản ghi.',
+      copyHeader: 'Chép tiêu đề',
+      headerCopied: 'Đã chép tiêu đề.',
+      headerNotCopied: 'Chưa chép được. Tiêu đề đã được chọn: bấm Ctrl+C để chép.',
+      downloadTemplate: 'Tải tệp mẫu',
+      file: 'Tệp CSV',
+      fileHint: 'Văn bản UTF-8, phân cách bằng dấu phẩy. Tối đa 1 MiB và 1.000 bản ghi.',
+      fileChosen: (name, size) => `Đã đọc ${name} (${size}).`,
+      notUtf8: 'Tệp này không phải văn bản UTF-8. Lưu lại tệp dưới dạng “CSV UTF-8” rồi chọn lại. Chưa gửi gì.',
+      unreadable: 'Chưa đọc được tệp này. Chọn lại tệp. Chưa gửi gì.',
+      tooBig: (size) => `Tệp nặng ${size}, quá 1 MiB. Chia thành nhiều tệp nhỏ hơn. Chưa gửi gì.`,
+      tooMany: (count) => `Tệp có ${count} bản ghi, quá 1.000. Chia thành nhiều tệp nhỏ hơn. Chưa gửi gì.`,
+      preview: 'Xem trước',
+      previewing: 'Đang xem trước…',
+      previewFailed: 'Chưa xem trước được: máy chủ không trả lời. Thử lại.',
+      previewTitle: 'Xem trước',
+      summary: (inserts, updates, noOps) => `${inserts} thêm mới · ${updates} cập nhật · ${noOps} không đổi`,
+      errorsTitle: (count) => `Tệp có ${count} lỗi. Chưa lưu gì: sửa tệp rồi chọn lại.`,
+      errorsNote: 'Dòng tiêu đề là bản ghi 1, như số hàng trong bảng tính. Lời báo lỗi do máy chủ viết bằng tiếng Anh.',
+      errorColumns: { record: 'Bản ghi', field: 'Cột', message: 'Lỗi' },
+      wholeRecord: 'Cả bản ghi',
+      rowsTitle: (count) => `${count} bản ghi hợp lệ`,
+      columns: { record: 'Bản ghi', action: 'Sẽ làm', code: 'Mã', name: 'Tên', credits: 'TC', changes: 'Thay đổi', group: 'Nhóm', course: 'Học phần' },
+      actions: { insert: 'Thêm mới', update: 'Cập nhật', no_op: 'Không đổi' },
+      change: (field, from, to) => `${field}: ${from} → ${to}`,
+      affectedTitle: (count) => `${count} chương trình đào tạo sẽ đọc giá trị mới`,
+      affectedLead: 'Các học phần được cập nhật dùng chung cho những chương trình đào tạo sau. Đối chiếu văn bản chính thức trước khi xác nhận.',
+      nothingToSave: 'Mọi bản ghi đều giống dữ liệu đã lưu. Không có gì để lưu.',
+      confirmLead: 'Xác nhận lưu cả tệp trong một lần. Nếu dữ liệu đã đổi từ lúc xem trước, máy chủ không lưu gì và OmniCourse xem trước lại.',
+      confirm: 'Xác nhận và lưu',
+      cancel: 'Hủy',
+      cancelled: 'Đã bỏ tệp. Chưa lưu gì.',
+      saved: (inserts, updates) => `Đã lưu tệp: ${inserts} thêm mới, ${updates} cập nhật.`,
+      reviewChanged: 'Từ lúc xem trước, tệp hoặc dữ liệu đã lưu đã đổi. Chưa lưu gì. Kết quả dưới đây là bản xem trước mới: xem lại rồi xác nhận lần nữa.',
+    },
   },
   en: {
     title: 'Administration',
     lead: "Enter and correct curricula from the school's official documents. People enter and check the data; no AI extracts it.",
     sections: 'Administration sections',
-    sectionNames: { curriculum: 'Requirement groups', catalog: 'Course catalog', access: 'Access' },
+    sectionNames: { curriculum: 'Requirement groups', catalog: 'Course catalog', import: 'CSV import', access: 'Access' },
     permissions: { program_admin: 'Program administrator', catalog_maintainer: 'Catalog maintainer', access_manager: 'Access manager' },
     yourPermissions: 'Your permissions',
     programGrant: (program) => `Program administrator · ${program}`,
@@ -497,6 +690,8 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
     cancel: 'Cancel',
     close: 'Close',
     notRecorded: 'Not recorded',
+    anyOf: (names) => names.join('” or “'),
+    importRowError: (record, field, message) => `Record ${record}${field ? `, column ${field}` : ''}: ${message}`,
     problem: {
       validation: 'The server refused the values entered. Nothing was saved.',
       serverAnswered: 'The server answered:',
@@ -507,11 +702,16 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       conflict: {
         duplicate_name: 'This cohort already has a requirement group with this name. Nothing was saved.',
         duplicate_code: 'The catalog already has a course with this code. Nothing was saved.',
+        duplicate_cohort: 'This program has a cohort of this year already. Nothing was saved.',
         referenced_item: 'This cannot be removed while something still uses it. Nothing was changed. Clear these first:',
         last_access_manager: 'This is the last active access manager. Grant the permission to someone else before you revoke it. Nothing was changed.',
         recipient_deletion_pending: 'That account is waiting for deletion, so it cannot receive a permission. Nothing was granted.',
       },
       impact: 'Several curricula share this course, so its impact must be reviewed before saving. Nothing was saved.',
+      file: 'The server could not read this file. Nothing was saved. Correct the file at these places:',
+      reviewChanged: 'The file or the saved data changed since the preview. Nothing was saved. Preview it again, then confirm again.',
+      tooLarge: 'The request is over a size limit of the server. A CSV file may have up to 1 MiB and 1,000 records when your account may import that type of file; otherwise a request may have only up to 100 KiB. Split the file into smaller files. Nothing was saved.',
+      compressed: 'The server does not accept a compressed request. Nothing was saved.',
       rateLimited: 'Too many requests. Wait a minute, then try again. Nothing was saved.',
       refused: (status) => `The server refused the request (status ${status}). Nothing was saved.`,
       confirmed: 'The server did not answer the save, so OmniCourse reloaded the saved data. The saved data has this change.',
@@ -549,7 +749,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       cohortOption: (year) => `Cohort ${year}`,
       programsFailed: 'Could not load the programs you administer.',
       noPrograms: 'You hold no program administrator grant.',
-      noCohorts: 'This program has no cohort yet. This page cannot add one.',
+      noCohorts: 'This program has no cohort yet. Choose “Add a cohort” to add the first one.',
       thisCohortOnly: 'An edit here changes this cohort only. Other cohorts are not affected.',
       loadFailed: 'Could not load the curriculum of this cohort.',
       noCurriculum: 'This cohort has no curriculum yet.',
@@ -565,6 +765,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       noteMoreLabel: (group) => `Show more of the rule notes of the group ${group}`,
       noteLessLabel: (group) => `Show less of the rule notes of the group ${group}`,
       cohortLabel: (program, year) => `${program} · Cohort ${year}`,
+      groupLabel: (program, year, group) => `the group “${group}” (${program} · Cohort ${year})`,
       open: 'Open',
       opened: 'Open now',
       openLabel: (group) => `Open the group ${group}`,
@@ -593,6 +794,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       linkHint: 'Enter the code of a course the catalog already has, such as CS101. A catalog maintainer creates new courses.',
       linkNotFound: 'Not found: the catalog has no course with this code, or this group was just deleted. A catalog maintainer creates a new course first. Nothing was saved.',
       linked: (course, group) => `Added ${course} to the group ${group}.`,
+      importLink: 'Import group courses from a CSV file',
       courseColumns: { code: 'Code', name: 'Name', credits: 'Cr', prerequisites: 'Prerequisites', terms: 'Offering terms', actions: 'Actions' },
       noPrerequisite: 'No prerequisite',
       term: (number) => `Term ${number}`,
@@ -630,7 +832,9 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       lookupHint: 'The catalog has no listing or search by name yet. Enter the exact code of the course.',
       notFound: (code) => `The catalog has no course with the code ${code}.`,
       notFoundAdd: 'Press “Add course” to create a new course with this code.',
+      notACode: 'A course code has 2 to 20 letters A–Z or digits, so no course can be created with this one.',
       lookupFailed: 'Could not load the course.',
+      importLink: 'Import courses from a CSV file',
       fields: {
         code: 'Course code',
         nameVi: 'Vietnamese name',
@@ -715,6 +919,89 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       revokeTitle: 'Revoke this permission?',
       revokeBody: (permission) => `This user will lose the permission “${permission}”. Their next write that needs it will be refused.`,
       revokeOwn: 'This is your own account: you lose the permission at once.',
+    },
+    programs: {
+      programsTitle: 'Programs',
+      programsLead: 'Create a program from the official documents. Creating it gives you no right to administer it: once it exists, grant program administrator to the person in charge.',
+      addProgram: 'Add a program',
+      editProgram: 'Edit the program',
+      editProgramLabel: (program) => `Edit the details of the program ${program}`,
+      programNew: 'New program',
+      programEdit: (program) => `Edit the program ${program}`,
+      fields: { code: 'Program code', nameVi: 'Vietnamese name', nameEn: 'English name', faculty: 'Faculty' },
+      codeHint: 'Capital letters and digits, in parts joined by single hyphens, for example ZZ-PROG. It cannot change after it is created.',
+      codeFixed: 'The code cannot change here.',
+      blankHint: 'Leave it empty when the official document does not give it.',
+      programNotHere: 'The training type (it sets the credits per term) cannot be entered here yet.',
+      programCreated: (program) => `Created the program ${program}. Nobody administers it yet: grant program administrator to the person in charge.`,
+      programSaved: (program) => `Saved the program ${program}.`,
+      duplicateProgramCode: 'A program has this code already. Nothing was saved.',
+      programLoadFailed: 'Could not load the details of the program. Try again.',
+      addCohort: 'Add a cohort',
+      editCohort: 'Edit the cohort',
+      editCohortLabel: (year) => `Edit the details of the cohort ${year}`,
+      cohortNew: (program) => `New cohort of ${program}`,
+      cohortEdit: (program, year) => `Edit the cohort ${year} of ${program}`,
+      cohortFields: { cohortYear: 'Year of entry', code: "Code of the cohort's curriculum", nameVi: 'Vietnamese name', nameEn: 'English name', language: 'Language of instruction' },
+      cohortYearHint: 'The year this cohort entered, for example 2026. A program has one cohort per year.',
+      cohortCodeHint: 'Capital letters and digits, in parts joined by single hyphens, for example ZZ-PROG-2026. No other curriculum may have it.',
+      languageHint: 'For example vi or en. Leave it empty when the official document does not give it.',
+      identityFixed: 'The year of entry and the code cannot change after it is created.',
+      cohortNotHere: 'A new cohort has no requirement group yet; other cohorts do not change. The credit total of the cohort cannot be entered here yet.',
+      cohortCreated: (year) => `Added the cohort ${year}. It has no requirement group yet.`,
+      cohortSaved: (year) => `Saved the cohort ${year}.`,
+      duplicateCohortCode: 'A curriculum has this code already. Nothing was saved.',
+      cohortLoadFailed: 'Could not load the details of the cohort. Try again.',
+      noChange: 'Nothing changed, so nothing was sent.',
+    },
+    import: {
+      heading: 'Import from a CSV file',
+      lead: 'The file is read in your browser and sent for a preview. Nothing is saved until you confirm. The server does not keep the file.',
+      typeLegend: 'File type',
+      types: { catalog_courses: 'Courses of the shared catalog', group_links: 'Courses of the requirement groups of one cohort' },
+      typeHints: {
+        catalog_courses: 'Adds new courses, or corrects existing ones by code. Correcting a shared course changes every curriculum that uses it.',
+        group_links: 'Adds courses already in the catalog to groups, by the exact group names of the chosen cohort. The file creates no group and no course, and removes nothing.',
+      },
+      target: 'Import into',
+      programsFailed: 'Could not load the programs you administer.',
+      noPrograms: 'You administer no program yet.',
+      noCohort: 'This program has no cohort to import into yet.',
+      template: 'Header of the file',
+      templateHint: 'The first line of the file must be exactly this. Each line after it is one record.',
+      copyHeader: 'Copy the header',
+      headerCopied: 'Copied the header.',
+      headerNotCopied: 'Could not copy it. The header is selected: press Ctrl+C to copy it.',
+      downloadTemplate: 'Download a template',
+      file: 'CSV file',
+      fileHint: 'UTF-8 text, separated by commas. At most 1 MiB and 1,000 records.',
+      fileChosen: (name, size) => `Read ${name} (${size}).`,
+      notUtf8: 'This file is not UTF-8 text. Save it again as “CSV UTF-8”, then choose it again. Nothing was sent.',
+      unreadable: 'Could not read this file. Choose it again. Nothing was sent.',
+      tooBig: (size) => `The file is ${size}, over 1 MiB. Split it into smaller files. Nothing was sent.`,
+      tooMany: (count) => `The file has ${count} records, over 1,000. Split it into smaller files. Nothing was sent.`,
+      preview: 'Preview',
+      previewing: 'Previewing…',
+      previewFailed: 'Could not preview: the server did not answer. Try again.',
+      previewTitle: 'Preview',
+      summary: (inserts, updates, noOps) => `${inserts} new · ${updates} changed · ${noOps} unchanged`,
+      errorsTitle: (count) => (count === 1 ? 'The file has 1 error. Nothing was saved: correct the file, then choose it again.' : `The file has ${count} errors. Nothing was saved: correct the file, then choose it again.`),
+      errorsNote: 'The header is record 1, like the row numbers of a spreadsheet. The server writes the error messages.',
+      errorColumns: { record: 'Record', field: 'Column', message: 'Error' },
+      wholeRecord: 'Whole record',
+      rowsTitle: (count) => (count === 1 ? '1 valid record' : `${count} valid records`),
+      columns: { record: 'Record', action: 'Will', code: 'Code', name: 'Name', credits: 'Credits', changes: 'Changes', group: 'Group', course: 'Course' },
+      actions: { insert: 'Add', update: 'Change', no_op: 'Unchanged' },
+      change: (field, from, to) => `${field}: ${from} → ${to}`,
+      affectedTitle: (count) => (count === 1 ? '1 curriculum will read new values' : `${count} curricula will read new values`),
+      affectedLead: 'The changed courses are shared by the curricula below. Check the official documents before you confirm.',
+      nothingToSave: 'Every record is the same as the saved data. There is nothing to save.',
+      confirmLead: 'Confirming saves the whole file at once. If the data changed since the preview, the server saves nothing and OmniCourse previews it again.',
+      confirm: 'Confirm and save',
+      cancel: 'Cancel',
+      cancelled: 'Dropped the file. Nothing was saved.',
+      saved: (inserts, updates) => `Saved the file: ${inserts} new, ${updates} changed.`,
+      reviewChanged: 'The file or the saved data changed since the preview. Nothing was saved. Below is a new preview: review it, then confirm again.',
     },
   },
 };
