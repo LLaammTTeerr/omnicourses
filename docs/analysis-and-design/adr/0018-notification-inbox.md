@@ -10,7 +10,7 @@
 
 F10 (Vision §5, UC-12) tells a student, inside the app, about a registration window, the start of a term and a change in their transcript. [ADR 0017](0017-academic-calendar.md) stores the school dates. Lâm decided on 12 November 2026 that B2 delivers through the in-app inbox only, with no email. The timing, the time zone and the repeat rules stayed open in the test plan §8.
 
-**Dũng, the owner of F10, decided them on the team Discord on 25 November 2026** (message `1574971882556624929`). UC-12 does not require these values: its step 1 says only "for example seven days before a registration window opens". The seven rules below are Dũng's decision, in the short form in which it was passed on for this work; the Discord message holds his own words:
+**Dũng, the owner of F10, decided them on the team Discord on 25 November 2026** (message `1574971882556624929`). UC-12 does not require these values: its step 1 says only "for example seven days before a registration window opens". The seven rules below are Dũng's decision, in the short form in which it was passed on for this work; the Discord message holds Dũng's own words:
 
 1. Registration window: one notification 7 days before it opens, and one on the day it opens.
 2. Term start: one notification on the first day of the term.
