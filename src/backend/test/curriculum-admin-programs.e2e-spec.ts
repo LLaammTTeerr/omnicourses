@@ -351,6 +351,119 @@ describe('Program and cohort administration API (e2e)', () => {
   });
 });
 
+// Review findings of #161. Its own app and run prefix: the first describe is close to the rate
+// limit, and the race below sends 20 requests at once.
+describe('Program and cohort routes: an empty cohort, races, path IDs and stored text (e2e)', () => {
+  let app: INestApplication;
+  let db: DataSource;
+  const { as } = client(() => app);
+
+  const P = `ZZQ-${run()}`;
+  const [codeA, codeB] = [`${P}-A`, `${P}-B`];
+  const users: Account[] = [];
+  let manager: Account;
+  let adminA: Account;
+  let adminB: Account;
+  let programA: string;
+  let programB: string;
+
+  const programRows = () => db.query('SELECT * FROM programs WHERE code LIKE $1 ORDER BY code', [`${P}%`]) as Promise<Record<string, unknown>[]>;
+  const cohortRows = () =>
+    db.query('SELECT c.* FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code LIKE $1 ORDER BY p.code, c.cohort_year', [`${P}%`]) as Promise<Record<string, unknown>[]>;
+  const grant = (user: Account, program: string) => db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [user.userId, program]);
+
+  beforeAll(async () => {
+    app = await bootApp();
+    db = app.get(DataSource);
+    [manager, adminA, adminB] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app)]);
+    users.push(manager, adminA, adminB);
+    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager')`, [manager.userId]);
+    programA = (await as(manager).post(programsPath, { code: codeA, nameVi: 'Chương trình thử A' }).expect(201)).body.id;
+    programB = (await as(manager).post(programsPath, { code: codeB, nameVi: 'Chương trình thử B' }).expect(201)).body.id;
+    await grant(adminA, programA);
+    await grant(adminB, programB);
+  });
+
+  afterAll(async () => {
+    if (db?.isInitialized) await removeFixture(db, P, users);
+    await app?.close();
+  });
+
+  // Not a decision: this pins what the code does today, so that a change to it is seen. ADR 0011
+  // leaves open both what the rule engine should answer for a cohort with no requirement group
+  // ("Cohort credit total") and whether a plan may be saved against a cohort still being entered
+  // ("Visibility to students"). When a human decides either, change this test with the decision.
+  it('pins an undecided answer (ADR 0011 open questions 2 and 4): a direct plan for an empty cohort is saved, and its check reads graduation done', async () => {
+    await as(adminA).post(cohortsPath(programA), { cohortYear: 2026, code: `${codeA}-2026`, nameVi: 'Khóa thử trống' }).expect(201);
+    // A student who never chose the program: no onboarding answer, only a direct request.
+    const student = await signedInUser(app);
+    users.push(student);
+    const plan = await as(student).post('/api/plans', { name: 'zz-e2e empty cohort', programCode: codeA, cohortYear: 2026 }).expect(201);
+    expect(plan.body.curriculum).toMatchObject({ code: `${codeA}-2026`, programCode: codeA, cohortYear: 2026 });
+
+    const { body: issues } = await as(student).get(`/api/plans/${plan.body.id}/issues`).expect(200);
+    expect(issues.coverage).toMatchObject({ groups: [], combinedMinimums: [], totalRequired: null, graduation: 'done' });
+  });
+
+  it('lets one of 20 concurrent cohort creations with one code, split across two programs, through', async () => {
+    // One caller per request: each write also locks its caller's users row, so requests of one
+    // caller would wait for each other even without the F12 lock.
+    const callers = await Promise.all(Array.from({ length: 20 }, () => signedInUser(app)));
+    users.push(...callers);
+    await Promise.all(callers.map((caller, i) => grant(caller, i % 2 ? programB : programA)));
+    const before = await cohortRows();
+    const code = `${P}-RACE`;
+    // A different year for each request, so that the code is the only thing the requests share.
+    const racing = await Promise.all(
+      callers.map((caller, i) => as(caller).post(cohortsPath(i % 2 ? programB : programA), { cohortYear: 2040 + i, code, nameVi: `Khóa đua ${i}` })),
+    );
+
+    expect(racing.map((res) => res.status).sort()).toEqual([201, ...Array<number>(19).fill(409)]);
+    for (const res of racing.filter((r) => r.status === 409)) expect(res.body.code).toBe('duplicate_code');
+    const added = (await cohortRows()).filter((row) => !before.some((b) => b.id === row.id));
+    expect(added.map((row) => [row.code, row.id])).toEqual([[code, racing.find((res) => res.status === 201)!.body.id]]);
+  });
+
+  it('accepts a program or cohort ID in upper case from the holder of the grant, and still refuses others', async () => {
+    const cohort = (await as(adminA).post(cohortsPath(programA.toUpperCase()), { cohortYear: 2027, code: `${codeA}-2027`, nameVi: 'Khóa thử 2027' }).expect(201)).body;
+    expect(cohort).toMatchObject({ programId: programA, cohortYear: 2027 });
+    const [PROGRAM, COHORT] = [programA.toUpperCase(), cohort.id.toUpperCase()];
+    expect((await as(adminA).get(cohortsPath(PROGRAM)).expect(200)).body.cohorts).toContainEqual(cohort);
+    expect((await as(adminA).get(cohortPath(PROGRAM, COHORT)).expect(200)).body).toEqual(cohort);
+    expect((await as(adminA).patch(cohortPath(PROGRAM, COHORT), { nameEn: 'Trial 2027' }).expect(200)).body).toMatchObject({ id: cohort.id, nameEn: 'Trial 2027' });
+    expect((await as(adminA).patch(programPath(PROGRAM), { faculty: 'Khoa thử' }).expect(200)).body).toMatchObject({ id: programA, faculty: 'Khoa thử' });
+    // The same route of the other program's administrator, in upper case too: still no grant.
+    const refused = await as(adminB).get(cohortPath(PROGRAM, COHORT));
+    expect([refused.status, refused.body.code, refused.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+  });
+
+  it('refuses a null character and a value too long in code points with 400, never a 500, and saves nothing', async () => {
+    const { id: stored } = (await as(adminA).post(cohortsPath(programA), { cohortYear: 2031, code: `${codeA}-2031`, nameVi: 'Khóa thử 2031' }).expect(201)).body;
+    const before = { programs: await programRows(), cohorts: await cohortRows() };
+    // 255 code points to class-validator's MaxLength, which skips the variation selector; 256 to PostgreSQL.
+    const tooLong = (max: number) => 'x'.repeat(max - 1) + '\u2764\uFE0F';
+    const cohort = { cohortYear: 2030, code: `${codeA}-2030`, nameVi: 'Khóa thử' };
+    const sent: [() => request.Test, string][] = [
+      [() => as(manager).post(programsPath, { code: `${P}-C`, nameVi: 'a\u0000b' }), 'nameVi must not contain a null character (U+0000)'],
+      [() => as(manager).post(programsPath, { code: `${P}-C`, nameVi: 'x', faculty: tooLong(100) }), 'faculty must be shorter than or equal to 100 characters'],
+      [() => as(adminA).patch(programPath(programA), { nameEn: '\u0000' }), 'nameEn must not contain a null character (U+0000)'],
+      [() => as(adminA).patch(programPath(programA), { nameVi: tooLong(255) }), 'nameVi must be shorter than or equal to 255 characters'],
+      [() => as(adminA).post(cohortsPath(programA), { ...cohort, language: 'e\u0000n' }), 'language must not contain a null character (U+0000)'],
+      [() => as(adminA).post(cohortsPath(programA), { ...cohort, nameEn: tooLong(255) }), 'nameEn must be shorter than or equal to 255 characters'],
+      [() => as(adminA).patch(cohortPath(programA, stored), { language: tooLong(10) }), 'language must be shorter than or equal to 10 characters'],
+      [() => as(adminA).patch(cohortPath(programA, stored), { nameVi: 'Khóa\u0000' }), 'nameVi must not contain a null character (U+0000)'],
+    ];
+    for (const [send, message] of sent) {
+      const res = await send();
+      expect([res.status, res.body.code, res.body.message]).toEqual([400, 'validation_failed', [message]]);
+    }
+    expect({ programs: await programRows(), cohorts: await cohortRows() }).toEqual(before);
+    // The longest value that fits is stored whole: 255 code points, 257 UTF-16 units.
+    const longest = 'x'.repeat(253) + '\u{1F600}\u{1F600}';
+    expect((await as(adminA).patch(programPath(programA), { nameEn: longest }).expect(200)).body.nameEn).toBe(longest);
+  });
+});
+
 // TC-B2-ADM-03 (UC-11 A1, "Earlier cohorts stay unchanged"; ADR 0011: "Adding a cohort preserves
 // the original curriculum identity, membership, saved plans and audit/validation results").
 // The whole fixture is entered through the API, as an administrator would enter it: a program,
