@@ -25,6 +25,13 @@ export async function grantsOf(em: EntityManager, userId: string): Promise<Grant
   return { programIds: new Set(programs.map((r) => r.program_id)), permissions: new Set(globals.map((r) => r.permission)) };
 }
 
+/** Refuses a caller who is gone or waiting for deletion, or who lacks the grant `need` names. */
+async function assertMay(em: EntityManager, caller: { deletionRequestedAt: Date | null } | undefined, callerId: string, need: Need): Promise<void> {
+  if (!caller || caller.deletionRequestedAt) throw accountDeletionPending();
+  const missing = missingPermission(await grantsOf(em, callerId), need);
+  if (missing) throw permissionRequired(missing);
+}
+
 // Runs an F12 mutation: one transaction, the write lock, then the caller's current grants.
 // A revocation that committed first blocks this write; one that comes later waits for it.
 @Injectable()
@@ -34,11 +41,23 @@ export class AdminWriteService {
   async run<T>(callerId: string, need: Need, write: (em: EntityManager) => Promise<T>, otherUserIds: string[] = []): Promise<T> {
     return this.db.transaction(async (em) => {
       const users = await lockAdminWrite(em, [callerId, ...otherUserIds]);
-      const caller = users.find((u) => u.id === callerId);
-      if (!caller || caller.deletionRequestedAt) throw accountDeletionPending();
-      const missing = missingPermission(await grantsOf(em, callerId), need);
-      if (missing) throw permissionRequired(missing);
+      await assertMay(em, users.find((u) => u.id === callerId), callerId, need);
       return write(em);
+    });
+  }
+
+  /**
+   * Runs an F12 preview (ADR 0011: "Previews use a consistent read-only snapshot"): one
+   * REPEATABLE READ transaction that PostgreSQL itself keeps read-only, with the caller's
+   * current grants checked first and no lock taken. It decides nothing: the confirmation
+   * repeats every check under the write lock.
+   */
+  async read<T>(callerId: string, need: Need, read: (em: EntityManager) => Promise<T>): Promise<T> {
+    return this.db.transaction('REPEATABLE READ', async (em) => {
+      await em.query('SET TRANSACTION READ ONLY');
+      const [caller]: { deletionRequestedAt: Date | null }[] = await em.query('SELECT "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = $1', [callerId]);
+      await assertMay(em, caller, callerId, need);
+      return read(em);
     });
   }
 }

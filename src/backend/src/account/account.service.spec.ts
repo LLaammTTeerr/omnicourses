@@ -12,6 +12,7 @@ describe('AccountService', () => {
   const tx = { query: vi.fn() };
   let users: { markDeletionRequestedWithin: ReturnType<typeof vi.fn> };
   let auth: { verifyPassword: ReturnType<typeof vi.fn>; revokeAllWithin: ReturnType<typeof vi.fn> };
+  let sharing: { stopAllWithin: ReturnType<typeof vi.fn> };
   let service: AccountService;
 
   beforeEach(() => {
@@ -20,7 +21,8 @@ describe('AccountService', () => {
     db = { query: vi.fn(), transaction: vi.fn(async (...args: unknown[]) => (args.at(-1) as (m: unknown) => unknown)(tx)) };
     users = { markDeletionRequestedWithin: vi.fn(async () => undefined) };
     auth = { verifyPassword: vi.fn(async () => true), revokeAllWithin: vi.fn(async () => undefined) };
-    service = new AccountService(db as never, users as never, auth as never);
+    sharing = { stopAllWithin: vi.fn(async () => undefined) };
+    service = new AccountService(db as never, users as never, auth as never, sharing as never);
   });
 
   afterEach(() => vi.unstubAllEnvs());
@@ -76,11 +78,25 @@ describe('AccountService', () => {
     expect(auth.revokeAllWithin).toHaveBeenCalledWith(tx, 'u1');
   });
 
+  // UC-09 A7: every shared plan's link stops with the sessions, in the same transaction, so a
+  // failure leaves neither a deletion scheduled nor a link open.
+  it("stops every shared plan's link in the transaction that schedules the deletion", async () => {
+    await service.requestDeletion(user, 'correct horse battery');
+    expect(db.transaction).toHaveBeenCalledOnce();
+    expect(sharing.stopAllWithin).toHaveBeenCalledExactlyOnceWith(tx, 'u1');
+  });
+
+  it('fails the whole request when the links cannot be stopped', async () => {
+    sharing.stopAllWithin.mockRejectedValueOnce(new Error('db down'));
+    await expect(service.requestDeletion(user, 'correct horse battery')).rejects.toThrow('db down');
+  });
+
   it('refuses with 403 (not 401, which would sign the client out) on a wrong password', async () => {
     auth.verifyPassword.mockResolvedValue(false);
     await expect(service.requestDeletion(user, 'wrong')).rejects.toThrow(new ForbiddenException('Wrong password'));
     expect(users.markDeletionRequestedWithin).not.toHaveBeenCalled();
     expect(auth.revokeAllWithin).not.toHaveBeenCalled();
+    expect(sharing.stopAllWithin).not.toHaveBeenCalled();
   });
 });
 

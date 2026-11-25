@@ -237,7 +237,7 @@ A program administrator is a user with a `ProgramAdminGrant` for that program; a
 
 ### 1.4 Plans
 
-Sources: `plans/plan.entity.ts`, `plans/plan-placement.entity.ts`; migration `create-plans`.
+Sources: `plans/plan.entity.ts`, `plans/plan-placement.entity.ts`; migration `create-plans`. `PlanShare` was added on 25 November 2026 from `sharing/plan-share.entity.ts`; migration `create-plan-shares`.
 
 ```mermaid
 classDiagram
@@ -268,11 +268,21 @@ classDiagram
         requirementGroupId : uuid? FK
         slotCredits : smallint? 1..30
     }
+    class PlanShare {
+        id : uuid PK
+        planId : uuid FK, unique
+        userId : uuid FK
+        shareToken : varchar 43, unique
+        showName : boolean = false
+        showTranscriptChecks : boolean = false
+    }
     Plan "0..*" --> "1" User : user_id CASCADE
     Plan "0..*" --> "1" Curriculum : curriculum_id RESTRICT
     PlanPlacement "0..*" --> "1" Plan : plan_id, user_id CASCADE
     PlanPlacement "0..*" --> "1" User : user_id CASCADE
     PlanPlacement "0..*" --> "0..1" RequirementGroup : requirement_group_id RESTRICT
+    PlanShare "0..1" --> "1" Plan : plan_id, user_id CASCADE
+    PlanShare "0..*" --> "1" User : user_id CASCADE
 ```
 
 - A placement is either a course (`courseCode` set) or a slot that holds credits for a requirement group until a course is chosen (`requirementGroupId` and `slotCredits` set); checks `ck_plan_placements_course_or_slot` and `ck_plan_placements_slot_credits` allow exactly one of the two.
@@ -280,6 +290,7 @@ classDiagram
 - `PlanPlacement` carries its own `userId`, and its key to `plans` is the pair (`plan_id`, `user_id`), so a placement can never belong to another student's plan and the account export finds the rows directly ([ADR 0004](adr/0004-account-export-and-deletion.md), [ADR 0014](adr/0014-plan-model.md)).
 - `PlanPlacement.courseCode` has no foreign key to `courses`; `PlansService.checkBoard` checks the code against the catalog on every save.
 - `Plan.curriculumId` is `RESTRICT`: a plan keeps the curriculum it was made against.
+- `PlanShare` is the live link of a shared plan (UC-09, [ADR 0010](adr/0010-public-pages-and-guide-content.md)): at most one row per plan, and no row means "not shared", because stopping a link deletes its row. Its key to `plans` is the pair (`plan_id`, `user_id`), like a placement's. `shareToken` is 32 random bytes in base64url; its column name ends in `_token`, so the account export never selects it. `showName` and `showTranscriptChecks` are the owner's two choices for the link, both off unless the owner turns them on: the display name, and the checks the rule engine decides from the owner's transcript.
 
 ### 1.5 Guides
 
@@ -380,12 +391,12 @@ classDiagram
 
 | When this row is deleted | These rows go with it (`CASCADE`) | The delete is refused while these exist (`RESTRICT`) | These rows stay, with the column cleared (`SET NULL`) |
 | --- | --- | --- | --- |
-| `User` | `Session`, `OnboardingAnswers`, `TranscriptRow`, `AiUsage`, `Plan`, `PlanPlacement`, `Notification`, `ProgramAdminGrant` and `GlobalAdminGrant` the user holds | none | grants the user gave (`granted_by`); `AcademicCalendarEvent` rows the user created or last changed (`created_by`, `updated_by`) |
+| `User` | `Session`, `OnboardingAnswers`, `TranscriptRow`, `AiUsage`, `Plan`, `PlanPlacement`, `PlanShare`, `Notification`, `ProgramAdminGrant` and `GlobalAdminGrant` the user holds | none | grants the user gave (`granted_by`); `AcademicCalendarEvent` rows the user created or last changed (`created_by`, `updated_by`) |
 | `Program` | none | `Curriculum`, `ProgramAdminGrant`, `AcademicCalendarEvent` | none |
 | `Curriculum` | `RequirementGroup`, `CombinedMinimum`, `CoursePrerequisiteList`, `CourseOfferingTerm` | `Plan` | none |
 | `RequirementGroup` | `RequirementGroupCourse`, `CombinedMinimumGroup`, `RequirementGroupOverflow` | `PlanPlacement` slots | none |
 | `Course` | none | `RequirementGroupCourse`, `CoursePrerequisiteList`, `CoursePrerequisite`, `CourseOfferingTerm` | none |
-| `Plan` | `PlanPlacement` | none | none |
+| `Plan` | `PlanPlacement`, `PlanShare` | none | none |
 | `Guide` | `GuideText` | none | none |
 
 The account purge relies on the first row: one `DELETE FROM users` removes everything the student owns ([ADR 0004](adr/0004-account-export-and-deletion.md); `src/backend/test/account.e2e-spec.ts`, with the rules in `user-table-rules.ts`, fails on a table that would escape it).
@@ -676,6 +687,7 @@ classDiagram
     class PlanIssuesProvider {
         <<interface>>
         issuesFor(userId, plan) PlanIssuesReport
+        issuesWithoutTranscript(plan) PlanIssuesReport
         issuesForBoards(userId, plan, boards) PlanIssuesReport list
     }
     class PlanIssuesReport {
@@ -775,6 +787,7 @@ classDiagram
     class RulesService {
         +auditFor(userId) AuditOutcome
         +issuesFor(userId, plan) PlanIssuesReport
+        +issuesWithoutTranscript(plan) PlanIssuesReport
         +issuesForBoards(userId, plan, boards) PlanIssuesReport list
         +degreeAudit
         +checkTermLoad
@@ -966,6 +979,7 @@ classDiagram
     class RulesService {
         +auditFor(userId) AuditOutcome
         +issuesFor(userId, plan) PlanIssuesReport
+        +issuesWithoutTranscript(plan) PlanIssuesReport
         +issuesForBoards(userId, plan, boards) PlanIssuesReport list
     }
     class PlanIssuesProvider {
@@ -1331,6 +1345,7 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `AiUsage`, `LlmService`, `GatewayLlmService`, `AiCostGuard`, `ModelClient` | 1.1, 3.4 | F6 goal box and F8 (gateway only; neither feature is built) | [ADR 0003](adr/0003-language-model-scope.md) |
 | `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView` | 1.6, 3.5, 4 | F10 school dates (the dates and the calendar page) | [ADR 0017](adr/0017-academic-calendar.md) (proposed) |
 | `Notification`, `NotificationsService`, `NotificationSchedule`, `NotificationsController`, `Clock`, `TranscriptSave` | 1.8, 3.6 | F10 notification inbox (the API only; the bell and the inbox screen are not built) | [ADR 0018](adr/0018-notification-inbox.md) (proposed) |
-| (no classes yet) | | F7 what-if, F9 sharing | [ADR 0006](adr/0006-plan-generator.md) for F6's planner; not built |
+| `PlanShare` (`SharingService`, `PlanShareController` and `SharedPlansController` in `sharing/` are not drawn in §3 yet) | 1.4, 1.7 | F9 shared plans (the API; no screen yet) | [ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026 |
+| (no classes yet) | | F7 what-if | [ADR 0006](adr/0006-plan-generator.md) for F6's planner; not built |
 
 The stack these classes are written in is [ADR 0001](adr/0001-technology-stack.md); how they are tested in a browser is [ADR 0008](adr/0008-browser-testing.md).

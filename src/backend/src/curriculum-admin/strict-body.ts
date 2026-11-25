@@ -1,4 +1,4 @@
-import { createParamDecorator, ExecutionContext, ValidationError, ValidationPipe } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext, type Type, ValidationError, ValidationPipe } from '@nestjs/common';
 import { validationFailed } from './admin-errors.js';
 
 /** "parent.child: message" for every failed constraint, nested ones included. */
@@ -10,13 +10,31 @@ export function flattenErrors(errors: ValidationError[], parent = ''): string[] 
   });
 }
 
-const strictPipe = new ValidationPipe({
-  whitelist: true,
-  forbidNonWhitelisted: true,
-  transform: true,
-  validateCustomDecorators: true,
-  exceptionFactory: (errors) => validationFailed(flattenErrors(errors)),
-});
+const STRICT = { whitelist: true, forbidNonWhitelisted: true, transform: true, validateCustomDecorators: true } as const;
+
+const strictPipe = new ValidationPipe({ ...STRICT, exceptionFactory: (errors) => validationFailed(flattenErrors(errors)) });
+
+class StrictValidationErrors extends Error {
+  constructor(readonly errors: ValidationError[]) {
+    super('strict validation failed');
+  }
+}
+
+const collectingPipe = new ValidationPipe({ ...STRICT, exceptionFactory: (errors) => new StrictValidationErrors(errors) });
+
+/**
+ * The validation of `@StrictBody()` for a value that is not a request body: one row of a CSV
+ * import (ADR 0011: manual entry and CSV use the same validation). Same DTO, same options;
+ * the errors come back as a list, because an import reports every bad row, not the first.
+ */
+export async function validateStrict<T extends object>(dto: Type<T>, plain: unknown): Promise<{ value: T; errors: null } | { value: null; errors: ValidationError[] }> {
+  try {
+    return { value: (await collectingPipe.transform(plain, { type: 'custom', metatype: dto })) as T, errors: null };
+  } catch (error) {
+    if (error instanceof StrictValidationErrors) return { value: null, errors: error.errors };
+    throw error;
+  }
+}
 
 const RawBody = createParamDecorator((_: unknown, ctx: ExecutionContext): unknown => ctx.switchToHttp().getRequest<{ body: unknown }>().body);
 

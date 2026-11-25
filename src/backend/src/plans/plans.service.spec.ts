@@ -92,6 +92,22 @@ describe('PlansService', () => {
     expect(curriculum.requirementGroupIds).not.toHaveBeenCalled();
   });
 
+  // The read the sharing module uses (ADR 0010): scoped to the owner like get, null instead of a 404, and no write.
+  it('finds an owned plan, or null for one that is missing or someone else’s, writing nothing', async () => {
+    const owned = service();
+    await expect(owned.svc.find('u1', 'p1')).resolves.toMatchObject({ id: 'p1', name: 'Main plan', terms: [] });
+    expect(owned.plans.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'p1', userId: 'u1' } }));
+    const missing = service({ plan: null });
+    await expect(missing.svc.find('u2', 'p1')).resolves.toBeNull();
+    expect(missing.plans.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'p1', userId: 'u2' } }));
+    for (const { tx, plans } of [owned, missing]) {
+      expect(tx.insert).not.toHaveBeenCalled();
+      expect(tx.delete).not.toHaveBeenCalled();
+      expect(plans.update).not.toHaveBeenCalled();
+      expect(plans.delete).not.toHaveBeenCalled();
+    }
+  });
+
   it('answers 404 for a plan that is missing or someone else’s', async () => {
     const missing = service({ plan: null, affected: 0 });
     await expect(missing.svc.get('u2', 'p1')).rejects.toBeInstanceOf(NotFoundException);
