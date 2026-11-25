@@ -23,9 +23,10 @@ const COHORT = 'admin/programs/:programId/cohorts/:curriculumId';
 // F12 program-administrator routes (ADR 0011). Signed-in through the global AuthGuard; the
 // service checks the caller's current grant for :programId inside each write's transaction.
 // A cohort is a `curriculums` row; :curriculumId must belong to :programId.
+// The two reads answer every signed-in user (200, or 401 without a session), so AdminErrors() is on each write
+// only: on the class it would document a 400, 403 and 404 these reads never answer.
 @ApiTags('curriculum-admin')
 @Authenticated()
-@AdminErrors()
 @Controller()
 export class CurriculumAdminController {
   constructor(private readonly admin: CurriculumAdminService) {}
@@ -52,6 +53,7 @@ export class CurriculumAdminController {
   @ApiBody({ type: CreateRequirementGroupDto })
   @ApiCreatedResponse({ type: RequirementGroupAdminDto })
   @ApiConflictResponse({ type: AdminErrorDto, description: '`duplicate_name`: the cohort has a group with this name' })
+  @AdminErrors()
   createGroup(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -65,6 +67,7 @@ export class CurriculumAdminController {
   @ApiBody({ type: UpdateRequirementGroupDto })
   @ApiOkResponse({ type: RequirementGroupAdminDto })
   @ApiConflictResponse({ type: AdminErrorDto, description: '`duplicate_name`' })
+  @AdminErrors()
   updateGroup(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -79,6 +82,7 @@ export class CurriculumAdminController {
   @HttpCode(204)
   @ApiNoContentResponse({ description: 'Deleted.' })
   @ApiConflictResponse({ type: ReferencedItemDto, description: '`referenced_item`: the group still links courses' })
+  @AdminErrors()
   deleteGroup(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -91,6 +95,7 @@ export class CurriculumAdminController {
   @Put(`${COHORT}/requirement-groups/:groupId/courses/:courseCode`)
   @HttpCode(204)
   @ApiNoContentResponse({ description: 'The course is in the group (linked now, or already).' })
+  @AdminErrors()
   linkCourse(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -105,6 +110,7 @@ export class CurriculumAdminController {
   @HttpCode(204)
   @ApiNoContentResponse({ description: 'The course left this group; the catalog course and its other links stay.' })
   @ApiConflictResponse({ type: ReferencedItemDto, description: '`referenced_item`: the course would leave the curriculum while its rules name it' })
+  @AdminErrors()
   unlinkCourse(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -119,6 +125,7 @@ export class CurriculumAdminController {
   @ApiBody({ type: SetPrerequisitesDto })
   @ApiOkResponse({ type: PrerequisitesDto, description: 'The recorded list replaced the previous one.' })
   @ApiBadRequestResponse({ type: PrerequisiteCycleDto, description: '`prerequisite_cycle` names the cycle; `validation_failed` for a code outside the curriculum' })
+  @AdminErrors()
   setPrerequisites(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -131,6 +138,7 @@ export class CurriculumAdminController {
 
   @Delete(`${COHORT}/courses/:courseCode/prerequisites`)
   @ApiOkResponse({ type: PrerequisitesDto, description: 'Back to not recorded: the read API answers null.' })
+  @AdminErrors()
   clearPrerequisites(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -143,6 +151,7 @@ export class CurriculumAdminController {
   @Put(`${COHORT}/courses/:courseCode/offering-terms`)
   @ApiBody({ type: SetOfferingTermsDto })
   @ApiOkResponse({ type: OfferingTermsDto, description: 'The recorded terms replaced the previous ones.' })
+  @AdminErrors()
   setOfferingTerms(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,
@@ -155,6 +164,7 @@ export class CurriculumAdminController {
 
   @Delete(`${COHORT}/courses/:courseCode/offering-terms`)
   @ApiOkResponse({ type: OfferingTermsDto, description: 'Back to not recorded: the read API answers null.' })
+  @AdminErrors()
   clearOfferingTerms(
     @CurrentUser() user: User,
     @Param('programId', uuidParam('programId')) programId: string,

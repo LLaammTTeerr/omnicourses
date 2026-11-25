@@ -1125,38 +1125,8 @@
               }
             }
           },
-          "400": {
-            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminErrorDto"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Missing, expired or revoked token"
-          },
-          "403": {
-            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionRequiredDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "`not_found`: nothing with this ID or code within the authorised scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminErrorDto"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -1261,38 +1231,8 @@
               }
             }
           },
-          "400": {
-            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminErrorDto"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Missing, expired or revoked token"
-          },
-          "403": {
-            "description": "`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionRequiredDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "`not_found`: nothing with this ID or code within the authorised scope",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AdminErrorDto"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -1819,7 +1759,7 @@
             }
           },
           "400": {
-            "description": "`prerequisite_cycle` names the cycle; `validation_failed` for a code outside the curriculum",
+            "description": "`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved\n\n`prerequisite_cycle` names the cycle; `validation_failed` for a code outside the curriculum",
             "content": {
               "application/json": {
                 "schema": {
@@ -6817,60 +6757,6 @@
           }
         }
       },
-      "AdminErrorDto": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number",
-            "example": 409
-          },
-          "code": {
-            "type": "string",
-            "example": "referenced_item"
-          },
-          "message": {
-            "type": "object",
-            "description": "English text for the developer; the screen words its own message from `code`"
-          }
-        },
-        "required": [
-          "statusCode",
-          "code",
-          "message"
-        ]
-      },
-      "PermissionRequiredDto": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number",
-            "example": 409
-          },
-          "code": {
-            "type": "string",
-            "example": "referenced_item"
-          },
-          "message": {
-            "type": "object",
-            "description": "English text for the developer; the screen words its own message from `code`"
-          },
-          "permission": {
-            "type": "string",
-            "enum": [
-              "program_admin",
-              "catalog_maintainer",
-              "access_manager"
-            ],
-            "description": "The grant the caller lacks"
-          }
-        },
-        "required": [
-          "statusCode",
-          "code",
-          "message",
-          "permission"
-        ]
-      },
       "AdminCurriculumDto": {
         "type": "object",
         "properties": {
@@ -7108,6 +6994,60 @@
           "creditsTotal",
           "creditsTotalMin",
           "updatedAt"
+        ]
+      },
+      "AdminErrorDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 409
+          },
+          "code": {
+            "type": "string",
+            "example": "referenced_item"
+          },
+          "message": {
+            "type": "object",
+            "description": "English text for the developer; the screen words its own message from `code`"
+          }
+        },
+        "required": [
+          "statusCode",
+          "code",
+          "message"
+        ]
+      },
+      "PermissionRequiredDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 409
+          },
+          "code": {
+            "type": "string",
+            "example": "referenced_item"
+          },
+          "message": {
+            "type": "object",
+            "description": "English text for the developer; the screen words its own message from `code`"
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "program_admin",
+              "catalog_maintainer",
+              "access_manager"
+            ],
+            "description": "The grant the caller lacks"
+          }
+        },
+        "required": [
+          "statusCode",
+          "code",
+          "message",
+          "permission"
         ]
       },
       "UpdateRequirementGroupDto": {
