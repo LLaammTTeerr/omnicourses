@@ -32,7 +32,11 @@ export class OnboardingService {
     const rows: { user_id: string; program_code: string }[] = onlyUserId
       ? await this.db.query('SELECT "user_id", "program_code" FROM "onboarding_answers" WHERE "user_id" = $2 AND "program_code" = ANY($1::varchar[])', [programCodes, onlyUserId])
       : await this.db.query('SELECT "user_id", "program_code" FROM "onboarding_answers" WHERE "program_code" = ANY($1::varchar[]) ORDER BY "user_id"', [programCodes]);
-    for (const { user_id, program_code } of rows) byProgram.set(program_code, [...(byProgram.get(program_code) ?? []), user_id]);
+    for (const { user_id, program_code } of rows) {
+      const ids = byProgram.get(program_code);
+      if (ids) ids.push(user_id);
+      else byProgram.set(program_code, [user_id]);
+    }
     return byProgram;
   }
 
