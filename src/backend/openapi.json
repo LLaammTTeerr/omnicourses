@@ -4112,6 +4112,205 @@
         ]
       }
     },
+    "/api/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "unread",
+            "required": false,
+            "in": "query",
+            "description": "true: only unread notifications; false: only read ones. Absent: both",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Only these kinds; repeat the parameter for several. registration_soon: a registration window opens in seven days; registration_open: it opens today; term_start: a term starts today; transcript_changed: the student saved a transcript that differs from the one saved before",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "registration_soon",
+                  "registration_open",
+                  "term_start",
+                  "transcript_changed"
+                ]
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "How many notifications at most",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Only notifications older than this one: send the `nextBefore` of the previous page",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's notifications, newest first. The notifications due today are created first, so a school date entered for today shows at once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A malformed query value."
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "`not_found`: `before` is not one of the caller's notifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationNotFoundDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The number for the bell. The notifications due today are created first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_markAllRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Every unread notification of the caller is now read (UC-12 A3). Calling it again changes nothing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The notification, read. Calling it again changes nothing: `readAt` keeps the first time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "`not_found`: no notification with this ID among the caller's (another student's included, and a malformed ID). Nothing changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationNotFoundDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/users/me/export": {
       "get": {
         "operationId": "AccountController_export",
@@ -9089,6 +9288,199 @@
           "statusCode",
           "message",
           "error"
+        ]
+      },
+      "NotificationEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The ID of the school date. The date may have been changed or deleted since"
+          },
+          "programCode": {
+            "type": "string",
+            "example": "APCS",
+            "description": "The program whose calendar held the date"
+          },
+          "academicYear": {
+            "type": "number",
+            "example": 2026,
+            "description": "ADR 0009: 2026 is the academic year 2026–2027"
+          },
+          "term": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "enum": [
+              1,
+              2,
+              3,
+              null
+            ],
+            "example": 2,
+            "description": "Term 1, 2 or 3; null for a date of the whole academic year"
+          },
+          "startsOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-12-09",
+            "description": "First day, inclusive"
+          },
+          "endsOn": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-12-20",
+            "description": "Last day, inclusive"
+          },
+          "title": {
+            "type": "string",
+            "example": "Đăng ký học phần học kỳ 2"
+          },
+          "titleEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "Term 2 course registration"
+          }
+        },
+        "required": [
+          "id",
+          "programCode",
+          "academicYear",
+          "term",
+          "startsOn",
+          "endsOn",
+          "title",
+          "titleEn"
+        ]
+      },
+      "NotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "registration_soon",
+              "registration_open",
+              "term_start",
+              "transcript_changed"
+            ],
+            "example": "registration_soon",
+            "description": "registration_soon: a registration window opens in seven days; registration_open: it opens today; term_start: a term starts today; transcript_changed: the student saved a transcript that differs from the one saved before"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the student first marked it read; null while unread"
+          },
+          "event": {
+            "description": "The school date announced, as it was when the notification was made: it does not follow later edits, and it stays when the date is deleted. The calendar holds the current dates. null for transcript_changed",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NotificationEventDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "example": [
+              "calendar",
+              "planner"
+            ],
+            "description": "Where the notification can send the student, as keys the screen maps to its own routes; the first is the main action. calendar: the school dates; planner: the plans; audit: the degree audit",
+            "items": {
+              "type": "string",
+              "enum": [
+                "calendar",
+                "planner",
+                "audit"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "createdAt",
+          "readAt",
+          "event",
+          "links"
+        ]
+      },
+      "NotificationListDto": {
+        "type": "object",
+        "properties": {
+          "notifications": {
+            "description": "Newest first; notifications made at the same instant are ordered by ID, the same way on every read",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDto"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Send it as `before` for the next page; null when this page is the last"
+          }
+        },
+        "required": [
+          "notifications",
+          "nextBefore"
+        ]
+      },
+      "NotificationNotFoundDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 404
+          },
+          "code": {
+            "type": "string",
+            "example": "not_found"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "statusCode",
+          "code",
+          "message"
+        ]
+      },
+      "UnreadCountDto": {
+        "type": "object",
+        "properties": {
+          "unread": {
+            "type": "number",
+            "example": 2,
+            "minimum": 0,
+            "description": "How many of the caller's notifications are unread"
+          }
+        },
+        "required": [
+          "unread"
         ]
       },
       "AccountExportDto": {

@@ -203,7 +203,7 @@ C4Component
   }
   Boundary(core, "Shared services and other planned modules", "REST API") {
     Component(sharing, "sharing", "API built · screens planned", "F9 shared-plan link and public read, through plans")
-    Component(notifications, "notifications", "planned · Dũng", "F10 reminders, warnings")
+    Component(notifications, "notifications", "API built · Dũng", "F10 inbox: school dates, changed transcript")
     Component(ai, "ai gateway", "built", "LlmService: structured(), chat()")
     Component(rules, "rules: RulesService", "planned · Triết", "Deterministic rule engine in src/rules/, 80% statement gate")
     Component(transcript, "transcript", "built", "rowsFor()")
@@ -234,7 +234,6 @@ C4Component
   UpdateElementStyle(advisor, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
   UpdateElementStyle(admin, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
   UpdateElementStyle(sharing, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(notifications, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
 
 Black lines are calls into the rule engine, purple lines calls to the AI gateway, green lines reads of the transcript through `rowsFor()`. `sharing` reads plans through one read-only method of `plans`, and `notifications` warns when a saved transcript changes; those two links are left out of the drawing.
@@ -248,7 +247,7 @@ Black lines are calls into the rule engine, purple lines calls to the AI gateway
 | `plan-generator` | F6 plan generator and goal box | Lâm | B3 | [ADR 0003](adr/0003-language-model-scope.md); [ADR 0006](adr/0006-plan-generator.md) |
 | `advisor` | F8 advisor chat | Dũng | B3 | [ADR 0003](adr/0003-language-model-scope.md), UC-08 |
 | `sharing` | F9 export and sharing (the API is built; the screens and the PDF are not) | Dũng | B2 | [ADR 0010](adr/0010-public-pages-and-guide-content.md), UC-09 |
-| `notifications` | F10 notifications | Dũng | B2 | Vision F10, UC-12; delivery contract open |
+| `notifications` | F10 notifications | Dũng | B2 | Vision F10, UC-12; [ADR 0018](adr/0018-notification-inbox.md) (proposed). The inbox API is built; the inbox screens are not started |
 | `curriculum-admin` | F12 curriculum administration | Thắng | B2 | [ADR 0011](adr/0011-curriculum-administration.md) (accepted) |
 
 **The rule engine is the only authority on academic rules** (AGENTS.md hard rule 1). Prerequisites, offering terms, credit caps (by the program's training type, [ADR 0012](adr/0012-credit-caps-by-training-type.md): 10–22 in every term for APCS and CLC, 14–25 in a main term and at most 12 in summer for đại trà; a load outside them is flagged, not blocked), requirement coverage and graduation status are computed only in `src/rules/`. The folder name matters: `vitest.config.mts` already holds `src/rules/**` to 80 % statement coverage (Vision NFR), so engine code placed anywhere else escapes the gate. The engine is deterministic, has no side effects and imports neither `ai` nor any feature that calls it.
@@ -399,7 +398,7 @@ This is the first version of the document. It describes the backend and frontend
 | 4 | The `RulesService` interface is not merged, and seven planned components depend on it. A late change ripples to every caller (risk R9). | Triết | SDP R1, R9; ADR 0006 |
 | 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
 | 6 | The curriculum seeds live in `database/`. Moving them into the `curriculum` module (#65) is a new module boundary and belongs with ADR 0011's work. | Thắng, Triết | ADR 0011 |
-| 7 | F10's delivery channel, schedule and trigger contract are undefined, so the notifications component has no interface yet. | Dũng | Test plan §8 |
+| 7 | Resolved 25 Nov 2026: F10 delivers through the in-app inbox only (Lâm, 12 Nov 2026), and Dũng decided the schedule, the time zone and the repeat rules. The inbox API is built on them. Its trigger mechanism is proposed in ADR 0018 and waits for Lâm's decision. | Dũng, Lâm | [ADR 0018](adr/0018-notification-inbox.md); Test plan §8 |
 | 8 | Whether the portal transcript PDF has a text layer and a fixed layout, and numbers the third term of the year 3. Manual entry works either way. | Lâm | ADR 0003, 0007, 0009, 0012; SDP R7 |
 | 9 | The SPA keeps a bearer token, so XSS exposure must be limited with a strict Content Security Policy when sign-in screens ship. | Hoà, Lâm | ADR 0002 |
 | 10 | Google sign-in and email verification are deferred; Google-only accounts cannot confirm deletion until then. | Lâm | ADR 0002, ADR 0004 |

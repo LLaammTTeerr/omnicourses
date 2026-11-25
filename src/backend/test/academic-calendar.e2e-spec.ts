@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AcademicCalendarService } from '../src/academic-calendar/academic-calendar.service.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
@@ -160,6 +161,32 @@ describe('Academic calendar API (e2e)', () => {
       expect(body.program.code).toBe(codeA);
       expect((body.events as Event[]).map((e) => e.id)).toEqual([registration.id, termStart.id, holiday.id]);
       expect(body.events[0]).toEqual(registration);
+    });
+
+    it('serves the dates of given kinds that start on given days to other modules, without notes, links or actors (ADR 0018)', async () => {
+      const service = app.get(AcademicCalendarService);
+      // The shared database may hold other programs' dates on these days: look at this run's only.
+      const mine = async (days: string[], kinds: Parameters<AcademicCalendarService['startingOn']>[1]) =>
+        (await service.startingOn(days, kinds)).filter((e) => [codeA, codeB].includes(e.programCode));
+      expect(await mine(['2026-09-07', '2026-07-20', '2026-12-21', '2027-02-10'], ['registration', 'term_start'])).toEqual([
+        {
+          id: registration.id,
+          programCode: codeA,
+          academicYear: 2026,
+          term: 1,
+          kind: 'registration',
+          startsOn: '2026-07-20',
+          endsOn: '2026-07-31',
+          title: 'Đăng ký học phần học kỳ 1',
+          titleEn: 'Term 1 course registration',
+        },
+        { id: termStart.id, programCode: codeA, academicYear: 2026, term: 1, kind: 'term_start', startsOn: '2026-09-07', endsOn: '2026-09-07', title: 'Bắt đầu học kỳ 1', titleEn: null },
+      ]);
+      // Every program, by the first day only: a window that is open today did not start today.
+      expect((await mine(['2026-12-21'], ['exam_period'])).map((e) => [e.id, e.programCode])).toEqual([[examB.id, codeB]]);
+      expect(await mine(['2026-07-21', '2026-07-31'], ['registration'])).toEqual([]);
+      expect(await service.startingOn([], ['registration'])).toEqual([]);
+      expect(await service.startingOn(['2026-07-20'], [])).toEqual([]);
     });
 
     it('orders same-day dates by end, then title', async () => {
