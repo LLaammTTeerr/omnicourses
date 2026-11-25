@@ -63,7 +63,7 @@ Only the API is built (`src/backend/src/sharing/`, [ADR 0010](adr/0010-public-pa
 | The prototype `shared.html` shows a row of passed courses and the coverage of each requirement group. | The coverage is in the answer when the owner chose to show the checks from the transcript. The row of passed courses is in no answer: UC-09 step 2 does not list it. | |
 | A reader sees the plan's "program, cohort and curriculum version" (step 2). | The answer gives the curriculum's code, cohort and names and the program's code and names, and no id. | |
 | The token is "at least as strong as a session token" (§7). | 32 random bytes. Unlike a session token it is stored readable, because A4 shows the live link again (agreed by Dũng, 25 November 2026). | The Project Lead accepts or changes it in review |
-| The page tells search engines not to index it (§7). | Every answer with a body under `/api/shared-plans` carries `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`: the plan, the "not shared" answer, and the 429, 400 and 404 that the route's own code does not make. The page must add its own `noindex`. | The shared page |
+| The page tells search engines not to index it (§7). | Every answer that reaches the header step under `/api/shared-plans` carries `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`: the plan, the "not shared" answer, and the 429, 400 and 404 that the route's own code does not make. The CORS answer to `OPTIONS` and the body parser's own 400, 413 and 415 are made earlier and do not carry them; none holds plan data (ADR 0010). The page must add its own `noindex`. | The shared page |
 
 ## UC-10 Follow a school-task guide (F11)
 
