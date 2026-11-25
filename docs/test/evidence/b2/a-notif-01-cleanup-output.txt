@@ -1,0 +1,11 @@
+2026-11-25T13:51:16.690Z a-notif-01 cleanup; D = 2026-11-25 (Vietnam)
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:51:17.669Z","user":{"id":"32addfef-209b-4eba-b728-dfacb9856ead","email":"b2-a1@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:47.737Z"},"accountRestored":false}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/d7eeb346-5d20-40c3-afd9-535491370bb0 → 204
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/66069bdd-1423-4975-a197-61db04e9d1ae → 204
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/012cda2c-9a6e-436f-8570-c6a948362c28 → 204
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/c40f8805-8a07-41ac-bf06-a08a33eaed9d → 204
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/833872dd-d925-4982-a0cc-e78009d518a2 → 204
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:51:24.689Z","user":{"id":"46054d9c-2960-42c7-a80c-53a520e0cb65","email":"b2-a2@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:49.137Z"},"accountRestored":false}
+  DELETE /api/admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/calendar-events/3d49c236-e385-47d6-a602-3bfd5bf5c97d → 204
+ok   NOTIF-01i: clean-up: each delete 204 (E-d stays until NOTIF-01d(2)) | observed: [204,204,204,204,204,204]
+2026-11-25T13:51:24.158Z All checks ok

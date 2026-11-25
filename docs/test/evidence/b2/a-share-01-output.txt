@@ -1,0 +1,141 @@
+2026-11-25T13:20:05.749Z a-share-01
+  POST /api/auth/sign-up (no token) → 409 {"message":"An account with this email already exists","error":"Conflict","statusCode":409}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:20:13.718Z","user":{"id":"883dd5e5-2409-405f-a561-b03809bbe4be","email":"b2-s12@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:18:45.761Z"},"accountRestored":false}
+  PUT /api/users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  POST /api/auth/sign-up (no token) → 409 {"message":"An account with this email already exists","error":"Conflict","statusCode":409}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:20:27.817Z","user":{"id":"687cca7a-1a7b-4c9b-a6e8-159a0dd16122","email":"b2-s13@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:18:52.828Z"},"accountRestored":false}
+  PUT /api/users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+--- rerun: back to the starting state
+  GET /api/plans → 200
+  DELETE /api/plans/6e0c1405-d4b0-4f2b-ab6a-a35be388208b → 204
+  PUT /api/users/me/transcript → 200
+--- SHARE-01a
+  POST /api/plans → 201
+  {P} = 580c48d3-1ad9-4c74-8625-c78eb5ed7c36
+ok   SHARE-01a: the plan 201
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":null}
+ok   SHARE-01a: the first GET 200 { share: null }
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}
+  PUT answer (token as {T1}): {"token":"{T1}","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}
+ok   SHARE-01a: PUT 200: token of 43 base64url characters, showName false, showTranscriptChecks false, createdAt; Cache-Control: no-store | observed: {"keys":["token","showName","showTranscriptChecks","createdAt"],"cacheControl":"no-store"}
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":{"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}}
+ok   SHARE-01a: the GET returns the same object under share
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}
+ok   SHARE-01a: the second PUT ({}) returns the same token and createdAt
+--- SHARE-01b
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/issues → 200
+  O's issues: ["load_above_maximum","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered"]
+  GET /api/shared-plans/{T1} (no token) → 200
+  reader: {"name":"SHARE-01 plan","ownerName":null,"curriculum":{"code":"APCS2024","cohortYear":2024,"nameVi":"Chương trình đào tạo - Chương trình Tiên tiến ngành Khoa học máy tính - Khóa tuyển 2024","nameEn":null,"program":{"code":"APCS","nameVi":"Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến","nameEn":null}},"updatedAt":"2026-11-25T13:20:28.751Z","terms":[{"term":{"year":2026,"number":1},"kind":"main","credits":24,"caps":{"min":10,"max":22},"placements":[{"kind":"course","courseCode":"CS160","nameVi":"Nhập môn Tin học","nameEn":"Introduction to Computer Science","credits":4,"requirementGroupName":null},{"kind":"course","courseCode":"CS163","nameVi":"Cấu trúc dữ liệu","nameEn":"Data Structures","credits":4,"requirementGroupName":null},{"kind":"course","courseCode":"CS201","nameVi":"Lập trình hệ thống","nameEn":"Computer Systems Programming","credits":4,"requirementGroupName":null},{"kind":"course","courseCode":"CS202","nameVi":"Các hệ thống lập trình","nameEn":"Programming Systems","credits":4,"requirementGroupName":null},{"kind":"course","courseCode":"MTH251","nameVi":"Vi tích phân I","nameEn":"Calculus I","credits":4,"requirementGroupName":null},{"kind":"course","courseCode":"PH211","nameVi":"Vật lý đại cương I","nameEn":"General Physics I","credits":4,"requirementGroupName":null}]}],"issues":[{"code":"load_above_maximum","kind":"flag","term":{"year":2026,"number":1},"position":null,"courseCode":null,"offeredTermNumbers":[],"credits":24,"limit":22,"citation":"QĐ 1175/QĐ-KHTN Điều 7.2","message":"2026–2027 term 1 holds 24 credits, above the maximum of 22. Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b)."},{"code":"offering_terms_not_recorded","kind":"unknown","term":{"year":2026,"number":1},"position":0,"courseCode":"CS160","offeredTermNumbers":[],"credits":null,"limit":null,"citation":"QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a","message":"The offering terms of CS160 are not recorded for APCS2024: unknown, not checked."},{"code":"offering_terms_not_recorded","kind":"unknown","term":{"year":2026,"number":1},"position":1,"courseCode":"CS163","offeredTermNumbers":[],"credits":null,"limit":null,"citation":"QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a","message":"The offering terms of CS163 are not recorded for APCS2024: unknown, not checked."},{"code":"offering_terms_not_recorded","kind":"unknown","term":{"year":2026,"number":1},"position":2,"courseCode":"CS201","offeredTermNumbers":[],"credits":null,"limit":null,"citation":"QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a","message":"The offering terms of CS201 are not recorded for APCS2024: unknown, not checked."},{"code":"offering_terms_not_recorded","kind":"unknown","term":{"year":2026,"number":1},"position":3,"courseCode":"CS202","offeredTermNumbers":[],"credits":null,"limit":null,"citation":"QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a","message":"The offering terms of CS202 are not recorded for APCS2024: unknown, not checked."},{"code":"offering_terms_not_recorded","kind":"unknown","term":{"year":2026,"number":1},"position":4,"courseCode":"MTH251","offeredTermNumbers":[],"credits":null,"limit":null,"citation":"QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a","message":"The offering terms of MTH251 are not recorded for APCS2024: unknown, not checked."},{"code":"offering_terms_not_recorded","kind":"unknown","term":{"year":2026,"number":1},"position":5,"courseCode":"PH211","offeredTermNumbers":[],"credits":null,"limit":null,"citation":"QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a","message":"The offering terms of PH211 are not recorded for APCS2024: unknown, not checked."}],"issueCodesNotShown":["prerequisite_not_met","already_passed","already_in_progress","requirement_not_covered"]}
+ok   SHARE-01b: 200 with both headers; keys exactly name, ownerName, curriculum, updatedAt, terms, issues, issueCodesNotShown; no coverage | observed: ["name","ownerName","curriculum","updatedAt","terms","issues","issueCodesNotShown"]
+ok   SHARE-01b: name "SHARE-01 plan", ownerName null; curriculum APCS2024, 2024, names, program APCS with names | observed: {"code":"APCS2024","cohortYear":2024,"nameVi":"Chương trình đào tạo - Chương trình Tiên tiến ngành Khoa học máy tính - Khóa tuyển 2024","nameEn":null,"program":{"code":"APCS","nameVi":"Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến","nameEn":null}}
+ok   SHARE-01b: terms: 2026 term 1, credits 24, the six placements in order with kind, courseCode, nameVi, nameEn, credits, requirementGroupName | observed: {"term":{"year":2026,"number":1},"credits":24,"keys":["kind","courseCode","nameVi","nameEn","credits","requirementGroupName"]}
+ok   SHARE-01b: issueCodesNotShown: the four transcript-decided codes; issues: O's report without them, in order, load_above_maximum for 2026/1 (flag, 24, limit 22) | observed: {"notShown":["prerequisite_not_met","already_passed","already_in_progress","requirement_not_covered"],"codes":["load_above_maximum","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded"],"dropped":["requirementGroupId","combinedMinimumId","missingCourseCodes"],"load":{"kind":"flag","credits":24,"limit":22}}
+ok   SHARE-01b: no key id at any depth, no email, no grade, no transcript row | observed: ["name","ownerName","curriculum","code","cohortYear","nameVi","nameEn","program","updatedAt","terms","term","year","number","kind","credits","caps","min","max","placements","courseCode","requirementGroupName","issues","position","offeredTermNumbers","limit","citation","message","issueCodesNotShown"]
+  GET /api/shared-plans/{T1} → 200
+  GET /api/shared-plans/{T1} → 200
+ok   SHARE-01b: R's answer and O's are the same as the reader's
+--- SHARE-01c
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":true,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}
+  GET /api/shared-plans/{T1} (no token) → 200
+ok   SHARE-01c: showName true: 200, same token, showTranscriptChecks false; the reader's ownerName "Test Student" | observed: Test Student
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":{"token":"…","showName":true,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}}
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 400 {"message":["showName must be a boolean value"],"error":"Bad Request","statusCode":400}
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 400 {"message":"The body must be a JSON object","error":"Bad Request","statusCode":400}
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 400 {"message":["showTranscriptChecks must be a boolean value"],"error":"Bad Request","statusCode":400}
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":{"token":"…","showName":true,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}}
+ok   SHARE-01c: null, [] and "yes" each 400, [] with "The body must be a JSON object"; the link as before them | observed: [["showName must be a boolean value"],"The body must be a JSON object",["showTranscriptChecks must be a boolean value"]]
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}
+  GET /api/shared-plans/{T1} (no token) → 200
+ok   SHARE-01c: showName false: 200, showTranscriptChecks unchanged; ownerName null again
+--- SHARE-01d
+  GET /api/shared-plans/{T1} (no token) → 200
+  PATCH /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36 → 200
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/placements → 200
+  GET /api/shared-plans/{T1} (no token) → 200
+  reader: {"name":"SHARE-01 plan (renamed)","ownerName":null,"updatedAt":"2026-11-25T13:20:31.942Z","terms":[[2026,1,20,5]],"issues":["offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded"],"issueCodesNotShown":["prerequisite_not_met","already_passed","already_in_progress","requirement_not_covered"],"coverage":"absent"}
+ok   SHARE-01d: both edits 200; the reader sees the new name, a later updatedAt, five placements, 20 credits, no load_above_maximum | observed: [200,200]
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":{"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}}
+ok   SHARE-01d: the token is unchanged
+--- SHARE-01e
+  GET /api/shared-plans/{T1} (no token) → 200
+  PUT /api/users/me/transcript → 200
+  GET /api/shared-plans/{T1} (no token) → 200
+ok   SHARE-01e: T-A saved; V1 equals the answer before T-A was saved, updatedAt included | observed: {"name":"SHARE-01 plan (renamed)","ownerName":null,"updatedAt":"2026-11-25T13:20:31.942Z","terms":[[2026,1,20,5]],"issues":["offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded"],"issueCodesNotShown":["prerequisite_not_met","already_passed","already_in_progress","requirement_not_covered"],"coverage":"absent"}
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/issues → 200
+  O's issues: [["already_passed","CS160"],["offering_terms_not_recorded","CS160"],["offering_terms_not_recorded","CS163"],["offering_terms_not_recorded","CS201"],["already_passed","MTH251"],["offering_terms_not_recorded","MTH251"],["offering_terms_not_recorded","PH211"],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null]]
+ok   SHARE-01e: O's report holds already_passed for CS160 and MTH251 | observed: ["CS160","MTH251"]
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":false,"showTranscriptChecks":true,"createdAt":"2026-11-25T13:20:29.030Z"}
+  GET /api/shared-plans/{T1} (no token) → 200
+  reader with the checks: {"name":"SHARE-01 plan (renamed)","ownerName":null,"updatedAt":"2026-11-25T13:20:31.942Z","terms":[[2026,1,20,5]],"issues":["already_passed","offering_terms_not_recorded","offering_terms_not_recorded","offering_terms_not_recorded","already_passed","offering_terms_not_recorded","offering_terms_not_recorded","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered","requirement_not_covered"],"issueCodesNotShown":[],"coverage":"present"}
+ok   SHARE-01e: with the choice on: the reader's issues hold the report's issues in order, issueCodesNotShown [], coverage present; no grade, no transcript row, no id | observed: {"codes":[["already_passed","CS160"],["offering_terms_not_recorded","CS160"],["offering_terms_not_recorded","CS163"],["offering_terms_not_recorded","CS201"],["already_passed","MTH251"],["offering_terms_not_recorded","MTH251"],["offering_terms_not_recorded","PH211"],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null],["requirement_not_covered",null]],"dropped":["requirementGroupId","combinedMinimumId"],"forbidden":[]}
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}
+  GET /api/shared-plans/{T1} (no token) → 200
+ok   SHARE-01e: with the choice off again, the answer equals V1
+--- SHARE-01f
+  GET /api/shared-plans/{T1} (no token) → 200
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":{"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}}
+  POST /api/shared-plans/{T1} (no token) → 404 {"message":"Cannot POST /api/shared-plans/{T1}","error":"Not Found","statusCode":404}
+  PUT /api/shared-plans/{T1} (no token) → 404 {"message":"Cannot PUT /api/shared-plans/{T1}","error":"Not Found","statusCode":404}
+  PATCH /api/shared-plans/{T1} (no token) → 404 {"message":"Cannot PATCH /api/shared-plans/{T1}","error":"Not Found","statusCode":404}
+  DELETE /api/shared-plans/{T1} (no token) → 404 {"message":"Cannot DELETE /api/shared-plans/{T1}","error":"Not Found","statusCode":404}
+ok   SHARE-01f: each reader write 404 (no write route), never 200 nor "This plan is not shared", each with both headers | observed: [[404,"Cannot POST /api/shared-plans/{T1}"],[404,"Cannot PUT /api/shared-plans/{T1}"],[404,"Cannot PATCH /api/shared-plans/{T1}"],[404,"Cannot DELETE /api/shared-plans/{T1}"]]
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 401 {"message":"Unauthorized","statusCode":401}
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 401 {"message":"Unauthorized","statusCode":401}
+  DELETE /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 401 {"message":"Unauthorized","statusCode":401}
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/placements → 401 {"message":"Unauthorized","statusCode":401}
+ok   SHARE-01f: with Bearer {T1}, each owner route 401 | observed: [401,401,401,401]
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+  DELETE /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 404 {"message":"No plan with this id","error":"Not Found","statusCode":404}
+ok   SHARE-01f: R's three calls 404 "No plan with this id" | observed: [[404,"No plan with this id"],[404,"No plan with this id"],[404,"No plan with this id"]]
+  GET /api/shared-plans/{T1} (no token) → 200
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":{"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:29.030Z"}}
+ok   SHARE-01f: the reader's answer and O's link as before
+--- SHARE-01g
+  DELETE /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 204
+  GET /api/shared-plans/{T1} (no token) → 404
+ok   SHARE-01g: DELETE 204; {T1} gives the 404 page at once, with both headers | observed: [204,404,{"message":"This plan is not shared","error":"Not Found","statusCode":404}]
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":null}
+  DELETE /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 204
+ok   SHARE-01g: GET { share: null }; the second DELETE 204
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:36.207Z"}
+ok   SHARE-01g: PUT gives a new token {T2} ≠ {T1}, both choices off
+  GET /api/shared-plans/{T2} (no token) → 200
+  GET /api/shared-plans/{T1} (no token) → 404
+ok   SHARE-01g: {T2} opens (200); {T1} stays the 404 page
+  GET /api/shared-plans/{random} (no token) → 404
+  GET /api/shared-plans/x (no token) → 404
+  GET /api/shared-plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36 (no token) → 404
+  GET /api/shared-plans/{T2 without its last character} (no token) → 404
+ok   SHARE-01g: a random token, x, {P} and {T2} without its last character: the same 404 page, word for word | observed: [[404,"{\"message\":\"This plan is not shared\",\"error\":\"Not Found\",\"statusCode\":404}"],[404,"{\"message\":\"This plan is not shared\",\"error\":\"Not Found\",\"statusCode\":404}"],[404,"{\"message\":\"This plan is not shared\",\"error\":\"Not Found\",\"statusCode\":404}"],[404,"{\"message\":\"This plan is not shared\",\"error\":\"Not Found\",\"statusCode\":404}"]]
+--- SHARE-01h
+  POST /api/plans → 201
+  {P2} = fc738fb7-db78-411a-a0a9-8c2705142206
+  PUT /api/plans/fc738fb7-db78-411a-a0a9-8c2705142206/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:37.156Z"}
+  GET /api/shared-plans/{T3} (no token) → 200
+  DELETE /api/plans/fc738fb7-db78-411a-a0a9-8c2705142206 → 204
+  GET /api/shared-plans/{T3} (no token) → 404
+ok   SHARE-01h: the read before 200; the plan DELETE 204; {T3} gives the 404 page | observed: [200,204,404]
+--- SHARE-01i
+  POST /api/plans → 201
+  PUT /api/plans/d401d6cd-c98f-4fa2-9713-cbe8311f58e8/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:37.786Z"}
+  DELETE /api/users/me → 202 {"purgeAfter":"2026-12-25T13:20:37.946Z"}
+  GET /api/shared-plans/{T2} (no token) → 404
+  GET /api/shared-plans/{TR} (no token) → 200
+ok   SHARE-01i: deletion 202; {T2} the 404 page at once; R's {TR} still opens | observed: [202,404,200]
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:20:45.239Z","user":{"id":"883dd5e5-2409-405f-a561-b03809bbe4be","email":"b2-s12@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:18:45.761Z"},"accountRestored":true}
+ok   SHARE-01i: the sign-in 200 with accountRestored true
+  GET /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"share":null}
+  GET /api/shared-plans/{T2} (no token) → 404
+ok   SHARE-01i: the plan is back, its link is not: { share: null }; {T2} stays the 404 page
+  PUT /api/plans/580c48d3-1ad9-4c74-8625-c78eb5ed7c36/share → 200 {"token":"…","showName":false,"showTranscriptChecks":false,"createdAt":"2026-11-25T13:20:45.765Z"}
+  GET /api/shared-plans/{T4} (no token) → 200
+ok   SHARE-01i: {T4} is a new token and opens
+  DELETE /api/plans/d401d6cd-c98f-4fa2-9713-cbe8311f58e8 → 204
+ok   SHARE-01i: clean-up: R's plan DELETE 204
+--- SHARE-01j
+  GET /api/users/me/export → 200
+  plan_shares rows: [{"id":"efa05fd3-27f8-4ab2-be83-b99b4b4a4224","plan_id":"580c48d3-1ad9-4c74-8625-c78eb5ed7c36","user_id":"883dd5e5-2409-405f-a561-b03809bbe4be","show_name":false,"show_transcript_checks":false,"created_at":"2026-11-25T13:20:45.765Z"}]
+ok   SHARE-01j: 200; tables.plan_shares holds the row of {P} with its choices and created_at, no share_token key; {T4} nowhere in the file | observed: ["id","plan_id","user_id","show_name","show_transcript_checks","created_at"]
+2026-11-25T13:20:45.704Z All checks ok

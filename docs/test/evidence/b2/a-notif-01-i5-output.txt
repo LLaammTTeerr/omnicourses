@@ -1,0 +1,5 @@
+2026-11-25T13:51:09.147Z a-notif-01 i5; D = 2026-11-25 (Vietnam)
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:51:10.278Z","user":{"id":"a90cbcb4-03c6-46bc-b2a8-9a21dd349362","email":"b2-s11@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:18:05.431Z"},"accountRestored":true}
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+ok   NOTIF-01i: (5) 200 with accountRestored true; the read holds E-i's term_start | observed: {"accountRestored":true,"ni":[{"kind":"term_start","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:51:10.412Z","id":"a7f93ea7-2781-40a2-a5b5-ab36fc574d6c"}]}
+2026-11-25T13:51:09.782Z All checks ok
