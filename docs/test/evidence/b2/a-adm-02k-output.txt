@@ -1,0 +1,32 @@
+ADM 02k run at 2026-11-25T06:03:00.044Z
+POST /auth/sign-in (b2-a1@example.com) → 200
+POST /auth/sign-in (b2-a2@example.com) → 200
+GET /admin/programs → 200
+GET /admin/programs → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT":"74ce84b9-c698-43ea-8470-1988a50656a8","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324","AE":"f7ca386e-f8db-41c2-9350-1bec627aafa0","KG":"307a0d8d-a333-418c-8399-ad4bd8fd74b3"}
+GET /programs/APCS/curricula/2024 → 200
+  CS420 in AE before: offeringTerms null
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups → 201 {"id":"2ffa0eb0-5575-4388-ad5e-5ff5db6590ac","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","name":"Nhóm thử ADM-02k","kind":"elective","officialNotes":null,"creditsTotal":null,"creditsTotalMin":null,"updatedAt":"2026-11-25T06:03:07.567Z"}
+  OK  (1) 201, curriculumId {APCS24}, name, elective, notes/totals null
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups → 409 {"statusCode":409,"code":"duplicate_name","message":"This cohort already has a requirement group with this name"}
+  OK  (2) 409 duplicate_name, "This cohort already has a requirement group with this name"
+PATCH /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/2ffa0eb0-5575-4388-ad5e-5ff5db6590ac → 200 {"id":"2ffa0eb0-5575-4388-ad5e-5ff5db6590ac","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","name":"Nhóm thử ADM-02k đã sửa","kind":"elective","officialNotes":"Ghi chú thử ADM-02k","creditsTotal":null,"creditsTotalMin":null,"updatedAt":"2026-11-25T06:03:08.040Z"}
+  OK  (3) 200 new name and notes, still elective
+PATCH /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/2ffa0eb0-5575-4388-ad5e-5ff5db6590ac → 409 {"statusCode":409,"code":"duplicate_name","message":"This cohort already has a requirement group with this name"}
+  OK  (4) 409 duplicate_name
+PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/2ffa0eb0-5575-4388-ad5e-5ff5db6590ac/courses/CS420 → 204 ""
+  OK  (5) 204
+GET /programs/APCS/curricula/2024 → 200
+  OK  curriculum lists the group, elective, with the notes and CS420 only
+  OK  CS420 still in "Kiến thức Computer Science (A): tự chọn"
+DELETE /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/2ffa0eb0-5575-4388-ad5e-5ff5db6590ac → 409 {"statusCode":409,"code":"referenced_item","message":"The group still links courses; remove them from it first","references":["links CS420"]}
+  OK  (6) 409 referenced_item, "The group still links courses; remove them from it first", references ["links CS420"]
+DELETE /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/2ffa0eb0-5575-4388-ad5e-5ff5db6590ac/courses/CS420 → 204 ""
+DELETE /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/2ffa0eb0-5575-4388-ad5e-5ff5db6590ac → 204 ""
+  OK  (7) 204, 204
+GET /programs/APCS/curricula/2024 → 200
+  OK  no group "Nhóm thử ADM-02k…"
+  OK  CS420 still in AE with the same offeringTerms
+All checks OK

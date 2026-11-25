@@ -1,0 +1,25 @@
+2026-11-25T06:15:55.814Z a-screens 05g
+2026-11-25T06:15:56.082Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  API POST /auth/sign-in (b2-a2@example.com) → 200
+  API GET /admin/programs → 200 {"programs":[{"id":"74ce84b9-c698-43ea-8470-1988a50656a8","code":"CNTT-TCTA-KHMT","nameVi":"Cử nhân Công nghệ thông tin - Chương trình tăng cường tiếng Anh - Chuyên ngành Khoa học máy tính","curricula":[{"id":"f7622c13-3e5b-4d6c-95b0-17308c767846","code":"CNTT-TCTA-KHMT-2025","cohortYear":2025}]}]}
+  API GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  UI sign-in b2-a1@example.com → 200
+ok   ADM-05g: A1's Enter sends one PUT, 204; toast names the group; ZZADM05S in the table; focus stays in the empty code box | observed: {"w":"PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/zzadm05s 204","linkToast":"Đã thêm ZZADM05S vào nhóm Tự chọn Computer Science (C).","focus":"input #link-code [data-test=link-code]"}
+  UI sign-in b2-a3@example.com → 200
+ok   ADM-05g: A3's review: "1 chương trình đào tạo bị ảnh hưởng", "APCS · Khóa 2024 (APCS2024)" | observed: {"count":"1 chương trình đào tạo bị ảnh hưởng","affected":["APCS · Khóa 2024 (APCS2024)"]}
+  API PUT /admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/requirement-groups/307a0d8d-a333-418c-8399-ad4bd8fd74b3/courses/ZZADM05S → 204
+ok   ADM-05g: A2's link 204
+ok   ADM-05g: first Xác nhận và lưu 409; review again under the red alert, "2 chương trình đào tạo bị ảnh hưởng", APCS2024 and CNTT-TCTA-KHMT 2025 | observed: {"w":"PATCH /api/admin/catalog/courses/ZZADM05S 409","changed":"Giá trị của học phần, hoặc danh sách chương trình đào tạo dùng nó, đã đổi từ lúc bạn xem. Chưa lưu gì. Xem lại danh sách mới rồi xác nhận lần nữa.","count":"2 chương trình đào tạo bị ảnh hưởng","affected":["APCS · Khóa 2024 (APCS2024)","CNTT-TCTA-KHMT · Khóa 2025 (CNTT-TCTA-KHMT-2025)"]}
+  API GET /courses/ZZADM05S → 200
+ok   ADM-05g: nothing saved yet (API: 5 credits)
+ok   ADM-05g: second Xác nhận và lưu 200, toast "Đã lưu học phần ZZADM05S.", card 4 credits and both curricula under Dùng trong | observed: {"w":"PATCH /api/admin/catalog/courses/ZZADM05S 200","toast":"Đã lưu học phần ZZADM05S.","members":2}
+--- clean-up
+ok   ADM-05g: bin named "Bỏ ZZADM05S khỏi nhóm"; dialog "Bỏ ZZADM05S khỏi nhóm này?" and its sentence | observed: {"unlinkName":"Bỏ ZZADM05S khỏi nhóm","uTitle":"Bỏ ZZADM05S khỏi nhóm này?","uBody":"ZZADM05S sẽ rời nhóm “Tự chọn Computer Science (C)”. Học phần vẫn còn trong danh mục và trong các nhóm khác."}
+ok   ADM-05g: the confirm button says Bỏ khỏi nhóm
+ok   ADM-05g: removal 204, "Đã bỏ ZZADM05S khỏi nhóm. Học phần vẫn còn trong danh mục." | observed: {"w":"DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM05S 204","toast":"Đã bỏ ZZADM05S khỏi nhóm. Học phần vẫn còn trong danh mục."}
+  API DELETE /admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/requirement-groups/307a0d8d-a333-418c-8399-ad4bd8fd74b3/courses/ZZADM05S → 204
+ok   ADM-05g: A2's DELETE 204
+ok   ADM-05g: deletion 204, toast "Đã xóa học phần ZZADM05S khỏi danh mục.", card gone, focus on the code box | observed: {"w":"DELETE /api/admin/catalog/courses/ZZADM05S 204","toast":"Đã xóa học phần ZZADM05S khỏi danh mục.","focus":"input #catalog-code [data-test=catalog-code]"}
+  API GET /courses/ZZADM05S → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+ok   ADM-05g: GET /courses/ZZADM05S 404
+2026-11-25T06:16:17.127Z All checks ok

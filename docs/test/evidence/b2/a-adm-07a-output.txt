@@ -1,0 +1,33 @@
+ADM 07a run at 2026-11-25T06:03:24.401Z
+POST /auth/sign-in (b2-s1@example.com) → 200
+POST /auth/sign-in (b2-a1@example.com) → 200
+POST /auth/sign-in (b2-a2@example.com) → 200
+GET /admin/programs → 200
+GET /admin/programs → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT":"74ce84b9-c698-43ea-8470-1988a50656a8","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324","AE":"f7ca386e-f8db-41c2-9350-1bec627aafa0","KG":"307a0d8d-a333-418c-8399-ad4bd8fd74b3"}
+POST /admin/catalog/imports/preview → 401 {"message":"Unauthorized","statusCode":401}
+  OK  (1) signed out 401
+POST /admin/catalog/imports/preview → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  (2) S1: 403 catalog_maintainer, then program_admin
+POST /admin/catalog/imports/preview → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/imports/preview → 404 {"statusCode":404,"code":"not_found","message":"No such cohort in this program"}
+POST /admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/imports/preview → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 400 {"statusCode":400,"code":"validation_failed","message":["programId: property programId should not exist"]}
+  OK  (3) A1 catalog: 403 catalog_maintainer
+  OK  (3) A1 {APCS}/{KHMT25}: 404 not_found "No such cohort in this program", nothing of CLC
+  OK  (3) A1 {KHMT}/{KHMT25}: 403 program_admin
+  OK  (3) A1 with programId: 400 validation_failed "property programId should not exist"
+POST /auth/sign-in (b2-a3@example.com) → 200
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  (4) A3: 403 program_admin
+POST /auth/sign-in (b2-a4@example.com) → 200
+POST /admin/catalog/imports/preview → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+  OK  (5) A4: 403 catalog_maintainer
+POST /admin/catalog/imports/confirm → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+  OK  (6) A1 confirm with "x": 403 catalog_maintainer, not 409
+GET /courses/ZZADM07A → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  OK  GET /courses/ZZADM07A 404
+All checks OK
