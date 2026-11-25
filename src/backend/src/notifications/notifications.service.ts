@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { AcademicCalendarService, type CalendarEventStart } from '../academic-calendar/academic-calendar.service.js';
+import { failureKind } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { vietnamDate } from '../config/time.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
@@ -55,6 +56,8 @@ export function notificationDto(n: Notification): NotificationDto {
 // gives the dates, onboarding the students of a program, and the transcript only says "changed".
 @Injectable()
 export class NotificationsService implements OnModuleInit {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     private readonly db: DataSource,
     @InjectRepository(Notification) private readonly notifications: Repository<Notification>,
@@ -76,6 +79,11 @@ export class NotificationsService implements OnModuleInit {
    * A student receives a school date's notification when their saved program is the date's program
    * at this moment and their account is not waiting for deletion. A student who joins the program
    * later the same day still gets today's notifications; one who joins tomorrow does not.
+   *
+   * Each school date is written by a statement of its own, outside any shared transaction. A
+   * statement that fails is counted and the run goes on, so one bad date does not cost the
+   * students of the other dates their day: a missed day is never caught up. It rejects only when
+   * the dates or the students cannot be read at all.
    */
   async createDue(onlyUserId?: string): Promise<number> {
     const now = this.clock.now();
@@ -85,30 +93,54 @@ export class NotificationsService implements OnModuleInit {
     if (!due.length) return 0;
     const students = await this.onboarding.userIdsByProgram([...new Set(due.map((d) => d.event.programCode))], onlyUserId);
     let created = 0;
+    let statements = 0;
+    const failures: string[] = [];
     for (const { event, kind } of due) {
       const userIds = students.get(event.programCode);
       if (!userIds?.length) continue;
-      const rows: unknown[] = await this.db.query(INSERT_FOR_EVENT, [
-        userIds,
-        kind,
-        event.id,
-        event.programCode,
-        event.academicYear,
-        event.term,
-        event.startsOn,
-        event.endsOn,
-        event.title,
-        event.titleEn,
-        now,
-      ]);
-      created += rows.length;
+      statements++;
+      try {
+        // this.db, never a transaction's manager: in a shared transaction the first failure
+        // would make PostgreSQL refuse every statement after it (SQLSTATE 25P02).
+        const rows: unknown[] = await this.db.query(INSERT_FOR_EVENT, [
+          userIds,
+          kind,
+          event.id,
+          event.programCode,
+          event.academicYear,
+          event.term,
+          event.startsOn,
+          event.endsOn,
+          event.title,
+          event.titleEn,
+          now,
+        ]);
+        created += rows.length;
+      } catch (error) {
+        failures.push(failureKind(error));
+      }
     }
+    // One line for the run, counts and failure kinds only: no student, no date, no title.
+    if (failures.length) this.logger.error(`Could not create the notifications of ${failures.length} of ${statements} school date(s) that are due: ${[...new Set(failures)].join('; ')}`);
     return created;
   }
 
-  /** The caller's notifications, newest first, after creating the ones due today. */
+  /**
+   * createDue for a read. A failure must not cost the student the notifications already stored,
+   * so it is logged, by kind only, and the read goes on. Left to Nest, the error would answer 500
+   * and be logged with the failed statement and its parameters (a user ID, a date's title).
+   */
+  private async createDueBeforeRead(userId: string): Promise<void> {
+    try {
+      await this.createDue(userId);
+    } catch (error) {
+      this.logger.error(`Could not create the notifications that are due before a read: ${failureKind(error)}`);
+    }
+  }
+
+  /** The caller's notifications, newest first, after creating the ones due today for the caller alone. */
   async list(userId: string, query: NotificationsQueryDto): Promise<NotificationListDto> {
-    await this.createDue(userId);
+    await this.createDueBeforeRead(userId);
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
     const qb = this.notifications.createQueryBuilder('n').where('n.userId = :userId', { userId });
     if (query.unread !== undefined) qb.andWhere(query.unread ? 'n.readAt IS NULL' : 'n.readAt IS NOT NULL');
@@ -127,9 +159,9 @@ export class NotificationsService implements OnModuleInit {
     return { notifications: page.map(notificationDto), nextBefore: rows.length > limit ? page[page.length - 1]!.id : null };
   }
 
-  /** How many of the caller's notifications are unread, after creating the ones due today. */
+  /** How many of the caller's notifications are unread, after creating the ones due today for the caller alone. */
   async unreadCount(userId: string): Promise<UnreadCountDto> {
-    await this.createDue(userId);
+    await this.createDueBeforeRead(userId);
     return { unread: await this.notifications.countBy({ userId, readAt: IsNull() }) };
   }
 

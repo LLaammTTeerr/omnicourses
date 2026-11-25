@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { vietnamDate } from '../config/time.js';
 import { MIN_DELAY_MS, msUntilNextRun, NotificationSchedule, RUN_INTERVAL_MS } from './notification-schedule.js';
@@ -105,6 +106,14 @@ describe('NotificationSchedule', () => {
     expect(String(error.mock.calls[0]![0])).toBe('Could not create the notifications that are due: Error');
     await vi.advanceTimersByTimeAsync(RUN_INTERVAL_MS);
     expect(createDue).toHaveBeenCalledTimes(2);
+  });
+
+  it('adds the SQLSTATE of a refused statement to the line, and neither the statement nor its parameters', async () => {
+    const error = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const driverError = Object.assign(new Error('insert or update violates foreign key: Key (user_id)=(synthetic-id)'), { code: '23503' });
+    createDue.mockRejectedValueOnce(new QueryFailedError('INSERT INTO "notifications" …', ['synthetic-id', 'Synthetic title'], driverError));
+    await schedule.tick();
+    expect(error.mock.calls.map((c) => c.map(String).join(' '))).toEqual(['Could not create the notifications that are due: QueryFailedError, SQLSTATE 23503']);
   });
 
   it('logs how many notifications a run created, and nothing about them', async () => {
