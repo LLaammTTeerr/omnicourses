@@ -99,6 +99,7 @@ interface CatalogMessages {
   lookupHint: string;
   notFound: (code: string) => string;
   notFoundAdd: string;
+  notACode: string;
   lookupFailed: string;
   importLink: string;
   fields: Record<CourseField, string>;
@@ -490,6 +491,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       lookupHint: 'Danh mục chưa có trang liệt kê hay tìm theo tên. Nhập đúng mã của học phần.',
       notFound: (code) => `Danh mục không có học phần mang mã ${code}.`,
       notFoundAdd: 'Bấm “Thêm học phần” để tạo học phần mới với mã này.',
+      notACode: 'Mã học phần gồm 2 đến 20 chữ cái A–Z hoặc chữ số, nên không thể tạo học phần với mã này.',
       lookupFailed: 'Chưa tải được học phần.',
       importLink: 'Nhập học phần từ tệp CSV',
       fields: {
@@ -832,6 +834,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       lookupHint: 'The catalog has no listing or search by name yet. Enter the exact code of the course.',
       notFound: (code) => `The catalog has no course with the code ${code}.`,
       notFoundAdd: 'Press “Add course” to create a new course with this code.',
+      notACode: 'A course code has 2 to 20 letters A–Z or digits, so no course can be created with this one.',
       lookupFailed: 'Could not load the course.',
       importLink: 'Import courses from a CSV file',
       fields: {

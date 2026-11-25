@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, shallowRef } from 'vue';
 import { onBeforeRouteLeave, RouterLink } from 'vue-router';
 import { useAuth } from '../auth/store.js';
+import { isCourseCode } from '../course-code.js';
 import { fetchCourse, type Course, type CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
@@ -30,6 +31,8 @@ const course = shallowRef<CourseDetail | null>(null);
 /** The code last looked up, as the catalog stores codes. */
 const code = ref('');
 const status = ref<'idle' | 'loading' | 'found' | 'missing' | 'failed'>('idle');
+/** A missing course can be created with its code only when the API accepts that code: `..` is never a course. */
+const creatable = computed(() => status.value === 'missing' && isCourseCode(code.value));
 let latest = 0;
 
 /** The saved course, or null when the catalog has none with this code. Rejects when the API cannot say. */
@@ -291,7 +294,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
           <Icon name="alert" /><span>{{ text.lookupFailed }} <button class="btn sm" type="button" @click="find">{{ m.retry }}</button></span>
         </p>
         <p v-else-if="status === 'missing'" class="callout" role="status" data-test="catalog-not-found">
-          <Icon name="info" /><span>{{ text.notFound(code) }} {{ text.notFoundAdd }}</span>
+          <Icon name="info" /><span>{{ text.notFound(code) }} {{ creatable ? text.notFoundAdd : text.notACode }}</span>
         </p>
       </div>
 
@@ -328,7 +331,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
     <CourseDialog
       :open="dialog?.type === 'create' || dialog?.type === 'edit'"
       :course="dialog?.type === 'edit' ? (course ?? editing) : null"
-      :start-code="status === 'missing' ? code : ''"
+      :start-code="creatable ? code : ''"
       :busy="busy"
       :problem="dialog?.type === 'delete' ? null : problem"
       :review="review"

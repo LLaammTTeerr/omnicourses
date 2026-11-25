@@ -1,3 +1,4 @@
+import { COURSE_CODE_PATTERN } from '../course-code.js';
 import { TERM_NUMBERS, TRANSCRIPT_RESULTS, type Term, type TranscriptResult, type TranscriptRow } from './api.js';
 
 // A row of the review table (UC-02 step 5) as the student edits it, and the checks TranscriptRowDto makes, so the
@@ -10,8 +11,6 @@ export const MAX_CREDITS = 30;
 export const MAX_NAME_LENGTH = 255;
 export const MIN_YEAR = 2000;
 export const MAX_YEAR = 2100;
-// src/backend/src/common/course-code.ts.
-export const COURSE_CODE_PATTERN = /^[A-Z0-9]{2,20}$/;
 
 export interface DraftRow {
   /** Stable across edits, for the table's keys and labels. */

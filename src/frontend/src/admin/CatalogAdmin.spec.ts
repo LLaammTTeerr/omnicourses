@@ -617,6 +617,22 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(problem(w).attributes('data-code')).toBe('not_found');
   });
 
+  it('offers to create a missing course only when its code has the format the API accepts (#160)', async () => {
+    const { w } = await render({ 'GET /courses/..%20': NOT_FOUND, 'GET /courses/ZZ-1': NOT_FOUND });
+    for (const typed of ['..', 'zz-1']) {
+      await find(w, typed);
+      const note = get(w, 'catalog-not-found').text();
+      expect(note).not.toContain('Thêm học phần');
+      expect(note).toContain('Mã học phần gồm 2 đến 20 chữ cái A–Z hoặc chữ số');
+      const dialog = await open(w, 'catalog-add');
+      expect(value(dialog, 'course-code')).toBe('');
+      await press(w, 'dialog-cancel');
+    }
+    // A code in the format still gets the offer.
+    await find(w, 'zz999');
+    expect(get(w, 'catalog-not-found').text()).toContain('Bấm “Thêm học phần”');
+  });
+
   it('keeps a typed code of only dots one path segment, so the lookup reaches the course route (#160)', async () => {
     const { w, fetch } = await render({ 'GET /courses/..%20': NOT_FOUND });
     await find(w, '..');
