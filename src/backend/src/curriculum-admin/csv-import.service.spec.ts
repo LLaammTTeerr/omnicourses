@@ -18,13 +18,23 @@ describe('wholeNumberOrText', () => {
 
 // A CSV row is checked by the DTO of the manual POST /admin/catalog/courses (ADR 0011).
 describe('checkCatalogRow', () => {
-  it('normalizes a valid row: canonical code, null for a blank English name, 0 for a blank period count', async () => {
+  it('normalizes a valid row: canonical code, null for a blank English name, null for a blank period count', async () => {
     expect(await checkCatalogRow(row({ code: 'zz101', theory_periods: '30' }))).toEqual({
       code: 'ZZ101',
-      values: { nameVi: 'Học phần thử', nameEn: null, credits: 4, theoryPeriods: 30, labPeriods: 0, exercisePeriods: 0, projectPeriods: 0 },
+      values: { nameVi: 'Học phần thử', nameEn: null, credits: 4, theoryPeriods: 30, labPeriods: null, exercisePeriods: null, projectPeriods: null },
       errors: [],
     });
     expect((await checkCatalogRow(row({ name_en: 'Trial Course' }))).values?.nameEn).toBe('Trial Course');
+  });
+
+  // #164: an empty period cell is blank (null), as an emptied box of the course form is; a written 0 stays 0.
+  it('reads an empty cell of every period column as null and a written 0 as 0', async () => {
+    const values = (await checkCatalogRow(row({}))).values;
+    expect([values?.theoryPeriods, values?.labPeriods, values?.exercisePeriods, values?.projectPeriods]).toEqual([null, null, null, null]);
+    const zeros = (await checkCatalogRow(row({ theory_periods: '0', lab_periods: '0', exercise_periods: '0', project_periods: '0' }))).values;
+    expect([zeros?.theoryPeriods, zeros?.labPeriods, zeros?.exercisePeriods, zeros?.projectPeriods]).toEqual([0, 0, 0, 0]);
+    const mixed = (await checkCatalogRow(row({ theory_periods: '45', lab_periods: '30', project_periods: '0' }))).values;
+    expect([mixed?.theoryPeriods, mixed?.labPeriods, mixed?.exercisePeriods, mixed?.projectPeriods]).toEqual([45, 30, null, 0]);
   });
 
   it('refuses a number that is not a whole number, in the words of manual entry', async () => {

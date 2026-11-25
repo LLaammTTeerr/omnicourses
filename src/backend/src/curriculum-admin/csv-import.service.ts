@@ -77,8 +77,9 @@ const COURSE_COLUMNS: Record<'code' | CourseField, CatalogColumn> = {
  * One catalog row checked as a manual `POST /admin/catalog/courses` body is: the same code
  * rule and the same CreateCourseDto, through the same strict validation, which also refuses
  * a missing code, name or credit count. What is CSV-only is the mapping of cells to fields:
- * a blank `name_en` is null, a blank number is absent (a period count is then saved as 0),
- * and digits become a number. `code` comes back whenever it is a course code, even on a row
+ * a blank `name_en` is null, a blank credit count is absent (and refused), a blank period
+ * count is null, and digits become a number. A blank period is null as an emptied period box
+ * of the course form is (#164), not the 0 that `newCourseValues` gives an omitted one. `code` comes back whenever it is a course code, even on a row
  * with another error, so that a repeated code is always reported.
  */
 export async function checkCatalogRow(row: CsvRow<CatalogColumn>): Promise<{ code: string | null; values: CourseValues | null; errors: RowError[] }> {
@@ -90,22 +91,34 @@ export async function checkCatalogRow(row: CsvRow<CatalogColumn>): Promise<{ cod
   if (code.error !== null) errors.push(at('code', code.error.replace(/^code: /, '')));
 
   const count = (text: string) => (text === '' ? undefined : wholeNumberOrText(text));
+  const period = (text: string) => (text === '' ? null : wholeNumberOrText(text));
   const checked = await validateStrict(CreateCourseDto, {
     code: cell.code,
     nameVi: cell.name_vi,
     nameEn: cell.name_en === '' ? null : cell.name_en,
     credits: count(cell.credits),
-    theoryPeriods: count(cell.theory_periods),
-    labPeriods: count(cell.lab_periods),
-    exercisePeriods: count(cell.exercise_periods),
-    projectPeriods: count(cell.project_periods),
+    theoryPeriods: period(cell.theory_periods),
+    labPeriods: period(cell.lab_periods),
+    exercisePeriods: period(cell.exercise_periods),
+    projectPeriods: period(cell.project_periods),
   });
   for (const failed of checked.errors ?? []) {
     const column = COURSE_COLUMNS[failed.property as 'code' | CourseField] ?? failed.property;
     const messages = Object.values(failed.constraints ?? {}).map((m) => (m.startsWith(`${failed.property} `) ? m.slice(failed.property.length + 1) : m));
     errors.push(at(column, messages.join('; ')));
   }
-  return { code: code.code, values: errors.length || !checked.value ? null : newCourseValues(checked.value), errors };
+  return { code: code.code, values: errors.length || !checked.value ? null : csvCourseValues(checked.value), errors };
+}
+
+/** The values a valid row is saved with: those of a new course, except that a blank period stays null. */
+function csvCourseValues(dto: CreateCourseDto): CourseValues {
+  return {
+    ...newCourseValues(dto),
+    theoryPeriods: dto.theoryPeriods ?? null,
+    labPeriods: dto.labPeriods ?? null,
+    exercisePeriods: dto.exercisePeriods ?? null,
+    projectPeriods: dto.projectPeriods ?? null,
+  };
 }
 
 const version = (...parts: unknown[]): string => createHash('sha256').update(JSON.stringify(parts)).digest('base64url');

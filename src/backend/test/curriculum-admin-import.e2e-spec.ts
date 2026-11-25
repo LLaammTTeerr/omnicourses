@@ -106,7 +106,7 @@ describe('CSV import of catalog courses (e2e)', () => {
     f.db.query(
       'SELECT code, name_vi, name_en, credits, theory_periods, lab_periods, exercise_periods, project_periods, updated_at FROM courses WHERE code LIKE $1 ORDER BY code',
       [`${P}%`],
-    ) as Promise<{ code: string; name_vi: string; name_en: string | null; credits: number; theory_periods: number; updated_at: Date }[]>;
+    ) as Promise<{ code: string; name_vi: string; name_en: string | null; credits: number; theory_periods: number | null; updated_at: Date }[]>;
   const course = async (code: string) => (await savedCourses()).find((c) => c.code === code);
   const preview = (csv: string, account = maintainer) => f.as(account).post(`${CATALOG}/preview`, { csv });
   const confirm = (csv: string, reviewVersion: string, account = maintainer) => f.as(account).post(`${CATALOG}/confirm`, { csv, reviewVersion });
@@ -128,8 +128,10 @@ describe('CSV import of catalog courses (e2e)', () => {
     f = await fixture('zz-import', P);
     [maintainer, admin, stranger] = [await f.account('catalog_maintainer'), await f.account({ program: f.apcs }), await f.account()];
     await f.db.query(
-      `INSERT INTO courses (code, name_vi, name_en, credits, theory_periods) VALUES
-       ($1, 'Shared course', NULL, 4, 0), ($2, 'Unlinked course', NULL, 4, 0), ($3, 'Kept course', 'Kept', 2, 30), ($4, 'Omitted course', NULL, 1, 0)`,
+      // A blank period is NULL, as an empty cell of FILE saves it (#164).
+      `INSERT INTO courses (code, name_vi, name_en, credits, theory_periods, lab_periods, exercise_periods, project_periods) VALUES
+       ($1, 'Shared course', NULL, 4, NULL, NULL, NULL, NULL), ($2, 'Unlinked course', NULL, 4, NULL, NULL, NULL, NULL),
+       ($3, 'Kept course', 'Kept', 2, 30, 0, NULL, NULL), ($4, 'Omitted course', NULL, 1, 0, 0, 0, 0)`,
       [`${P}S`, `${P}U`, `${P}K`, `${P}O`],
     );
     const group2024 = await f.group(f.apcs2024, groupName);
@@ -174,7 +176,7 @@ describe('CSV import of catalog courses (e2e)', () => {
       { curriculumId: f.apcs2024, curriculumCode: 'APCS2024', programCode: 'APCS', cohortYear: 2024 },
       { curriculumId: f.apcs2025, curriculumCode: 'APCS2025', programCode: 'APCS', cohortYear: 2025 },
     ];
-    const periods = { theoryPeriods: 0, labPeriods: 0, exercisePeriods: 0, projectPeriods: 0 };
+    const periods = { theoryPeriods: null, labPeriods: null, exercisePeriods: null, projectPeriods: null };
     expect(body).toEqual({
       fileType: 'catalog_courses',
       rows: [
@@ -206,7 +208,7 @@ describe('CSV import of catalog courses (e2e)', () => {
           current: { code: `${P}U`, nameVi: 'Unlinked course', nameEn: null, credits: 4, ...periods },
           affectedCurricula: [],
         },
-        { record: 6, action: 'no_op', code: `${P}K`, nameVi: 'Kept course', nameEn: 'Kept', credits: 2, ...periods, theoryPeriods: 30, changedFields: [], current: null, affectedCurricula: [] },
+        { record: 6, action: 'no_op', code: `${P}K`, nameVi: 'Kept course', nameEn: 'Kept', credits: 2, ...periods, theoryPeriods: 30, labPeriods: 0, changedFields: [], current: null, affectedCurricula: [] },
       ],
       errors: [],
       summary: { inserts: 2, updates: 2, noOps: 1 },
@@ -290,9 +292,9 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect(after.map((c) => [c.code, c.name_vi, c.name_en, c.credits, c.theory_periods])).toEqual([
       [`${P}K`, 'Kept course', 'Kept', 2, 30],
       [`${P}N1`, 'Giải tích, phần 1', 'Calculus "A"\nsecond line', 4, 45],
-      [`${P}N2`, 'Học phần mới', null, 3, 0],
+      [`${P}N2`, 'Học phần mới', null, 3, null],
       [`${P}O`, 'Omitted course', null, 1, 0],
-      [`${P}S`, 'Shared course renamed', null, 3, 0],
+      [`${P}S`, 'Shared course renamed', null, 3, null],
       [`${P}U`, 'Unlinked course', null, 4, 10],
     ]);
     // The unchanged and the omitted course were not written at all.
@@ -421,7 +423,8 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 4, updates: 1, noOps: 0 });
   });
 
-  it('saves 0 for a blank period count over a stored NULL, as a change the preview shows', async () => {
+  // #164: an empty period cell means blank (NULL), as an emptied box of the course form does.
+  it('keeps a stored NULL period for an empty cell: the row is a no-op, not a change to 0', async () => {
     const code = `${P}NUL`;
     await f.db.query(`INSERT INTO courses (code, name_vi, credits, theory_periods, lab_periods, exercise_periods, project_periods) VALUES ($1, 'Null periods', 3, NULL, NULL, 15, NULL)`, [code]);
     const csv = `${COURSES_HEADER}\n${code},Null periods,,3,,,15,`;
@@ -429,25 +432,59 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect(body.rows).toEqual([
       {
         record: 2,
-        action: 'update',
+        action: 'no_op',
         code,
         nameVi: 'Null periods',
         nameEn: null,
         credits: 3,
-        theoryPeriods: 0,
-        labPeriods: 0,
+        theoryPeriods: null,
+        labPeriods: null,
         exercisePeriods: 15,
-        projectPeriods: 0,
-        changedFields: ['theoryPeriods', 'labPeriods', 'projectPeriods'],
-        current: { code, nameVi: 'Null periods', nameEn: null, credits: 3, theoryPeriods: null, labPeriods: null, exercisePeriods: 15, projectPeriods: null },
+        projectPeriods: null,
+        changedFields: [],
+        current: null,
         affectedCurricula: [],
       },
     ]);
-    expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 0, updates: 1, noOps: 0 });
+    expect(body.summary).toEqual({ inserts: 0, updates: 0, noOps: 1 });
+    expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 0, updates: 0, noOps: 1 });
     const periods = 'SELECT theory_periods, lab_periods, exercise_periods, project_periods FROM courses WHERE code = $1';
-    expect(await f.db.query(periods, [code])).toEqual([{ theory_periods: 0, lab_periods: 0, exercise_periods: 15, project_periods: 0 }]);
-    // Saved, so the same file is now a no-op.
-    expect((await preview(csv).expect(200)).body.summary).toEqual({ inserts: 0, updates: 0, noOps: 1 });
+    expect(await f.db.query(periods, [code])).toEqual([{ theory_periods: null, lab_periods: null, exercise_periods: 15, project_periods: null }]);
+  });
+
+  it('saves an empty period cell of a new course as NULL, and a later file with a number shows blank → number', async () => {
+    const code = `${P}BT`;
+    const periods = 'SELECT theory_periods, lab_periods, exercise_periods, project_periods FROM courses WHERE code = $1';
+    const first = `${COURSES_HEADER}\n${code},Exercise periods,,4,45,,,`;
+    const inserted = await preview(first).expect(200);
+    expect(inserted.body.rows[0]).toMatchObject({ action: 'insert', theoryPeriods: 45, labPeriods: null, exercisePeriods: null, projectPeriods: null });
+    await confirm(first, inserted.body.reviewVersion).expect(200);
+    expect(await f.db.query(periods, [code])).toEqual([{ theory_periods: 45, lab_periods: null, exercise_periods: null, project_periods: null }]);
+    // The same file again changes nothing.
+    expect((await preview(first).expect(200)).body.summary).toEqual({ inserts: 0, updates: 0, noOps: 1 });
+
+    const second = `${COURSES_HEADER}\n${code},Exercise periods,,4,45,,15,`;
+    const { body } = await preview(second).expect(200);
+    expect(body.rows[0]).toMatchObject({ action: 'update', exercisePeriods: 15, changedFields: ['exercisePeriods'], current: { exercisePeriods: null, labPeriods: null, projectPeriods: null } });
+  });
+
+  it('clears a stored 0 for an empty period cell, as a change the preview shows', async () => {
+    const code = `${P}ZER`;
+    await f.db.query(`INSERT INTO courses (code, name_vi, credits, theory_periods, lab_periods, exercise_periods, project_periods) VALUES ($1, 'Zero periods', 3, 30, 0, 0, 0)`, [code]);
+    const csv = `${COURSES_HEADER}\n${code},Zero periods,,3,30,0,,`;
+    const { body } = await preview(csv).expect(200);
+    expect(body.rows[0]).toMatchObject({
+      action: 'update',
+      theoryPeriods: 30,
+      labPeriods: 0,
+      exercisePeriods: null,
+      projectPeriods: null,
+      changedFields: ['exercisePeriods', 'projectPeriods'],
+      current: { theoryPeriods: 30, labPeriods: 0, exercisePeriods: 0, projectPeriods: 0 },
+    });
+    await confirm(csv, body.reviewVersion).expect(200);
+    const periods = 'SELECT theory_periods, lab_periods, exercise_periods, project_periods FROM courses WHERE code = $1';
+    expect(await f.db.query(periods, [code])).toEqual([{ theory_periods: 30, lab_periods: 0, exercise_periods: null, project_periods: null }]);
   });
 
   it('answers a non-numeric credit count in manual entry as before, and keeps the new 400 for a whole number above the bound', async () => {
