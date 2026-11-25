@@ -1,5 +1,5 @@
 // API helpers for the B2 API runs of 25 November 2026 (a-notif-01.mjs, a-share-01.mjs, a-adm-04.mjs).
-// Node 22, no dependencies beyond b-lib.mjs. Synthetic b2- accounts only (test cases §1).
+// Node 22 or later (the run of 25 November 2026 used 24.19.0); no dependencies beyond b-lib.mjs. Synthetic b2- accounts only (test cases §1).
 // Never prints a session token, a share token or a password: every printed line goes through redact().
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
