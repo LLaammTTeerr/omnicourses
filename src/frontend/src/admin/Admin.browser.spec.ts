@@ -304,6 +304,7 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
     rows: [
       { record: 2, action: 'insert', code: 'ZZ300', nameVi: LONG, credits: 4, ...plain, changedFields: [], current: null, affectedCurricula: [] },
       { record: 3, action: 'update', code: 'ZZ101', nameVi: 'Học phần thử ZZ101', credits: 3, ...plain, projectPeriods: 0, changedFields: ['credits', 'projectPeriods'], current: { code: 'ZZ101', nameVi: 'Học phần thử ZZ101', credits: 4, ...plain }, affectedCurricula: [AFFECTED] },
+      { record: 5, action: 'no_op', code: 'ZZ20CHARACTERSCODE01', nameVi: 'Học phần thử', credits: 3, ...plain, changedFields: [], current: null, affectedCurricula: [] },
     ],
     affectedCurricula: [AFFECTED],
   };
@@ -317,7 +318,7 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
     await userEvent.upload(input, new File([CSV], 'zz-thu.csv', { type: 'text/csv' }));
     await expect.poll(() => q('import-file-read')).not.toBeNull();
     q('import-preview')!.click();
-    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(2);
+    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(3);
   }
   function inside(what: string, element: HTMLElement) {
     const box = element.getBoundingClientRect();
@@ -342,6 +343,12 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
       for (const test of ['import-errors', 'import-result', 'import-affected']) inside(test, q(test)!);
       // A wide table scrolls inside its own box, never the page.
       for (const wrap of document.querySelectorAll<HTMLElement>('.table-wrap')) inside('a table box', wrap);
+      // Each action stays inside its own cell, clear of the code beside it.
+      for (const row of document.querySelectorAll<HTMLElement>('[data-test="import-row"]')) {
+        const [action, code] = [row.querySelector('.chip')!.getBoundingClientRect(), row.querySelector('.code')!.getBoundingClientRect()];
+        expect(action.right <= code.left || action.bottom <= code.top, `the action of record ${row.dataset.record} clear of its code`).toBe(true);
+        expect(action.right, `the action of record ${row.dataset.record} inside its cell`).toBeLessThanOrEqual(row.querySelector('.chip')!.parentElement!.getBoundingClientRect().right + 0.5);
+      }
       // Cancel and Confirm stand apart, so neither is pressed for the other.
       const [cancelBox, confirmBox] = [q('import-cancel')!.getBoundingClientRect(), q('import-confirm')!.getBoundingClientRect()];
       expect(cancelBox.right < confirmBox.left || cancelBox.bottom < confirmBox.top, 'a gap between Cancel and Confirm').toBe(true);
@@ -384,7 +391,7 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
     await userEvent.keyboard('{Tab}');
     await expect.element(page.getByRole('button', { name: 'Xem trước' })).toHaveFocus();
     await userEvent.keyboard('{Enter}');
-    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(2);
+    await expect.poll(() => document.querySelectorAll('[data-test="import-row"]').length).toBe(3);
     q('import-cancel')!.focus();
     await userEvent.keyboard('{Enter}');
     await expect.poll(() => q('import-result')).toBeNull();

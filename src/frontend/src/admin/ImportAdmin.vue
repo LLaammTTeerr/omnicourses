@@ -510,6 +510,8 @@ function pickCohort(curriculumId: string): void {
 .import-changes { margin: 0; padding-left: 16px; font-size: 13px; }
 .import-affected > div { display: grid; gap: 4px; min-width: 0; }
 .import-affected ul { margin: 0; padding-left: 18px; font-size: 14px; }
+/* A cell of a phone card is narrow: a long action wraps inside it instead of running into the code beside it. */
+.import-rows .chip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .import-acts { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 620px) {
   .import-preview { padding: 16px; }
