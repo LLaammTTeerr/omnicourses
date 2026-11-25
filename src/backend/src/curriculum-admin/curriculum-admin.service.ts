@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import { canonicalCourseCode } from '../common/course-code.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
 import { userGrants } from './access-admin.service.js';
@@ -110,13 +110,30 @@ export class CurriculumAdminService {
   deleteGroup(callerId: string, programId: string, curriculumId: string, groupId: string): Promise<void> {
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await groupIn(em, programId, curriculumId, groupId);
+      // Plan saves do not take the F12 write lock. Locking the group row makes a concurrent
+      // slot placement, which takes a key-share lock on it, wait: the count below is exact.
+      await em.query('SELECT 1 FROM "requirement_groups" WHERE "id" = $1 FOR UPDATE', [groupId]);
       const links: { course_code: string }[] = await em.query(
         'SELECT "course_code" FROM "requirement_group_courses" WHERE "requirement_group_id" = $1 ORDER BY "course_code"',
         [groupId],
       );
       // ADR 0011: unlink the courses explicitly first, so no rule loses its course silently.
       if (links.length) throw referencedItem('The group still links courses; remove them from it first', links.map((l) => `links ${l.course_code}`));
-      await em.query('DELETE FROM "requirement_groups" WHERE "id" = $1', [groupId]);
+      // A saved plan's slot names the group (ON DELETE RESTRICT). Students' plans are theirs:
+      // the answer gives a count, like the catalog delete, and never a plan or a student.
+      const [{ n }]: { n: number }[] = await em.query(
+        'SELECT count(DISTINCT "plan_id")::int AS "n" FROM "plan_placements" WHERE "requirement_group_id" = $1',
+        [groupId],
+      );
+      if (n) throw plansUseGroup([`${n} saved plans use it`]);
+      try {
+        await em.query('DELETE FROM "requirement_groups" WHERE "id" = $1', [groupId]);
+      } catch (error) {
+        // A fallback only: the lock above should leave no placement to find. The transaction is
+        // aborted here, so no query; the driver's message and detail quote IDs and stay unread.
+        if (isPlanSlotRefusal(error)) throw plansUseGroup(['saved plans use it']);
+        throw error;
+      }
     });
   }
 
@@ -290,6 +307,18 @@ async function rulesNaming(em: EntityManager, curriculumId: string, code: string
 }
 
 const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
+
+const plansUseGroup = (references: string[]) => referencedItem('Saved plans use the group; it stays while they name it', references);
+
+/**
+ * PostgreSQL refused to delete a group that a plan slot names: 23001 for the ON DELETE RESTRICT
+ * key, 23503 had it been NO ACTION. Only that key: any other refusal stays a 500.
+ */
+export function isPlanSlotRefusal(error: unknown): boolean {
+  if (!(error instanceof QueryFailedError)) return false;
+  const driver = error.driverError as { code?: string; constraint?: string } | undefined;
+  return (driver?.code === '23001' || driver?.code === '23503') && driver.constraint === 'plan_placements_requirement_group_id_fkey';
+}
 
 function groupDto(g: RequirementGroup): RequirementGroupAdminDto {
   return {

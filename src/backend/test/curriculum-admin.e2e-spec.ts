@@ -93,7 +93,7 @@ describe('Curriculum administration API (e2e)', () => {
       const codes = [A, B, C, D, E, F];
       await db.query('DELETE FROM course_prerequisite_lists WHERE course_code = ANY($1)', [codes]);
       await db.query('DELETE FROM course_offering_terms WHERE course_code = ANY($1)', [codes]);
-      await db.query('DELETE FROM requirement_groups WHERE name = $1', [groupName]);
+      await db.query('DELETE FROM requirement_groups WHERE name = ANY($1)', [[groupName, `${groupName} slot`]]);
       await db.query('DELETE FROM courses WHERE code = ANY($1)', [codes]);
       await db.query('DELETE FROM program_admin_grants WHERE user_id = ANY($1)', [[admin, stranger, manager, maintainer].map((u) => u.userId)]);
       await db.query('DELETE FROM global_admin_grants WHERE user_id = ANY($1)', [[admin, stranger, manager, maintainer].map((u) => u.userId)]);
@@ -303,6 +303,31 @@ describe('Curriculum administration API (e2e)', () => {
     } finally {
       await db.query('DELETE FROM users WHERE id = $1', [student.userId]);
     }
+  });
+
+  it('refuses to delete an empty group that a saved plan names, and says only that plans use it', async () => {
+    // A slot placement names the group by foreign key (ON DELETE RESTRICT): the delete was a 500 (#171).
+    const empty = (await as(admin.token).post(`${cohort(apcs, apcs2024)}/requirement-groups`, { name: `${groupName} slot`, kind: 'elective' }).expect(201)).body.id;
+    const path = `${cohort(apcs, apcs2024)}/requirement-groups/${empty}`;
+    const student = await signedInUser(app);
+    try {
+      const [{ id: planId }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'zz-e2e') RETURNING id`, [student.userId, apcs2024]);
+      for (const position of [0, 1]) {
+        await db.query(
+          'INSERT INTO plan_placements (plan_id, user_id, term_year, term_number, position, requirement_group_id, slot_credits) VALUES ($1, $2, 2025, 1, $3, $4, 4)',
+          [planId, student.userId, position, empty],
+        );
+      }
+      const refused = await as(admin.token).delete(path).expect(409);
+      // Two slots in one plan are one plan; nothing names the plan or its owner.
+      expect(refused.body).toEqual({ statusCode: 409, code: 'referenced_item', message: 'Saved plans use the group; it stays while they name it', references: ['1 saved plans use it'] });
+      expect(JSON.stringify(refused.body)).not.toContain(planId);
+      expect(JSON.stringify(refused.body)).not.toContain(student.userId);
+      expect((await db.query('SELECT 1 FROM requirement_groups WHERE id = $1', [empty])).length).toBe(1);
+    } finally {
+      await db.query('DELETE FROM users WHERE id = $1', [student.userId]);
+    }
+    await as(admin.token).delete(path).expect(204);
   });
 
   it('renames a group, refuses a duplicate name, and deletes an empty group', async () => {
