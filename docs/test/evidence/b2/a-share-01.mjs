@@ -22,6 +22,8 @@ const keysDeep = (v, out = new Set()) => { if (v && typeof v === 'object') for (
 // every field the reader gets that the owner's issue also has must be equal; `dropped` lists what the reader lacks.
 const sameIssues = (own, shared) => shared.length === own.length && shared.every((x, i) => Object.keys(x).every((k) => !(k in own[i]) || isDeepStrictEqual(x[k], own[i][k])));
 const dropped = (own, shared) => [...new Set(own.flatMap((x, i) => Object.keys(x).filter((k) => !(k in (shared[i] ?? {})))))];
+// Added after the run of 25 November 2026 (Lâm's review of #173): the fields left out must be these, never more.
+const onlyIds = (own, shared, allowed) => dropped(own, shared).every((k) => allowed.includes(k));
 const summary = (j) => j && ({ name: j.name, ownerName: j.ownerName, updatedAt: j.updatedAt, terms: j.terms?.map((t) => [t.term?.year ?? t.year, t.term?.number ?? t.number, t.credits, t.placements.length]), issues: j.issues?.map((i) => i.code), issueCodesNotShown: j.issueCodesNotShown, coverage: j.coverage === undefined ? 'absent' : 'present' });
 
 const o = await account(EMAIL.O);
@@ -73,7 +75,7 @@ check('SHARE-01b', 'terms: 2026 term 1, credits 24, the six placements in order 
   V.terms?.length === 1 && t0.credits === 24 && isDeepStrictEqual(t0.placements.map((p) => p.courseCode), ['CS160', 'CS163', 'CS201', 'CS202', 'MTH251', 'PH211'])
     && t0.placements.every((p) => ['kind', 'courseCode', 'nameVi', 'nameEn', 'credits', 'requirementGroupName'].every((k) => k in p)), t0 && { term: t0.term, credits: t0.credits, keys: Object.keys(t0.placements?.[0] ?? {}) });
 check('SHARE-01b', 'issueCodesNotShown: the four transcript-decided codes; issues: O\'s report without them, in order, load_above_maximum for 2026/1 (flag, 24, limit 22)',
-  isDeepStrictEqual([...V.issueCodesNotShown].sort(), [...HIDDEN].sort()) && sameIssues(wantIssues, V.issues) && load?.kind === 'flag' && load?.credits === 24 && load?.limit === 22, { notShown: V.issueCodesNotShown, codes: V.issues.map((i) => i.code), dropped: dropped(wantIssues, V.issues), load: load && { kind: load.kind, credits: load.credits, limit: load.limit } });
+  isDeepStrictEqual([...V.issueCodesNotShown].sort(), [...HIDDEN].sort()) && sameIssues(wantIssues, V.issues) && onlyIds(wantIssues, V.issues, ['requirementGroupId', 'combinedMinimumId', 'missingCourseCodes']) && load?.kind === 'flag' && load?.credits === 24 && load?.limit === 22, { notShown: V.issueCodesNotShown, codes: V.issues.map((i) => i.code), dropped: dropped(wantIssues, V.issues), load: load && { kind: load.kind, credits: load.credits, limit: load.limit } });
 check('SHARE-01b', 'no key id at any depth, no email, no grade, no transcript row', !allKeys.has('id') && !allKeys.has('grade') && !/@example\.com/.test(rd.text) && !allKeys.has('rows'), [...allKeys]);
 const asR = await reader(T1, R), asO = await reader(T1, O);
 check('SHARE-01b', 'R\'s answer and O\'s are the same as the reader\'s', isDeepStrictEqual(asR.json, V) && isDeepStrictEqual(asO.json, V));
@@ -117,7 +119,7 @@ rd = await reader(T1);
 const on = rd.json, onKeys = keysDeep(on);
 console.log(`  reader with the checks: ${JSON.stringify(summary(on))}`);
 check('SHARE-01e', 'with the choice on: the reader\'s issues hold the report\'s issues in order, issueCodesNotShown [], coverage present; no grade, no transcript row, no id',
-  sameIssues(rep.issues, on.issues) && isDeepStrictEqual(on.issueCodesNotShown, []) && on.coverage !== undefined && !onKeys.has('grade') && !onKeys.has('id') && !onKeys.has('rows'), { codes: on.issues.map((i) => [i.code, i.courseCode ?? null]), dropped: dropped(rep.issues, on.issues), forbidden: [...onKeys].filter((k) => ['grade', 'id', 'rows'].includes(k)) });
+  sameIssues(rep.issues, on.issues) && onlyIds(rep.issues, on.issues, ['requirementGroupId', 'combinedMinimumId']) && isDeepStrictEqual(on.issueCodesNotShown, []) && on.coverage !== undefined && !onKeys.has('grade') && !onKeys.has('id') && !onKeys.has('rows'), { codes: on.issues.map((i) => [i.code, i.courseCode ?? null]), dropped: dropped(rep.issues, on.issues), forbidden: [...onKeys].filter((k) => ['grade', 'id', 'rows'].includes(k)) });
 await call('PUT', `/plans/${P}/share`, { token: O, body: { showTranscriptChecks: false } });
 check('SHARE-01e', 'with the choice off again, the answer equals V1', isDeepStrictEqual((await reader(T1)).json, V1));
 
