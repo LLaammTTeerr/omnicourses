@@ -11,6 +11,7 @@ import { NotificationsService } from '../src/notifications/notifications.service
 import { TranscriptEntry } from '../src/transcript/transcript-entry.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 import { UsersService } from '../src/users/users.service.js';
+import { type Account, authed, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { signedInUser, storedUser } from './support/users.js';
 
@@ -21,10 +22,6 @@ interface Notice {
   readAt: string | null;
   event: { id: string; programCode: string; academicYear: number; term: number | null; startsOn: string; endsOn: string; title: string; titleEn: string | null } | null;
   links: string[];
-}
-interface Account {
-  token: string;
-  userId: string;
 }
 
 // Synthetic transcript rows (AGENTS.md hard rule 3). The second row is a retake of the first.
@@ -58,15 +55,9 @@ describe('Notification inbox (e2e)', () => {
     clock.at = new Date(`${day}T${time}+07:00`);
   };
   const http = () => request(app.getHttpServer());
-  const as = (token: string) => ({
-    get: (path: string) => http().get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string, body: object = {}) => http().post(path).set('Authorization', `Bearer ${token}`).send(body),
-    put: (path: string, body: object = {}) => http().put(path).set('Authorization', `Bearer ${token}`).send(body),
-    patch: (path: string, body: object = {}) => http().patch(path).set('Authorization', `Bearer ${token}`).send(body),
-    delete: (path: string) => http().delete(path).set('Authorization', `Bearer ${token}`),
-  });
+  const as = authed(() => app);
 
-  const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const suffix = runSuffix();
   const codeA = `ZZNTF${suffix}A`;
   const codeB = `ZZNTF${suffix}B`;
   let programA: string;
@@ -132,7 +123,8 @@ describe('Notification inbox (e2e)', () => {
     programB = await insertProgram(codeB);
     adminA = await student();
     adminB = await student();
-    await db.query(`INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2), ($3, $4)`, [adminA.userId, programA, adminB.userId, programB]);
+    await grantProgram(db, adminA.userId, programA);
+    await grantProgram(db, adminB.userId, programB);
   });
 
   afterAll(async () => {

@@ -4,6 +4,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AcademicCalendarService } from '../src/academic-calendar/academic-calendar.service.js';
+import { authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
@@ -27,14 +28,9 @@ describe('Academic calendar API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const http = () => request(app.getHttpServer());
-  const as = (token: string) => ({
-    get: (path: string) => http().get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string, body: object = {}) => http().post(path).set('Authorization', `Bearer ${token}`).send(body),
-    patch: (path: string, body: object = {}) => http().patch(path).set('Authorization', `Bearer ${token}`).send(body),
-    delete: (path: string) => http().delete(path).set('Authorization', `Bearer ${token}`),
-  });
+  const as = authed(() => app);
 
-  const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const suffix = runSuffix();
   const codeA = `ZZCAL${suffix}A`;
   const codeB = `ZZCAL${suffix}B`;
   let programA: string;
@@ -55,8 +51,9 @@ describe('Academic calendar API (e2e)', () => {
     const insertProgram = async (code: string) => ((await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, $2) RETURNING id`, [code, `Chương trình ${code}`])) as { id: string }[])[0].id;
     programA = await insertProgram(codeA);
     programB = await insertProgram(codeB);
-    await db.query(`INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2), ($3, $4)`, [adminA.userId, programA, adminB.userId, programB]);
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($1, 'catalog_maintainer')`, [manager.userId]);
+    await grantProgram(db, adminA.userId, programA);
+    await grantProgram(db, adminB.userId, programB);
+    await grantGlobal(db, manager.userId, 'access_manager', 'catalog_maintainer');
     await db.query(`INSERT INTO onboarding_answers (user_id, program_code, cohort_year) VALUES ($1, $2, 2026)`, [student.userId, codeA]);
   });
 
@@ -295,7 +292,7 @@ describe('Academic calendar API (e2e)', () => {
 
     it("keeps the dates, without attribution, when the administrator's account is purged", async () => {
       const leaving = await signedInUser(app);
-      await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [leaving.userId, programA]);
+      await grantProgram(db, leaving.userId, programA);
       const event = (await as(leaving.token).post(events(programA), { ...valid, kind: 'term_end', startsOn: '2027-01-15', title: 'Kết thúc học kỳ 1' }).expect(201)).body as Event;
       await db.query('DELETE FROM users WHERE id = $1', [leaving.userId]);
       const [row] = await db.query('SELECT created_by, updated_by FROM academic_calendar WHERE id = $1', [event.id]);

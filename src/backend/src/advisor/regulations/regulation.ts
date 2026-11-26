@@ -79,7 +79,7 @@ interface Unit {
 }
 
 /** Whitespace runs collapse to one space; text is NFC. */
-export const collapse = (text: string): string => text.normalize('NFC').replace(/\s+/gu, ' ').trim();
+const collapse = (text: string): string => text.normalize('NFC').replace(/\s+/gu, ' ').trim();
 
 /**
  * Splits the pdftotext output into lines with their page, dropping only the page number each page

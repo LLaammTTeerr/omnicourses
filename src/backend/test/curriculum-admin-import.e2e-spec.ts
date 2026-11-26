@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -9,6 +8,7 @@ import { CsvImportService } from '../src/curriculum-admin/csv-import.service.js'
 import { CurriculumAdminService } from '../src/curriculum-admin/curriculum-admin.service.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
+import { type Account, authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
@@ -23,7 +23,6 @@ const LINKS_HEADER = 'requirement_group_name,course_code';
 const CATALOG = '/api/admin/catalog/imports';
 const MIB = 1024 * 1024;
 
-type Account = { token: string; userId: string };
 interface Fixture {
   app: INestApplication;
   db: DataSource;
@@ -33,7 +32,7 @@ interface Fixture {
   clc: string;
   clcCurriculum: string;
   users: Account[];
-  as: (account: Account) => { post: (path: string, body: object | string) => request.Test; put: (path: string, body?: object) => request.Test; patch: (path: string, body: object) => request.Test; delete: (path: string) => request.Test; get: (path: string) => request.Test };
+  as: ReturnType<typeof authed>;
   account: (grant?: 'catalog_maintainer' | { program: string }) => Promise<Account>;
   group: (curriculumId: string, name: string) => Promise<string>;
   close: () => Promise<void>;
@@ -48,7 +47,6 @@ async function fixture(groupPrefix: string, coursePrefix: string): Promise<Fixtu
   const apcs = await id(`SELECT id FROM programs WHERE code = 'APCS'`);
   const clc = await id(`SELECT id FROM programs WHERE code LIKE 'CNTT-TCTA-%' ORDER BY code LIMIT 1`);
   const users: Account[] = [];
-  const http = () => request(app.getHttpServer());
   return {
     app,
     db,
@@ -58,22 +56,12 @@ async function fixture(groupPrefix: string, coursePrefix: string): Promise<Fixtu
     apcs2025: await id('SELECT id FROM curriculums WHERE program_id = $1 AND cohort_year = 2025', [apcs]),
     clcCurriculum: await id('SELECT id FROM curriculums WHERE program_id = $1', [clc]),
     users,
-    as: ({ token }) => {
-      const auth = (test: request.Test) => test.set('Authorization', `Bearer ${token}`);
-      return {
-        // A string is sent as it is, so a test controls the exact JSON bytes.
-        post: (path, body) => auth(http().post(path)).set('Content-Type', 'application/json').send(body),
-        put: (path, body = {}) => auth(http().put(path)).send(body),
-        patch: (path, body) => auth(http().patch(path)).send(body),
-        delete: (path) => auth(http().delete(path)),
-        get: (path) => auth(http().get(path)),
-      };
-    },
+    as: authed(() => app),
     account: async (grant) => {
       const account = await signedInUser(app);
       users.push(account);
-      if (grant === 'catalog_maintainer') await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'catalog_maintainer')`, [account.userId]);
-      else if (grant) await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [account.userId, grant.program]);
+      if (grant === 'catalog_maintainer') await grantGlobal(db, account.userId, 'catalog_maintainer');
+      else if (grant) await grantProgram(db, account.userId, grant.program);
       return account;
     },
     group: (curriculumId, name) => id(`INSERT INTO requirement_groups (curriculum_id, name, kind) VALUES ($1, $2, 'elective') RETURNING id`, [curriculumId, name]),
@@ -88,11 +76,10 @@ async function fixture(groupPrefix: string, coursePrefix: string): Promise<Fixtu
   };
 }
 
-const run = () => randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 const cohortImports = (program: string, curriculum: string) => `/api/admin/programs/${program}/cohorts/${curriculum}/imports`;
 
 describe('CSV import of catalog courses (e2e)', () => {
-  const suffix = run();
+  const suffix = runSuffix();
   const P = `ZC${suffix}`;
   const groupName = `zz-import ${suffix}`;
   let f: Fixture;
@@ -376,7 +363,7 @@ describe('CSV import of catalog courses (e2e)', () => {
 
     // A deletion request signs the account out (401), so the services are called directly:
     // they refuse it themselves, on the read path of a preview as on the write path.
-    await f.db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'catalog_maintainer')`, [helper.userId]);
+    await grantGlobal(f.db, helper.userId, 'catalog_maintainer');
     await f.db.query(`UPDATE users SET deletion_requested_at = now(), purge_after = now() + interval '30 days' WHERE id = $1`, [helper.userId]);
     await preview(csv, helper).expect(401);
     const imports = f.app.get(CsvImportService);
@@ -477,7 +464,7 @@ describe('CSV import of catalog courses (e2e)', () => {
 });
 
 describe('CSV import of group links (e2e)', () => {
-  const suffix = run();
+  const suffix = runSuffix();
   const L = `ZL${suffix}`;
   const one = `zz-links ${suffix} one`;
   const two = `zz-links ${suffix}, "two"`;
@@ -700,7 +687,7 @@ describe('CSV import of group links (e2e)', () => {
 });
 
 describe('CSV import limits (e2e)', () => {
-  const suffix = run();
+  const suffix = runSuffix();
   const M = `ZM${suffix}`;
   const groupName = `zz-limits ${suffix}`;
   let f: Fixture;

@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { type Account, authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { offerAlso } from './support/offer.js';
 import { signedInUser } from './support/users.js';
@@ -14,23 +15,10 @@ import { signedInUser } from './support/users.js';
 // assert APCS exactly. Each describe boots its own app: the rate limit counts 120 requests a
 // minute per app.
 
-type Account = { token: string; userId: string };
-
-const run = () => randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 
 function client(app: () => INestApplication) {
   const http = () => request(app().getHttpServer());
-  const as = ({ token }: Account) => {
-    const auth = (test: request.Test) => test.set('Authorization', `Bearer ${token}`);
-    return {
-      get: (path: string) => auth(http().get(path)),
-      post: (path: string, body: object = {}) => auth(http().post(path)).send(body),
-      put: (path: string, body: object = {}) => auth(http().put(path)).send(body),
-      patch: (path: string, body: object = {}) => auth(http().patch(path)).send(body),
-      delete: (path: string) => auth(http().delete(path)),
-    };
-  };
-  return { http, as };
+  return { http, as: authed(app) };
 }
 
 /** No route deletes a program or a cohort, so the fixture leaves in SQL, in foreign-key order. */
@@ -55,7 +43,7 @@ describe('Program and cohort administration API (e2e)', () => {
   let db: DataSource;
   const { http, as } = client(() => app);
 
-  const suffix = run();
+  const suffix = runSuffix();
   const P = `ZZP-${suffix}`;
   const [codeA, codeB] = [`${P}-A`, `${P}-B`];
   const users: Account[] = [];
@@ -85,7 +73,8 @@ describe('Program and cohort administration API (e2e)', () => {
     [manager, adminA, adminB, maintainer, stranger] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, adminA, adminB, maintainer, stranger);
     // The fixture's access manager and catalog maintainer; the bootstrap command has its own tests.
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($2, 'catalog_maintainer')`, [manager.userId, maintainer.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
+    await grantGlobal(db, maintainer.userId, 'catalog_maintainer');
   });
 
   afterAll(async () => {
@@ -160,7 +149,7 @@ describe('Program and cohort administration API (e2e)', () => {
     expect(rows.map((r) => r.code)).toEqual([codeA, codeB]);
     programB = rows[1].id as string;
     expect(racing.find((res) => res.status === 201)!.body).toMatchObject({ id: programB, code: codeB, nameVi: rows[1].name_vi });
-    await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [adminB.userId, programB]);
+    await grantProgram(db, adminB.userId, programB);
   });
 
   it('edits only the details of a program: the code, the training type and unknown fields are refused, not ignored', async () => {
@@ -360,7 +349,7 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
   let db: DataSource;
   const { as } = client(() => app);
 
-  const P = `ZZQ-${run()}`;
+  const P = `ZZQ-${runSuffix()}`;
   const [codeA, codeB] = [`${P}-A`, `${P}-B`];
   const users: Account[] = [];
   let manager: Account;
@@ -372,14 +361,14 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
   const programRows = () => db.query('SELECT * FROM programs WHERE code LIKE $1 ORDER BY code', [`${P}%`]) as Promise<Record<string, unknown>[]>;
   const cohortRows = () =>
     db.query('SELECT c.* FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code LIKE $1 ORDER BY p.code, c.cohort_year', [`${P}%`]) as Promise<Record<string, unknown>[]>;
-  const grant = (user: Account, program: string) => db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [user.userId, program]);
+  const grant = (user: Account, program: string) => grantProgram(db, user.userId, program);
 
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
     [manager, adminA, adminB] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, adminA, adminB);
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager')`, [manager.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
     programA = (await as(manager).post(programsPath, { code: codeA, nameVi: 'Chương trình thử A' }).expect(201)).body.id;
     programB = (await as(manager).post(programsPath, { code: codeB, nameVi: 'Chương trình thử B' }).expect(201)).body.id;
     await grant(adminA, programA);
@@ -484,7 +473,7 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
   let db: DataSource;
   const { as } = client(() => app);
 
-  const suffix = run();
+  const suffix = runSuffix();
   const P = `ZZQ-${suffix}`;
   const [C1, C2, C3, C4] = [1, 2, 3, 4].map((n) => `ZZQ${suffix}${n}`);
   const users: Account[] = [];
@@ -536,7 +525,8 @@ describe('Adding a cohort leaves the first cohort as it was (e2e)', () => {
     offerAlso(app, P, [2024]);
     [manager, admin, maintainer, student] = await Promise.all([signedInUser(app), signedInUser(app), signedInUser(app), signedInUser(app)]);
     users.push(manager, admin, maintainer, student);
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($2, 'catalog_maintainer')`, [manager.userId, maintainer.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
+    await grantGlobal(db, maintainer.userId, 'catalog_maintainer');
 
     // UC-11 A2, then A1, then the basic flow.
     program = (await as(manager).post(programsPath, { code: P, nameVi: 'Chương trình thử' }).expect(201)).body.id;

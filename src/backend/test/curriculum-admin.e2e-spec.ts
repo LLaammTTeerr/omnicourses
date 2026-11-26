@@ -7,6 +7,7 @@ import { AccessAdminService, bootstrapAccessManager } from '../src/curriculum-ad
 import { AdminWriteService } from '../src/curriculum-admin/admin-write.service.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
+import { authed, grantGlobal, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { privateSchema } from './support/schema.js';
 import { signedInUser } from './support/users.js';
@@ -31,15 +32,9 @@ describe('Curriculum administration API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const http = () => request(app.getHttpServer());
-  const as = (token: string) => ({
-    get: (path: string) => http().get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string, body: object = {}) => http().post(path).set('Authorization', `Bearer ${token}`).send(body),
-    put: (path: string, body: object = {}) => http().put(path).set('Authorization', `Bearer ${token}`).send(body),
-    patch: (path: string, body: object = {}) => http().patch(path).set('Authorization', `Bearer ${token}`).send(body),
-    delete: (path: string) => http().delete(path).set('Authorization', `Bearer ${token}`),
-  });
+  const as = authed(() => app);
 
-  const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const suffix = runSuffix();
   const [A, B, C, D, E, F] = ['A', 'B', 'C', 'D', 'E', 'F'].map((x) => `ZZ${suffix}${x}`);
   const groupName = `zz-e2e ${suffix}`;
 
@@ -78,7 +73,7 @@ describe('Curriculum administration API (e2e)', () => {
     clcCurriculum = await id('SELECT id FROM curriculums WHERE program_id = $1', [clc]);
 
     // The fixture's access manager; the bootstrap command is tested on its own schema below.
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager')`, [manager.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
     await as(manager.token).put(`/api/admin/access/users/${admin.userId}/programs/${apcs}`).expect(200);
     await as(manager.token).put(`/api/admin/access/users/${maintainer.userId}/global/catalog_maintainer`).expect(200);
 
