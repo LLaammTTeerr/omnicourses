@@ -59,7 +59,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 | G04 | Retake or improve a course | Học lại, học cải thiện | Registration | B3 | Vision F11 note: a failed course must be registered again. |
 | G05 | Find your timetable and exam schedule | Thời khóa biểu, lịch thi | Timetable and exams | B3 | Every student, every term. |
 | G06 | Pay tuition | Đóng học phí | Tuition and fees | B1 | Every student, every term (Vision F11). |
-| G07 | View your grades | Xem điểm | Records and certificates | B1 | Every student, every term. The portals offer no transcript PDF (see G07), so what transcript import (UC-02) reads is open. |
+| G07 | View your grades | Xem điểm | Records and certificates | B1 | Every student, every term. The portals offer no transcript PDF (see G07), so transcript import (UC-02) is paste or type ([ADR 0007, amendment of 15 November 2026](../analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)). |
 | G08 | Request an official transcript | Xin bảng điểm có xác nhận | Records and certificates | B3 | Vision F11: "requesting a transcript". |
 | G09 | Request a student certificate | Xin giấy xác nhận sinh viên | Records and certificates | B3 | Vision F11: "requesting a certificate". |
 | G10 | Apply for a scholarship | Đăng ký học bổng | Scholarships | B3 | Vision F11: "applying for a scholarship". |
@@ -125,7 +125,7 @@ Storage (ADR 0010): one TypeScript content file per guide and language in `src/b
 
 - **Shows:** where grades appear on the portal, term by term. A link to transcript import (UC-02) is added when import ships.
 - **Notes:** grades are personal data, so don't post screenshots of the grades page anywhere. When import ships, the guide adds that OmniCourse reads the file on its own server and deletes it after reading (UC-02).
-- **Found (15 November 2026):** neither portal.ctdb nor portal.hcmus offers a transcript PDF to download. Grades are on portal.ctdb under “SINH VIÊN” → “Kết Quả Học Phần”. ADR 0003's open question (does the file have a text layer and a fixed layout) has no portal file to answer it; what transcript import (UC-02) reads is the Project Lead's decision.
+- **Found (15 November 2026):** neither portal.ctdb nor portal.hcmus offers a transcript PDF to download. Grades are on portal.ctdb under “SINH VIÊN” → “Kết Quả Học Phần”. ADR 0003's open question (does the file have a text layer and a fixed layout) has no portal file to answer it; what transcript import (UC-02) reads is the Project Lead's decision. *Decided the same day: paste or type, no file ([ADR 0007, amendment of 15 November 2026](../analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)).*
 
 ### G08 Request an official transcript (B3)
 
