@@ -1,9 +1,9 @@
 import { Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiCreatedResponse, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
-import { AdminErrorDto } from '../curriculum-admin/admin-errors.js';
-import { AdminErrors, uuidParam } from '../curriculum-admin/admin-params.js';
-import { StrictBody } from '../curriculum-admin/strict-body.js';
+import { AdminErrorDto } from '../common/api-errors.js';
+import { StrictBody, uuidParam } from '../common/api-requests.js';
+import { AdminErrors } from '../curriculum-admin/admin-write.service.js';
 import { User } from '../users/user.entity.js';
 import { AcademicCalendarDto, AcademicCalendarEventDto, AcademicCalendarQueryDto, CreateCalendarEventDto, UpdateCalendarEventDto } from './academic-calendar.dto.js';
 import { AcademicCalendarService } from './academic-calendar.service.js';

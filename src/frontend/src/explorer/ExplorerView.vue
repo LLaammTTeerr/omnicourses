@@ -3,9 +3,8 @@ import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
+import { fetchCurriculum, fetchPrograms, type Course, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -18,18 +17,17 @@ import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // The curriculum explorer (F4, UI prototypes: explorer.html without the prerequisite graph): the requirement groups
-// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API has
-// no prerequisites or offering terms yet, so nothing here says a course is open, locked or available; and whether a
-// course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's own transcript only adds a
-// neutral "in your transcript" mark.
-const auth = useAuth();
+// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API
+// records no offering term yet, and no course that needs another, so nothing here says a course is open, locked or
+// available; and whether a course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's
+// own transcript only adds a neutral "in your transcript" mark.
 const onboarding = useOnboarding();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
 
 // The student's program and cohort by default (UC-01), then whatever they pick. Only offered ones are listed: the
 // other curricula are seeded but not verified (B1 §6 item 1).
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
+const programs = useAsyncLoad('the programs', () => fetchPrograms());
 const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
 const picked = ref<{ program: string; cohort: number } | null>(null);
 const selection = computed(() => {
@@ -52,7 +50,7 @@ function pickCohort(cohort: number): void {
 
 const curriculum = useAsyncLoad(
   'the curriculum',
-  async () => (selection.value ? auth.authed((token) => fetchCurriculum(token, selection.value!.program, selection.value!.cohort)) : null),
+  async () => (selection.value ? fetchCurriculum(selection.value!.program, selection.value!.cohort) : null),
   () => (selection.value ? `${selection.value.program}-${selection.value.cohort}` : null),
 );
 
@@ -73,8 +71,8 @@ const shown = computed(() =>
 const courseCount = computed(() => new Set(groups.value.flatMap(({ group }) => group.courses.map((course) => course.code))).size);
 const glyph = (id: GroupId) => GROUPS.find((g) => g.id === id)!.glyph;
 
-const open = shallowRef<{ course: Course; group: { id: GroupId; name: string } } | null>(null);
-function openCourse(course: Course, group: RequirementGroup, colour: GroupId): void {
+const open = shallowRef<{ course: CurriculumCourse; group: { id: GroupId; name: string } } | null>(null);
+function openCourse(course: CurriculumCourse, group: RequirementGroup, colour: GroupId): void {
   open.value = { course, group: { id: colour, name: group.name } };
 }
 

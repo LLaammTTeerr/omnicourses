@@ -1,0 +1,70 @@
+{
+  "rows": [
+    {
+      "courseCode": "BAA00030",
+      "courseName": "Giáo dục quốc phòng - An ninh",
+      "credits": 4,
+      "result": "pass",
+      "grade": null,
+      "term": {
+        "year": 2024,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "CS160",
+      "courseName": "Nhập môn Tin học",
+      "credits": 4,
+      "result": "graded",
+      "grade": 8.5,
+      "term": {
+        "year": 2024,
+        "number": 1
+      }
+    },
+    {
+      "courseCode": "MTH252",
+      "courseName": "Vi tích phân II",
+      "credits": 4,
+      "result": "exempt",
+      "grade": null,
+      "term": {
+        "year": 2024,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "PH212",
+      "courseName": "Vật lý đại cương II",
+      "credits": 4,
+      "result": "fail",
+      "grade": null,
+      "term": {
+        "year": 2024,
+        "number": 2
+      }
+    },
+    {
+      "courseCode": "CS202",
+      "courseName": "Các hệ thống lập trình",
+      "credits": 4,
+      "result": "graded",
+      "grade": 9,
+      "term": {
+        "year": 2024,
+        "number": 3
+      }
+    },
+    {
+      "courseCode": "CS201",
+      "courseName": "Lập trình hệ thống",
+      "credits": 4,
+      "result": "in_progress",
+      "grade": null,
+      "term": {
+        "year": 2025,
+        "number": 1
+      }
+    }
+  ]
+}

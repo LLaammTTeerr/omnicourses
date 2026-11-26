@@ -1,0 +1,12 @@
+ADM 07e run at 2026-11-25T06:05:44.206Z
+POST /auth/sign-in (b2-a3@example.com) → 200
+GET /courses/ZZADM07B → 200
+POST /admin/catalog/imports/preview → 200 {"fileType":"catalog_courses","rows":[{"record":2,"action":"no_op","code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]},{"record":3,"action":"no_op","code":"ZZADM07B","nameVi":"Học phần thử ADM-07 B, có dấu phẩy","nameEn":"Test course ADM-07 B","credits":4,"theoryPeriods":0,"labPeriods":30,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]}],"errors":[],"summary":{"inserts":0,"updates":0,"noOps":2},"affectedCurricula":[],"reviewVersion":"rBWn_jsoocdlpV_shJMod8Witdho_9zDLE9LwsfDuXE"}
+  OK  preview: both rows no_op, summary {0,0,2}
+POST /admin/catalog/imports/confirm → 200 {"fileType":"catalog_courses","summary":{"inserts":0,"updates":0,"noOps":2}}
+  OK  confirm 200 with the same summary
+POST /admin/catalog/imports/preview → 200 {"fileType":"catalog_courses","rows":[{"record":2,"action":"update","code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":4,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"changedFields":["credits"],"current":{"code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0},"affectedCurricula":[]}],"errors":[],"summary":{"inserts":0,"updates":1,"noOps":0},"affectedCurricula":[],"reviewVersion":"2_kjGKLP7i4yA7nv_CDlU23DjTL-1bj0Mg0skuRbx8s"}
+  OK  F3: ZZADM07A only, update, changedFields ["credits"], current 3 credits, affectedCurricula []
+GET /courses/ZZADM07B → 200 {"code":"ZZADM07B","nameVi":"Học phần thử ADM-07 B, có dấu phẩy","nameEn":"Test course ADM-07 B","credits":4,"theoryPeriods":0,"labPeriods":30,"exercisePeriods":0,"projectPeriods":0,"memberships":[]}
+  OK  ZZADM07B not in F3 and unchanged
+All checks OK

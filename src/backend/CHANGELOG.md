@@ -1,5 +1,57 @@
 # @omnicourse/backend
 
+## 0.5.2
+
+### Patch Changes
+
+- [#182](https://github.com/LLaammTTeerr/omnicourses/pull/182) [`b3b01c6`](https://github.com/LLaammTTeerr/omnicourses/commit/b3b01c635ecd518664650d8e9547e1c38c674dba) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - When the hourly account purge fails, the server log now names only the kind of failure, never a database message that can quote a student's data.
+
+## 0.5.1
+
+### Patch Changes
+
+- [`50f6ce2`](https://github.com/LLaammTTeerr/omnicourses/commit/50f6ce2c1ae665045f1ed0ad579782f17217c390) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The account export now writes a school date as the day it holds ("2026-11-25"), not as the evening before in UTC ("2026-11-24T17:00:00.000Z").
+
+- [#179](https://github.com/LLaammTTeerr/omnicourses/pull/179) [`9094df3`](https://github.com/LLaammTTeerr/omnicourses/commit/9094df34c9b3b8a471a429893274144df9a60fce) Thanks [@Anhdung1478](https://github.com/Anhdung1478)! - A text field with a null character, or one character too long once an emoji style mark is counted, is now refused with a 400 instead of failing with a 500: plan names, transcript course names, the sign-up display name, catalog courses, requirement groups, calendar events and the calendar's program filter. A program code with a null character in the curriculum page's address is a 404.
+
+## 0.5.0
+
+### Minor Changes
+
+- [#147](https://github.com/LLaammTTeerr/omnicourses/pull/147) [`2363714`](https://github.com/LLaammTTeerr/omnicourses/commit/2363714172efd087340bdd76b2d885a4972c163f) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Catalog maintainers and program administrators can now enter many courses, or many course-to-group links, from one CSV file: the API previews what each row would add or change, lists every bad row by its number, and saves the whole file only after confirmation, or nothing.
+
+- [#161](https://github.com/LLaammTTeerr/omnicourses/pull/161) [`bd1d46e`](https://github.com/LLaammTTeerr/omnicourses/commit/bd1d46e6267a3294d6874a4207063fb3e6195908) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Access managers can now create a program, and program administrators can edit their program's names and faculty and add or edit its cohorts, through the administration API. A new cohort starts empty and changes nothing in the other cohorts.
+
+- [#148](https://github.com/LLaammTTeerr/omnicourses/pull/148) [`684f148`](https://github.com/LLaammTTeerr/omnicourses/commit/684f1486a93b0840c40332922ce51bd9959bc7d5) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Add the administration screens: a program administrator edits a cohort's requirement groups, courses, prerequisites and offering terms, a catalog maintainer maintains the shared course catalog, an access manager grants and revokes permissions by user ID, and Settings shows your user ID to copy.
+
+- [#156](https://github.com/LLaammTTeerr/omnicourses/pull/156) [`c1701b9`](https://github.com/LLaammTTeerr/omnicourses/commit/c1701b9c4474ebd7c5b0f31aaf464b5420fc5091) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Notification inbox API: a student gets a notification 7 days before a registration window of their program opens, on the day it opens, on the first day of a term, and each time they save a transcript that differs from the saved one; they can list the notifications, see how many are unread and mark them read.
+
+- [#153](https://github.com/LLaammTTeerr/omnicourses/pull/153) [`e669a0b`](https://github.com/LLaammTTeerr/omnicourses/commit/e669a0b579bf24126070e03b2013131d1e4d7d88) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Share a plan with a read-only link: the API creates, shows and stops the link of a plan, and anyone who holds the link can read the plan without signing in. The reader never gets grades, the email, transcript rows or other plans, and gets the checks that come from the transcript only when the owner chooses to show them.
+
+### Patch Changes
+
+- [#165](https://github.com/LLaammTTeerr/omnicourses/pull/165) [`e7bd617`](https://github.com/LLaammTTeerr/omnicourses/commit/e7bd61715c048906ceb6467e6e4baee8af990b36) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The API description of the two administration reads (programs and grants) now lists only the answers they can give.
+
+- [#172](https://github.com/LLaammTTeerr/omnicourses/pull/172) [`72ae3f1`](https://github.com/LLaammTTeerr/omnicourses/commit/72ae3f16161e6a334ade8996a9f4bd3b2415b5d1) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Deleting a requirement group that saved plans still use now answers 409 `referenced_item` ("Saved plans use the group") instead of a server error, and the group stays.
+
+- [#169](https://github.com/LLaammTTeerr/omnicourses/pull/169) [`8bcc498`](https://github.com/LLaammTTeerr/omnicourses/commit/8bcc498585c42b2b44396a629c3eef96ab1dbf32) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - A new plan, or a copy of one, can only use a program and cohort that onboarding offers; plans saved earlier on another cohort still open.
+
+## 0.4.0
+
+### Minor Changes
+
+- [#108](https://github.com/LLaammTTeerr/omnicourses/pull/108) [`d8a18ea`](https://github.com/LLaammTTeerr/omnicourses/commit/d8a18ea139e4750f1fd90d1ede3c3dc5dd815eaa) Thanks [@rakun68](https://github.com/rakun68)! - School dates for each program: every signed-in student can read the term, registration, add/drop, exam and holiday dates of their program, and the program's administrator can add, change and remove them.
+
+- [#111](https://github.com/LLaammTTeerr/omnicourses/pull/111) [`fd1f1ce`](https://github.com/LLaammTTeerr/omnicourses/commit/fd1f1cefa69107882be3c7535cbd28aa1847d6d6) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - APCS courses are now recorded as having no prerequisite, except Capstone Project II (CS470), which needs Capstone Project I (CS469) as the curriculum prints. The planner checks them instead of listing them as "not recorded yet", and the curriculum explorer shows each course's prerequisites; offering terms are still not recorded.
+
+- [#112](https://github.com/LLaammTTeerr/omnicourses/pull/112) [`e20bdc1`](https://github.com/LLaammTTeerr/omnicourses/commit/e20bdc1b792ccedb3b652a70ee938b0bbbd1d428) Thanks [@Anhdung1478](https://github.com/Anhdung1478)! - Two school task guides are now published, checked on the portals: "Your school accounts and portals" and "View your grades". "Register for courses" and "Pay tuition" stay hidden until their remaining portal steps can be checked.
+
+### Patch Changes
+
+- [#100](https://github.com/LLaammTTeerr/omnicourses/pull/100) [`acb7a58`](https://github.com/LLaammTTeerr/omnicourses/commit/acb7a582cd0ca4aa1995db8c71d666d90fd3e05d) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - A catalog maintainer can no longer delete a course that a student's saved plan still places; the delete is refused with the plan placements listed as references.
+
+- [#105](https://github.com/LLaammTTeerr/omnicourses/pull/105) [`7abf8e6`](https://github.com/LLaammTTeerr/omnicourses/commit/7abf8e6170a200758a8adb1f64f3363f7ce320a6) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - A plan's coverage now counts a course placed in a term the transcript already has it in once, by the transcript's own result and credits.
+
 ## 0.3.0
 
 ### Minor Changes

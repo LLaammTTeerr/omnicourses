@@ -1,5 +1,42 @@
 # @omnicourse/frontend
 
+## 0.5.2
+
+### Patch Changes
+
+- [#184](https://github.com/LLaammTTeerr/omnicourses/pull/184) [`0677b33`](https://github.com/LLaammTTeerr/omnicourses/commit/0677b33e9c58fdc897c79b204dba2945e000eb5a) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Fix display and privacy defects found by the survey:
+  
+  - When a requirement group cannot be deleted because saved plans use it, the administration screen now says how many saved plans use it, in Vietnamese and English, instead of showing the API's English sentence.
+  - The sign-up display name, a plan name and a transcript course name are now counted in characters, as the API counts them. A name with emoji is no longer refused early or cut off while you type.
+  - The onboarding page has one main landmark, so the skip link and screen readers find one main area.
+  - The course drawer in the curriculum explorer shows the offering terms that are recorded for a course. It says "not recorded" only when none are recorded.
+  - Signing out now removes the last opened plan and the plan locks that this browser kept, so the next account on the same browser does not get them.
+  - A new transcript row and the year choices now follow the date in Vietnam, not the time zone of the browser.
+
+## 0.5.1
+
+No changes in this release.
+
+## 0.5.0
+
+### Minor Changes
+
+- [#165](https://github.com/LLaammTTeerr/omnicourses/pull/165) [`e7bd617`](https://github.com/LLaammTTeerr/omnicourses/commit/e7bd61715c048906ceb6467e6e4baee8af990b36) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The administration screens can now import catalog courses or a cohort's group links from a CSV file, with a preview to confirm or cancel, and let access managers add programs and program administrators edit their program and add or edit its cohorts.
+
+- [#148](https://github.com/LLaammTTeerr/omnicourses/pull/148) [`684f148`](https://github.com/LLaammTTeerr/omnicourses/commit/684f1486a93b0840c40332922ce51bd9959bc7d5) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Add the administration screens: a program administrator edits a cohort's requirement groups, courses, prerequisites and offering terms, a catalog maintainer maintains the shared course catalog, an access manager grants and revokes permissions by user ID, and Settings shows your user ID to copy.
+
+## 0.4.0
+
+### Minor Changes
+
+- [#111](https://github.com/LLaammTTeerr/omnicourses/pull/111) [`fd1f1ce`](https://github.com/LLaammTTeerr/omnicourses/commit/fd1f1cefa69107882be3c7535cbd28aa1847d6d6) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - APCS courses are now recorded as having no prerequisite, except Capstone Project II (CS470), which needs Capstone Project I (CS469) as the curriculum prints. The planner checks them instead of listing them as "not recorded yet", and the curriculum explorer shows each course's prerequisites; offering terms are still not recorded.
+
+- [#99](https://github.com/LLaammTTeerr/omnicourses/pull/99) [`b6892b7`](https://github.com/LLaammTTeerr/omnicourses/commit/b6892b75a6a0344927871cc370a1a707b87413c7) Thanks [@rakun68](https://github.com/rakun68)! - Add the calendar page: school dates by week and month, what is coming up, and each date's details.
+
+### Patch Changes
+
+- [#121](https://github.com/LLaammTTeerr/omnicourses/pull/121) [`5f5d915`](https://github.com/LLaammTTeerr/omnicourses/commit/5f5d915eb062dc3256bc6bcc0f0d4e71cbe8d068) Thanks [@Anhdung1478](https://github.com/Anhdung1478)! - A link inside a guide step now sits beside the step's text, instead of being squeezed one letter per line under the step number.
+
 ## 0.3.0
 
 ### Minor Changes

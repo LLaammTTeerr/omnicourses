@@ -3,6 +3,8 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { AcademicCalendarService } from '../src/academic-calendar/academic-calendar.service.js';
+import { authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
@@ -26,14 +28,9 @@ describe('Academic calendar API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const http = () => request(app.getHttpServer());
-  const as = (token: string) => ({
-    get: (path: string) => http().get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string, body: object = {}) => http().post(path).set('Authorization', `Bearer ${token}`).send(body),
-    patch: (path: string, body: object = {}) => http().patch(path).set('Authorization', `Bearer ${token}`).send(body),
-    delete: (path: string) => http().delete(path).set('Authorization', `Bearer ${token}`),
-  });
+  const as = authed(() => app);
 
-  const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+  const suffix = runSuffix();
   const codeA = `ZZCAL${suffix}A`;
   const codeB = `ZZCAL${suffix}B`;
   let programA: string;
@@ -54,8 +51,9 @@ describe('Academic calendar API (e2e)', () => {
     const insertProgram = async (code: string) => ((await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, $2) RETURNING id`, [code, `Chương trình ${code}`])) as { id: string }[])[0].id;
     programA = await insertProgram(codeA);
     programB = await insertProgram(codeB);
-    await db.query(`INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2), ($3, $4)`, [adminA.userId, programA, adminB.userId, programB]);
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager'), ($1, 'catalog_maintainer')`, [manager.userId]);
+    await grantProgram(db, adminA.userId, programA);
+    await grantProgram(db, adminB.userId, programB);
+    await grantGlobal(db, manager.userId, 'access_manager', 'catalog_maintainer');
     await db.query(`INSERT INTO onboarding_answers (user_id, program_code, cohort_year) VALUES ($1, $2, 2026)`, [student.userId, codeA]);
   });
 
@@ -160,6 +158,32 @@ describe('Academic calendar API (e2e)', () => {
       expect(body.program.code).toBe(codeA);
       expect((body.events as Event[]).map((e) => e.id)).toEqual([registration.id, termStart.id, holiday.id]);
       expect(body.events[0]).toEqual(registration);
+    });
+
+    it('serves the dates of given kinds that start on given days to other modules, without notes, links or actors (ADR 0018)', async () => {
+      const service = app.get(AcademicCalendarService);
+      // The shared database may hold other programs' dates on these days: look at this run's only.
+      const mine = async (days: string[], kinds: Parameters<AcademicCalendarService['startingOn']>[1]) =>
+        (await service.startingOn(days, kinds)).filter((e) => [codeA, codeB].includes(e.programCode));
+      expect(await mine(['2026-09-07', '2026-07-20', '2026-12-21', '2027-02-10'], ['registration', 'term_start'])).toEqual([
+        {
+          id: registration.id,
+          programCode: codeA,
+          academicYear: 2026,
+          term: 1,
+          kind: 'registration',
+          startsOn: '2026-07-20',
+          endsOn: '2026-07-31',
+          title: 'Đăng ký học phần học kỳ 1',
+          titleEn: 'Term 1 course registration',
+        },
+        { id: termStart.id, programCode: codeA, academicYear: 2026, term: 1, kind: 'term_start', startsOn: '2026-09-07', endsOn: '2026-09-07', title: 'Bắt đầu học kỳ 1', titleEn: null },
+      ]);
+      // Every program, by the first day only: a window that is open today did not start today.
+      expect((await mine(['2026-12-21'], ['exam_period'])).map((e) => [e.id, e.programCode])).toEqual([[examB.id, codeB]]);
+      expect(await mine(['2026-07-21', '2026-07-31'], ['registration'])).toEqual([]);
+      expect(await service.startingOn([], ['registration'])).toEqual([]);
+      expect(await service.startingOn(['2026-07-20'], [])).toEqual([]);
     });
 
     it('orders same-day dates by end, then title', async () => {
@@ -268,7 +292,7 @@ describe('Academic calendar API (e2e)', () => {
 
     it("keeps the dates, without attribution, when the administrator's account is purged", async () => {
       const leaving = await signedInUser(app);
-      await db.query('INSERT INTO program_admin_grants (user_id, program_id) VALUES ($1, $2)', [leaving.userId, programA]);
+      await grantProgram(db, leaving.userId, programA);
       const event = (await as(leaving.token).post(events(programA), { ...valid, kind: 'term_end', startsOn: '2027-01-15', title: 'Kết thúc học kỳ 1' }).expect(201)).body as Event;
       await db.query('DELETE FROM users WHERE id = $1', [leaving.userId]);
       const [row] = await db.query('SELECT created_by, updated_by FROM academic_calendar WHERE id = $1', [event.id]);

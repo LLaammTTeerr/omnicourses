@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiExtraModels, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
-import { TermDto } from '../terms/term.dto.js';
+import { TermDto } from '../common/field-validators.js';
 import { User } from '../users/user.entity.js';
 import { OnboardingDto } from './onboarding.dto.js';
 import { OnboardingService } from './onboarding.service.js';

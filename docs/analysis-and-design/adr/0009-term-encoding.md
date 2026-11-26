@@ -22,4 +22,4 @@ The transcript (ADR 0007), plans, offering terms (#23) and the planner (ADR 0006
 ## Consequences
 
 - Plans (Hoà), offering terms (#23) and the planner (ADR 0006) adopt this encoding, or change this ADR before they ship.
-- Open: confirm on a real portal transcript, read locally, that the portal numbers the third term of the year 3: the summer term of a đại trà program, and the third main term of a Tiên tiến program such as APCS (amended 9 November 2026).
+- Open: confirm on a real portal transcript, read locally, that the portal numbers the third term of the year 3: the summer term of a đại trà program, and the third main term of a Tiên tiến program such as APCS (amended 9 November 2026). *Since 15 November 2026 F2 reads no file ([ADR 0007, amendment of 15 November 2026](0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); the question now belongs to the paste format, which is not decided.*

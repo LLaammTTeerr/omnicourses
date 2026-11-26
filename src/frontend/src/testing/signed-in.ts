@@ -17,17 +17,21 @@ interface Options {
   onboarded?: Onboarding | null;
 }
 
-/** A fresh Pinia and an in-memory router at `path`, with the synthetic student signed in unless `signedIn` is false. */
-export async function setup(path: string, { signedIn = true, onboarded = onboarding() }: Options = {}): Promise<{ pinia: Pinia; router: Router }> {
+export function signedInPinia(): Pinia {
   const pinia = createPinia();
   setActivePinia(pinia);
-  if (signedIn) {
-    const auth = useAuth();
-    auth.token = 'zz-token';
-    auth.user = user();
-  }
+  const auth = useAuth();
+  auth.token = 'zz-token';
+  auth.user = user();
+  return pinia;
+}
+
+/** A fresh Pinia and an in-memory router at `path`, with the synthetic student signed in unless `signedIn` is false. */
+export async function setup(path: string, { signedIn = true, onboarded = onboarding() }: Options = {}): Promise<{ pinia: Pinia; router: Router }> {
+  const pinia = signedIn ? signedInPinia() : createPinia();
+  if (!signedIn) setActivePinia(pinia);
   // Seeded for the fixture's account even when signed out, so a sign-in in the spec finds it.
-  if (onboarded) useOnboarding().cache = { userId: user().id, answers: onboarded };
+  if (onboarded) useOnboarding().seed(user().id, onboarded);
   const router = createAppRouter(createMemoryHistory());
   await router.push(path);
   await router.isReady();

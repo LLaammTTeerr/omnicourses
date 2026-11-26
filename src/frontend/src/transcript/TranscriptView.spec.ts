@@ -53,6 +53,15 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(saveButton(w).attributes('disabled')).toBeDefined();
   });
 
+  it('lets a course name be typed past 255 UTF-16 units, since the API counts characters (#179)', async () => {
+    const { w } = await render();
+    const name = row(w, 0).get(`input[aria-label^="Tên môn"]`);
+    expect(name.attributes('maxlength')).toBeUndefined();
+    await name.setValue('😀'.repeat(255));
+    await flushPromises();
+    expect(row(w, 0).get('[data-test="check"]').text()).toBe('Hợp lệ');
+  });
+
   it('blocks the save on an incomplete row and says what to fix in words (A2)', async () => {
     const { w } = await render();
     await w.get('#add-row').trigger('click');
@@ -61,7 +70,7 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(summary(w)).toBe('3 dòng · 1 dòng cần sửa');
     expect(row(w, 2).classes()).toContain('err');
     expect(row(w, 2).get('[data-test="check"]').text()).toBe('Cần sửa');
-    expect(w.get('[data-test="problems-2"]').text()).toBe('Cần sửa: mã môn (2–20 chữ hoặc số), tên môn, số TC (0–30), kết quả');
+    expect(w.get('[data-test="problems-2"]').text()).toBe('Cần sửa: mã môn (2–20 chữ hoặc số), tên môn (tối đa 255 ký tự), số TC (0–30), kết quả');
     const code = row(w, 2).get('input.code-input');
     expect(code.attributes('aria-invalid')).toBe('true');
     // The words under the row describe each field it names, so a screen reader hears what to fix.

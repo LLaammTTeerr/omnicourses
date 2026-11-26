@@ -1,0 +1,29 @@
+TRN-02f database steps on staging, run by SWE Bot and posted in the #130 Discord thread (copied from its post).
+
+Before the purge, 17:30Z on 21 November 2026
+S2's users row: deletion_requested_at 2026-11-21 17:21:07.453+00, purge_after 2026-12-21 17:21:07.453+00.
+S2's rows in each user table:
+  ai_usage               0
+  global_admin_grants    0
+  onboarding_answers     1
+  plan_placements        0
+  plans                  0
+  program_admin_grants   0
+  sessions               2
+  transcript_rows       45
+
+The update
+  UPDATE users SET purge_after = now() - interval '1 minute' WHERE email = 'b2-s2@example.com';
+  UPDATE 1    → purge_after 2026-11-21 17:29:06+00
+
+After the purge, checked at 17:50Z on 21 November 2026, for S2's id 196bce8d-b078-47e0-96ff-91e864854a2f
+The users row: 0 rows.
+Rows in each user table:
+  ai_usage               0
+  global_admin_grants    0
+  onboarding_answers     0   (was 1)
+  plan_placements        0
+  plans                  0
+  program_admin_grants   0
+  sessions               0   (was 2)
+  transcript_rows        0   (was 45)

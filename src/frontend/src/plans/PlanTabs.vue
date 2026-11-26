@@ -29,7 +29,7 @@ const canDelete = computed(() => plans.value.length > 1);
 
 async function load(): Promise<void> {
   try {
-    plans.value = (await auth.authed(fetchPlans)).plans;
+    plans.value = (await fetchPlans()).plans;
   } catch (e) {
     if (statusOf(e) !== 401) console.error('Loading the plans for the tabs failed:', e);
   }
@@ -60,7 +60,7 @@ async function copy(full: string): Promise<void> {
   const name = Array.from(full).slice(0, 100).join('');
   const { id } = props;
   const done = await attempt('Copying the plan', async () => {
-    const made = await auth.authed((token) => duplicatePlan(token, id, name));
+    const made = await duplicatePlan(id, name);
     toast.show(m.value.copied(made.name));
     await router.push({ name: 'plan', params: { id: made.id } });
   });
@@ -75,7 +75,7 @@ function openNaming(): void {
 async function create(name: string): Promise<void> {
   const { programCode, cohortYear } = props.curriculum;
   await attempt('Creating a plan', async () => {
-    const made = await auth.authed((token) => createPlan(token, { name, programCode, cohortYear }));
+    const made = await createPlan({ name, programCode, cohortYear });
     naming.value = false;
     toast.show(m.value.created(made.name));
     await router.push({ name: 'plan', params: { id: made.id } });
@@ -91,7 +91,7 @@ async function confirmDelete(): Promise<void> {
   const next = plans.value.find((p) => p.id !== id);
   const done = await attempt('Deleting the plan', async () => {
     try {
-      await auth.authed((token) => deletePlan(token, id));
+      await deletePlan(id);
     } catch (e) {
       // Already gone: an earlier deletion that timed out may have gone through on the server.
       if (statusOf(e) !== 404) throw e;

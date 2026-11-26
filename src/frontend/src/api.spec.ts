@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, getJson, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
+import { API_URL, codePoints, failureKind, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
@@ -58,6 +58,16 @@ describe('request', () => {
     await expect(request('GET', '/things')).rejects.toMatchObject({ code: null });
   });
 
+  it('keeps the whole error body, for the fields an error adds beside its code', async () => {
+    const answer = { statusCode: 403, code: 'permission_required', permission: 'catalog_maintainer', message: 'This needs the catalog_maintainer permission' };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(answer, { status: 403 }));
+    await expect(request('PATCH', '/things')).rejects.toMatchObject({ status: 403, code: 'permission_required', body: answer });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(['not', 'an', 'object'], { status: 400 }));
+    await expect(request('PATCH', '/things')).rejects.toMatchObject({ status: 400, body: null });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('<html>', { status: 502 }));
+    await expect(request('PATCH', '/things')).rejects.toMatchObject({ status: 502, body: null });
+  });
+
   it('fails a call that gets no answer in time, with no status', async () => {
     hang();
     const timeout = vi.spyOn(AbortSignal, 'timeout');
@@ -91,7 +101,7 @@ describe('request', () => {
   });
 });
 
-describe('getJson', () => {
+describe('request for a public read', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('sends no token (ADR 0010) and fails a read that gets no answer in time, like any JSON call', async () => {
@@ -99,10 +109,41 @@ describe('getJson', () => {
     const timeout = vi.spyOn(AbortSignal, 'timeout');
     const timer = new AbortController();
     timeout.mockReturnValue(timer.signal);
-    const pending = getJson('/guides').catch((e: unknown) => e);
+    const pending = request('GET', '/guides').catch((e: unknown) => e);
     expect(timeout).toHaveBeenCalledExactlyOnceWith(REQUEST_TIMEOUT_MS);
     expect(vi.mocked(fetch).mock.calls[0]![1]).toMatchObject({ method: 'GET', headers: {} });
     timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
     expect(await pending).toMatchObject({ name: 'TimeoutError' });
+  });
+});
+
+describe('failureKind', () => {
+  it.each([
+    [400, 'invalid'],
+    [401, 'unauthorized'],
+    [403, 'forbidden'],
+    [404, 'not_found'],
+    [409, 'conflict'],
+    [429, 'rate_limited'],
+    [500, 'server_error'],
+    [502, 'server_error'],
+    [418, 'other'],
+  ] as const)('reads a %s answer as %s', (status, kind) => {
+    expect(failureKind(new HttpError('/x', status))).toBe(kind);
+  });
+
+  it('tells a timeout from a request that never reached the API', () => {
+    expect(failureKind(new DOMException('The operation timed out.', 'TimeoutError'))).toBe('timed_out');
+    expect(failureKind(new TypeError('Failed to fetch'))).toBe('unreachable');
+  });
+});
+
+describe('codePoints', () => {
+  it('counts characters as the API counts a text length (#179), not UTF-16 units', () => {
+    expect(codePoints('')).toBe(0);
+    expect(codePoints('Học máy')).toBe(7);
+    expect(codePoints('😀😀')).toBe(2);
+    // A variation selector is a code point of its own, as PostgreSQL counts it.
+    expect(codePoints('✌️')).toBe(2);
   });
 });

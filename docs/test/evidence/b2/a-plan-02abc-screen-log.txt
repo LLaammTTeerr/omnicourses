@@ -1,0 +1,40 @@
+PLAN-02a–c, Chrome 144 (Windows 10), P = b2-s5, plan e3ab2633-ac3b-4938-b374-23cfb81d0bd3, 21 Nov 2026 17:22–17:25Z.
+Each log is a MutationObserver installed in the tab before the click: one line each time the status chip, the board's
+credit line or a save/session message changes, with seconds since the observer started. Read with the JavaScript tool of
+Claude in Chrome. Network lines are from the extension's request log.
+
+PLAN-02a (A's session revoked by browser B, a-plan-02abc.mjs revoke; then + CS163 without reloading)
+0.00s chip=Saved
+4.14s chip=Saving…
+4.24s chip=Saving…  msgs=Your session has ended. Please sign in again.
+4.25s chip=Saved    msgs=Your session has ended. Please sign in again.
+4.27s /sign-in      msgs=Your session has ended. Please sign in again.
+network: PUT /api/plans/{id}/placements → 401
+After signing in again: back on /plans/{id}, chip Saved, Term 1 2026–2027 4 / 22 credits (CS160 only).
+
+PLAN-02b, blocked (stand-in for DevTools request blocking: fetch to /api/ rejects with TypeError "Failed to fetch")
+0.00s chip=Saved
+6.34s chip=Saving…
+6.40s chip=Not saved msgs=The change could not be saved. The plan is back to its last saved state.
+6.42s chip=Not saved msgs=… / The plan could not be checked.
+blocked: PUT /api/plans/{id}/placements, GET /api/plans/{id}/issues. Board 4 / 22 credits, CS163 not placed.
+After reload: chip Saved, 4 / 22 credits; API: CS160 only, updatedAt 2026-11-21T17:21:53.964Z.
+
+PLAN-02b, 500 (the §3 snippet)
+0.00s chip=Saved
+7.01s chip=Saving…
+7.09s chip=Not saved msgs=The change could not be saved. The plan is back to its last saved state.
+Board 4 / 22 credits. After reload: 4 / 22 credits; API: CS160 only, updatedAt 2026-11-21T17:21:53.964Z.
+
+PLAN-02c (the §3 snippet: the save reaches the server, the answer is hidden)
+0.00s  chip=Saved     board=4 / 22 credits
+6.51s  fetch PUT /api/plans/{id}/placements
+6.52s  chip=Saving…   board=4 / 22 credits
+36.51s fetch GET /api/plans/{id}/issues
+36.52s chip=Not saved board=4 / 22 credits msgs=The change could not be saved. The plan is back to its last saved state.
+36.71s chip=Not saved board=8 / 22 credits (the issues answer, computed from the server's plan, now counts CS163)
+network: PUT …/placements → 200 (server saved it), GET …/issues → 200. No GET /api/plans/{id} from the planner.
+Screen at 40 s: chip Not saved, error banner, board card lists CS160 only, CS163 back in "Courses of the curriculum"
+(68 not placed), while the term header says 8 / 22 credits and Plan check says "CS163: offering terms not recorded yet".
+API at that moment: CS160, CS163, updatedAt 2026-11-21T17:24:05.349Z.
+After reload: chip Saved, 67 not placed, Term 1 2026–2027 8 / 22 credits with CS160 and CS163.

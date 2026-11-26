@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { failureKind } from '../api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
@@ -43,21 +43,21 @@ async function confirm(): Promise<void> {
   busy.value = true;
   error.value = null;
   try {
-    const { purgeAfter } = await auth.authed((token) => deleteAccount(token, { password: password.value }));
+    const { purgeAfter } = await deleteAccount({ password: password.value });
     busy.value = false;
     // Every session is gone on the server: leave the private pages first, then forget this one.
     await router.push({ name: 'home' });
     auth.clear();
     toast.show(m.value.deleted(formatDateTime(purgeAfter, locale.lang)));
   } catch (e) {
-    const status = statusOf(e);
-    if (status === 401) return; // Signed out elsewhere: App.vue takes the student to sign in.
-    if (status === 403) error.value = m.value.wrongPassword;
-    else if (status === 429) error.value = m.value.rateLimited;
+    const kind = failureKind(e);
+    if (kind === 'unauthorized') return; // Signed out elsewhere: App.vue takes the student to sign in.
+    if (kind === 'forbidden') error.value = m.value.wrongPassword;
+    else if (kind === 'rate_limited') error.value = m.value.rateLimited;
     else {
       console.error('Deleting the account failed:', e);
       // A timeout: the request may have reached the server and revoked every session (ADR 0004).
-      error.value = e instanceof DOMException && e.name === 'TimeoutError' ? m.value.noAnswer : m.value.unreachable;
+      error.value = kind === 'timed_out' ? m.value.noAnswer : m.value.unreachable;
     }
   } finally {
     busy.value = false;

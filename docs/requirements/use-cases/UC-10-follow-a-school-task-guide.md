@@ -2,7 +2,7 @@
 
 - Feature: F11 Quicklinks and step-by-step guides (Vision §5). The glossary calls each entry a **guide**.
 - Owner: Dũng
-- Status: draft for the use-case model (PA2); describes work still to be built (Sprint 3, build B1)
+- Status: draft for the use-case model (PA2). What is built: the [README feature table](../../../README.md#what-is-built); where the code differs: [design differences, UC-10](../../analysis-and-design/design-differences.md#uc-10-follow-a-school-task-guide-f11).
 - Which guides exist and what each one contains: the guides plan (`docs/requirements/guides-plan.md`).
 
 ## 1. Brief description
@@ -77,6 +77,8 @@ No sign-in is needed to read guides (ADR 0010). Only the parts that use the stud
 - B1 (15 Nov): steps 1–7, A1, A2 with the task groups only, A5 with the 6-month rule only, and A8, with the first four guides of the guides plan. B3: A3, A4, A6, the rest of A2 and A5, and the remaining guides.
 - Guides can be read without signing in, and are content files in the repository, loaded into the database by a seed, with no admin screen. Both change ADR 0002 and are recorded in ADR 0010.
 
-**Proposed here, to confirm:** a guide is out of date (A5) when it was last checked more than 6 months ago. Every guide is checked again before each main term's registration.
+**Decided (Lâm, 9 November 2026):** a guide is out of date (A5) when it was last checked more than 6 months ago (`src/backend/src/guides/out-of-date.ts`).
+
+**Proposed here, to confirm:** every guide is checked again before each main term's registration.
 
 **Open:** each guide's portal address, account and steps must be checked on the real portal by a team member before it is published. Verified on 15 November 2026 (Dũng): G01 and G07 to the end, and published; G02 and G06 in part, so they stay drafts until their remaining steps are followed in the next registration and tuition periods. No B3 guide is verified yet.

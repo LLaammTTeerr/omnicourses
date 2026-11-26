@@ -26,7 +26,7 @@ const m = useMessages(PLANNER_MESSAGES);
 
 const plans = ref<PlanListItem[]>([]);
 const { status, reload } = useAsyncLoad('the plans', async () => {
-  plans.value = (await auth.authed(fetchPlans)).plans;
+  plans.value = (await fetchPlans()).plans;
 });
 
 // The router guard loads the onboarding answers but opens the page when that fails, so the list loads them too:
@@ -70,7 +70,7 @@ async function saveName(name: string): Promise<void> {
   const target = naming.value?.plan ?? null;
   if (target) {
     const done = await attempt('Renaming the plan', async () => {
-      const renamed = await auth.authed((token) => renamePlan(token, target.id, name));
+      const renamed = await renamePlan(target.id, name);
       plans.value = plans.value.map((plan) => (plan.id === renamed.id ? { ...plan, ...renamed } : plan));
       toast.show(m.value.renamed(renamed.name));
     });
@@ -80,7 +80,7 @@ async function saveName(name: string): Promise<void> {
   if (!program.value) return;
   const { code, cohort } = program.value;
   await attempt('Creating a plan', async () => {
-    const created = await auth.authed((token) => createPlan(token, { name, programCode: code, cohortYear: cohort }));
+    const created = await createPlan({ name, programCode: code, cohortYear: cohort });
     toast.show(m.value.created(created.name));
     naming.value = null;
     await router.push({ name: 'plan', params: { id: created.id } });
@@ -91,7 +91,7 @@ async function copy(plan: PlanSummary): Promise<void> {
   // The API allows 100 characters, counting an emoji as one: cut between code points, never inside a surrogate pair.
   const name = Array.from(m.value.copyName(plan.name)).slice(0, 100).join('');
   const done = await attempt('Copying the plan', async () => {
-    const copied = await auth.authed((token) => duplicatePlan(token, plan.id, name));
+    const copied = await duplicatePlan(plan.id, name);
     const source = plans.value.find((p) => p.id === plan.id);
     plans.value = [...plans.value, { ...copied, preview: source!.preview }];
     toast.show(m.value.copied(copied.name));
@@ -109,7 +109,7 @@ async function confirmDelete(): Promise<void> {
   if (!plan) return;
   const done = await attempt('Deleting the plan', async () => {
     try {
-      await auth.authed((token) => deletePlan(token, plan.id));
+      await deletePlan(plan.id);
     } catch (e) {
       // Already gone: an earlier deletion that timed out here may have gone through on the server.
       if (statusOf(e) !== 404) throw e;

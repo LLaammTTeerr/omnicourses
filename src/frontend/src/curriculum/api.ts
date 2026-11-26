@@ -1,9 +1,10 @@
-import { request } from '../api.js';
+import { segment } from '../api.js';
+import { requestAsUser } from '../auth/store.js';
 
 // The curriculum read DTOs of the API (F4, ADR 0005), written by hand; api.spec.ts checks them against
 // src/backend/openapi.json. They carry only what the database stores: prerequisites and offering terms are null
-// until F12 records them for a course of a curriculum (ADR 0011), and nothing here decides whether a student may
-// take a course (the rule engine does).
+// until they are recorded for a course of a curriculum (ADR 0011; APCS courses are recorded as having no
+// prerequisite), and nothing here decides whether a student may take a course (the rule engine does).
 
 export const TRAINING_TYPES = ['advanced', 'joint', 'high_quality', 'standard'] as const;
 /** QĐ 1175 Điều 6.4, 7.2 (ADR 0012): it sets the terms and the credit caps. */
@@ -87,11 +88,11 @@ export interface CourseDetail extends Course {
   memberships: CourseMembership[];
 }
 
-export const fetchPrograms = (token: string) => request<ProgramList>('GET', '/programs', { token });
+export const fetchPrograms = () => requestAsUser<ProgramList>('GET', '/programs');
 
 /** 404: the program has no curriculum for this cohort. */
-export const fetchCurriculum = (token: string, program: string, cohort: number) =>
-  request<Curriculum>('GET', `/programs/${encodeURIComponent(program)}/curricula/${cohort}`, { token });
+export const fetchCurriculum = (program: string, cohort: number) =>
+  requestAsUser<Curriculum>('GET', `/programs/${segment(program)}/curricula/${cohort}`);
 
 /** 404: no course has this code. */
-export const fetchCourse = (token: string, code: string) => request<CourseDetail>('GET', `/courses/${encodeURIComponent(code)}`, { token });
+export const fetchCourse = (code: string) => requestAsUser<CourseDetail>('GET', `/courses/${segment(code)}`);

@@ -13,49 +13,45 @@ Course project, Elements of Software Engineering, 5 Oct – 13 Dec 2026. The rep
 
 **To try it:** open the sign-in page and follow *Create an account*. Any email works, since there is no email verification step yet. Then onboard with **APCS, cohort 2024 or 2025**, the curricula seeded so far. Enter made-up courses and grades only, never your real transcript. For a ready-made demo account, ask the Project Lead; no shared password is published here, because this repository is public.
 
-Feature status as of 2026-11-11. Feature numbers and names follow the [Vision](report/assignments/PA2/Vision.tex).
+## What is built
 
-| Feature                           | Status          | Notes                                                                                                                  |
-| --------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| F1 Account and onboarding         | Live            | Sign-up, sign-in, onboarding (program, cohort, goals) and settings, including account export and deletion             |
-| F2 Transcript import              | Live            | Courses are entered by hand; the deterministic PDF reader comes in a later release                                     |
-| F3 Degree audit dashboard         | Live            | Dashboard and degree audit screens (#79), from the rule engine's `GET /api/users/me/audit`                             |
-| F4 Curriculum explorer            | Live            | Programs, a cohort's requirement groups and courses                                                                    |
-| F5 Semester roadmap planner       | Live            | Plans list, plan editor and plan checks from the rule engine (#78, #80, #81)                                           |
-| F6 AI plan generator              | Planned         |                                                                                                                        |
-| F7 What-if simulator              | Planned         |                                                                                                                        |
-| F8 AI academic advisor chat       | In review #77   | The advisor API with its topic gate and answer guard; the chat screen is planned                                      |
-| F9 Plan export and sharing        | Planned         |                                                                                                                        |
-| F10 Notifications                 | Planned         |                                                                                                                        |
-| F11 Quicklinks and guides         | Live            | Guide pages are open without signing in; the first guides stay drafts until they are checked on the school portals     |
-| F12 Curriculum administration     | Live (API)      | Admin API for requirement groups, catalog courses, prerequisites, offering terms and access grants (#74); no screens yet |
+This table is the one place that says what is built. It describes `main` at commit `f415f8b` (26 November 2026). A pull request that adds or removes a route or a screen updates this table in the same pull request. Feature numbers and names follow the [Vision](report/assignments/PA2/Vision.tex). Where the built code differs from a use case, [design-differences.md](docs/analysis-and-design/design-differences.md) gives the details.
 
-**Known gap:** no prerequisites or offering terms are recorded yet, so the planner's checks for them show *Not recorded yet* instead of passing or failing a course.
+| Feature | API (under `/api`) | Screen | Not built yet |
+| --- | --- | --- | --- |
+| F1 Account and onboarding | `auth/*`, `users/me`, `users/me/onboarding`, `users/me/export`, `DELETE users/me` | Sign-up, sign-in, onboarding, settings (sessions, export, deletion) | Google sign-in, email verification |
+| F2 Transcript import | `users/me/transcript` (`GET`, `PUT`) | Transcript page: the student types each row | Paste of the grades table. F2 is "paste or type, no file" ([ADR 0007, amendment of 15 November 2026](docs/analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); the paste format is not decided |
+| F3 Degree audit dashboard | `users/me/audit` | Dashboard, degree audit | Estimated graduation term, past-term view |
+| F4 Curriculum explorer | `programs`, `programs/:program/curricula/:cohort`, `courses/:code` | Explorer, with each course's recorded prerequisites | Course states from the rule engine, prerequisite graph |
+| F5 Semester roadmap planner | `plans`, `plans/:id`, `plans/:id/issues`, `plans/:id/placements`, `plans/:id/duplicate` | Plan list, plan editor with the rule engine's checks | Fix suggestions |
+| F6 AI plan generator | none | none | All of F6 |
+| F7 What-if simulator | none (a plan can be copied with `plans/:id/duplicate`) | none | All of F7 |
+| F8 AI academic advisor chat | none (the AI gateway in `src/backend/src/ai/` has no route; [#77](https://github.com/LLaammTTeerr/omnicourses/pull/77) is open) | none | All of F8 |
+| F9 Plan export and sharing | `plans/:id/share`, `shared-plans/:token` (public) | none | Share panel, shared page, PDF |
+| F10 Notifications: school dates | `academic-calendar`, `admin/programs/:programId/calendar-events` | Calendar page | An administration screen for the dates |
+| F10 Notifications: inbox | `notifications`, `notifications/unread-count`, `notifications/read-all`, `notifications/:id/read` | none | Bell, popover, inbox screen |
+| F11 Quicklinks and guides | `guides`, `guides/:id` (public) | Guide list and guide pages, open without signing in | Values from the student's own data, problem reports. The first guides stay drafts until they are checked on the school portals |
+| F12 Curriculum administration | `admin/*`: programs, cohorts, requirement groups, course links, prerequisites, offering terms, catalog courses, CSV import, access grants | `/admin`: curriculum, catalog, CSV import, access | Entry of a program's training type and of credit totals, the change-history log |
+
+The exact routes and their fields are in the OpenAPI contract, [`src/backend/openapi.json`](src/backend/openapi.json).
+
+**Prerequisites:** every APCS 2024 and 2025 course is recorded as having no prerequisite, except CS470, which needs CS469. That one rule is printed in the APCS curriculum PDFs (p. 8 for 2024, p. 9 for 2025), and the Project Lead decided on 24 November 2026 to keep it; for the other courses the Project Lead's decision of 15 November 2026 is the source. The planner checks them against these records.
+
+**Known gap:** no offering terms are recorded yet, so the planner's check for them shows *Not recorded yet* instead of passing or failing a course.
 
 Release notes are in the changelogs, [backend](src/backend/CHANGELOG.md) and [frontend](src/frontend/CHANGELOG.md), written by the Release workflow (see [Versioning](#versioning)).
 
 ## Stack
 
-All versions are pinned exactly, matching the Software Development Plan v1.0 (§4.3.3).
-
-| Layer    | Technology                    | Version                   |
-| -------- | ----------------------------- | ------------------------- |
-| Database | PostgreSQL                    | 18.6                      |
-| Backend  | NestJS / Nest CLI / Swagger   | 12.1.3 / 12.0.8 / 12.0.2  |
-| Frontend | Vue                           | 3.5.44                    |
-| API      | REST, described by OpenAPI    | 3.2.0                     |
-| Tests    | Vitest                        | 5.0.4                     |
-| Build    | Vite                          | 8.3.4                     |
-
-Supporting choices (TypeScript 6.0.3, TypeORM, npm 11, Node 22) and the reasons for them are in [ADR 0001](docs/analysis-and-design/adr/0001-technology-stack.md).
+PostgreSQL, NestJS, Vue 3 with Vite, Vitest, TypeScript, TypeORM and OpenAPI. Every version is pinned exactly. The pinned versions are listed once, in [AGENTS.md](AGENTS.md#stack-pinned-exactly-do-not-use-ranges); the reasons for them are in [ADR 0001](docs/analysis-and-design/adr/0001-technology-stack.md).
 
 ## Repository layout
 
 ```
 src/backend/                NestJS REST API (+ Swagger UI at /api/docs, off in production unless API_DOCS=true)
 src/frontend/               Vue 3 + Vite single-page app
-docs/management/            Project plan, weekly reports, meeting notes
-docs/requirements/          Vision document, use-case model and specifications
+docs/management/            Two early weekly reports in Markdown (the record is in report/weekly)
+docs/requirements/          Use-case specifications, guides plan (the Vision is in report/)
 docs/analysis-and-design/   Architecture (C4), models, UI design, ADRs
 docs/test/                  Test plan, test cases, test reports
 report/                     Academic reports & assignment submissions (PA1 … PA5, weekly)
@@ -65,11 +61,11 @@ Documents are written in Markdown and exported to .docx only for submission.
 
 ## Versioning
 
-[Semantic versioning](https://semver.org) with [Changesets](https://github.com/changesets/changesets). Backend and frontend share one version (a `fixed` group). Each PR adds a changeset. On merge, the Release workflow opens a **Version Packages** PR that bumps the version and writes `src/*/CHANGELOG.md`. Merging that PR is the release.
+[Semantic versioning](https://semver.org) with [Changesets](https://github.com/changesets/changesets). Backend and frontend share one version. How to add a changeset and how a release happens: [CONTRIBUTING.md §3](CONTRIBUTING.md#3-pull-requests) and [.changeset/README.md](.changeset/README.md).
 
 ## Run it locally
 
-Requirements: Node 22.22.1 (`.nvmrc`), npm 11 (`npm i -g npm@11`), and Podman or Docker.
+Requirements: the Node version in `.nvmrc`, the npm version in [AGENTS.md](AGENTS.md#stack-pinned-exactly-do-not-use-ranges), and Podman or Docker.
 
 ```bash
 cp .env.example .env
@@ -92,17 +88,7 @@ npm run test:e2e -w src/backend    # needs the database
 
 ## Rules for changing `main`
 
-1. **No direct pushes.** Every change arrives as a pull request.
-2. **CI must pass**: the `changeset`, `signed-commits`, `pr-title`, `commit-messages`, `backend` and `frontend` checks.
-   PR titles and commit messages follow [Conventional Commits](CONTRIBUTING.md#2-branches-commit-messages-and-pr-titles).
-   Every PR includes a [changeset](.changeset/README.md) (`npx changeset`, or `npx changeset --empty` when nothing ships).
-3. **Every commit is signed** (SSH or GPG) and shows *Verified* on GitHub. The `signed-commits` check verifies every commit in the PR, because the squash commit GitHub creates on `main` is always signed by GitHub itself.
-4. **At least one approving review** from another member. New pushes dismiss earlier approvals.
-5. **After approval, the author merges and deploys** (Actions → Deploy → Run workflow).
-
-These rules are enforced by two rulesets on `main`. `protect-main` (pull request, CI, signed commits, no force-push or deletion) has no bypass for anyone. `require-approval` (rule 4) can be bypassed only by the repository admin (LamTer, Project Lead), and only when merging a pull request: the admin can merge their own or anyone's PR without an approval, but still never pushes to `main` directly or merges with red CI. Review duty follows the workstream: the Frontend Lead reviews frontend work, the Backend Lead reviews backend work, and the Project Lead reviews data-model and rule-engine changes. Builds B0–B3 are tagged.
-
-The workflow end to end (Discord tasks, branches, signing, review) and the AI policy are in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+Every change reaches `main` through a signed, reviewed pull request that passes CI. Production then deploys by itself. The full workflow (Discord tasks, branches, commit messages, signing, changesets, review, merge, deploy, releases and the AI policy) is in **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ## Team
 

@@ -1,4 +1,5 @@
 import type { Lang } from '../locale.js';
+import { DELETION_GRACE_DAYS } from './api.js';
 
 interface SettingsMessages {
   title: string;
@@ -11,6 +12,11 @@ interface SettingsMessages {
   displayName: string;
   displayNameNote: string;
   email: string;
+  userId: string;
+  userIdNote: string;
+  copy: string;
+  userIdCopied: string;
+  userIdNotCopied: string;
   language: string;
   languageNote: string;
   sessions: string;
@@ -71,6 +77,11 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     displayName: 'Tên hiển thị',
     displayNameNote: 'Không cần tên thật. Không bao giờ gửi cho AI.',
     email: 'Email',
+    userId: 'Mã người dùng',
+    userIdNote: 'Gửi mã này cho người quản lý phân quyền khi bạn cần quyền quản trị. Đây là mã định danh, không phải mật khẩu.',
+    copy: 'Sao chép',
+    userIdCopied: 'Đã sao chép mã người dùng.',
+    userIdNotCopied: 'Chưa sao chép được. Mã đã được chọn sẵn: bấm Ctrl+C để sao chép.',
     language: 'Ngôn ngữ',
     languageNote: 'Tiếng Việt hoặc English.',
     sessions: 'Các thiết bị đang đăng nhập',
@@ -103,11 +114,11 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     exported: (file) => `Đã tải về ${file}.`,
     exportFailed: 'Chưa xuất được dữ liệu. Thử lại sau ít phút.',
     deleteTitle: 'Xóa tài khoản',
-    deleteNote: 'Đăng xuất mọi thiết bị ngay. Xóa vĩnh viễn sau 30 ngày.',
+    deleteNote: `Đăng xuất mọi thiết bị ngay. Xóa vĩnh viễn sau ${DELETION_GRACE_DAYS} ngày.`,
     delete: 'Xóa tài khoản',
     deleteDialogTitle: 'Xóa tài khoản?',
     deleteDialogBody:
-      'Mọi phiên đăng nhập bị thu hồi ngay. Dữ liệu của bạn bị xóa vĩnh viễn sau 30 ngày. Đăng nhập lại trước hạn đó sẽ hủy việc xóa. Nên xuất dữ liệu trước nếu bạn muốn giữ một bản.',
+      `Mọi phiên đăng nhập bị thu hồi ngay. Dữ liệu của bạn bị xóa vĩnh viễn sau ${DELETION_GRACE_DAYS} ngày. Đăng nhập lại trước hạn đó sẽ hủy việc xóa. Nên xuất dữ liệu trước nếu bạn muốn giữ một bản.`,
     deletePassword: 'Nhập mật khẩu để xác nhận',
     deleting: 'Đang xóa…',
     keep: 'Giữ lại',
@@ -131,6 +142,11 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     displayName: 'Display name',
     displayNameNote: 'It need not be your real name. Never sent to an AI.',
     email: 'Email',
+    userId: 'User ID',
+    userIdNote: 'Give this ID to an access manager when you need an administration permission. It identifies your account; it is not a password.',
+    copy: 'Copy',
+    userIdCopied: 'User ID copied.',
+    userIdNotCopied: 'Could not copy. The ID is selected: press Ctrl+C to copy it.',
     language: 'Language',
     languageNote: 'Vietnamese or English.',
     sessions: 'Devices signed in',
@@ -163,11 +179,11 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     exported: (file) => `Downloaded ${file}.`,
     exportFailed: 'Could not export your data. Try again in a moment.',
     deleteTitle: 'Delete account',
-    deleteNote: 'Signs out every device at once. Deleted for good after 30 days.',
+    deleteNote: `Signs out every device at once. Deleted for good after ${DELETION_GRACE_DAYS} days.`,
     delete: 'Delete account',
     deleteDialogTitle: 'Delete your account?',
     deleteDialogBody:
-      'Every session is revoked at once. Your data is deleted for good after 30 days. Signing in again before then cancels the deletion. Export your data first if you want to keep a copy.',
+      `Every session is revoked at once. Your data is deleted for good after ${DELETION_GRACE_DAYS} days. Signing in again before then cancels the deletion. Export your data first if you want to keep a copy.`,
     deletePassword: 'Enter your password to confirm',
     deleting: 'Deleting…',
     keep: 'Keep my account',

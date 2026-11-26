@@ -10,6 +10,15 @@ export function readLastPlan(): string | null {
   }
 }
 
+/** Forgets it, when the student leaves this browser (auth/store.ts): it is this account's, not the next one's. */
+export function forgetLastPlan(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // Storage blocked: nothing was kept.
+  }
+}
+
 export function rememberLastPlan(id: string): void {
   try {
     localStorage.setItem(KEY, id);

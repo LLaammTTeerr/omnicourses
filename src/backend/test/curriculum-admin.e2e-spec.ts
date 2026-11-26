@@ -6,7 +6,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccessAdminService, bootstrapAccessManager } from '../src/curriculum-admin/access-admin.service.js';
 import { AdminWriteService } from '../src/curriculum-admin/admin-write.service.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { seedCurricula } from '../src/curriculum/seed-curricula.js';
+import { authed, grantGlobal, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
 import { privateSchema } from './support/schema.js';
 import { signedInUser } from './support/users.js';
@@ -31,16 +32,10 @@ describe('Curriculum administration API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const http = () => request(app.getHttpServer());
-  const as = (token: string) => ({
-    get: (path: string) => http().get(path).set('Authorization', `Bearer ${token}`),
-    post: (path: string, body: object = {}) => http().post(path).set('Authorization', `Bearer ${token}`).send(body),
-    put: (path: string, body: object = {}) => http().put(path).set('Authorization', `Bearer ${token}`).send(body),
-    patch: (path: string, body: object = {}) => http().patch(path).set('Authorization', `Bearer ${token}`).send(body),
-    delete: (path: string) => http().delete(path).set('Authorization', `Bearer ${token}`),
-  });
+  const as = authed(() => app);
 
-  const suffix = randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
-  const [A, B, C, D, E] = ['A', 'B', 'C', 'D', 'E'].map((x) => `ZZ${suffix}${x}`);
+  const suffix = runSuffix();
+  const [A, B, C, D, E, F] = ['A', 'B', 'C', 'D', 'E', 'F'].map((x) => `ZZ${suffix}${x}`);
   const groupName = `zz-e2e ${suffix}`;
 
   let admin: { token: string; userId: string };
@@ -78,7 +73,7 @@ describe('Curriculum administration API (e2e)', () => {
     clcCurriculum = await id('SELECT id FROM curriculums WHERE program_id = $1', [clc]);
 
     // The fixture's access manager; the bootstrap command is tested on its own schema below.
-    await db.query(`INSERT INTO global_admin_grants (user_id, permission) VALUES ($1, 'access_manager')`, [manager.userId]);
+    await grantGlobal(db, manager.userId, 'access_manager');
     await as(manager.token).put(`/api/admin/access/users/${admin.userId}/programs/${apcs}`).expect(200);
     await as(manager.token).put(`/api/admin/access/users/${maintainer.userId}/global/catalog_maintainer`).expect(200);
 
@@ -90,10 +85,10 @@ describe('Curriculum administration API (e2e)', () => {
 
   afterAll(async () => {
     if (db?.isInitialized) {
-      const codes = [A, B, C, D, E];
+      const codes = [A, B, C, D, E, F];
       await db.query('DELETE FROM course_prerequisite_lists WHERE course_code = ANY($1)', [codes]);
       await db.query('DELETE FROM course_offering_terms WHERE course_code = ANY($1)', [codes]);
-      await db.query('DELETE FROM requirement_groups WHERE name = $1', [groupName]);
+      await db.query('DELETE FROM requirement_groups WHERE name = ANY($1)', [[groupName, `${groupName} slot`]]);
       await db.query('DELETE FROM courses WHERE code = ANY($1)', [codes]);
       await db.query('DELETE FROM program_admin_grants WHERE user_id = ANY($1)', [[admin, stranger, manager, maintainer].map((u) => u.userId)]);
       await db.query('DELETE FROM global_admin_grants WHERE user_id = ANY($1)', [[admin, stranger, manager, maintainer].map((u) => u.userId)]);
@@ -127,6 +122,32 @@ describe('Curriculum administration API (e2e)', () => {
     expect([catalog.status, catalog.body.permission]).toEqual([403, 'catalog_maintainer']);
     const access = await s.put(`/api/admin/access/users/${stranger.userId}/programs/${apcs}`);
     expect([access.status, access.body.permission]).toEqual([403, 'access_manager']);
+  });
+
+  it("tells any signed-in user their own grants, and never another user's", async () => {
+    await http().get('/api/admin/grants').expect(401);
+    // No grant: empty lists, not a 403, so the screens can hide the administration entry.
+    expect((await as(stranger.token).get('/api/admin/grants').expect(200)).body).toEqual({ userId: stranger.userId, programs: [], permissions: [] });
+    expect((await as(admin.token).get('/api/admin/grants').expect(200)).body).toEqual({
+      userId: admin.userId,
+      programs: [{ programId: apcs, programCode: 'APCS', grantedAt: expect.any(String), grantedBy: manager.userId }],
+      permissions: [],
+    });
+    expect((await as(maintainer.token).get('/api/admin/grants').expect(200)).body).toEqual({
+      userId: maintainer.userId,
+      programs: [],
+      permissions: [{ permission: 'catalog_maintainer', grantedAt: expect.any(String), grantedBy: manager.userId }],
+    });
+    expect((await as(manager.token).get('/api/admin/grants').expect(200)).body).toEqual({
+      userId: manager.userId,
+      programs: [],
+      permissions: [{ permission: 'access_manager', grantedAt: expect.any(String), grantedBy: null }],
+    });
+    // The route reads no ID from the request: naming another user changes nothing.
+    const asked = await as(stranger.token).get(`/api/admin/grants?userId=${admin.userId}`).expect(200);
+    expect(asked.body).toEqual({ userId: stranger.userId, programs: [], permissions: [] });
+    // The answer carries grants only: no email, name or credential.
+    expect(Object.keys(asked.body).sort()).toEqual(['permissions', 'programs', 'userId']);
   });
 
   it('lets the APCS administrator list APCS with its cohorts, and not write CLC, even through nested IDs', async () => {
@@ -192,7 +213,9 @@ describe('Curriculum administration API (e2e)', () => {
     const { body } = await as(admin.token).get('/api/programs/APCS/curricula/2024').expect(200);
     const seeded = (body.requirementGroups as ReadGroup[]).filter((g) => g.name !== groupName).flatMap((g) => g.courses);
     expect(seeded.length).toBeGreaterThan(0);
-    expect(seeded.every((c) => c.prerequisites === null && c.offeringTerms === null)).toBe(true);
+    // The seed records every APCS course as having no prerequisite (Project Lead, 15 November 2026) except CS470, which needs
+    // CS469 (printed in the curriculum PDF; Project Lead, 24 November 2026), and no offering term.
+    for (const c of seeded) expect([c.code, c.prerequisites, c.offeringTerms]).toEqual([c.code, c.code === 'CS470' ? ['CS469'] : [], null]);
   });
 
   it('round-trips offering terms, and clears both kinds back to not recorded', async () => {
@@ -209,12 +232,16 @@ describe('Curriculum administration API (e2e)', () => {
     expect([d.prerequisites, d.offeringTerms]).toEqual([null, null]);
   });
 
-  it('keeps an untouched curriculum, and another cohort of the same program, at not recorded', async () => {
-    for (const [program, year] of [[clcCode, 2025], ['APCS', 2025]] as const) {
+  it('keeps an untouched curriculum at not recorded, and another cohort of the same program as the seed left it', async () => {
+    // CLC: nothing recorded. APCS 2025: the seed's "no prerequisite" for every course but CS470 (CS469), which the writes to
+    // APCS 2024 did not change.
+    for (const [program, year, prerequisites] of [[clcCode, 2025, null], ['APCS', 2025, []]] as const) {
       const { body } = await as(stranger.token).get(`/api/programs/${program}/curricula/${year}`).expect(200);
       const courses = (body.requirementGroups as ReadGroup[]).flatMap((g) => g.courses);
       expect(courses.length).toBeGreaterThan(0);
-      expect(courses.every((c) => c.prerequisites === null && c.offeringTerms === null)).toBe(true);
+      for (const c of courses) {
+        expect([c.code, c.prerequisites, c.offeringTerms]).toEqual([c.code, program === 'APCS' && c.code === 'CS470' ? ['CS469'] : prerequisites, null]);
+      }
     }
   });
 
@@ -255,6 +282,47 @@ describe('Curriculum administration API (e2e)', () => {
     await as(admin.token).delete(`${groupPath()}/courses/${D}`).expect(204);
     await as(maintainer.token).delete(`/api/admin/catalog/courses/${E}`).expect(204);
     await as(maintainer.token).delete(`/api/admin/catalog/courses/${E}`).expect(404);
+  });
+
+  it('refuses to delete a catalog course that a saved plan places, which names it by plain code', async () => {
+    // F is in no curriculum, rule or transcript: only the plan refers to it (ADR 0011, TC-B2-ADM-04).
+    await as(maintainer.token).post('/api/admin/catalog/courses', { code: F, nameVi: `Học phần ${F}`, credits: 4 }).expect(201);
+    const student = await signedInUser(app);
+    try {
+      const [{ id: planId }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'zz-e2e') RETURNING id`, [student.userId, apcs2024]);
+      await db.query(`INSERT INTO plan_placements (plan_id, user_id, term_year, term_number, position, course_code) VALUES ($1, $2, 2025, 1, 0, $3)`, [planId, student.userId, F]);
+      const refused = await as(maintainer.token).delete(`/api/admin/catalog/courses/${F}`).expect(409);
+      expect(refused.body).toMatchObject({ code: 'referenced_item', references: ['1 saved plans place it'] });
+      await db.query('DELETE FROM plan_placements WHERE plan_id = $1', [planId]);
+      await as(maintainer.token).delete(`/api/admin/catalog/courses/${F}`).expect(204);
+    } finally {
+      await db.query('DELETE FROM users WHERE id = $1', [student.userId]);
+    }
+  });
+
+  it('refuses to delete an empty group that a saved plan names, and says only that plans use it', async () => {
+    // A slot placement names the group by foreign key (ON DELETE RESTRICT): the delete was a 500 (#171).
+    const empty = (await as(admin.token).post(`${cohort(apcs, apcs2024)}/requirement-groups`, { name: `${groupName} slot`, kind: 'elective' }).expect(201)).body.id;
+    const path = `${cohort(apcs, apcs2024)}/requirement-groups/${empty}`;
+    const student = await signedInUser(app);
+    try {
+      const [{ id: planId }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'zz-e2e') RETURNING id`, [student.userId, apcs2024]);
+      for (const position of [0, 1]) {
+        await db.query(
+          'INSERT INTO plan_placements (plan_id, user_id, term_year, term_number, position, requirement_group_id, slot_credits) VALUES ($1, $2, 2025, 1, $3, $4, 4)',
+          [planId, student.userId, position, empty],
+        );
+      }
+      const refused = await as(admin.token).delete(path).expect(409);
+      // Two slots in one plan are one plan; nothing names the plan or its owner.
+      expect(refused.body).toEqual({ statusCode: 409, code: 'referenced_item', message: 'Saved plans use the group; it stays while they name it', references: ['1 saved plans use it'] });
+      expect(JSON.stringify(refused.body)).not.toContain(planId);
+      expect(JSON.stringify(refused.body)).not.toContain(student.userId);
+      expect((await db.query('SELECT 1 FROM requirement_groups WHERE id = $1', [empty])).length).toBe(1);
+    } finally {
+      await db.query('DELETE FROM users WHERE id = $1', [student.userId]);
+    }
+    await as(admin.token).delete(path).expect(204);
   });
 
   it('renames a group, refuses a duplicate name, and deletes an empty group', async () => {

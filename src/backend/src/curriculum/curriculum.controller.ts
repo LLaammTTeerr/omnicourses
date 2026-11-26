@@ -26,7 +26,8 @@ export class CurriculumController {
   @ApiOkResponse({ type: CurriculumDto, description: 'The curriculum of the cohort, with its requirement groups and their courses.' })
   @ApiNotFoundResponse({ description: 'The program does not exist, has no curriculum for this cohort, or the cohort is not a 4-digit year.' })
   getCurriculum(@Param('program') program: string, @Param('cohort') cohort: string): Promise<CurriculumDto> {
-    if (!COHORT_YEAR.test(cohort)) throw new NotFoundException('No curriculum for this program and cohort');
+    // No program code holds a null character, and PostgreSQL would refuse one in the query (#163).
+    if (!COHORT_YEAR.test(cohort) || program.includes('\u0000')) throw new NotFoundException('No curriculum for this program and cohort');
     return this.curriculum.getCurriculum(program, Number(cohort));
   }
 

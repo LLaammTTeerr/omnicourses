@@ -178,6 +178,38 @@ export interface PrintedSubtotal {
   note?: string;
 }
 
+/**
+ * A decision that no course of a curriculum has a prerequisite, except the printed ones in `except`.
+ * It records who decided, when, and what the decision rests on.
+ */
+export interface NoPrerequisitesDecision {
+  decided_by: string;
+  /** ISO date of the decision. */
+  date: string;
+  /** Where the decision was stated, and whether an official document backs it. */
+  source: string;
+  /**
+   * loaded: courses that do have a prerequisite, printed in the curriculum PDF. Each gets its
+   * `course_prerequisite_lists` row with one `course_prerequisites` row per code of `requires`: every one
+   * must be passed before the course is taken (QĐ 1175/QĐ-KHTN Điều 3.1.c; the schema has no other kind).
+   */
+  except: PrerequisiteException[];
+}
+
+/** A printed prerequisite rule that a "no prerequisite" decision keeps. */
+export interface PrerequisiteException {
+  code: string;
+  /** Codes that must be passed before `code`. */
+  requires: string[];
+  /** The printed sentence, verbatim. */
+  printed: string;
+  /** Page of the printed sentence, per curriculums.code. */
+  pages: Record<string, Page>;
+  decided_by: string;
+  /** ISO date of the decision to keep it. The seed may have recorded the rule before that date. */
+  date: string;
+}
+
 /** One curriculum, transcribed from its PDF(s). */
 export interface CurriculumSeed {
   /**
@@ -193,6 +225,13 @@ export interface CurriculumSeed {
   groups: PrintedGroup[];
   appendix: AppendixRow[];
   known_discrepancies: KnownDiscrepancy[];
+  /**
+   * loaded: one `course_prerequisite_lists` row per course of the curriculum. It has no
+   * `course_prerequisites`, which the read API and the rule engine read as "no prerequisite" (ADR 0011),
+   * except for a course in `except`, whose list holds its printed prerequisites.
+   * Absent: nothing is written, and the courses stay "not recorded".
+   */
+  no_prerequisites?: NoPrerequisitesDecision;
 }
 
 /** A course as it goes into the shared `courses` catalog. */
@@ -220,109 +259,4 @@ export interface CatalogDecision {
   /** The value the catalog takes. Must be one of the printed values. */
   catalog_value: string | number | null;
   reason: string;
-}
-
-/** One row of the tentative teaching plan (section 8, "Kế hoạch giảng dạy (dự kiến)"). */
-export interface TeachingPlanRow {
-  /** The printed semester index, 1 to 12 ("Học kỳ n"). */
-  semester: number;
-  code: string;
-  /** "Loại HP" as printed in the plan. */
-  type: 'BB' | 'TC';
-  credits: number;
-  page: Page;
-  needs_check?: string;
-}
-
-/** Section 8 of one curriculum PDF. The seed script does not load it. */
-export interface TeachingPlan {
-  /** curriculums.code of the curriculum the plan belongs to. */
-  curriculum: string;
-  note: string;
-  /** Prerequisites as printed. Neither APCS PDF prints any. */
-  prerequisites: { code: string; requires: string[]; page: Page }[];
-  rows: TeachingPlanRow[];
-  /** Courses of the curriculum that the plan places in no semester. */
-  not_in_plan: { code: string; note: string }[];
-  /** "Tổng cộng học kỳ n" rows, where printed. */
-  printed_semester_totals: { semester: number; credits: number; page: Page; note?: string }[];
-  /** Values in the plan that disagree with section 7 of the same PDF. */
-  known_discrepancies: KnownDiscrepancy[];
-}
-
-// Prerequisites and offering terms as printed. Not loaded: the tables come
-// with F12 (ADR 0011), and the rule engine decides what a printed line means.
-
-/**
- * One course's "Prior-course" line in a course-description booklet. The line
- * names courses by title, by code or by topic; `resolved` keeps only the
- * courses the line names exactly, `unresolved` everything else.
- */
-export interface PrintedPrerequisite {
-  /** The course the line belongs to, as printed in its "Course ID". */
-  code: string;
-  /** The line exactly as printed, wraps joined. */
-  printed: string;
-  /**
-   * Codes the line names exactly: a printed code (normalizePrintedCode), or a
-   * comma-separated part equal to one course heading of the same document.
-   * Order as printed, no duplicates. Not a judgement of what the line means.
-   */
-  resolved: string[];
-  /** Parts of the line that name no course of the document exactly. */
-  unresolved: string[];
-  page: Page;
-}
-
-/** The prerequisite statements of one document, and what it says about offering terms. */
-export interface PrintedPrerequisiteList {
-  source: { file: string; pages: number; sha256: string; issued: string };
-  /** The printed field the lines come from, e.g. "Prior-course". */
-  field: string;
-  /** What the field may mean, and what must be decided before it is loaded. */
-  note: string;
-  lines: PrintedPrerequisite[];
-  /** Courses whose line is printed blank. */
-  blank: { code: string; page: Page }[];
-  /** Offering terms the document prints; [] when it prints none. */
-  offering_terms: { code: string; terms: number[]; page: Page }[];
-}
-
-// Equivalent and replacement course lists ("học phần tương đương/thay thế").
-// Not loaded: there is no table for them yet.
-
-export interface EquivalenceCourse {
-  /** Normalised code, or null when the printed code cannot meet the courses.code CHECK. */
-  code: string | null;
-  code_printed: string;
-  name: string;
-  /** null where the cell is blank. */
-  credits: number | null;
-}
-
-export interface EquivalenceRow {
-  /** The printed STT; several when the PDF merges rows into one rule. */
-  stt: number[];
-  page: number;
-  /** "Học phần cũ đã giảng dạy". */
-  hp01: EquivalenceCourse[];
-  /** "Học phần có thể thay thế cho học phần cũ" (first column group). */
-  hp02: EquivalenceCourse[];
-  /** "Học phần có thể thay thế cho học phần cũ" (second column group); [] when blank. */
-  hp03: EquivalenceCourse[];
-  /** Printed rule text, when the row has one instead of plain columns. */
-  printed_rule?: string;
-  needs_check?: string;
-}
-
-export interface EquivalenceList {
-  source: { file: string; pages: number };
-  title: string;
-  issued: string;
-  program_code: string;
-  /** Cohorts the list applies to; null because the PDF does not say. */
-  cohort_scope: number[] | null;
-  /** The printed "Ghi chú" under the table. */
-  note: string;
-  rows: EquivalenceRow[];
 }

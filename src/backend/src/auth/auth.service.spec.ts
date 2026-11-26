@@ -2,6 +2,7 @@ import { ConflictException, NotFoundException, UnauthorizedException } from '@ne
 import { hash, verify } from '@node-rs/argon2';
 import { QueryFailedError } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Clock } from '../config/clock.js';
 import { DAY_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
@@ -51,7 +52,7 @@ describe('AuthService', () => {
       find: vi.fn(async () => []),
     };
     users = { findByEmail: vi.fn(async () => null), create: vi.fn(async (f: Partial<User>) => makeUser(f)), cancelDeletion: vi.fn(async () => true) };
-    service = new AuthService(sessions as never, users as unknown as UsersService);
+    service = new AuthService(sessions as never, users as unknown as UsersService, new Clock());
   });
 
   describe('signUp', () => {
@@ -106,23 +107,20 @@ describe('AuthService', () => {
 
     const issuedFor = async (ttlDays: string): Promise<number> => {
       vi.stubEnv('SESSION_TTL_DAYS', ttlDays);
-      const before = Date.now();
-      const { expiresAt } = await new AuthService(sessions as never, users as unknown as UsersService).signUp(
+      const issuedAt = new Date('2026-11-26T03:00:00Z');
+      const { expiresAt } = await new AuthService(sessions as never, users as unknown as UsersService, { now: () => new Date(issuedAt) } as Clock).signUp(
         { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
       );
-      return expiresAt.getTime() - before;
+      return expiresAt.getTime() - issuedAt.getTime();
     };
 
     it('lasts SESSION_TTL_DAYS days', async () => {
-      expect(await issuedFor('3')).toBeGreaterThanOrEqual(3 * DAY_MS);
-      expect(await issuedFor('3')).toBeLessThan(3 * DAY_MS + 1000);
+      expect(await issuedFor('3')).toBe(3 * DAY_MS);
     });
 
     // Issue #37: a blank value read as 0, so every token expired as it was issued.
     it.each(['', ' ', 'abc', '0'])('lasts 7 days when SESSION_TTL_DAYS is %j', async (value) => {
-      const lifetime = await issuedFor(value);
-      expect(lifetime).toBeGreaterThanOrEqual(7 * DAY_MS);
-      expect(lifetime).toBeLessThan(7 * DAY_MS + 1000);
+      expect(await issuedFor(value)).toBe(7 * DAY_MS);
     });
   });
 

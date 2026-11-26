@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { normalise, pagesOf, readCourseDescriptions, sha256, textOfPages } from './course-description-files.js';
+import { sha256 } from '../regulations/regulation-files.js';
+import { normalise, pagesOf, readCourseDescriptions, textOfPages } from './course-description-files.js';
 
 // Every extracted course must be the booklet's own words: each field is looked
 // up in the normalised text layer of its pages. A failure means an extraction

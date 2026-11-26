@@ -1,0 +1,41 @@
+PLAN-02e run at 2026-11-21T17:26:48.618Z
+POST /auth/sign-in (b2-s3@example.com) → 200
+POST /auth/sign-in (b2-s4@example.com) → 200
+PUT /users/me/transcript → 200
+  OK  A saves T-A (200)
+POST /plans → 201
+POST /plans → 201
+  P1 eb5a1410-10b7-48b0-9e81-687f7ff616a5, P2 efc79188-4dcd-4b86-ad1c-3778b4456ae9
+GET /plans/eb5a1410-10b7-48b0-9e81-687f7ff616a5 → 200
+GET /plans/efc79188-4dcd-4b86-ad1c-3778b4456ae9 → 200
+GET /plans/ea6b2438-5841-4b35-8e38-ed8f94926457 → 200
+GET /users/me/transcript → 200
+GET /plans → 200
+  A's plans before: A plan 1, A plan 2
+GET /programs/APCS/curricula/2025 → 200
+  G25 = 4adba192-dd86-4d40-8f79-5e404055109d (Kiến thức Computer Science (A): bắt buộc, APCS2025)
+PUT /plans/eb5a1410-10b7-48b0-9e81-687f7ff616a5/placements → 400 {"message":"No course in the catalog has the code ZZ999","error":"Bad Request","statusCode":400}
+  OK  Unknown code: 400 with "No course in the catalog has the code ZZ999"
+PUT /plans/eb5a1410-10b7-48b0-9e81-687f7ff616a5/placements → 400 {"message":["terms.0.placements.0.courseCode must be 2–20 capital letters or digits"],"error":"Bad Request","statusCode":400}
+  OK  Malformed code: 400 with "terms.0.placements.0.courseCode must be 2–20 capital letters or digits"
+PUT /plans/eb5a1410-10b7-48b0-9e81-687f7ff616a5/placements → 400 {"message":"Requirement group 4adba192-dd86-4d40-8f79-5e404055109d is not in the plan's curriculum","error":"Bad Request","statusCode":400}
+  OK  Another curriculum's group: 400 with "Requirement group 4adba192-dd86-4d40-8f79-5e404055109d is not in the plan's curriculum"
+PUT /plans/eb5a1410-10b7-48b0-9e81-687f7ff616a5/placements → 400 {"message":"Requirement group 00000000-0000-4000-8000-000000000000 is not in the plan's curriculum","error":"Bad Request","statusCode":400}
+  OK  Unknown group: 400 with "Requirement group 00000000-0000-4000-8000-000000000000 is not in the plan's curriculum"
+PUT /plans/eb5a1410-10b7-48b0-9e81-687f7ff616a5/placements → 400 {"message":["course CS160 is placed twice"],"error":"Bad Request","statusCode":400}
+  OK  The same course twice: 400 with "course CS160 is placed twice"
+POST /plans → 400 {"message":"No course in the catalog has the code ZZ999","error":"Bad Request","statusCode":400}
+  OK  POST of the first crafted board as a new plan: 400
+GET /plans/eb5a1410-10b7-48b0-9e81-687f7ff616a5 → 200
+GET /plans/efc79188-4dcd-4b86-ad1c-3778b4456ae9 → 200
+GET /plans/ea6b2438-5841-4b35-8e38-ed8f94926457 → 200
+GET /users/me/transcript → 200
+GET /plans → 200
+  A's plans after: A plan 1, A plan 2
+  OK  A still has exactly P1 and P2 (no "Crafted")
+  OK  P1 unchanged, updatedAt included
+  OK  P2 unchanged, updatedAt included
+  OK  B's plan unchanged
+  OK  A's transcript unchanged
+
+Done: 0 mismatch(es).

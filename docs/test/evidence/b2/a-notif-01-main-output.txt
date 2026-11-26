@@ -1,0 +1,159 @@
+2026-11-25T13:17:24.964Z a-notif-01 main; D = 2026-11-25 (Vietnam)
+--- before the run
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:17:26.288Z","user":{"id":"32addfef-209b-4eba-b728-dfacb9856ead","email":"b2-a1@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:47.737Z"},"accountRestored":false}
+  GET /api/academic-calendar?program=APCS → 200
+  APCS calendar: 0 dates; starting on D or D+7: []
+ok   NOTIF-01: no NOTIF-01 test date from an earlier run in APCS | observed: []
+--- NOTIF-01a
+  POST /api/auth/sign-up (no token) → 201 {"token":"…","expiresAt":"2026-12-02T13:17:32.915Z","user":{"id":"c84ae892-7ab8-4b8d-b878-05538669d4d4","email":"b2-s9@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:17:32.909Z"},"accountRestored":false}
+  PUT /api/users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  GET /api/notifications → 200 {0 notifications, nextBefore null}
+  GET /api/notifications/unread-count → 200 {"unread":0}
+ok   NOTIF-01a: (1) 200, and the unread count equals the unread notifications of the list; no notification of a test date | observed: {"listed":0,"count0":0,"kinds":[]}
+  GET /api/notifications (no token) → 401 {"message":"Unauthorized","statusCode":401}
+  GET /api/notifications/unread-count (no token) → 401 {"message":"Unauthorized","statusCode":401}
+  POST /api/notifications/read-all (no token) → 401 {"message":"Unauthorized","statusCode":401}
+  POST /api/notifications/00000000-0000-4000-8000-000000000000/read (no token) → 401 {"message":"Unauthorized","statusCode":401}
+ok   NOTIF-01a: (2) signed out, each of the four routes 401 | observed: [401,401,401,401]
+  GET /api/notifications?unread=yes → 400 {"message":["unread must be a boolean value"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?kind=add_drop → 400 {"message":["each value in kind must be one of the following values: registration_soon, registration_open, term_start, transcript_changed"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?kind=term_start&kind=term_start → 400 {"message":["All kind's elements must be unique"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?limit=0 → 400 {"message":["limit must not be less than 1"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?limit=101 → 400 {"message":["limit must not be greater than 100"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?limit=1.5 → 400 {"message":["limit must not be greater than 100","limit must not be less than 1","limit must be an integer number"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?limit=1e2 → 400 {"message":["limit must not be greater than 100","limit must not be less than 1","limit must be an integer number"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?before=abc → 400 {"message":["before must be a UUID"],"error":"Bad Request","statusCode":400}
+ok   NOTIF-01a: (3) each query 400 | observed: [400,400,400,400,400,400,400,400]
+  GET /api/notifications?before=00000000-0000-4000-8000-000000000000 → 404 {"statusCode":404,"code":"not_found","message":"No notification with this ID"}
+ok   NOTIF-01a: (4) 404 not_found "No notification with this ID" | observed: {"statusCode":404,"code":"not_found","message":"No notification with this ID"}
+  POST /api/notifications/00000000-0000-4000-8000-000000000000/read → 404 {"statusCode":404,"code":"not_found","message":"No notification with this ID"}
+  POST /api/notifications/not-an-id/read → 404 {"statusCode":404,"code":"not_found","message":"No notification with this ID"}
+ok   NOTIF-01a: (5) each 404 not_found "No notification with this ID" | observed: [{"statusCode":404,"code":"not_found","message":"No notification with this ID"},{"statusCode":404,"code":"not_found","message":"No notification with this ID"}]
+--- NOTIF-01b
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events → 201 {"id":"063619d1-9df6-44e4-a49f-63ce1c16638e","academicYear":2026,"term":null,"kind":"registration","startsOn":"2026-12-02","endsOn":"2026-12-08","title":"Ngày thử NOTIF-01b","titleEn":"NOTIF-01b test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:35.653Z"}
+  E-b = 063619d1-9df6-44e4-a49f-63ce1c16638e
+ok   NOTIF-01b: the date answers 201
+  GET /api/notifications → 200 {1 notifications, nextBefore null}
+ok   NOTIF-01b: exactly one notification of E-b at once: registration_soon, readAt null, links [calendar, planner], the event as entered, exactly the six keys | observed: [{"id":"b7c9fa50-b136-4321-a915-eab3675d1184","kind":"registration_soon","createdAt":"2026-11-25T13:17:35.783Z","readAt":null,"event":{"id":"063619d1-9df6-44e4-a49f-63ce1c16638e","programCode":"APCS","academicYear":2026,"term":null,"startsOn":"2026-12-02","endsOn":"2026-12-08","title":"Ngày thử NOTIF-01b","titleEn":"NOTIF-01b test date"},"links":["calendar","planner"]}]
+  GET /api/notifications/unread-count → 200 {"unread":1}
+ok   NOTIF-01b: the unread count is one more than in NOTIF-01a | observed: {"count0":0,"count1":1}
+  GET /api/notifications → 200 {1 notifications, nextBefore null}
+ok   NOTIF-01b: the second read still has exactly one: no repeat | observed: [{"kind":"registration_soon","startsOn":"2026-12-02","readAt":null,"createdAt":"2026-11-25T13:17:35.783Z","id":"b7c9fa50-b136-4321-a915-eab3675d1184"}]
+--- NOTIF-01c
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events → 201 {"id":"d7eeb346-5d20-40c3-afd9-535491370bb0","academicYear":2026,"term":null,"kind":"registration","startsOn":"2026-11-25","endsOn":"2026-12-01","title":"Ngày thử NOTIF-01c","titleEn":"NOTIF-01c test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:36.187Z"}
+  E-c = d7eeb346-5d20-40c3-afd9-535491370bb0
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events → 201 {"id":"66069bdd-1423-4975-a197-61db04e9d1ae","academicYear":2026,"term":null,"kind":"term_start","startsOn":"2026-11-25","endsOn":"2026-11-25","title":"Ngày thử NOTIF-01c2","titleEn":"NOTIF-01c2 test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:36.310Z"}
+  E-c2 = 66069bdd-1423-4975-a197-61db04e9d1ae
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events → 201 {"id":"012cda2c-9a6e-436f-8570-c6a948362c28","academicYear":2026,"term":null,"kind":"add_drop","startsOn":"2026-11-25","endsOn":"2026-11-28","title":"Ngày thử NOTIF-01c3","titleEn":"NOTIF-01c3 test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:36.432Z"}
+  E-c3 = 012cda2c-9a6e-436f-8570-c6a948362c28
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events → 201 {"id":"c40f8805-8a07-41ac-bf06-a08a33eaed9d","academicYear":2026,"term":null,"kind":"exam_period","startsOn":"2026-11-25","endsOn":"2026-12-05","title":"Ngày thử NOTIF-01c4","titleEn":"NOTIF-01c4 test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:36.562Z"}
+  E-c4 = c40f8805-8a07-41ac-bf06-a08a33eaed9d
+ok   NOTIF-01c: each date 201 | observed: [201,201,201,201]
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+ok   NOTIF-01c: E-c: exactly one, registration_open, links [calendar, planner], no registration_soon | observed: [{"kind":"registration_open","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:36.691Z","id":"98d7767a-ed48-4d15-8925-921f50573a37"}]
+ok   NOTIF-01c: E-c2: exactly one, term_start, links [calendar] | observed: [{"kind":"term_start","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:36.691Z","id":"b1c0027c-41d8-4516-a09b-091dce432dbb"}]
+ok   NOTIF-01c: E-c3 (add_drop) and E-c4 (exam_period): none
+--- NOTIF-01d (1)
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events → 201 {"id":"63ec99b6-e70c-4cde-8479-76afbb837f74","academicYear":2026,"term":null,"kind":"registration","startsOn":"2026-11-28","endsOn":"2026-11-30","title":"Ngày thử NOTIF-01d","titleEn":"NOTIF-01d test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:36.806Z"}
+  E-d = 63ec99b6-e70c-4cde-8479-76afbb837f74
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+ok   NOTIF-01d: (1) 201, and no notification of E-d | observed: []
+--- NOTIF-01e
+  POST /api/auth/sign-up (no token) → 201 {"token":"…","expiresAt":"2026-12-02T13:17:39.768Z","user":{"id":"69162420-060a-4a1e-b32e-a760641076b3","email":"b2-s10@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:17:39.764Z"},"accountRestored":false}
+  PUT /api/users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":false}
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+ok   NOTIF-01e: (1) onboarding 200; N2 has exactly one of E-b (registration_soon), E-c (registration_open) and E-c2 (term_start), none of E-c3, E-c4, E-d | observed: {"b":[{"kind":"registration_soon","startsOn":"2026-12-02","readAt":null,"createdAt":"2026-11-25T13:17:40.065Z","id":"fcc7f7e3-b4ab-4207-961a-6b53bee81630"}],"c":[{"kind":"registration_open","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:40.065Z","id":"5aa79388-166d-40e5-b6c1-aec0d303e396"}],"c2":[{"kind":"term_start","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:40.065Z","id":"ad5460e1-bb2a-4405-bdb8-f81fb61cf067"}]}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:17:46.990Z","user":{"id":"46054d9c-2960-42c7-a80c-53a520e0cb65","email":"b2-a2@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:49.137Z"},"accountRestored":false}
+  POST /api/admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/calendar-events → 201 {"id":"3d49c236-e385-47d6-a602-3bfd5bf5c97d","academicYear":2026,"term":null,"kind":"registration","startsOn":"2026-11-25","endsOn":"2026-12-01","title":"Ngày thử NOTIF-01e","titleEn":"NOTIF-01e test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:47.172Z"}
+  E-e = 3d49c236-e385-47d6-a602-3bfd5bf5c97d
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+ok   NOTIF-01e: (2) 201; neither N1 nor N2 has a notification of E-e, and none of either has programCode CNTT-TCTA-KHMT | observed: {"n1":0,"n2":0}
+--- NOTIF-01f
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+  kept: {"b":[{"kind":"registration_soon","startsOn":"2026-12-02","readAt":null,"createdAt":"2026-11-25T13:17:35.783Z","id":"b7c9fa50-b136-4321-a915-eab3675d1184"}],"c":[{"kind":"registration_open","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:36.691Z","id":"98d7767a-ed48-4d15-8925-921f50573a37"}],"c2":[{"kind":"term_start","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:36.691Z","id":"b1c0027c-41d8-4516-a09b-091dce432dbb"}]}
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/d7eeb346-5d20-40c3-afd9-535491370bb0 → 200 {"id":"d7eeb346-5d20-40c3-afd9-535491370bb0","academicYear":2026,"term":null,"kind":"registration","startsOn":"2026-11-26","endsOn":"2026-12-01","title":"Ngày thử NOTIF-01c","titleEn":"NOTIF-01c test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:48.072Z"}
+  GET /api/notifications → 200 {3 notifications, nextBefore null}
+ok   NOTIF-01f: (1) 200, nothing new for E-c; its notification still shows startsOn D | observed: [{"kind":"registration_open","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:36.691Z","id":"98d7767a-ed48-4d15-8925-921f50573a37"}]
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/d7eeb346-5d20-40c3-afd9-535491370bb0 → 200 {"id":"d7eeb346-5d20-40c3-afd9-535491370bb0","academicYear":2026,"term":null,"kind":"registration","startsOn":"2026-12-02","endsOn":"2026-12-08","title":"Ngày thử NOTIF-01c","titleEn":"NOTIF-01c test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:48.380Z"}
+  GET /api/notifications → 200 {4 notifications, nextBefore null}
+ok   NOTIF-01f: (2) 200; one new registration_soon of E-c with startsOn D+7; the registration_open keeps startsOn D; no second registration_open | observed: [{"kind":"registration_soon","startsOn":"2026-12-02","readAt":null,"createdAt":"2026-11-25T13:17:48.553Z","id":"0348e45d-0186-400c-b002-5091bdf72e82"},{"kind":"registration_open","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:36.691Z","id":"98d7767a-ed48-4d15-8925-921f50573a37"}]
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/66069bdd-1423-4975-a197-61db04e9d1ae → 200 {"id":"66069bdd-1423-4975-a197-61db04e9d1ae","academicYear":2026,"term":null,"kind":"registration","startsOn":"2026-11-25","endsOn":"2026-11-25","title":"Ngày thử NOTIF-01c2","titleEn":"NOTIF-01c2 test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:17:48.724Z"}
+  GET /api/notifications → 200 {5 notifications, nextBefore null}
+ok   NOTIF-01f: (3) 200; one new registration_open of E-c2; its term_start stays | observed: [{"kind":"registration_open","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:48.868Z","id":"773ab4fc-dfc4-4405-8440-b3a539f95555"},{"kind":"term_start","startsOn":"2026-11-25","readAt":null,"createdAt":"2026-11-25T13:17:36.691Z","id":"b1c0027c-41d8-4516-a09b-091dce432dbb"}]
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events/063619d1-9df6-44e4-a49f-63ce1c16638e → 204
+  GET /api/notifications → 200 {5 notifications, nextBefore null}
+  GET /api/academic-calendar?program=APCS → 200
+ok   NOTIF-01f: (4) 204; N1's registration_soon of E-b is unchanged (event, createdAt, readAt); the calendar no longer lists E-b | observed: [{"kind":"registration_soon","startsOn":"2026-12-02","readAt":null,"createdAt":"2026-11-25T13:17:35.783Z","id":"b7c9fa50-b136-4321-a915-eab3675d1184"}]
+--- NOTIF-01g (API)
+  PUT /api/users/me/transcript → 200
+  GET /api/notifications?kind=transcript_changed → 200 {0 notifications, nextBefore null}
+  PUT /api/users/me/transcript → 200
+  GET /api/notifications?kind=transcript_changed → 200 {0 notifications, nextBefore null}
+  PUT /api/users/me/transcript → 200
+  GET /api/notifications?kind=transcript_changed → 200 {0 notifications, nextBefore null}
+ok   NOTIF-01g: (1)–(3) each 200, and no transcript_changed | observed: [0,0,0]
+  PUT /api/users/me/transcript → 200
+  GET /api/notifications?kind=transcript_changed → 200
+ok   NOTIF-01g: (4) 200, exactly one: event null, links [audit]; no CS160, PH211, 6.5 or 8.5 in the answer | observed: {"notifications":[{"id":"908700a1-f37d-4998-b6b5-11b54e4816cd","kind":"transcript_changed","createdAt":"2026-11-25T13:17:50.534Z","readAt":null,"event":null,"links":["audit"]}],"nextBefore":null}
+  PUT /api/users/me/transcript → 400 {"message":["rows.2.credits must not be greater than 30"],"error":"Bad Request","statusCode":400}
+  GET /api/notifications?kind=transcript_changed → 200 {1 notifications, nextBefore null}
+ok   NOTIF-01g: (5) 400, and still one
+--- NOTIF-01g (screen, 6 and 7)
+2026-11-25T13:17:50.884Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s9@example.com → 200
+  Transcript rows: ["PH211","CS163"]
+  browser dialog "Your transcript has unsaved changes. Leave the page and discard them?" → accept
+  GET /api/notifications?kind=transcript_changed → 200 {1 notifications, nextBefore null}
+ok   NOTIF-01g: (6) the leave dialog appears, OK leaves the page, no PUT, still one | observed: {"dialog":"Your transcript has unsaved changes. Leave the page and discard them?","url":"/audit","writes":"none"}
+  GET /api/notifications?kind=transcript_changed → 200 {1 notifications, nextBefore null}
+ok   NOTIF-01g: (7) the blocked save shows "Could not save. …"; still one | observed: {"alert":"Could not save. Your rows are still here; try again in a moment.","sent":"PUT /api/users/me/transcript failed: net::ERR_BLOCKED_BY_CLIENT.Inspector; POST /api/auth/refresh 200; GET /api/admin/grants 200; GET /api/users/me/onboarding 200; GET /api/users/me/transcript 200"}
+  PUT /api/users/me/transcript → 200
+  GET /api/notifications?kind=transcript_changed → 200 {2 notifications, nextBefore null}
+ok   NOTIF-01g: (8) 200, and two | observed: [{"kind":"transcript_changed","startsOn":null,"readAt":null,"createdAt":"2026-11-25T13:18:02.049Z","id":"3f1b6525-407a-4cfb-b02b-07fc87352715"},{"kind":"transcript_changed","startsOn":null,"readAt":null,"createdAt":"2026-11-25T13:17:50.534Z","id":"908700a1-f37d-4998-b6b5-11b54e4816cd"}]
+  PUT /api/users/me/transcript → 200
+  GET /api/notifications?kind=transcript_changed → 200 {2 notifications, nextBefore null}
+ok   NOTIF-01g: (9) 200, and still two | observed: [{"kind":"transcript_changed","startsOn":null,"readAt":null,"createdAt":"2026-11-25T13:18:02.049Z","id":"3f1b6525-407a-4cfb-b02b-07fc87352715"},{"kind":"transcript_changed","startsOn":null,"readAt":null,"createdAt":"2026-11-25T13:17:50.534Z","id":"908700a1-f37d-4998-b6b5-11b54e4816cd"}]
+  GET /api/notifications?kind=transcript_changed → 200 {0 notifications, nextBefore null}
+ok   NOTIF-01g: N2 has no transcript_changed
+--- NOTIF-01h
+  GET /api/notifications/unread-count → 200 {"unread":7}
+  GET /api/notifications → 200 {7 notifications, nextBefore null}
+  POST /api/notifications/b7c9fa50-b136-4321-a915-eab3675d1184/read → 200 {"id":"b7c9fa50-b136-4321-a915-eab3675d1184","kind":"registration_soon","createdAt":"2026-11-25T13:17:35.783Z","readAt":"2026-11-25T13:18:03.238Z","event":{"id":"063619d1-9df6-44e4-a49f-63ce1c16638e","programCode":"APCS","academicYear":2026,"term":null,"startsOn":"2026-12-02","endsOn":"2026-12-08","title":"Ngày thử NOTIF-01b","titleEn":"NOTIF-01b test date"},"links":["calendar","planner"]}
+  POST /api/notifications/b7c9fa50-b136-4321-a915-eab3675d1184/read → 200 {"id":"b7c9fa50-b136-4321-a915-eab3675d1184","kind":"registration_soon","createdAt":"2026-11-25T13:17:35.783Z","readAt":"2026-11-25T13:18:03.238Z","event":{"id":"063619d1-9df6-44e4-a49f-63ce1c16638e","programCode":"APCS","academicYear":2026,"term":null,"startsOn":"2026-12-02","endsOn":"2026-12-08","title":"Ngày thử NOTIF-01b","titleEn":"NOTIF-01b test date"},"links":["calendar","planner"]}
+  GET /api/notifications/unread-count → 200 {"unread":6}
+ok   NOTIF-01h: (2) 200 with readAt set; again 200 with the same readAt; the count is U − 1 | observed: {"U":7,"U2":6,"readAt":["2026-11-25T13:18:03.238Z","2026-11-25T13:18:03.238Z"]}
+  GET /api/notifications?unread=true → 200 {6 notifications, nextBefore null}
+  GET /api/notifications?unread=false → 200 {1 notifications, nextBefore null}
+ok   NOTIF-01h: (3) unread=true only unread, not that one; unread=false only read ones, that one included | observed: {"true":6,"false":1}
+  GET /api/notifications?kind=term_start&kind=registration_open → 200 {3 notifications, nextBefore null}
+ok   NOTIF-01h: (4) only those two kinds | observed: ["registration_open","term_start","registration_open"]
+  GET /api/notifications → 200 {7 notifications, nextBefore null}
+  GET /api/notifications?limit=2 → 200 {2 notifications, nextBefore set}
+  GET /api/notifications?limit=2&before=908700a1-f37d-4998-b6b5-11b54e4816cd → 200 {2 notifications, nextBefore set}
+  GET /api/notifications?limit=2&before=0348e45d-0186-400c-b002-5091bdf72e82 → 200 {2 notifications, nextBefore set}
+  GET /api/notifications?limit=2&before=98d7767a-ed48-4d15-8925-921f50573a37 → 200 {1 notifications, nextBefore null}
+ok   NOTIF-01h: (5) pages of at most 2, newest first, together the whole list once each | observed: {"pages":4,"items":7,"whole":7,"ordered":true}
+  POST /api/notifications/read-all → 200 {"unread":0}
+  POST /api/notifications/read-all → 200 {"unread":0}
+  GET /api/notifications → 200 {7 notifications, nextBefore null}
+ok   NOTIF-01h: (6) { unread: 0 } both times; the notification of (2) keeps its first readAt | observed: {"readAt":"2026-11-25T13:18:03.238Z"}
+  GET /api/notifications → 200 {7 notifications, nextBefore null}
+  POST /api/notifications/b7c9fa50-b136-4321-a915-eab3675d1184/read → 404 {"statusCode":404,"code":"not_found","message":"No notification with this ID"}
+  POST /api/notifications/3f1b6525-407a-4cfb-b02b-07fc87352715/read → 404 {"statusCode":404,"code":"not_found","message":"No notification with this ID"}
+  GET /api/notifications → 200 {7 notifications, nextBefore null}
+ok   NOTIF-01h: (7) each 404 not_found "No notification with this ID"; N1's notifications as before | observed: [404,404]
+--- NOTIF-01i (1)–(3)
+  POST /api/auth/sign-up (no token) → 201 {"token":"…","expiresAt":"2026-12-02T13:18:05.436Z","user":{"id":"a90cbcb4-03c6-46bc-b2a8-9a21dd349362","email":"b2-s11@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:18:05.431Z"},"accountRestored":false}
+  PUT /api/users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  DELETE /api/users/me → 202 {"purgeAfter":"2026-12-25T13:18:12.586Z"}
+ok   NOTIF-01i: (1) 202 | observed: {"purgeAfter":"2026-12-25T13:18:12.586Z"}
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/calendar-events → 201 {"id":"833872dd-d925-4982-a0cc-e78009d518a2","academicYear":2026,"term":null,"kind":"term_start","startsOn":"2026-11-25","endsOn":"2026-11-25","title":"Ngày thử NOTIF-01i","titleEn":"NOTIF-01i test date","sourceUrl":null,"notes":null,"updatedAt":"2026-11-25T13:18:12.874Z"}
+  E-i = 833872dd-d925-4982-a0cc-e78009d518a2
+ok   NOTIF-01i: (2) 201
+2026-11-25T13:18:12.339Z waiting 11 minutes, sending nothing as N1
+  GET /api/users/me/export → 200
+  export: 8 notification rows; of E-i: [{"kind":"term_start","calendar_event_id":"833872dd-d925-4982-a0cc-e78009d518a2","created_at":"2026-11-25T13:20:59.510Z"}]
+ok   NOTIF-01i: (3) 200; tables.notifications holds N1's term_start of E-i, made before the export (by the timer: N1 read nothing) | observed: [{"id":"ac326012-6d43-4d56-bcca-27907f70557b","user_id":"c84ae892-7ab8-4b8d-b878-05538669d4d4","kind":"term_start","calendar_event_id":"833872dd-d925-4982-a0cc-e78009d518a2","program_code":"APCS","academic_year":2026,"term":null,"starts_on":"2026-11-24T17:00:00.000Z","ends_on":"2026-11-24T17:00:00.000Z","title":"Ngày thử NOTIF-01i","title_en":"NOTIF-01i test date","created_at":"2026-11-25T13:20:59.510Z","read_at":null}]
+2026-11-25T13:29:12.829Z NOW: ask the bot for i(4): SELECT kind, calendar_event_id, created_at FROM notifications WHERE user_id = '<N3's ID>'; N3 = b2-s11@example.com; E-i = 833872dd-d925-4982-a0cc-e78009d518a2
+2026-11-25T13:29:12.829Z All checks ok

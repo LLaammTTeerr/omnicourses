@@ -3,7 +3,7 @@
 - Feature: F1 Account and onboarding (Vision §5)
 - Owner: Lâm
 - Status: draft for the use-case model (PA2)
-- Built so far: email and password sign-up and sign-in, sessions (#8, [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md)); account export, deletion and restore on sign-in (#14, [ADR 0004](../../analysis-and-design/adr/0004-account-export-and-deletion.md)). Onboarding is not on `main` yet; its B1 decisions are in the [B1 test cases §6](../../test/test-cases-b1.md#6-inputs-still-needed).
+- What is built: the [README feature table](../../../README.md#what-is-built). Designs: [ADR 0002](../../analysis-and-design/adr/0002-authentication-and-sessions.md) (sessions), [ADR 0004](../../analysis-and-design/adr/0004-account-export-and-deletion.md) (export and deletion); the onboarding decisions are in the [B1 test cases §6](../../test/test-cases-b1.md#6-inputs-still-needed).
 
 ## 1. Brief description
 
@@ -89,9 +89,9 @@ Account operations that belong to F1 but are not separate use cases. They are li
 | Stay signed in (token rotation) | `POST /api/auth/refresh` |
 | Export my whole account | `GET /api/users/me/export` (#14) |
 | Delete my whole account (password again, 30-day grace) | `DELETE /api/users/me` (#14) |
-| Read and save the onboarding answers (steps 6–9, A8, A9) | `GET /api/users/me/onboarding`, `PUT /api/users/me/onboarding` (decided, not built yet) |
+| Read and save the onboarding answers (steps 6–9, A8, A9) | `GET /api/users/me/onboarding`, `PUT /api/users/me/onboarding` |
 
 Open:
 - Sign-up with a verified HCMUS student email (Vision F1) needs a mail sender; not planned before B3.
-- The onboarding API is not built yet. Its routes and stored values are decided (B1 test cases §6 items 1–4): a goal left empty is stored as `null`, and an internship term of "none planned" as `'none'`. Program and cohort reference the curriculum tables ([ADR 0005](../../analysis-and-design/adr/0005-curriculum-cohort-and-course-catalog.md), #23). A7 and A8 describe the intended behaviour for it.
+- The onboarding API's stored values were decided in the B1 test cases §6 items 1–4: a goal left empty is stored as `null`, and an internship term of "none planned" as `'none'`. Program and cohort reference the curriculum tables ([ADR 0005](../../analysis-and-design/adr/0005-curriculum-cohort-and-course-catalog.md), #23). A7 and A8 describe the intended behaviour for it.
 - Google sign-in (A4): whether a Google identity may join an existing email account, and on what proof, is a security decision for the ADR that adds it.

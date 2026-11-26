@@ -25,7 +25,7 @@ const savedState = ref('[]');
 const snapshot = (list: readonly DraftRow[]) => JSON.stringify(list.map(({ key: _key, ...fields }) => fields));
 
 const { status, reload } = useAsyncLoad('the transcript', async () => {
-  const { rows: saved } = await auth.authed(fetchTranscript);
+  const { rows: saved } = await fetchTranscript();
   rows.value = saved.map((row) => fromRow(row, nextKey++));
   savedState.value = snapshot(rows.value);
 });
@@ -69,7 +69,7 @@ async function save(): Promise<void> {
   if (toFix.value > 0 || saving.value) return;
   saving.value = true;
   try {
-    const { rows: saved } = await auth.authed((token) => saveTranscript(token, rows.value.map(toRow)));
+    const { rows: saved } = await saveTranscript(rows.value.map(toRow));
     rows.value = saved.map((row) => fromRow(row, nextKey++));
     savedState.value = snapshot(rows.value);
     toast.show(m.value.saved(saved.length));
@@ -178,7 +178,7 @@ usePageTitle(() => m.value.title);
                     />
                   </td>
                   <td :data-label="m.columns.courseName">
-                    <input v-model="row.courseName" class="input" maxlength="255" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
+                    <input v-model="row.courseName" class="input" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
                       :aria-describedby="describedBy(row, rowProblems, 'courseName')" />
                   </td>
                   <td :data-label="m.columns.credits">

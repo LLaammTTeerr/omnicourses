@@ -1,0 +1,8 @@
+PLAN-02 revoke run at 2026-11-21T17:22:18.709Z
+POST /auth/sign-in (b2-s5, as browser B) → 200
+GET /auth/sessions → 200
+  8a920228-16bb-4294-8403-e2811b3951b9 (this client) created 2026-11-21T17:22:15.368Z node
+  977cd805-9340-424c-9c0f-56640448bba6  created 2026-11-21T17:21:38.906Z Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+  4ca62a55-6a83-4020-961e-8ff7c2d6dee5  created 2026-11-21T17:16:44.551Z node
+DELETE /auth/sessions/977cd805-9340-424c-9c0f-56640448bba6 (Chrome, browser A) → 204 ""
+GET /plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3 → 200 updatedAt 2026-11-21T17:21:53.964Z placements: 2026/1 CS160

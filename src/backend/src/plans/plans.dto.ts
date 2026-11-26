@@ -13,7 +13,6 @@ import {
   IsUUID,
   Matches,
   Max,
-  MaxLength,
   Min,
   MinLength,
   ValidateBy,
@@ -21,17 +20,22 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
-import { trimString } from '../common/transforms.js';
-import { TermDto } from '../terms/term.dto.js';
-import { BoardTerm, MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS, Placement, PLACEMENT_KINDS, PlacementKind } from './plan-board.js';
+import { MaxCodePoints, NoNullCharacter, TermDto, trimString } from '../common/field-validators.js';
+import { type BoardTerm, type Placement, PLACEMENT_KINDS, type PlacementKind } from '../rules/types.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
+import { MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS } from './plan-board.js';
+
+const PLAN_NAME_MAX_LENGTH = 100;
+const MAX_SLOT_CREDITS = 30;
 
 const PlanName = () =>
   applyDecorators(
-    ApiProperty({ example: 'Main plan', minLength: 1, maxLength: 100 }),
+    ApiProperty({ example: 'Main plan', minLength: 1, maxLength: PLAN_NAME_MAX_LENGTH }),
     Transform(trimString),
     IsString(),
+    NoNullCharacter,
     MinLength(1),
-    MaxLength(100),
+    MaxCodePoints(PLAN_NAME_MAX_LENGTH),
   );
 
 // A field of one kind of placement: checked when that kind is sent or the field is set, and
@@ -67,11 +71,11 @@ export class PlanPlacementDto implements Placement {
   @ONLY_FOR('slot')
   requirementGroupId!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, required: false, minimum: 1, maximum: 30, example: 3, description: "The slot's credits. Null for a course, whose credits are the catalog's." })
+  @ApiProperty({ type: Number, nullable: true, required: false, minimum: 1, maximum: MAX_SLOT_CREDITS, example: 3, description: "The slot's credits. Null for a course, whose credits are the catalog's." })
   @ValidateIf(sentFor('slot', 'credits'))
   @IsInt()
   @Min(1)
-  @Max(30)
+  @Max(MAX_SLOT_CREDITS)
   @ONLY_FOR('slot')
   credits!: number | null;
 }
@@ -93,24 +97,20 @@ export class PlanTermDto implements BoardTerm {
   placements!: PlanPlacementDto[];
 }
 
+const BoardTerms = () => applyDecorators(Type(() => PlanTermDto), ValidateNested({ each: true }), ArrayMaxSize(MAX_BOARD_TERMS), IsArray());
+
 const BOARD_DESCRIPTION = `One entry per term, each term once, at most ${MAX_BOARD_TERMS} terms and ${MAX_BOARD_PLACEMENTS} placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.`;
 
 export class PlanBoardDto {
   @ApiProperty({ type: [PlanTermDto], description: BOARD_DESCRIPTION })
-  @IsArray()
-  @ArrayMaxSize(MAX_BOARD_TERMS)
-  @ValidateNested({ each: true })
-  @Type(() => PlanTermDto)
+  @BoardTerms()
   terms!: PlanTermDto[];
 }
 
 /** One placement dropped on each of several terms of a board: the planner's drag preview, in one request. */
 export class PlanDropPreviewDto {
   @ApiProperty({ type: [PlanTermDto], description: `The board without the placement (a moved course is taken out of its term first). ${BOARD_DESCRIPTION}` })
-  @IsArray()
-  @ArrayMaxSize(MAX_BOARD_TERMS)
-  @ValidateNested({ each: true })
-  @Type(() => PlanTermDto)
+  @BoardTerms()
   terms!: PlanTermDto[];
 
   @ApiProperty({ type: PlanPlacementDto, description: 'What is dropped. It is added at the end of each target term in turn.' })
@@ -134,22 +134,20 @@ export class CreatePlanDto {
 
   @ApiProperty({ example: 'APCS', description: 'The program of the curriculum the plan is made against.' })
   @IsString()
-  @MaxLength(50)
+  @NoNullCharacter
+  @MaxCodePoints(50)
   programCode!: string;
 
   @ApiProperty({ example: 2024, description: 'The cohort of that curriculum.' })
   @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   cohortYear!: number;
 
   // A generated plan (UC-07 step 10) is saved with its placements in one request.
   @ApiProperty({ type: [PlanTermDto], required: false, description: `${BOARD_DESCRIPTION} Left out: an empty plan.` })
   @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(MAX_BOARD_TERMS)
-  @ValidateNested({ each: true })
-  @Type(() => PlanTermDto)
+  @BoardTerms()
   terms?: PlanTermDto[];
 }
 
@@ -159,12 +157,13 @@ export class RenamePlanDto {
 }
 
 export class DuplicatePlanDto {
-  @ApiProperty({ required: false, example: 'Lighter load', minLength: 1, maxLength: 100, description: "The copy's name. Left out: the original's name; the UI words any \"copy of\"." })
+  @ApiProperty({ required: false, example: 'Lighter load', minLength: 1, maxLength: PLAN_NAME_MAX_LENGTH, description: "The copy's name. Left out: the original's name; the UI words any \"copy of\"." })
   @IsOptional()
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @MinLength(1)
-  @MaxLength(100)
+  @MaxCodePoints(PLAN_NAME_MAX_LENGTH)
   name?: string;
 }
 

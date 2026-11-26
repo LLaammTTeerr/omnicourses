@@ -1,26 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
-import { trimString } from '../common/transforms.js';
-import { TERM_NUMBERS } from '../terms/term.js';
-import { CALENDAR_EVENT_KINDS, type CalendarEventKind } from './academic-calendar-event.entity.js';
-import { IsCalendarDate } from './calendar-date.js';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, Min } from 'class-validator';
+import { ifFilled, ifPresent, ifSet, IsCalendarDate, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
+import { ADMIN_CODE_MAX_LENGTH } from '../curriculum-admin/program-admin.dto.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, TERM_NUMBERS, type TermNumber } from '../terms/term.js';
+import {
+  CALENDAR_EVENT_KIND_DOC,
+  CALENDAR_EVENT_KINDS,
+  type CalendarEventKind,
+  SOURCE_URL_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
+} from './academic-calendar-event.entity.js';
 
 // Request and response shapes of the academic calendar (ADR 0017). Admin requests go through
 // StrictBody: a field not declared here is a 400 `validation_failed`, never ignored.
-
-/** Present: validated. Absent: left as it is. */
-const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
-/** Present and not null: validated. null clears the column. */
-const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
-/** Present, not null and not blank: validated. null or '' clears the column (an empty form field). */
-const ifFilled = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null && value !== '');
 
 const httpsUrl = IsUrl({ protocols: ['https'], require_protocol: true, require_tld: true }, { message: 'sourceUrl must be an https:// link' });
 // IsUrl accepts HTTPS:// too; the database CHECK (LIKE 'https://%') does not, so require lowercase here.
 const lowercaseScheme = Matches(/^https:\/\//, { message: 'sourceUrl must start with https://' });
 
-const KIND_DOC = 'term_start, term_end: first and last day of a term; registration: course registration window; add_drop: add/drop window; exam_period: final exams; holiday: no classes; other: anything else';
+const NOTES_MAX_LENGTH = 2000;
 
 // ---- Reads (any signed-in user) ------------------------------------------------------------
 
@@ -28,15 +27,16 @@ export class AcademicCalendarQueryDto {
   @ApiProperty({ required: false, example: 'APCS', description: "Program code. Absent: the caller's program from onboarding" })
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @NoNullCharacter
+  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
   program?: string;
 
   @ApiProperty({ required: false, example: 2026, description: 'Only this academic year (ADR 0009: 2026 is 2026–2027)' })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   academicYear?: number;
 
   @ApiProperty({ required: false, example: '2026-09-01', description: 'Only dates that end on or after this day (YYYY-MM-DD)' })
@@ -72,9 +72,9 @@ export class AcademicCalendarEventDto {
   academicYear!: number;
 
   @ApiProperty({ type: Number, enum: TERM_NUMBERS, nullable: true, example: 1, description: 'Term 1, 2 or 3; null for a date of the whole academic year' })
-  term!: 1 | 2 | 3 | null;
+  term!: TermNumber | null;
 
-  @ApiProperty({ enum: CALENDAR_EVENT_KINDS, example: 'registration', description: KIND_DOC })
+  @ApiProperty({ enum: CALENDAR_EVENT_KINDS, example: 'registration', description: CALENDAR_EVENT_KIND_DOC })
   kind!: CalendarEventKind;
 
   @ApiProperty({ type: String, format: 'date', example: '2026-07-20', description: 'First day, inclusive' })
@@ -112,16 +112,16 @@ export class AcademicCalendarDto {
 export class CreateCalendarEventDto {
   @ApiProperty({ example: 2026, description: 'ADR 0009: 2026 is 2026–2027. startsOn must fall in 2026 or 2027' })
   @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   academicYear!: number;
 
   @ApiProperty({ type: Number, enum: TERM_NUMBERS, nullable: true, required: false, description: 'Absent or null: the whole academic year' })
   @ifSet
   @IsIn(TERM_NUMBERS)
-  term?: 1 | 2 | 3 | null;
+  term?: TermNumber | null;
 
-  @ApiProperty({ enum: CALENDAR_EVENT_KINDS, description: KIND_DOC })
+  @ApiProperty({ enum: CALENDAR_EVENT_KINDS, description: CALENDAR_EVENT_KIND_DOC })
   @IsIn(CALENDAR_EVENT_KINDS)
   kind!: CalendarEventKind;
 
@@ -134,32 +134,36 @@ export class CreateCalendarEventDto {
   @IsCalendarDate()
   endsOn?: string;
 
-  @ApiProperty({ maxLength: 255, example: 'Đăng ký học phần học kỳ 1', description: 'Vietnamese title, as the school words it' })
+  @ApiProperty({ maxLength: TITLE_MAX_LENGTH, example: 'Đăng ký học phần học kỳ 1', description: 'Vietnamese title, as the school words it' })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(TITLE_MAX_LENGTH)
   title!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, example: 'Term 1 course registration' })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: TITLE_MAX_LENGTH, example: 'Term 1 course registration' })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(TITLE_MAX_LENGTH)
   titleEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2048, description: "The school's announcement; https only. '' or null: none" })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: SOURCE_URL_MAX_LENGTH, description: "The school's announcement; https only. '' or null: none" })
   @Transform(trimString)
   @ifFilled
-  @MaxLength(2048)
+  @NoNullCharacter
+  @MaxCodePoints(SOURCE_URL_MAX_LENGTH)
   @httpsUrl
   @lowercaseScheme
   sourceUrl?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2000 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NOTES_MAX_LENGTH })
   @ifSet
   @IsString()
-  @MaxLength(2000)
+  @NoNullCharacter
+  @MaxCodePoints(NOTES_MAX_LENGTH)
   notes?: string | null;
 }
 
@@ -167,14 +171,14 @@ export class UpdateCalendarEventDto {
   @ApiProperty({ required: false, example: 2026 })
   @ifPresent
   @IsInt()
-  @Min(2000)
-  @Max(2100)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   academicYear?: number;
 
   @ApiProperty({ type: Number, enum: TERM_NUMBERS, nullable: true, required: false, description: 'null: the whole academic year' })
   @ifSet
   @IsIn(TERM_NUMBERS)
-  term?: 1 | 2 | 3 | null;
+  term?: TermNumber | null;
 
   @ApiProperty({ enum: CALENDAR_EVENT_KINDS, required: false })
   @ifPresent
@@ -191,32 +195,36 @@ export class UpdateCalendarEventDto {
   @IsCalendarDate()
   endsOn?: string;
 
-  @ApiProperty({ required: false, maxLength: 255 })
+  @ApiProperty({ required: false, maxLength: TITLE_MAX_LENGTH })
   @ifPresent
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(TITLE_MAX_LENGTH)
   title?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: TITLE_MAX_LENGTH })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(TITLE_MAX_LENGTH)
   titleEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2048, description: "https only; '' or null removes it" })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: SOURCE_URL_MAX_LENGTH, description: "https only; '' or null removes it" })
   @Transform(trimString)
   @ifFilled
-  @MaxLength(2048)
+  @NoNullCharacter
+  @MaxCodePoints(SOURCE_URL_MAX_LENGTH)
   @httpsUrl
   @lowercaseScheme
   sourceUrl?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2000 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NOTES_MAX_LENGTH })
   @ifSet
   @IsString()
-  @MaxLength(2000)
+  @NoNullCharacter
+  @MaxCodePoints(NOTES_MAX_LENGTH)
   notes?: string | null;
 }

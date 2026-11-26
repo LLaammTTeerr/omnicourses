@@ -1,0 +1,81 @@
+2026-11-25T13:21:45.686Z a-adm-04
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:21:46.959Z","user":{"id":"32addfef-209b-4eba-b728-dfacb9856ead","email":"b2-a1@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:47.737Z"},"accountRestored":false}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:21:53.691Z","user":{"id":"46054d9c-2960-42c7-a80c-53a520e0cb65","email":"b2-a2@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:49.137Z"},"accountRestored":false}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:22:00.562Z","user":{"id":"b41c5d8d-83f7-42b2-ab4b-a83810bd520e","email":"b2-a3@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:50.536Z"},"accountRestored":false}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-02T13:22:07.620Z","user":{"id":"925cb9c8-86de-4427-a8c8-72cf442dd074","email":"b2-a4@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:51.896Z"},"accountRestored":false}
+  POST /api/auth/sign-up (no token) → 201 {"token":"…","expiresAt":"2026-12-02T13:22:14.747Z","user":{"id":"4c0578d2-8cf1-4c89-8ba5-79e1d8748ae9","email":"b2-s14@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-25T13:22:14.742Z"},"accountRestored":false}
+  PUT /api/users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  C signed up and onboarded to APCS 2024 here
+  GET /api/admin/programs → 200
+  GET /api/admin/programs → 200
+  GET /api/programs/APCS/curricula/2024 → 200
+ok   values: APCS and KHMT are the known programs
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324"}
+--- the test data
+  GET /api/courses/ZZADM04 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+ok   ADM-04: before the run, GET /api/courses/ZZADM04 404
+  POST /api/admin/catalog/courses → 201 {"code":"ZZADM04","nameVi":"Học phần thử ADM-04","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+ok   ADM-04: ZZADM04 created, 201
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups → 201 {"id":"b0b342b7-5099-4800-abbb-9c808a64552d","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","name":"Nhóm thử ADM-04","kind":"elective","officialNotes":null,"creditsTotal":null,"creditsTotalMin":null,"updatedAt":"2026-11-25T13:22:15.927Z"}
+  {TG4} = b0b342b7-5099-4800-abbb-9c808a64552d
+  PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/b0b342b7-5099-4800-abbb-9c808a64552d/courses/ZZADM04 → 204
+  PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM04 → 204
+ok   ADM-04: {TG4} 201; ZZADM04 linked to {TG4} and {AC}, 204 each
+--- ADM-04a
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/b0b342b7-5099-4800-abbb-9c808a64552d/courses/ZZADM04 → 204
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/b0b342b7-5099-4800-abbb-9c808a64552d/courses/ZZADM04 → 404 {"statusCode":404,"code":"not_found","message":"ZZADM04 is not in this group"}
+ok   ADM-04a: the first DELETE 204, the second 404 not_found "ZZADM04 is not in this group" | observed: {"statusCode":404,"code":"not_found","message":"ZZADM04 is not in this group"}
+  GET /api/courses/ZZADM04 → 200 {"code":"ZZADM04","nameVi":"Học phần thử ADM-04","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[{"programCode":"APCS","cohortYear":2024,"curriculumCode":"APCS2024","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","requirementGroupName":"Tự chọn Computer Science (C)","kind":"elective"}]}
+ok   ADM-04a: the course 200 with one membership, "Tự chọn Computer Science (C)" of APCS2024 | observed: [{"programCode":"APCS","cohortYear":2024,"curriculumCode":"APCS2024","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","requirementGroupName":"Tự chọn Computer Science (C)","kind":"elective"}]
+  GET /api/programs/APCS/curricula/2024 → 200
+ok   ADM-04a: {AC} still lists ZZADM04 with its other courses; {TG4} has no course | observed: {"AC":28,"TG4":[]}
+--- ADM-04b
+  PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/ZZADM04/offering-terms → 200 {"courseCode":"ZZADM04","terms":[1]}
+ok   ADM-04b: offering terms 200 { courseCode: ZZADM04, terms: [1] } | observed: {"courseCode":"ZZADM04","terms":[1]}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM04 → 409 {"statusCode":409,"code":"referenced_item","message":"ZZADM04 would leave the curriculum while its rules still name it; clear them first","references":["offering terms of ZZADM04 are recorded"]}
+  GET /api/programs/APCS/curricula/2024 → 200
+ok   ADM-04b: the unlink 409 referenced_item, the message and references as the case says; {AC} still lists ZZADM04 | observed: {"statusCode":409,"code":"referenced_item","message":"ZZADM04 would leave the curriculum while its rules still name it; clear them first","references":["offering terms of ZZADM04 are recorded"]}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/ZZADM04/offering-terms → 200 {"courseCode":"ZZADM04","terms":null}
+ok   ADM-04b: clearing the terms 200 with terms null | observed: {"courseCode":"ZZADM04","terms":null}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM04 → 204
+  GET /api/courses/ZZADM04 → 200 {"code":"ZZADM04","nameVi":"Học phần thử ADM-04","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[]}
+ok   ADM-04b: the second unlink 204; the course has no membership | observed: []
+--- ADM-04c
+  PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM04 → 204
+  DELETE /api/admin/catalog/courses/ZZADM04 → 409 {"statusCode":409,"code":"referenced_item","message":"ZZADM04 is still referenced","references":["linked in APCS2024"]}
+  GET /api/courses/ZZADM04 → 200 {"code":"ZZADM04","nameVi":"Học phần thử ADM-04","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[{"programCode":"APCS","cohortYear":2024,"curriculumCode":"APCS2024","requirementGroupId":"c052bbaf-ceda-4f6d-aad6-16be64e37324","requirementGroupName":"Tự chọn Computer Science (C)","kind":"elective"}]}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM04 → 204
+ok   ADM-04c: the link 204; the DELETE 409 referenced_item "ZZADM04 is still referenced", references ["linked in APCS2024"]; the GET 200; the unlink 204 | observed: {"statusCode":409,"code":"referenced_item","message":"ZZADM04 is still referenced","references":["linked in APCS2024"]}
+--- ADM-04d
+  POST /api/plans → 201
+ok   ADM-04d: the plan 201
+  GET /api/plans/b19096ee-1d7c-4a1e-8299-1d0efc91c33f → 200
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/b0b342b7-5099-4800-abbb-9c808a64552d → 409 {"statusCode":409,"code":"referenced_item","message":"Saved plans use the group; it stays while they name it","references":["1 saved plans use it"]}
+ok   ADM-04d: the group DELETE 409 referenced_item "Saved plans use the group; it stays while they name it", references ["1 saved plans use it"]; no plan or student named | observed: {"statusCode":409,"code":"referenced_item","message":"Saved plans use the group; it stays while they name it","references":["1 saved plans use it"]}
+  GET /api/programs/APCS/curricula/2024 → 200
+  GET /api/plans/b19096ee-1d7c-4a1e-8299-1d0efc91c33f → 200
+ok   ADM-04d: {TG4} still in APCS 2024, and the plan equals what was kept
+  DELETE /api/plans/b19096ee-1d7c-4a1e-8299-1d0efc91c33f → 204
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/b0b342b7-5099-4800-abbb-9c808a64552d → 204
+ok   ADM-04d: clean-up: the plan DELETE 204 and the group DELETE 204 | observed: [204,204]
+--- ADM-04e
+  DELETE /api/admin/catalog/courses/ZZADM04 → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+  DELETE /api/admin/catalog/courses/ZZADM04 → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+ok   ADM-04e: A1 and A4: 403 permission_required, catalog_maintainer | observed: [{"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"},{"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}]
+  DELETE /api/admin/catalog/courses/ZZADM04 → 204
+  GET /api/courses/ZZADM04 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  DELETE /api/admin/catalog/courses/ZZADM04 → 404 {"statusCode":404,"code":"not_found","message":"No catalog course has the code ZZADM04"}
+ok   ADM-04e: A3: 204, the GET 404, the second DELETE 404 not_found "No catalog course has the code ZZADM04" | observed: {"statusCode":404,"code":"not_found","message":"No catalog course has the code ZZADM04"}
+--- ADM-04f
+  PATCH /api/admin/catalog/courses/BAA00104 → 400 {"statusCode":400,"code":"validation_failed","message":["code: property code should not exist"]}
+ok   ADM-04f: the catalog PATCH 400 validation_failed, "property code should not exist", no 409 first | observed: {"statusCode":400,"code":"validation_failed","message":["code: property code should not exist"]}
+  GET /api/courses/BAA00104 → 200
+  GET /api/courses/BAA00105 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+ok   ADM-04f: BAA00104 200 with its 11 memberships; BAA00105 404 | observed: 11
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324 → 400 {"statusCode":400,"code":"validation_failed","message":["curriculumId: property curriculumId should not exist"]}
+ok   ADM-04f: the group PATCH 400, "property curriculumId should not exist" | observed: {"statusCode":400,"code":"validation_failed","message":["curriculumId: property curriculumId should not exist"]}
+--- state after the run
+  GET /api/programs/APCS/curricula/2024 → 200
+  GET /api/courses/ZZADM04 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+ok   after: no test group in APCS 2024, ZZADM04 nowhere, {AC} as before ADM-04 linked ZZADM04
+2026-11-25T13:22:19.872Z All checks ok

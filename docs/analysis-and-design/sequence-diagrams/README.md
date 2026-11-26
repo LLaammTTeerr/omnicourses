@@ -12,6 +12,6 @@ One file per use case, named like its specification. Each is drawn from the code
 | [UC-10 Follow a school-task guide](UC-10-follow-a-school-task-guide.md) | F11 | Browse and search the guides; read one guide |
 | [UC-14 Manage account and privacy](UC-14-manage-account-and-privacy.md) | F1, privacy NFR | Export the account; ask for the deletion; the grace period and the purge |
 
-Not drawn yet: onboarding (UC-01 steps 6–10) and curriculum administration (UC-11, UC-17, UC-18), which are built; the other use cases have no code on `main`.
+Not drawn yet: onboarding (UC-01 steps 6–10), curriculum administration (UC-11, UC-17, UC-18), sharing (UC-09), notifications (UC-12) and the academic calendar. Which use cases have code is in the [README feature table](../../../README.md#what-is-built).
 
 The diagrams are Mermaid blocks, which GitHub renders. To check that every block parses, render a file with the Mermaid CLI from a folder outside the repository: `npx -y @mermaid-js/mermaid-cli@12.2.0 -i <file>.md -o out.md`.

@@ -1,5 +1,4 @@
-import { compareTerms, currentTerm } from '../terms/current-term.js';
-import { Term } from '../terms/term.js';
+import { compareTerms, currentTerm, Term } from '../terms/term.js';
 
 // B1 test cases §6 item 1 (Lâm, 9 November 2026): onboarding offers only APCS, cohorts 2024 and
 // 2025. The CLC curricula are seeded but not offered until they are verified, so the seeded

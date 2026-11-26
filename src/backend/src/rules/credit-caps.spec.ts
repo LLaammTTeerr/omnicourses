@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CAP_CITATION, checkTermLoad, creditCaps, PETITION_NOTE, termKind } from './credit-caps.js';
+import { checkTermLoad, creditCaps, termKind } from './credit-caps.js';
+
+const CAP_CITATION = 'QĐ 1175/QĐ-KHTN Điều 7.2';
+const PETITION_NOTE = 'Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b).';
 
 const load = (...credits: number[]) => credits.map((c) => ({ credits: c }));
 
@@ -43,8 +46,9 @@ describe('credit caps (Điều 7.2)', () => {
   });
 
   it('cites Điều 7.2 and the petition route', () => {
-    expect(CAP_CITATION).toBe('QĐ 1175/QĐ-KHTN Điều 7.2');
-    expect(PETITION_NOTE).toMatch(/faculty.*Rector/);
+    const [violation] = checkTermLoad('advanced', 1, load(30)).violations;
+    expect(violation!.citation).toBe('QĐ 1175/QĐ-KHTN Điều 7.2');
+    expect(violation!.petition).toMatch(/faculty.*Rector/);
   });
 
   it('đại trà term 3 (summer): 12 allowed, 13 a violation, a light load no violation', () => {

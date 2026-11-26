@@ -1,0 +1,10 @@
+TC-B2-NOTIF-01i(4), run by Lâm's bot on staging (database omnicourse_stag), 2026-11-25 13:50Z, as posted in Discord
+(8:50 PM Vietnam time). The bot first checked that the account is a synthetic b2-…@example.com with deletion requested.
+
+SELECT kind, calendar_event_id, created_at FROM notifications WHERE user_id = 'a90cbcb4-03c6-46bc-b2a8-9a21dd349362' ORDER BY created_at;
+ kind | calendar_event_id | created_at
+------+-------------------+------------
+(0 rows)
+
+Bot: "No row of E-i (no row at all), so it passes."
+N3 = b2-s11@example.com, user a90cbcb4-03c6-46bc-b2a8-9a21dd349362; E-i = 833872dd-d925-4982-a0cc-e78009d518a2.

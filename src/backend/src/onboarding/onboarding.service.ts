@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term } from '../terms/term.js';
+import { Term, toTerm } from '../terms/term.js';
+import { isOfferedCohort } from './onboarding-options.js';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { NO_INTERNSHIP, OnboardingDto } from './onboarding.dto.js';
+
+export interface StudentCohort {
+  programCode: string;
+  cohortYear: number;
+}
 
 // The student's onboarding answers (UC-01 steps 6–10, A8, A9): their program, cohort and default
 // planning goal. Stored as given: the credit cap and every other academic rule belong to the rule
@@ -15,14 +21,49 @@ export class OnboardingService {
     @InjectRepository(OnboardingAnswers) private readonly answers: Repository<OnboardingAnswers>,
   ) {}
 
+  /**
+   * True when onboarding offers this program and cohort to students (OFFERED_COHORTS). The one
+   * place other modules ask it: the plans API refuses a new plan for any other cohort (Project
+   * Lead, 25 November 2026), so a plan and an onboarding answer are offered the same cohorts.
+   */
+  offers(programCode: string, cohortYear: number): boolean {
+    return isOfferedCohort(programCode, cohortYear);
+  }
+
   /** The saved answers; every answer null and finished false before the first save. */
   async answersFor(userId: string): Promise<OnboardingDto> {
     return toOnboarding(await this.answers.findOneBy({ userId }));
   }
 
+  async cohortOf(userId: string): Promise<StudentCohort | null> {
+    const answers = await this.answersFor(userId);
+    if (!answers.finished || answers.program === null || answers.cohort === null) return null;
+    return { programCode: answers.program, cohortYear: answers.cohort };
+  }
+
+  /**
+   * The IDs of the students whose saved program is one of `programCodes`, by program code. With
+   * `onlyUserId`, that student alone, or nobody. Read-only: the notification inbox addresses the
+   * students of a program with it (ADR 0018). A program counts as soon as it is saved, finished
+   * or not, the same rule as the calendar's default program (ADR 0017).
+   */
+  async userIdsByProgram(programCodes: readonly string[], onlyUserId?: string): Promise<Map<string, string[]>> {
+    const byProgram = new Map<string, string[]>();
+    if (!programCodes.length) return byProgram;
+    const rows: { user_id: string; program_code: string }[] = onlyUserId
+      ? await this.db.query('SELECT "user_id", "program_code" FROM "onboarding_answers" WHERE "user_id" = $2 AND "program_code" = ANY($1::varchar[])', [programCodes, onlyUserId])
+      : await this.db.query('SELECT "user_id", "program_code" FROM "onboarding_answers" WHERE "program_code" = ANY($1::varchar[]) ORDER BY "user_id"', [programCodes]);
+    for (const { user_id, program_code } of rows) {
+      const ids = byProgram.get(program_code);
+      if (ids) ids.push(user_id);
+      else byProgram.set(program_code, [user_id]);
+    }
+    return byProgram;
+  }
+
   /** Replaces every answer. finished_at keeps the first Finish; finished false clears it. */
   async save(userId: string, dto: OnboardingDto): Promise<OnboardingDto> {
-    const c = toColumns(dto);
+    const columns = toColumns(dto);
     // One statement: two saves at once never interleave or fail on the primary key.
     await this.db.query(
       `INSERT INTO "onboarding_answers" AS a (
@@ -42,14 +83,14 @@ export class OnboardingService {
          "updated_at" = now()`,
       [
         userId,
-        c.programCode,
-        c.cohortYear,
-        c.targetGraduationTermYear,
-        c.targetGraduationTermNumber,
-        c.creditsPerTerm,
-        c.internshipTermYear,
-        c.internshipTermNumber,
-        c.noInternshipPlanned,
+        columns.programCode,
+        columns.cohortYear,
+        columns.targetGraduationTermYear,
+        columns.targetGraduationTermNumber,
+        columns.creditsPerTerm,
+        columns.internshipTermYear,
+        columns.internshipTermNumber,
+        columns.noInternshipPlanned,
         dto.finished,
       ],
     );
@@ -59,8 +100,7 @@ export class OnboardingService {
 
 type AnswerColumns = Omit<OnboardingAnswers, 'userId' | 'user' | 'finishedAt' | 'createdAt' | 'updatedAt'>;
 
-const term = (year: number | null, number: number | null): Term | null =>
-  year === null || number === null ? null : { year, number: number as Term['number'] };
+const term = (year: number | null, number: number | null): Term | null => (year === null || number === null ? null : toTerm(year, number));
 
 export function toOnboarding(row: OnboardingAnswers | null): OnboardingDto {
   if (!row) {

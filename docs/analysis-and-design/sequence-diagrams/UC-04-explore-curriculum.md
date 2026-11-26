@@ -16,7 +16,7 @@ sequenceDiagram
     participant Api as curriculum/api.ts
     participant Ctrl as CurriculumController
     participant Svc as CurriculumService
-    participant CR as CourseRulesService
+    participant CR as CurriculumRulesReader
     participant DB as PostgreSQL
 
     Student->>View: opens /explorer
@@ -39,7 +39,7 @@ sequenceDiagram
         Api->>Ctrl: GET /api/programs/{program}/curricula/{cohort}
         Ctrl->>Svc: getCurriculum(program, cohort)
         Svc->>DB: SELECT curriculums with program, requirement groups,<br/>course links and courses
-        Svc->>CR: rulesFor(curriculum.id)
+        Svc->>CR: courseRules(curriculum.id)
         CR->>DB: SELECT course_prerequisite_lists with prerequisites,<br/>and course_offering_terms
         CR-->>Svc: CourseRules
         Svc-->>Ctrl: CurriculumDto: groups, courses, each course's<br/>prerequisites and offeringTerms, or null when not recorded

@@ -68,6 +68,20 @@ describe('SignUpView (F1, issue #13)', () => {
     expect(document.activeElement?.id).toBe('sign-up-displayName');
   });
 
+  it('counts the display name in characters as the API does, so 100 emoji pass and 101 do not (#179)', async () => {
+    const fetch = mockApi({ 'POST /auth/sign-up': () => Response.json(authResult(), { status: 201 }) });
+    const { w } = await render();
+    // No maxlength: the browser counts UTF-16 units and would stop the typing at 50 emoji.
+    expect(w.get('#sign-up-displayName').attributes('maxlength')).toBeUndefined();
+    await fill(w, { name: '😀'.repeat(101) });
+    await submit(w);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(w.get('#sign-up-displayName-error').text()).toBe('Tên hiển thị tối đa 100 ký tự.');
+    await fill(w, { name: '😀'.repeat(100) });
+    await submit(w);
+    expect(sentBody(fetch.mock.calls[0]![1])).toMatchObject({ displayName: '😀'.repeat(100) });
+  });
+
   it('rates the password as the student types, in words as well as colour', async () => {
     const { w } = await render();
     const strength = () => w.get('[data-test="strength"]').text();

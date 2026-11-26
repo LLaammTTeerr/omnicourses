@@ -87,6 +87,8 @@ async function open(path: string, { signedIn = true, routes = {} as Record<strin
     'GET /programs': PROGRAMS,
     'GET /programs/APCS/curricula/2024': CURRICULUM,
     'GET /users/me/audit': AUDIT,
+    // No administration grant: the navigation is the student's (ADR 0011).
+    'GET /admin/grants': { userId: authResult().user.id, programs: [], permissions: [] },
     ...routes,
   });
   const router = createAppRouter(createMemoryHistory());

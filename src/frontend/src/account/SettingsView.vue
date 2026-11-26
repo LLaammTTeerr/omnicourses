@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
-import { listSessions, revokeSession, type Session } from '../auth/api.js';
+import type { Session } from '../auth/api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { GROUPS, groupClass } from '../groups.js';
@@ -11,7 +11,7 @@ import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { EXPORT_FILE_NAME, exportAccount, saveFile } from './api.js';
+import { EXPORT_FILE_NAME, exportAccount, listSessions, revokeSession, saveFile } from './api.js';
 import StudySettings from '../onboarding/StudySettings.vue';
 import DeleteAccountDialog from './DeleteAccountDialog.vue';
 import { SETTINGS_MESSAGES } from './messages.js';
@@ -27,7 +27,7 @@ const theme = useTheme();
 const toast = useToast();
 const m = useMessages(SETTINGS_MESSAGES);
 
-const sessions = useAsyncLoad('the sessions', () => auth.authed(listSessions));
+const sessions = useAsyncLoad('the sessions', () => listSessions());
 // The current session first, then the newest.
 const sorted = computed(() =>
   [...(sessions.data.value ?? [])].sort((a, b) => Number(b.current) - Number(a.current) || b.createdAt.localeCompare(a.createdAt)),
@@ -42,7 +42,7 @@ async function revoke(): Promise<void> {
   if (!session) return;
   revokeBusy.value = true;
   try {
-    await auth.authed((token) => revokeSession(token, session.id));
+    await revokeSession(session.id);
     toast.show(m.value.revoked);
     revoking.value = null;
     await sessions.reload();
@@ -61,7 +61,7 @@ async function download(): Promise<void> {
   exporting.value = true;
   exportFailed.value = false;
   try {
-    saveFile(await auth.authed(exportAccount), EXPORT_FILE_NAME);
+    saveFile(await exportAccount(), EXPORT_FILE_NAME);
     toast.show(m.value.exported(EXPORT_FILE_NAME));
   } catch (e) {
     console.error('Exporting the account failed:', e);
@@ -72,6 +72,23 @@ async function download(): Promise<void> {
 }
 
 const deleting = ref(false);
+
+// ADR 0011: an access manager grants a permission to an exact user ID, and there is no user search, so the user
+// copies their own ID from here. It is `UserDto.id`, as GET /users/me and every sign-in answer give it.
+const userIdField = ref<HTMLInputElement | null>(null);
+async function copyUserId(): Promise<void> {
+  const id = auth.user?.id;
+  if (!id) return;
+  try {
+    await navigator.clipboard.writeText(id);
+    toast.show(m.value.userIdCopied);
+  } catch (e) {
+    // No clipboard permission, or a page not served over HTTPS: select the ID, so one key press copies it.
+    console.error('Copying the user ID failed:', e);
+    userIdField.value?.select();
+    toast.show(m.value.userIdNotCopied);
+  }
+}
 
 async function signOut(): Promise<void> {
   // Leave the private page first, so App.vue does not read the sign-out as a session that ended by itself.
@@ -111,6 +128,13 @@ usePageTitle(() => m.value.title);
           <div class="srow">
             <div class="txt"><b>{{ m.email }}</b></div>
             <span class="value">{{ auth.user?.email }}</span>
+          </div>
+          <div class="srow">
+            <div class="txt"><label for="user-id"><b>{{ m.userId }}</b></label><p>{{ m.userIdNote }}</p></div>
+            <div class="user-id">
+              <input id="user-id" ref="userIdField" class="input mono" type="text" readonly :value="auth.user?.id" data-test="user-id" @focus="userIdField?.select()" />
+              <button class="btn sm" type="button" data-test="copy-user-id" @click="copyUserId"><Icon name="copy" size="sm" />{{ m.copy }}</button>
+            </div>
           </div>
           <div class="srow">
             <div class="txt"><b id="language-label">{{ m.language }}</b><p>{{ m.languageNote }}</p></div>
@@ -228,6 +252,9 @@ usePageTitle(() => m.value.title);
 .srow .txt p { font-size: 13.5px; color: var(--ink-2); }
 .srow .value { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .srow-note { padding: 0 22px 8px; }
+.user-id { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+/* The whole ID shows: 36 characters, in the fixed-width font. */
+.user-id .input { flex: 1 1 calc(36ch + 28px); width: calc(36ch + 28px); min-width: 0; font-size: 13px; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .danger-zone { border-color: var(--bad); box-shadow: 4px 4px 0 var(--bad); }
 .sign-out { justify-self: start; }
