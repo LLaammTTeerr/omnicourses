@@ -1,7 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { QueryFailedError, Repository } from 'typeorm';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Clock } from '../config/clock.js';
 import { User } from '../users/user.entity.js';
+import { UsersService } from '../users/users.service.js';
 import { AccountPurgeService } from './account-purge.service.js';
 
 // A database message quotes row values (AGENTS.md hard rule 3). ZZSECRET stands for one.
@@ -22,7 +24,7 @@ describe('AccountPurgeService', () => {
   it('logs only the failure kind when it cannot find the accounts that are due', async () => {
     const lines = errorLines();
     const users = { find: vi.fn().mockRejectedValue(refused()) } as unknown as Repository<User>;
-    await expect(new AccountPurgeService(users).purge()).resolves.toBe(0);
+    await expect(new AccountPurgeService(new UsersService(users), new Clock()).purge()).resolves.toBe(0);
     expect(lines).toEqual(['Account purge failed: QueryFailedError, SQLSTATE 22P02']);
   });
 
@@ -33,7 +35,7 @@ describe('AccountPurgeService', () => {
       delete: vi.fn().mockRejectedValueOnce(refused()).mockResolvedValueOnce({ affected: 1 }),
     } as unknown as Repository<User>;
     vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
-    await expect(new AccountPurgeService(users).purge()).resolves.toBe(1);
+    await expect(new AccountPurgeService(new UsersService(users), new Clock()).purge()).resolves.toBe(1);
     expect(lines[0]).toBe('Could not purge an account: QueryFailedError, SQLSTATE 22P02');
     expect(lines.join('\n')).not.toContain('ZZSECRET');
   });
@@ -41,7 +43,7 @@ describe('AccountPurgeService', () => {
   it('logs the frames, not the message, of a failure that is not a database error', async () => {
     const lines = errorLines();
     const users = { find: vi.fn().mockRejectedValue(new TypeError('Cannot read ZZSECRET')) } as unknown as Repository<User>;
-    await new AccountPurgeService(users).purge();
+    await new AccountPurgeService(new UsersService(users), new Clock()).purge();
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatch(/^Account purge failed: TypeError /);
     expect(lines[0]).toContain('account-purge.service.spec.ts');

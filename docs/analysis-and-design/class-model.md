@@ -1166,7 +1166,7 @@ classDiagram
     class AiUnavailableError
     GuidesController --> GuidesService
     GuidesService --> GuideText : Repository
-    GuidesService ..> GUIDES_CLOCK : today in Vietnam
+    GuidesService ..> Clock : today in Vietnam
     HealthController --> HealthService
     GatewayLlmService --|> LlmService
     FakeLlmService --|> LlmService
@@ -1176,7 +1176,7 @@ classDiagram
     OpenRouterModelClient --|> ModelClient
     AiCostGuard --> AiUsage : Repository
     class GuideText
-    class GUIDES_CLOCK
+    class Clock
     class AiUsage
 ```
 

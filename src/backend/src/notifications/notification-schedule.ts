@@ -1,11 +1,11 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { logFailure } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
-import { msUntilVietnamMidnight } from '../config/time.js';
+import { MINUTE_MS, msUntilVietnamMidnight } from '../config/time.js';
 import { NotificationsService } from './notifications.service.js';
 
 /** Between two runs at most: a school date entered for today reaches students who do not open the app within this time. */
-export const RUN_INTERVAL_MS = 10 * 60_000;
+export const RUN_INTERVAL_MS = 10 * MINUTE_MS;
 /** Between two runs at least, so a clock that stands still (a test) cannot make the timer spin. */
 export const MIN_DELAY_MS = 1000;
 

@@ -6,7 +6,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { NOT_CHECKED_CONDITIONS } from '../src/rules/graduation.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';

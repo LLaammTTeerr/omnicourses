@@ -1,26 +1,24 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Clock } from '../config/clock.js';
 import { vietnamDate } from '../config/time.js';
 import { GUIDE_ID, GUIDE_ID_MAX } from './guide-file.js';
 import { GuideText } from './guide-text.entity.js';
 import { GuideDto, GuideListItemDto, GuideListTextDto, GuideTextDto } from './guides.dto.js';
 import { isOutOfDate } from './out-of-date.js';
 
-/** The clock the out-of-date rule reads; tests replace it. */
-export const GUIDES_CLOCK = Symbol('GUIDES_CLOCK');
-
 // Reads the published guides. Nothing here writes: only the seed does (ADR 0010).
 @Injectable()
 export class GuidesService {
   constructor(
     @InjectRepository(GuideText) private readonly texts: Repository<GuideText>,
-    @Inject(GUIDES_CLOCK) private readonly now: () => Date,
+    private readonly clock: Clock,
   ) {}
 
   /** Every published guide, by ID, with its list entry in each language it is published in. */
   async list(): Promise<GuideListItemDto[]> {
-    const today = vietnamDate(this.now());
+    const today = vietnamDate(this.clock.now());
     const rows = await this.texts.find({ where: { status: 'published' }, relations: { guide: true }, order: { guideId: 'ASC', lang: 'ASC' } });
     const guides = new Map<string, GuideListItemDto>();
     for (const row of rows) {
@@ -38,7 +36,7 @@ export class GuidesService {
         ? await this.texts.find({ where: { guideId: id, status: 'published' }, relations: { guide: true }, order: { lang: 'ASC' } })
         : [];
     if (!rows.length) throw new NotFoundException('Guide not found');
-    const today = vietnamDate(this.now());
+    const today = vietnamDate(this.clock.now());
     return { id, group: rows[0].guide.group, texts: Object.fromEntries(rows.map((row) => [row.lang, fullText(row, today)])) };
   }
 }

@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { Clock } from '../config/clock.js';
 import { aiConfig, loadEnvFiles } from '../config/env.js';
 import { type CostGuard, GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent } from './llm.service.js';
@@ -29,7 +30,7 @@ describe.skipIf(!configured)('AI gateway against OpenRouter (live)', () => {
   let llm: GatewayLlmService;
 
   beforeAll(() => {
-    llm = new GatewayLlmService(new OpenRouterModelClient(config.apiKey ?? '', config.timeoutMs), noGuard, config);
+    llm = new GatewayLlmService(new OpenRouterModelClient(config.apiKey ?? '', config.timeoutMs), noGuard, config, new Clock());
   });
 
   it('structured() returns a reply that passes the schema', async () => {

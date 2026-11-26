@@ -4,13 +4,15 @@ import request from 'supertest';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AcademicCalendarService } from '../src/academic-calendar/academic-calendar.service.js';
+import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { Clock } from '../src/config/clock.js';
 import { NotificationSchedule } from '../src/notifications/notification-schedule.js';
 import { NotificationsService } from '../src/notifications/notifications.service.js';
 import { TranscriptEntry } from '../src/transcript/transcript-entry.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
+import { UsersService } from '../src/users/users.service.js';
 import { bootApp } from './support/app.js';
-import { signedInUser } from './support/users.js';
+import { signedInUser, storedUser } from './support/users.js';
 
 interface Notice {
   id: string;
@@ -39,6 +41,7 @@ const rows: TranscriptEntry[] = [
 // e2e file, or a developer, entered in the shared database.
 /** The CHECK constraint the failure test adds to make PostgreSQL refuse the rows of one date. */
 const FAIL_ONE_DATE = 'zz_notifications_fail_one_date';
+const SESSION_DAYS_LONGER_THAN_THE_CLOCK_MOVES = '1000';
 
 describe('Notification inbox (e2e)', () => {
   let app: INestApplication;
@@ -112,7 +115,14 @@ describe('Notification inbox (e2e)', () => {
   const save = (user: Account, body: TranscriptEntry[]) => as(user.token).put('/api/users/me/transcript', { rows: body });
 
   beforeAll(async () => {
-    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue(clock));
+    vi.stubEnv('SESSION_TTL_DAYS', SESSION_DAYS_LONGER_THAN_THE_CLOCK_MOVES);
+    app = await bootApp((builder) =>
+      builder
+        .overrideProvider(Clock)
+        .useValue(clock)
+        .overrideProvider(AccountPurgeService)
+        .useFactory({ factory: (users: UsersService) => new AccountPurgeService(users, new Clock()), inject: [UsersService] }),
+    );
     db = app.get(DataSource);
     notifications = app.get(NotificationsService);
     // A run killed inside the failure test below can leave its constraint behind.
@@ -134,6 +144,15 @@ describe('Notification inbox (e2e)', () => {
       await db.query('DELETE FROM programs WHERE id = ANY($1)', [programs]);
     }
     await app?.close();
+    vi.unstubAllEnvs();
+  });
+
+  it('purges accounts by the wall clock, not by the clock this file sets in 2090', async () => {
+    const userId = await storedUser(app);
+    userIds.push(userId);
+    await db.query('UPDATE users SET deletion_requested_at = now(), purge_after = $2 WHERE id = $1', [userId, '2050-01-01T00:00:00Z']);
+    await app.get(AccountPurgeService).purge();
+    expect(await db.query('SELECT id FROM users WHERE id = $1', [userId])).toHaveLength(1);
   });
 
   it('maps the table exactly as migration 1795575059760 creates it', async () => {

@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuthService } from '../auth/auth.service.js';
+import { Clock } from '../config/clock.js';
 import { accountDeletionGraceDays } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
 import { SharingService } from '../sharing/sharing.service.js';
@@ -17,6 +18,7 @@ export class AccountService {
     private readonly users: UsersService,
     private readonly auth: AuthService,
     private readonly sharing: SharingService,
+    private readonly clock: Clock,
   ) {}
 
   async export(userId: string): Promise<AccountExportDto> {
@@ -28,7 +30,7 @@ export class AccountService {
       for (const t of await findUserTables(tx)) {
         tables[t.table] = await tx.query(`SELECT ${selectList(t.columns)} FROM ${t.qualifiedTable} WHERE user_id = $1`, [userId]);
       }
-      return { exportedAt: new Date(), user, tables };
+      return { exportedAt: this.clock.now(), user, tables };
     });
   }
 
@@ -40,7 +42,7 @@ export class AccountService {
    */
   async requestDeletion(user: User, password: string): Promise<DeletionScheduledDto> {
     if (!(await this.auth.verifyPassword(user, password))) throw new ForbiddenException('Wrong password');
-    const requestedAt = new Date();
+    const requestedAt = this.clock.now();
     const purgeAfter = new Date(requestedAt.getTime() + accountDeletionGraceDays() * DAY_MS);
     // One transaction: a failed revoke must not leave a deletion scheduled behind a 500,
     // nor a link open on an account that is being deleted.

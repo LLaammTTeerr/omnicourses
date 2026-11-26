@@ -8,7 +8,7 @@ import { CatalogAdminService } from '../src/curriculum-admin/catalog-admin.servi
 import { CsvImportService } from '../src/curriculum-admin/csv-import.service.js';
 import { CurriculumAdminService } from '../src/curriculum-admin/curriculum-admin.service.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 

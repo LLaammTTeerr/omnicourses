@@ -6,6 +6,7 @@ import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelTool, ModelUsage, StreamRequest } from './model-client.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1';
+const SDK_RETRIES_PER_REQUEST = 1;
 const logger = new Logger('OpenRouterModelClient');
 
 export function toSdkMessages(messages: ModelMessage[]): ChatCompletionMessageParam[] {
@@ -70,7 +71,7 @@ export class OpenRouterModelClient extends ModelClient {
 
   constructor(apiKey: string, timeoutMs: number) {
     super();
-    this.sdk = new OpenAI({ apiKey, baseURL: OPENROUTER_URL, timeout: timeoutMs, maxRetries: 1, defaultHeaders: { 'X-Title': 'OmniCourse' } });
+    this.sdk = new OpenAI({ apiKey, baseURL: OPENROUTER_URL, timeout: timeoutMs, maxRetries: SDK_RETRIES_PER_REQUEST, defaultHeaders: { 'X-Title': 'OmniCourse' } });
   }
 
   async complete(request: Parameters<ModelClient['complete']>[0]): Promise<{ content: string; usage: ModelUsage }> {

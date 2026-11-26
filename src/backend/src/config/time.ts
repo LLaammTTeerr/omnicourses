@@ -1,7 +1,9 @@
-export const DAY_MS = 86_400_000;
+export const MINUTE_MS = 60_000;
+export const HOUR_MS = 60 * MINUTE_MS;
+export const DAY_MS = 24 * HOUR_MS;
 
 // Vietnam is UTC+7 all year: no daylight saving.
-const VIETNAM_OFFSET_MS = 7 * 3_600_000;
+const VIETNAM_OFFSET_MS = 7 * HOUR_MS;
 
 /** The date in Vietnam at this instant, as YYYY-MM-DD. Guides, onboarding and notifications count days by it. */
 export function vietnamDate(now: Date): string {
