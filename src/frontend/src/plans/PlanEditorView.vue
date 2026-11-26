@@ -1,197 +1,96 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { HttpError, statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
-import { fetchAudit, type DegreeAudit } from '../audit/api.js';
+import { statusOf } from '../api.js';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
-import { courseName, groupColour, matches, orderGroups } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { courseName, matches } from '../curriculum/present.js';
+import { groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
-import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { useTranscriptCodes } from '../transcript/codes.js';
-import { currentTerm, termKey, termName, vietnamDate, type Term } from '../terms.js';
-import { fetchPlan, fetchPlanIssues, previewPlanDrops, savePlacements, type Plan, type PlanIssue, type PlanIssueCode, type PlanTermLoad } from './api.js';
+import { termKey, type Term } from '../terms.js';
 import {
   addCourse,
   addSlot,
-  attachIssues,
-  boardBody,
-  boardOf,
-  boardWith,
   compareTerms,
-  dropVerdict,
   findTile,
+  isHome,
   moveTile,
   nextTerm,
   placedCodes,
-  placementOf,
-  PREVIEW_KEY,
   removeTile,
-  rowsFor,
   sameTiles,
   withNextRow,
-  type AttachedIssues,
   type Board,
-  type DropVerdict,
   type Moving,
-  type Row,
   type Tile,
 } from './board.js';
 import { pointerDrag, type DropTarget } from './drag.js';
-import { play, snapshot, type Lift } from './flip.js';
+import { FLIP_MS, play, reducedMotion, snapshot, type Lift } from './flip.js';
 import IssuesPanel from './IssuesPanel.vue';
-import { rememberLastPlan } from './last-plan.js';
 import { isLocked, setLocked } from './lock.js';
-import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
+import { PLANNER_MESSAGES } from './messages.js';
 import PlanTabs from './PlanTabs.vue';
-import { KIND_STYLE, strongest } from './present.js';
+import { BAR_CODES, KIND_STYLE, usePlanCourses, usePlanView } from './present.js';
+import { currentTermNow, useDropPreview, usePlanSession } from './session.js';
 import StatusStrip from './StatusStrip.vue';
 
-// The plan editor (F5, UC-05): one row per term, the curriculum's courses to add, and moves by button, keyboard
-// (Space, arrows, Enter, Escape: UC-05 A1) or drag and drop. Each change saves the whole board (ADR 0014), then the
-// rule engine's report is read again from GET /plans/{id}/issues. While a course is dragged or lifted, the editor asks
-// the engine about the board with the drop made (POST /plans/{id}/issues, which saves nothing), so each row can say
-// before the drop whether it would break a rule and what its load would be. The editor never judges a placement, a
-// load or a requirement itself (AGENTS.md hard rule 1): colours, loads, caps and reasons come only from those reports.
-// A report is pinned to the board it was computed for, so its issues follow their tiles, and they are dimmed while
-// the board on screen holds other tiles than that one.
+const HISTORY_MAX = 50;
+
 const props = defineProps<{ id: string }>();
-const onboarding = useOnboarding();
 const locale = useLocale();
 const toast = useToast();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
 
-const plan = shallowRef<Plan | null>(null);
-/** The board on screen. */
-const board = shallowRef<Board>([]);
-/** The board the API last saved. */
-const saved = shallowRef<Board>([]);
-/** The tile lifted with the keyboard, and the row it would drop on. */
 const lifted = shallowRef<{ key: number; target: number } | null>(null);
-let nextKey = 0;
-const newKey = () => nextKey++;
-const currentTermNow = () => currentTerm(vietnamDate(new Date()));
-
-/**
- * The plan this editor has open. The router reuses the editor when the student goes from one plan straight to
- * another, so each load opens a new one, and a save or check started for an earlier one stops instead of touching
- * the plan now on screen.
- */
-interface Opened {
-  id: string;
-  saving: boolean;
-}
-let opened: Opened = { id: props.id, saving: false };
-
-// ---------- The rule engine's report ----------
-const issues = shallowRef<AttachedIssues | null>(null);
-const issuesStatus = ref<'loading' | 'failed' | 'idle'>('loading');
-let checkCall = 0;
-
-async function check(snapshotBoard: Board): Promise<void> {
-  const call = ++checkCall;
-  const { id } = opened;
-  issuesStatus.value = 'loading';
-  try {
-    const report = await fetchPlanIssues(id);
-    if (call !== checkCall) return;
-    issues.value = attachIssues(snapshotBoard, report);
-    issuesStatus.value = 'idle';
-  } catch (e) {
-    if (call !== checkCall) return;
-    if (statusOf(e) !== 401) console.error('Checking the plan failed:', e);
-    issuesStatus.value = 'failed';
-  }
-}
-/** The Issues panel's retry. During a save it waits: the loop checks when it ends, after the last PUT. */
-function retryCheck(): void {
-  if (!opened.saving) void check(saved.value);
-}
-/** The report describes the board on screen. Empty rows do not count: they are not saved, so not checked either. */
-const fresh = computed(() => issues.value !== null && sameTiles(issues.value.board, board.value));
-
-// ---------- Saving ----------
-/** How long a save waits after each 429 before sending again; after the last one it fails as any error does. */
-const SAVE_RETRY_MS = [2000, 5000, 10000];
-const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
-const saveError = ref<string | null>(null);
-
-/**
- * Saves the board on screen until the API holds it, then checks the saved board, also after a failure, which puts
- * back the last saved board (an earlier request of the same loop may have gone through). If the student opens
- * another plan meanwhile, the request in flight still lands in this one and the loop stops there: a change not yet
- * sent is dropped rather than written into the plan now open.
- */
-async function save(): Promise<void> {
-  const mine = opened;
-  if (mine.saving) return;
-  mine.saving = true;
-  saveState.value = 'saving';
-  let waits = 0;
-  try {
-    for (;;) {
-      const sending = board.value;
-      if (sameTiles(sending, saved.value)) {
-        saved.value = sending; // Same tiles, maybe more empty rows: keep them if a later save fails.
-        break;
-      }
-      // A check asked for before this PUT may be answered after it commits, about this board and not its snapshot:
-      // drop it. The loop checks again when it ends.
-      ++checkCall;
-      if (issuesStatus.value === 'loading') issuesStatus.value = 'idle';
-      let updated: Plan;
-      try {
-        updated = await savePlacements(mine.id, boardBody(sending));
-      } catch (e) {
-        // 429: too many requests, not a refusal. Keep the board, wait, and send the board on screen again.
-        if (statusOf(e) !== 429 || waits >= SAVE_RETRY_MS.length) throw e;
-        await new Promise((resolve) => setTimeout(resolve, SAVE_RETRY_MS[waits++]));
-        if (mine !== opened) return;
-        continue;
-      }
-      waits = 0;
-      if (mine !== opened) return;
-      plan.value = updated;
-      saved.value = sending;
-    }
-    saveState.value = 'saved';
-    void check(saved.value);
-  } catch (e) {
-    if (mine !== opened) return;
-    animate(() => (board.value = saved.value));
-    forgetUnsaved();
-    // A lifted tile's target row may be gone, or the tile may be back in another row.
-    lifted.value = null;
-    const code = statusOf(e);
-    saveState.value = code === 401 ? 'saved' : 'failed';
-    if (code === 401) return; // App.vue takes the student to sign in.
-    console.error('Saving the plan failed:', e);
-    const details = e instanceof HttpError ? e.details.join('; ') : '';
-    saveError.value = code === 400 && details ? m.value.saveRefused(details) : m.value.saveFailed;
-    void check(saved.value);
-  } finally {
-    mine.saving = false;
-  }
-}
-
-// ---------- Changes, their animation and undo ----------
+const locked = ref(false);
+const history = shallowRef<{ board: Board; said: string }[]>([]);
+const addTarget = ref('');
 const boardEl = ref<HTMLElement | null>(null);
-/** Runs a change of the board, then lets each tile glide from where it was (flip.ts); a dropped one lands from the ghost. */
+
+const session = usePlanSession(() => props.id, {
+  reset() {
+    lifted.value = null;
+    history.value = [];
+  },
+  opened(found, start) {
+    drag.stop();
+    endDrag();
+    lifted.value = null;
+    locked.value = isLocked(found.id);
+    addTarget.value = termKey(start.find((row) => compareTerms(row.term, currentTermNow()) >= 0)?.term ?? start[0]!.term);
+  },
+  revert(toSaved) {
+    animate(toSaved);
+    forgetUnsaved();
+    lifted.value = null;
+  },
+});
+const { plan, board, saved, newKey, issues, issuesStatus, fresh, retryCheck, saveState, saveError, save, loaded } = session;
+const { moving, previews, previewRow, previewAll, stopPreview } = useDropPreview(session);
+
+const courses = usePlanCourses(plan);
+const { curriculum, catalog, groupNames, slotOffers, transcriptCodes, passedCodes, past, inProgressNow } = courses;
+
+const dragging = shallowRef<Moving | null>(null);
+const over = ref<DropTarget | null>(null);
+const dropRow = computed(() => (over.value?.startsWith('row:') ? over.value.slice(4) : null));
+const draggingPlaced = computed(() => !!dragging.value && 'key' in dragging.value);
+
+const { nameOf, shortName, glyphOf, tileTitle, ctx, hoverKey, panelPreview, dropOf, rows } = usePlanView({ board, issues, courses, moving, previews, lifted, dropRow });
+
+const announcement = ref('');
+function announce(text: string): void {
+  announcement.value = text;
+}
+
 function animate(fn: () => void, lift?: Lift): void {
   const before = snapshot(boardEl.value);
   fn();
   void nextTick(() => play(boardEl.value, before, lift));
 }
-
-/** The boards before each change, newest last, with what the change was, for Undo (Ctrl+Z). */
-const history = shallowRef<{ board: Board; said: string }[]>([]);
-const HISTORY_MAX = 50;
 
 function change(next: Board, said?: string, undoing = false, lift?: Lift): void {
   if (next === board.value || locked.value) return;
@@ -202,10 +101,6 @@ function change(next: Board, said?: string, undoing = false, lift?: Lift): void 
   void save();
 }
 
-/**
- * After a failed save the board is back at the last saved one: the changes made since are gone, so Undo forgets them
- * too. They are the newest entries, down to the one that holds the saved board.
- */
 function forgetUnsaved(): void {
   const kept = [...history.value];
   while (kept.length) {
@@ -228,17 +123,15 @@ function undo(): void {
   toast.show(said);
 }
 
+const isUndoKey = (event: KeyboardEvent) => (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey;
+const inOwnUndoField = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+
 function onWindowKey(event: KeyboardEvent): void {
-  if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z' || event.shiftKey || locked.value) return;
-  const target = event.target as HTMLElement | null;
-  // A text box or an editable element keeps its own undo.
-  if (target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
+  if (!isUndoKey(event) || locked.value || inOwnUndoField(event.target)) return;
   event.preventDefault();
   undo();
 }
 
-// ---------- Lock: the plan cannot change until it is unlocked (kept per plan on this browser) ----------
-const locked = ref(false);
 function toggleLock(): void {
   if (!plan.value) return;
   locked.value = !locked.value;
@@ -250,371 +143,6 @@ function toggleLock(): void {
   }
   announce(locked.value ? m.value.lockedNote : m.value.unlock);
 }
-
-// ---------- Loading ----------
-const loaded = useAsyncLoad(
-  'the plan',
-  async () => {
-    const mine: Opened = (opened = { id: props.id, saving: false });
-    ++checkCall;
-    issues.value = null;
-    saveState.value = 'saved';
-    saveError.value = null;
-    lifted.value = null;
-    history.value = [];
-    const found = await fetchPlan(mine.id);
-    // The rows run to the target graduation term; without onboarding answers they stop at the plan's last term.
-    const target = await onboarding.load().then(
-      (answers) => answers.targetGraduationTerm,
-      () => null,
-    );
-    // A later load owns the editor now; useAsyncLoad drops this answer too.
-    if (mine !== opened) return found;
-    drag.stop();
-    endDrag();
-    lifted.value = null;
-    const start = boardOf(found.terms, rowsFor(found.terms, currentTermNow(), target), newKey);
-    plan.value = found;
-    locked.value = isLocked(found.id);
-    rememberLastPlan(found.id);
-    board.value = start;
-    saved.value = start;
-    addTarget.value = termKey(start.find((row) => compareTerms(row.term, currentTermNow()) >= 0)?.term ?? start[0]!.term);
-    void check(start);
-    return found;
-  },
-  () => props.id,
-);
-
-// ---------- What a tile shows ----------
-interface CourseInfo {
-  course: CurriculumCourse;
-  colour: GroupId;
-}
-const curriculum = useAsyncLoad(
-  'the curriculum of the plan',
-  async () => {
-    const c = plan.value?.curriculum;
-    return c ? fetchCurriculum(c.programCode, c.cohortYear) : null;
-  },
-  () => plan.value?.curriculum.id ?? null,
-);
-const requirementGroups = computed<readonly RequirementGroup[]>(() => curriculum.data.value?.requirementGroups ?? []);
-/** Each course of the curriculum once, in the group order of the explorer. */
-const catalog = computed(() => {
-  const courses = new Map<string, CourseInfo>();
-  for (const group of orderGroups(requirementGroups.value)) {
-    const colour = groupColour(group);
-    for (const course of group.courses) if (!courses.has(course.code)) courses.set(course.code, { course, colour });
-  }
-  return courses;
-});
-const groupNames = computed(() => new Map(requirementGroups.value.map((g) => [g.id, g])));
-const shortName = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.short[locale.lang];
-const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
-// A neutral mark on the courses of the student's saved transcript, as in the explorer: whether one counts as passed
-// is the engine's call (it flags a placed one as already_passed). No transcript, or none loaded, shows no marks.
-const transcriptCodes = useTranscriptCodes('the planner');
-
-// The degree audit (the rule engine's reading of the transcript, F3): the terms already taken, the courses it counts
-// as passed or in progress, and their grades. Without one (no transcript, no onboarding, a failure) none of it shows.
-const audit = shallowRef<DegreeAudit | null>(null);
-fetchAudit()
-  .then((outcome) => (audit.value = outcome.status === 'ready' ? outcome.audit : null))
-  .catch((e) => statusOf(e) === 401 || console.error('Loading the audit for the planner failed:', e));
-const auditCourses = computed(() => audit.value?.groups.flatMap((g) => g.courses) ?? []);
-const passedCodes = computed(() => new Set(auditCourses.value.filter((c) => c.status === 'passed').map((c) => c.code)));
-const gradeOf = computed(() => new Map(auditCourses.value.filter((c) => c.grade !== null).map((c) => [c.code, c.grade!])));
-/** The terms before the current one, with what the engine counts as passed, for the "Taken" strip. */
-const past = computed(() => {
-  const now = currentTermNow();
-  const terms = audit.value?.terms.filter((t) => compareTerms(t.term, now) < 0) ?? [];
-  if (!audit.value || terms.length === 0) return null;
-  const passed = auditCourses.value.filter((c) => c.status === 'passed');
-  return {
-    span: m.value.pastTerms(terms.length, nameOf(terms[0]!.term), nameOf(terms.at(-1)!.term)),
-    accumulated: audit.value.credits.accumulated,
-    courses: passed.map((c) => ({ code: c.code, name: courseName(c, locale.lang), colour: catalog.value.get(c.code)?.colour ?? 'core' })),
-  };
-});
-/** The courses the transcript has in progress in the current term: shown in its row, locked. */
-const inProgressNow = computed(() => {
-  const now = currentTermNow();
-  const term = audit.value?.terms.find((t) => compareTerms(t.term, now) === 0);
-  return (term?.inProgressCourseCodes ?? []).map((code) => {
-    const info = catalog.value.get(code);
-    return { code, name: info ? courseName(info.course, locale.lang) : null, credits: info?.course.credits ?? null, colour: info?.colour ?? 'core' };
-  });
-});
-
-function tileTitle(tile: Tile): string {
-  const p = tile.placement;
-  if (p.kind === 'course') return p.courseCode ?? '?';
-  return m.value.slot(groupNames.value.get(p.requirementGroupId ?? '')?.name ?? m.value.slotGroupUnknown);
-}
-const movingTitle = (what: Moving) => {
-  if ('code' in what) return what.code;
-  if ('slot' in what) return m.value.slot(groupNames.value.get(what.slot)?.name ?? m.value.slotGroupUnknown);
-  const found = findTile(board.value, what.key);
-  return found ? tileTitle(found.row.tiles[found.index]!) : '';
-};
-
-const ctx = computed<IssueContext>(() => ({
-  requirementName: (issue: PlanIssue) => {
-    const coverage = issues.value?.report.coverage;
-    if (issue.requirementGroupId) return coverage?.groups.find((g) => g.id === issue.requirementGroupId)?.name ?? null;
-    if (issue.combinedMinimumId) return coverage?.combinedMinimums.find((c) => c.id === issue.combinedMinimumId)?.name ?? null;
-    return null;
-  },
-}));
-
-// ---------- The drag preview: the engine's report on the board with the drop made, one per row ----------
-interface RowPreview {
-  status: 'loading' | 'done' | 'failed';
-  attached: AttachedIssues | null;
-  verdict: DropVerdict | null;
-}
-/** What is being dragged with the pointer, or lifted with the keyboard. */
-const moving = shallowRef<Moving | null>(null);
-const previews = shallowRef<Map<string, RowPreview>>(new Map());
-let previewAbort: AbortController | null = null;
-let previewOf: Moving | null = null;
-
-const homeOf = (what: Moving) => ('key' in what ? findTile(board.value, what.key)?.row.term : undefined);
-
-/**
- * Asks the engine about the drop of `what` on each of `terms` it has no answer for yet, in one request
- * (POST /plans/{id}/issues/drops): a drag costs one request against the rate limit, not one per row.
- */
-function previewRows(what: Moving, terms: readonly Term[]): void {
-  if (previewOf !== what) {
-    previewAbort?.abort();
-    previewAbort = new AbortController();
-    previewOf = what;
-    previews.value = new Map();
-  }
-  const snapshot = board.value;
-  const home = homeOf(what);
-  const todo = terms.filter((term) => {
-    const had = previews.value.get(termKey(term));
-    return !(had && had.status !== 'failed') && !(home && termKey(home) === termKey(term)) && boardWith(snapshot, what, term) !== snapshot;
-  });
-  const placement = placementOf(snapshot, what);
-  if (!todo.length || !placement) return;
-  const setAll = (value: (term: Term) => RowPreview) => {
-    if (previewOf !== what) return;
-    const next = new Map(previews.value);
-    for (const term of todo) next.set(termKey(term), value(term));
-    previews.value = next;
-  };
-  setAll(() => ({ status: 'loading', attached: null, verdict: null }));
-  const tileKey = 'key' in what ? what.key : PREVIEW_KEY;
-  const without = 'key' in what ? removeTile(snapshot, what.key) : snapshot;
-  const before = issues.value;
-  const { signal } = previewAbort!;
-  const { id } = opened;
-  previewPlanDrops(id, { terms: boardBody(without), placement, targets: todo }, signal)
-    .then(({ reports }) => {
-      const byTerm = new Map(reports.map((r) => [termKey(r.term), r.issues]));
-      setAll((term) => {
-        const report = byTerm.get(termKey(term));
-        if (!report) return { status: 'failed', attached: null, verdict: null };
-        const attached = attachIssues(boardWith(snapshot, what, term), report);
-        return { status: 'done', attached, verdict: dropVerdict(attached, tileKey, term, before) };
-      });
-    })
-    .catch((e) => {
-      if (signal.aborted) return;
-      if (statusOf(e) !== 401) console.error('Previewing a drop failed:', e);
-      setAll(() => ({ status: 'failed', attached: null, verdict: null }));
-    });
-}
-const previewRow = (what: Moving, term: Term) => previewRows(what, [term]);
-const previewAll = (what: Moving) => previewRows(what, board.value.map((row) => row.term));
-function stopPreview(): void {
-  previewAbort?.abort();
-  previewAbort = null;
-  previewOf = null;
-  previews.value = new Map();
-}
-
-/** The row a drop would land on now: the one under the pointer, or the lifted tile's target. */
-const hoverKey = computed(() => {
-  if (dropRow.value) return dropRow.value;
-  const l = lifted.value;
-  return l ? termKey(board.value[l.target]!.term) : null;
-});
-const hoverPreview = computed(() => (hoverKey.value ? (previews.value.get(hoverKey.value) ?? null) : null));
-const panelPreview = computed(() => {
-  const what = moving.value;
-  const key = hoverKey.value;
-  const row = key ? board.value.find((r) => termKey(r.term) === key) : undefined;
-  if (!what || !row || (homeOf(what) && termKey(homeOf(what)!) === key)) return null;
-  return { label: m.value.previewOf(movingTitle(what), nameOf(row.term)), attached: hoverPreview.value?.attached ?? null };
-});
-
-// ---------- What each row and tile shows, worked out once per change ----------
-interface TileView {
-  tile: Tile;
-  title: string;
-  label: string;
-  credits: number | null;
-  name: string | null;
-  group: string | null;
-  slot: boolean;
-  taken: string | null;
-  colour: GroupId | null;
-  /** The tile's issues in words, for its tooltip. */
-  tip: string;
-  classes: string[];
-  bad: boolean;
-  /** Violations, then flags. */
-  issues: PlanIssue[];
-  unknowns: PlanIssueCode[];
-}
-interface RowView {
-  row: Row;
-  key: string;
-  name: string;
-  summer: boolean;
-  now: boolean;
-  when: string;
-  load: { atLeast: boolean; caps: string; credits: number; max: number | null; delta: number } | null;
-  meter: { fill: number; from: number; to: number; min: number | null; minLabel: number | null; max: number; maxLabel: number } | null;
-  /** The meter's colour, from the engine's load issues for this row (with the drop made, while one is previewed). */
-  cap: 'under' | 'over' | 'ok' | '';
-  tone: string;
-  drop: { tone: string; reason: string } | null;
-  /** The dashed tile where a drop would land, while the pointer is over this row. */
-  placeholder: { title: string; credits: number | null; colour: GroupId | null } | null;
-  issues: PlanIssue[];
-  tiles: TileView[];
-}
-
-function capOf(issues: readonly PlanIssue[], credits: number): RowView['cap'] {
-  if (issues.some((i) => i.code === 'load_above_maximum')) return 'over';
-  if (issues.some((i) => i.code === 'load_below_minimum')) return 'under';
-  return credits > 0 ? 'ok' : '';
-}
-
-/** Issues the credit bar already shows (over or under the caps): the row gives them no words of its own. */
-const BAR_CODES: ReadonlySet<PlanIssue['code']> = new Set(['load_above_maximum', 'load_below_minimum']);
-
-const toneOf = (issues: readonly PlanIssue[]) => {
-  const kind = strongest(issues.filter((i) => i.kind !== 'unknown'));
-  return kind ? `has-${kind}` : '';
-};
-const gradeText = (n: number) => n.toLocaleString(locale.lang === 'vi' ? 'vi-VN' : 'en-GB', { maximumFractionDigits: 1 });
-
-function tileView(tile: Tile, termName: string): TileView {
-  const p = tile.placement;
-  const info = p.courseCode ? catalog.value.get(p.courseCode) : undefined;
-  const slotGroup = p.kind === 'slot' ? groupNames.value.get(p.requirementGroupId ?? '') : undefined;
-  const colour = info?.colour ?? (slotGroup ? groupColour(slotGroup) : null);
-  const all = issues.value?.byTile.get(tile.key) ?? [];
-  const title = tileTitle(tile);
-  const grade = p.courseCode ? gradeOf.value.get(p.courseCode) : undefined;
-  const tone = toneOf(all);
-  const shown = [...all.filter((i) => i.kind === 'violation'), ...all.filter((i) => i.kind === 'flag')];
-  const unknowns = all.filter((i) => i.kind === 'unknown').map((i) => i.code);
-  const tip = [...shown.map((i) => `${m.value.kinds[i.kind]}: ${m.value.issue[i.code](i, ctx.value)}`), ...(unknowns.length ? [m.value.unknownWhat(unknowns)] : [])].join('\n');
-  return {
-    tile,
-    title,
-    label: m.value.tileLabel(title, termName),
-    credits: p.kind === 'slot' ? (p.credits ?? null) : (info?.course.credits ?? null),
-    name: info ? courseName(info.course, locale.lang) : null,
-    group: colour ? shortName(colour) : null,
-    slot: p.kind === 'slot',
-    taken: grade === undefined ? null : m.value.takenBefore(gradeText(grade)),
-    colour,
-    tip,
-    classes: ['ptile', colour ? groupClass(colour) : 'g-none', p.kind === 'slot' ? 'slot' : '', tone],
-    bad: tone === 'has-violation',
-    issues: shown,
-    unknowns,
-  };
-}
-
-/** The meter runs a little past the maximum, so a load above it still shows. Drawing only: the engine compares. */
-function meter(load: PlanTermLoad | null, base: number): RowView['meter'] {
-  if (!load?.caps) return null;
-  const scale = load.caps.max + 6;
-  const pct = (n: number) => Math.max(0, Math.min(100, (n / scale) * 100));
-  return {
-    fill: pct(Math.min(base, load.credits)),
-    from: pct(Math.min(base, load.credits)),
-    to: pct(Math.max(base, load.credits)),
-    min: load.caps.min === null ? null : pct(load.caps.min),
-    minLabel: load.caps.min,
-    max: pct(load.caps.max),
-    maxLabel: load.caps.max,
-  };
-}
-
-function dropOf(key: string): RowView['drop'] {
-  const what = moving.value;
-  if (!what) return null;
-  const home = homeOf(what);
-  if (home && termKey(home) === key) return { tone: 'home', reason: '' };
-  const p = previews.value.get(key);
-  if (!p) return null;
-  if (p.status === 'loading') return { tone: 'checking', reason: m.value.dropChecking };
-  // No colour would read as "no problem": say the preview is missing. Pointing at the row asks again.
-  if (p.status === 'failed') return { tone: 'failed-drop', reason: m.value.dropFailed };
-  if (!p.verdict) return null;
-  const v = p.verdict;
-  // A load against the caps is shown by the bar alone; only another rule gets words.
-  const first = v.issues.find((i) => !BAR_CODES.has(i.code));
-  if (!v.kind) return { tone: 'ok-drop', reason: '' };
-  const tone = v.kind === 'violation' ? 'bad-drop' : v.kind === 'flag' ? 'warn-drop' : 'unknown-drop';
-  if (!first) return { tone, reason: '' };
-  const text = m.value.issue[first.code](first, ctx.value);
-  return { tone, reason: first.kind === 'unknown' ? m.value.dropUnknown(text) : text };
-}
-
-function rowView(row: Row): RowView {
-  const key = termKey(row.term);
-  const name = nameOf(row.term);
-  const rowIssues = issues.value?.byTerm.get(key) ?? [];
-  const base = issues.value?.loads.get(key) ?? null;
-  // While a drop is previewed, every row shows the load the engine reports for the board with the drop made.
-  const previewed = hoverPreview.value?.attached ? (hoverPreview.value.attached.loads.get(key) ?? (base ? { ...base, credits: 0 } : null)) : null;
-  const load = previewed ?? base;
-  // The engine reports a load with a course of unknown credits as a lower bound (load_not_checked).
-  const atLeast = rowIssues.some((i) => i.code === 'load_not_checked');
-  const baseCredits = base?.credits ?? 0;
-  return {
-    row,
-    key,
-    name,
-    summer: load?.kind === 'summer',
-    now: compareTerms(row.term, currentTermNow()) === 0 && inProgressNow.value.length > 0,
-    when: m.value.termMonths(row.term),
-    load: load && {
-      atLeast,
-      caps: load.caps ? m.value.caps(load.caps.min, load.caps.max) : m.value.capsUnknown,
-      credits: load.credits,
-      max: load.caps?.max ?? null,
-      delta: previewed ? load.credits - baseCredits : 0,
-    },
-    meter: meter(load, baseCredits),
-    cap: capOf(previewed ? (hoverPreview.value?.attached?.byTerm.get(key) ?? []) : rowIssues, load?.credits ?? 0),
-    tone: toneOf(rowIssues),
-    drop: dropOf(key),
-    placeholder: dropRow.value === key && movingInfo.value && !(moving.value && homeOf(moving.value) && termKey(homeOf(moving.value)!) === key) ? movingInfo.value : null,
-    issues: rowIssues,
-    tiles: row.tiles.map((tile) => tileView(tile, name)),
-  };
-}
-const rows = computed(() => board.value.map(rowView));
-
-// ---------- Actions ----------
-const announcement = ref('');
-function announce(text: string): void {
-  announcement.value = text;
-}
-const nameOf = (term: Term) => termName(term, locale.lang);
 
 async function focusTile(key: number): Promise<void> {
   await nextTick();
@@ -630,11 +158,6 @@ function moveBy(tile: Tile, step: -1 | 1): void {
   void focusTile(tile.key);
 }
 
-/**
- * Takes a tile out of the plan. From its button or the Delete key, focus goes to the tile beside it in the same term
- * (or the course search when the term is now empty) without scrolling, so the page stays where the student was; a
- * drop on the tray or the bin leaves the focus alone.
- */
 function remove(tile: Tile, moveFocus = true): void {
   const found = findTile(board.value, tile.key);
   const beside = found ? (found.row.tiles[found.index + 1] ?? found.row.tiles[found.index - 1]) : undefined;
@@ -645,9 +168,7 @@ function remove(tile: Tile, moveFocus = true): void {
 
 const query = ref('');
 const poolGroup = ref<GroupId | ''>('');
-const addTarget = ref('');
 const addTargetTerm = computed(() => board.value.find((row) => termKey(row.term) === addTarget.value)?.term ?? board.value[0]?.term ?? null);
-/** The tray: courses not placed, not in progress now, and not counted as passed by the engine's audit. */
 const unplaced = computed(() => {
   const placed = placedCodes(board.value);
   const now = new Set(inProgressNow.value.map((c) => c.code));
@@ -657,22 +178,7 @@ const poolGroups = computed(() => [...new Set(unplaced.value.map((c) => c.colour
 const shown = computed(() =>
   unplaced.value.filter(({ course, colour }) => (!poolGroup.value || colour === poolGroup.value) && matches(query.value, course.code, course.nameVi, course.nameEn)),
 );
-/**
- * One slot per elective group (ADR 0014: credits held before a course is chosen), at the credits most of its courses
- * carry. Drawing a default only: how many credits the group still needs is the engine's coverage.
- */
-const slotOffers = computed(() =>
-  requirementGroups.value
-    .filter((g) => g.kind === 'elective' && g.courses.length > 0)
-    .map((g) => {
-      const counts = new Map<number, number>();
-      for (const c of g.courses) counts.set(c.credits, (counts.get(c.credits) ?? 0) + 1);
-      const credits = [...counts].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]![0];
-      return { group: g, colour: groupColour(g), credits };
-    }),
-);
 
-/** Adds a course to a term; `from` is where its dragged copy was, so the tile lands from there. Returns its key. */
 function add(code: string, to: Term | null = addTargetTerm.value, from?: DOMRect): number | null {
   if (!to) return null;
   const key = newKey();
@@ -687,10 +193,8 @@ function addSlotTo(groupId: string, credits: number, to: Term | null = addTarget
   return key;
 }
 
-/**
- * An empty row is not stored (ADR 0014): adding one saves nothing, and a report of the board still describes it.
- * The page then scrolls by the new row's height, so the button stays under the pointer for the next click.
- */
+const scrollBehaviour = (): ScrollBehavior => (reducedMotion() ? 'auto' : 'smooth');
+
 async function addRow(event?: MouseEvent): Promise<void> {
   if (locked.value) return;
   const button = event?.currentTarget as HTMLElement | undefined;
@@ -702,73 +206,85 @@ async function addRow(event?: MouseEvent): Promise<void> {
   await nextTick();
   if (!button || top === undefined) return;
   const by = button.getBoundingClientRect().top - top;
-  if (by > 0) window.scrollBy({ top: by, behavior: reducedMotion() ? 'auto' : 'smooth' });
+  if (by > 0) window.scrollBy({ top: by, behavior: scrollBehaviour() });
 }
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Brings a tile into view and makes it shake and glow for a moment, so the eye finds it. */
 async function jumpTo(key: number): Promise<void> {
   await nextTick();
   const el = document.getElementById(`tile-${key}`);
   if (!el) return;
-  if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' });
+  if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center', behavior: scrollBehaviour() });
   el.focus({ preventScroll: true });
   ring(el, 'flash');
 }
-/** Plays a one-off animation class on an element again, even if it just played. */
 function ring(el: HTMLElement, cls: 'flash' | 'shake'): void {
   el.classList.remove(cls);
   void el.offsetWidth;
   el.classList.add(cls);
   el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
 }
+function shakeOnceLanded(key: number): void {
+  void nextTick(() => {
+    const el = document.getElementById(`tile-${key}`);
+    if (el) setTimeout(() => ring(el, 'shake'), FLIP_MS);
+  });
+}
 
-/** A passed course in the "Taken" strip: its place in the curriculum explorer. */
 function showInExplorer(code: string): void {
   void router.push({ name: 'explorer', query: { course: code } });
 }
 
-/** Brings a row into view as the keyboard picks it, as dragging near the edge does for the pointer. */
 async function revealRow(index: number): Promise<void> {
   await nextTick();
   const el = boardEl.value?.querySelectorAll<HTMLElement>('.trow')[index];
   if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-// Keyboard moves (UC-05 A1): Space lifts the focused tile, the arrows pick a row, Enter or Space drops, Escape cancels.
+function pickRow(tile: Tile, from: number, step: -1 | 1): void {
+  const target = Math.max(0, Math.min(board.value.length - 1, from + step));
+  lifted.value = { key: tile.key, target };
+  announce(m.value.liftTarget(tileTitle(tile), nameOf(board.value[target]!.term)));
+  if (moving.value) previewRow(moving.value, board.value[target]!.term);
+  void revealRow(target);
+}
+
+function dropLiftedOn(tile: Tile, target: number, rowIndex: number): void {
+  const to = board.value[target]!.term;
+  dropLifted();
+  if (target === rowIndex) announce(m.value.liftCancelled(tileTitle(tile)));
+  else change(moveTile(board.value, tile.key, to), m.value.moved(tileTitle(tile), nameOf(to)));
+  void focusTile(tile.key);
+}
+
+function liftedKey(event: KeyboardEvent, tile: Tile, target: number, rowIndex: number): boolean {
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') pickRow(tile, target, event.key === 'ArrowUp' ? -1 : 1);
+  else if (event.key === 'Enter' || event.key === ' ') dropLiftedOn(tile, target, rowIndex);
+  else if (event.key === 'Escape') {
+    dropLifted();
+    announce(m.value.liftCancelled(tileTitle(tile)));
+  } else return false;
+  return true;
+}
+
+function lift(tile: Tile, rowIndex: number): void {
+  lifted.value = { key: tile.key, target: rowIndex };
+  moving.value = { key: tile.key };
+  previewAll(moving.value);
+  announce(m.value.lifted(tileTitle(tile), nameOf(board.value[rowIndex]!.term)));
+}
+
+function restingKey(event: KeyboardEvent, tile: Tile, rowIndex: number): boolean {
+  if (event.key === ' ') lift(tile, rowIndex);
+  else if (event.key === 'Delete') remove(tile);
+  else return false;
+  return true;
+}
+
 function onTileKey(event: KeyboardEvent, tile: Tile, rowIndex: number): void {
   if (event.target !== event.currentTarget || locked.value) return;
-  const title = tileTitle(tile);
   const current = lifted.value?.key === tile.key ? lifted.value : null;
-  if (current) {
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-      const target = Math.max(0, Math.min(board.value.length - 1, current.target + (event.key === 'ArrowUp' ? -1 : 1)));
-      lifted.value = { key: tile.key, target };
-      announce(m.value.liftTarget(title, nameOf(board.value[target]!.term)));
-      if (moving.value) previewRow(moving.value, board.value[target]!.term);
-      void revealRow(target);
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      const to = board.value[current.target]!.term;
-      dropLifted();
-      if (current.target === rowIndex) announce(m.value.liftCancelled(title));
-      else change(moveTile(board.value, tile.key, to), m.value.moved(title, nameOf(to)));
-      void focusTile(tile.key);
-    } else if (event.key === 'Escape') {
-      dropLifted();
-      announce(m.value.liftCancelled(title));
-    } else return;
-    event.preventDefault();
-    return;
-  }
-  if (event.key === ' ') {
-    lifted.value = { key: tile.key, target: rowIndex };
-    moving.value = { key: tile.key };
-    previewAll(moving.value);
-    announce(m.value.lifted(title, nameOf(board.value[rowIndex]!.term)));
-  } else if (event.key === 'Delete') {
-    remove(tile);
-  } else return;
-  event.preventDefault();
+  const handled = current ? liftedKey(event, tile, current.target, rowIndex) : restingKey(event, tile, rowIndex);
+  if (handled) event.preventDefault();
 }
 function dropLifted(): void {
   lifted.value = null;
@@ -779,21 +295,12 @@ function onTileBlur(tile: Tile): void {
   if (lifted.value?.key === tile.key) dropLifted();
 }
 
-// Drag and drop with the pointer (drag.ts, as in the prototype): a tile, a course or a slot of the tray onto a row,
-// or a placed tile onto the tray or the bin to take it out of the plan. The ghost leans as it moves, the wheel scrolls
-// the page meanwhile, and near the top or bottom of the window the page scrolls by itself.
-const dragging = shallowRef<Moving | null>(null);
-const over = ref<DropTarget | null>(null);
-const dropRow = computed(() => (over.value?.startsWith('row:') ? over.value.slice(4) : null));
-const draggingPlaced = computed(() => !!dragging.value && 'key' in dragging.value);
-// Only the target row's verdict is read out, once it is known: every row showing one at a time would be a chorus.
 watch(
   () => (hoverKey.value ? (dropOf(hoverKey.value)?.reason ?? '') : ''),
   (reason) => {
     if (reason && reason !== m.value.dropChecking) announce(reason);
   },
 );
-// A row whose preview failed (the network, a busy server) asks again when the pointer comes over it.
 watch(
   () => (dragging.value ? over.value : null),
   (target) => {
@@ -815,20 +322,13 @@ const drag = pointerDrag<Moving>({
   },
   accepts(what, target) {
     if (target === 'pool' || target === 'bin') return 'key' in what;
-    const home = homeOf(what);
-    return !home || `row:${termKey(home)}` !== target;
+    return !target.startsWith('row:') || !isHome(board.value, what, target.slice(4));
   },
   drop(what, target, from) {
     const verdict = target.startsWith('row:') ? (previews.value.get(target.slice(4))?.verdict ?? null) : null;
     endDrag();
     const key = dropOn(what, target, from);
-    // A drop that breaks a rule still lands (ADR 0012); the tile shakes once it has landed, so the student sees it.
-    if (key !== null && verdict?.kind === 'violation') {
-      void nextTick(() => {
-        const el = document.getElementById(`tile-${key}`);
-        if (el) setTimeout(() => ring(el, 'shake'), 420);
-      });
-    }
+    if (key !== null && verdict?.kind === 'violation') shakeOnceLanded(key);
   },
   cancel() {
     endDrag();
@@ -846,11 +346,13 @@ function endDrag(): void {
     stopPreview();
   }
 }
-/** Applies a drop; returns the key of the tile it placed or moved, if any. */
+function takeOut(what: Moving): void {
+  const found = 'key' in what ? findTile(board.value, what.key) : undefined;
+  if (found) remove(found.row.tiles[found.index]!, false);
+}
 function dropOn(what: Moving, target: DropTarget, from: DOMRect): number | null {
   if (target === 'pool' || target === 'bin') {
-    const found = 'key' in what ? findTile(board.value, what.key) : undefined;
-    if (found) remove(found.row.tiles[found.index]!, false);
+    takeOut(what);
     return null;
   }
   const term = board.value.find((row) => `row:${termKey(row.term)}` === target)?.term;
@@ -863,44 +365,22 @@ function dropOn(what: Moving, target: DropTarget, from: DOMRect): number | null 
   return what.key;
 }
 
-/** What the placeholder in the row under the pointer shows: the course, its credits and its group colour. */
-const movingInfo = computed<{ title: string; credits: number | null; colour: GroupId | null } | null>(() => {
-  const what = moving.value;
-  if (!what) return null;
-  if ('code' in what) {
-    const info = catalog.value.get(what.code);
-    return { title: what.code, credits: info?.course.credits ?? null, colour: info?.colour ?? null };
-  }
-  if ('slot' in what) {
-    const group = groupNames.value.get(what.slot);
-    return { title: movingTitle(what), credits: what.credits, colour: group ? groupColour(group) : null };
-  }
-  const found = findTile(board.value, what.key);
-  if (!found) return null;
-  const view = tileView(found.row.tiles[found.index]!, '');
-  return { title: view.title, credits: view.credits, colour: view.colour };
-});
-
-// ---------- The issues panel, open or collapsed (kept for the next visit) ----------
 const RAIL_KEY = 'oc-planner-rail';
-const readRail = () => {
+function readRail(): boolean {
   try {
     return localStorage.getItem(RAIL_KEY) === 'mini';
   } catch {
     return false;
   }
-};
+}
 const collapsed = ref(readRail());
 function toggleRail(): void {
   collapsed.value = !collapsed.value;
   try {
     localStorage.setItem(RAIL_KEY, collapsed.value ? 'mini' : 'open');
-  } catch {
-    // Not kept: private mode or storage blocked.
-  }
+  } catch {}
 }
 
-// ---------- What-if: try a change on a copy ----------
 const tabs = ref<InstanceType<typeof PlanTabs> | null>(null);
 function whatIf(): void {
   if (plan.value) void tabs.value?.copy(m.value.whatIfName(plan.value.name));
@@ -1237,7 +717,6 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .back-link:hover { color: var(--ink); }
 .btn.lock-on { background: color-mix(in oklab, var(--info) 12%, var(--surface)); border-color: color-mix(in oklab, var(--info) 45%, var(--edge)); color: color-mix(in oklab, var(--info) 80%, var(--ink)); }
 .lock-note { display: flex; align-items: center; gap: 8px; }
-/* Locked: nothing to grab, add or remove. */
 .planner-main.is-locked .pcourse, .planner-main.is-locked .ptile { cursor: default; }
 .planner-main.is-locked .pcourse:hover, .planner-main.is-locked .ptile:hover { transform: none; box-shadow: none; }
 .planner-main.is-locked .ptile-acts, .planner-main.is-locked .add-btn, .planner-main.is-locked .add-row { display: none; }
@@ -1251,7 +730,6 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .planner-main { display: grid; gap: 14px; min-width: 0; }
 .planner-layout .issues-panel { position: sticky; top: 20px; max-height: calc(100vh - 40px); }
 
-/* The course list (the prototype's "Kho môn") */
 .tray { position: relative; padding: 14px 16px 16px; display: grid; gap: 12px; transition: background 0.2s, box-shadow 0.2s, border-color 0.2s; }
 .tray-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .tray-head h2 { font-size: 17px; }
@@ -1272,7 +750,6 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .slot-offers { display: grid; gap: 6px; }
 .slot-offers h3 { font-weight: 650; }
 
-/* Course tiles, as in the prototype: white with a bar in the group colour, a pill for the credits */
 .pcourse, .ptile {
   position: relative; display: grid; gap: 4px; align-content: start; min-width: 0; padding: 9px 11px 9px 15px; border-radius: 10px;
   background: var(--surface); color: var(--ink); border: 1px solid var(--edge-strong); text-align: left;
@@ -1285,7 +762,6 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .pcourse .top, .ptile .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .pcourse .k, .ptile .k, .tile-ph .k { font: 700 12px var(--mono); letter-spacing: 0.02em; opacity: 0.9; }
 .pcourse .cr, .ptile .cr { font: 650 11.5px var(--display); padding: 1px 7px; border-radius: 999px; background: var(--c, var(--surface-3)); color: var(--on, var(--ink)); white-space: nowrap; }
-/* One size for every card: two lines of name at most, one line under it. */
 .pcourse, .ptile, .tile-ph { height: var(--tile-h, 102px); }
 .pcourse, .ptile-body { grid-template-rows: auto minmax(0, 1fr) auto; }
 .ptile-body { height: 100%; }
@@ -1334,9 +810,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .ptile-acts button:disabled { opacity: 0.35; cursor: default; }
 @media (hover: none) { .ptile-acts { opacity: 1; transform: none; pointer-events: auto; } }
 
-/* The dragged copy and the place it would land */
 .ghost-tile {
-  /* No transition: the tile's own hover easing would make the copy trail the pointer and smooth away its lean. */
   transition: none !important;
   position: fixed; left: 0; top: 0; z-index: 95; margin: 0; list-style: none; pointer-events: none; box-shadow: var(--shadow-lg);
   will-change: transform; transform-origin: 40% 50%; animation: lift 0.2s ease-out;
@@ -1352,7 +826,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .tile-ph .cr { font: 700 16px var(--display); letter-spacing: -0.01em; }
 @keyframes ph-in { from { opacity: 0; transform: scale(0.85); } }
 
-/* Term rows: the term, its load and meter on the left, its tiles on the right */
 .rows { display: grid; gap: 10px; }
 .trow {
   position: relative; display: grid; grid-template-columns: 228px minmax(0, 1fr); gap: 20px; align-items: start;
@@ -1387,7 +860,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .row-enter-active { transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .row-enter-from { opacity: 0; transform: translateY(-10px) scale(0.99); }
 
-/* Credit meter: ticks at the minimum and the maximum; a pulsing segment for what a drop would add or take away */
 .cap { position: relative; padding-bottom: 16px; margin-top: 2px; }
 .cap .track { display: block; position: relative; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .cap .fill, .cap .pre { position: absolute; top: 0; bottom: 0; left: 0; transition: width 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), left 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.25s; }
@@ -1404,7 +876,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 @keyframes grow { from { width: 0; } }
 @keyframes pre-pulse { from { opacity: 0.35; } to { opacity: 0.75; } }
 
-/* Each row while a course is dragged: green or red with the engine's reason, shown on the row under the pointer */
 .drop-reason {
   display: none; align-items: flex-start; gap: 6px; margin: 0; padding: 6px 10px; border-radius: 10px;
   font-size: 12px; font-weight: 650; line-height: 1.4; background: var(--surface-2); color: var(--ink-2);
@@ -1430,7 +901,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 @keyframes rise { from { opacity: 0; transform: translateY(-4px); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* A term's own issues: a short title each, the words in the tooltip */
 .row-issues { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
 .ri { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 12px; font-weight: 650; cursor: help; }
 .ri .icon { width: 13px; height: 13px; }
@@ -1438,7 +908,6 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .ri.flag { background: color-mix(in oklab, var(--warn) 14%, var(--surface)); color: color-mix(in oklab, var(--warn) 76%, var(--ink)); }
 .ri.unknown { background: transparent; border: 1px dashed var(--edge-strong); color: var(--ink-3); }
 
-/* The bin: drop a placed course on it to send it back to the course list */
 .drop-bin {
   position: fixed; left: 50%; bottom: 24px; z-index: 96; transform: translateX(-50%); display: flex; align-items: center; gap: 12px;
   padding: 12px 22px 12px 12px; border-radius: 18px; background: var(--surface); border: 2px dashed var(--edge-strong); box-shadow: var(--shadow-lg);

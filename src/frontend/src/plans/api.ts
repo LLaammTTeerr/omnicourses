@@ -3,27 +3,18 @@ import { requestAsUser } from '../auth/store.js';
 import type { RequirementGroupKind, TrainingType } from '../curriculum/api.js';
 import type { Term } from '../terms.js';
 
-// The plans DTOs of the API (F5, UC-05, ADR 0014) and the rule engine's report on a plan (ADR 0013), written by hand;
-// api.spec.ts checks them against src/backend/openapi.json. The plans API stores placements and judges none of them;
-// every issue, load and cap shown in the planner comes from GET /plans/{id}/issues (AGENTS.md hard rule 1).
-
 export const PLACEMENT_KINDS = ['course', 'slot'] as const;
 export type PlacementKind = (typeof PLACEMENT_KINDS)[number];
 
-/** One tile of a plan: a catalog course, or credits held for a requirement group before a course is chosen. */
 export interface Placement {
   kind: PlacementKind;
-  /** Set for a course, null for a slot. */
   courseCode?: string | null;
-  /** Set for a slot, null for a course. */
   requirementGroupId?: string | null;
-  /** A slot's credits; null for a course, whose credits are the catalog's. */
   credits?: number | null;
 }
 
 export interface PlanTerm {
   term: Term;
-  /** In order. A term with nothing placed is never stored, and the API refuses one sent empty. */
   placements: Placement[];
 }
 
@@ -37,22 +28,18 @@ export interface PlanCurriculum {
 export interface PlanSummary {
   id: string;
   name: string;
-  /** Fixed when the plan is created (ADR 0014). */
   curriculum: PlanCurriculum;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Plan extends PlanSummary {
-  /** Oldest first. */
   terms: PlanTerm[];
 }
 
-/** What the plans list shows of a plan without opening it. */
 export interface PlanPreview {
   termCount: number;
   courseCount: number;
-  /** Elective slots: credits held for a group before a course is chosen. */
   slotCount: number;
   firstTerm: Term | null;
   lastTerm: Term | null;
@@ -63,7 +50,6 @@ export interface PlanListItem extends PlanSummary {
 }
 
 export interface PlanList {
-  /** Oldest first. */
   plans: PlanListItem[];
 }
 
@@ -92,16 +78,13 @@ export const PLAN_ISSUE_CODES = [
 ] as const;
 export type PlanIssueCode = (typeof PLAN_ISSUE_CODES)[number];
 
-/** violation: breaks a rule. flag: allowed, worth a look. unknown: the data is not recorded, so neither pass nor fail. */
 export const PLAN_ISSUE_KINDS = ['violation', 'flag', 'unknown'] as const;
 export type PlanIssueKind = (typeof PLAN_ISSUE_KINDS)[number];
 
 export interface PlanIssue {
   code: PlanIssueCode;
   kind: PlanIssueKind;
-  /** null: a coverage issue, about the whole plan. */
   term: Term | null;
-  /** The placement's index in its term's placements; null for a term or coverage issue. */
   position: number | null;
   courseCode: string | null;
   requirementGroupId: string | null;
@@ -110,9 +93,7 @@ export interface PlanIssue {
   offeredTermNumbers: number[];
   credits: number | null;
   limit: number | null;
-  /** Where the rule comes from, such as "QĐ 1175/QĐ-KHTN Điều 7.2". */
   citation: string;
-  /** English only; the planner words the code itself. */
   message: string;
 }
 
@@ -126,10 +107,8 @@ export type TermKind = (typeof TERM_KINDS)[number];
 
 export interface PlanTermLoad {
   term: Term;
-  /** null: the program's training type is not recorded. */
   kind: TermKind | null;
   credits: number;
-  /** null: not recorded. */
   caps: CreditCaps | null;
 }
 
@@ -164,9 +143,7 @@ export interface PlanCoverage {
 export interface PlanIssues {
   planId: string;
   trainingType: TrainingType | null;
-  /** The plan's terms, oldest first. */
   terms: PlanTermLoad[];
-  /** By term, oldest first; coverage issues last. */
   issues: PlanIssue[];
   coverage: PlanCoverage;
 }
@@ -175,25 +152,20 @@ const path = (id: string) => `/plans/${segment(id)}`;
 
 export const fetchPlans = () => requestAsUser<PlanList>('GET', '/plans');
 
-/** 400: no curriculum for this program and cohort. */
 export const createPlan = (body: CreatePlanBody) => requestAsUser<Plan>('POST', '/plans', { body });
 
-/** 404: no such plan among the student's own. */
 export const fetchPlan = (id: string) => requestAsUser<Plan>('GET', path(id));
 
 export const renamePlan = (id: string, name: string) => requestAsUser<Plan>('PATCH', path(id), { body: { name } });
 
-/** The new copy, named `name`; the original is unchanged. */
 export const duplicatePlan = (id: string, name: string) => requestAsUser<Plan>('POST', `${path(id)}/duplicate`, { body: { name } });
 
 export const deletePlan = (id: string) => requestAsUser<void>('DELETE', path(id));
 
-/** Replaces every placement; terms with nothing placed must be left out. */
 export const savePlacements = (id: string, terms: PlanTerm[]) => requestAsUser<Plan>('PUT', `${path(id)}/placements`, { body: { terms } });
 
 export const fetchPlanIssues = (id: string) => requestAsUser<PlanIssues>('GET', `${path(id)}/issues`);
 
-/** One placement tried on several terms: `terms` is the board without it (a moved tile taken out first). */
 export interface PlanDropPreview {
   terms: PlanTerm[];
   placement: Placement;
@@ -204,14 +176,11 @@ export interface PlanDropReport {
   issues: PlanIssues;
 }
 export interface PlanDropReports {
-  /** One per target, in the order sent. */
   reports: PlanDropReport[];
 }
 
-/** The drag preview in one request: the engine's report on the board with the placement at the end of each target. */
 export const previewPlanDrops = (id: string, body: PlanDropPreview, signal?: AbortSignal) =>
   requestAsUser<PlanDropReports>('POST', `${path(id)}/issues/drops`, { body, signal });
 
-/** The rule engine's report on `terms` in place of the saved board; nothing is saved (the drag preview). */
 export const previewPlanIssues = (id: string, terms: PlanTerm[], signal?: AbortSignal) =>
   requestAsUser<PlanIssues>('POST', `${path(id)}/issues`, { body: { terms }, signal });

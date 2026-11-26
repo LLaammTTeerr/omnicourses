@@ -40,7 +40,6 @@ const summary = { id: 'required', name: 'required', curriculum: 'required', crea
 describe('plan types against the contract (F5, ADR 0014)', () => {
   it.each([
     ['PlanCurriculumDto', { id: 'required', code: 'required', programCode: 'required', cohortYear: 'required' } satisfies Shape<PlanCurriculum>],
-    // PlanSummaryDto has no schema of its own: every route answers with a type that extends it.
     ['PlanListItemDto', { ...summary, preview: 'required' } satisfies Shape<PlanListItem>],
     ['PlanPreviewDto', { termCount: 'required', courseCount: 'required', slotCount: 'required', firstTerm: 'required', lastTerm: 'required' } satisfies Shape<PlanPreview>],
     ['PlanDto', { ...summary, terms: 'required' } satisfies Shape<Plan>],

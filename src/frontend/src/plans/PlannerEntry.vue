@@ -10,9 +10,6 @@ import { createPlan, fetchPlans } from './api.js';
 import { readLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-// The planner's front door (/plans): it opens a plan straight away. The one the student had open last, else their
-// first; a student with none gets a "Default plan" on their program and cohort. Without a program, or when the plans
-// cannot be read, the plans list says what to do. The list itself lives at /plans/all.
 const onboarding = useOnboarding();
 const router = useRouter();
 const m = useMessages(PLANNER_MESSAGES);
