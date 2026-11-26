@@ -1,6 +1,7 @@
+import { getMetadataArgsStorage } from 'typeorm';
 import { describe, expect, it } from 'vitest';
-import type { GlobalPermission } from './admin-grant.entities.js';
-import { missingPermission } from './grant-scope.js';
+import { GLOBAL_PERMISSIONS, GlobalAdminGrant, type GlobalPermission } from './admin-grant.entities.js';
+import { missingPermission } from './grants.js';
 
 const APCS = '00000000-0000-4000-8000-00000000000a';
 const CLC = '00000000-0000-4000-8000-00000000000c';
@@ -29,5 +30,12 @@ describe('missingPermission (ADR 0011 grant scoping)', () => {
     expect(missingPermission(grants([], ['catalog_maintainer']), { program: APCS })).toBe('program_admin');
     expect(missingPermission(grants([], ['catalog_maintainer']), { permission: 'access_manager' })).toBe('access_manager');
     expect(missingPermission(grants([], ['catalog_maintainer']), { permission: 'catalog_maintainer' })).toBeNull();
+  });
+});
+
+describe('ck_global_admin_grants_permission', () => {
+  it('allows exactly the permissions the API grants', () => {
+    const check = getMetadataArgsStorage().checks.find((c) => c.target === GlobalAdminGrant && c.name === 'ck_global_admin_grants_permission');
+    expect(check?.expression).toBe(`"permission" IN (${GLOBAL_PERMISSIONS.map((permission) => `'${permission}'`).join(', ')})`);
   });
 });

@@ -7,7 +7,7 @@ import { addMonths, isOutOfDate, OUT_OF_DATE_MONTHS } from '../out-of-date.js';
 // databases only. Never put them in ../content/. Each title holds its ID, so a search finds it.
 
 /** The oldest last-checked date still fresh on `today`: 6 months back, or a little later when that month is shorter. */
-export function oldestFreshDate(today: string): string {
+function oldestFreshDate(today: string): string {
   let date = addMonths(today, -OUT_OF_DATE_MONTHS);
   while (isOutOfDate(date, today)) date = addDays(date, 1);
   return date;

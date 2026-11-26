@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { notFound, validationFailed } from '../common/api-errors.js';
-import { nullIfBlank, yearOf } from '../common/field-validators.js';
+import { nullIfBlank, sentFields, yearOf } from '../common/field-validators.js';
 import { Program } from '../curriculum/program.entity.js';
 import { AdminWriteService } from '../curriculum-admin/admin-write.service.js';
+import { OnboardingService } from '../onboarding/onboarding.service.js';
+import type { TermNumber } from '../terms/term.js';
 import { AcademicCalendarEvent, type CalendarEventKind } from './academic-calendar-event.entity.js';
 import {
   AcademicCalendarDto,
@@ -15,7 +17,7 @@ import {
 } from './academic-calendar.dto.js';
 
 /** The stored fields a range and year check needs. */
-export interface EventDates {
+interface EventDates {
   academicYear: number;
   startsOn: string;
   endsOn: string;
@@ -41,7 +43,7 @@ export interface CalendarEventStart {
   id: string;
   programCode: string;
   academicYear: number;
-  term: 1 | 2 | 3 | null;
+  term: TermNumber | null;
   kind: CalendarEventKind;
   startsOn: string;
   endsOn: string;
@@ -49,7 +51,11 @@ export interface CalendarEventStart {
   titleEn: string | null;
 }
 
-export function eventDto(e: AcademicCalendarEvent): AcademicCalendarEventDto {
+const EVENT_FIELDS = ['academicYear', 'term', 'kind', 'startsOn', 'endsOn', 'title', 'titleEn', 'sourceUrl', 'notes'] as const;
+
+const OPTIONAL_TEXT = { titleEn: nullIfBlank, sourceUrl: nullIfBlank, notes: nullIfBlank };
+
+function eventDto(e: AcademicCalendarEvent): AcademicCalendarEventDto {
   return {
     id: e.id,
     academicYear: e.academicYear,
@@ -75,12 +81,13 @@ export class AcademicCalendarService {
   constructor(
     private readonly db: DataSource,
     private readonly writes: AdminWriteService,
+    private readonly onboarding: OnboardingService,
   ) {}
 
   /** The calendar of `query.program`, or of the caller's onboarding program when absent. */
   async list(callerId: string, query: AcademicCalendarQueryDto): Promise<AcademicCalendarDto> {
     if (query.from && query.to && query.to < query.from) throw validationFailed(`to: ${query.to} is before from ${query.from}`);
-    const code = query.program ?? (await this.onboardingProgram(callerId));
+    const code = query.program ?? (await this.onboarding.answersFor(callerId)).program;
     if (!code) return { program: null, events: [] };
     const program = await this.db.getRepository(Program).findOneBy({ code });
     if (!program) {
@@ -89,16 +96,16 @@ export class AcademicCalendarService {
       if (query.program) throw notFound(`No program with code ${query.program}`);
       return { program: null, events: [] };
     }
-    const qb = this.db
+    const events = this.db
       .getRepository(AcademicCalendarEvent)
       .createQueryBuilder('e')
       .where('e.programId = :programId', { programId: program.id });
-    if (query.academicYear !== undefined) qb.andWhere('e.academicYear = :year', { year: query.academicYear });
+    if (query.academicYear !== undefined) events.andWhere('e.academicYear = :year', { year: query.academicYear });
     // Overlap with [from, to]: a window that started before `from` but is still open counts.
-    if (query.from) qb.andWhere('e.endsOn >= :from', { from: query.from });
-    if (query.to) qb.andWhere('e.startsOn <= :to', { to: query.to });
-    const events = await qb.orderBy('e.startsOn', 'ASC').addOrderBy('e.endsOn', 'ASC').addOrderBy('e.title', 'ASC').addOrderBy('e.id', 'ASC').getMany();
-    return { program: programDto(program), events: events.map(eventDto) };
+    if (query.from) events.andWhere('e.endsOn >= :from', { from: query.from });
+    if (query.to) events.andWhere('e.startsOn <= :to', { to: query.to });
+    const found = await events.orderBy('e.startsOn', 'ASC').addOrderBy('e.endsOn', 'ASC').addOrderBy('e.title', 'ASC').addOrderBy('e.id', 'ASC').getMany();
+    return { program: programDto(program), events: found.map(eventDto) };
   }
 
   /**
@@ -160,16 +167,7 @@ export class AcademicCalendarService {
       const dates = { academicYear: dto.academicYear ?? event.academicYear, startsOn: dto.startsOn ?? event.startsOn, endsOn: dto.endsOn ?? event.endsOn };
       const problem = datesProblem(dates);
       if (problem) throw validationFailed(problem);
-      const patch: Partial<AcademicCalendarEvent> = {};
-      if (dto.academicYear !== undefined) patch.academicYear = dto.academicYear;
-      if (dto.term !== undefined) patch.term = dto.term;
-      if (dto.kind !== undefined) patch.kind = dto.kind;
-      if (dto.startsOn !== undefined) patch.startsOn = dto.startsOn;
-      if (dto.endsOn !== undefined) patch.endsOn = dto.endsOn;
-      if (dto.title !== undefined) patch.title = dto.title;
-      if (dto.titleEn !== undefined) patch.titleEn = nullIfBlank(dto.titleEn);
-      if (dto.sourceUrl !== undefined) patch.sourceUrl = nullIfBlank(dto.sourceUrl);
-      if (dto.notes !== undefined) patch.notes = nullIfBlank(dto.notes);
+      const patch = sentFields(EVENT_FIELDS, dto, OPTIONAL_TEXT) as Partial<AcademicCalendarEvent>;
       const repo = em.getRepository(AcademicCalendarEvent);
       // update() also sets updated_at.
       if (Object.keys(patch).length) await repo.update({ id: eventId }, { ...patch, updatedBy: callerId });
@@ -182,11 +180,6 @@ export class AcademicCalendarService {
       await eventIn(em, programId, eventId);
       await em.getRepository(AcademicCalendarEvent).delete({ id: eventId });
     });
-  }
-
-  private async onboardingProgram(userId: string): Promise<string | null> {
-    const rows: { program_code: string | null }[] = await this.db.query('SELECT "program_code" FROM "onboarding_answers" WHERE "user_id" = $1', [userId]);
-    return rows[0]?.program_code ?? null;
   }
 }
 

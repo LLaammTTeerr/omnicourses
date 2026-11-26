@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogColumn, CsvRow } from './csv-file.js';
-import { checkCatalogRow } from './csv-import.service.js';
+import { impactVersion } from './catalog-admin.service.js';
+import { catalogReviewVersion, checkCatalogRow, linksReviewVersion } from './csv-import.service.js';
 import { MAX_INTEGER, wholeNumberOrText } from './curriculum-admin.dto.js';
 
 const row = (values: Partial<Record<CatalogColumn, string>>): CsvRow<CatalogColumn> => ({
@@ -54,5 +55,34 @@ describe('checkCatalogRow', () => {
     const long = await checkCatalogRow(row({ name_vi: 'x'.repeat(256), name_en: 'y'.repeat(256) }));
     expect(long.errors.map((e) => e.field)).toEqual(['name_vi', 'name_en']);
     expect([long.code, long.values]).toEqual(['ZZ101', null]);
+  });
+});
+
+describe('review versions: the values from before the refactor, so a file previewed before a deploy still confirms after it', () => {
+  const current = { nameVi: 'Học phần thử', nameEn: null, credits: 4, theoryPeriods: 30, labPeriods: 0, exercisePeriods: 0, projectPeriods: 0 };
+  const proposed = { ...current, credits: 3, nameEn: 'Trial Course' };
+  const affected = ['00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000c2'].map((curriculumId) => ({ curriculumId, curriculumCode: 'ZZ', programCode: 'ZZ', cohortYear: 2024 }));
+  const impact = 'oNYs1fxh3MFOA5MEaqw_XjoX9_ln7ZxZK0eYPmRRqE8';
+
+  it('keeps the version of a shared-course change', () => {
+    expect(impactVersion('ZZ101', current, proposed, affected)).toBe(impact);
+  });
+
+  it('keeps the version of a catalog courses file', () => {
+    const rows = [
+      { code: 'ZZ101', values: proposed, action: 'update' as const, impactVersion: impact },
+      { code: 'ZZ102', values: current, action: 'insert' as const, impactVersion: null },
+      { code: 'ZZ103', values: current, action: 'no_op' as const, impactVersion: null },
+    ];
+    expect(catalogReviewVersion('f12-structural-1', rows)).toBe('LmAxdUO13TXHORF1QD1qAEZm31HJPqySO_KDF55M7qY');
+  });
+
+  it('keeps the version of a group-links file', () => {
+    const group = '00000000-0000-4000-8000-0000000000a1';
+    const rows = [
+      { groupName: 'Nhóm thử', groupId: group, code: 'ZZ101', action: 'insert' as const },
+      { groupName: 'Nhóm thử', groupId: group, code: 'ZZ102', action: 'no_op' as const },
+    ];
+    expect(linksReviewVersion('f12-structural-1', '00000000-0000-4000-8000-0000000000p1', '00000000-0000-4000-8000-0000000000c1', rows)).toBe('Tsc6Rxo6GM2zCBpKywA9L3_1m84HNCgk4c1w730wGCQ');
   });
 });

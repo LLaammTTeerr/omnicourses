@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HttpError } from '../api.js';
 import { byField, readFailure, readReference } from './errors.js';
 import { ADMIN_MESSAGES } from './messages.js';
+import references from '../../../backend/test/fixtures/admin-references.json';
 
 const answer = (status: number, body: Record<string, unknown> | null) =>
   new HttpError('/admin/x', status, 'PUT', typeof body?.message === 'string' ? [body.message] : ((body?.message as string[] | undefined) ?? []), typeof body?.code === 'string' ? body.code : null, body);
@@ -122,6 +123,10 @@ describe('readReference', () => {
     ['saved plans use it', { kind: 'group_plans', count: null }],
   ])('reads "%s"', (text, reference) => {
     expect(readReference(text)).toEqual(reference);
+  });
+
+  it.each(references)('reads "%s", a sentence the API builds', (text) => {
+    expect(readReference(text).kind).not.toBe('other');
   });
 
   it('keeps a sentence it does not know as the API wrote it', () => {

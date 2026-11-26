@@ -2,8 +2,7 @@ import { applyDecorators, ForbiddenException, Injectable } from '@nestjs/common'
 import { ApiBadRequestResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiProperty } from '@nestjs/swagger';
 import { DataSource, EntityManager } from 'typeorm';
 import { AdminErrorDto } from '../common/api-errors.js';
-import type { GlobalPermission } from './admin-grant.entities.js';
-import { type Grants, missingPermission, type Need, type PermissionKind } from './grant-scope.js';
+import { grantsOf, missingPermission, type Need, type PermissionKind } from './grants.js';
 
 export class PermissionRequiredDto extends AdminErrorDto {
   @ApiProperty({ enum: ['program_admin', 'catalog_maintainer', 'access_manager'], description: 'The grant the caller lacks' })
@@ -32,7 +31,7 @@ export const AdminErrors = ({ notFound = true }: { notFound?: boolean } = {}) =>
  * catalog and grant mutation and the bootstrap take it, so a check and the write it guards see
  * the same data. A transaction-scoped advisory lock: released at commit or rollback.
  */
-export const ADMIN_WRITE_LOCK = 11_012_001;
+const ADMIN_WRITE_LOCK = 11_012_001;
 
 /** Locks the F12 writers, then the given users in UUID order, inside `em`'s transaction. */
 export async function lockAdminWrite(em: EntityManager, userIds: string[]): Promise<{ id: string; deletionRequestedAt: Date | null }[]> {
@@ -40,12 +39,6 @@ export async function lockAdminWrite(em: EntityManager, userIds: string[]): Prom
   const ids = [...new Set(userIds)].sort();
   // NO KEY UPDATE: a concurrent deletion request on these users waits for this write.
   return em.query(`SELECT "id", "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = ANY($1::uuid[]) ORDER BY "id" FOR NO KEY UPDATE`, [ids]);
-}
-
-export async function grantsOf(em: EntityManager, userId: string): Promise<Grants> {
-  const programs: { program_id: string }[] = await em.query('SELECT "program_id" FROM "program_admin_grants" WHERE "user_id" = $1', [userId]);
-  const globals: { permission: GlobalPermission }[] = await em.query('SELECT "permission" FROM "global_admin_grants" WHERE "user_id" = $1', [userId]);
-  return { programIds: new Set(programs.map((r) => r.program_id)), permissions: new Set(globals.map((r) => r.permission)) };
 }
 
 /** Refuses a caller who is gone or waiting for deletion, or who lacks the grant `need` names. */
@@ -61,9 +54,17 @@ async function assertMay(em: EntityManager, caller: { deletionRequestedAt: Date 
 export class AdminWriteService {
   constructor(private readonly db: DataSource) {}
 
-  async run<T>(callerId: string, need: Need, write: (em: EntityManager) => Promise<T>, otherUserIds: string[] = []): Promise<T> {
+  run<T>(callerId: string, need: Need, write: (em: EntityManager) => Promise<T>): Promise<T> {
+    return this.runLocked(callerId, [], need, write);
+  }
+
+  runForRecipient<T>(callerId: string, recipientId: string, write: (em: EntityManager) => Promise<T>): Promise<T> {
+    return this.runLocked(callerId, [recipientId], { permission: 'access_manager' }, write);
+  }
+
+  private async runLocked<T>(callerId: string, recipientIds: string[], need: Need, write: (em: EntityManager) => Promise<T>): Promise<T> {
     return this.db.transaction(async (em) => {
-      const users = await lockAdminWrite(em, [callerId, ...otherUserIds]);
+      const users = await lockAdminWrite(em, [callerId, ...recipientIds]);
       await assertMay(em, users.find((u) => u.id === callerId), callerId, need);
       return write(em);
     });

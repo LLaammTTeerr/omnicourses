@@ -5,7 +5,7 @@ import { addDays } from '../config/time.js';
 // A notification is a kind and data, never a sentence: the screen words it in both languages.
 
 /** The notifications that announce a school date. */
-export const CALENDAR_NOTIFICATION_KINDS = ['registration_soon', 'registration_open', 'term_start'] as const;
+const CALENDAR_NOTIFICATION_KINDS = ['registration_soon', 'registration_open', 'term_start'] as const;
 export type CalendarNotificationKind = (typeof CALENDAR_NOTIFICATION_KINDS)[number];
 
 /**
@@ -15,9 +15,11 @@ export type CalendarNotificationKind = (typeof CALENDAR_NOTIFICATION_KINDS)[numb
  */
 export const NOTIFICATION_KINDS = [...CALENDAR_NOTIFICATION_KINDS, 'transcript_changed'] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+export const NOTIFICATION_KIND_DOC =
+  'registration_soon: a registration window opens in seven days; registration_open: it opens today; term_start: a term starts today; transcript_changed: the student saved a transcript that differs from the one saved before';
 
 /** How many days before a registration window opens the first notification is made. */
-export const REGISTRATION_SOON_DAYS = 7;
+const REGISTRATION_SOON_DAYS = 7;
 
 /** The kinds of school date (ADR 0017) that make a notification. `add_drop` makes none in B2. */
 export const NOTIFYING_EVENT_KINDS = ['registration', 'term_start'] as const satisfies readonly CalendarEventKind[];

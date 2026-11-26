@@ -3,10 +3,14 @@ import { Transform } from 'class-transformer';
 import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy } from 'class-validator';
 import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import { TERM_NUMBERS } from '../terms/term.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
 
 // Request and response shapes of F12 (ADR 0011). Requests go through StrictBody: a field not
 // declared here (an identifier, a parent, a gated credit total) is a 400, never ignored.
+
+export const NAME_MAX_LENGTH = 255;
+const MAX_PREREQUISITES = 50;
 
 // ---- Programs the caller administers -------------------------------------------------------
 
@@ -43,12 +47,12 @@ export class AdminProgramListDto {
 // ---- Requirement groups --------------------------------------------------------------------
 
 export class CreateRequirementGroupDto {
-  @ApiProperty({ example: 'Kiến thức Math', maxLength: 255, description: 'The heading as printed; unique within the curriculum' })
+  @ApiProperty({ example: 'Kiến thức Math', maxLength: NAME_MAX_LENGTH, description: 'The heading as printed; unique within the curriculum' })
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   name!: string;
 
   @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS })
@@ -63,13 +67,13 @@ export class CreateRequirementGroupDto {
 }
 
 export class UpdateRequirementGroupDto {
-  @ApiProperty({ required: false, maxLength: 255 })
+  @ApiProperty({ required: false, maxLength: NAME_MAX_LENGTH })
   @ifPresent
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   name?: string;
 
   @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS, required: false, description: 'Refused while the group stores a credit total' })
@@ -119,7 +123,7 @@ export class SetPrerequisitesDto {
     description: 'Every course that must be passed first; [] records "none". Codes are trimmed and upper-cased, then must be courses of this curriculum.',
   })
   @IsArray()
-  @ArrayMaxSize(50)
+  @ArrayMaxSize(MAX_PREREQUISITES)
   @IsString({ each: true })
   prerequisites!: string[];
 }
@@ -138,7 +142,7 @@ export class SetOfferingTermsDto {
   @ArrayNotEmpty()
   @ArrayUnique()
   @IsInt({ each: true })
-  @IsIn([1, 2, 3], { each: true })
+  @IsIn(TERM_NUMBERS, { each: true })
   terms!: number[];
 }
 
@@ -181,20 +185,20 @@ export class CreateCourseDto {
   @IsString()
   code!: string;
 
-  @ApiProperty({ maxLength: 255 })
+  @ApiProperty({ maxLength: NAME_MAX_LENGTH })
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameEn?: string | null;
 
   @ApiProperty({ minimum: 1, maximum: MAX_INTEGER })
@@ -237,21 +241,21 @@ export const COURSE_FIELDS = ['nameVi', 'nameEn', 'credits', 'theoryPeriods', 'l
 export type CourseField = (typeof COURSE_FIELDS)[number];
 
 export class UpdateCourseDto {
-  @ApiProperty({ required: false, maxLength: 255 })
+  @ApiProperty({ required: false, maxLength: NAME_MAX_LENGTH })
   @ifPresent
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameEn?: string | null;
 
   @ApiProperty({ required: false, minimum: 1, maximum: MAX_INTEGER })

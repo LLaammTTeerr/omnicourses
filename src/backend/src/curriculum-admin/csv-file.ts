@@ -1,17 +1,31 @@
 import { type Options, parse } from 'csv-parse/sync';
 import { importRejected, type ImportRowErrorDto, payloadTooLarge } from './admin-errors.js';
+import type { CourseField } from './curriculum-admin.dto.js';
 
 // Reads one CSV import file (ADR 0011, "CSV contract and UC-11 handoff") into text cells.
 // It decides nothing about a course or a link: no cell is cast, and a value is checked later
 // by the validation manual entry uses. These bounds are input limits, not academic rules.
 
-export const CSV_MAX_BYTES = 1024 * 1024;
+export const MIB = 1024 * 1024;
+export const inMiB = (bytes: number): string => `${bytes / MIB} MiB`;
+
+export const CSV_MAX_BYTES = MIB;
 export const CSV_MAX_RECORDS = 1000;
 
-export const CATALOG_COURSES_HEADER = ['code', 'name_vi', 'name_en', 'credits', 'theory_periods', 'lab_periods', 'exercise_periods', 'project_periods'] as const;
+export const CATALOG_COLUMNS = {
+  code: 'code',
+  nameVi: 'name_vi',
+  nameEn: 'name_en',
+  credits: 'credits',
+  theoryPeriods: 'theory_periods',
+  labPeriods: 'lab_periods',
+  exercisePeriods: 'exercise_periods',
+  projectPeriods: 'project_periods',
+} as const satisfies Record<'code' | CourseField, string>;
+export type CatalogColumn = (typeof CATALOG_COLUMNS)[keyof typeof CATALOG_COLUMNS];
+export const CATALOG_COURSES_HEADER: readonly CatalogColumn[] = Object.values(CATALOG_COLUMNS);
 export const GROUP_LINKS_HEADER = ['requirement_group_name', 'course_code'] as const;
 
-export type CatalogColumn = (typeof CATALOG_COURSES_HEADER)[number];
 export type GroupLinkColumn = (typeof GROUP_LINKS_HEADER)[number];
 
 /** One data record with the template's field count: its cells, trimmed at the edges. */
@@ -67,20 +81,10 @@ const LONE_SURROGATE = /[\uD800-\uDFFF]/u;
  * record where reading stopped.
  */
 export function readCsv<C extends string>(csv: string, header: readonly C[]): CsvFile<C> {
-  if (Buffer.byteLength(csv, 'utf8') > CSV_MAX_BYTES) throw payloadTooLarge('The CSV is larger than 1 MiB of UTF-8 text');
+  if (Buffer.byteLength(csv, 'utf8') > CSV_MAX_BYTES) throw payloadTooLarge(`The CSV is larger than ${inMiB(CSV_MAX_BYTES)} of UTF-8 text`);
   if (LONE_SURROGATE.test(csv) || csv.includes('\u0000')) throw importRejected('The CSV is not UTF-8 text', []);
 
-  let parsed: { record: string[] }[];
-  try {
-    parsed = parse(csv, PARSER_OPTIONS) as unknown as typeof parsed;
-  } catch (error) {
-    // `records` counts the records read before the one that failed.
-    const { code, records } = error as { code?: string; records?: number };
-    const at: ImportRowErrorDto = { record: (records ?? 0) + 1, field: null, message: PARSE_ERRORS[code ?? ''] ?? 'the CSV is malformed here' };
-    throw importRejected('The CSV is malformed; nothing was read from it', [at]);
-  }
-
-  const records = parsed.map(({ record }, index) => ({ record: index + 1, cells: record.map((cell) => cell.trim()), raw: record }));
+  const records = parseRecords(csv).map(({ record }, index) => ({ record: index + 1, cells: record.map((cell) => cell.trim()), raw: record }));
   // A record of empty cells only (",,,") is ignored, like a blank line, but keeps its number.
   const data = records.slice(1).filter((r) => r.cells.some((cell) => cell !== ''));
   if (data.length > CSV_MAX_RECORDS) throw payloadTooLarge(`The CSV has more than ${CSV_MAX_RECORDS} data records`);
@@ -90,7 +94,21 @@ export function readCsv<C extends string>(csv: string, header: readonly C[]): Cs
     const message = `the header must be exactly: ${header.join(',')}`;
     throw importRejected('The CSV does not have the header of this template', [{ record: 1, field: null, message }]);
   }
+  return rowsOf(data, header);
+}
 
+function parseRecords(csv: string): { record: string[] }[] {
+  try {
+    return parse(csv, PARSER_OPTIONS) as unknown as { record: string[] }[];
+  } catch (error) {
+    // `records` counts the records read before the one that failed.
+    const { code, records } = error as { code?: string; records?: number };
+    const at: ImportRowErrorDto = { record: (records ?? 0) + 1, field: null, message: PARSE_ERRORS[code ?? ''] ?? 'the CSV is malformed here' };
+    throw importRejected('The CSV is malformed; nothing was read from it', [at]);
+  }
+}
+
+function rowsOf<C extends string>(data: { record: number; cells: string[] }[], header: readonly C[]): CsvFile<C> {
   const file: CsvFile<C> = { rows: [], errors: [] };
   for (const { record, cells } of data) {
     if (cells.length !== header.length) {

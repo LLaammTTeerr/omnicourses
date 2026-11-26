@@ -1,5 +1,5 @@
 /** Course code → the codes it requires, within one curriculum. */
-export type PrerequisiteGraph = ReadonlyMap<string, readonly string[]>;
+type PrerequisiteGraph = ReadonlyMap<string, readonly string[]>;
 
 /**
  * The cycle that setting `course`'s prerequisites to `prerequisites` would create, or null.

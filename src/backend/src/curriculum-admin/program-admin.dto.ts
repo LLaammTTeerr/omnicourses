@@ -3,7 +3,8 @@ import { Transform } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsString, Matches, Max, Min } from 'class-validator';
 import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { ADMIN_CODE_MAX_LENGTH, ADMIN_CODE_MESSAGE, ADMIN_CODE_PATTERN, canonicalAdminCode } from './admin-code.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
+import { NAME_MAX_LENGTH } from './curriculum-admin.dto.js';
 
 // Request and response shapes of the F12 program and cohort routes (ADR 0011, "Programs and
 // cohorts as built"). Requests go through StrictBody, so a field that is not declared here is a
@@ -13,9 +14,25 @@ import { ADMIN_CODE_MAX_LENGTH, ADMIN_CODE_MESSAGE, ADMIN_CODE_PATTERN, canonica
 // - a program's trainingType, which sets the credit caps (ADR 0012): no decision says who may
 //   enter it through F12, so no route accepts it and a new program stores none.
 
-/** The bounds of ck_curriculums_cohort_year_range (migration 1792912952302). */
-export const COHORT_YEAR_MIN = 2000;
-export const COHORT_YEAR_MAX = 2100;
+// The code of a program or of a cohort's curriculum, as F12 accepts it (ADR 0011, "Programs and
+// cohorts as built"). The schema gives both columns a length (varchar(50)) and no format, so this
+// is a structural rule only: capital letters and digits, in parts joined by single hyphens. It
+// accepts every seeded code (APCS, CNTT-TCTA-KHMT, APCS2024, CNTT-TCTA-KHMT-2025). A program code is
+// a path segment of the read API (/api/programs/:program/curricula/:cohort), so it holds no
+// space, slash or other character a URL would need to escape.
+export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
+export const ADMIN_CODE_MAX_LENGTH = 50;
+const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
+
+/**
+ * For a code an administrator types: trims and upper-cases, as a course code is (UC-11 step 5).
+ * It decides nothing: the validators that follow accept or refuse the result. Two spellings of
+ * one code are therefore one code, and the second is a duplicate.
+ */
+export const canonicalAdminCode = (input: unknown): unknown => (typeof input === 'string' ? input.trim().toUpperCase() : input);
+
+const FACULTY_MAX_LENGTH = 100;
+const LANGUAGE_MAX_LENGTH = 10;
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
@@ -35,28 +52,28 @@ export class CreateProgramDto {
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
-  @ApiProperty({ maxLength: 255 })
+  @ApiProperty({ maxLength: NAME_MAX_LENGTH })
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, description: 'Blank is stored as null' })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 100, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: FACULTY_MAX_LENGTH, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(100)
+  @MaxCodePoints(FACULTY_MAX_LENGTH)
   faculty?: string | null;
 }
 
@@ -64,29 +81,29 @@ export class CreateProgramDto {
 export const PROGRAM_FIELDS = ['nameVi', 'nameEn', 'faculty'] as const;
 
 export class UpdateProgramDto {
-  @ApiProperty({ required: false, maxLength: 255 })
+  @ApiProperty({ required: false, maxLength: NAME_MAX_LENGTH })
   @ifPresent
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 100 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: FACULTY_MAX_LENGTH })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(100)
+  @MaxCodePoints(FACULTY_MAX_LENGTH)
   faculty?: string | null;
 }
 
@@ -116,10 +133,11 @@ export class ProgramDetailsDto {
 // ---- Cohorts (curriculums rows) ------------------------------------------------------------
 
 export class CreateCohortDto {
-  @ApiProperty({ type: 'integer', example: 2026, minimum: COHORT_YEAR_MIN, maximum: COHORT_YEAR_MAX, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
+  /** The bounds of ck_curriculums_cohort_year_range (migration 1792912952302). */
+  @ApiProperty({ type: 'integer', example: 2026, minimum: MIN_ACADEMIC_YEAR, maximum: MAX_ACADEMIC_YEAR, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
   @IsInt()
-  @Min(COHORT_YEAR_MIN)
-  @Max(COHORT_YEAR_MAX)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   cohortYear!: number;
 
   @ApiProperty({
@@ -134,28 +152,28 @@ export class CreateCohortDto {
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
-  @ApiProperty({ maxLength: 255 })
+  @ApiProperty({ maxLength: NAME_MAX_LENGTH })
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, description: 'Blank is stored as null' })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 10, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: LANGUAGE_MAX_LENGTH, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(10)
+  @MaxCodePoints(LANGUAGE_MAX_LENGTH)
   language?: string | null;
 }
 
@@ -163,29 +181,29 @@ export class CreateCohortDto {
 export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language'] as const;
 
 export class UpdateCohortDto {
-  @ApiProperty({ required: false, maxLength: 255 })
+  @ApiProperty({ required: false, maxLength: NAME_MAX_LENGTH })
   @ifPresent
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(255)
+  @MaxCodePoints(NAME_MAX_LENGTH)
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: 10 })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: LANGUAGE_MAX_LENGTH })
   @Transform(trimString)
   @ifSet
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(10)
+  @MaxCodePoints(LANGUAGE_MAX_LENGTH)
   language?: string | null;
 }
 

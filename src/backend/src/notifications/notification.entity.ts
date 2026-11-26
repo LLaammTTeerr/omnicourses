@@ -1,4 +1,5 @@
 import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import type { TermNumber } from '../terms/term.js';
 import { User } from '../users/user.entity.js';
 import type { NotificationKind } from './notification-kinds.js';
 
@@ -45,7 +46,7 @@ export class Notification {
   academicYear!: number | null;
 
   @Column({ type: 'smallint', nullable: true })
-  term!: 1 | 2 | 3 | null;
+  term!: TermNumber | null;
 
   // `date` columns: TypeORM reads them as 'YYYY-MM-DD' strings.
   @Column({ name: 'starts_on', type: 'date', nullable: true })
