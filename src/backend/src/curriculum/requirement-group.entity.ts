@@ -15,11 +15,9 @@ import {
 import { Course } from './course.entity.js';
 import { Curriculum } from './curriculum.entity.js';
 
-/** ADR 0005: compulsory groups have a fixed credits_total, elective groups a credits_total_min. */
 export const REQUIREMENT_GROUP_KINDS = ['compulsory', 'elective'] as const;
 export type RequirementGroupKind = (typeof REQUIREMENT_GROUP_KINDS)[number];
 
-// Table `requirement_groups` of migration 1792912952302.
 @Entity({ name: 'requirement_groups' })
 @Unique('uq_requirement_groups_curriculum_name', ['curriculumId', 'name'])
 @Check('ck_requirement_groups_kind', `"kind" IN ('compulsory', 'elective')`)
@@ -60,8 +58,6 @@ export class RequirementGroup {
   updatedAt!: Date;
 }
 
-// Table `requirement_group_courses` of migration 1792912952302: a course's membership in a
-// requirement group. It carries no compulsory flag; the group's kind says that (ADR 0005).
 @Entity({ name: 'requirement_group_courses' })
 @Check('ck_requirement_group_courses_code_format', `"course_code" ~ '^[A-Z0-9]{2,20}$'`)
 @Index('ix_requirement_group_courses_course_code', ['courseCode'])
@@ -72,8 +68,6 @@ export class RequirementGroupCourse {
   @PrimaryColumn({ name: 'course_code', type: 'varchar', length: 20, primaryKeyConstraintName: 'requirement_group_courses_pkey' })
   courseCode!: string;
 
-  // Migration 1794300000000: false for a course the curriculum requires but leaves out of the
-  // cohort total and the GPA (Giáo dục thể chất, Giáo dục quốc phòng - An ninh; Điều 15.1.c).
   @Column({ name: 'counts_toward_total', type: 'boolean', default: true })
   countsTowardTotal!: boolean;
 
@@ -92,9 +86,6 @@ export class RequirementGroupCourse {
   createdAt!: Date;
 }
 
-// Table `requirement_group_overflows` of migration 1794300000000 (ADR 0013): credits passed in
-// the source group beyond its own minimum count toward the target group of the same curriculum
-// (APCS: "Sinh viên có thể dùng số tín chỉ dư thuộc (A) cho (C)", p.5). One target per source.
 @Entity({ name: 'requirement_group_overflows' })
 @Check('ck_requirement_group_overflows_not_self', `"from_group_id" <> "to_group_id"`)
 @Index('ix_requirement_group_overflows_to_group_id', ['toGroupId'])

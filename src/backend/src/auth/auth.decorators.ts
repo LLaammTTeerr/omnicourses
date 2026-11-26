@@ -5,10 +5,8 @@ import type { Session } from './session.entity.js';
 
 export const IS_PUBLIC = 'isPublic';
 
-/** Opts a route (or a whole controller) out of the global AuthGuard. */
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
-/** Documents a controller's routes as needing a bearer token, and their 401. */
 export const Authenticated = () =>
   applyDecorators(ApiBearerAuth(), ApiUnauthorizedResponse({ description: 'Missing, expired or revoked token' }));
 
@@ -18,12 +16,10 @@ export interface AuthenticatedRequest {
   session?: Session;
 }
 
-/** The signed-in user. Only valid on routes that are not @Public(). */
 export const CurrentUser = createParamDecorator(
   (_: unknown, ctx: ExecutionContext): User => ctx.switchToHttp().getRequest<AuthenticatedRequest>().user!,
 );
 
-/** The session the request was authenticated with. */
 export const CurrentSession = createParamDecorator(
   (_: unknown, ctx: ExecutionContext): Session => ctx.switchToHttp().getRequest<AuthenticatedRequest>().session!,
 );

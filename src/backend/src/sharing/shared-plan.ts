@@ -4,16 +4,6 @@ import { type Placement, PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, t
 import { copyTerm, termKey } from '../terms/term.js';
 import type { SharedPlacementDto, SharedPlanCoverageDto, SharedPlanDto, SharedPlanIssueDto } from './sharing.dto.js';
 
-// What a reader of a shared plan's link gets (UC-09 step 2, ADR 0010). A pure function: the rule
-// engine's report of the plan goes in, and only the listed fields come out, built one by one. It
-// decides no academic rule (AGENTS.md hard rule 1): it copies the engine's answers or leaves them out.
-
-/**
- * The issue codes every reader sees: the ones the engine works out from the plan and its curriculum
- * alone. A code is listed here or in TRANSCRIPT_ISSUE_CODES by a person's decision, so a code the
- * engine gains later stays hidden from every reader until someone adds it (shared-plan.spec.ts
- * fails until it is classified).
- */
 export const SHARED_ISSUE_CODES = [
   'prerequisites_not_recorded',
   'not_offered',
@@ -27,39 +17,23 @@ export const SHARED_ISSUE_CODES = [
   'credits_not_recorded',
 ] as const satisfies readonly PlanIssueCode[];
 
-/**
- * The codes the engine decides from the owner's transcript: each one, by being there or by being
- * absent, says which courses the owner has passed, failed or is taking. A reader sees them, and the
- * coverage they add up to, only when the owner chose it for the link (ADR 0010). They carry no
- * grade and no term of a transcript row: their terms are the plan's.
- */
 export const TRANSCRIPT_ISSUE_CODES = ['prerequisite_not_met', 'already_passed', 'already_in_progress', 'requirement_not_covered'] as const satisfies readonly PlanIssueCode[];
 
 const notAmong = (shown: readonly PlanIssueCode[]): PlanIssueCode[] => PLAN_ISSUE_CODES.filter((code) => !shown.includes(code));
 
-/**
- * The codes a reader does not see unless the owner chose to show the transcript's checks. The
- * answer names them, so the page can say that these checks are not shown instead of letting "no
- * issue" read as a pass.
- */
 export const WITHHELD_ISSUE_CODES: PlanIssueCode[] = notAmong(SHARED_ISSUE_CODES);
 
 const WITH_TRANSCRIPT_CHECKS: readonly PlanIssueCode[] = [...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES];
 
 export interface SharedPlanSource {
   plan: PlanDto;
-  /** The rule engine's report of exactly this plan. */
   report: PlanIssuesReport;
-  /** The catalog's name and credits of the placed courses; a code missing here is no longer in the catalog. */
   courses: ReadonlyMap<string, CourseSummary>;
   curriculum: CurriculumLabels;
-  /** The owner's display name when they chose to show it, else null. */
   ownerName: string | null;
-  /** Whether the owner chose to show the checks that come from their transcript. Left out: no. */
   showTranscriptChecks?: boolean;
 }
 
-/** A plan-and-curriculum issue, as every reader gets it. */
 const sharedIssue = (i: PlanIssue): SharedPlanIssueDto => ({
   code: i.code,
   kind: i.kind,
@@ -73,7 +47,6 @@ const sharedIssue = (i: PlanIssue): SharedPlanIssueDto => ({
   message: i.message,
 });
 
-/** The name the engine's own coverage gives an id. A missing one is a broken report, never a silent null. */
 function nameOf(names: ReadonlyMap<string, string>, id: string | null, what: string): string | null {
   if (id === null) return null;
   const name = names.get(id);
@@ -81,7 +54,6 @@ function nameOf(names: ReadonlyMap<string, string>, id: string | null, what: str
   return name;
 }
 
-/** The engine's coverage without its ids: a reader gets names only. */
 function sharedCoverage({ coverage }: PlanIssuesReport): SharedPlanCoverageDto {
   return {
     groups: coverage.groups.map((g) => ({ name: g.name, kind: g.kind, requiredCredits: g.requiredCredits, credits: g.credits, remainingCredits: g.remainingCredits, met: g.met })),
@@ -93,10 +65,6 @@ function sharedCoverage({ coverage }: PlanIssuesReport): SharedPlanCoverageDto {
   };
 }
 
-/**
- * What the owner's choice adds: the four transcript codes among the issues, three more fields on
- * every issue (a requirement group or combined minimum by name instead of by id), and the coverage.
- */
 function withTranscriptChecks(report: PlanIssuesReport): Pick<SharedPlanDto, 'issues' | 'issueCodesNotShown' | 'coverage'> {
   const groupNames = new Map(report.coverage.groups.map((g) => [g.id, g.name]));
   const minimumNames = new Map(report.coverage.combinedMinimums.map((m) => [m.id, m.name]));
@@ -138,7 +106,6 @@ export function sharedPlan({ plan, report, courses, curriculum, ownerName, showT
     updatedAt: plan.updatedAt,
     terms: plan.terms.map(({ term, placements }) => {
       const load = loads.get(termKey(term));
-      // The engine reports one load per term of the board it was given: a missing one is a broken invariant, never a zero.
       if (!load) throw new Error(`The rule engine reported no load for term ${termKey(term)}`);
       return {
         term: copyTerm(term),

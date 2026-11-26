@@ -1,7 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-// One row per structured() or chat() call. Never the prompt or the reply
-// (AGENTS.md hard rule 3): only who, which feature, which model, how much.
 @Entity({ name: 'ai_usage' })
 @Index('ix_ai_usage_user_id_created_at', ['userId', 'createdAt'])
 export class AiUsage {

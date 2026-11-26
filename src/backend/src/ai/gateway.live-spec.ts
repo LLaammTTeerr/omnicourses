@@ -6,8 +6,6 @@ import { type CostGuard, GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent } from './llm.service.js';
 import { OpenRouterModelClient } from './openrouter-model.client.js';
 
-// One smoke test per operation against the real provider: `npm run test:live -w src/backend`.
-// Synthetic input only (AGENTS.md hard rule 3).
 loadEnvFiles();
 
 const noGuard: CostGuard = { reserve: async () => 'live', finish: async () => undefined, release: async () => undefined };
@@ -59,7 +57,6 @@ describe.skipIf(!configured)('AI gateway against OpenRouter (live)', () => {
     expect(events.at(-1)).toMatchObject({ type: 'done', text: expect.stringContaining('25') });
   });
 
-  // Checks the configured chat model accepts tool_choice none with tools defined.
   it('chat() answers in text when it runs out of steps', async () => {
     const calls: string[] = [];
     const events: ChatEvent[] = [];

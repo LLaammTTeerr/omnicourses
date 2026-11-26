@@ -28,9 +28,6 @@ import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
 import { TermDto } from '../common/field-validators.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
-// The degree audit response (F3, ADR 0013). Each class implements the rule engine's result type,
-// so this contract cannot drift from what the engine returns.
-
 export class CourseCoverageDto implements CourseCoverage {
   @ApiProperty({ example: 'CS160' })
   code!: string;
@@ -337,7 +334,6 @@ export class DegreeAuditDto implements DegreeAudit {
   warnings!: AuditWarningDto[];
 }
 
-/** 409: the audit has no program and cohort to work from. */
 export class AuditUnavailableDto {
   @ApiProperty({ example: 409 })
   statusCode!: number;

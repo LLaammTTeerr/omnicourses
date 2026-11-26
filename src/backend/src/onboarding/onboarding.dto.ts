@@ -6,11 +6,8 @@ import { Term, TERM_NUMBERS, termLabel } from '../terms/term.js';
 import { TermDto } from '../common/field-validators.js';
 import { goalTermWindow, isInGoalTermWindow, isOfferedCohort, OFFERED_COHORTS, OFFERED_PROGRAMS, YEARS_AHEAD } from './onboarding-options.js';
 
-/** internshipTerm when the student plans no internship: kept apart from null, which means not answered (B1 §6 item 3). */
 export const NO_INTERNSHIP = 'none';
 
-// The column is an integer. Onboarding has no upper limit (B1 §6 item 2): the rule engine applies
-// the credit cap when it builds a plan, so no message here mentions the cap.
 const MAX_STORED_CREDITS = 2_147_483_647;
 const CREDITS_MESSAGE = 'creditsPerTerm must be a whole number of 1 or more';
 
@@ -20,12 +17,10 @@ const isTermShape = (value: unknown): value is Term =>
   Number.isInteger((value as Term).year) &&
   (TERM_NUMBERS as readonly unknown[]).includes((value as Term).number);
 
-/** A term from the current one up to YEARS_AHEAD academic years ahead (B1 §6 item 4), on today's Vietnam date. */
 function IsGoalTerm(options?: ValidationOptions): PropertyDecorator {
   return ValidateBy(
     {
       name: 'isGoalTerm',
-      // A malformed term is reported by TermDto's own rules; this only places a well-formed one.
       validator: {
         validate: (value: unknown) => !isTermShape(value) || isInGoalTermWindow(value, vietnamDate(new Date())),
         defaultMessage: (args) => {
@@ -38,8 +33,6 @@ function IsGoalTerm(options?: ValidationOptions): PropertyDecorator {
   );
 }
 
-// The same shape is read and saved: GET returns what PUT took. PUT replaces every answer, so each
-// key must be sent; null means not answered.
 export class OnboardingDto {
   @ApiProperty({
     type: String,
@@ -66,7 +59,6 @@ export class OnboardingDto {
       validate: (cohort, args) => {
         const { program } = args?.object as OnboardingDto;
         if (program === null) return cohort === null;
-        // An unknown program is the program's error alone.
         return !OFFERED_PROGRAMS.includes(program as string) || isOfferedCohort(program, cohort);
       },
       defaultMessage: (args) => {

@@ -28,7 +28,6 @@ describe('AccountService', () => {
 
   beforeEach(() => {
     tx.query.mockReset();
-    // transaction(cb) and transaction(isolationLevel, cb): the callback is the last argument.
     db = { query: vi.fn(), transaction: vi.fn(async (...args: unknown[]) => (args.at(-1) as (m: unknown) => unknown)(tx)) };
     users = { markDeletionRequestedWithin: vi.fn(async () => undefined) };
     auth = { verifyPassword: vi.fn(async () => true), revokeAllWithin: vi.fn(async () => undefined) };
@@ -43,7 +42,6 @@ describe('AccountService', () => {
       tx.query.mockResolvedValue([{ id: 'u1' }]);
     });
 
-    // ADR 0004: the contract that the export is one consistent snapshot.
     it('reads every table from one read-only snapshot', async () => {
       await expect(service.export('u1')).resolves.toEqual({ exportedAt: NOW, user: { id: 'u1' }, tables: { sessions: [{ id: 'u1' }] } });
       expect(db.transaction).toHaveBeenCalledWith('REPEATABLE READ', expect.any(Function));
@@ -56,7 +54,6 @@ describe('AccountService', () => {
     vi.stubEnv('ACCOUNT_DELETION_GRACE_DAYS', '30');
     const { purgeAfter } = await service.requestDeletion(user, 'correct horse battery');
     expect(auth.verifyPassword).toHaveBeenCalledWith(user, 'correct horse battery');
-    // The deadline promised to the student is stored, so a later change of the setting can't move it.
     const [manager, userId, requestedAt, storedPurgeAfter] = users.markDeletionRequestedWithin.mock.calls[0]!;
     expect(userId).toBe('u1');
     expect(storedPurgeAfter).toEqual(purgeAfter);
@@ -67,8 +64,6 @@ describe('AccountService', () => {
     expect(auth.revokeAllWithin).toHaveBeenCalledWith(tx, 'u1');
   });
 
-  // UC-09 A7: every shared plan's link stops with the sessions, in the same transaction, so a
-  // failure leaves neither a deletion scheduled nor a link open.
   it("stops every shared plan's link in the transaction that schedules the deletion", async () => {
     await service.requestDeletion(user, 'correct horse battery');
     expect(db.transaction).toHaveBeenCalledOnce();
@@ -92,7 +87,6 @@ describe('AccountService', () => {
 describe('AccountPurgeService', () => {
   const due = (...ids: string[]) => vi.fn(async () => ids.map((id) => ({ id })));
 
-  // One account whose rows can't be deleted must not keep every other account past its deadline.
   it('purges each account on its own, so one failure does not block the rest', async () => {
     const users = {
       find: due('u1', 'u2', 'u3'),

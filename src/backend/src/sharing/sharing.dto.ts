@@ -6,16 +6,8 @@ import { GRADUATION_STATUSES, type GraduationVerdict, PLACEMENT_KINDS, PLAN_ISSU
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
 import { TermDto } from '../common/field-validators.js';
 
-// F9 sharing (UC-09, ADR 0010). Two contracts: what the owner sees of their link, and what a
-// reader of the link sees of the plan. The second lists every field on purpose: a reader gets
-// these and nothing else (UC-09 step 2).
-
-/** A choice that is sent must be a boolean: null is refused, not read as "left out". */
 const ifSent = ValidateIf((_: object, value: unknown) => value !== undefined);
 
-// Both choices follow one rule: only an explicit true turns a choice on, an explicit false turns it
-// off, and a field left out keeps what the link has (off on a new link). So a page that sends one
-// choice never changes the other.
 export class SharePlanDto {
   @ApiProperty({ required: false, description: "Whether a reader sees the owner's display name. Left out: unchanged on a live link, hidden on a new one." })
   @ifSent
@@ -208,7 +200,6 @@ export class SharedCombinedMinimumCoverageDto {
   met!: boolean;
 }
 
-/** The rule engine's coverage of the plan (PlanCoverage of GET /plans/{id}/issues), by name and with no id. */
 export class SharedPlanCoverageDto {
   @ApiProperty({ type: [SharedGroupCoverageDto] })
   groups!: SharedGroupCoverageDto[];
@@ -229,7 +220,6 @@ export class SharedPlanCoverageDto {
   graduation!: GraduationVerdict;
 }
 
-/** Everything a reader of a shared plan's link gets (UC-09 step 2). No field identifies the owner except `ownerName`, when they chose it. */
 export class SharedPlanDto {
   @ApiProperty({ example: 'Main plan' })
   name!: string;
@@ -272,7 +262,6 @@ export class SharedPlanDto {
 
 export const NOT_SHARED_MESSAGE = 'This plan is not shared';
 
-/** The one answer to every link that does not open a plan: stopped, deleted, mistyped or never created. */
 export class NotSharedDto {
   @ApiProperty({ example: 404 })
   statusCode!: number;

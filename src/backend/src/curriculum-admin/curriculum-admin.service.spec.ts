@@ -9,7 +9,6 @@ const SLOT_KEY = 'plan_placements_requirement_group_id_fkey';
 const refused = (code: string, constraint = SLOT_KEY) =>
   new QueryFailedError('DELETE', [], Object.assign(new Error('synthetic refusal'), { code, constraint, detail: 'Key (id)=(synthetic-id) is referenced' }));
 
-// The group exists in the path's cohort; each query answers by its SQL. `deleteFails` is what the DELETE throws.
 function serviceWith(answers: { links?: string[]; plans?: number; deleteFails?: unknown }) {
   const sql: string[] = [];
   const query = vi.fn(async (text: string) => {

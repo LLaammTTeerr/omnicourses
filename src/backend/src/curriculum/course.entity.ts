@@ -1,7 +1,5 @@
 import { Check, Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
-// Table `courses` of migration 1792912952302: the shared catalog, keyed by course code (ADR 0005).
-// The period columns are nullable with a default of 0, as the migration declares them.
 @Entity({ name: 'courses' })
 @Check('ck_courses_code_format', `"code" ~ '^[A-Z0-9]{2,20}$'`)
 @Check('ck_courses_credits_positive', `"credits" > 0`)

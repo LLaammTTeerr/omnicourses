@@ -14,7 +14,6 @@ import {
 import { Program } from './program.entity.js';
 import { RequirementGroup } from './requirement-group.entity.js';
 
-// Table `curriculums` of migration 1792912952302: one curriculum per program and cohort (ADR 0005).
 @Entity({ name: 'curriculums' })
 @Unique('uq_curriculums_program_cohort', ['programId', 'cohortYear'])
 @Check('ck_curriculums_cohort_year_range', `"cohort_year" BETWEEN 2000 AND 2100`)

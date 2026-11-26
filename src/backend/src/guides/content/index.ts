@@ -8,7 +8,6 @@ import payTuitionVi from './pay-tuition.vi.js';
 import registerCoursesEn from './register-courses.en.js';
 import registerCoursesVi from './register-courses.vi.js';
 
-/** Every guide content file `npm run db:seed` loads (ADR 0010). Add each new file here: content.spec.ts fails on a file this list misses. */
 export const GUIDE_FILES: GuideFile[] = [
   accountsAndPortalsVi,
   accountsAndPortalsEn,

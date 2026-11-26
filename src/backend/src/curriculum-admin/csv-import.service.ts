@@ -24,18 +24,10 @@ import { COURSE_FIELDS, type CourseField, CreateCourseDto, wholeNumberOrText } f
 import { CurriculumAdminService } from './curriculum-admin.service.js';
 import type { Need } from './grants.js';
 
-/**
- * The revision of the checks an import runs, inside every reviewVersion. ADR 0011 asks for
- * "the validation-source revision" of the rule engine's final-state validation; that
- * interface does not exist yet (see planLinks), so this constant stands in for it. Change it
- * when a check here or in the manual-entry services changes meaning: a review made before
- * that deploy can then not be confirmed after it.
- */
 const IMPORT_VALIDATION_REVISION = 'f12-structural-1';
 
 const CATALOG: Need = { permission: 'catalog_maintainer' };
 
-/** `reference`: the row is well formed, but what it names is not in the database right now. */
 type RowError = ImportRowErrorDto & { reference?: true };
 
 type Action = 'insert' | 'update' | 'no_op';
@@ -62,7 +54,6 @@ interface LinkPlanRow {
 interface Plan<Row> {
   rows: Row[];
   errors: RowError[];
-  /** null while the file has an error: such a file cannot be confirmed. */
   reviewVersion: string | null;
 }
 
@@ -84,14 +75,6 @@ interface ImportFlow<C extends string, Row extends { action: Action }> {
   plan: (em: EntityManager, file: CsvFile<C>) => Promise<Plan<Row>>;
   save: (em: EntityManager, row: Row) => Promise<void>;
 }
-/**
- * One catalog row checked as a manual `POST /admin/catalog/courses` body is: the same code
- * rule and the same CreateCourseDto, through the same strict validation, which also refuses
- * a missing code, name or credit count. What is CSV-only is the mapping of cells to fields:
- * a blank `name_en` is null, a blank number is absent (a period count is then saved as 0),
- * and digits become a number. `code` comes back whenever it is a course code, even on a row
- * with another error, so that a repeated code is always reported.
- */
 export async function checkCatalogRow(row: CsvRow<CatalogColumn>): Promise<{ code: string | null; values: CourseValues | null; errors: RowError[] }> {
   const at = (field: string, message: string): RowError => ({ record: row.record, field, message });
   const code = parseCourseCode(row.values.code);
@@ -139,12 +122,6 @@ function summaryOf(rows: { action: Action }[]): ImportSummaryDto {
   return { inserts: count('insert'), updates: count('update'), noOps: count('no_op') };
 }
 
-/**
- * Refuses a confirmation that is not exactly the reviewed one. A file that is wrong whatever
- * the database holds never had a review version: 400 with its errors. Otherwise the file,
- * the saved values or the references differ from what was reviewed (another file, a course
- * edited, a link made, a group renamed or a course deleted since): 409, and nothing is saved.
- */
 function assertReviewed(plan: Plan<unknown>, reviewVersion: string): void {
   if (plan.errors.some((e) => !e.reference)) throw importRejected('The file has errors; correct it and preview it again', publicErrors(plan.errors));
   if (plan.reviewVersion === null || plan.reviewVersion !== reviewVersion) {
@@ -161,7 +138,6 @@ async function checkedCatalogRows(file: CsvFile<CatalogColumn>, errors: RowError
     if (checked.code === null) continue;
     const first = firstRecord.get(checked.code);
     if (first !== undefined) {
-      // ADR 0011: a repeated code is an error even when the two rows are identical.
       errors.push({ record: row.record, field: 'code', message: `${checked.code} is in record ${first} already; a file names a course once` });
       continue;
     }
@@ -190,8 +166,6 @@ function checkedLinkRows(file: CsvFile<GroupLinkColumn>, errors: RowError[]): Ch
     const groupName = values.requirement_group_name;
     const code = parseCourseCode(values.course_code);
     const shape = [
-      // The one check no manual route has: the manual PUT takes the group's ID from the
-      // path, and only a file can leave the name out. A blank code fails the code rule.
       ...(groupName === '' ? [linkError(record, 'requirement_group_name', 'a value is required')] : []),
       ...(code.error !== null ? [linkError(record, 'course_code', code.error)] : []),
     ];
@@ -202,7 +176,6 @@ function checkedLinkRows(file: CsvFile<GroupLinkColumn>, errors: RowError[]): Ch
     const pair = JSON.stringify([groupName, code.code]);
     const first = firstRecord.get(pair);
     if (first !== undefined) {
-      // ADR 0011: a repeated pair is an error even when the two rows are identical.
       errors.push(linkError(record, 'course_code', `this group and ${code.code} are in record ${first} already; a file names a link once`));
       continue;
     }
@@ -212,15 +185,6 @@ function checkedLinkRows(file: CsvFile<GroupLinkColumn>, errors: RowError[]): Ch
   return rows;
 }
 
-// F12 CSV bulk entry (ADR 0011, "CSV contract and UC-11 handoff"; UC-11 A9): a catalog
-// courses file for a catalog maintainer, a group-links file for a program administrator.
-//
-// One planner per file type reads the current data and says what each row would do. The
-// preview runs it on a read-only snapshot and returns the plan with a reviewVersion. The
-// confirmation parses the file again, runs the same planner under the F12 write lock with
-// the caller's current grants, compares the version, and applies the plan through the steps
-// manual entry uses. All of the file is saved, or none of it. Rows the file does not name
-// are never deleted. Nothing of the file is stored or logged: neither route keeps a draft.
 @Injectable()
 export class CsvImportService {
   private readonly logger = new Logger(CsvImportService.name);
@@ -231,12 +195,6 @@ export class CsvImportService {
     private readonly curricula: CurriculumAdminService,
   ) {}
 
-  // ---- Catalog courses ---------------------------------------------------------------------
-
-  // In every method the caller's grant is checked before the file is read, so a caller
-  // without it gets 403 for any file and learns nothing from a 400 or a 413. A confirmation
-  // checks once outside the write lock, reads the file, then checks again under the lock.
-
   previewCatalog(callerId: string, dto: ImportPreviewRequestDto): Promise<CatalogImportPreviewDto> {
     return this.guarded(async () => catalogPreview(await this.preview(this.catalogFlow(), callerId, dto.csv)));
   }
@@ -244,8 +202,6 @@ export class CsvImportService {
   confirmCatalog(callerId: string, dto: ImportConfirmRequestDto): Promise<ImportResultDto> {
     return this.guarded(async () => ({ fileType: CATALOG_FILE, summary: await this.confirm(this.catalogFlow(), callerId, dto) }));
   }
-
-  // ---- Group links -------------------------------------------------------------------------
 
   previewLinks(callerId: string, programId: string, curriculumId: string, dto: ImportPreviewRequestDto): Promise<GroupLinkImportPreviewDto> {
     return this.guarded(async () => {
@@ -310,13 +266,6 @@ export class CsvImportService {
     };
   }
 
-  /**
-   * What each row would do to the catalog as it is in `em`'s transaction: insert a new code,
-   * update a saved course whose values differ, or nothing. An update is reviewed with the
-   * shared-impact step of the manual PATCH (`reviewChange`), so the version below covers the
-   * same facts as its `409 impact_confirmation_required`: the saved values, the proposed
-   * values and every curriculum linking the course.
-   */
   private async planCatalog(em: EntityManager, file: CsvFile<CatalogColumn>): Promise<Plan<CatalogPlanRow>> {
     const errors: RowError[] = [...file.errors];
     const valid = await checkedCatalogRows(file, errors);
@@ -336,20 +285,6 @@ export class CsvImportService {
     return { ...row, action: 'update', current, change, affected: review.affected, impactVersion: review.reviewVersion };
   }
 
-  /**
-   * What each row would do to the links of the route's cohort: link the course to the group,
-   * or nothing when it is linked already. The program and the cohort come from the route
-   * only; the file has no column for them. The caller has checked that the cohort belongs to
-   * the program (`cohortIn`).
-   *
-   * LIMIT (ADR 0011, "Implementation notes"): the checks are structural only and are those of
-   * the manual membership PUT: a canonical course code, a group of this cohort, a course of
-   * the catalog. ADR 0011 also asks for a validation of the proposed final set, group credit
-   * totals included, "through the agreed deterministic validation interface". The rule engine
-   * has no such interface yet, and no credit-total rule may be invented here (AGENTS.md hard
-   * rule 1), so none runs, for the import as for the manual PUT. When the interface exists,
-   * call it here on the final set and put its revision into IMPORT_VALIDATION_REVISION.
-   */
   private async planLinks(em: EntityManager, programId: string, curriculumId: string, file: CsvFile<GroupLinkColumn>): Promise<Plan<LinkPlanRow>> {
     const cohort = await cohortLinks(em, curriculumId);
     const errors: RowError[] = [...file.errors];
@@ -365,16 +300,10 @@ export class CsvImportService {
     return { rows, errors: inFileOrder(errors, GROUP_LINKS_HEADER), reviewVersion };
   }
 
-  /** The revision every reviewVersion carries; a method, so that the rule engine's revision can replace the constant here. */
   validationRevision(): string {
     return IMPORT_VALIDATION_REVISION;
   }
 
-  /**
-   * Answers an unexpected failure with the usual 500 and logs only its kind. Nest would log
-   * the error object itself, and a storage error holds the failed statement's parameters:
-   * rows of the file, which must never reach a log (ADR 0011).
-   */
   private async guarded<T>(work: () => Promise<T>): Promise<T> {
     try {
       return await work();
@@ -387,7 +316,6 @@ export class CsvImportService {
 }
 
 function resolveLink(link: CheckedLink, cohort: CohortLinks, inCatalog: boolean): LinkPlanRow | { errors: RowError[] } {
-  // A group of another cohort or program is simply not here: its name resolves nothing.
   const groupId = cohort.groupIdOf.get(link.groupName);
   const references = [
     ...(groupId === undefined ? [linkError(link.record, 'requirement_group_name', 'no requirement group of this cohort has this name; a file does not create groups', true)] : []),

@@ -56,6 +56,9 @@ Dũng's six conditions for the owner's choice (team Discord, 25 November 2026), 
 
 **Accepted (Lâm, Project Lead, 25 November 2026, on the team Discord): "yes"**, in answer to a question that named the three points: the owner's choice per link with its default off, the readable token, and the browser PDF. The implementation pull request (#153) merged after that answer.
 
+- 2026-11-26: The owner's `GET` and `PUT …/share` answers carry `Cache-Control: no-store`, because they hold the token, and anyone who holds the token can open the plan.
+- 2026-11-26: With the transcript choice off, the server does not read the transcript, so the time an answer takes cannot tell a reader anything about it.
+
 ## Consequences
 
 - After this ADR, five kinds of route are public besides the API docs pages: health, sign-up, sign-in, reading guides and reading a shared plan. Anyone can open them, but nobody can change anything without signing in. The one exception is sign-up and sign-in themselves, which must stay open or nobody can get in. Every other route stays default-deny, and a new public route needs a change to this ADR.
@@ -73,3 +76,7 @@ Dũng's six conditions for the owner's choice (team Discord, 25 November 2026), 
 - Regulation documents for the advisor chat (UC-08) use the same approach, also decided by Lâm on 30 October: files in the `advisor` module, typed by hand and reviewed in pull requests. They are not public pages. *Amended 15 November 2026 (Lâm):* typing by hand, with no AI, stays the rule for the regulation files only. An AI tool may draft and translate guide text; portal addresses, labels and steps still come only from the school's pages or the portal, and no personal data goes into the tool (guides plan §6 step 1).
 
 *Note, 26 November 2026:* the names in this ADR changed in the backend cleanup, and the behaviour did not. The engine check without the transcript is `RulesService.issuesFor(plan, null)` (it was `issuesWithoutTranscript` of `PlanIssuesProvider`), and the header middleware `sharedPlanHeaders` is in `sharing/sharing.module.ts` (it was `sharing/shared-plan-headers.ts`). See ADR 0013, amendment of 26 November 2026.
+
+- 2026-11-26: A link in a guide is an https address or an OmniCourse path with one leading `/` and no backslash. A browser reads `\` as `/`, so `/\host` and `//host` both open another site.
+- 2026-11-26: Nest runs the guard before the pipes that parse path parameters. So the public-routes test puts one fixed UUID in every path parameter, and each private route still answers 401.
+- 2026-11-26: The public-routes test reads the served routes from the internal `router.stack` of Express. It expects `GET /api/users/me` in that list, so a change inside Express fails the test instead of letting it check an empty list.

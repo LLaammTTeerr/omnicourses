@@ -1,13 +1,5 @@
 import type { NoPrerequisitesDecision } from './seed-types.js';
 
-/**
- * APCS courses have no prerequisite, except one. The Project Lead decided "no prerequisite" on
- * 15 November 2026. The exception, CS469 before CS470, is printed in the curriculum PDFs. The seed has
- * recorded it since 21 November 2026 (#111), and the Project Lead decided it on 24 November 2026. The seeds
- * of APCS 2024 and APCS 2025 carry the decision, and `db:seed` records every course of both curricula as
- * "no prerequisite", except CS470, which needs CS469 (ADR 0011, amendment of 15 November 2026). Offering
- * terms stay not recorded.
- */
 export const apcsNoPrerequisites: NoPrerequisitesDecision = {
   decided_by: 'Project Lead (Lâm)',
   date: '2026-11-15',
@@ -24,12 +16,8 @@ export const apcsNoPrerequisites: NoPrerequisitesDecision = {
     {
       code: 'CS470',
       requires: ['CS469'],
-      // Rule (iii) of the note, as printed. (i) and (ii) of the same note are counting rules, not prerequisites,
-      // and are not loaded.
       printed: 'Nếu sinh viên không hoàn thành CS469 sẽ không được tiếp tục thực hiện CS470.',
       pages: { APCS2024: 8, APCS2025: 9 },
-      // In the seed since 21 November 2026 (#111), by the choice of the AI agent that works in the Project
-      // Lead's name. The decision is the Project Lead's, of 24 November 2026 (ADR 0011).
       decided_by: 'Project Lead (Lâm)',
       date: '2026-11-24',
     },

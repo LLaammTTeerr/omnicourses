@@ -10,7 +10,6 @@ import { CourseDetailDto, CourseDto, CurriculumCourseDto, CurriculumDto, Program
 import { Program } from './program.entity.js';
 import { type RequirementGroup, RequirementGroupCourse } from './requirement-group.entity.js';
 
-/** A catalog course as a plan tile names it. */
 export interface CourseSummary {
   nameVi: string;
   nameEn: string | null;
@@ -23,12 +22,9 @@ export interface CurriculumLabels {
   nameVi: string;
   nameEn: string | null;
   program: { code: string; nameVi: string; nameEn: string | null };
-  /** Requirement group id to its name. */
   groupNames: Map<string, string>;
 }
 
-// Serves the curriculum data the seed or, later, F12 (ADR 0011) stored. It decides no
-// academic rule (AGENTS.md hard rule 1): the rule engine reads these shapes and decides.
 @Injectable()
 export class CurriculumService {
   constructor(
@@ -39,7 +35,6 @@ export class CurriculumService {
     private readonly rules: CurriculumRulesReader,
   ) {}
 
-  /** Every program by code, with the cohorts that have a curriculum, oldest first. */
   async listPrograms(): Promise<ProgramDto[]> {
     const rows = await this.programs.find({ relations: { curriculums: true } });
     return rows
@@ -47,7 +42,6 @@ export class CurriculumService {
       .sort((a, b) => byText(a.code, b.code));
   }
 
-  /** The curriculum of one cohort of a program, or null when there is none. */
   async findCurriculum(programCode: string, cohortYear: number): Promise<CurriculumDto | null> {
     const where = cohortCurriculum(programCode, cohortYear);
     if (!where) return null;
@@ -55,14 +49,12 @@ export class CurriculumService {
     return row ? curriculumDto(row, await this.rules.courseRules(row.id)) : null;
   }
 
-  /** Like findCurriculum, for a route: a missing curriculum is a 404. */
   async getCurriculum(programCode: string, cohortYear: number): Promise<CurriculumDto> {
     const curriculum = await this.findCurriculum(programCode, cohortYear);
     if (!curriculum) throw new NotFoundException('No curriculum for this program and cohort');
     return curriculum;
   }
 
-  /** A catalog course with every requirement group that links to it, or null. The code must be exact (ADR 0007). */
   async findCourse(code: string): Promise<CourseDetailDto | null> {
     if (!isCourseCode(code)) return null;
     const course = await this.courses.findOneBy({ code });
@@ -84,14 +76,12 @@ export class CurriculumService {
     return { ...courseDto(course), memberships };
   }
 
-  /** Like findCourse, for a route: an unknown or malformed code is a 404. */
   async getCourse(code: string): Promise<CourseDetailDto> {
     const course = await this.findCourse(code);
     if (!course) throw new NotFoundException('No course has this code');
     return course;
   }
 
-  /** The id of the curriculum of one cohort of a program, or null when there is none. */
   async findCurriculumId(programCode: string, cohortYear: number): Promise<string | null> {
     const where = cohortCurriculum(programCode, cohortYear);
     if (!where) return null;
@@ -99,7 +89,6 @@ export class CurriculumService {
     return row?.id ?? null;
   }
 
-  /** Catalog name and credits by code, for the codes among these that the catalog has, in one query (a whole plan at once). Codes must be exact (ADR 0007). */
   async catalogCourses(codes: readonly string[]): Promise<Map<string, CourseSummary>> {
     const wellFormed = [...new Set(codes)].filter(isCourseCode);
     if (!wellFormed.length) return new Map();
@@ -107,10 +96,6 @@ export class CurriculumService {
     return new Map(rows.map((c) => [c.code, { nameVi: c.nameVi, nameEn: c.nameEn, credits: c.credits }]));
   }
 
-  /**
-   * What a screen needs to name a curriculum without listing its courses: its code, cohort and names,
-   * its program, and the name of each requirement group. Null when there is no such curriculum.
-   */
   async curriculumLabels(curriculumId: string): Promise<CurriculumLabels | null> {
     const row = await this.curriculums.findOne({ where: { id: curriculumId }, relations: { program: true, requirementGroups: true } });
     if (!row) return null;
@@ -124,7 +109,6 @@ export class CurriculumService {
     };
   }
 
-  /** The ids of the requirement groups of one curriculum; empty when there is none. */
   async requirementGroupIds(curriculumId: string): Promise<Set<string>> {
     const row = await this.curriculums.findOne({ select: { id: true, requirementGroups: { id: true } }, where: { id: curriculumId }, relations: { requirementGroups: true } });
     return new Set(row?.requirementGroups.map((g) => g.id) ?? []);

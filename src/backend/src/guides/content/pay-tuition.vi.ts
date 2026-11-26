@@ -1,10 +1,5 @@
 import type { GuideFile } from '../guide-file.js';
 
-// G06 Pay tuition (guides plan §4, §5). Sources: the school's "Tài liệu hướng dẫn nộp học phí
-// online" (linked from the hocphi.hcmus.edu.vn sign-in page), Quy chế đào tạo QĐ 1175/QĐ-KHTN
-// and QĐ 2165/QĐ-KHTN. The payment steps come from the site itself: that PDF still shows the older
-// VNPAY-only flow. Draft until a team member follows it on the portal; then set lastChecked
-// and status 'published' (README.md in this folder). Search expectations: GUIDE-01c.
 export default {
   id: 'pay-tuition',
   lang: 'vi',
@@ -12,7 +7,6 @@ export default {
   version: 1,
   changeNote:
     'Bản đầu tiên. Chưa kiểm tra hết: ngày kiểm tra không còn khoản phải nộp, nên nút bắt đầu thanh toán và các bước ở từng trang thanh toán (các bước ghi CHECK) chờ đến đợt thu học phí tới.',
-  // Partly followed on 15 Nov 2026 (Dũng). Set when every step has been followed on the portal.
   lastChecked: null,
   group: 'tuition-and-fees',
   title: 'Đóng học phí',

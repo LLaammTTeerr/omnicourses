@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findPrerequisiteCycle } from './prerequisite-cycle.js';
 
-// Synthetic course codes only.
 const graph = (edges: Record<string, string[]>) => new Map(Object.entries(edges));
 
 describe('findPrerequisiteCycle', () => {
@@ -25,11 +24,9 @@ describe('findPrerequisiteCycle', () => {
   });
 
   it("replaces the course's current edges instead of adding to them", () => {
-    // ZZ1 required ZZ2 before; dropping that edge lets ZZ2 require ZZ1.
     const g = graph({ ZZ1: ['ZZ2'], ZZ2: [] });
     expect(findPrerequisiteCycle(g, 'ZZ2', ['ZZ1'])).toEqual(['ZZ2', 'ZZ1', 'ZZ2']);
     expect(findPrerequisiteCycle(graph({ ZZ1: [], ZZ2: [] }), 'ZZ2', ['ZZ1'])).toBeNull();
-    // A cycle through the course's new edges only, not its old ones.
     expect(findPrerequisiteCycle(graph({ ZZ1: ['ZZ3'], ZZ3: [] }), 'ZZ1', [])).toBeNull();
   });
 

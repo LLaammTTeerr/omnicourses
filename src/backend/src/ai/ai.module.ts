@@ -12,7 +12,6 @@ import { OpenRouterModelClient } from './openrouter-model.client.js';
   imports: [TypeOrmModule.forFeature([AiUsage])],
   providers: [
     { provide: AI_CONFIG, useFactory: aiConfig },
-    // No client without a key: the app still boots, and AI calls answer 503 (ADR 0003).
     {
       provide: ModelClient,
       inject: [AI_CONFIG],

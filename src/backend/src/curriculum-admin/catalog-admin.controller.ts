@@ -10,7 +10,6 @@ import { AdminErrors } from './admin-write.service.js';
 import { CatalogAdminService } from './catalog-admin.service.js';
 import { CreateCourseDto, UpdateCourseDto } from './curriculum-admin.dto.js';
 
-// F12 catalog-maintainer routes (ADR 0011, UC-11 A8). A program grant does not reach them.
 @ApiTags('curriculum-admin')
 @Authenticated()
 @AdminErrors()

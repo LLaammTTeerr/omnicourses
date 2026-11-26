@@ -8,7 +8,6 @@ import { PlanDropReportsDto, PlanIssuesDto } from './plan-issues.dto.js';
 import { CreatePlanDto, DuplicatePlanDto, PlanBoardDto, PlanDropPreviewDto, PlanDto, PlanListDto, RenamePlanDto } from './plans.dto.js';
 import { PlansService } from './plans.service.js';
 
-// F5 plans (UC-05, ADR 0014), the signed-in student's own only.
 @ApiTags('plans')
 @Authenticated()
 @Controller('plans')

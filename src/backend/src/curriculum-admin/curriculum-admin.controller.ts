@@ -21,11 +21,6 @@ import { CurriculumAdminService } from './curriculum-admin.service.js';
 
 const COHORT = 'admin/programs/:programId/cohorts/:curriculumId';
 
-// F12 program-administrator routes (ADR 0011). Signed-in through the global AuthGuard; the
-// service checks the caller's current grant for :programId inside each write's transaction.
-// A cohort is a `curriculums` row; :curriculumId must belong to :programId.
-// The two reads answer every signed-in user (200, or 401 without a session), so AdminErrors() is on each write
-// only: on the class it would document a 400, 403 and 404 these reads never answer.
 @ApiTags('curriculum-admin')
 @Authenticated()
 @Controller()
@@ -38,9 +33,6 @@ export class CurriculumAdminController {
     return { programs: await this.admin.editablePrograms(user.id) };
   }
 
-  // For any signed-in user: the screens ask it to decide whether to show the administration
-  // entry. It takes no user ID. An access manager reads another user's grants through
-  // GET /admin/access/users/:userId/grants.
   @Get('admin/grants')
   @ApiOkResponse({
     type: UserGrantsDto,

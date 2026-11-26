@@ -6,29 +6,10 @@ import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
 import { NAME_MAX_LENGTH } from './curriculum-admin.dto.js';
 
-// Request and response shapes of the F12 program and cohort routes (ADR 0011, "Programs and
-// cohorts as built"). Requests go through StrictBody, so a field that is not declared here is a
-// 400, never ignored. That is how these are refused:
-// - an identifier in a PATCH: a program's code; a cohort's programId, cohortYear and code;
-// - the gated cohort total, totalCreditsMin, in a POST or a PATCH;
-// - a program's trainingType, which sets the credit caps (ADR 0012): no decision says who may
-//   enter it through F12, so no route accepts it and a new program stores none.
-
-// The code of a program or of a cohort's curriculum, as F12 accepts it (ADR 0011, "Programs and
-// cohorts as built"). The schema gives both columns a length (varchar(50)) and no format, so this
-// is a structural rule only: capital letters and digits, in parts joined by single hyphens. It
-// accepts every seeded code (APCS, CNTT-TCTA-KHMT, APCS2024, CNTT-TCTA-KHMT-2025). A program code is
-// a path segment of the read API (/api/programs/:program/curricula/:cohort), so it holds no
-// space, slash or other character a URL would need to escape.
 export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 export const ADMIN_CODE_MAX_LENGTH = 50;
 const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
 
-/**
- * For a code an administrator types: trims and upper-cases, as a course code is (UC-11 step 5).
- * It decides nothing: the validators that follow accept or refuse the result. Two spellings of
- * one code are therefore one code, and the second is a duplicate.
- */
 export const canonicalAdminCode = (input: unknown): unknown => (typeof input === 'string' ? input.trim().toUpperCase() : input);
 
 const FACULTY_MAX_LENGTH = 100;
@@ -36,8 +17,6 @@ const LANGUAGE_MAX_LENGTH = 10;
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
-
-// ---- Programs ------------------------------------------------------------------------------
 
 export class CreateProgramDto {
   @ApiProperty({
@@ -77,7 +56,6 @@ export class CreateProgramDto {
   faculty?: string | null;
 }
 
-/** The editable program fields. The code and the training type are not among them (ADR 0011). */
 export const PROGRAM_FIELDS = ['nameVi', 'nameEn', 'faculty'] as const;
 
 export class UpdateProgramDto {
@@ -130,10 +108,7 @@ export class ProgramDetailsDto {
   updatedAt!: Date;
 }
 
-// ---- Cohorts (curriculums rows) ------------------------------------------------------------
-
 export class CreateCohortDto {
-  /** The bounds of ck_curriculums_cohort_year_range (migration 1792912952302). */
   @ApiProperty({ type: 'integer', example: 2026, minimum: MIN_ACADEMIC_YEAR, maximum: MAX_ACADEMIC_YEAR, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
   @IsInt()
   @Min(MIN_ACADEMIC_YEAR)
@@ -177,7 +152,6 @@ export class CreateCohortDto {
   language?: string | null;
 }
 
-/** The editable cohort fields. The program, the year, the code and the credit total are not among them (ADR 0011). */
 export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language'] as const;
 
 export class UpdateCohortDto {

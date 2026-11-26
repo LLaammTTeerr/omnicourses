@@ -2,11 +2,6 @@ import { addDays } from '../../config/time.js';
 import type { GuideFile, GuideGroup, GuideLang, GuideStatus } from '../guide-file.js';
 import { addMonths, isOutOfDate, OUT_OF_DATE_MONTHS } from '../out-of-date.js';
 
-// Synthetic guides for the cases of TC-B1-GUIDE-01 the real batch cannot reach (i–o).
-// Loaded by the tests and by `npm run db:seed -w src/backend -- --guide-fixtures`, on test
-// databases only. Never put them in ../content/. Each title holds its ID, so a search finds it.
-
-/** The oldest last-checked date still fresh on `today`: 6 months back, or a little later when that month is shorter. */
 function oldestFreshDate(today: string): string {
   let date = addMonths(today, -OUT_OF_DATE_MONTHS);
   while (isOutOfDate(date, today)) date = addDays(date, 1);
@@ -39,14 +34,11 @@ function fixture(id: string, lang: GuideLang, status: GuideStatus, checkedOn: st
   };
 }
 
-// The seed wants every published guide's portal on a published portal board (validate-guide.ts).
-// zz-fresh is the board of the test guides, so they load next to the real G01 as well.
 function asBoard(file: GuideFile): GuideFile {
   const vi = file.lang === 'vi';
   return { ...file, portals: [{ name: file.portal.name, url: 'https://example.com', account: file.portal.account, purpose: vi ? 'Cổng của các hướng dẫn thử.' : 'The portal of the test guides.' }] };
 }
 
-/** The test-only guides of TC-B1-GUIDE-01, dated back from `today` (a Vietnam date, YYYY-MM-DD). */
 export function guideFixtures(today: string): GuideFile[] {
   const edge = oldestFreshDate(today);
   const both = (id: string, status: GuideStatus, on: string, group: GuideGroup) => [

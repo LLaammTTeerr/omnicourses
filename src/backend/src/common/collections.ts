@@ -1,4 +1,3 @@
-/** Code-point order: the same on every machine, unlike a locale collation. */
 export const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 export function groupBy<T, K>(items: Iterable<T>, keyOf: (item: T) => K): Map<K, T[]> {

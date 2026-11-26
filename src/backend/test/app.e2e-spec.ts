@@ -15,7 +15,6 @@ describe('API against PostgreSQL (e2e)', () => {
     await app?.close();
   });
 
-  // The route is public, so it no longer names the version (issue #28); the pin is checked here.
   it('GET /api/health reaches the database, which runs PostgreSQL 18', async () => {
     const res = await request(app.getHttpServer()).get('/api/health').expect(200);
     expect(res.body).toEqual({ status: 'ok', database: 'up' });

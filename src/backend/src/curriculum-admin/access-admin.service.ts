@@ -9,14 +9,8 @@ import { type Need, userGrants } from './grants.js';
 
 const ACCESS_MANAGER: Need = { permission: 'access_manager' };
 
-/** Thrown by the bootstrap; the CLI prints the message. */
 class BootstrapRefused extends Error {}
 
-/**
- * The first access manager (ADR 0011, "Bootstrap and recovery"): an operator command, never
- * an HTTP route. Grants only access_manager, with granted_by null, and only while no active
- * access manager exists, so it is also the recovery path after the last one is deleted.
- */
 export async function bootstrapAccessManager(db: DataSource, userId: string): Promise<void> {
   await db.transaction(async (em) => {
     const [user] = await lockAdminWrite(em, [userId]);
@@ -32,7 +26,6 @@ export async function bootstrapAccessManager(db: DataSource, userId: string): Pr
   });
 }
 
-/** Active: the account is not waiting for deletion (ADR 0011). */
 async function activeAccessManagers(em: EntityManager, except?: string): Promise<number> {
   const [{ n: count }] = await em.query(
     `SELECT count(*)::int AS "n" FROM "global_admin_grants" g JOIN "users" u ON u."id" = g."user_id"
@@ -42,8 +35,6 @@ async function activeAccessManagers(em: EntityManager, except?: string): Promise
   return count;
 }
 
-// Access-manager operations (ADR 0011): list programs, read one user's grants by exact ID, and
-// grant or revoke any of the three permissions. No user directory, no search by email.
 @Injectable()
 export class AccessAdminService {
   constructor(private readonly writes: AdminWriteService) {}
@@ -66,7 +57,6 @@ export class AccessAdminService {
     return this.writes.runForRecipient(callerId, userId, async (em) => {
       await assertActiveRecipient(em, userId);
       await programIn(em, programId);
-      // Idempotent: repeating a grant keeps its original attribution.
       await em.query(
         'INSERT INTO "program_admin_grants" ("user_id", "program_id", "granted_by") VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
         [userId, programId, callerId],

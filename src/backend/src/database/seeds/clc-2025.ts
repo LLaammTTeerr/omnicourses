@@ -17,10 +17,6 @@ import {
 } from './clc-2025-shared.js';
 import type { CurriculumSeed } from './seed-types.js';
 
-// The nine specialisations of the CLC (Tăng cường tiếng Anh) 2025 curriculum.
-// Pages in this file are booklet pages ("Trang n/73"); row pages are in the
-// *.rows.ts files and refer to each specialisation's table PDF.
-
 const notThis = (name: string) => ALL_SPECIALISATIONS.filter((s) => s !== name);
 
 export const clc2025Mmt: CurriculumSeed = clc2025Seed({
@@ -244,7 +240,6 @@ export const clc2025Cnttin: CurriculumSeed = clc2025Seed({
   rows: clc2025CnttinRows,
 });
 
-/** In the booklet's order (7.2.2.1 to 7.2.2.9). */
 export const CLC_2025_SEEDS: CurriculumSeed[] = [
   clc2025Mmt,
   clc2025Httt,

@@ -1,24 +1,19 @@
 import { isCalendarDate } from '../common/field-validators.js';
 import { type GuideCitation, GUIDE_GROUPS, GUIDE_ID, GUIDE_ID_MAX, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink, textKey } from './guide-file.js';
 
-/** A file the seed may load: a published one always has its last-checked date. */
 export type LoadableGuideFile =
   | (GuideFile & { status: 'draft' })
   | (GuideFile & { status: 'withdrawn' })
   | (GuideFile & { status: 'published'; lastChecked: NonNullable<GuideFile['lastChecked']> });
 
-// AGENTS.md hard rule 1: a guide never types a credit count ("25 credits", "14–25 TC", "20 tín chỉ").
 const CREDIT_NUMBER = /\d\s*(?:tín chỉ|tc\b|credits?\b)/iu;
-// Guides plan §3 rule 4: a date that changes every term is linked, never typed ("15/11", "2026-11-15").
 const TYPED_DATE = /\b\d{1,2}\/\d{1,2}\b|\b\d{4}-\d{2}-\d{2}\b/u;
 
 const HTTPS_URL = /^https:\/\/\S+$/;
-// One leading `/` and no backslash: a browser reads `\` as `/`, so `/\host` and `//host` both leave OmniCourse.
 const APP_PATH = /^\/(?![/\\])[^\s\\]*$/;
 const isSafeUrl = (url: string) => HTTPS_URL.test(url) || APP_PATH.test(url);
 const oneOf = (values: readonly string[]) => `${values.slice(0, -1).join(', ')} or ${values.at(-1)}`;
 
-/** The problems with one content file; empty when the seed may load it. A draft only needs its identity and safe links. */
 export function validateGuideFile(file: GuideFile): string[] {
   const problems = [...identityProblems(file), ...linkProblems(file)];
   if (file.status === 'published') problems.push(...publishedProblems(file), ...proseProblems(file));
@@ -108,7 +103,6 @@ function proseProblems(file: GuideFile): string[] {
   ]);
 }
 
-/** The problems with a set of content files the seed loads together. */
 export function validateGuideSet(files: GuideFile[]): string[] {
   const problems = files.flatMap(validateGuideFile);
   const byKey = new Map<string, GuideFile>();
@@ -128,14 +122,11 @@ export function validateGuideSet(files: GuideFile[]): string[] {
   return [...problems, ...portalsMissingFromBoard(files)];
 }
 
-/** The set typed for loading, or the problems that keep the seed from loading it. */
 export function parseGuideSet(files: GuideFile[]): { files: LoadableGuideFile[] } | { problems: string[] } {
   const problems = validateGuideSet(files);
-  // validateGuideFile requires lastChecked on every published file.
   return problems.length ? { problems } : { files: files as LoadableGuideFile[] };
 }
 
-/** Published guides whose portal is not on a published portal board (G01): every guide sends the student to a site the board lists. */
 export function portalsMissingFromBoard(files: GuideFile[]): string[] {
   const published = files.filter((f) => f.status === 'published');
   const hosts = new Set(published.flatMap((f) => f.portals ?? []).map((p) => new URL(p.url).host));
@@ -155,7 +146,6 @@ function linksOf(file: GuideFile): [string, GuideLink][] {
   return links.filter((entry): entry is [string, GuideLink] => entry[1] !== undefined);
 }
 
-// The addresses that are always on another site: a portal, and the document a regulation clause is in.
 function siteUrlsOf(file: GuideFile): [string, string][] {
   return [
     ['portal.url', file.portal.url],
@@ -165,7 +155,6 @@ function siteUrlsOf(file: GuideFile): [string, string][] {
   ];
 }
 
-// The text a reader sees, checked for typed rule values and dates. Citations and the change note are not.
 function proseOf(file: GuideFile): [string, string][] {
   return [
     ['title', file.title],

@@ -44,7 +44,6 @@ describe('settings', () => {
     expect(port()).toBe(4000);
   });
 
-  // '' would read as 0 (a 0 ms timeout, purge at once, a random port) and a typo as NaN (a cap that never triggers).
   it.each(['', ' ', 'abc', '0', '-1', '1.5'])('falls back to the defaults when a number is %j', (value) => {
     vi.stubEnv('AI_TIMEOUT_MS', value);
     vi.stubEnv('AI_DAILY_CALLS_PER_USER', value);

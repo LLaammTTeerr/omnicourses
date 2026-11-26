@@ -2,10 +2,6 @@ import { type Options, parse } from 'csv-parse/sync';
 import { importRejected, type ImportRowErrorDto, payloadTooLarge } from './admin-errors.js';
 import type { CourseField } from './curriculum-admin.dto.js';
 
-// Reads one CSV import file (ADR 0011, "CSV contract and UC-11 handoff") into text cells.
-// It decides nothing about a course or a link: no cell is cast, and a value is checked later
-// by the validation manual entry uses. These bounds are input limits, not academic rules.
-
 export const MIB = 1024 * 1024;
 export const inMiB = (bytes: number): string => `${bytes / MIB} MiB`;
 
@@ -28,27 +24,16 @@ export const GROUP_LINKS_HEADER = ['requirement_group_name', 'course_code'] as c
 
 export type GroupLinkColumn = (typeof GROUP_LINKS_HEADER)[number];
 
-/** One data record with the template's field count: its cells, trimmed at the edges. */
 export interface CsvRow<C extends string> {
-  /**
-   * The logical record number; the header is record 1 and a blank line is not a record. It is
-   * the only position reported: csv-parse counts a CR and an LF inside a quoted field as two
-   * lines, so a physical line number could not be given reliably (ADR 0011 makes it optional).
-   */
   record: number;
   values: Record<C, string>;
 }
 
 export interface CsvFile<C extends string> {
   rows: CsvRow<C>[];
-  /** Records with another field count than the template. They are refused, never padded or skipped. */
   errors: ImportRowErrorDto[];
 }
 
-// RFC 4180 quoting, strictly: a quote opens and closes a whole field and is doubled inside it,
-// so `relax_quotes` stays off and the parser trims nothing (a space outside the quotes is an
-// error, not decoration). `relax_column_count` is on only so that readCsv can report every
-// record with a wrong field count as a row error; the parser alone would stop at the first.
 const PARSER_OPTIONS: Options = {
   bom: true,
   delimiter: ',',
@@ -64,8 +49,6 @@ const PARSER_OPTIONS: Options = {
   info: true,
 };
 
-// The parser's own messages quote the cell that broke it. These do not, so a refused file
-// leaves no content in a message that may be logged.
 const PARSE_ERRORS: Record<string, string> = {
   CSV_INVALID_CLOSING_QUOTE: 'text follows a closing quote; a quoted field ends at the comma or at the end of the line',
   INVALID_OPENING_QUOTE: 'a quote appears inside an unquoted field; quote the whole field and double each quote inside it',
@@ -74,18 +57,11 @@ const PARSE_ERRORS: Record<string, string> = {
 
 const LONE_SURROGATE = /[\uD800-\uDFFF]/u;
 
-/**
- * The data records of `csv`, which must start with exactly `header`.
- * Throws 413 over a size bound, and 400 for a file no template row can be read from:
- * malformed quoting, another header, or text that is not UTF-8. A quoting error names the
- * record where reading stopped.
- */
 export function readCsv<C extends string>(csv: string, header: readonly C[]): CsvFile<C> {
   if (Buffer.byteLength(csv, 'utf8') > CSV_MAX_BYTES) throw payloadTooLarge(`The CSV is larger than ${inMiB(CSV_MAX_BYTES)} of UTF-8 text`);
   if (LONE_SURROGATE.test(csv) || csv.includes('\u0000')) throw importRejected('The CSV is not UTF-8 text', []);
 
   const records = parseRecords(csv).map(({ record }, index) => ({ record: index + 1, cells: record.map((cell) => cell.trim()), raw: record }));
-  // A record of empty cells only (",,,") is ignored, like a blank line, but keeps its number.
   const data = records.slice(1).filter((r) => r.cells.some((cell) => cell !== ''));
   if (data.length > CSV_MAX_RECORDS) throw payloadTooLarge(`The CSV has more than ${CSV_MAX_RECORDS} data records`);
 
@@ -101,7 +77,6 @@ function parseRecords(csv: string): { record: string[] }[] {
   try {
     return parse(csv, PARSER_OPTIONS) as unknown as { record: string[] }[];
   } catch (error) {
-    // `records` counts the records read before the one that failed.
     const { code, records } = error as { code?: string; records?: number };
     const at: ImportRowErrorDto = { record: (records ?? 0) + 1, field: null, message: PARSE_ERRORS[code ?? ''] ?? 'the CSV is malformed here' };
     throw importRejected('The CSV is malformed; nothing was read from it', [at]);

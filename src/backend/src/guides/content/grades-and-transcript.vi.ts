@@ -1,10 +1,5 @@
 import type { GuideFile } from '../guide-file.js';
 
-// G07 View your grades (guides plan §4, §5). Sources: the sign-in page of portal.ctdb.hcmus.edu.vn
-// and the school's re-mark notices (Chương trình đề án). No school page describes the grades screen,
-// so those steps come from following it on the portal (lastChecked). Neither that portal nor
-// portal.hcmus.edu.vn offers a transcript PDF to download, so the guide promises none. The id keeps
-// its first name so links and search stay stable. Search expectations: GUIDE-01c.
 export default {
   id: 'grades-and-transcript',
   lang: 'vi',
@@ -58,5 +53,4 @@ export default {
       source: { kind: 'team' },
     },
   ],
-  // Register for courses is linked under `related` once that guide is published (version 2).
 } satisfies GuideFile;

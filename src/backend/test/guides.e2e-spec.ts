@@ -10,9 +10,8 @@ import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
-// 12:00 on 13 November 2026 in Vietnam, the run day of GUIDE-01j.
-const NOW = new Date('2026-11-13T05:00:00Z');
-const TODAY = vietnamDate(NOW);
+const NOON_IN_VIETNAM_ON_GUIDE_01J_RUN_DAY = new Date('2026-11-13T05:00:00Z');
+const TODAY = vietnamDate(NOON_IN_VIETNAM_ON_GUIDE_01J_RUN_DAY);
 const FIXTURES = guideFixtures(TODAY);
 const fixture = (id: string, lang: string) => FIXTURES.find((f) => f.id === id && f.lang === lang)!;
 
@@ -29,18 +28,16 @@ describe('Guides API (e2e)', () => {
   const listed = async (token?: string): Promise<Listed[]> => {
     const req = http().get('/api/guides');
     const res = await (token ? req.set('Authorization', `Bearer ${token}`) : req).expect(200);
-    // Other guides may be loaded in this database; the test-only ones are this file's.
     return (res.body.guides as Listed[]).filter((g) => g.id.startsWith('zz-'));
   };
 
   beforeAll(async () => {
-    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue({ now: () => NOW }));
+    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue({ now: () => NOON_IN_VIETNAM_ON_GUIDE_01J_RUN_DAY }));
     db = app.get(DataSource);
     await seedGuides(db, [...GUIDE_FILES, ...FIXTURES]);
   });
 
   afterAll(async () => {
-    // Seeding the content files alone withdraws the test-only guides again.
     if (db) await seedGuides(db, GUIDE_FILES);
     await app?.close();
   });
@@ -72,7 +69,6 @@ describe('Guides API (e2e)', () => {
     const { body } = await http().get('/api/guides/zz-fresh').expect(200);
     expect(Object.keys(body.texts).sort()).toEqual(['en', 'vi']);
     const fresh = fixture('zz-fresh', 'en');
-    // The fixture leaves citations and related out: the API sends them as [].
     expect(body.texts.en).toEqual({
       title: fresh.title,
       keywords: fresh.keywords,

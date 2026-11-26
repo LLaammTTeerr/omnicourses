@@ -12,7 +12,6 @@ async function controllerWith(query: DataSource['query']): Promise<HealthControl
 }
 
 describe('HealthController', () => {
-  // Issue #28: the route is public, so it says whether the database answers, not which version it runs.
   it('reports ok when the database answers, without its version', async () => {
     const controller = await controllerWith(vi.fn().mockResolvedValue([{ server_version: '18.6' }]));
     await expect(controller.check()).resolves.toEqual({ status: 'ok', database: 'up' });

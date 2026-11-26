@@ -22,8 +22,6 @@ interface Event {
   updatedAt: string;
 }
 
-// Synthetic programs and dates only (AGENTS.md hard rule 3), unique per run and removed in
-// afterAll: e2e files share one database, and nothing here touches a seeded program.
 describe('Academic calendar API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
@@ -111,7 +109,6 @@ describe('Academic calendar API (e2e)', () => {
     let examB: Event;
 
     beforeAll(async () => {
-      // Entered out of order, to show the read sorts by date.
       termStart = (await as(adminA.token).post(events(programA), valid).expect(201)).body;
       holiday = (
         await as(adminA.token)
@@ -162,7 +159,6 @@ describe('Academic calendar API (e2e)', () => {
 
     it('serves the dates of given kinds that start on given days to other modules, without notes, links or actors (ADR 0018)', async () => {
       const service = app.get(AcademicCalendarService);
-      // The shared database may hold other programs' dates on these days: look at this run's only.
       const mine = async (days: string[], kinds: Parameters<AcademicCalendarService['startingOn']>[1]) =>
         (await service.startingOn(days, kinds)).filter((e) => [codeA, codeB].includes(e.programCode));
       expect(await mine(['2026-09-07', '2026-07-20', '2026-12-21', '2027-02-10'], ['registration', 'term_start'])).toEqual([
@@ -179,7 +175,6 @@ describe('Academic calendar API (e2e)', () => {
         },
         { id: termStart.id, programCode: codeA, academicYear: 2026, term: 1, kind: 'term_start', startsOn: '2026-09-07', endsOn: '2026-09-07', title: 'Bắt đầu học kỳ 1', titleEn: null },
       ]);
-      // Every program, by the first day only: a window that is open today did not start today.
       expect((await mine(['2026-12-21'], ['exam_period'])).map((e) => [e.id, e.programCode])).toEqual([[examB.id, codeB]]);
       expect(await mine(['2026-07-21', '2026-07-31'], ['registration'])).toEqual([]);
       expect(await service.startingOn([], ['registration'])).toEqual([]);
@@ -204,7 +199,6 @@ describe('Academic calendar API (e2e)', () => {
     it('filters by academic year and by overlap with from/to', async () => {
       expect((await as(student.token).get(calendar('?academicYear=2025')).expect(200)).body.events).toEqual([]);
       expect((await as(student.token).get(calendar('?academicYear=2026')).expect(200)).body.events).toHaveLength(3);
-      // A window that opened before `from` and is still open counts.
       const july = (await as(student.token).get(calendar('?from=2026-07-25&to=2026-08-31')).expect(200)).body.events as Event[];
       expect(july.map((e) => e.id)).toEqual([registration.id]);
       const fromSept = (await as(student.token).get(calendar('?from=2026-09-01')).expect(200)).body.events as Event[];

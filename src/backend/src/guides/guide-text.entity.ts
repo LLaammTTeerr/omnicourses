@@ -15,7 +15,6 @@ export class GuideText {
   guide!: Guide;
 
   @Column({ type: 'varchar', length: 20 })
-  /** A draft is never loaded. */
   status!: Exclude<GuideStatus, 'draft'>;
 
   @Column({ type: 'integer' })
@@ -24,7 +23,6 @@ export class GuideText {
   @Column({ name: 'change_note', type: 'text' })
   changeNote!: string;
 
-  // TypeORM reads a date column as YYYY-MM-DD.
   @Column({ name: 'last_checked_on', type: 'date' })
   lastCheckedOn!: string;
 

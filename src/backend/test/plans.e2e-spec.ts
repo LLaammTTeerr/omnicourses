@@ -8,14 +8,12 @@ import { bootApp } from './support/app.js';
 import { offerAlso } from './support/offer.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
-// Synthetic catalog and plans only (AGENTS.md hard rule 3), unique per run so reruns never collide.
 const tag = randomBytes(3).toString('hex').toUpperCase();
 const program = `ZZP${tag}`;
 const code = (n: number) => `ZZ${tag}${String(n).padStart(2, '0')}`;
 const PLAN_TABLES = ['plans', 'plan_placements'];
 
 interface Catalog {
-  /** The elective group of cohort 2030, and the one of cohort 2031 (another curriculum). */
   group2030: string;
   group2031: string;
 }
@@ -48,7 +46,6 @@ describe('Plans API against PostgreSQL (e2e)', () => {
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
-    // Cohort 2030 is offered like APCS 2024 and 2025; cohort 2031 has a curriculum and is not.
     offerAlso(app, program, [2030]);
     const [{ id: programId }] = await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, 'Chương trình thử') RETURNING id`, [program]);
     const curriculum = async (year: number) =>
@@ -105,7 +102,6 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toEqual([]);
   });
 
-  // Project Lead, 25 November 2026 (option A): a new plan only for a cohort onboarding offers.
   it('refuses a new plan for a cohort onboarding does not offer, even one with a curriculum, and saves nothing', async () => {
     const { auth } = await student();
     for (const [programCode, cohortYear] of [[program, 2031], ['APCS', 2023]] as const) {
@@ -115,7 +111,6 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toEqual([]);
   });
 
-  // No migration and no data change: a plan saved before the refusal stays the student's.
   it('keeps serving and editing a plan saved earlier on a cohort onboarding does not offer, and refuses only a copy of it', async () => {
     const { auth, userId } = await student();
     const [{ id: curriculumId }] = await db.query('SELECT c.id FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code = $1 AND c.cohort_year = 2031', [program]);
@@ -128,7 +123,6 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     const terms = [{ term: { year: 2031, number: 1 }, placements: [course(code(1)), slot(catalog.group2031, 3)] }];
     expect((await http().put(`/api/plans/${id}/placements`).set(auth).send({ terms }).expect(200)).body.terms).toEqual(terms);
 
-    // A copy is a new plan on that cohort.
     const copy = await http().post(`/api/plans/${id}/duplicate`).set(auth).send({}).expect(400);
     expect(copy.body.message).toBe(`Onboarding does not offer ${program} 2031 to students`);
     expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toHaveLength(1);
@@ -144,18 +138,18 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     expect((await put(next).expect(200)).body.terms).toEqual(next);
 
     const refused = [
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('ZZNOSUCH99')] }], // not in the catalog
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('csc10001')] }], // not a stored code
-      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2031, 3)] }], // another curriculum's group
-      [{ term: { year: 2031, number: 1 }, placements: [slot(randomUUID(), 3)] }], // no such group
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 2 }, placements: [course(code(2))] }], // placed twice
-      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 1 }, placements: [course(code(3))] }], // term twice
-      [{ term: { year: 2031, number: 4 }, placements: [course(code(2))] }], // no term 4
-      [{ term: { year: 2031, number: 1 }, placements: [] }], // empty term
-      [{ term: { year: 2031, number: 1 }, placements: [{ ...course(code(2)), credits: 4 }] }], // credits on a course
-      [{ term: { year: 2031, number: 1 }, placements: [{ ...slot(catalog.group2030, 3), courseCode: code(2) }] }], // a course on a slot
-      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2030, 0)] }], // no credits
-      [{ placements: [course(code(2))] }], // no term
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('ZZNOSUCH99')] }],
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2)), course('csc10001')] }],
+      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2031, 3)] }],
+      [{ term: { year: 2031, number: 1 }, placements: [slot(randomUUID(), 3)] }],
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 2 }, placements: [course(code(2))] }],
+      [{ term: { year: 2031, number: 1 }, placements: [course(code(2))] }, { term: { year: 2031, number: 1 }, placements: [course(code(3))] }],
+      [{ term: { year: 2031, number: 4 }, placements: [course(code(2))] }],
+      [{ term: { year: 2031, number: 1 }, placements: [] }],
+      [{ term: { year: 2031, number: 1 }, placements: [{ ...course(code(2)), credits: 4 }] }],
+      [{ term: { year: 2031, number: 1 }, placements: [{ ...slot(catalog.group2030, 3), courseCode: code(2) }] }],
+      [{ term: { year: 2031, number: 1 }, placements: [slot(catalog.group2030, 0)] }],
+      [{ placements: [course(code(2))] }],
     ];
     for (const terms of refused) await put(terms).expect(400);
     await http().put(`/api/plans/${plan.id}/placements`).set(auth).send({}).expect(400);

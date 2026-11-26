@@ -8,8 +8,6 @@ import type { RulesService } from '../rules/rules.service.js';
 import type { PlanIssuesReport } from '../rules/types.js';
 import { isShareToken, newShareToken, SharingService } from './sharing.service.js';
 
-// The database is faked: the e2e suite (test/plan-sharing.e2e-spec.ts) covers the SQL. This covers
-// what the service answers before, between and after its queries. Synthetic data only.
 const NOT_SHARED = new NotFoundException('This plan is not shared');
 const NO_PLAN = new NotFoundException('No plan with this id');
 
@@ -62,14 +60,12 @@ describe('SharingService.read', () => {
     expect(issues.issuesFor).not.toHaveBeenCalled();
   });
 
-  // The plan was deleted after its link was found: the same answer, not the plans module's 404.
   it('answers "not shared" when the plan is gone by the time it is read', async () => {
     const { svc, issues } = service({ plan: null });
     await expect(svc.read(newShareToken())).rejects.toEqual(NOT_SHARED);
     expect(issues.issuesFor).not.toHaveBeenCalled();
   });
 
-  // The read uses no column of users but display_name, and that one only when the owner chose it (AGENTS.md: never read password_hash).
   it('reads the link, the owner’s display name and nothing else of the account', async () => {
     const { svc, db } = service();
     await svc.read(newShareToken());
@@ -79,9 +75,6 @@ describe('SharingService.read', () => {
     expect(sql).not.toMatch(/\*|password_hash|email|google_sub/);
   });
 
-  // The issues are the rule engine's, asked for the very plan that is shown: the board and its issues cannot disagree.
-  // Without the owner's choice the engine is asked without the transcript and is not even told whose plan it is,
-  // so neither the answer nor the time it takes can depend on the transcript.
   it('asks the rule engine about the plan it shows, read through the owner the link names, and without the transcript', async () => {
     const { svc, plans, issues, catalog } = service({ share: { planId: 'p1', userId: 'u1', ownerName: 'Test Student' } });
     const body = await svc.read(newShareToken());
@@ -94,13 +87,11 @@ describe('SharingService.read', () => {
     expect(body).toMatchObject({ name: 'Main plan', ownerName: 'Test Student', terms: [{ credits: 4, placements: [{ courseCode: 'ZZ001', nameVi: 'Học phần thử', credits: 4 }] }] });
   });
 
-  // The owner's choice (ADR 0010): the checks that come from the transcript reach a reader only when the link's row says so.
   it('adds the transcript’s checks and the coverage only when the link says the owner chose them', async () => {
     const chosen = service({ share: { planId: 'p1', userId: 'u1', ownerName: null, showTranscriptChecks: true } });
     const on = await chosen.svc.read(newShareToken());
     expect(on.coverage).toEqual({ groups: [], combinedMinimums: [], totalRequired: null, totalCredits: 0, totalRemaining: null, graduation: 'not_yet' });
     expect(on.issueCodesNotShown).toEqual([]);
-    // Only then is the engine asked with the owner's transcript, for the very plan that is shown.
     expect(chosen.issues.issuesFor).toHaveBeenCalledExactlyOnceWith(plan, 'u1');
     expect(chosen.issues.issuesFor.mock.calls[0]![0]).toBe(plan);
 
@@ -141,7 +132,6 @@ describe('SharingService, the owner’s side', () => {
     tx.query.mockResolvedValueOnce([{}]).mockResolvedValueOnce([row]);
     await expect(svc.share('u1', 'p1')).resolves.toEqual({ token: row.share_token, showName: false, showTranscriptChecks: false, createdAt: row.created_at });
     const [sql, params] = tx.query.mock.calls[1]!;
-    // A new row: a choice that was not sent is off. A live row: it keeps what it has. The update never leaves the caller's own row.
     expect(sql).toContain('VALUES ($1, $2, $3, COALESCE($4::boolean, false), COALESCE($5::boolean, false))');
     expect(sql).toContain('"show_name" = COALESCE($4::boolean, "plan_shares"."show_name")');
     expect(sql).toContain('"show_transcript_checks" = COALESCE($5::boolean, "plan_shares"."show_transcript_checks")');
@@ -150,7 +140,6 @@ describe('SharingService, the owner’s side', () => {
     expect(params).toEqual(['p1', 'u1', expect.stringMatching(/^[A-Za-z0-9_-]{43}$/), null, null]);
   });
 
-  // One rule for both choices: what is sent is stored, what is left out is not touched, so a page that sends one choice never changes the other.
   it('passes on each choice exactly as it was sent, and nothing for a choice left out', async () => {
     const sent = async (choices: { showName?: boolean; showTranscriptChecks?: boolean }) => {
       const { svc, tx } = service();
@@ -196,7 +185,6 @@ describe('SharingService, the owner’s side', () => {
 });
 
 describe('share token', () => {
-  // UC-09 §7: at least as strong as a session token, 32 random bytes (ADR 0002).
   it('holds 32 random bytes in base64url', () => {
     const token = newShareToken();
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);

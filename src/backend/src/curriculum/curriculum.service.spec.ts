@@ -9,7 +9,6 @@ import { CurriculumService } from './curriculum.service.js';
 import type { Program } from './program.entity.js';
 import type { RequirementGroup, RequirementGroupCourse } from './requirement-group.entity.js';
 
-// Synthetic catalog: no real curriculum is needed to check the shapes and the order.
 const course = (code: string, credits = 4): Course =>
   ({ code, nameVi: `Học phần ${code}`, nameEn: null, credits, theoryPeriods: 45, labPeriods: null, exercisePeriods: 0, projectPeriods: 0 }) as Course;
 
@@ -77,7 +76,6 @@ describe('CurriculumService', () => {
       ['Bắt buộc', 'compulsory', 8, null, ['ZZ001', 'ZZ002']],
       ['Tự chọn', 'elective', null, 4, ['ZZ001', 'ZZ003']],
     ]);
-    // The same course may sit in two groups; the catalog fields come through untouched, nulls kept.
     expect(result.requirementGroups[0].courses[0]).toEqual({
       code: 'ZZ001',
       nameVi: 'Học phần ZZ001',
@@ -94,7 +92,6 @@ describe('CurriculumService', () => {
 
   it('reads prerequisites and offering terms nothing recorded as null, never as none', async () => {
     const result = await service().svc.getCurriculum('ZZ', 2030);
-    // An empty list would read as "none"; the data is missing, not empty (test plan, data gaps).
     const courses = result.requirementGroups.flatMap((g) => g.courses);
     expect(courses.every((c) => c.prerequisites === null && c.offeringTerms === null)).toBe(true);
   });

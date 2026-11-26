@@ -12,16 +12,10 @@ import {
   TITLE_MAX_LENGTH,
 } from './academic-calendar-event.entity.js';
 
-// Request and response shapes of the academic calendar (ADR 0017). Admin requests go through
-// StrictBody: a field not declared here is a 400 `validation_failed`, never ignored.
-
 const httpsUrl = IsUrl({ protocols: ['https'], require_protocol: true, require_tld: true }, { message: 'sourceUrl must be an https:// link' });
-// IsUrl accepts HTTPS:// too; the database CHECK (LIKE 'https://%') does not, so require lowercase here.
 const lowercaseScheme = Matches(/^https:\/\//, { message: 'sourceUrl must start with https://' });
 
 const NOTES_MAX_LENGTH = 2000;
-
-// ---- Reads (any signed-in user) ------------------------------------------------------------
 
 export class AcademicCalendarQueryDto {
   @ApiProperty({ required: false, example: 'APCS', description: "Program code. Absent: the caller's program from onboarding" })
@@ -106,8 +100,6 @@ export class AcademicCalendarDto {
   @ApiProperty({ type: [AcademicCalendarEventDto], description: 'By startsOn, then endsOn, then title; [] when nothing is entered' })
   events!: AcademicCalendarEventDto[];
 }
-
-// ---- Writes (program administrator of that program) ----------------------------------------
 
 export class CreateCalendarEventDto {
   @ApiProperty({ example: 2026, description: 'ADR 0009: 2026 is 2026–2027. startsOn must fall in 2026 or 2027' })

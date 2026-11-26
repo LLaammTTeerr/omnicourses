@@ -3,16 +3,6 @@ import { TransformFnParams } from 'class-transformer';
 import { buildMessage, IsIn, IsInt, Max, Min, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, type Term, TERM_NUMBERS } from '../terms/term.js';
 
-// PostgreSQL refuses U+0000 in any text value and counts a varchar's length in code points. A
-// text field of a request checks both, so a value the route accepts never makes the query fail
-// with a 500 (issue #163).
-
-/**
- * A text column's length as PostgreSQL counts it: in code points. Use it instead of MaxLength:
- * class-validator's MaxLength does not count a variation selector (U+FE0E, U+FE0F) after a
- * character, so a value it accepts could still be too long for varchar(n), and the insert would
- * fail with a 500. Same words as MaxLength's refusal.
- */
 export const MaxCodePoints = (max: number) =>
   ValidateBy({
     name: 'maxCodePoints',
@@ -23,7 +13,6 @@ export const MaxCodePoints = (max: number) =>
     },
   });
 
-/** PostgreSQL refuses U+0000 in any text value, with a 500 if it got that far. */
 export const NoNullCharacter = ValidateBy({
   name: 'noNullCharacter',
   validator: {
@@ -32,7 +21,6 @@ export const NoNullCharacter = ValidateBy({
   },
 });
 
-/** `@Transform(trimString)`: trims a string and leaves anything else for the validators. */
 export const trimString = ({ value }: TransformFnParams): unknown => (typeof value === 'string' ? value.trim() : value);
 
 export const trimmedOrNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
@@ -57,19 +45,12 @@ export function changedFields<F extends string>(fields: readonly F[], stored: Re
   return Object.fromEntries(fields.filter((field) => field in sent && sent[field] !== stored[field]).map((field) => [field, sent[field]])) as Partial<Record<F, unknown>>;
 }
 
-/** Present: validated. Absent: left as it is. */
 export const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
-/** Present and not null: validated. null clears the column. */
 export const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
-/** Present, not null and not blank: validated. null or '' clears the column (an empty form field). */
 export const ifFilled = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null && value !== '');
 
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-/**
- * True for a calendar date written `YYYY-MM-DD` that exists (no 2026-02-30). A timestamp,
- * a time zone or any other shape is refused: school dates are whole days, not instants.
- */
 export function isCalendarDate(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   const m = DATE_ONLY.exec(value);
@@ -79,7 +60,6 @@ export function isCalendarDate(value: unknown): value is string {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
-/** class-validator: the property is a `YYYY-MM-DD` date that exists. */
 export function IsCalendarDate(options?: ValidationOptions): PropertyDecorator {
   return (target: object, propertyName: string | symbol) =>
     registerDecorator({
@@ -91,10 +71,8 @@ export function IsCalendarDate(options?: ValidationOptions): PropertyDecorator {
     });
 }
 
-/** The calendar year of a `YYYY-MM-DD` date. */
 export const yearOf = (date: string): number => Number(date.slice(0, 4));
 
-// Any request body that names a term nests this DTO, so every module validates terms alike.
 export class TermDto implements Term {
   @ApiProperty({ example: 2026, description: 'First calendar year of the academic year: 2026 means 2026–2027.' })
   @IsInt()

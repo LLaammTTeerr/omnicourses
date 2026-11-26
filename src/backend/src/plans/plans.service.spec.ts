@@ -8,8 +8,6 @@ import type { PlanPlacement } from './plan-placement.entity.js';
 import type { Plan } from './plan.entity.js';
 import { PlansService } from './plans.service.js';
 
-// Synthetic catalog only (AGENTS.md hard rule 3). The database is faked: the e2e suite covers
-// the SQL; this covers what the service refuses before it writes anything.
 const course = (courseCode: string): Placement => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
 const slot = (requirementGroupId: string): Placement => ({ kind: 'slot', courseCode: null, requirementGroupId, credits: 3 });
 const board = (...placements: Placement[]): BoardTerm[] => [{ term: { year: 2030, number: 1 }, placements }];
@@ -92,7 +90,6 @@ describe('PlansService', () => {
     }
   });
 
-  // Project Lead, 25 November 2026 (option A): a plan only for a cohort onboarding offers to students.
   it('refuses a new plan for a cohort onboarding does not offer, before it reads the catalog or writes anything', async () => {
     const { svc, tx, curriculum, onboarding } = service({ offered: false });
     const error = await create(svc, board(course('ZZ001'))).catch((e: unknown) => e);
@@ -127,7 +124,6 @@ describe('PlansService', () => {
     expect(curriculum.requirementGroupIds).not.toHaveBeenCalled();
   });
 
-  // The read the sharing module uses (ADR 0010): scoped to the owner like get, null instead of a 404, and no write.
   it('finds an owned plan, or null for one that is missing or someone else’s, writing nothing', async () => {
     const owned = service();
     await expect(owned.svc.find('u1', 'p1')).resolves.toMatchObject({ id: 'p1', name: 'Main plan', terms: [] });

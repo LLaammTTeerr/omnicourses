@@ -2,10 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { sha256 } from '../regulations/regulation-files.js';
 import { normalise, pagesOf, readCourseDescriptions, textOfPages } from './course-description-files.js';
 
-// Every extracted course must be the booklet's own words: each field is looked
-// up in the normalised text layer of its pages. A failure means an extraction
-// error; the fix is the data, never a weaker check.
-
 const { document, source, pdftotext } = readCourseDescriptions('apcs-course-descriptions-2021');
 const pages = pagesOf(pdftotext);
 const toc = textOfPages(pages, [2, 3]);

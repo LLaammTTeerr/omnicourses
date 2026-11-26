@@ -84,7 +84,6 @@ describe('streamChat', () => {
     release();
     await streaming;
     expect(stopped).toBe(true);
-    // The pending first next() still resolves, then return() runs: no later turn is asked for.
     expect(yielded).toBe(1);
     expect(res.written).toEqual([]);
   });

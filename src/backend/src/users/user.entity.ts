@@ -7,11 +7,9 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  // Stored lowercased; a CHECK constraint in the migration enforces it.
   @Column({ type: 'varchar', length: 254 })
   email!: string;
 
-  // Null for accounts that only sign in with Google.
   @Column({ name: 'password_hash', type: 'text', nullable: true })
   passwordHash!: string | null;
 
@@ -24,17 +22,12 @@ export class User {
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
   emailVerifiedAt!: Date | null;
 
-  // Privacy NFR: consent recorded at sign-up (Luật 91/2025/QH15).
   @Column({ name: 'consent_at', type: 'timestamptz' })
   consentAt!: Date;
 
-  // Set by DELETE /users/me; the account is purged after the grace period
-  // unless the student signs in again (ADR 0004).
   @Column({ name: 'deletion_requested_at', type: 'timestamptz', nullable: true })
   deletionRequestedAt!: Date | null;
 
-  // The deadline promised to the student when they asked; set and cleared with
-  // deletion_requested_at (CHECK), never recomputed from the grace setting.
   @Column({ name: 'purge_after', type: 'timestamptz', nullable: true })
   purgeAfter!: Date | null;
 

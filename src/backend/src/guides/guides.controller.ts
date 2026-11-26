@@ -4,8 +4,6 @@ import { Public } from '../auth/auth.decorators.js';
 import { GuideDto, GuideListDto } from './guides.dto.js';
 import { GuidesService } from './guides.service.js';
 
-// Reading guides needs no account (ADR 0010). @Public() goes on each read route, not on
-// the controller, so a later write here (Report a problem, B3) stays behind sign-in.
 @ApiTags('guides')
 @Controller('guides')
 export class GuidesController {

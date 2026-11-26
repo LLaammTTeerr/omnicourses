@@ -10,8 +10,6 @@ import { currentTerm } from '../src/terms/term.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
-// Synthetic accounts only (AGENTS.md hard rule 3). Terms are counted from today's current term,
-// so the cases keep their meaning whatever day they run.
 const now = currentTerm(vietnamDate(new Date()));
 const ahead = (years: number, number: 1 | 2 | 3) => ({ year: now.year + years, number });
 const lastTerm = ahead(8, 3);
@@ -203,7 +201,6 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
 
   it('serves the students of a program to other modules, finished or not, and one student alone when asked (ADR 0018)', async () => {
     const [a, b, c, unanswered] = [await student(), await student(), await student(), await student()];
-    // Synthetic program codes, unique per run: program_code is not a key to programs.
     const run = a.userId.replace(/-/g, '').slice(0, 8).toUpperCase();
     const [codeA, codeB] = [`ZZONB${run}A`, `ZZONB${run}B`];
     await db.query(

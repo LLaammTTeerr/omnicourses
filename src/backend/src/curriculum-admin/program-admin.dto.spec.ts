@@ -4,7 +4,6 @@ import { flattenErrors, validateStrict } from '../common/api-requests.js';
 import { CURRICULUM_SEEDS } from '../database/seeds/index.js';
 import { ADMIN_CODE_PATTERN, canonicalAdminCode, CreateCohortDto, CreateProgramDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 
-// The DTOs under the validation of @StrictBody(): what a route accepts, and the words of its 400.
 const errorsOf = async (dto: Type<object>, body: unknown): Promise<string[]> => {
   const checked = await validateStrict(dto, body);
   return checked.errors ? flattenErrors(checked.errors) : [];
@@ -40,7 +39,6 @@ describe('CreateProgramDto', () => {
     expect(await errorsOf(CreateProgramDto, { ...PROGRAM, faculty: 'x'.repeat(100) })).toEqual([]);
   });
 
-  // No decision says who may enter a training type through F12 (it sets the credit caps, ADR 0012).
   it('refuses a training type, a grant and any other undeclared field', async () => {
     for (const field of ['trainingType', 'id', 'grantTo', 'curricula', 'updatedAt']) {
       expect(await errorsOf(CreateProgramDto, { ...PROGRAM, [field]: 'standard' })).toEqual([`${field}: property ${field} should not exist`]);
@@ -73,7 +71,6 @@ describe('CreateCohortDto', () => {
     expect(await valueOf(CreateCohortDto, { ...COHORT, code: ' zz-prog-2024', nameEn: ' Trial 2024 ', language: ' en ' })).toEqual({ ...COHORT, nameEn: 'Trial 2024', language: 'en' });
   });
 
-  // ck_curriculums_cohort_year_range: BETWEEN 2000 AND 2100.
   it("holds the cohort year to the schema's bound, as a whole number", async () => {
     for (const cohortYear of [2000, 2100]) expect(await errorsOf(CreateCohortDto, { ...COHORT, cohortYear })).toEqual([]);
     for (const cohortYear of [1999, 2101, 2024.5, '2024', null, undefined, -2024]) {
@@ -81,7 +78,6 @@ describe('CreateCohortDto', () => {
     }
   });
 
-  // ADR 0011: "Before that handoff, those fields are rejected with 400 validation_failed".
   it('refuses the gated credit total, a program ID and any other undeclared field', async () => {
     for (const [field, value] of [['totalCreditsMin', 120], ['totalCreditsMin', null], ['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['copyFrom', 2024], ['requirementGroups', []]] as const) {
       expect(await errorsOf(CreateCohortDto, { ...COHORT, [field]: value })).toEqual([`${field}: property ${field} should not exist`]);
@@ -107,8 +103,6 @@ describe('UpdateCohortDto', () => {
   });
 });
 
-// PostgreSQL counts a varchar's length in code points and refuses U+0000 in any text. Each text
-// field checks both, so a value the route accepts never makes the insert fail with a 500.
 describe('the text fields of the program and cohort DTOs', () => {
   const FIELDS: [Type<object>, object, string, number][] = [
     [CreateProgramDto, PROGRAM, 'nameVi', 255],
@@ -136,7 +130,6 @@ describe('the text fields of the program and cohort DTOs', () => {
   it('counts the length in code points, as PostgreSQL does', async () => {
     for (const [dto, base, field, max] of FIELDS) {
       const refused = [
-        // MaxLength alone counts this as max: it skips a variation selector after a character.
         'x'.repeat(max - 1) + '\u2764\uFE0F',
         'x'.repeat(max + 1),
         '\u{1F600}'.repeat(max + 1),
@@ -144,7 +137,6 @@ describe('the text fields of the program and cohort DTOs', () => {
       for (const value of refused) {
         expect([dto.name, field, [...value].length, await errorsOf(dto, { ...base, [field]: value })]).toEqual([dto.name, field, max + 1, [`${field} must be shorter than or equal to ${max} characters`]]);
       }
-      // An emoji is one code point but two UTF-16 units: max of them fit.
       for (const value of ['x'.repeat(max), '\u{1F600}'.repeat(max), 'x'.repeat(max - 2) + '\u2764\uFE0F']) {
         expect([dto.name, field, await errorsOf(dto, { ...base, [field]: value })]).toEqual([dto.name, field, []]);
       }
@@ -153,7 +145,6 @@ describe('the text fields of the program and cohort DTOs', () => {
 });
 
 describe('ADMIN_CODE_PATTERN', () => {
-  // ADR 0011, review finding 3: the format "must accept both existing formats".
   it('accepts every program code and curriculum code the seeds store', () => {
     const codes = CURRICULUM_SEEDS.flatMap((s) => [s.program.code, s.curriculum.code]);
     expect(codes).toEqual(expect.arrayContaining(['APCS', 'APCS2024', 'CNTT-TCTA-KHMT', 'CNTT-TCTA-KHMT-2025']));

@@ -6,7 +6,6 @@ import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AccountPurgeService } from './account-purge.service.js';
 
-// A database message quotes row values (AGENTS.md hard rule 3). ZZSECRET stands for one.
 function refused(): QueryFailedError {
   const driverError = Object.assign(new Error('invalid input syntax for type uuid: "ZZSECRET"'), { code: '22P02' });
   return new QueryFailedError('DELETE FROM "users" WHERE "id" = $1 -- ZZSECRET', ['ZZSECRET'], driverError);

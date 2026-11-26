@@ -6,13 +6,8 @@ import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculu
 import { TERM_NUMBERS } from '../terms/term.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
 
-// Request and response shapes of F12 (ADR 0011). Requests go through StrictBody: a field not
-// declared here (an identifier, a parent, a gated credit total) is a 400, never ignored.
-
 export const NAME_MAX_LENGTH = 255;
 const MAX_PREREQUISITES = 50;
-
-// ---- Programs the caller administers -------------------------------------------------------
 
 export class AdminCurriculumDto {
   @ApiProperty({ format: 'uuid' })
@@ -43,8 +38,6 @@ export class AdminProgramListDto {
   @ApiProperty({ type: [AdminProgramDto], description: 'The programs the caller holds a program-administrator grant for, by code' })
   programs!: AdminProgramDto[];
 }
-
-// ---- Requirement groups --------------------------------------------------------------------
 
 export class CreateRequirementGroupDto {
   @ApiProperty({ example: 'Kiến thức Math', maxLength: NAME_MAX_LENGTH, description: 'The heading as printed; unique within the curriculum' })
@@ -114,8 +107,6 @@ export class RequirementGroupAdminDto {
   updatedAt!: Date;
 }
 
-// ---- Prerequisites and offering terms ------------------------------------------------------
-
 export class SetPrerequisitesDto {
   @ApiProperty({
     type: [String],
@@ -154,15 +145,8 @@ export class OfferingTermsDto {
   terms!: number[] | null;
 }
 
-// ---- Catalog courses -----------------------------------------------------------------------
-
-/** The largest value an `integer` column of PostgreSQL stores: above it a credit or period count is a 400, not a storage error. */
 export const MAX_INTEGER = 2_147_483_647;
 
-/**
- * Refuses a whole number above MAX_INTEGER, and nothing else: a value that is not a whole
- * number passes here and is refused by @IsInt and @Min with the messages it always had.
- */
 const StorableInteger = () =>
   ValidateBy({
     name: 'storableInteger',
@@ -172,12 +156,6 @@ const StorableInteger = () =>
     },
   });
 
-/**
- * A whole number written as text (a CSV cell), as the number the DTOs below validate: digits
- * only. Anything else ("3.0", "1e2", "+3", "0x10", "-1") stays text, so @IsInt refuses it
- * exactly as it refuses a string in a JSON body. This is the only conversion a CSV value
- * gets (ADR 0011: no parser casting); whether the number is acceptable is decided below.
- */
 export const wholeNumberOrText = (text: string): number | string => (/^[0-9]+$/.test(text) ? Number(text) : text);
 
 export class CreateCourseDto {
@@ -236,7 +214,6 @@ export class CreateCourseDto {
   projectPeriods?: number | null;
 }
 
-/** The editable course fields. The code is not one of them (ADR 0011). */
 export const COURSE_FIELDS = ['nameVi', 'nameEn', 'credits', 'theoryPeriods', 'labPeriods', 'exercisePeriods', 'projectPeriods'] as const;
 export type CourseField = (typeof COURSE_FIELDS)[number];
 
@@ -303,8 +280,6 @@ export class UpdateCourseDto {
   @IsNotEmpty()
   confirmImpact?: string;
 }
-
-// ---- Access management ---------------------------------------------------------------------
 
 export class AccessProgramDto {
   @ApiProperty({ format: 'uuid' })

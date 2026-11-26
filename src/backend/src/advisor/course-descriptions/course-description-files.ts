@@ -3,16 +3,12 @@ import { join } from 'node:path';
 import { advisorSourceDir, readJson } from '../regulations/regulation-files.js';
 import type { CourseDescriptionDocument, CourseDescriptionSource } from './course-description.js';
 
-// Reads a course-description document and its inputs, and normalises the text
-// layer the way the extraction joined it.
-
 interface CourseDescriptionInputs {
   document: CourseDescriptionDocument;
   source: CourseDescriptionSource;
   pdftotext: string;
 }
 
-/** Reads `<id>.json`, `sources/<id>.source.json` and `sources/<id>.pdftotext.txt`. */
 export function readCourseDescriptions(id: string, dir = advisorSourceDir('course-descriptions')): CourseDescriptionInputs {
   return {
     document: readJson<CourseDescriptionDocument>(join(dir, `${id}.json`)),
@@ -21,8 +17,6 @@ export function readCourseDescriptions(id: string, dir = advisorSourceDir('cours
   };
 }
 
-// Lines every page of the APCS booklet repeats: the two-column letterhead and
-// the bare page number in the footer.
 const BOILERPLATE = [
   /^\s*VIET NAM NATIONAL UNIVERSITY\s+SOCIALIST REPUBLIC OF VIETNAM\s*$/,
   /^\s*HO CHI MINH CITY\s+Independence - Freedom - Happiness\s*$/,
@@ -30,10 +24,6 @@ const BOILERPLATE = [
   /^\s*\d{1,3}\s*$/,
 ];
 
-/**
- * Collapses text the way the extraction joined it: a line break after a
- * non-space "-" disappears, every other run of whitespace becomes one space.
- */
 export function normalise(text: string): string {
   return text
     .normalize('NFC')
@@ -42,7 +32,6 @@ export function normalise(text: string): string {
     .trim();
 }
 
-/** The text layer split at form feeds (index 0 = page 1), without the boilerplate lines. */
 export function pagesOf(pdftotext: string): string[] {
   const pages = pdftotext.split('\f');
   if (pages.at(-1)?.trim() === '') pages.pop();
@@ -54,7 +43,6 @@ export function pagesOf(pdftotext: string): string[] {
   );
 }
 
-/** Normalised text of the given 1-based pages, in order. */
 export function textOfPages(pages: string[], numbers: number[]): string {
   return normalise(numbers.map((n) => pages[n - 1]).join('\n'));
 }

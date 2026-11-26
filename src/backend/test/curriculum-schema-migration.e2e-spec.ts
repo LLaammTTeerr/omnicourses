@@ -23,7 +23,6 @@ describe('curriculum schema migration', () => {
         )
       )[0].id as string;
 
-      // A second cohort of the same program is allowed.
       await dataSource.query(
         `INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1,$2,$3,$4)`,
         [programId, 2025, programCode, 'Curriculum 2025'],

@@ -53,13 +53,10 @@ export class ImportRejectedDto extends AdminErrorDto {
 export const prerequisiteCycle = (cycle: string[]) =>
   new BadRequestException({ statusCode: 400, code: 'prerequisite_cycle', cycle, message: `Prerequisite cycle: ${cycle.join(' → ')}` });
 
-/** A CSV file that cannot be imported whatever the database holds. Nothing of the file is echoed outside `errors`. */
 export const importRejected = (message: string, errors: ImportRowErrorDto[]) => new BadRequestException({ statusCode: 400, code: 'validation_failed', message, errors });
 
-/** The JSON body, the decoded CSV or its record count is over an import limit (ADR 0011). */
 export const payloadTooLarge = (message: string) => new PayloadTooLargeException({ statusCode: 413, code: 'payload_too_large', message });
 
-/** The import routes read a body as it is sent: they never inflate one (ADR 0011). */
 export const compressedBody = () =>
   new UnsupportedMediaTypeException({ statusCode: 415, code: 'unsupported_content_encoding', message: 'The import routes do not accept a compressed request body' });
 

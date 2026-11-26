@@ -11,15 +11,9 @@ import { ProgramAdminService } from './program-admin.service.js';
 const PROGRAM = 'admin/programs/:programId';
 const COHORT = `${PROGRAM}/cohorts/:curriculumId`;
 
-/** The path IDs of a route, documented as UUIDs, with the F12 errors of a route that looks one up. */
 const ProgramRoute = () => applyDecorators(AdminErrors(), ApiParam({ name: 'programId', type: String, format: 'uuid' }));
 const CohortRoute = () => applyDecorators(ProgramRoute(), ApiParam({ name: 'curriculumId', type: String, format: 'uuid' }));
 
-// F12 program and cohort routes (ADR 0011, UC-11 A1 and A2). Signed-in through the global
-// AuthGuard; the service checks the caller's current grant inside each transaction. Creating a
-// program needs the access-manager permission and grants nothing; every other route needs the
-// program grant of :programId. A cohort is a `curriculums` row; :curriculumId must belong to
-// :programId. GET admin/programs, the caller's editable programs, is in CurriculumAdminController.
 @ApiTags('curriculum-admin')
 @Authenticated()
 @Controller()

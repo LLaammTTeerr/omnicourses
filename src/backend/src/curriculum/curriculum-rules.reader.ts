@@ -9,18 +9,12 @@ import { Curriculum } from './curriculum.entity.js';
 import type { TrainingType } from './program.entity.js';
 import { type RequirementGroup, type RequirementGroupCourse, RequirementGroupOverflow, type RequirementGroupKind } from './requirement-group.entity.js';
 
-// What the rule engine reads about one curriculum (ADR 0013): plain data, no entity, so the rule
-// functions stay pure and a test builds one by hand. It decides nothing (AGENTS.md hard rule 1).
-
 export interface CurriculumRuleCourse {
   code: string;
   nameVi: string;
   nameEn: string | null;
-  /** Catalog credits. */
   credits: number;
-  /** false: required but outside the cohort total (GDTC, GDQP-AN). */
   countsTowardTotal: boolean;
-  /** false: left out of the GPA (QĐ 1175/QĐ-KHTN Điều 15.1.c). */
   countsTowardGpa: boolean;
 }
 
@@ -30,7 +24,6 @@ export interface CurriculumRuleGroup {
   kind: RequirementGroupKind;
   creditsTotal: number | null;
   creditsTotalMin: number | null;
-  /** The group that this group's credits beyond its own minimum count toward, or null. */
   overflowToGroupId: string | null;
   courses: CurriculumRuleCourse[];
 }
@@ -43,14 +36,8 @@ interface CurriculumRuleCombinedMinimum {
   groupIds: string[];
 }
 
-/**
- * The prerequisites and offering terms recorded for the courses of one curriculum. A course
- * absent from a map has nothing recorded: callers must read that as unknown, not as none.
- */
 export interface CourseRules {
-  /** Course code → its prerequisite codes, sorted; [] when "none" was recorded. */
   prerequisites: Map<string, string[]>;
-  /** Course code → the term numbers it is offered in, ascending; never empty. */
   offeringTerms: Map<string, Term['number'][]>;
 }
 
@@ -60,9 +47,7 @@ export interface CurriculumRules extends CourseRules {
   cohortYear: number;
   curriculumCode: string;
   totalCreditsMin: number | null;
-  /** By name, then id (code-point order). */
   groups: CurriculumRuleGroup[];
-  /** By name, then id. */
   combinedMinimums: CurriculumRuleCombinedMinimum[];
 }
 
@@ -73,8 +58,6 @@ export function cohortCurriculum(programCode: string, cohortYear: number): FindO
   return { cohortYear, program: { code: programCode } };
 }
 
-// Read side of the F12 prerequisite and offering-term tables (ADR 0011, amended 9 November
-// 2026). The rule engine reads these; it decides what they mean (AGENTS.md hard rule 1).
 @Injectable()
 export class CurriculumRulesReader {
   constructor(
@@ -85,7 +68,6 @@ export class CurriculumRulesReader {
     @InjectRepository(CourseOfferingTerm) private readonly offerings: Repository<CourseOfferingTerm>,
   ) {}
 
-  /** The rules of one cohort's curriculum, or null when the program has no curriculum for it. */
   async rulesFor(curriculumId: string): Promise<CurriculumRules | null> {
     const row = await this.curriculums.findOne({
       where: { id: curriculumId },

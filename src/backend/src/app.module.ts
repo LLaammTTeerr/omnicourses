@@ -16,7 +16,6 @@ import { FEATURE_MODULES } from './features.js';
     ...FEATURE_MODULES,
   ],
   providers: [
-    // Order matters: rate-limit first, then authenticate.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useExisting: AuthGuard },
   ],

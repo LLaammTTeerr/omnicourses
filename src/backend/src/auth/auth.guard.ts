@@ -3,9 +3,6 @@ import { Reflector } from '@nestjs/core';
 import { AuthenticatedRequest, IS_PUBLIC } from './auth.decorators.js';
 import { AuthService } from './auth.service.js';
 
-// Registered globally (APP_GUARD): every route requires a valid bearer token
-// unless it is marked @Public(). Default-deny, so a new route is never open by
-// accident.
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(

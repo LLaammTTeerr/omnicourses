@@ -13,18 +13,11 @@ import { COURSE_FIELDS, type CourseField, CreateCourseDto, UpdateCourseDto } fro
 
 export type CourseValues = Pick<Course, CourseField>;
 
-/** A change to one stored course: the values it would have, and the fields that differ. */
 export interface CourseChange {
   proposed: CourseValues;
   changed: CourseField[];
 }
 
-/**
- * The version of a shared-course change that a catalog maintainer reviews (ADR 0011): the
- * current and proposed values and every affected curriculum. Any change to one of them
- * between the warning and the confirmation gives another version, so a stale confirmation
- * cannot apply.
- */
 export function impactVersion(code: string, current: CourseValues, proposed: CourseValues, affected: AffectedCurriculumDto[]): string {
   return reviewHash(code, courseValuesInOrder(current), courseValuesInOrder(proposed), affected.map((curriculum) => curriculum.curriculumId));
 }
@@ -41,9 +34,6 @@ const COURSE_REFERENCE_COUNTS: { table: string; column: string; what: CountedRef
   { table: 'plan_placements', column: 'course_code', what: 'plans' },
 ];
 
-// Catalog maintainer writes (ADR 0011, UC-11 A8). The catalog is shared: a course's values
-// are read by every curriculum that links it, so changing a linked course needs an explicit
-// confirmation of exactly which curricula it reaches. Codes never change here.
 @Injectable()
 export class CatalogAdminService {
   constructor(private readonly writes: AdminWriteService) {}
@@ -82,32 +72,19 @@ export class CatalogAdminService {
     });
   }
 
-  // The steps of a catalog write, inside the caller's transaction. Manual entry above and the
-  // CSV import (csv-import.service.ts) both go through them, so a course is reviewed and
-  // saved one way (ADR 0011: "Manual entry and CSV confirmation use the same transactional
-  // write/validation services").
-
-  /** Saves a course the catalog does not have yet. */
   async insertCourse(em: EntityManager, code: string, values: CourseValues): Promise<void> {
     await em.getRepository(Course).insert({ code, ...values });
   }
 
-  /** What a maintainer reviews before a stored course changes: who reads it, and the version of that review. */
   async reviewChange(em: EntityManager, code: string, current: CourseValues, proposed: CourseValues): Promise<{ affected: AffectedCurriculumDto[]; reviewVersion: string }> {
     const affected = await affectedCurricula(em, code);
     return { affected, reviewVersion: impactVersion(code, current, proposed, affected) };
   }
 
-  /** Saves the changed fields. update() sets updated_at with the change (ADR 0011). */
   async saveChange(em: EntityManager, code: string, change: CourseChange): Promise<void> {
     await em.getRepository(Course).update({ code }, Object.fromEntries(change.changed.map((f) => [f, change.proposed[f]])));
   }
 
-  /**
-   * Only an unreferenced course (ADR 0011): no curriculum link or rule, no transcript row and no
-   * saved plan placement, both of which name the course by plain code without a foreign key
-   * (ADR 0007, ADR 0014).
-   */
   deleteCourse(callerId: string, rawCode: string): Promise<void> {
     const code = courseCodeOr400(rawCode);
     return this.writes.run(callerId, { permission: 'catalog_maintainer' }, async (em) => {
@@ -119,7 +96,6 @@ export class CatalogAdminService {
   }
 }
 
-/** Every curriculum with a group that links the course, by program code then cohort. */
 export async function affectedCurricula(em: EntityManager, code: string): Promise<AffectedCurriculumDto[]> {
   const rows: { curriculum_id: string; curriculum_code: string; program_code: string; cohort_year: number }[] = await em.query(
     `SELECT DISTINCT c."id" AS "curriculum_id", c."code" AS "curriculum_code", p."code" AS "program_code", c."cohort_year"
@@ -143,7 +119,6 @@ async function countedReferences(em: EntityManager, code: string): Promise<strin
   return references;
 }
 
-/** The values a new course is saved with: a blank English name is null, an absent period count is 0. */
 export function newCourseValues(dto: CreateCourseDto): CourseValues {
   return {
     nameVi: dto.nameVi,
@@ -156,7 +131,6 @@ export function newCourseValues(dto: CreateCourseDto): CourseValues {
   };
 }
 
-/** The stored course with the given fields replaced; a field left undefined keeps its value. */
 export function courseChange(course: CourseValues, fields: Partial<CourseValues>): CourseChange {
   const changes = changedFields(COURSE_FIELDS, course, fields, { nameEn: trimmedOrNull });
   const stored = Object.fromEntries(COURSE_FIELDS.map((field) => [field, course[field]])) as CourseValues;

@@ -22,7 +22,6 @@ function published(overrides: Partial<GuideFile> = {}): GuideFile {
   };
 }
 
-// A skeleton as the content folder ships it: identity and links only, every text empty.
 function skeleton(overrides: Partial<GuideFile> = {}): GuideFile {
   return {
     ...published(),
@@ -80,7 +79,6 @@ describe('validateGuideFile', () => {
   });
 
   it('accepts only https links and OmniCourse paths, drafts too', () => {
-    // A browser reads `\` as `/`, so `/\evil.example.com` is `//evil.example.com`: another site.
     for (const url of ['http://example.com', 'javascript:alert(1)', '//evil.example.com', '/\\evil.example.com', '/guides\\x', 'example.com']) {
       expect(validateGuideFile(skeleton({ related: [{ label: 'x', url }] }))).toEqual([
         'zz-sample.en: related[0].url must be an https address or an OmniCourse path starting with /',

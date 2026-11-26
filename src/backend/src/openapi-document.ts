@@ -8,8 +8,6 @@ import { FEATURE_MODULES } from './features.js';
 
 type Module = (typeof FEATURE_MODULES)[number];
 
-// The OpenAPI contract, built without a database. Nest lists the routes and schemas in the order it
-// meets the modules; sortOpenApi makes the contract independent of that order.
 export async function buildOpenApiDocument(modules: readonly Module[] = FEATURE_MODULES): Promise<OpenAPIObject> {
   const moduleRef = await Test.createTestingModule({
     imports: [TypeOrmModule.forRoot({ ...dataSourceOptions, autoLoadEntities: true, manualInitialization: true }), ClockModule, ...modules],
@@ -23,13 +21,9 @@ export async function buildOpenApiDocument(modules: readonly Module[] = FEATURE_
 const byKey = <T>(record: Record<string, T>): Record<string, T> =>
   Object.fromEntries(Object.entries(record).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
-// The order the OpenAPI specification lists the operations of a path item in.
-const METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace', 'query'];
-const rank = (key: string): number => METHODS.indexOf(key);
+const OPENAPI_OPERATION_ORDER = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace', 'query'];
+const rank = (key: string): number => OPENAPI_OPERATION_ORDER.indexOf(key);
 
-// The fields of a path item that are not operations (summary, parameters) first, then the
-// operations in METHODS order. Two modules can add operations to one path (GET and DELETE
-// /api/users/me), so Nest's order follows the modules.
 const sortPathItem = <T extends object>(item: T): T =>
   Object.fromEntries(
     Object.entries(item)
@@ -38,8 +32,6 @@ const sortPathItem = <T extends object>(item: T): T =>
       .map(({ entry }) => entry),
   ) as T;
 
-// Sorts the paths, the component schemas and the tags by name, and the operations of each path by
-// method. The properties inside a schema keep the order the code declares them in.
 export function sortOpenApi(document: OpenAPIObject): OpenAPIObject {
   const components = document.components && {
     ...document.components,

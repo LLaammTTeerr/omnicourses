@@ -8,10 +8,6 @@ import { Notification } from './notification.entity.js';
 import { NotificationsController } from './notifications.controller.js';
 import { NotificationsService } from './notifications.service.js';
 
-// F10, the notification inbox (ADR 0018). It reads the three modules it depends on only through
-// what they export: the school dates that start on a day (academic-calendar), the students of a
-// program (onboarding) and the "a save changed the transcript" hook (transcript). None of them
-// imports this module.
 @Module({
   imports: [TypeOrmModule.forFeature([Notification]), AcademicCalendarModule, OnboardingModule, TranscriptModule],
   controllers: [NotificationsController],

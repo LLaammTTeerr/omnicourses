@@ -43,7 +43,6 @@ describe('onboarding answers and their columns', () => {
 });
 
 describe('OnboardingService.offers', () => {
-  // The answer the plans API asks for (Project Lead, 25 November 2026): exactly onboarding's own offer.
   it('offers the cohorts onboarding offers, and no other cohort or program', () => {
     const onboarding = new OnboardingService({} as DataSource, {} as Repository<OnboardingAnswers>);
     expect([onboarding.offers('APCS', 2024), onboarding.offers('APCS', 2025)]).toEqual([true, true]);

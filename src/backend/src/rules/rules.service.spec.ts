@@ -60,7 +60,6 @@ describe('RulesService.issuesFor', () => {
     expect(reads.sort()).toEqual(['catalog:ZZB1,ZZX9', 'rules:ZZPROG-2024']);
     expect(report.planId).toBe('plan-1');
     expect(report.terms).toEqual([{ term: { year: 2026, number: 1 }, kind: 'main', credits: 7, caps: { min: 10, max: 22 } }]);
-    // The graduating transcript passed ZZB1 in 2024 and never took ZZX9, the prerequisite recorded for it.
     expect(report.issues.map((i) => `${i.code}:${i.courseCode}`)).toEqual([
       'load_below_minimum:null',
       'already_passed:ZZB1',
@@ -78,8 +77,6 @@ describe('RulesService.issuesFor', () => {
   });
 });
 
-// For a shared plan whose owner did not choose to show the transcript's checks (ADR 0010): the
-// engine is told no student and reads no transcript, so nothing it does can depend on one.
 describe('RulesService.issuesFor without a student', () => {
   const TRANSCRIPT_CODES = ['prerequisite_not_met', 'already_passed', 'already_in_progress', 'requirement_not_covered'];
 
@@ -90,13 +87,10 @@ describe('RulesService.issuesFor without a student', () => {
     expect(reads.sort()).toEqual(['catalog:ZZB1,ZZX9', 'rules:ZZPROG-2024']);
     expect(report.planId).toBe('plan-1');
     expect(report.terms).toEqual([{ term: { year: 2026, number: 1 }, kind: 'main', credits: 7, caps: { min: 10, max: 22 } }]);
-    // No transcript: ZZB1 is not "already passed", and nothing is covered but what the plan places.
     expect(report.issues.map((i) => i.code)).not.toContain('already_passed');
     expect(report.coverage.graduation).toBe('not_yet');
   });
 
-  // What follows from the plan and its curriculum alone is the same with and without the transcript:
-  // the loads, the caps and every issue that is not one of the four the transcript decides.
   it('agrees with the check that reads the transcript on everything the transcript does not decide', async () => {
     const withTranscript = service(ANSWERS);
     const own = await withTranscript.rules.issuesFor(plan('ZZPROG', 2024), 'user-1');
@@ -113,7 +107,6 @@ describe('RulesService.issuesFor without a student', () => {
     ]);
     expect(alone.terms).toEqual(own.terms);
     expect(alone.trainingType).toBe(own.trainingType);
-    // The rest does differ, which is why a caller without the transcript must not show it.
     expect(alone.issues).not.toEqual(own.issues);
     expect(alone.coverage).not.toEqual(own.coverage);
   });

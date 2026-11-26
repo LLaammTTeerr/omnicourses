@@ -3,10 +3,6 @@ import { validationFailed } from './api-errors.js';
 
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * A path UUID in the form PostgreSQL prints it: lower case. A grant check compares the path's ID
- * with a stored one as text, so an upper-case spelling of a granted program would answer 403.
- */
 class LowerCaseUuidPipe extends ParseUUIDPipe {
   override async transform(value: string, metadata: ArgumentMetadata) {
     const id = await super.transform(value, metadata);
@@ -14,7 +10,6 @@ class LowerCaseUuidPipe extends ParseUUIDPipe {
   }
 }
 
-/** A path ID that must be a UUID: otherwise `400 validation_failed`, before any lookup. Any letter case; the handler gets it in lower case. */
 export const uuidParam = (name: string) => new LowerCaseUuidPipe({ exceptionFactory: () => validationFailed(`${name}: must be a UUID`) });
 
 export class UuidOr404Pipe implements PipeTransform<string, string> {
@@ -26,7 +21,6 @@ export class UuidOr404Pipe implements PipeTransform<string, string> {
   }
 }
 
-/** "parent.child: message" for every failed constraint, nested ones included. */
 export function flattenErrors(errors: ValidationError[], parent = ''): string[] {
   return errors.flatMap((e) => {
     const path = parent ? `${parent}.${e.property}` : e.property;
@@ -47,11 +41,6 @@ class StrictValidationErrors extends Error {
 
 const collectingPipe = new ValidationPipe({ ...STRICT, exceptionFactory: (errors) => new StrictValidationErrors(errors) });
 
-/**
- * The validation of `@StrictBody()` for a value that is not a request body: one row of a CSV
- * import (ADR 0011: manual entry and CSV use the same validation). Same DTO, same options;
- * the errors come back as a list, because an import reports every bad row, not the first.
- */
 export async function validateStrict<T extends object>(dto: Type<T>, plain: unknown): Promise<{ value: T; errors: null } | { value: null; errors: ValidationError[] }> {
   try {
     return { value: (await collectingPipe.transform(plain, { type: 'custom', metatype: dto })) as T, errors: null };
@@ -63,13 +52,4 @@ export async function validateStrict<T extends object>(dto: Type<T>, plain: unkn
 
 const RawBody = createParamDecorator((_: unknown, ctx: ExecutionContext): unknown => ctx.switchToHttp().getRequest<{ body: unknown }>().body);
 
-/**
- * The request body, validated against the parameter's DTO with unknown fields refused:
- * `400 validation_failed` names them, instead of the global pipe dropping them silently.
- * ADR 0011 open item 2: an admin PATCH that tries to change an identifier or a gated field
- * (a credit total) must fail, not succeed while ignoring it. It is a custom parameter
- * decorator because the global ValidationPipe skips those; on `@Body()` the global pipe
- * would strip the unknown fields before a route pipe could see them. Pair it with
- * `@ApiBody({ type: Dto })`: Swagger cannot see a custom decorator's type.
- */
 export const StrictBody = () => RawBody(strictPipe);

@@ -48,21 +48,16 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     const qr = db.createQueryRunner();
     await qr.startTransaction();
     try {
-      // Rolled back below. zz_plans and zz_reviews are well-formed; the rest break a rule.
       await qr.query(`CREATE TABLE zz_plans (id uuid PRIMARY KEY, user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE)`);
       await qr.query(`CREATE TABLE zz_plan_notes (plan_id uuid REFERENCES zz_plans(id))`);
       await qr.query(`CREATE TABLE zz_plan_items (plan_id uuid REFERENCES zz_plans(id) ON DELETE CASCADE)`);
-      // References users, but not as user_id: the export (owned rows only) would skip it.
       await qr.query(`CREATE TABLE zz_owned_by (owner_id uuid REFERENCES users(id) ON DELETE CASCADE)`);
       await qr.query(`CREATE UNIQUE INDEX zz_users_id_email ON users (id, email)`);
       await qr.query(`CREATE TABLE zz_pairs (user_id uuid, email varchar(254), FOREIGN KEY (user_id, email) REFERENCES users(id, email))`);
       await qr.query(`ALTER TABLE users ADD COLUMN zz_invited_by uuid REFERENCES users(id)`);
-      // reviewed_by points at another user: SET NULL keeps the owner's row when the reviewer is purged.
       await qr.query(`CREATE TABLE zz_reviews (user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, reviewed_by uuid REFERENCES users(id) ON DELETE SET NULL)`);
-      // A non-owner key with NO ACTION blocks the purge; an owner key must cascade, not set null.
       await qr.query(`CREATE TABLE zz_audits (actor_id uuid REFERENCES users(id))`);
       await qr.query(`CREATE TABLE zz_half (user_id uuid REFERENCES users(id) ON DELETE SET NULL)`);
-      // SET NULL on a NOT NULL column makes the purge's DELETE fail.
       await qr.query(`CREATE TABLE zz_signoffs (signed_by uuid NOT NULL REFERENCES users(id) ON DELETE SET NULL)`);
       expect(await wrongDeleteRuleToUsers(qr)).toEqual([
         'zz_audits.zz_audits_actor_id_fkey',
@@ -87,7 +82,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     const qr = db.createQueryRunner();
     await qr.startTransaction();
     try {
-      // DDL is transactional in PostgreSQL: all of this is rolled back below.
       await qr.query(`CREATE TABLE zz_parted (user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, term smallint NOT NULL) PARTITION BY LIST (term)`);
       await qr.query(`CREATE TABLE zz_parted_1 PARTITION OF zz_parted FOR VALUES IN (1)`);
       await qr.query(`CREATE TABLE zz_by_email (email varchar(254) REFERENCES users(email) ON DELETE CASCADE)`);
@@ -106,7 +100,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     expect(res.body.user).toMatchObject({ id: userId, email, display_name: 'Test Student' });
     expect(res.body.tables.sessions).toHaveLength(1);
     for (const t of await findUserTables(db)) expect(res.body.tables).toHaveProperty(t.table);
-    // Checked against the stored values, not the filter's own predicate: only sha256(token) is stored.
     const [{ password_hash }] = await db.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
     const [{ token_hash }] = await db.query('SELECT token_hash FROM sessions WHERE user_id = $1', [userId]);
     const body = JSON.stringify(res.body);
@@ -115,8 +108,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     for (const key of ['password_hash', 'google_sub', 'token_hash']) expect(allKeys(res.body)).not.toContain(key);
   });
 
-  // Issue #174: node-postgres read a date column as a Date at local midnight, so a server at
-  // UTC+7 exported 2026-11-25 as "2026-11-24T17:00:00.000Z". A date is exported as written.
   it('exports a date column as the date it holds, whatever the time zone of the server', async () => {
     const event = randomUUID();
     await db.query(
@@ -133,10 +124,8 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     }
   });
 
-  // Lâm's decision: a row that references the student but belongs to someone else is theirs, not exported.
   it('exports only the rows the student owns (user_id), not rows that merely reference them', async () => {
     const other = { id: await storedUser(app) };
-    // Committed, so the request's own connection sees it; dropped in finally.
     await db.query(`CREATE TABLE zz_shares (
       user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       viewer_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -151,8 +140,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     }
   });
 
-  // Independent of isSecretColumn: any column that merely mentions a credential word, in any
-  // case or plural, must either be dropped by the export or be listed here as the student's data.
   it('every exported column that looks like a credential is dropped or known to be data', async () => {
     const looksSecret = /(^|_)(hash|token|secret|key|password|sub|salt|seed)(e?s)?(_|$)/;
     const known = ['ai_usage.input_tokens', 'ai_usage.output_tokens'];
@@ -198,8 +185,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     expect(row.deletion_requested_at).toBeNull();
   });
 
-  // A double-click or two tabs: the first sign-in clears the deadline before the second
-  // cancels, and an already-cancelled deletion must still count as restored (PR #14 review).
   it('two concurrent sign-ins to an account pending deletion both succeed', async () => {
     await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
     const [first, second] = await Promise.all([
@@ -217,7 +202,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   it('refuses a sign-in once the stored deadline has passed, even before the purge runs', async () => {
     await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
     await db.query(`UPDATE users SET purge_after = now() - interval '1 minute' WHERE id = $1`, [userId]);
-    // Lâm's decision: exactly the answer to an unknown email, so it doesn't reveal the account existed.
     const unknown = await http().post('/api/auth/sign-in').send({ email: `nobody-${randomUUID()}@example.com`, password }).expect(401);
     const afterDeadline = await http().post('/api/auth/sign-in').send({ email, password }).expect(401);
     expect(afterDeadline.body).toEqual(unknown.body);
@@ -228,7 +212,6 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   });
 
   it('purges only the accounts whose deadline has passed, with their rows', async () => {
-    // A second account, deletion requested but still inside its grace period: it must survive.
     const waiting = { id: await storedUser(app) };
     await db.query(`UPDATE users SET deletion_requested_at = now(), purge_after = now() + interval '1 day' WHERE id = $1`, [waiting.id]);
     try {

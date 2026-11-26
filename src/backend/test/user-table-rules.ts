@@ -1,8 +1,5 @@
 import { IS_USER_ID_KEY, Queryable } from '../src/account/account-export.js';
 
-// Schema rules that keep account export and purge complete (AGENTS.md, ADR 0004),
-// read from the catalog so they cover every foreign key, composite or not.
-// "Owned" tables are users' cascade closure: deleting a user deletes their rows.
 const OWNED = `
   WITH RECURSIVE owned(relid) AS (
     SELECT conrelid FROM pg_constraint
@@ -15,13 +12,6 @@ const OWNED = `
 
 const name = (relid: string) => `format('%I', ${relid}::regclass::text)`;
 
-/**
- * Foreign keys from another table to users with the wrong ON DELETE (AGENTS.md rule).
- * A key with user_id among its columns owns the row: it must CASCADE, so the purge
- * deletes the student's rows. Any other key (reviewed_by, viewer_id) points at
- * someone else's row: CASCADE or SET NULL, so purging that user never blocks and
- * SET NULL keeps the owner's row. NO ACTION, RESTRICT and SET DEFAULT fail.
- */
 export async function wrongDeleteRuleToUsers(db: Queryable): Promise<string[]> {
   const rows: { name: string }[] = await db.query(`
     SELECT ${name('c.conrelid')} || '.' || c.conname AS name FROM pg_constraint c
@@ -36,12 +26,6 @@ export async function wrongDeleteRuleToUsers(db: Queryable): Promise<string[]> {
   return rows.map((r) => r.name);
 }
 
-/**
- * Foreign keys into users or an owned table that make the purge's DELETE fail:
- * NO ACTION or RESTRICT, or SET NULL on a NOT NULL column. Catches grandchild
- * tables (plan_items -> plans -> users) and self-references, which the direct
- * check can't see.
- */
 export async function purgeBlockers(db: Queryable): Promise<string[]> {
   const rows: { name: string }[] = await db.query(`${OWNED}
     SELECT ${name('c.conrelid')} || '.' || c.conname AS name FROM pg_constraint c
@@ -55,11 +39,6 @@ export async function purgeBlockers(db: Queryable): Promise<string[]> {
   return rows.map((r) => r.name);
 }
 
-/**
- * Owned tables without their own user_id key to users(id): the purge deletes
- * their rows but the export, which reads only user_id, would leave them out.
- * AGENTS.md: reference the user from every table as user_id.
- */
 export async function ownedButNotExported(db: Queryable): Promise<string[]> {
   const rows: { name: string }[] = await db.query(`${OWNED}
     SELECT ${name('o.relid')} AS name FROM owned o

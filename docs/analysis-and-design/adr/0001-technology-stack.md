@@ -26,3 +26,4 @@ The SDP (§4.3.3) fixes the core stack: PostgreSQL 18.6, NestJS 12.1.3 with Nest
 
 - An upgrade (e.g. NestJS 12.2.0, Vitest 5.0.5, already published) is a deliberate PR that also updates the SDP table.
 - Moving to TypeScript 7 waits for Swagger and the Nest CLI to support it.
+- 2026-11-26: TypeORM `query()` returns `[rows, count]` for a raw `UPDATE`. To get the changed rows, put the `UPDATE … RETURNING` in a CTE and `SELECT` from it.

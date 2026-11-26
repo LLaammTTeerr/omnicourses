@@ -1,10 +1,3 @@
-/**
- * Regenerates `<id>.json` and `<id>.md` from `sources/` for every regulation, or for the ids given:
- *
- *   npm run build -w src/backend && npm run regulations:extract -w src/backend [-- qd-1175-2021]
- *
- * Deterministic: the verification spec reruns the same extraction and fails if the committed files differ.
- */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { extractRegulation, renderMarkdown } from './regulation.js';

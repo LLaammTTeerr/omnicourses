@@ -16,9 +16,6 @@ const permissionParam: PipeTransform<string, GlobalPermission> = {
   },
 };
 
-// F12 access-manager routes (ADR 0011). The recipient gives their user ID (GET /api/users/me)
-// to the access manager; there is no user search. The first access manager comes from the
-// operator command `npm run admin:bootstrap`, never from an HTTP route.
 @ApiTags('curriculum-admin')
 @Authenticated()
 @AdminErrors()

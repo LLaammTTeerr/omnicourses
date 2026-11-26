@@ -4,7 +4,6 @@ import type { BoardTerm, Placement } from '../rules/types.js';
 import { boardProblems, groupIdsOf, MAX_BOARD_PLACEMENTS, toBoard, toRows, withPlacement } from './plan-board.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
-// Synthetic codes only (AGENTS.md hard rule 3).
 const course = (courseCode: string): Placement => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
 const slot = (requirementGroupId: string, credits: number): Placement => ({ kind: 'slot', courseCode: null, requirementGroupId, credits });
 
@@ -61,7 +60,6 @@ describe('board rows', () => {
       { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 3, position: 0, courseCode: null, requirementGroupId: 'g1', slotCredits: 3 },
       { planId: 'p1', userId: 'u1', termYear: 2030, termNumber: 3, position: 1, courseCode: 'ZZ003', requirementGroupId: null, slotCredits: null },
     ]);
-    // The database returns rows in any order.
     expect(toBoard([...rows].reverse() as PlanPlacement[])).toEqual(board);
   });
 

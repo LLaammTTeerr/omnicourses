@@ -5,7 +5,6 @@ import type { RegulationDocument, RegulationOverride, RegulationSource } from '.
 
 export const advisorSourceDir = (folder: string): string => join(__dirname, '..', '..', '..', 'src', 'advisor', folder);
 
-/** This folder in the source tree: the generated `<id>.json` and `<id>.md` live here, the inputs in `sources/`. */
 export const REGULATIONS_DIR = advisorSourceDir('regulations');
 const SOURCES_DIR = join(REGULATIONS_DIR, 'sources');
 
@@ -19,7 +18,6 @@ export const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, 'u
 
 export const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
 
-/** The ids of every document with a `sources/<id>.source.json`. */
 export function regulationIds(sourcesDir = SOURCES_DIR): string[] {
   return readdirSync(sourcesDir)
     .filter((name) => name.endsWith('.source.json'))
@@ -27,7 +25,6 @@ export function regulationIds(sourcesDir = SOURCES_DIR): string[] {
     .sort();
 }
 
-/** Reads a document's three inputs and checks the text layer is the one its metadata names. */
 export function readInputs(id: string, sourcesDir = SOURCES_DIR): RegulationInputs {
   const source = readJson<RegulationSource>(join(sourcesDir, `${id}.source.json`));
   if (source.id !== id) throw new Error(`${id}.source.json has id ${source.id}`);

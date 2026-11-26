@@ -75,7 +75,6 @@ export class GuideBoardPortalDto extends GuidePortalDto {
   purpose!: string;
 }
 
-/** A guide in one language, as the guides list shows it. */
 export class GuideListTextDto {
   @ApiProperty({ example: 'Đăng ký học phần' })
   title!: string;
@@ -120,7 +119,6 @@ export class GuideListDto {
   guides!: GuideListItemDto[];
 }
 
-/** A whole guide in one language (UC-10 step 5). */
 export class GuideTextDto extends GuideListTextDto {
   @ApiProperty()
   changeNote!: string;

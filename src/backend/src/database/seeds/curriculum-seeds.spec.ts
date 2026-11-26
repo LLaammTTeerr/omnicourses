@@ -5,33 +5,17 @@ import { buildCatalog, CatalogConflictError, rowToCourse, seedLabel } from './ca
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './index.js';
 import type { CurriculumSeed, PrintedGroup } from './seed-types.js';
 
-// Deterministic checks of the transcribed curricula against the totals printed
-// in the PDFs. A failure means a transcription error or a printed total that
-// does not add up; the fix is the data or a recorded discrepancy, never a
-// weaker check.
-
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
 
-/**
- * Credits a compulsory group requires: its BB rows that count towards the
- * cohort total (all BB rows for a group outside that total).
- */
 function compulsoryCredits(group: PrintedGroup): number {
   const bb = group.rows.filter((r) => r.type === 'BB' && (r.counts_toward_total || group.outside_total));
   return sum(bb.map((r) => r.credits));
 }
 
-/** Credits available in a group's TC rows. */
 function electivePool(group: PrintedGroup): number {
   return sum(group.rows.filter((r) => r.type === 'TC').map((r) => r.credits));
 }
 
-/**
- * Printed groups that mix BB and TC rows, keyed by curriculum code and printed
- * name, with the printed total. Each is seeded as "<name>: bắt buộc" and
- * "<name>: tự chọn" (Project Lead, 2026-11-03). Typed here from the PDFs, not
- * read from the seed, so a change to the data cannot move both sides at once.
- */
 const SPLIT_GROUPS: Record<string, Record<string, number>> = {
   APCS2024: { 'Kiến thức Computer Science (A)': 56 },
   APCS2025: { 'Kiến thức Computer Science (A)': 56 },
@@ -150,8 +134,6 @@ describe.each(CURRICULUM_SEEDS.map((seed) => [seedLabel(seed), seed] as const))(
     for (const block of seed.blocks) {
       const groups = block.groups.map((name) => seed.groups.find((g) => g.name === name)!);
       if (block.at_least) {
-        // A minimum over several groups, such as "(B) + (C) ≥ 43": the groups'
-        // own minimums fit inside it and their pools can reach it.
         expect(sum(groups.map((g) => g.credits_total_min ?? 0)), block.name).toBeLessThanOrEqual(block.credits);
         expect(sum(groups.map(electivePool)), block.name).toBeGreaterThanOrEqual(block.credits);
       } else {
@@ -211,7 +193,6 @@ describe('shared course catalog', () => {
         const row = seed.groups.flatMap((g) => g.rows).find((r) => r.code === decision.code)!;
         expect(rowToCourse(seed, row)[decision.field], `${decision.code} ${printed.curriculum}`).toBe(printed.value);
       }
-      // Without the decision, the same seeds must conflict on that field.
       const others = CATALOG_DECISIONS.filter((d) => d !== decision);
       expect(() => buildCatalog(CURRICULUM_SEEDS, others), decision.code).toThrow(CatalogConflictError);
     }
@@ -298,7 +279,6 @@ describe('normalizePrintedCode', () => {
   });
 });
 
-// The rules the degree audit reads (migration 1794300000000, ADR 0013).
 describe.each(CURRICULUM_SEEDS.map((seed) => [seedLabel(seed), seed] as const))('%s audit rules in the seed', (_, seed) => {
   it('has the training type of its program (ADR 0012)', () => {
     expect(seed.program.training_type).toBe(seed.program.code === 'APCS' ? 'advanced' : 'high_quality');
@@ -344,12 +324,10 @@ describe('prerequisites', () => {
     expect(CURRICULUM_SEEDS.filter((s) => s.no_prerequisites).map((s) => s.curriculum.code)).toEqual(['APCS2024', 'APCS2025']);
     for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) expect(seed.no_prerequisites).toBe(apcsNoPrerequisites);
     expect(apcsNoPrerequisites).toMatchObject({ decided_by: 'Project Lead (Lâm)', date: '2026-11-15' });
-    // The source names the one printed exception, the day the seed began to record it, and who decided it and when.
     expect(apcsNoPrerequisites.source).toContain('none, except CS469 before CS470');
     expect(apcsNoPrerequisites.source).toContain('The seed has recorded it since 21 November 2026');
     expect(apcsNoPrerequisites.source).toContain('the Project Lead decided it on the team Discord: "trust Thang"');
     expect(apcsNoPrerequisites.source).toContain('On 24 November 2026');
-    // 21 November was not a ruling by the Project Lead: he left the choice open that day.
     expect(apcsNoPrerequisites.source).not.toContain('Corrected by the Project Lead');
   });
 
@@ -359,14 +337,12 @@ describe('prerequisites', () => {
     ]);
     for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) {
       const code = seed.curriculum.code;
-      // What db:seed writes for each course of the curriculum: its printed prerequisites, or none.
       const written = new Map(seed.no_prerequisites!.except.map((e) => [e.code, e.requires]));
       const courses = [...new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))];
       const withPrerequisites = courses.filter((c) => (written.get(c) ?? []).length > 0);
       expect(withPrerequisites, code).toEqual(['CS470']);
       expect(written.get('CS470'), code).toEqual(['CS469']);
       expect(courses, code).toContain('CS469');
-      // The printed sentence is rule (iii) of the note under 7.3, on the page given, in the seed's transcription.
       const graduation = seed.groups.find((g) => g.name === 'Kiến thức tốt nghiệp')!;
       const [exception] = seed.no_prerequisites!.except;
       expect(graduation.page, code).toBe(exception.pages[code]);

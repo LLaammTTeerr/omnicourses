@@ -28,13 +28,8 @@ interface Conversation {
 
 type ModelEnd = Extract<ModelStreamEvent, { type: 'end' }>;
 
-/**
- * What the gateway needs of the cost guard; the live test passes one that never caps.
- * `finish` and `release` must never throw: the gateway does not catch them.
- */
 export type CostGuard = Pick<AiCostGuard, 'reserve' | 'finish' | 'release'>;
 
-/** The JSON Schema sent to the model; `$schema` is dropped because some providers reject it. */
 function toModelSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _ignored, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
   return rest;
@@ -50,7 +45,6 @@ async function* withoutEvents<T>(run: () => Promise<T>): AsyncGenerator<never, T
   return await run();
 }
 
-// Model output is untrusted input: always parsed, never cast.
 function parseReply<T>(content: string, schema: z.ZodType<T>): T | undefined {
   try {
     const parsed = schema.safeParse(JSON.parse(content));
@@ -60,8 +54,6 @@ function parseReply<T>(content: string, schema: z.ZodType<T>): T | undefined {
   }
 }
 
-// Messages come from the browser: the role is only checked at compile time, so a
-// client could send a system or tool message. Only user and assistant text passes.
 function clientMessages(messages: ChatMessage[]): ModelMessage[] {
   return messages
     .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
@@ -72,9 +64,6 @@ type ParsedToolCall = { args: unknown; run: () => Promise<{ ok: boolean; content
 
 const toolError = (error: string) => ({ ok: false, content: JSON.stringify({ error }) });
 
-// Split from running, so tool_call reaches the browser before a slow tool runs.
-// A bad call is reported back to the model as a tool result, so it can correct
-// itself, instead of failing the whole chat.
 function parseToolCall(tools: ChatTool<any>[], call: ModelToolCall): ParsedToolCall {
   const failed = (args: unknown, error: string): ParsedToolCall => ({ args, run: async () => toolError(error) });
   const tool = tools.find((t) => t.name === call.name);
@@ -100,8 +89,6 @@ function parseToolCall(tools: ChatTool<any>[], call: ModelToolCall): ParsedToolC
 }
 
 async function completeMatching<T>(complete: () => ReturnType<ModelClient['complete']>, schema: z.ZodType<T>, meter: Meter): Promise<T> {
-  // response_format is only a preference on OpenRouter, so a reply can still
-  // miss the schema: one retry, then give up.
   for (let attempt = 1; attempt <= MAX_SCHEMA_ATTEMPTS; attempt++) {
     const reply = await complete();
     bill(meter, reply.usage);
@@ -120,8 +107,6 @@ async function* converse(conversation: Conversation, meter: Meter): AsyncGenerat
     const end = yield* streamTurn(conversation, last ? 'none' : 'auto');
     bill(meter, end.usage);
     if (end.toolCalls.length === 0 || last) {
-      // A provider may ignore tool_choice none and answer with tool calls
-      // only; a blank answer is no answer.
       if (!end.content.trim()) throw new AiUnavailableError(AI_REASONS.unusableReply);
       meter.succeeded = true;
       yield { type: 'done', text: end.content };
@@ -203,15 +188,10 @@ export class GatewayLlmService extends LlmService {
       usageId = await this.releaseIfUnbilled(usageId, failure, meter.billedTurns);
       throw failure;
     } finally {
-      // Also runs when the client disconnects and the caller stops iterating.
       await this.finish(usageId, meter, started);
     }
   }
 
-  /**
-   * The model to call, checked before reserve(): a call that cannot reach a
-   * model (no key, no model configured) does not count toward the cap.
-   */
   private preflight(model: string | null): { client: ModelClient; model: string } {
     if (!this.client || !model) throw new AiUnavailableError(AI_REASONS.notConfigured);
     return { client: this.client, model };
@@ -223,11 +203,6 @@ export class GatewayLlmService extends LlmService {
     return new AiUnavailableError();
   }
 
-  /**
-   * Releases the reserved call when the provider refused it without billing
-   * and no earlier turn was billed. Returns the row id still to finish, or
-   * undefined once released. A disconnect never gets here, so it still counts.
-   */
   private async releaseIfUnbilled(usageId: string | undefined, failure: AiUnavailableError, billedTurns: number): Promise<string | undefined> {
     if (usageId === undefined || failure.billed || billedTurns > 0) return usageId;
     await this.guard.release(usageId);

@@ -1,10 +1,5 @@
 import type { GuideFile } from '../guide-file.js';
 
-// G01 Your school accounts and portals (guides plan §4, §5). Sources: the sign-in and
-// "Forget Password" pages of portal.ctdb.hcmus.edu.vn, the sign-in page of Moodle CTDA, and the
-// school's notice on student accounts for the Chương trình Tiên tiến 2023 cohort, and the
-// library's sign-in guide (glib.hcmus.edu.vn/vi/introduction/instruction_lib/Login-Guideline).
-// The rest comes from following it on the portal (lastChecked). Search expectations: GUIDE-01c.
 export default {
   id: 'accounts-and-portals',
   lang: 'vi',
@@ -61,11 +56,9 @@ export default {
       source: { kind: 'team' },
     },
   ],
-  // Register for courses and Pay tuition are linked here once those guides are published (version 2).
   related: [
     { label: 'Xem điểm', url: '/guides/grades-and-transcript' },
   ],
-  // The board (guides plan §5 G01): every site the other guides send an APCS student to.
   portals: [
     {
       name: 'Portal Chương trình đề án',

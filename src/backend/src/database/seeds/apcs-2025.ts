@@ -2,12 +2,6 @@ import { apcsNoPrerequisites } from './apcs-prerequisites.js';
 import { bb, tc } from './rows.js';
 import type { CurriculumSeed } from './seed-types.js';
 
-// Transcribed from ChuongTrinhDaoTao_APCS_2025.pdf (16 scanned pages), the
-// official curriculum of the APCS program, cohort 2025. Pages are the printed
-// "Trang n/16". Every row is checked by a human against its page (PR tick list).
-// Names keep the PDF's diacritics; dashes in course names are written as an
-// ASCII "-" (the PDF mixes "-" and "–" for the same course).
-
 export const apcs2025: CurriculumSeed = {
   source: { file: 'ChuongTrinhDaoTao_APCS_2025.pdf', pages: 16 },
   program: {
@@ -65,9 +59,6 @@ export const apcs2025: CurriculumSeed = {
     },
   ],
   groups: [
-    // The printed group mixes BB and TC rows; it is seeded as two groups
-    // (Project Lead, 2026-11-03), held together by the subtotal above:
-    // 40 BB credits + 16 credits chosen among the TC rows = 56 as printed.
     {
       name: 'Kiến thức Computer Science (A): bắt buộc',
       kind: 'compulsory',

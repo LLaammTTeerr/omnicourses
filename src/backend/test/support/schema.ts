@@ -1,10 +1,6 @@
 import { DataSource } from 'typeorm';
 import { connectionOptions, migrate } from '../../src/database/data-source.js';
 
-/**
- * A freshly migrated schema of its own, for a test that must start empty or
- * rewrites shared rows. drop() removes it.
- */
 export async function privateSchema(prefix: string): Promise<{ schema: string; dataSource: DataSource; drop: () => Promise<void> }> {
   const schema = `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   const admin = new DataSource(connectionOptions());

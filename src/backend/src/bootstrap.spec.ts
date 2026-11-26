@@ -9,11 +9,9 @@ describe('OpenAPI contract', () => {
     expect(buildOpenApiConfig().openapi).toBe('3.2.0');
   });
 
-  // Session tokens are opaque random strings, not JWTs (ADR 0002). Issue #51.
   it('declares the bearer token as opaque, not a JWT', () => {
     const config = buildOpenApiConfig();
 
-    // Named 'bearer' because @ApiBearerAuth() refers to that name by default.
     expect(config.components?.securitySchemes?.bearer).toEqual({
       type: 'http',
       scheme: 'bearer',
@@ -39,7 +37,6 @@ describe('configureApp', () => {
     return request(app.getHttpServer());
   }
 
-  // Issue #28: the docs pages map the API for anyone. The contract is still built and committed.
   it('serves the API docs outside production only', async () => {
     await (await boot()).get('/api/docs-json').expect(200);
     await app!.close();
@@ -62,7 +59,6 @@ describe('configureApp', () => {
     expect(configureApp(app).openapi).toBe('3.2.0');
   });
 
-  // Issue #28: no `X-Powered-By: Express` on any response.
   it('does not advertise the framework', async () => {
     const res = await (await boot()).get('/api/anything');
     expect(res.headers).not.toHaveProperty('x-powered-by');

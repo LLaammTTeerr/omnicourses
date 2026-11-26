@@ -10,7 +10,6 @@ import { UsersService } from '../users/users.service.js';
 import { findUserColumns, findUserTables, selectList } from './account-export.js';
 import { AccountExportDto, DeletionScheduledDto } from './account.dto.js';
 
-// Privacy NFR (Vision §6, Luật 91/2025/QH15): export and delete a whole account. ADR 0004.
 @Injectable()
 export class AccountService {
   constructor(
@@ -24,7 +23,6 @@ export class AccountService {
   async export(userId: string): Promise<AccountExportDto> {
     return this.db.transaction('REPEATABLE READ', async (tx) => {
       await tx.query('SET TRANSACTION READ ONLY');
-      // Secret columns are never selected (AGENTS.md: never read users.password_hash).
       const [user] = await tx.query(`SELECT ${selectList(await findUserColumns(tx))} FROM "users" WHERE "id" = $1`, [userId]);
       const tables: Record<string, Record<string, unknown>[]> = {};
       for (const t of await findUserTables(tx)) {
@@ -34,18 +32,10 @@ export class AccountService {
     });
   }
 
-  /**
-   * Starts the grace period: every session is revoked and every shared plan's link
-   * is stopped (UC-09 A7), and the account is purged after it unless the student
-   * signs in again. A restored account gets its links back only by sharing again.
-   * 403, not 401, on a wrong password: the client treats 401 as "signed out".
-   */
   async requestDeletion(user: User, password: string): Promise<DeletionScheduledDto> {
     if (!(await this.auth.verifyPassword(user, password))) throw new ForbiddenException('Wrong password');
     const requestedAt = this.clock.now();
     const purgeAfter = new Date(requestedAt.getTime() + accountDeletionGraceDays() * DAY_MS);
-    // One transaction: a failed revoke must not leave a deletion scheduled behind a 500,
-    // nor a link open on an account that is being deleted.
     await this.db.transaction(async (manager) => {
       await this.users.markDeletionRequestedWithin(manager, user.id, requestedAt, purgeAfter);
       await this.auth.revokeAllWithin(manager, user.id);

@@ -7,13 +7,6 @@ import { bootApp } from './support/app.js';
 import { offerAlso } from './support/offer.js';
 import { signedInUser } from './support/users.js';
 
-// Issue #163: PostgreSQL refuses U+0000 in any text and counts a varchar's length in code
-// points, so a text field must check both, or a value the route accepts makes the query fail
-// with a 500. class-validator's MaxLength skips a variation selector (U+FE0E, U+FE0F) after a
-// character: 'x'.repeat(max - 1) + '❤️' is max characters to it and max + 1 to PostgreSQL.
-// Synthetic program, course and accounts only (AGENTS.md hard rule 3), unique per run and
-// removed in afterAll, because e2e files share one database with the seeded curricula.
-
 type Account = { token: string; userId: string };
 
 const NUL = (field: string) => `${field} must not contain a null character (U+0000)`;
@@ -67,7 +60,6 @@ describe('Text fields refuse a null character and a value too long in code point
 
   afterAll(async () => {
     if (db?.isInitialized) {
-      // Plans, transcript rows and grants go with their user; groups with their curriculum.
       await db.query('DELETE FROM users WHERE id = ANY($1)', [[student, admin].filter(Boolean).map((u) => u.userId)]);
       await db.query('DELETE FROM academic_calendar WHERE program_id = $1', [programId]);
       await db.query('DELETE FROM curriculums WHERE program_id = $1', [programId]);
@@ -87,7 +79,6 @@ describe('Text fields refuse a null character and a value too long in code point
   const groups = () => `${cohortPath()}/requirement-groups`;
   const event = () => `${eventsPath()}/${eventId}`;
 
-  // One test per case, so each one is seen to fail without the fix.
   const CASES: [string, () => request.Test, string][] = [
     ['POST /plans name (null)', () => as(student).post('/api/plans', { ...PLAN, name: 'My plan\u0000' }), NUL('name')],
     ['POST /plans name (length)', () => as(student).post('/api/plans', { ...PLAN, name: tooLong(100) }), LONG('name', 100)],
@@ -135,7 +126,6 @@ describe('Text fields refuse a null character and a value too long in code point
   });
 
   it('and still store the longest value that fits', async () => {
-    // max code points, max + 2 UTF-16 units: MaxLength would refuse it, PostgreSQL stores it.
     const longest = (max: number) => 'x'.repeat(max - 2) + '\u{1F600}\u{1F600}';
     expect((await as(student).patch(`/api/plans/${planId}`, { name: longest(100) }).expect(200)).body.name).toBe(longest(100));
     expect((await as(admin).patch(`${eventsPath()}/${eventId}`, { title: longest(255) }).expect(200)).body.title).toBe(longest(255));
