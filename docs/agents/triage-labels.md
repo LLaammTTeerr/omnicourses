@@ -13,5 +13,3 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
 The maintainer for triage is the Project Lead (LamTer). An issue that touches an academic rule (prerequisites, offering terms, credit caps, requirement coverage, graduation status) goes to `ready-for-agent` only when the issue body cites the curriculum or regulation clause the rule comes from (AGENTS.md hard rule 1).
-
-Edit the "Label in our tracker" column to match whatever vocabulary you actually use.

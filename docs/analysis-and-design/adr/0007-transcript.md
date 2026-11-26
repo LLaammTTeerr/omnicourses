@@ -1,6 +1,7 @@
 # ADR 0007: Storing the transcript
 
 - Status: proposed
+- Amended: 15 November 2026, F2 reads no file ([amendment](#amendment-15-november-2026-paste-or-type-no-file))
 - Date: 2026-10-28
 - Deciders: Lâm (owner of F2 and `transcript`)
 - Reviewer: Triết (the degree audit reads it), Dũng (the advisor reads it)
@@ -30,6 +31,22 @@ The curriculum schema (#23) is still changing, and no table stores a term yet.
 | **Bounds on input, not rules**: at most 300 rows, credits 0–30, term years 2000–2100. | No bounds | They stop malformed or oversized requests. They are far outside any real transcript (APCS is about 140 credits), so they never decide an academic question. |
 | **The term is stored as ADR 0009 encodes it**: `term_year` and `term_number`. | Deciding the encoding in this ADR, where other modules won't look | [ADR 0009](0009-term-encoding.md) holds the encoding every module shares. |
 | **`TranscriptService.rowsFor(userId)` is the read contract.** It returns `TranscriptEntry[]`, a plain interface in `transcript-entry.ts` (course code, name, credits, result, grade, term), oldest term first. It is exported from `TranscriptModule`. | Other modules query the table, receive the entity, or receive the HTTP DTO class | Triết and Dũng depend on one function and a plain type, so the table can change behind it (SDP v2 handoff list). `transcript.e2e-spec.ts` covers it. |
+
+## Amendment, 15 November 2026: paste or type, no file
+
+**Decided (Lâm, Project Lead, 15 November 2026):** the student pastes the grades table or types the rows in. OmniCourse reads no transcript file: no PDF, no image, no upload.
+
+Why: on 15 November 2026 the team found that neither school portal offers a transcript PDF to download ([guides plan, G07](../../requirements/guides-plan.md#g07-view-your-grades-b1)). The file that ADR 0003 and UC-02 expected does not exist.
+
+What changes and what stays:
+
+- The storage decisions above stay as they are. The pasted or typed rows go to the same review table, and only the saved rows land in `transcript_rows`.
+- A paste is read by a deterministic parser in OmniCourse. No language model reads it (ADR 0003, AGENTS.md hard rule 1).
+- No file is uploaded, so nothing is stored or deleted after reading. The 5 MB limit and the file deletion of UC-02 no longer apply.
+- **Not decided:** the paste format, that is, which columns the pasted table has and how the parser maps the portal's results to `exempt`, `pass` and `fail`. The Project Lead decides it ([test plan, decisions and handoffs to close](../../test/test-plan.md#decisions-and-handoffs-to-close)). Until then, typed entry is the only way in.
+- Superseded: the first Consequence below ("the F2 parser turns the PDF into rows") and the open question about a real portal transcript. ADR 0003's F2 row, its open question about the PDF text layer, and ADR 0009's open question point here.
+
+What is built today is in the [README feature table](../../../README.md#what-is-built).
 
 ## Consequences
 

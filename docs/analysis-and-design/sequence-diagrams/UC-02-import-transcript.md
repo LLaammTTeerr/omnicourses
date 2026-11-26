@@ -2,7 +2,7 @@
 
 - Use case: UC-02 ([specification](../../requirements/use-cases/UC-02-import-transcript.md)), feature F2
 - Drawn from the code on `main` (15 November 2026): `src/frontend/src/transcript/` (`TranscriptView.vue`, `rows.ts`, `api.ts`), `src/frontend/src/auth/store.ts`, `src/backend/src/transcript/` ([ADR 0007](../adr/0007-transcript.md))
-- What is built is the part of UC-02 from the review table on: the student types the rows in (A4), reviews them (step 6) and saves the whole set (steps 7–8, A5). No file is read: steps 1–5 and A1, A7, A8 have no code. The Project Lead decided on 15 November 2026 to change F2 to "paste the grades table, or type it in", because the portals offer no transcript file to export; pasting is not on `main` yet and is not drawn. See [the differences list](../design-differences.md).
+- What is built is the part of UC-02 from the review table on: the student types the rows in (A4), reviews them (step 6) and saves the whole set (steps 7–8, A5). Steps 1–5 (the paste) and A1 and A8 have no code. The Project Lead decided on 15 November 2026 that F2 is "paste the grades table, or type it in" ([ADR 0007, amendment](../adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); pasting is not on `main` yet and is not drawn. See [the differences list](../design-differences.md).
 
 Participants are real modules. `useAuth` is the Pinia store in `auth/store.ts`; its `authed(call)` passes the session token to an API function. `ThrottlerGuard` and `AuthGuard` run before every controller method and are drawn once, in [UC-01, "Every signed-in request"](UC-01-sign-up-and-onboard.md#every-signed-in-request); here they appear as one step.
 

@@ -85,7 +85,7 @@ A student's record of the courses they have taken, with credits, term and result
 _Avoid_: grade report, results, bảng điểm
 
 **Transcript import**:
-Turning an uploaded transcript file into transcript rows that the student reviews before they count.
+Turning a pasted grades table, or rows the student types in, into transcript rows that the student reviews before they count. OmniCourse reads no file ([ADR 0007, amendment of 15 November 2026](docs/analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)).
 _Avoid_: OCR, scan, upload
 
 **Graduation status**:
@@ -173,8 +173,12 @@ A user who creates programs and grants or revokes the program administrator, cat
 _Avoid_: superuser, permission admin
 
 **Advisor**:
-A lecturer or academic advisor who reads a student's shared plan; needs no OmniCourse account.
+A person: a lecturer or academic advisor who reads a student's shared plan; needs no OmniCourse account. Never the F8 chat.
 _Avoid_: mentor, counsellor, reviewer
+
+**Advisor chat**:
+The F8 feature: an AI chat that answers a student's questions about the regulations, cites the clause, and explains the rule engine's answers without overriding them ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)). The backend folder `advisor/` and the `advisor` usage tag belong to it.
+_Avoid_: the advisor, chatbot, AI advisor
 
 **Shared plan**:
 A read-only link to one plan that a student gives to someone else.
@@ -195,5 +199,5 @@ A guide taken off the guide pages but kept, so problem reports about it stay val
 _Avoid_: deleted guide, archived guide
 
 **Out-of-date guide**:
-A published guide not checked on the portal for more than 6 months (UC-10 A5, rule still proposed); it stays readable, with a warning.
+A published guide not checked on the portal for more than 6 months (UC-10 A5; decided by Lâm on 9 November 2026, computed in `src/backend/src/guides/out-of-date.ts`); it stays readable, with a warning.
 _Avoid_: expired guide, stale guide

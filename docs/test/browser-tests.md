@@ -4,7 +4,7 @@ The frontend has a separate Vitest browser suite using Playwright and headless C
 
 ## Run locally
 
-Use the repository's Node 22.22.1 and npm 11.21.1. From the repository root:
+Use the repository's Node and npm versions ([AGENTS.md, Stack](../../AGENTS.md#stack-pinned-exactly-do-not-use-ranges)). From the repository root:
 
 ```bash
 npm ci

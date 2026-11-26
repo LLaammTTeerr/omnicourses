@@ -1,6 +1,7 @@
 # ADR 0003: Where a language model is used
 
 - Status: accepted
+- F2 amended by: [ADR 0007, amendment of 15 November 2026](0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file) (paste or type, no file)
 - Date: 2026-10-24
 - Deciders: Lâm (Project Lead)
 - Informed: Triết, Hoà (Vision v2), Dũng (F8), Thắng (F12)
@@ -43,7 +44,7 @@ Vision v1.0 §5 puts a language model in four features: F2 (transcript extractio
 - Vision v2 (Hoà) must restate F2, F6 and F12; the Work Breakdown loses "curriculum PDF import" (Thắng, Sprint 4).
 - Robustness NFR gets easier: only the goal box and the advisor go dark when the provider is down.
 - The planner algorithm and F8's retrieval of regulation clauses are separate designs, owned by Lâm and Dũng.
-- Open: confirm on one real portal transcript, locally, that the PDF has a text layer and a fixed layout before Sprint 4.
+- Open: confirm on one real portal transcript, locally, that the PDF has a text layer and a fixed layout before Sprint 4. *Closed 15 November 2026: the portals offer no transcript PDF, and F2 reads no file ([ADR 0007, amendment of 15 November 2026](0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)).*
 
 ## Notes
 

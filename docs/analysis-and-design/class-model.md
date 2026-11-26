@@ -1338,14 +1338,13 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `CombinedMinimum`, `CombinedMinimumGroup`, `RequirementGroupOverflow`, `CurriculumRulesReader`, `DegreeAudit` and its parts, `degreeAudit`, `AuditController` | 1.2, 2.2, 2.4, 3.2 | F3 | [ADR 0013](adr/0013-rule-engine-and-degree-audit.md) |
 | `CreditCaps`, `CapViolation`, `creditCaps`, `checkTermLoad`, `Program.trainingType` | 2.2, 2.4 | F3, F5 | [ADR 0012](adr/0012-credit-caps-by-training-type.md) |
 | `Term`, `termYear` and `termNumber` columns | 1.1, 1.4, 2.1 | F2, F3, F5 | [ADR 0009](adr/0009-term-encoding.md) |
-| `Plan`, `PlanPlacement`, `BoardTerm`, `Placement`, `PlansService`, `PlanIssuesProvider`, `PlanIssuesReport`, `checkPlan` | 1.4, 2.3, 2.4, 3.2 | F5 (and the copy a what-if scenario of F7 starts from) | [ADR 0014](adr/0014-plan-model.md). [ADR 0015](adr/0015-rule-engine-in-the-browser.md) (proposed) would run the drag preview in the browser; today it asks the API |
+| `Plan`, `PlanPlacement`, `BoardTerm`, `Placement`, `PlansService`, `PlanIssuesProvider`, `PlanIssuesReport`, `checkPlan` | 1.4, 2.3, 2.4, 3.2 | F5 (and the copy a what-if scenario of F7 starts from) | [ADR 0014](adr/0014-plan-model.md); [ADR 0015](adr/0015-rule-engine-in-the-browser.md) for where the drag preview runs |
 | `CoursePrerequisiteList`, `CoursePrerequisite`, `CourseOfferingTerm`, `CourseRulesService`, `checkPrerequisites`, `checkOfferingTerm` | 1.2, 2.4 | F4, F5, F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
 | `ProgramAdminGrant`, `GlobalAdminGrant`, `AdminWriteService`, the three administration services and controllers | 1.3, 3.3 | F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
 | `Guide`, `GuideText`, `GuideContent`, `GuidesService` | 1.5, 3.4 | F11 | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
-| `AiUsage`, `LlmService`, `GatewayLlmService`, `AiCostGuard`, `ModelClient` | 1.1, 3.4 | F6 goal box and F8 (gateway only; neither feature is built) | [ADR 0003](adr/0003-language-model-scope.md) |
-| `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView` | 1.6, 3.5, 4 | F10 school dates (the dates and the calendar page) | [ADR 0017](adr/0017-academic-calendar.md) (proposed) |
-| `Notification`, `NotificationsService`, `NotificationSchedule`, `NotificationsController`, `Clock`, `TranscriptSave` | 1.8, 3.6 | F10 notification inbox (the API only; the bell and the inbox screen are not built) | [ADR 0018](adr/0018-notification-inbox.md) (proposed) |
-| `PlanShare` (`SharingService`, `PlanShareController` and `SharedPlansController` in `sharing/` are not drawn in §3 yet) | 1.4, 1.7 | F9 shared plans (the API; no screen yet) | [ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026 |
-| (no classes yet) | | F7 what-if | [ADR 0006](adr/0006-plan-generator.md) for F6's planner; not built |
+| `AiUsage`, `LlmService`, `GatewayLlmService`, `AiCostGuard`, `ModelClient` | 1.1, 3.4 | F6 goal box and F8 (the gateway) | [ADR 0003](adr/0003-language-model-scope.md) |
+| `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView` | 1.6, 3.5, 4 | F10 school dates (the dates and the calendar page) | [ADR 0017](adr/0017-academic-calendar.md) |
+| `Notification`, `NotificationsService`, `NotificationSchedule`, `NotificationsController`, `Clock`, `TranscriptSave` | 1.8, 3.6 | F10 notification inbox | [ADR 0018](adr/0018-notification-inbox.md) |
+| `PlanShare` (`SharingService`, `PlanShareController` and `SharedPlansController` in `sharing/` are not drawn in §3 yet) | 1.4, 1.7 | F9 shared plans | [ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026 |
 
-The stack these classes are written in is [ADR 0001](adr/0001-technology-stack.md); how they are tested in a browser is [ADR 0008](adr/0008-browser-testing.md).
+Which features have an API and a screen is in the [README feature table](../../README.md#what-is-built). The stack these classes are written in is [ADR 0001](adr/0001-technology-stack.md); how they are tested in a browser is [ADR 0008](adr/0008-browser-testing.md).
