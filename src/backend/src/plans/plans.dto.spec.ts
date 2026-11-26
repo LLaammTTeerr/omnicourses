@@ -57,7 +57,10 @@ describe('plan names', () => {
   it('trims the name and refuses an empty or long one', async () => {
     expect(plainToInstance(RenamePlanDto, { name: '  Main plan ' }).name).toBe('Main plan');
     expect(await errorsFor(RenamePlanDto, { name: '   ' })).toEqual(['name:minLength']);
-    expect(await errorsFor(RenamePlanDto, { name: 'x'.repeat(101) })).toEqual(['name:maxLength']);
+    expect(await errorsFor(RenamePlanDto, { name: 'x'.repeat(101) })).toEqual(['name:maxCodePoints']);
+    // PostgreSQL counts code points: MaxLength alone took this 101st one, a variation selector (#163).
+    expect(await errorsFor(RenamePlanDto, { name: 'x'.repeat(99) + '❤️' })).toEqual(['name:maxCodePoints']);
+    expect(await errorsFor(RenamePlanDto, { name: 'Main plan\u0000' })).toEqual(['name:noNullCharacter']);
     expect(await errorsFor(RenamePlanDto, {})).toContain('name:isString');
   });
 

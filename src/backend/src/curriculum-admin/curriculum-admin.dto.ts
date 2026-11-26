@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, MaxLength, Min, ValidateBy, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy, ValidateIf } from 'class-validator';
+import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
 import { trimString } from '../common/transforms.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
@@ -51,8 +52,9 @@ export class CreateRequirementGroupDto {
   @ApiProperty({ example: 'Kiến thức Math', maxLength: 255, description: 'The heading as printed; unique within the curriculum' })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   name!: string;
 
   @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS })
@@ -62,6 +64,7 @@ export class CreateRequirementGroupDto {
   @ApiProperty({ type: String, nullable: true, required: false, description: 'The printed rule text' })
   @ifSet
   @IsString()
+  @NoNullCharacter
   officialNotes?: string | null;
 }
 
@@ -70,8 +73,9 @@ export class UpdateRequirementGroupDto {
   @ifPresent
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   name?: string;
 
   @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS, required: false, description: 'Refused while the group stores a credit total' })
@@ -82,6 +86,7 @@ export class UpdateRequirementGroupDto {
   @ApiProperty({ type: String, nullable: true, required: false })
   @ifSet
   @IsString()
+  @NoNullCharacter
   officialNotes?: string | null;
 }
 
@@ -185,15 +190,17 @@ export class CreateCourseDto {
   @ApiProperty({ maxLength: 255 })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   nameVi!: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   nameEn?: string | null;
 
   @ApiProperty({ minimum: 1, maximum: MAX_INTEGER })
@@ -240,15 +247,17 @@ export class UpdateCourseDto {
   @ifPresent
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   nameVi?: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   nameEn?: string | null;
 
   @ApiProperty({ required: false, minimum: 1, maximum: MAX_INTEGER })

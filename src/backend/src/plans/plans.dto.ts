@@ -13,7 +13,6 @@ import {
   IsUUID,
   Matches,
   Max,
-  MaxLength,
   Min,
   MinLength,
   ValidateBy,
@@ -21,6 +20,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
+import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
 import { trimString } from '../common/transforms.js';
 import { TermDto } from '../terms/term.dto.js';
 import { BoardTerm, MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS, Placement, PLACEMENT_KINDS, PlacementKind } from './plan-board.js';
@@ -30,8 +30,9 @@ const PlanName = () =>
     ApiProperty({ example: 'Main plan', minLength: 1, maxLength: 100 }),
     Transform(trimString),
     IsString(),
+    NoNullCharacter,
     MinLength(1),
-    MaxLength(100),
+    MaxCodePoints(100),
   );
 
 // A field of one kind of placement: checked when that kind is sent or the field is set, and
@@ -134,7 +135,8 @@ export class CreatePlanDto {
 
   @ApiProperty({ example: 'APCS', description: 'The program of the curriculum the plan is made against.' })
   @IsString()
-  @MaxLength(50)
+  @NoNullCharacter
+  @MaxCodePoints(50)
   programCode!: string;
 
   @ApiProperty({ example: 2024, description: 'The cohort of that curriculum.' })
@@ -163,8 +165,9 @@ export class DuplicatePlanDto {
   @IsOptional()
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @MinLength(1)
-  @MaxLength(100)
+  @MaxCodePoints(100)
   name?: string;
 }
 

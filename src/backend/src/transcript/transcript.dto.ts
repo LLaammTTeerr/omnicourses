@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
+import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
 import { trimString } from '../common/transforms.js';
 import { TermDto } from '../terms/term.dto.js';
 import { TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
@@ -18,8 +19,9 @@ export class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'Introduction to Programming' })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @MinLength(1)
-  @MaxLength(255)
+  @MaxCodePoints(255)
   courseName!: string;
 
   @ApiProperty({ example: 4, minimum: 0, maximum: 30 })
