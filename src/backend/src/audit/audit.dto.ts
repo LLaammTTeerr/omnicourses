@@ -24,7 +24,7 @@ import {
   type UnmatchedCourse,
 } from '../rules/types.js';
 import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
-import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
+import { CLASSIFICATIONS, type Classification, YEAR_LEVELS } from '../rules/grades.js';
 import { TermDto } from '../common/field-validators.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
@@ -170,8 +170,8 @@ export class CreditSummaryDto implements CreditSummary {
   @ApiProperty({ type: Number, nullable: true })
   remaining!: number | null;
 
-  @ApiProperty({ enum: [1, 2, 3, 4], description: 'Year of study from the accumulated credits (Điều 15.3)' })
-  yearLevel!: 1 | 2 | 3 | 4;
+  @ApiProperty({ enum: YEAR_LEVELS, description: 'Year of study from the accumulated credits (Điều 15.3)' })
+  yearLevel!: (typeof YEAR_LEVELS)[number];
 }
 
 export class GpaSummaryDto implements GpaSummary {

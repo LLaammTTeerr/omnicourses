@@ -4,6 +4,9 @@ import { Curriculum } from './curriculum.entity.js';
 export const TRAINING_TYPES = ['advanced', 'joint', 'high_quality', 'standard'] as const;
 export type TrainingType = (typeof TRAINING_TYPES)[number];
 
+export const PROGRAM_CODE_MAX_LENGTH = 50;
+export const FACULTY_MAX_LENGTH = 100;
+
 @Entity({ name: 'programs' })
 @Unique('uq_programs_code', ['code'])
 @Check('ck_programs_training_type', `"training_type" IN ('advanced', 'joint', 'high_quality', 'standard')`)
@@ -11,7 +14,7 @@ export class Program {
   @PrimaryGeneratedColumn('uuid', { primaryKeyConstraintName: 'programs_pkey' })
   id!: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: PROGRAM_CODE_MAX_LENGTH })
   code!: string;
 
   @Column({ name: 'name_vi', type: 'varchar', length: 255 })
@@ -20,7 +23,7 @@ export class Program {
   @Column({ name: 'name_en', type: 'varchar', length: 255, nullable: true })
   nameEn!: string | null;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', length: FACULTY_MAX_LENGTH, nullable: true })
   faculty!: string | null;
 
   @Column({ name: 'training_type', type: 'varchar', length: 20, nullable: true })

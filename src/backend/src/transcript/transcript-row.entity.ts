@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, Primary
 import { User } from '../users/user.entity.js';
 import type { TranscriptResult } from './transcript-entry.js';
 
+export const COURSE_NAME_MAX_LENGTH = 255;
+
 @Entity({ name: 'transcript_rows' })
 @Index('ix_transcript_rows_user_id', ['userId'])
 export class TranscriptRow {
@@ -18,7 +20,7 @@ export class TranscriptRow {
   @Column({ name: 'course_code', type: 'varchar', length: 20 })
   courseCode!: string;
 
-  @Column({ name: 'course_name', type: 'varchar', length: 255 })
+  @Column({ name: 'course_name', type: 'varchar', length: COURSE_NAME_MAX_LENGTH })
   courseName!: string;
 
   @Column({ type: 'smallint' })

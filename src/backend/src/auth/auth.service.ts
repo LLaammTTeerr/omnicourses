@@ -11,7 +11,9 @@ import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
-import { Session } from './session.entity.js';
+import { Session, USER_AGENT_MAX_LENGTH } from './session.entity.js';
+
+const SESSION_TOKEN_BYTES = 32;
 
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
@@ -94,12 +96,12 @@ export class AuthService {
       where: { userId, revokedAt: IsNull(), expiresAt: MoreThan(this.clock.now()) },
       order: { createdAt: 'DESC' },
     });
-    return live.map((s) => ({
-      id: s.id,
-      userAgent: s.userAgent,
-      createdAt: s.createdAt,
-      expiresAt: s.expiresAt,
-      current: s.id === currentId,
+    return live.map((session) => ({
+      id: session.id,
+      userAgent: session.userAgent,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+      current: session.id === currentId,
     }));
   }
 
@@ -115,7 +117,7 @@ export class AuthService {
       this.sessions.create({
         userId: user.id,
         tokenHash: hashToken(token),
-        userAgent: userAgent?.slice(0, 512) ?? null,
+        userAgent: userAgent?.slice(0, USER_AGENT_MAX_LENGTH) ?? null,
         expiresAt,
       }),
     );
@@ -137,5 +139,5 @@ function sessionExpiry(issuedAt: Date): Date {
 }
 
 function newToken(): string {
-  return randomBytes(32).toString('base64url');
+  return randomBytes(SESSION_TOKEN_BYTES).toString('base64url');
 }

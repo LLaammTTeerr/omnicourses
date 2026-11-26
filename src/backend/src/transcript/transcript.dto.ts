@@ -3,10 +3,12 @@ import { Transform, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
 import { MaxCodePoints, NoNullCharacter, TermDto, trimString } from '../common/field-validators.js';
+import { COURSE_NAME_MAX_LENGTH } from './transcript-row.entity.js';
 import { TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
 
 export const MAX_TRANSCRIPT_ROWS = 300;
 const MAX_ROW_CREDITS = 30;
+const MAX_GRADE = 10;
 
 export class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'CSC10001' })
@@ -20,7 +22,7 @@ export class TranscriptRowDto implements TranscriptEntry {
   @IsString()
   @NoNullCharacter
   @MinLength(1)
-  @MaxCodePoints(255)
+  @MaxCodePoints(COURSE_NAME_MAX_LENGTH)
   courseName!: string;
 
   @ApiProperty({ example: 4, minimum: 0, maximum: MAX_ROW_CREDITS })
@@ -41,7 +43,7 @@ export class TranscriptRowDto implements TranscriptEntry {
   @ValidateIf((row: TranscriptRowDto) => row.result === 'graded' || (row.grade !== null && row.grade !== undefined))
   @IsNumber({ maxDecimalPlaces: 1 })
   @Min(0)
-  @Max(10)
+  @Max(MAX_GRADE)
   @ValidateBy({
     name: 'nullUnlessGraded',
     validator: {

@@ -1,4 +1,4 @@
-import { compareTerms, currentTerm, Term } from '../terms/term.js';
+import { compareTerms, currentTerm, LAST_TERM_NUMBER, Term } from '../terms/term.js';
 
 export const OFFERED_COHORTS: Readonly<Record<string, readonly number[]>> = { APCS: [2024, 2025] };
 
@@ -12,7 +12,7 @@ export const YEARS_AHEAD = 8;
 
 export function goalTermWindow(vietnamDay: string): { first: Term; last: Term } {
   const first = currentTerm(vietnamDay);
-  return { first, last: { year: first.year + YEARS_AHEAD, number: 3 } };
+  return { first, last: { year: first.year + YEARS_AHEAD, number: LAST_TERM_NUMBER } };
 }
 
 export function isInGoalTermWindow(term: Term, vietnamDay: string): boolean {

@@ -70,6 +70,9 @@ export function pageLines(pdftotext: string): Line[] {
 const indent = (line: string): number => line.length - line.trimStart().length;
 
 const PARAGRAPH_INDENT = 3;
+const PREVIEW_LENGTH = 40;
+
+const preview = (text: string): string => text.slice(0, PREVIEW_LENGTH);
 
 export function joinWrapped(left: string, right: string): string {
   return /\p{L}-$/u.test(left) && /^\p{L}/u.test(right) ? `${left}${right}` : `${left} ${right}`;
@@ -107,13 +110,13 @@ function matchEnd(items: (Line | Unit)[], start: number, want: string[]): number
   let at = start;
   let matched = 0;
   while (at < items.length && matched < want.length) {
-    const item = items[at];
-    if (!('raw' in item)) break;
-    if (item.raw.trim() === '') {
+    const entry = items[at];
+    if (!('raw' in entry)) break;
+    if (entry.raw.trim() === '') {
       at++;
       continue;
     }
-    if (collapse(item.raw) !== want[matched]) break;
+    if (collapse(entry.raw) !== want[matched]) break;
     matched++;
     at++;
   }
@@ -122,26 +125,26 @@ function matchEnd(items: (Line | Unit)[], start: number, want: string[]): number
 
 function paragraphs(items: (Line | Unit)[]): Unit[] {
   const baseline = new Map<number, number>();
-  for (const item of items) {
-    if ('raw' in item && item.raw.trim() !== '') {
-      baseline.set(item.page, Math.min(baseline.get(item.page) ?? Infinity, indent(item.raw)));
+  for (const entry of items) {
+    if ('raw' in entry && entry.raw.trim() !== '') {
+      baseline.set(entry.page, Math.min(baseline.get(entry.page) ?? Infinity, indent(entry.raw)));
     }
   }
   const units: Unit[] = [];
   let open: Unit | null = null;
-  for (const item of items) {
-    if (!('raw' in item)) {
-      units.push(item);
+  for (const entry of items) {
+    if (!('raw' in entry)) {
+      units.push(entry);
       open = null;
       continue;
     }
-    const text = collapse(item.raw);
+    const text = collapse(entry.raw);
     if (text === '') continue;
-    if (open && indent(item.raw) < (baseline.get(item.page) ?? 0) + PARAGRAPH_INDENT) {
+    if (open && indent(entry.raw) < (baseline.get(entry.page) ?? 0) + PARAGRAPH_INDENT) {
       open.text = joinWrapped(open.text, text);
-      if (!open.pages.includes(item.page)) open.pages.push(item.page);
+      if (!open.pages.includes(entry.page)) open.pages.push(entry.page);
     } else {
-      open = { kind: 'paragraph', text, pages: [item.page] };
+      open = { kind: 'paragraph', text, pages: [entry.page] };
       units.push(open);
     }
   }
@@ -294,16 +297,21 @@ class ClauseBuilder {
   }
 
   private open(clause: Omit<Clause, 'chapter' | 'article' | 'pages' | 'text'>, unit: Unit): void {
-    if (!this.chapter || !this.article) throw new Error(`"${unit.text.slice(0, 40)}" comes before any Điều`);
-    this.current = { ...clause, chapter: this.chapter, article: this.article, pages: [...unit.pages], text: unit.text };
+    const { chapter, article } = this.placeOf(unit);
+    this.current = { ...clause, chapter, article, pages: [...unit.pages], text: unit.text };
     this.clauses.push(this.current);
+  }
+
+  private placeOf(unit: Unit): Pick<Clause, 'chapter' | 'article'> {
+    if (!this.chapter || !this.article) throw new Error(`"${preview(unit.text)}" comes before any Điều`);
+    return { chapter: this.chapter, article: this.article };
   }
 
   private append(unit: Unit): void {
     if (!this.current) {
-      if (!this.chapter || !this.article) throw new Error(`"${unit.text.slice(0, 40)}" comes before any Điều`);
-      const id = `${this.documentId}/d${this.article.number}`;
-      this.current = { id, label: `Điều ${this.article.number}`, level: 'article', chapter: this.chapter, article: this.article, khoan: null, diem: null, pages: [], text: '' };
+      const { chapter, article } = this.placeOf(unit);
+      const id = `${this.documentId}/d${article.number}`;
+      this.current = { id, label: `Điều ${article.number}`, level: 'article', chapter, article, khoan: null, diem: null, pages: [], text: '' };
       this.clauses.push(this.current);
     }
     const clause = this.current;
@@ -401,100 +409,6 @@ function walkClauses(clauses: Clause[], render: ClauseRendering): string[] {
 const isTableRow = (line: string): boolean => line.startsWith('|');
 const isTableRule = (line: string): boolean => /^\|(?:\s*:?-+:?\s*\|)+$/u.test(line);
 
-export function words(text: string): string[] {
-  return text
-    .split('\n')
-    .filter((line) => !isTableRule(line.trim()))
-    .map((line) => (isTableRow(line.trim()) ? line.replace(/\|/gu, ' ') : line))
-    .join(' ')
-    .normalize('NFC')
-    .split(/\s+/u)
-    .filter(Boolean);
-}
-
-export const sourceWords = (pdftotext: string): string[] =>
-  words(pageLines(pdftotext).map((line) => line.raw).join('\n'));
-
-export interface Hunk {
-  at: number;
-  removed: string[];
-  added: string[];
-}
-
-const MAX_DIFF_EDITS = 2000;
-
-interface Edit {
-  op: 'del' | 'ins';
-  x: number;
-  y: number;
-}
-
-export function diffWords(left: string[], right: string[], maxEdits = MAX_DIFF_EDITS): Hunk[] {
-  return hunksOf(editsOf(left, right, myersTrace(left, right, maxEdits)), left, right);
-}
-
-function myersTrace(left: string[], right: string[], maxEdits: number): { trace: Int32Array[]; offset: number } {
-  const max = Math.min(left.length + right.length, maxEdits);
-  const offset = max + 1;
-  const v = new Int32Array(2 * max + 3);
-  const trace: Int32Array[] = [];
-  for (let d = 0; d <= max; d++) {
-    trace.push(v.slice());
-    for (let k = -d; k <= d; k += 2) {
-      let x = k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1]) ? v[offset + k + 1] : v[offset + k - 1] + 1;
-      let y = x - k;
-      while (x < left.length && y < right.length && left[x] === right[y]) {
-        x++;
-        y++;
-      }
-      v[offset + k] = x;
-      if (x >= left.length && y >= right.length) return { trace, offset };
-    }
-  }
-  throw new Error(`the word sequences differ by more than ${maxEdits} edits`);
-}
-
-function editsOf(left: string[], right: string[], { trace, offset }: { trace: Int32Array[]; offset: number }): Edit[] {
-  const edits: Edit[] = [];
-  let x = left.length;
-  let y = right.length;
-  for (let d = trace.length - 1; d > 0; d--) {
-    const vd = trace[d];
-    const k = x - y;
-    const down = k === -d || (k !== d && vd[offset + k - 1] < vd[offset + k + 1]);
-    const prevK = down ? k + 1 : k - 1;
-    const prevX = vd[offset + prevK];
-    const prevY = prevX - prevK;
-    edits.push({ op: down ? 'ins' : 'del', x: prevX, y: prevY });
-    x = prevX;
-    y = prevY;
-  }
-  return edits.reverse();
-}
-
-function hunksOf(edits: Edit[], left: string[], right: string[]): Hunk[] {
-  const hunks: Hunk[] = [];
-  let hunk: Hunk | null = null;
-  let lastX = -1;
-  let lastY = -1;
-  for (const edit of edits) {
-    if (!hunk || edit.x !== lastX || edit.y !== lastY) {
-      hunk = { at: edit.x, removed: [], added: [] };
-      hunks.push(hunk);
-    }
-    if (edit.op === 'del') {
-      hunk.removed.push(left[edit.x]);
-      lastX = edit.x + 1;
-      lastY = edit.y;
-    } else {
-      hunk.added.push(right[edit.y]);
-      lastX = edit.x;
-      lastY = edit.y + 1;
-    }
-  }
-  return hunks;
-}
-
 const escapeMarkdown = (line: string): string =>
   line
     .replace(/([\\*_`])/gu, '\\$1')
@@ -535,4 +449,108 @@ export function renderMarkdown(document: RegulationDocument): string {
   ];
   if (document.closing) out.push('---', document.closing.split('\n').map(escapeMarkdown).join('  \n'));
   return `${out.join('\n\n')}\n`;
+}
+
+export function words(text: string): string[] {
+  return text
+    .split('\n')
+    .filter((line) => !isTableRule(line.trim()))
+    .map((line) => (isTableRow(line.trim()) ? line.replace(/\|/gu, ' ') : line))
+    .join(' ')
+    .normalize('NFC')
+    .split(/\s+/u)
+    .filter(Boolean);
+}
+
+export const sourceWords = (pdftotext: string): string[] =>
+  words(pageLines(pdftotext).map((line) => line.raw).join('\n'));
+
+export interface Hunk {
+  at: number;
+  removed: string[];
+  added: string[];
+}
+
+const MAX_DIFF_EDITS = 2000;
+const DIAGONAL_MARGIN = 1;
+const DIAGONAL_STEP = 2;
+
+interface Edit {
+  op: 'del' | 'ins';
+  leftAt: number;
+  rightAt: number;
+}
+
+interface MyersTrace {
+  trace: Int32Array[];
+  offset: number;
+}
+
+export function diffWords(left: string[], right: string[], maxEdits = MAX_DIFF_EDITS): Hunk[] {
+  return hunksOf(editsOf(left, right, myersTrace(left, right, maxEdits)), left, right);
+}
+
+const stepsDown = (furthest: Int32Array, offset: number, d: number, k: number): boolean =>
+  k === -d || (k !== d && furthest[offset + k - 1] < furthest[offset + k + 1]);
+
+function myersTrace(left: string[], right: string[], maxEdits: number): MyersTrace {
+  const max = Math.min(left.length + right.length, maxEdits);
+  const offset = max + DIAGONAL_MARGIN;
+  const furthest = new Int32Array(2 * offset + 1);
+  const trace: Int32Array[] = [];
+  for (let d = 0; d <= max; d++) {
+    trace.push(furthest.slice());
+    for (let k = -d; k <= d; k += DIAGONAL_STEP) {
+      let leftAt = stepsDown(furthest, offset, d, k) ? furthest[offset + k + 1] : furthest[offset + k - 1] + 1;
+      let rightAt = leftAt - k;
+      while (leftAt < left.length && rightAt < right.length && left[leftAt] === right[rightAt]) {
+        leftAt++;
+        rightAt++;
+      }
+      furthest[offset + k] = leftAt;
+      if (leftAt >= left.length && rightAt >= right.length) return { trace, offset };
+    }
+  }
+  throw new Error(`the word sequences differ by more than ${maxEdits} edits`);
+}
+
+function editsOf(left: string[], right: string[], { trace, offset }: MyersTrace): Edit[] {
+  const edits: Edit[] = [];
+  let leftAt = left.length;
+  let rightAt = right.length;
+  for (let d = trace.length - 1; d > 0; d--) {
+    const furthest = trace[d];
+    const k = leftAt - rightAt;
+    const down = stepsDown(furthest, offset, d, k);
+    const previousK = down ? k + 1 : k - 1;
+    const previousLeft = furthest[offset + previousK];
+    const previousRight = previousLeft - previousK;
+    edits.push({ op: down ? 'ins' : 'del', leftAt: previousLeft, rightAt: previousRight });
+    leftAt = previousLeft;
+    rightAt = previousRight;
+  }
+  return edits.reverse();
+}
+
+function hunksOf(edits: Edit[], left: string[], right: string[]): Hunk[] {
+  const hunks: Hunk[] = [];
+  let hunk: Hunk | null = null;
+  let lastLeft = -1;
+  let lastRight = -1;
+  for (const edit of edits) {
+    if (!hunk || edit.leftAt !== lastLeft || edit.rightAt !== lastRight) {
+      hunk = { at: edit.leftAt, removed: [], added: [] };
+      hunks.push(hunk);
+    }
+    if (edit.op === 'del') {
+      hunk.removed.push(left[edit.leftAt]);
+      lastLeft = edit.leftAt + 1;
+      lastRight = edit.rightAt;
+    } else {
+      hunk.added.push(right[edit.rightAt]);
+      lastLeft = edit.leftAt;
+      lastRight = edit.rightAt + 1;
+    }
+  }
+  return hunks;
 }

@@ -4,8 +4,10 @@ export const DAY_MS = 24 * HOUR_MS;
 
 const VIETNAM_OFFSET_MS = 7 * HOUR_MS;
 
+export const isoDay = (date: Date): string => date.toISOString().slice(0, 10);
+
 export function vietnamDate(now: Date): string {
-  return new Date(now.getTime() + VIETNAM_OFFSET_MS).toISOString().slice(0, 10);
+  return isoDay(new Date(now.getTime() + VIETNAM_OFFSET_MS));
 }
 
 export function msUntilVietnamMidnight(now: Date): number {
@@ -13,5 +15,5 @@ export function msUntilVietnamMidnight(now: Date): number {
 }
 
 export function addDays(date: string, days: number): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+  return isoDay(new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS));
 }

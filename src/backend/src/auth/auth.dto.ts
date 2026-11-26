@@ -3,8 +3,10 @@ import { Transform } from 'class-transformer';
 import { Equals, IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { UserDto } from '../users/user.dto.js';
+import { DISPLAY_NAME_MAX_LENGTH, EMAIL_MAX_LENGTH } from '../users/user.entity.js';
 
 export const PASSWORD_MAX_LENGTH = 128;
+const PASSWORD_MIN_LENGTH = 10;
 
 const normalizeEmail = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim().toLowerCase() : value);
 
@@ -12,21 +14,21 @@ export class SignUpDto {
   @ApiProperty({ example: 'student@example.com' })
   @Transform(normalizeEmail)
   @IsEmail()
-  @MaxLength(254)
+  @MaxLength(EMAIL_MAX_LENGTH)
   email!: string;
 
-  @ApiProperty({ minLength: 10, maxLength: PASSWORD_MAX_LENGTH, example: 'correct horse battery' })
+  @ApiProperty({ minLength: PASSWORD_MIN_LENGTH, maxLength: PASSWORD_MAX_LENGTH, example: 'correct horse battery' })
   @IsString()
-  @MinLength(10)
+  @MinLength(PASSWORD_MIN_LENGTH)
   @MaxLength(PASSWORD_MAX_LENGTH)
   password!: string;
 
-  @ApiProperty({ example: 'Nguyễn Văn A', maxLength: 100 })
+  @ApiProperty({ example: 'Nguyễn Văn A', maxLength: DISPLAY_NAME_MAX_LENGTH })
   @Transform(trimString)
   @IsString()
   @NoNullCharacter
   @IsNotEmpty()
-  @MaxCodePoints(100)
+  @MaxCodePoints(DISPLAY_NAME_MAX_LENGTH)
   displayName!: string;
 
   @ApiProperty({ description: 'Consent to the terms and the privacy notice. Must be true.', example: true })
