@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, Min, ValidateIf } from 'class-validator';
+import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
 import { trimString } from '../common/transforms.js';
 import { TERM_NUMBERS } from '../terms/term.js';
 import { CALENDAR_EVENT_KINDS, type CalendarEventKind } from './academic-calendar-event.entity.js';
@@ -28,7 +29,8 @@ export class AcademicCalendarQueryDto {
   @ApiProperty({ required: false, example: 'APCS', description: "Program code. Absent: the caller's program from onboarding" })
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @NoNullCharacter
+  @MaxCodePoints(50)
   program?: string;
 
   @ApiProperty({ required: false, example: 2026, description: 'Only this academic year (ADR 0009: 2026 is 2026–2027)' })
@@ -137,21 +139,24 @@ export class CreateCalendarEventDto {
   @ApiProperty({ maxLength: 255, example: 'Đăng ký học phần học kỳ 1', description: 'Vietnamese title, as the school words it' })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   title!: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255, example: 'Term 1 course registration' })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   titleEn?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2048, description: "The school's announcement; https only. '' or null: none" })
   @Transform(trimString)
   @ifFilled
-  @MaxLength(2048)
+  @NoNullCharacter
+  @MaxCodePoints(2048)
   @httpsUrl
   @lowercaseScheme
   sourceUrl?: string | null;
@@ -159,7 +164,8 @@ export class CreateCalendarEventDto {
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2000 })
   @ifSet
   @IsString()
-  @MaxLength(2000)
+  @NoNullCharacter
+  @MaxCodePoints(2000)
   notes?: string | null;
 }
 
@@ -195,21 +201,24 @@ export class UpdateCalendarEventDto {
   @ifPresent
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(255)
+  @MaxCodePoints(255)
   title?: string;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 255 })
   @Transform(trimString)
   @ifSet
   @IsString()
-  @MaxLength(255)
+  @NoNullCharacter
+  @MaxCodePoints(255)
   titleEn?: string | null;
 
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2048, description: "https only; '' or null removes it" })
   @Transform(trimString)
   @ifFilled
-  @MaxLength(2048)
+  @NoNullCharacter
+  @MaxCodePoints(2048)
   @httpsUrl
   @lowercaseScheme
   sourceUrl?: string | null;
@@ -217,6 +226,7 @@ export class UpdateCalendarEventDto {
   @ApiProperty({ type: String, nullable: true, required: false, maxLength: 2000 })
   @ifSet
   @IsString()
-  @MaxLength(2000)
+  @NoNullCharacter
+  @MaxCodePoints(2000)
   notes?: string | null;
 }

@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { Equals, IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
 import { trimString } from '../common/transforms.js';
 import { UserDto } from '../users/user.dto.js';
 
@@ -24,8 +25,9 @@ export class SignUpDto {
   @ApiProperty({ example: 'Nguyễn Văn A', maxLength: 100 })
   @Transform(trimString)
   @IsString()
+  @NoNullCharacter
   @IsNotEmpty()
-  @MaxLength(100)
+  @MaxCodePoints(100)
   displayName!: string;
 
   @ApiProperty({ description: 'Consent to the terms and the privacy notice. Must be true.', example: true })
