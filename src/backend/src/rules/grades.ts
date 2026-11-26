@@ -42,10 +42,6 @@ export const CLASSIFICATIONS = ['excellent', 'very_good', 'good', 'fairly_good',
 /** Điều 15.2.b: Xuất sắc, Giỏi, Khá, Trung bình khá (cohorts up to 2020 only), Trung bình, Yếu, Kém. */
 export type Classification = (typeof CLASSIFICATIONS)[number];
 
-/**
- * Điều 15.2.b: the classification of an average, given exactly as numerator / denominator on the
- * 10-point scale. Cohorts from 2021 have no "Trung bình khá" band; earlier cohorts do.
- */
 const LAST_COHORT_WITH_FAIRLY_GOOD = 2020;
 
 const CLASSIFICATION_BANDS: { minPoints: number; classification: Classification; lastCohort: number | null }[] = [
@@ -57,6 +53,10 @@ const CLASSIFICATION_BANDS: { minPoints: number; classification: Classification;
   { minPoints: 4, classification: 'weak', lastCohort: null },
 ];
 
+/**
+ * Điều 15.2.b: the classification of an average, given exactly as numerator / denominator on the
+ * 10-point scale. Cohorts from 2021 have no "Trung bình khá" band; earlier cohorts do.
+ */
 export function classify(numerator: number, denominator: number, cohortYear: number): Classification {
   const band = CLASSIFICATION_BANDS.find(
     (b) => (b.lastCohort === null || cohortYear <= b.lastCohort) && numerator >= b.minPoints * denominator,
@@ -64,13 +64,13 @@ export function classify(numerator: number, denominator: number, cohortYear: num
   return band?.classification ?? 'poor';
 }
 
+const CREDITS_PER_YEAR = 38;
+const YEAR_LEVELS = [1, 2, 3, 4] as const;
+
 /**
  * Điều 15.3: the year of study from the credits accumulated since the start of the course,
  * with 38 credits per year in the standard plan.
  */
-const CREDITS_PER_YEAR = 38;
-const YEAR_LEVELS = [1, 2, 3, 4] as const;
-
 export function yearLevel(accumulatedCredits: number): (typeof YEAR_LEVELS)[number] {
   return YEAR_LEVELS.find((level) => accumulatedCredits < level * CREDITS_PER_YEAR) ?? YEAR_LEVELS[YEAR_LEVELS.length - 1];
 }

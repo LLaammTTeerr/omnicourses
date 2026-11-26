@@ -107,7 +107,6 @@ function overflows(tallies: readonly Tally[]): { overflowIn: Map<string, number>
  * count toward its overflow target in the same curriculum. Only passed credits overflow, one hop
  * only, and overflow never makes the source group met.
  */
-
 export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): GroupCoverage[] {
   const tallies = rules.groups.map((g) => tally(g, records, placed));
   const { overflowIn, overflowOut } = overflows(tallies);

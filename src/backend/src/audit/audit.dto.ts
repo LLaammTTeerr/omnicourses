@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import {
+  AUDIT_UNAVAILABLE_CODES,
   AUDIT_WARNING_CODES,
   CONDITION_STATUSES,
   COURSE_STATUSES,
@@ -24,7 +25,6 @@ import {
 } from '../rules/types.js';
 import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
 import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
-import { AUDIT_UNAVAILABLE_CODES } from '../rules/rules.service.js';
 import { TermDto } from '../common/field-validators.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 

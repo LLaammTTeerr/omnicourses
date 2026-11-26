@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { CurriculumRulesReader } from '../curriculum/curriculum-rules.reader.js';
 import type { CurriculumService } from '../curriculum/curriculum.service.js';
@@ -126,14 +126,31 @@ describe('RulesService.issuesFor without a student', () => {
 describe('the rule engine library', () => {
   const PURE_IMPORTS = ['../common/collections.js', '../terms/term.js', '../transcript/transcript-entry.js'];
   const LOADERS = ['rules.module.ts', 'rules.service.ts'];
-  const runtimeImports = (path: string) => [...readFileSync(path, 'utf8').matchAll(/^import (?!type )[^;]*? from '([^']+)';/gms)].map((m) => m[1]!);
+  const LOADER_PATHS = LOADERS.map((f) => join(__dirname, f));
+  const runtimeImports = (path: string) =>
+    [...readFileSync(path, 'utf8').matchAll(/^(?:import|export) (?!type )[^;]*? from '([^']+)';|^import '([^']+)';/gms)].map((m) => (m[1] ?? m[2])!);
+  const sourcePath = (from: string, source: string) => resolve(dirname(from), source.replace(/\.js$/, '.ts'));
 
   it('imports no framework, database or HTTP code at run time', () => {
     const files = readdirSync(__dirname).filter((f) => f.endsWith('.ts') && !f.endsWith('.spec.ts') && !LOADERS.includes(f));
     expect(files.length).toBeGreaterThan(0);
     for (const f of files) {
-      for (const source of runtimeImports(join(__dirname, f))) expect(source.startsWith('./') || PURE_IMPORTS.includes(source), `${f} imports ${source}`).toBe(true);
+      for (const source of runtimeImports(join(__dirname, f))) {
+        const inEngine = source.startsWith('./') && !LOADER_PATHS.includes(sourcePath(join(__dirname, f), source));
+        expect(inEngine || PURE_IMPORTS.includes(source), `${f} imports ${source}`).toBe(true);
+      }
     }
-    for (const source of PURE_IMPORTS) expect(runtimeImports(join(__dirname, source.replace('.js', '.ts'))).filter((s) => !s.startsWith('./')), source).toEqual([]);
+    const seen = new Set<string>();
+    const pending = PURE_IMPORTS.map((source) => sourcePath(join(__dirname, 'index.ts'), source));
+    while (pending.length) {
+      const path = pending.pop()!;
+      if (seen.has(path)) continue;
+      seen.add(path);
+      for (const source of runtimeImports(path)) {
+        const next = sourcePath(path, source);
+        expect(source.startsWith('.') && !LOADER_PATHS.includes(next), `${path} imports ${source}`).toBe(true);
+        pending.push(next);
+      }
+    }
   });
 });

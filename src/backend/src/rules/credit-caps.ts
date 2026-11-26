@@ -6,13 +6,13 @@ import { CITATIONS } from './types.js';
 export const TERM_KINDS = ['main', 'summer'] as const;
 export type TermKind = (typeof TERM_KINDS)[number];
 
+const STANDARD_SUMMER_TERM_NUMBER = 3;
+
 /**
  * Điều 6.4: a đại trà (standard) program has two main terms and may add a summer term, numbered 3
  * (ADR 0009); Tiên tiến, Liên kết and Chất lượng cao programs have three main terms. Null when the
  * program's training type is not recorded.
  */
-const STANDARD_SUMMER_TERM_NUMBER = 3;
-
 export function termKind(trainingType: TrainingType | null, number: Term['number']): TermKind | null {
   if (trainingType === null) return null;
   return trainingType === 'standard' && number === STANDARD_SUMMER_TERM_NUMBER ? 'summer' : 'main';
@@ -24,14 +24,14 @@ export interface CreditCaps {
   max: number;
 }
 
-/**
- * Điều 7.2.a–b, ADR 0012: Tiên tiến, Liên kết and Chất lượng cao take 10–22 credits in every term;
- * đại trà 14–25 in a main term and at most 12 in a summer term, with no minimum in summer.
- */
 const THREE_MAIN_TERM_CAPS: CreditCaps = { min: 10, max: 22 };
 const STANDARD_MAIN_TERM_CAPS: CreditCaps = { min: 14, max: 25 };
 const STANDARD_SUMMER_TERM_CAPS: CreditCaps = { min: null, max: 12 };
 
+/**
+ * Điều 7.2.a–b, ADR 0012: Tiên tiến, Liên kết and Chất lượng cao take 10–22 credits in every term;
+ * đại trà 14–25 in a main term and at most 12 in a summer term, with no minimum in summer.
+ */
 export function creditCaps(trainingType: TrainingType, kind: TermKind): CreditCaps {
   if (trainingType !== 'standard') return { ...THREE_MAIN_TERM_CAPS };
   return kind === 'main' ? { ...STANDARD_MAIN_TERM_CAPS } : { ...STANDARD_SUMMER_TERM_CAPS };
