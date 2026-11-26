@@ -27,6 +27,8 @@ export function currentTerm(vietnamDay: string): Term {
   throw new RangeError(`Not a date: ${vietnamDay}`);
 }
 
+export const academicYearStart = (year: number): string => `${year}-${String(TERM_1_FIRST_MONTH).padStart(2, '0')}-01`;
+
 export const sameTerm = (a: Term | null, b: Term | null): boolean => a !== null && b !== null && a.year === b.year && a.number === b.number;
 
 export function goalTerms(now: Date = new Date()): Term[] {

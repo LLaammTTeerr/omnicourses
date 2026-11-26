@@ -14,11 +14,9 @@ interface CalendarMessages {
   now: string;
   weekNumber: (n: number) => string;
   weekdays: readonly string[];
-  /** "20/7" or "20 Jul". */
+  spokenWeekdays: readonly string[];
   day: (iso: string) => string;
-  /** "T2, 20/07/2026" or "Mon, 20 Jul 2026". */
   longDay: (iso: string) => string;
-  /** The day as a screen reader should say it: the weekday in words, never "T6". */
   spokenDay: (iso: string) => string;
   monthName: (iso: string) => string;
   monthShort: (iso: string) => string;
@@ -36,7 +34,6 @@ interface CalendarMessages {
   noProgram: string;
   finishOnboarding: string;
   more: (n: number) => string;
-  /** The spoken name of "+N": how many more dates, on which day, and that it opens the week. */
   moreLabel: (n: number, iso: string) => string;
   close: string;
   when: string;
@@ -56,6 +53,7 @@ const parts = (iso: string) => iso.split('-') as [string, string, string];
 const EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const VI_WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const VI_SPOKEN_WEEKDAYS = ['thứ Hai', 'thứ Ba', 'thứ Tư', 'thứ Năm', 'thứ Sáu', 'thứ Bảy', 'Chủ nhật'];
+const EN_SPOKEN_WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const EN_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const dow = (iso: string) => (new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7;
 const viLongDay = (iso: string) => `${VI_WEEKDAYS[dow(iso)]}, ${pad(parts(iso)[2])}/${pad(parts(iso)[1])}/${parts(iso)[0]}`;
@@ -76,6 +74,7 @@ export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
     now: 'nay',
     weekNumber: (n) => `Tuần ${n}`,
     weekdays: VI_WEEKDAYS,
+    spokenWeekdays: VI_SPOKEN_WEEKDAYS,
     day: (iso) => `${Number(parts(iso)[2])}/${Number(parts(iso)[1])}`,
     longDay: viLongDay,
     spokenDay: viSpokenDay,
@@ -129,6 +128,7 @@ export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
     now: 'now',
     weekNumber: (n) => `Week ${n}`,
     weekdays: EN_WEEKDAYS,
+    spokenWeekdays: EN_SPOKEN_WEEKDAYS,
     day: (iso) => `${Number(parts(iso)[2])} ${EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3)}`,
     longDay: enLongDay,
     spokenDay: enLongDay,

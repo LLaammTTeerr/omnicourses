@@ -1,7 +1,5 @@
 import type { AcademicCalendar, CalendarEvent } from '../api.js';
 
-// Synthetic school dates (no real announcement): academic year 2026, term 1 starting Monday 7 September.
-
 const base: Omit<CalendarEvent, 'id' | 'kind' | 'startsOn' | 'endsOn' | 'title'> = {
   academicYear: 2026,
   term: 1,

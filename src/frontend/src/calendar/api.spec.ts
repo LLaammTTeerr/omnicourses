@@ -3,10 +3,7 @@ import contract from '../../../backend/openapi.json';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
 import { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarProgram } from './api.js';
 
-// The school-dates API arrives with PR 108; until it is in the committed contract there is nothing to check against.
-const inContract = Object.hasOwn(contract.components.schemas, 'AcademicCalendarDto');
-
-describe.skipIf(!inContract)('academic calendar types against the contract (ADR 0017)', () => {
+describe('academic calendar types against the contract (ADR 0017)', () => {
   it.each([
     ['AcademicCalendarDto', { program: 'required', events: 'required' } satisfies Shape<AcademicCalendar>],
     ['CalendarProgramDto', { id: 'required', code: 'required', nameVi: 'required', nameEn: 'required' } satisfies Shape<CalendarProgram>],

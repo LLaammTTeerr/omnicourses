@@ -2,32 +2,44 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
 import ExternalLink from '../components/ExternalLink.vue';
 import { useLocale, useMessages, LANGUAGES } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { termName, vietnamDate } from '../terms.js';
 import { fetchAcademicCalendar, type CalendarEvent, type CalendarEventKind } from './api.js';
-import { academicYearMonths, academicYearOf, addDays, eventsByDay, monthDays, monthStart, monthWeeks, mondayOf, sameMonth, termWeek, weekday } from './dates.js';
+import {
+  academicYearMonths,
+  academicYearOf,
+  addDays,
+  DAYS_IN_WEEK,
+  dayOfMonth,
+  daysFromTo,
+  eventsByDay,
+  isWeekend,
+  monthDays,
+  monthStart,
+  monthWeeks,
+  mondayOf,
+  sameMonth,
+  sundayOf,
+  termWeek,
+  thursdayOf,
+  weekDays as daysOfWeek,
+} from './dates.js';
 import { CALENDAR_MESSAGES } from './messages.js';
 
-// F10 school dates (ADR 0017) on the calendar prototype's week and month views. The dates are loaded once per visit;
-// moving between weeks and months asks the API nothing. The prototype's own timetable, deadlines and notes need
-// per-student data that does not exist yet, so this page shows only what the program administrator entered.
-const auth = useAuth();
+const UPCOMING_SHOWN = 8;
+const EVENTS_SHOWN_PER_MONTH_DAY = 3;
+
 const locale = useLocale();
 const m = useMessages(CALENDAR_MESSAGES);
 
-// Any failure, a 404 included (the request names no program, so a 404 is a broken route), says loading failed.
-const { status, data, reload } = useAsyncLoad('the academic calendar', () => auth.authed(fetchAcademicCalendar));
+const { status, data, reload } = useAsyncLoad('the academic calendar', fetchAcademicCalendar);
 const events = computed(() => data.value?.events ?? []);
 const program = computed(() => data.value?.program ?? null);
 
-// ---------- Where the calendar is ----------
 const today = vietnamDate(new Date());
-// The week view shows all seven days, so it opens on the week holding today, weekends included. (The prototype's
-// Monday-to-Friday week jumped to the coming week on a weekend, which here would hide today.)
 const homeWeek = mondayOf(today);
 const homeMonth = monthStart(today);
 const mode = ref<'week' | 'month'>('week');
@@ -35,31 +47,33 @@ const week = ref(homeWeek);
 const month = ref(homeMonth);
 const selectedId = ref<string | null>(null);
 
-const weekDays = computed(() => Array.from({ length: 7 }, (_, i) => addDays(week.value, i)));
+const weekDays = computed(() => daysOfWeek(week.value));
 const days = computed(() => (mode.value === 'week' ? weekDays.value : monthDays(month.value)));
 const byDay = computed(() => eventsByDay(events.value, days.value[0]!, days.value.at(-1)!));
 const on = (day: string) => byDay.value.get(day) ?? [];
+const shownOn = (day: string) => on(day).slice(0, EVENTS_SHOWN_PER_MONTH_DAY);
+const hiddenOn = (day: string) => Math.max(0, on(day).length - EVENTS_SHOWN_PER_MONTH_DAY);
 
-/** The term week of the week starting on `monday`, from the first of its days in a term (a term may start mid-week). */
 function weekOfTerm(monday: string) {
-  for (let i = 0; i < 7; i++) {
-    const found = termWeek(addDays(monday, i), events.value);
+  for (const day of daysOfWeek(monday)) {
+    const found = termWeek(day, events.value);
     if (found) return found;
   }
   return null;
 }
 const shownTermWeek = computed(() => weekOfTerm(week.value));
 
-const rangeLabel = computed(() => (mode.value === 'week' ? `${m.value.day(week.value)} – ${m.value.day(addDays(week.value, 6))}` : m.value.monthName(month.value)));
+const weekRange = (monday: string) => `${m.value.day(monday)} – ${m.value.day(sundayOf(monday))}`;
+const rangeLabel = computed(() => (mode.value === 'week' ? weekRange(week.value) : m.value.monthName(month.value)));
 const subtitle = computed(() => {
   const found = mode.value === 'week' ? shownTermWeek.value : null;
   if (found) return `${termName(found.term, locale.lang)} · ${m.value.weekNumber(found.week)}`;
-  return m.value.academicYear(academicYearOf(mode.value === 'week' ? addDays(week.value, 3) : month.value));
+  return m.value.academicYear(academicYearOf(mode.value === 'week' ? thursdayOf(week.value) : month.value));
 });
 const atHome = computed(() => (mode.value === 'week' ? week.value === homeWeek : month.value === homeMonth));
 
 function go(n: number): void {
-  if (mode.value === 'week') week.value = addDays(week.value, 7 * n);
+  if (mode.value === 'week') week.value = addDays(week.value, DAYS_IN_WEEK * n);
   else month.value = monthStart(month.value, n);
   void nextTick(showToday);
 }
@@ -68,26 +82,24 @@ function goHome(): void {
   month.value = homeMonth;
   void nextTick(showToday);
 }
+const homeWeekIn = (first: string) => sameMonth(homeWeek, first) || sameMonth(sundayOf(homeWeek), first);
 function setMode(next: 'week' | 'month'): void {
-  // The month that holds most of the shown week, and back to that month's first week or the current one.
-  if (next === 'month' && mode.value === 'week') month.value = monthStart(addDays(week.value, 3));
-  if (next === 'week' && mode.value === 'month') week.value = sameMonth(homeWeek, month.value) || sameMonth(addDays(homeWeek, 6), month.value) ? homeWeek : monthWeeks(month.value)[0]!;
+  if (next === 'month' && mode.value === 'week') month.value = monthStart(thursdayOf(week.value));
+  if (next === 'week' && mode.value === 'month') week.value = homeWeekIn(month.value) ? homeWeek : monthWeeks(month.value)[0]!;
   mode.value = next;
   void nextTick(showToday);
 }
-// On a phone the grid is wider than the screen and scrolls sideways: bring today's column into view when the dates
-// arrive and whenever Today, Previous, Next or a view switch lands on it, so a Sunday is not off to the right.
-// A week or month without today starts from its first column.
+
 const scroller = ref<HTMLElement | null>(null);
+function centre(box: HTMLElement, cell: HTMLElement): void {
+  box.scrollLeft += cell.getBoundingClientRect().left - box.getBoundingClientRect().left - (box.clientWidth - cell.offsetWidth) / 2;
+}
 function showToday(): void {
   const box = scroller.value;
-  const cell = box?.querySelector<HTMLElement>(`[data-day="${today}"]`);
   if (!box || box.scrollWidth <= box.clientWidth) return;
-  if (!cell) {
-    box.scrollLeft = 0;
-    return;
-  }
-  box.scrollLeft += cell.getBoundingClientRect().left - box.getBoundingClientRect().left - (box.clientWidth - cell.offsetWidth) / 2;
+  const cell = box.querySelector<HTMLElement>(`[data-day="${today}"]`);
+  if (cell) centre(box, cell);
+  else box.scrollLeft = 0;
 }
 watch(status, (now) => now === 'loaded' && showToday(), { flush: 'post' });
 
@@ -96,28 +108,21 @@ function openWeek(day: string): void {
   mode.value = 'week';
 }
 
-// ---------- Week or month picker ----------
 const pickerOpen = ref(false);
 const pickWrap = ref<HTMLElement | null>(null);
+function weekItem(monday: string) {
+  const found = weekOfTerm(monday);
+  return {
+    key: monday,
+    label: found ? m.value.weekNumber(found.week) : m.value.day(monday),
+    range: weekRange(monday),
+    selected: monday === week.value,
+    now: monday === homeWeek,
+  };
+}
+const monthItem = (first: string) => ({ key: first, label: m.value.monthName(first), range: '', selected: first === month.value, now: first === homeMonth });
 const pickerItems = computed(() =>
-  mode.value === 'week'
-    ? monthWeeks(monthStart(addDays(week.value, 3))).map((monday) => {
-        const found = weekOfTerm(monday);
-        return {
-          key: monday,
-          label: found ? m.value.weekNumber(found.week) : m.value.day(monday),
-          range: `${m.value.day(monday)} – ${m.value.day(addDays(monday, 6))}`,
-          selected: monday === week.value,
-          now: monday === mondayOf(today),
-        };
-      })
-    : academicYearMonths(academicYearOf(month.value)).map((first) => ({
-        key: first,
-        label: m.value.monthName(first),
-        range: '',
-        selected: first === month.value,
-        now: first === homeMonth,
-      })),
+  mode.value === 'week' ? monthWeeks(monthStart(thursdayOf(week.value))).map(weekItem) : academicYearMonths(academicYearOf(month.value)).map(monthItem),
 );
 function pick(key: string): void {
   if (mode.value === 'week') week.value = key;
@@ -125,7 +130,6 @@ function pick(key: string): void {
   pickerOpen.value = false;
 }
 
-// ---------- Events ----------
 const KIND_GROUP: Record<CalendarEventKind, string> = {
   term_start: 'g-core',
   term_end: 'g-core',
@@ -137,26 +141,24 @@ const KIND_GROUP: Record<CalendarEventKind, string> = {
 };
 const titleOf = (e: CalendarEvent) => (locale.lang === 'en' && e.titleEn ? e.titleEn : e.title);
 const otherTitle = (e: CalendarEvent) => (locale.lang === 'en' ? (e.titleEn ? e.title : null) : e.titleEn);
-const spanOf = (e: CalendarEvent) => (e.startsOn === e.endsOn ? m.value.day(e.startsOn) : `${m.value.day(e.startsOn)} – ${m.value.day(e.endsOn)}`);
-const dayCount = (e: CalendarEvent) => Math.round((Date.parse(e.endsOn) - Date.parse(e.startsOn)) / 86_400_000) + 1;
+const spanIn = (e: CalendarEvent, format: (iso: string) => string) => (e.startsOn === e.endsOn ? format(e.startsOn) : `${format(e.startsOn)} – ${format(e.endsOn)}`);
+const spanOf = (e: CalendarEvent) => spanIn(e, m.value.day);
 const termOf = (e: CalendarEvent) => (e.term === null ? m.value.wholeYear(e.academicYear) : m.value.term(e.term, e.academicYear));
-/** A day of the week view that continues an event started earlier in the same week: a short line, not the whole card. */
 const continues = (e: CalendarEvent, day: string) => day !== e.startsOn && day !== week.value;
+const ongoing = (e: CalendarEvent) => e.startsOn <= today && e.endsOn >= today;
+const firstDayShown = (e: CalendarEvent) => (e.startsOn < today ? today : e.startsOn);
 
-const upcoming = computed(() => events.value.filter((e) => e.endsOn >= today).slice(0, 8));
+const upcoming = computed(() => events.value.filter((e) => e.endsOn >= today).slice(0, UPCOMING_SHOWN));
 const selected = computed(() => events.value.find((e) => e.id === selectedId.value) ?? null);
 
+const inShownWeek = (e: CalendarEvent) => e.endsOn >= week.value && e.startsOn <= sundayOf(week.value);
 function select(e: CalendarEvent): void {
   selectedId.value = selectedId.value === e.id ? null : e.id;
-  if (!selectedId.value) return;
-  // Show the event in the week view when it is not in the week on screen.
-  const end = addDays(week.value, 6);
-  if (mode.value === 'week' && (e.endsOn < week.value || e.startsOn > end)) week.value = mondayOf(e.startsOn);
+  if (selectedId.value && mode.value === 'week' && !inShownWeek(e)) week.value = mondayOf(e.startsOn);
 }
 
 const updatedOn = (e: CalendarEvent) => new Intl.DateTimeFormat(LANGUAGES[locale.lang].tag, LANGUAGES[locale.lang].date).format(new Date(e.updatedAt));
 
-// ---------- Keys and outside clicks ----------
 function onKey(e: KeyboardEvent): void {
   if (e.key !== 'Escape') return;
   if (pickerOpen.value) pickerOpen.value = false;
@@ -232,9 +234,9 @@ usePageTitle(() => m.value.title);
         <div ref="scroller" class="cal-scroll">
           <div v-if="mode === 'week'" class="cal-week" data-test="week">
             <div v-for="(day, i) in weekDays" :key="day" class="cal-dh" :class="{ today: day === today }">
-              <span>{{ m.weekdays[i] }}</span><b>{{ Number(day.slice(8)) }}</b>
+              <span aria-hidden="true">{{ m.weekdays[i] }}</span><span class="sr-only">{{ m.spokenWeekdays[i] }}</span><b>{{ dayOfMonth(day) }}</b>
             </div>
-            <div v-for="day in weekDays" :key="`c${day}`" class="cal-cell" :class="{ today: day === today, weekend: weekday(day) >= 5 }" :data-day="day">
+            <div v-for="day in weekDays" :key="`c${day}`" class="cal-cell" :class="{ today: day === today, weekend: isWeekend(day) }" :data-day="day">
               <button
                 v-for="e in on(day)"
                 :key="e.id"
@@ -257,11 +259,11 @@ usePageTitle(() => m.value.title);
           </div>
 
           <div v-else class="cal-month" data-test="month">
-            <div v-for="d in m.weekdays" :key="d" class="cal-mh">{{ d }}</div>
+            <div v-for="(d, i) in m.weekdays" :key="d" class="cal-mh"><span aria-hidden="true">{{ d }}</span><span class="sr-only">{{ m.spokenWeekdays[i] }}</span></div>
             <div v-for="day in days" :key="day" class="cal-md" :class="{ out: !sameMonth(day, month), today: day === today }" :data-day="day">
-              <button type="button" class="n" :aria-label="m.spokenDay(day)" @click="openWeek(day)">{{ Number(day.slice(8)) }}</button>
+              <button type="button" class="n" :aria-label="m.spokenDay(day)" @click="openWeek(day)">{{ dayOfMonth(day) }}</button>
               <button
-                v-for="e in on(day).slice(0, 3)"
+                v-for="e in shownOn(day)"
                 :key="e.id"
                 type="button"
                 class="cal-chip"
@@ -273,7 +275,7 @@ usePageTitle(() => m.value.title);
               >
                 <i></i>{{ titleOf(e) }}
               </button>
-              <button v-if="on(day).length > 3" type="button" class="more" :aria-label="m.moreLabel(on(day).length - 3, day)" @click="openWeek(day)">{{ m.more(on(day).length - 3) }}</button>
+              <button v-if="hiddenOn(day)" type="button" class="more" :aria-label="m.moreLabel(hiddenOn(day), day)" @click="openWeek(day)">{{ m.more(hiddenOn(day)) }}</button>
             </div>
           </div>
         </div>
@@ -296,8 +298,8 @@ usePageTitle(() => m.value.title);
               <span class="fi"><Icon name="calendar" /></span>
               <div>
                 <span class="fl">{{ m.when }}</span>
-                <b>{{ selected.startsOn === selected.endsOn ? m.longDay(selected.startsOn) : `${m.longDay(selected.startsOn)} – ${m.longDay(selected.endsOn)}` }}</b>
-                <small>{{ m.days(dayCount(selected)) }}<template v-if="selected.endsOn >= today && selected.startsOn <= today"> · {{ m.ongoing }}</template></small>
+                <b><span aria-hidden="true">{{ spanIn(selected, m.longDay) }}</span><span class="sr-only">{{ spanIn(selected, m.spokenDay) }}</span></b>
+                <small>{{ m.days(daysFromTo(selected.startsOn, selected.endsOn)) }}<template v-if="ongoing(selected)"> · {{ m.ongoing }}</template></small>
               </div>
             </div>
             <div class="fact">
@@ -340,7 +342,7 @@ usePageTitle(() => m.value.title);
               data-test="upcoming-item"
               @click="select(e)"
             >
-              <span class="d"><b>{{ Number((e.startsOn < today ? today : e.startsOn).slice(8)) }}</b><small>{{ m.monthShort(e.startsOn < today ? today : e.startsOn) }}</small></span>
+              <span class="d"><b>{{ dayOfMonth(firstDayShown(e)) }}</b><small>{{ m.monthShort(firstDayShown(e)) }}</small></span>
               <span class="t">
                 <b>{{ titleOf(e) }}</b>
                 <small><template v-if="e.startsOn <= today">{{ m.ongoing }} · </template>{{ m.kinds[e.kind] }} · {{ spanOf(e) }}</small>
@@ -354,7 +356,6 @@ usePageTitle(() => m.value.title);
 </template>
 
 <style>
-/* The calendar prototype (ui-prototypes/calendar.html), with all-day school dates in place of class periods. */
 .cal-page { max-width: 1440px; }
 .cal-page .page-head { align-items: center; }
 .cal-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
@@ -379,7 +380,7 @@ usePageTitle(() => m.value.title);
 .cal-picker span { font-variant-numeric: tabular-nums; }
 .cal-picker em { font-style: normal; font-size: 11.5px; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--info); color: #fff; }
 .cal-nav { display: flex; align-items: center; gap: 4px; }
-.cal-scroll { overflow-x: auto; }
+.cal-scroll { position: relative; overflow-x: auto; }
 
 .cal-week { display: grid; grid-template-columns: repeat(7, minmax(88px, 1fr)); gap: 8px; min-width: 660px; }
 .cal-dh { display: flex; align-items: center; gap: 8px; padding: 4px 4px 6px; font-size: 13.5px; color: var(--ink-2); }
@@ -399,7 +400,6 @@ usePageTitle(() => m.value.title);
 .cal-ev .code i, .cal-ev.cont i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; }
 .cal-ev .code span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .cal-ev .code em { margin-left: auto; font: 650 10.5px var(--mono); font-style: normal; padding: 1px 6px; border-radius: 5px; background: color-mix(in oklab, var(--c) 22%, var(--surface)); color: var(--c-ink); white-space: nowrap; }
-/* A long title takes three lines at most; the whole title is on hover and in the detail card. */
 .cal-ev b {
   font-size: 13.5px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;
@@ -409,7 +409,6 @@ usePageTitle(() => m.value.title);
 .cal-ev.cont span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .cal-ev.exam { border-style: dashed; }
 
-/* Chips shorten with an ellipsis, so the month fits a content area from 480px; narrower (a phone), it scrolls in its card. */
 .cal-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; min-width: 480px; }
 .cal-mh { font-size: 13px; font-weight: 650; color: var(--ink-3); padding: 2px 6px 4px; }
 .cal-md { min-height: 108px; border-radius: 12px; background: var(--surface-2); padding: 6px; display: grid; align-content: start; gap: 3px; min-width: 0; }
