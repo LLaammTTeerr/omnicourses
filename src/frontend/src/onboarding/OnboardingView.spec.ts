@@ -8,6 +8,7 @@ import { setup } from '../testing/signed-in.js';
 import { NOT_STARTED, type Onboarding } from './api.js';
 import { onboarding } from './testing/fixtures.js';
 import { chooseOption } from '../testing/select.js';
+import { GOAL_MESSAGES, ONBOARDING_MESSAGES } from './messages.js';
 
 const PROGRAMS: Program[] = [
   { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: 'Advanced Program (test)', faculty: null, trainingType: 'advanced', cohortYears: [2023, 2024, 2025] },
@@ -52,7 +53,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
   it('offers only the programs of this release, and says why another cannot be picked (A7)', async () => {
     const { w } = await render();
     expect(eyebrow(w)).toBe('Câu 1 / 4 · Chương trình');
-    expect(w.get('h1').text()).toBe('Bạn đang học chương trình nào?');
+    expect(w.get('h1').text()).toBe(ONBOARDING_MESSAGES.vi.programQuestion);
     const apcs = w.get('[data-test="program-APCS"]');
     expect(apcs.text()).toContain('Chương trình Tiên tiến thử');
     expect(apcs.attributes('disabled')).toBeUndefined();
@@ -62,7 +63,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     expect(other.text()).toContain('Chương trình thử chưa hỗ trợ · ZZCLC');
 
     await next(w);
-    expect(w.get('[role="alert"]').text()).toBe('Hãy chọn một chương trình.');
+    expect(w.get('[role="alert"]').text()).toBe(ONBOARDING_MESSAGES.vi.pickProgram);
     expect(eyebrow(w)).toBe('Câu 1 / 4 · Chương trình');
   });
 
@@ -97,7 +98,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
       finished: true,
     });
     expect(router.currentRoute.value.fullPath).toBe('/transcript');
-    expect(useToast().message).toBe('Đã lưu. Bạn có thể đổi các câu trả lời này trong Cài đặt.');
+    expect(useToast().message).toBe(ONBOARDING_MESSAGES.vi.finished);
   }, 15_000);
 
   it('resumes at the first unanswered step (A8)', async () => {
@@ -109,7 +110,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     const { w, fetch } = await render(onboarding({ finished: false, creditsPerTerm: null }));
     await next(w);
     await w.get('#onboarding-credits').setValue('0');
-    expect(w.get('[data-test="credits-error"]').text()).toBe('Nhập một số nguyên từ 1 trở lên.');
+    expect(w.get('[data-test="credits-error"]').text()).toBe(GOAL_MESSAGES.vi.creditsProblems.whole);
     expect(w.get('#onboarding-credits').attributes('aria-invalid')).toBe('true');
     const before = puts(fetch).length;
     await next(w);

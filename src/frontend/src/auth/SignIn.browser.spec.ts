@@ -11,6 +11,7 @@ import { HEALTHY } from '../testing/health.js';
 import { HOME_SIGNED_IN } from './redirect.js';
 import { SESSION_STORAGE_KEY } from './store.js';
 import { authResult } from './testing/fixtures.js';
+import { AUTH_MESSAGES } from './messages.js';
 
 const EMAIL = 'zz-student@example.com';
 const PASSWORD = 'zz-password-1';
@@ -76,7 +77,7 @@ describe('signing in (UC-01)', () => {
     await signIn(EMAIL, 'zz-wrong-password');
 
     const alert = page.getByRole('alert');
-    await expect.element(alert).toHaveTextContent('Email hoặc mật khẩu không đúng.');
+    await expect.element(alert).toHaveTextContent(AUTH_MESSAGES.vi.wrongCredentials);
     expect(router.currentRoute.value.name).toBe('sign-in');
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
     await expect.element(page.getByLabelText('Email')).toHaveValue(EMAIL);

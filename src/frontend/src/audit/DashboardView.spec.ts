@@ -7,6 +7,7 @@ import { setup } from '../testing/signed-in.js';
 import type { DegreeAudit } from './api.js';
 import DashboardView from './DashboardView.vue';
 import { COMBINED, degreeAudit, emptyAudit, GROUP_A } from './testing/fixtures.js';
+import { AUDIT_MESSAGES } from './messages.js';
 
 let wrapper: VueWrapper | undefined;
 
@@ -35,7 +36,7 @@ describe('DashboardView (F3, UC-03)', () => {
     const { w, fetch } = await render();
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(text(w, 'who')).toBe('APCS2024 · sinh viên năm 1');
-    expect(text(w, 'graduation')).toContain('Chưa đủ điều kiện tốt nghiệp');
+    expect(text(w, 'graduation')).toContain(AUDIT_MESSAGES.vi.graduationNotYet);
     expect(text(w, 'graduation')).toContain('Còn 3 điều kiện chưa đạt.');
     expect(text(w, 'credits')).toContain('8 / 20 TC');
     expect(text(w, 'credits')).toContain('còn 12 TC');
@@ -100,7 +101,7 @@ describe('DashboardView (F3, UC-03)', () => {
   it('with no transcript, says the figures assume nothing is passed and points to the upload', async () => {
     const { w } = await render(emptyAudit());
     const note = w.get('[data-test="no-transcript"]');
-    expect(note.text()).toContain('Chưa có bảng điểm.');
+    expect(note.text()).toContain(AUDIT_MESSAGES.vi.noTranscriptTitle);
     expect(note.get('a').attributes('href')).toBe('/transcript');
     expect(text(w, 'credits')).toContain('0 / 20 TC');
     expect(text(w, 'gpa')).toContain('Chưa có');
@@ -111,9 +112,9 @@ describe('DashboardView (F3, UC-03)', () => {
     const base = degreeAudit();
     const done: DegreeAudit = degreeAudit({ graduation: { ...base.graduation, status: 'done', unmet: [] } });
     const { w } = await render(done);
-    expect(text(w, 'graduation')).toContain('Đạt mọi điều kiện kiểm tra được');
+    expect(text(w, 'graduation')).toContain(AUDIT_MESSAGES.vi.graduationDone);
     expect(text(w, 'graduation')).toContain('Còn 2 điều kiện OmniCourse không kiểm tra được');
-    expect(text(w, 'unmet')).toContain('Không còn điều kiện nào chưa đạt.');
+    expect(text(w, 'unmet')).toContain(AUDIT_MESSAGES.vi.attentionNone);
   });
 
   it('gives each figure PERF-01 times its own selector, and marks the load as busy', async () => {
@@ -124,13 +125,13 @@ describe('DashboardView (F3, UC-03)', () => {
     await flushPromises();
     const w = wrapper;
     expect(w.find('[aria-busy="true"]').exists()).toBe(false);
-    expect(text(w, 'graduation-status')).toBe('Chưa đủ điều kiện tốt nghiệp');
+    expect(text(w, 'graduation-status')).toBe(AUDIT_MESSAGES.vi.graduationNotYet);
     expect(text(w, 'credits-toward-total')).toBe('8 / 20 TC');
     expect(text(w, 'credits-remaining')).toBe('còn 12 TC');
     expect(text(w, 'credits-in-progress')).toBe('4 TC đang học');
     expect(text(w, 'credits-accumulated')).toBe('9 TC tích lũy');
     expect(text(w, 'gpa-accumulated-average')).toBe('8');
-    expect(text(w, 'gpa-classification')).toBe('Giỏi');
+    expect(text(w, 'gpa-classification')).toBe(AUDIT_MESSAGES.vi.classifications.very_good);
     expect(text(w, 'gpa-average')).toBe('7,75');
     const groups = w.findAll('[data-test="group"]');
     expect(groups.length).toBeGreaterThan(0);
@@ -182,7 +183,7 @@ describe('DashboardView (F3, UC-03)', () => {
   it('shows an error with a retry when the audit cannot be loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w, fetch } = await render(status(500));
-    expect(w.get('[role="alert"]').text()).toContain('Chưa tải được kết quả xét tốt nghiệp.');
+    expect(w.get('[role="alert"]').text()).toContain(AUDIT_MESSAGES.vi.loadFailed);
     fetch.mockImplementation(async () => Response.json(degreeAudit()));
     await w.get('[role="alert"] button').trigger('click');
     await flushPromises();

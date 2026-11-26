@@ -7,6 +7,7 @@ import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import type { TranscriptRow } from './api.js';
 import { chooseOption } from '../testing/select.js';
+import { TRANSCRIPT_MESSAGES } from './messages.js';
 
 const SAVED: TranscriptRow[] = [
   { courseCode: 'ZZ101', courseName: 'Môn thử một', credits: 4, result: 'graded', grade: 8.5, term: { year: 2024, number: 1 } },
@@ -45,8 +46,8 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(w.findAll('tbody tr')).toHaveLength(2);
     expect((row(w, 0).get('input.code-input').element as HTMLInputElement).value).toBe('ZZ101');
     expect((row(w, 0).get('input[inputmode="decimal"]').element as HTMLInputElement).value).toBe('8.5');
-    expect(row(w, 1).text()).toContain('Không có điểm');
-    expect(row(w, 0).get('[data-test="check"]').text()).toBe('Hợp lệ');
+    expect(row(w, 1).text()).toContain(TRANSCRIPT_MESSAGES.vi.noGrade);
+    expect(row(w, 0).get('[data-test="check"]').text()).toBe(TRANSCRIPT_MESSAGES.vi.ok);
     expect(summary(w)).toBe('2 dòng · chưa có thay đổi');
     expect(saveButton(w).attributes('disabled')).toBeDefined();
   });
@@ -57,7 +58,7 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(name.attributes('maxlength')).toBeUndefined();
     await name.setValue('😀'.repeat(255));
     await flushPromises();
-    expect(row(w, 0).get('[data-test="check"]').text()).toBe('Hợp lệ');
+    expect(row(w, 0).get('[data-test="check"]').text()).toBe(TRANSCRIPT_MESSAGES.vi.ok);
   });
 
   it('blocks the save on an incomplete row and says what to fix in words (A2)', async () => {
@@ -67,7 +68,7 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(document.activeElement).toBe(row(w, 2).get('input.code-input').element);
     expect(summary(w)).toBe('3 dòng · 1 dòng cần sửa');
     expect(row(w, 2).classes()).toContain('err');
-    expect(row(w, 2).get('[data-test="check"]').text()).toBe('Cần sửa');
+    expect(row(w, 2).get('[data-test="check"]').text()).toBe(TRANSCRIPT_MESSAGES.vi.needsFixShort);
     expect(w.get('[data-test="problems-2"]').text()).toBe('Cần sửa: mã môn (2–20 chữ hoặc số), tên môn (tối đa 255 ký tự), số TC (0–30), kết quả');
     const code = row(w, 2).get('input.code-input');
     expect(code.attributes('aria-invalid')).toBe('true');
@@ -134,7 +135,7 @@ describe('TranscriptView (F2, UC-02)', () => {
     await row(w, 0).findAll('input')[1]!.setValue('Môn thử một (sửa)');
     await saveButton(w).trigger('click');
     await flushPromises();
-    expect(w.get('[data-test="save-error"]').text()).toBe('Máy chủ từ chối một dòng chưa hợp lệ. Chưa lưu gì; hãy kiểm tra lại bảng.');
+    expect(w.get('[data-test="save-error"]').text()).toBe(TRANSCRIPT_MESSAGES.vi.saveRefused);
     expect(w.findAll('tbody tr')).toHaveLength(2);
   });
 
@@ -150,13 +151,13 @@ describe('TranscriptView (F2, UC-02)', () => {
 
   it('starts empty with a way to add the first row', async () => {
     const { w } = await render({ 'GET /users/me/transcript': { rows: [] } });
-    expect(w.text()).toContain('Chưa có môn nào. Thêm dòng đầu tiên để bắt đầu.');
+    expect(w.text()).toContain(TRANSCRIPT_MESSAGES.vi.empty);
     expect(summary(w)).toBe('0 dòng · chưa có thay đổi');
   });
 
   it('says plainly that no PDF reader exists yet, so rows are entered by hand', async () => {
     const { w } = await render();
-    expect(w.text()).toContain('Chưa đọc được file PDF.');
+    expect(w.text()).toContain(TRANSCRIPT_MESSAGES.vi.pdfTitle);
     expect(w.find('input[type="file"]').exists()).toBe(false);
   });
 

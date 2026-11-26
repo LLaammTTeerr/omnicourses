@@ -6,6 +6,7 @@ import { createOmniCourseApp } from '../app.js';
 import { createAppRouter } from '../router.js';
 import { THEME_STORAGE_KEY } from '../shell/theme.js';
 import { HEALTHY } from '../testing/health.js';
+import { PRIVACY_MESSAGES } from './messages.js';
 
 let app: VueApp | undefined;
 let host: HTMLDivElement | undefined;
@@ -34,7 +35,7 @@ describe('privacy notice in a real browser (A11Y-01c)', () => {
     document.body.append(host);
     app = createOmniCourseApp(router);
     app.mount(host);
-    await expect.poll(() => document.querySelector('h1')?.textContent).toBe('Quyền riêng tư');
+    await expect.poll(() => document.querySelector('h1')?.textContent).toBe(PRIVACY_MESSAGES.vi.title);
     expect(document.documentElement.dataset.theme).toBe(theme);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   });

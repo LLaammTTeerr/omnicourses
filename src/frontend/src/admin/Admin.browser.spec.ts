@@ -4,6 +4,8 @@ import type { App as VueApp } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createOmniCourseApp } from '../app.js';
 import { SESSION_STORAGE_KEY } from '../auth/store.js';
+import { LANG_STORAGE_KEY } from '../locale.js';
+import { THEME_STORAGE_KEY } from '../shell/theme.js';
 import { authResult } from '../auth/testing/fixtures.js';
 import { createAppRouter } from '../router.js';
 import { mockApi } from '../testing/fetch.js';
@@ -66,9 +68,9 @@ describe('the administration screens at a phone width and on a desktop', () => {
     for (const [theme, lang] of [
       ['light', 'vi'],
       ['dark', 'en'],
-    ]) {
-      localStorage.setItem('omnicourse.theme', theme!);
-      localStorage.setItem('omnicourse.lang', lang!);
+    ] as const) {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
       const fits = (what: string) => expect(document.documentElement.scrollWidth, `${what} at ${width} px (${theme}, ${lang})`).toBeLessThanOrEqual(window.innerWidth);
 
       await open('/admin/curriculum');
@@ -143,8 +145,9 @@ describe('the groups table with long printed rules', () => {
     [1280, 'en', 130],
   ] as const)('keeps a row compact at %i px in %s, with its actions on screen and the whole rule one key press away', async (width, lang, tallest) => {
     await page.viewport(width, 844);
-    localStorage.setItem('omnicourse.lang', lang);
+    localStorage.setItem(LANG_STORAGE_KEY, lang);
     await open('/admin/curriculum', { 'GET /programs/ZZPROG/curricula/2024': NINE });
+    expect(document.documentElement.lang).toBe(lang);
     await expect.poll(() => document.querySelectorAll('[data-test="group-row"]').length).toBe(9);
     const rows = [...document.querySelectorAll('[data-test="group-row"]')];
     const notes = [...document.querySelectorAll('[data-test="group-note-row"]')];
@@ -310,8 +313,8 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
 
   it.each([360, 1280])('fit inside the screen at %i px, in Vietnamese and in English', async (width) => {
     await page.viewport(width, 800);
-    for (const lang of ['vi', 'en']) {
-      localStorage.setItem('omnicourse.lang', lang);
+    for (const lang of ['vi', 'en'] as const) {
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
       const fits = (what: string) => expect(document.documentElement.scrollWidth, `${what} at ${width} px (${lang})`).toBeLessThanOrEqual(window.innerWidth);
 
       await open('/admin/import?type=catalog_courses', routes);
@@ -374,10 +377,11 @@ describe('the CSV import screen and the program and cohort dialogs (UC-11 A1, A2
         { record: 3, action: 'no_op', requirementGroupName: LONG, requirementGroupId: GROUP_BASE_ID, courseCode: 'ZZ101' },
       ],
     };
-    for (const lang of ['vi', 'en']) {
-      localStorage.setItem('omnicourse.lang', lang);
+    for (const lang of ['vi', 'en'] as const) {
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
       const fits = (what: string) => expect(document.documentElement.scrollWidth, `${what} (${lang})`).toBeLessThanOrEqual(window.innerWidth);
       await open(`/admin/import?type=group_links&program=${PROGRAM_ID}&cohort=${CURRICULUM_ID}`, { ...routes, [`POST ${LINKS}/preview`]: LINK_PREVIEW });
+      expect(document.documentElement.lang).toBe(lang);
       await expect.poll(() => q('import-cohort')).not.toBeNull();
       for (const picker of ['import-program', 'import-cohort']) inside(picker, q(picker)!);
       fits('the pickers');
