@@ -3,17 +3,19 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { RegulationDocument, RegulationOverride, RegulationSource } from './regulation.js';
 
-/** This folder in the source tree: the generated `<id>.json` and `<id>.md` live here, the inputs in `sources/`. */
-export const REGULATIONS_DIR = join(__dirname, '..', '..', '..', 'src', 'advisor', 'regulations');
-export const SOURCES_DIR = join(REGULATIONS_DIR, 'sources');
+export const advisorSourceDir = (folder: string): string => join(__dirname, '..', '..', '..', 'src', 'advisor', folder);
 
-export interface RegulationInputs {
+/** This folder in the source tree: the generated `<id>.json` and `<id>.md` live here, the inputs in `sources/`. */
+export const REGULATIONS_DIR = advisorSourceDir('regulations');
+const SOURCES_DIR = join(REGULATIONS_DIR, 'sources');
+
+interface RegulationInputs {
   source: RegulationSource;
   pdftotext: string;
   overrides: RegulationOverride[];
 }
 
-const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
+export const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
 
 export const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
 

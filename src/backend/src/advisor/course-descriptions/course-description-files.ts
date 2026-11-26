@@ -1,23 +1,19 @@
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { advisorSourceDir, readJson } from '../regulations/regulation-files.js';
 import type { CourseDescriptionDocument, CourseDescriptionSource } from './course-description.js';
 
 // Reads a course-description document and its inputs, and normalises the text
 // layer the way the extraction joined it.
 
-const readJson = <T>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
-
-export const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
-
-export interface CourseDescriptionInputs {
+interface CourseDescriptionInputs {
   document: CourseDescriptionDocument;
   source: CourseDescriptionSource;
   pdftotext: string;
 }
 
 /** Reads `<id>.json`, `sources/<id>.source.json` and `sources/<id>.pdftotext.txt`. */
-export function readCourseDescriptions(id: string, dir = __dirname): CourseDescriptionInputs {
+export function readCourseDescriptions(id: string, dir = advisorSourceDir('course-descriptions')): CourseDescriptionInputs {
   return {
     document: readJson<CourseDescriptionDocument>(join(dir, `${id}.json`)),
     source: readJson<CourseDescriptionSource>(join(dir, 'sources', `${id}.source.json`)),
