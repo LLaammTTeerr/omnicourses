@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
 import ExternalLink from '../components/ExternalLink.vue';
-import { useLocale, useMessages, LANGUAGES } from '../locale.js';
+import { formatSpan, useLocale, useMessages, LANGUAGES } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { termName, vietnamDate } from '../terms.js';
@@ -141,7 +141,7 @@ const KIND_GROUP: Record<CalendarEventKind, string> = {
 };
 const titleOf = (e: CalendarEvent) => (locale.lang === 'en' && e.titleEn ? e.titleEn : e.title);
 const otherTitle = (e: CalendarEvent) => (locale.lang === 'en' ? (e.titleEn ? e.title : null) : e.titleEn);
-const spanIn = (e: CalendarEvent, format: (iso: string) => string) => (e.startsOn === e.endsOn ? format(e.startsOn) : `${format(e.startsOn)} – ${format(e.endsOn)}`);
+const spanIn = (e: CalendarEvent, format: (iso: string) => string) => formatSpan(e.startsOn, e.endsOn, format);
 const spanOf = (e: CalendarEvent) => spanIn(e, m.value.day);
 const termOf = (e: CalendarEvent) => (e.term === null ? m.value.wholeYear(e.academicYear) : m.value.term(e.term, e.academicYear));
 const continues = (e: CalendarEvent, day: string) => day !== e.startsOn && day !== week.value;

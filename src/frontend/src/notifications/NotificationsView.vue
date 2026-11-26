@@ -13,6 +13,7 @@ import { eventLine, NOTIFICATION_MESSAGES } from './messages.js';
 import { useUnread } from './store.js';
 
 const PAGE_SIZE = 50;
+const MAIN_BUTTON = 0;
 
 const LINK_ROUTES: Record<NotificationLink, RouteLocationRaw> = { calendar: { name: 'calendar' }, planner: { name: 'plans' }, audit: { name: 'audit' } };
 const KIND_LOOK: Record<NotificationKind, { icon: IconName; group: GroupId }> = {
@@ -32,6 +33,7 @@ const { status, data, reload } = useAsyncLoad('the notifications', () => fetchNo
 const items = ref<Notification[]>([]);
 const nextBefore = ref<string | null>(null);
 const olderStatus = ref<'idle' | 'loading' | 'failed'>('idle');
+const readIds = ref(new Set<string>());
 const busy = ref(false);
 const heading = useTemplateRef<HTMLHeadingElement>('heading');
 const list = useTemplateRef<HTMLUListElement>('list');
@@ -40,9 +42,12 @@ watch(data, (list) => {
   items.value = list?.notifications ?? [];
   nextBefore.value = list?.nextBefore ?? null;
   olderStatus.value = 'idle';
+  readIds.value = new Set();
 });
 
-const anyUnread = computed(() => items.value.some((item) => item.readAt === null) || unread.count > 0);
+const isUnread = (item: Notification) => item.readAt === null && !readIds.value.has(item.id);
+const unreadShown = computed(() => items.value.filter(isUnread).length);
+const anyUnread = computed(() => unreadShown.value > 0 || unread.count > 0);
 const titleId = (item: Notification) => `notification-${item.id}`;
 const detail = (item: Notification) => (item.event ? eventLine(item.event, locale.lang) : m.value.transcriptDetail);
 
@@ -50,29 +55,48 @@ function replace(read: Notification): void {
   items.value = items.value.map((item) => (item.id === read.id ? read : item));
 }
 
-async function readOne(item: Notification): Promise<void> {
-  if (item.readAt !== null) return;
+async function readOne(item: Notification): Promise<boolean> {
+  if (!isUnread(item)) return true;
   try {
     replace(await markRead(item.id));
+    return true;
   } catch (e) {
     console.error('Marking a notification read failed:', e);
     toast.show(m.value.markFailed);
+    return false;
   }
-  await unread.refresh();
+}
+
+async function readAndCount(item: Notification): Promise<boolean> {
+  const read = await readOne(item);
+  if (read) await unread.refresh();
+  return read;
 }
 
 async function readWithButton(item: Notification): Promise<void> {
-  await readOne(item);
+  if (!(await readAndCount(item))) return;
   await nextTick();
   list.value?.querySelector<HTMLElement>(`[aria-labelledby="${titleId(item)}"] a`)?.focus();
 }
 
+const opensElsewhere = (event: MouseEvent) => event.button !== MAIN_BUTTON || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+
+async function follow(event: MouseEvent, item: Notification, navigate: () => Promise<unknown>): Promise<void> {
+  if (opensElsewhere(event)) {
+    void readAndCount(item);
+    return;
+  }
+  event.preventDefault();
+  await readOne(item);
+  await navigate();
+}
+
 async function readAll(): Promise<void> {
+  if (busy.value) return;
   busy.value = true;
   try {
     const { unread: left } = await markAllRead();
-    const now = new Date().toISOString();
-    items.value = items.value.map((item) => (item.readAt === null ? { ...item, readAt: now } : item));
+    readIds.value = new Set(items.value.map((item) => item.id));
     unread.set(left);
     toast.show(m.value.allRead);
     await nextTick();
@@ -85,7 +109,25 @@ async function readAll(): Promise<void> {
   }
 }
 
+async function addNewer(): Promise<void> {
+  try {
+    const page = await fetchNotifications(PAGE_SIZE);
+    const known = new Set(items.value.map((item) => item.id));
+    items.value = [...page.notifications.filter((item) => !known.has(item.id)), ...items.value];
+  } catch (e) {
+    console.error('Loading new notifications failed:', e);
+  }
+}
+
+watch(
+  () => unread.count,
+  (now, before) => {
+    if (status.value === 'loaded' && now > before && now > unreadShown.value) void addNewer();
+  },
+);
+
 async function loadOlder(): Promise<void> {
+  if (olderStatus.value === 'loading') return;
   olderStatus.value = 'loading';
   try {
     const page = await fetchNotifications(PAGE_SIZE, nextBefore.value);
@@ -124,27 +166,22 @@ async function loadOlder(): Promise<void> {
 
     <template v-else>
       <ul ref="list" class="card flush inbox-list" :aria-label="m.title">
-        <li v-for="item in items" :key="item.id" :class="['note', { unread: item.readAt === null }]" data-test="notification">
+        <li v-for="item in items" :key="item.id" :class="['note', { unread: isUnread(item) }]" data-test="notification">
           <article :aria-labelledby="titleId(item)">
             <span :class="['glyph', groupClass(KIND_LOOK[item.kind].group)]" aria-hidden="true"><Icon :name="KIND_LOOK[item.kind].icon" /></span>
             <div class="note-body">
               <h2 :id="titleId(item)" class="note-title">
-                <span v-if="item.readAt === null" class="sr-only">{{ m.unread }}: </span>{{ m.kinds[item.kind] }}
+                <span v-if="isUnread(item)" class="sr-only">{{ m.unread }}: </span>{{ m.kinds[item.kind] }}
               </h2>
               <p class="note-detail">{{ detail(item) }}</p>
               <div class="note-actions">
-                <RouterLink
-                  v-for="(link, i) in item.links"
-                  :key="link"
-                  :class="['btn', 'sm', { primary: i === 0 }]"
-                  :to="LINK_ROUTES[link]"
-                  :data-test="`link-${link}`"
-                  @click="readOne(item)"
-                >
-                  {{ m.links[link] }}<Icon name="right" size="sm" />
+                <RouterLink v-for="(link, i) in item.links" :key="link" v-slot="{ href, navigate }" :to="LINK_ROUTES[link]" custom>
+                  <a :href="href" :class="['btn', 'sm', { primary: i === 0 }]" :data-test="`link-${link}`" @click="follow($event, item, navigate)">
+                    {{ m.links[link] }}<Icon name="right" size="sm" />
+                  </a>
                 </RouterLink>
                 <button
-                  v-if="item.readAt === null"
+                  v-if="isUnread(item)"
                   class="btn sm ghost"
                   type="button"
                   :aria-label="m.markReadOf(m.kinds[item.kind])"

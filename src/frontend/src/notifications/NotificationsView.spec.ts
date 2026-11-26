@@ -89,7 +89,7 @@ describe('NotificationsView (F10, UC-12)', () => {
     expect(document.activeElement).toBe(items(w)[0]!.get('[data-test="link-calendar"]').element);
   });
 
-  it('marks an unread notification read when the student follows its link, and not a read one', async () => {
+  it('marks an unread notification read before following its link, and not a read one', async () => {
     const { w, fetch, router } = await render({
       'GET /notifications': list(),
       'GET /academic-calendar': { program: null, events: [] },
@@ -99,9 +99,39 @@ describe('NotificationsView (F10, UC-12)', () => {
     await flushPromises();
     expect(router.currentRoute.value.name).toBe('calendar');
     expect(calls(fetch, 'POST', '/read')).toHaveLength(0);
-    await items(w)[2]!.get('[data-test="link-audit"]').trigger('click');
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    items(w)[2]!.get('[data-test="link-audit"]').element.dispatchEvent(click);
     await flushPromises();
+    expect(click.defaultPrevented).toBe(true);
     expect(calls(fetch, 'POST', `/notifications/${TRANSCRIPT.id}/read`)).toHaveLength(1);
+    expect(router.currentRoute.value.name).toBe('audit');
+    expect(calls(fetch, 'GET', '/notifications/unread-count')).toHaveLength(1);
+  });
+
+  it('follows the link even when marking it read fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w, router } = await render({
+      'GET /notifications': list(),
+      'GET /academic-calendar': { program: null, events: [] },
+      [`POST /notifications/${SOON.id}/read`]: status(500),
+    });
+    await items(w)[0]!.get('[data-test="link-calendar"]').trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.name).toBe('calendar');
+  });
+
+  it('leaves a modified click to the browser, and still marks the notification read and counts again', async () => {
+    const { w, fetch, router } = await render({
+      'GET /notifications': list(),
+      [`POST /notifications/${SOON.id}/read`]: { ...SOON, readAt: '2026-12-02T04:00:00.000Z' },
+    });
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true });
+    items(w)[0]!.get('[data-test="link-calendar"]').element.dispatchEvent(click);
+    await flushPromises();
+    expect(click.defaultPrevented).toBe(false);
+    expect(router.currentRoute.value.name).toBe('notifications');
+    expect(calls(fetch, 'POST', `/notifications/${SOON.id}/read`)).toHaveLength(1);
+    expect(calls(fetch, 'GET', '/notifications/unread-count')).toHaveLength(2);
   });
 
   it('tells the student when marking one read fails, and keeps it unread', async () => {
@@ -111,6 +141,7 @@ describe('NotificationsView (F10, UC-12)', () => {
     await flushPromises();
     expect(useToast().message).toBe('Không đánh dấu được. Hãy thử lại.');
     expect(items(w)[0]!.classes()).toContain('unread');
+    expect(document.activeElement).not.toBe(items(w)[0]!.get('[data-test="link-calendar"]').element);
   });
 
   it('marks every notification read, sets the bell to the answer and says so', async () => {
@@ -124,6 +155,54 @@ describe('NotificationsView (F10, UC-12)', () => {
     expect(w.get('[data-test="subtitle"]').text()).toBe('Bạn đã đọc hết thông báo.');
     expect(w.get('[data-test="read-all"]').attributes('disabled')).toBeDefined();
     expect(document.activeElement).toBe(w.get('h1').element);
+  });
+
+  it('sends one request when mark all is clicked twice', async () => {
+    let answer: (r: Response) => void = () => {};
+    const { w, fetch } = await render({
+      'GET /notifications': list(),
+      'POST /notifications/read-all': () => new Promise<Response>((resolve) => (answer = resolve)),
+    });
+    const button = w.get('[data-test="read-all"]');
+    await button.trigger('click');
+    expect(button.attributes('disabled')).toBeDefined();
+    (button.element as HTMLButtonElement).disabled = false;
+    await button.trigger('click');
+    answer(Response.json({ unread: 0 }));
+    await flushPromises();
+    expect(calls(fetch, 'POST', '/notifications/read-all')).toHaveLength(1);
+  });
+
+  it('offers mark all while the bell counts unread ones beyond this page', async () => {
+    const { w } = await render({ 'GET /notifications': list([TERM], TERM.id) });
+    expect(w.findAll('.note.unread')).toHaveLength(0);
+    expect(w.get('[data-test="subtitle"]').text()).toBe('2 thông báo chưa đọc.');
+    expect(w.get('[data-test="read-all"]').attributes('disabled')).toBeUndefined();
+  });
+
+  it('says one unread notification in the singular in English', async () => {
+    useLocale().set('en');
+    const { w } = await render({ 'GET /notifications': list(), 'GET /notifications/unread-count': { unread: 1 } });
+    expect(w.get('[data-test="subtitle"]').text()).toBe('1 unread notification.');
+  });
+
+  it('puts new notifications on top when the bell count rises', async () => {
+    const NEW = notification({ id: 'zz-new', kind: 'registration_open', event: SOON.event });
+    const pages = [list([SOON, TERM, TRANSCRIPT]), list([NEW, SOON, TERM])];
+    const { w } = await render({ 'GET /notifications': () => Response.json(pages.shift()) });
+    useUnread().set(3);
+    await flushPromises();
+    expect(items(w).map((item) => item.get('h2').attributes('id'))).toEqual([NEW, SOON, TERM, TRANSCRIPT].map((n) => `notification-${n.id}`));
+  });
+
+  it('fetches nothing when the count rises only to what the page already shows', async () => {
+    const { w, fetch } = await render({ 'GET /notifications': list() });
+    useUnread().set(0);
+    await flushPromises();
+    useUnread().set(2);
+    await flushPromises();
+    expect(calls(fetch, 'GET', '/notifications?')).toHaveLength(1);
+    expect(items(w)).toHaveLength(3);
   });
 
   it('keeps the notifications unread when marking all read fails', async () => {
@@ -145,6 +224,36 @@ describe('NotificationsView (F10, UC-12)', () => {
     expect(String(fetch.mock.calls.at(-1)![0])).toContain(`before=${TERM.id}`);
     expect(items(w)).toHaveLength(3);
     expect(w.find('[data-test="older"]').exists()).toBe(false);
+  });
+
+  it('loads the older page once when Older is clicked twice', async () => {
+    let answer: () => void = () => {};
+    const answers = [
+      () => Response.json(list([SOON, TERM], TERM.id)),
+      () => new Promise<Response>((resolve) => (answer = () => resolve(Response.json(list([TRANSCRIPT]))))),
+    ];
+    const { w, fetch } = await render({ 'GET /notifications': () => answers.shift()!() });
+    const older = w.get('[data-test="older"]');
+    await older.trigger('click');
+    expect(older.attributes('disabled')).toBeDefined();
+    (older.element as HTMLButtonElement).disabled = false;
+    await older.trigger('click');
+    answer();
+    await flushPromises();
+    expect(calls(fetch, 'GET', 'before=')).toHaveLength(1);
+    expect(items(w)).toHaveLength(3);
+  });
+
+  it('says when the older page cannot be read, and keeps the list and the button', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const answers = [() => Response.json(list([SOON, TERM], TERM.id)), status(503)];
+    const { w } = await render({ 'GET /notifications': () => answers.shift()!() });
+    expect(w.find('[role="alert"]').exists()).toBe(false);
+    await w.get('[data-test="older"]').trigger('click');
+    await flushPromises();
+    expect(w.get('[role="alert"]').text()).toBe('Không tải được thông báo cũ hơn.');
+    expect(items(w)).toHaveLength(2);
+    expect(w.get('[data-test="older"]').attributes('disabled')).toBeUndefined();
   });
 
   it('says when there is nothing yet, with nothing to mark', async () => {

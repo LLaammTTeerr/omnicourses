@@ -209,7 +209,7 @@ describe('the notification bell (F10)', () => {
     expect(many.w.get('.badge [aria-hidden="true"]').text()).toBe('99+');
   });
 
-  it('reads the count again on each page and every minute, and never while signed out', async () => {
+  it('reads the count again on each page and every minute while the tab is shown, and never while signed out', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     const { router } = await render('/guides', true);
     const first = unreadReads();
@@ -217,6 +217,10 @@ describe('the notification bell (F10)', () => {
     await router.push('/privacy');
     await flushPromises();
     expect(unreadReads()).toBe(first + 1);
+    vi.advanceTimersByTime(UNREAD_POLL_MS);
+    await flushPromises();
+    expect(unreadReads()).toBe(first + 2);
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     vi.advanceTimersByTime(UNREAD_POLL_MS);
     await flushPromises();
     expect(unreadReads()).toBe(first + 2);

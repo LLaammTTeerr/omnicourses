@@ -7,13 +7,13 @@ import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { NOTIFICATION_MESSAGES } from '../notifications/messages.js';
+import { useUnread } from '../notifications/store.js';
+import UnreadBadge from '../notifications/UnreadBadge.vue';
 import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
 import { SHELL_MESSAGES } from './messages.js';
-import { NOTIFICATION_MESSAGES } from '../notifications/messages.js';
-import { useUnread } from '../notifications/store.js';
-import UnreadBadge from '../notifications/UnreadBadge.vue';
 import { listed, PHONE_MORE, PHONE_TABS } from './nav.js';
 import ThemeButton from './ThemeButton.vue';
 

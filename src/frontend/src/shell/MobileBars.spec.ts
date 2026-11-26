@@ -166,11 +166,15 @@ describe('the phone top bar', () => {
     expect(bell.attributes('href')).toBe('/notifications');
     expect(bell.attributes('aria-label')).toBe('Thông báo');
     expect(bell.find('[data-test="unread-badge"]').exists()).toBe(false);
+    useUnread().set(3);
+    await flushPromises();
+    expect(bell.attributes('aria-label')).toBe('Thông báo, 3 chưa đọc');
     useUnread().set(2);
     useLocale().set('en');
     await flushPromises();
     expect(bell.attributes('aria-label')).toBe('Notifications, 2 unread');
     expect(bell.get('[data-test="unread-badge"]').attributes('aria-hidden')).toBe('true');
+    expect(bell.get('[data-test="unread-badge"]').text()).toBe('22 unread');
   });
 
   it('shows the count on Notifications under More', async () => {

@@ -6,12 +6,12 @@ import { useAdminAccess } from '../admin/store.js';
 import { useAuth } from '../auth/store.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import UnreadBadge from '../notifications/UnreadBadge.vue';
 import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
 import { SHELL_MESSAGES } from './messages.js';
 import { listed, NAV } from './nav.js';
-import UnreadBadge from '../notifications/UnreadBadge.vue';
 import { isSidebarKey, useSidebar } from './sidebar.js';
 import ThemeButton from './ThemeButton.vue';
 

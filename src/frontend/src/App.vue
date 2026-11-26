@@ -63,7 +63,12 @@ watch(
   { immediate: true },
 );
 let unreadPoll: ReturnType<typeof setInterval> | undefined;
-onMounted(() => (unreadPoll = setInterval(() => void unread.refresh(), UNREAD_POLL_MS)));
+onMounted(
+  () =>
+    (unreadPoll = setInterval(() => {
+      if (!document.hidden) void unread.refresh();
+    }, UNREAD_POLL_MS)),
+);
 onBeforeUnmount(() => clearInterval(unreadPoll));
 
 watch(
