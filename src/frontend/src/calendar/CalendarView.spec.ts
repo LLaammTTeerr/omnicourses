@@ -6,6 +6,9 @@ import { setup } from '../testing/signed-in.js';
 import CalendarView from './CalendarView.vue';
 import { calendar, event, EXAMS, HOLIDAY, PROGRAM, REGISTRATION, TERM_END, TERM_START } from './testing/fixtures.js';
 
+const THURSDAY_12_NOV_10AM_IN_VIETNAM = new Date('2026-11-12T03:00:00Z');
+const SUNDAY_15_NOV_10AM_IN_VIETNAM = new Date('2026-11-15T03:00:00Z');
+
 let wrapper: VueWrapper | undefined;
 
 async function render(answer: unknown = calendar()) {
@@ -22,9 +25,8 @@ const cell = (w: VueWrapper, day: string) => w.get(`[data-day="${day}"]`);
 describe('CalendarView (F10 school dates)', () => {
   beforeEach(() => {
     localStorage.clear();
-    // Thursday 12 November 2026, 10:00 in Vietnam.
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-11-12T03:00:00Z'));
+    vi.setSystemTime(THURSDAY_12_NOV_10AM_IN_VIETNAM);
   });
   afterEach(() => {
     wrapper?.unmount();
@@ -40,7 +42,6 @@ describe('CalendarView (F10 school dates)', () => {
     expect(text(w, 'subtitle')).toBe('HK1 2026–2027 · Tuần 10');
     expect(w.get('[data-test="today"]').attributes('disabled')).toBeDefined();
     expect(cell(w, '2026-11-09').findAll('[data-test="event"]')).toHaveLength(0);
-    // The first day shows the whole card; the days after it a short line.
     const first = cell(w, '2026-11-10').get('[data-test="event"]');
     expect(first.text()).toContain('Đăng ký học phần');
     expect(first.get('.room').text()).toBe('10/11 – 20/11 · HK2');
@@ -55,7 +56,7 @@ describe('CalendarView (F10 school dates)', () => {
   });
 
   it('opens on the week holding today on a weekend, with today marked', async () => {
-    vi.setSystemTime(new Date('2026-11-15T03:00:00Z')); // Sunday 15 November in Vietnam.
+    vi.setSystemTime(SUNDAY_15_NOV_10AM_IN_VIETNAM);
     const { w } = await render();
     expect(text(w, 'range')).toBe('9/11 – 15/11');
     expect(cell(w, '2026-11-15').classes()).toContain('today');
@@ -67,7 +68,6 @@ describe('CalendarView (F10 school dates)', () => {
     await w.get('[data-test="next"]').trigger('click');
     expect(text(w, 'range')).toBe('16/11 – 22/11');
     expect(text(w, 'subtitle')).toBe('HK1 2026–2027 · Tuần 11');
-    // A week that starts mid-event shows the whole card on its Monday.
     expect(cell(w, '2026-11-16').get('[data-test="event"]').classes()).not.toContain('cont');
     expect(cell(w, '2026-11-20').findAll('[data-test="event"]').map((e) => e.text())).toEqual(['Đăng ký học phần học kỳ 2', expect.stringContaining('Nghỉ ngày Nhà giáo Việt Nam')]);
     await w.get('[data-test="tab-month"]').trigger('click');
@@ -114,6 +114,24 @@ describe('CalendarView (F10 school dates)', () => {
     expect(cell(two.w, '2026-11-20').get('.more').attributes('aria-label')).toBe('2 more dates on Fri, 20 Nov 2026, open that week');
   });
 
+  it('gives a screen reader the weekday in words in the headers and the detail card, and shows the short form', async () => {
+    const { w, pinia } = await render();
+    const friday = w.findAll('.cal-dh')[4]!;
+    expect(friday.get('[aria-hidden="true"]').text()).toBe('T6');
+    expect(friday.get('.sr-only').text()).toBe('thứ Sáu');
+    await w.findAll('[data-test="upcoming-item"]')[0]!.trigger('click');
+    const when = w.get('[data-test="detail"] .fact b');
+    expect(when.get('[aria-hidden="true"]').text()).toBe('T3, 10/11/2026 – T6, 20/11/2026');
+    expect(when.get('.sr-only').text()).toBe('thứ Ba, 10/11/2026 – thứ Sáu, 20/11/2026');
+    await w.get('[data-test="tab-month"]').trigger('click');
+    const sunday = w.findAll('.cal-mh')[6]!;
+    expect(sunday.get('[aria-hidden="true"]').text()).toBe('CN');
+    expect(sunday.get('.sr-only').text()).toBe('Chủ nhật');
+    useLocale(pinia).set('en');
+    await flushPromises();
+    expect(w.findAll('.cal-mh')[6]!.get('.sr-only').text()).toBe('Sunday');
+  });
+
   it('lists what is still to come, the date now on first, and opens one in the detail card', async () => {
     const { w } = await render();
     const items = w.findAll('[data-test="upcoming-item"]');
@@ -144,6 +162,26 @@ describe('CalendarView (F10 school dates)', () => {
     await w.findAll('[data-test="upcoming-item"]')[2]!.trigger('click');
     expect(text(w, 'range')).toBe('21/12 – 27/12');
     expect(text(w, 'subtitle')).toBe('HK1 2026–2027 · Tuần 16');
+  });
+
+  it('keeps the week on screen when a date picked from the list is already in it', async () => {
+    const { w } = await render();
+    await w.get('[data-test="next"]').trigger('click');
+    expect(text(w, 'range')).toBe('16/11 – 22/11');
+    await w.findAll('[data-test="upcoming-item"]')[0]!.trigger('click');
+    expect(text(w, 'range')).toBe('16/11 – 22/11');
+    expect(w.get('[data-test="detail"]').text()).toContain('Đăng ký học phần học kỳ 2');
+  });
+
+  it('does not call a date that has ended ongoing', async () => {
+    const { w } = await render();
+    for (let week = 0; week < 8; week++) await w.get('[data-test="prev"]').trigger('click');
+    expect(text(w, 'range')).toBe('14/9 – 20/9');
+    await cell(w, '2026-09-14').get('[data-test="event"]').trigger('click');
+    const detail = w.get('[data-test="detail"]');
+    expect(detail.text()).toContain('Điều chỉnh đăng ký HK1');
+    expect(detail.text()).toContain('5 ngày');
+    expect(detail.text()).not.toContain('Đang diễn ra');
   });
 
   it('uses the English title in English, and the Vietnamese one when there is none', async () => {

@@ -5,6 +5,9 @@ import { setup } from '../testing/signed-in.js';
 import CalendarView from './CalendarView.vue';
 import { calendar, event, REGISTRATION } from './testing/fixtures.js';
 
+const THURSDAY_12_NOV_10AM_IN_VIETNAM = new Date('2026-11-12T03:00:00Z');
+const SUNDAY_15_NOV_10AM_IN_VIETNAM = new Date('2026-11-15T03:00:00Z');
+
 const LONG = event({
   id: 'zz-long',
   kind: 'other',
@@ -18,7 +21,7 @@ describe('CalendarView layout in a real browser', () => {
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-11-12T03:00:00Z'));
+    vi.setSystemTime(THURSDAY_12_NOV_10AM_IN_VIETNAM);
     host = document.createElement('div');
     document.body.append(host);
   });
@@ -35,7 +38,6 @@ describe('CalendarView layout in a real browser', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json(calendar([REGISTRATION, LONG])));
     const app = await setup('/calendar');
     wrapper = mount(CalendarView, { attachTo: host, global: { plugins: [app.pinia, app.router] } });
-    // A real Response body resolves after a browser task, not a microtask, so wait for the week to draw.
     await vi.waitFor(() => expect(wrapper!.find('[data-test="week"]').exists()).toBe(true));
     return wrapper;
   }
@@ -51,7 +53,7 @@ describe('CalendarView layout in a real browser', () => {
   });
 
   it('scrolls the week to today on a phone, where the seven days do not fit', async () => {
-    vi.setSystemTime(new Date('2026-11-15T03:00:00Z')); // Sunday, the last column.
+    vi.setSystemTime(SUNDAY_15_NOV_10AM_IN_VIETNAM);
     const w = await render(360);
     const scroll = w.get('[data-test="week"]').element.parentElement!;
     expect(scroll.scrollWidth).toBeGreaterThan(scroll.clientWidth);
@@ -64,7 +66,7 @@ describe('CalendarView layout in a real browser', () => {
   });
 
   it('scrolls a phone week back to its Monday on Previous and Next, and to today on the way back', async () => {
-    vi.setSystemTime(new Date('2026-11-15T03:00:00Z')); // Sunday, the last column.
+    vi.setSystemTime(SUNDAY_15_NOV_10AM_IN_VIETNAM);
     const w = await render(360);
     const scroll = w.get('[data-test="week"]').element.parentElement!;
     await vi.waitFor(() => expect(scroll.scrollLeft).toBeGreaterThan(0));

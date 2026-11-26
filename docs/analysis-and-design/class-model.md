@@ -1299,7 +1299,7 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `plans/` | `PlannerEntry`, `PlansView`, `PlanEditorView`, `IssuesPanel`, `StatusStrip`, `PlanTabs`, dialogs | none | `fetchPlans`, `createPlan`, `fetchPlan`, `renamePlan`, `duplicatePlan`, `deletePlan`, `savePlacements`, `fetchPlanIssues`, `previewPlanIssues`, `previewPlanDrops` | `board.ts` (`Board`, `boardOf`, `boardBody`, `moveTile`, `attachIssues`, `dropVerdict`), `drag.ts`, `lock.ts`, `last-plan.ts` |
 | `account/` | `SettingsView`, `DeleteAccountDialog` | none | `exportAccount`, `deleteAccount`, `saveFile` | `user-agent.ts` |
 | `guides/` | `GuidesView`, `GuideView` | none | `fetchGuides`, `fetchGuide` | `pick-text.ts`, `search.ts` |
-| `calendar/` | `CalendarView` (week and month views at `/calendar`) | none | `fetchAcademicCalendar` | `dates.ts` (`mondayOf`, `monthDays`, `monthWeeks`, `academicYearOf`, `termWeek`, `eventsByDay`) |
+| `calendar/` | `CalendarView` (week and month views at `/calendar`) | none | `fetchAcademicCalendar` | `dates.ts` (`mondayOf`, `sundayOf`, `thursdayOf`, `weekDays`, `dayOfMonth`, `daysFromTo`, `isWeekend`, `monthDays`, `monthWeeks`, `academicYearOf`, `termWeek`, `eventsByDay`) |
 
 `useAuth().authed(call)` runs an API call with the session token and clears the session on a 401; `App.vue` then sends the student to sign-in. The router guard (`router.ts`, `onboardingFirst`) sends a signed-in student whose onboarding is unfinished to `/onboarding` before any private page except `/settings`.
 
