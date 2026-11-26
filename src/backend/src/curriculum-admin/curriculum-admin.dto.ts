@@ -4,8 +4,8 @@ import { ifPresent, ifSet, NoNullCharacter, NullableTextField, RequiredTextField
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { TERM_NUMBERS } from '../terms/term.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
+import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 
-export const NAME_MAX_LENGTH = 255;
 const MAX_PREREQUISITES = 50;
 
 class AdminCurriculumDto {

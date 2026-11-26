@@ -20,7 +20,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
-import { PROGRAM_CODE_MAX_LENGTH } from '../curriculum/program.entity.js';
+import { CODE_MAX_LENGTH } from '../common/column-limits.js';
 import { MaxCodePoints, NoNullCharacter, TermDto, trimString } from '../common/field-validators.js';
 import { type BoardTerm, type Placement, PLACEMENT_KINDS, type PlacementKind } from '../rules/types.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
@@ -132,7 +132,7 @@ export class CreatePlanDto {
   @ApiProperty({ example: 'APCS', description: 'The program of the curriculum the plan is made against.' })
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(PROGRAM_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   programCode!: string;
 
   @ApiProperty({ example: 2024, description: 'The cohort of that curriculum.' })

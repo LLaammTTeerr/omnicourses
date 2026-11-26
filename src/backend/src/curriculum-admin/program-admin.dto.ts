@@ -5,14 +5,12 @@ import { ifPresent, MaxCodePoints, NullableTextField, RequiredTextField } from '
 import { LANGUAGE_MAX_LENGTH } from '../curriculum/curriculum.entity.js';
 import { FACULTY_MAX_LENGTH, TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
-import { NAME_MAX_LENGTH } from './curriculum-admin.dto.js';
+import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
 
 export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
-export const ADMIN_CODE_MAX_LENGTH = 50;
 const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
 
 export const canonicalAdminCode = (input: unknown): unknown => (typeof input === 'string' ? input.trim().toUpperCase() : input);
-
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
@@ -20,13 +18,13 @@ const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
 export class CreateProgramDto {
   @ApiProperty({
     example: 'ZZ-PROG',
-    maxLength: ADMIN_CODE_MAX_LENGTH,
+    maxLength: CODE_MAX_LENGTH,
     pattern: CODE_PATTERN,
     description: 'Trimmed and upper-cased, then checked. Unique among programs. Cannot change later: the read API and the onboarding answers name a program by it.',
   })
   @canonicalCode
   @IsString()
-  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
@@ -86,13 +84,13 @@ export class CreateCohortDto {
 
   @ApiProperty({
     example: 'ZZ-PROG-2026',
-    maxLength: ADMIN_CODE_MAX_LENGTH,
+    maxLength: CODE_MAX_LENGTH,
     pattern: CODE_PATTERN,
     description: "The curriculum's code. Trimmed and upper-cased, then checked. Unique among all curricula. Cannot change later.",
   })
   @canonicalCode
   @IsString()
-  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
