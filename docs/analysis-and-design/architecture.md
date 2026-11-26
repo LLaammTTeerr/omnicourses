@@ -144,6 +144,8 @@ Every module reaches the database through its own TypeORM repositories and regis
 | notifications | `notifications/` | F10 inbox | `/api/notifications`: list, unread count, mark one read, mark all read. Creates the notifications that school dates and transcript changes cause ([ADR 0018](adr/0018-notification-inbox.md)). |  |
 | account | `account/` | F1, privacy NFR | `GET /api/users/me/export` and `DELETE /api/users/me`. Owns the deletion flows: request, find accounts past their deadline, purge one account at a time, hourly ([ADR 0004](adr/0004-account-export-and-deletion.md)). Scheduling a deletion and revoking every session commit in one transaction, through the `…Within(manager)` methods of `users` and `auth`; `account` never writes the `sessions` table itself. |  |
 
+2026-11-26, guides: `OUT_OF_DATE_MONTHS` in `guides/out-of-date.ts` sets the 6 months after which a guide shows as out of date. The frontend wording in `src/frontend/src/guides/messages.ts` repeats the number, so a change must update both.
+
 Other folders under `src/backend/src/` are not feature modules:
 
 - `rules/`: the rule engine. `RulesModule` has no routes, so it is not in `FEATURE_MODULES`; `audit`, `plans` and `sharing` import it.
@@ -151,7 +153,6 @@ Other folders under `src/backend/src/` are not feature modules:
 - `common/`: validators and helpers that several modules share.
 - `advisor/`: the regulation files and course descriptions for F8. It has no module yet.
 - 2026-11-26: `advisor/course-descriptions/` holds the APCS course-description booklet in the same layout as `advisor/regulations/`: the `pdftotext -layout` output of the PDF, a hand-written `sources/<id>.source.json` with the sha256 of the PDF and of the text, and `<id>.json` with the courses. The wording is exact: only line wraps are joined, and the letterhead and page number that every page repeats are dropped. "Course goals" and "Course content" are split into one item per bullet; text before the first bullet is one item. `course-descriptions.spec.ts` checks every field of every course against the text of its pages. When it fails, fix the data, not the test.
-- 2026-11-26: `guides/`: `OUT_OF_DATE_MONTHS` in `guides/out-of-date.ts` sets the 6 months after which a guide shows as out of date. The frontend wording in `src/frontend/src/guides/messages.ts` repeats the number, so a change must update both.
 - `config/`, `database/`, `bootstrap.ts`, `app.module.ts`, `features.ts`: the app wiring. `app.module.ts` and `openapi-document.ts` (the document `npm run openapi` writes and the drift test compares) both load `FEATURE_MODULES`, so the contract always lists every route. `config/env.ts` holds `loadEnvFiles()` and typed getters; `configureApp()` sets the `/api` prefix, the validation pipe, CORS and Swagger for the server and the e2e tests alike. `database/` holds the data source, `migrations/index.ts` (the ordered list of migrations) and the curriculum seeds.
 
 **CLI jobs.** All three load the environment through `config/env.ts`.
