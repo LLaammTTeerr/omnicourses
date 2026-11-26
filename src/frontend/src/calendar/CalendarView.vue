@@ -61,6 +61,7 @@ const atHome = computed(() => (mode.value === 'week' ? week.value === homeWeek :
 function go(n: number): void {
   if (mode.value === 'week') week.value = addDays(week.value, 7 * n);
   else month.value = monthStart(month.value, n);
+  void nextTick(showToday);
 }
 function goHome(): void {
   week.value = homeWeek;
@@ -75,12 +76,17 @@ function setMode(next: 'week' | 'month'): void {
   void nextTick(showToday);
 }
 // On a phone the grid is wider than the screen and scrolls sideways: bring today's column into view when the dates
-// arrive and when Today or a view switch lands on it, so a Sunday is not off to the right.
+// arrive and whenever Today, Previous, Next or a view switch lands on it, so a Sunday is not off to the right.
+// A week or month without today starts from its first column.
 const scroller = ref<HTMLElement | null>(null);
 function showToday(): void {
   const box = scroller.value;
   const cell = box?.querySelector<HTMLElement>(`[data-day="${today}"]`);
-  if (!box || !cell || box.scrollWidth <= box.clientWidth) return;
+  if (!box || box.scrollWidth <= box.clientWidth) return;
+  if (!cell) {
+    box.scrollLeft = 0;
+    return;
+  }
   box.scrollLeft += cell.getBoundingClientRect().left - box.getBoundingClientRect().left - (box.clientWidth - cell.offsetWidth) / 2;
 }
 watch(status, (now) => now === 'loaded' && showToday(), { flush: 'post' });
@@ -253,7 +259,7 @@ usePageTitle(() => m.value.title);
           <div v-else class="cal-month" data-test="month">
             <div v-for="d in m.weekdays" :key="d" class="cal-mh">{{ d }}</div>
             <div v-for="day in days" :key="day" class="cal-md" :class="{ out: !sameMonth(day, month), today: day === today }" :data-day="day">
-              <button type="button" class="n" :aria-label="m.longDay(day)" @click="openWeek(day)">{{ Number(day.slice(8)) }}</button>
+              <button type="button" class="n" :aria-label="m.spokenDay(day)" @click="openWeek(day)">{{ Number(day.slice(8)) }}</button>
               <button
                 v-for="e in on(day).slice(0, 3)"
                 :key="e.id"

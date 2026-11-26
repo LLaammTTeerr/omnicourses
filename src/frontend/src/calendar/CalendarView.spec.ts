@@ -89,10 +89,29 @@ describe('CalendarView (F10 school dates)', () => {
     const day = cell(w, '2026-11-20');
     expect(day.findAll('[data-test="event"]')).toHaveLength(3);
     expect(day.get('.more').text()).toBe('+2');
-    expect(day.get('.more').attributes('aria-label')).toBe('2 mốc khác vào T6, 20/11/2026, mở tuần đó');
+    expect(day.get('.more').attributes('aria-label')).toBe('2 mốc khác vào thứ Sáu, 20/11/2026, mở tuần đó');
+    expect(day.get('.n').attributes('aria-label')).toBe('thứ Sáu, 20/11/2026');
     await day.get('.n').trigger('click');
     expect(w.find('[data-test="week"]').exists()).toBe(true);
     expect(text(w, 'range')).toBe('16/11 – 22/11');
+  });
+
+  it('spells the hidden day in the label for a screen reader, in each language and number', async () => {
+    const extra = (n: number) => Array.from({ length: n }, (_, i) => event({ id: `x${i}`, kind: 'other', startsOn: '2026-11-20', title: `Mốc ${i}` }));
+    const one = await render(calendar([REGISTRATION, HOLIDAY, ...extra(2)]));
+    await one.w.get('[data-test="tab-month"]').trigger('click');
+    expect(cell(one.w, '2026-11-20').get('.more').text()).toBe('+1');
+    expect(cell(one.w, '2026-11-20').get('.more').attributes('aria-label')).toBe('1 mốc khác vào thứ Sáu, 20/11/2026, mở tuần đó');
+    useLocale(one.pinia).set('en');
+    await flushPromises();
+    expect(cell(one.w, '2026-11-20').get('.more').attributes('aria-label')).toBe('1 more date on Fri, 20 Nov 2026, open that week');
+    expect(cell(one.w, '2026-11-20').get('.n').attributes('aria-label')).toBe('Fri, 20 Nov 2026');
+    one.w.unmount();
+
+    const two = await render(calendar([REGISTRATION, HOLIDAY, ...extra(3)]));
+    useLocale(two.pinia).set('en');
+    await two.w.get('[data-test="tab-month"]').trigger('click');
+    expect(cell(two.w, '2026-11-20').get('.more').attributes('aria-label')).toBe('2 more dates on Fri, 20 Nov 2026, open that week');
   });
 
   it('lists what is still to come, the date now on first, and opens one in the detail card', async () => {

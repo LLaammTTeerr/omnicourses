@@ -63,6 +63,22 @@ describe('CalendarView layout in a real browser', () => {
     });
   });
 
+  it('scrolls a phone week back to its Monday on Previous and Next, and to today on the way back', async () => {
+    vi.setSystemTime(new Date('2026-11-15T03:00:00Z')); // Sunday, the last column.
+    const w = await render(360);
+    const scroll = w.get('[data-test="week"]').element.parentElement!;
+    await vi.waitFor(() => expect(scroll.scrollLeft).toBeGreaterThan(0));
+    await w.get('[data-test="next"]').trigger('click');
+    await vi.waitFor(() => expect(scroll.scrollLeft).toBe(0));
+    await w.get('[data-test="prev"]').trigger('click');
+    await vi.waitFor(() => {
+      const box = scroll.getBoundingClientRect();
+      const today = w.get('[data-day="2026-11-15"]').element.getBoundingClientRect();
+      expect(today.left).toBeGreaterThanOrEqual(box.left);
+      expect(today.right).toBeLessThanOrEqual(box.right + 1);
+    });
+  });
+
   it('keeps the focus ring on the pressed Week button', async () => {
     const w = await render(560);
     const week = w.get('[data-test="tab-week"]').element as HTMLButtonElement;
