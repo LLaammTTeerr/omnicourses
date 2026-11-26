@@ -8,6 +8,7 @@ import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption, optionsOf } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { UserGrants } from './api.js';
+import { ADMIN_MESSAGES } from './messages.js';
 import { useAdminAccess } from './store.js';
 import {
   adminPrograms,
@@ -121,7 +122,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await get(w, 'add-group').trigger('click');
     await flushPromises();
     expect(w.get('dialog[open]').findAll('input, textarea').map((field) => field.attributes('id') ?? field.attributes('name'))).toEqual(['group-name', 'group-kind', 'group-kind', 'group-notes']);
-    expect(get(w, 'group-totals').text()).toBe('Số tín chỉ yêu cầu của nhóm chỉ để xem: trang này chưa sửa được.');
+    expect(get(w, 'group-totals').text()).toBe(ADMIN_MESSAGES.vi.curriculum.totalsReadOnly);
   });
 
   it('shows "not recorded" (null) differently from "none" ([]), in words, for prerequisites and offering terms', async () => {
@@ -159,7 +160,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await add.trigger('click');
     await flushPromises();
     const dialog = w.get('dialog[open]');
-    expect(dialog.get('h2').text()).toBe('Nhóm yêu cầu mới');
+    expect(dialog.get('h2').text()).toBe(ADMIN_MESSAGES.vi.curriculum.groupNew);
     await get(dialog, 'group-name').setValue('  Nhóm thử mới ');
     await get(dialog, 'group-kind-elective').setValue(true);
     await get(dialog, 'group-notes').setValue('Ghi chú thử');
@@ -170,7 +171,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(useToast().message).toBe('Đã thêm nhóm Nhóm thử mới.');
     expect(get(w, 'groups-title').text()).toBe('3 nhóm yêu cầu');
     expect(get(w, 'group-panel').attributes('data-group-id')).toBe(NEW_GROUP_ID);
-    expect(get(w, 'no-courses').text()).toBe('Nhóm này chưa có học phần nào.');
+    expect(get(w, 'no-courses').text()).toBe(ADMIN_MESSAGES.vi.curriculum.noCourses);
     expect(document.activeElement).toBe(add.element);
   });
 
@@ -189,7 +190,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
 
     const dialog = w.get('dialog[open]');
     expect(problem(w).attributes('data-code')).toBe('validation_failed');
-    expect(problem(w).get('p').text()).toBe('Máy chủ từ chối giá trị đã nhập. Chưa lưu gì.');
+    expect(problem(w).get('p').text()).toBe(ADMIN_MESSAGES.vi.problem.validation);
     expect(problem(w).findAll('li').map((li) => [li.text(), li.attributes('lang')])).toEqual([['property creditsTotal should not exist', 'en']]);
     const name = get(dialog, 'group-name');
     expect(name.attributes('aria-invalid')).toBe('true');
@@ -280,7 +281,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await get(w.get('dialog[open]'), 'group-kind-elective').setValue(true);
     await submit(w);
     expect(problem(w).attributes('data-code')).toBe('duplicate_name');
-    expect(problem(w).text()).toBe('Khóa này đã có một nhóm yêu cầu cùng tên. Chưa lưu gì.');
+    expect(problem(w).text()).toBe(ADMIN_MESSAGES.vi.problem.conflict.duplicate_name);
   });
 
   it('says in words how many saved plans still use a group it could not delete (UC-11 A5)', async () => {
@@ -312,7 +313,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await get(dialog, 'confirm-yes').trigger('click');
     await flushPromises();
     expect(problem(w).attributes('data-code')).toBe('referenced_item');
-    expect(problem(w).get('p').text()).toBe('Chưa gỡ được vì còn chỗ đang dùng mục này. Chưa đổi gì. Gỡ các chỗ sau trước:');
+    expect(problem(w).get('p').text()).toBe(ADMIN_MESSAGES.vi.problem.conflict.referenced_item);
     expect(problem(w).findAll('li').map((li) => li.text())).toEqual(['nhóm còn học phần ZZ101', 'nhóm còn học phần ZZ102']);
     await get(dialog, 'confirm-no').trigger('click');
     await flushPromises();
@@ -368,7 +369,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await flushPromises();
     expect(get(w, 'link-code').attributes('aria-invalid')).toBe('true');
     expect(w.get('#link-error').text()).toBe('courseCode: "zz.1" is not a course code (letters A-Z and digits, 2 to 20)');
-    expect(get(w, 'group-panel').get('[data-test="admin-problem"]').get('p').text()).toBe('Máy chủ từ chối giá trị đã nhập. Chưa lưu gì.');
+    expect(get(w, 'group-panel').get('[data-test="admin-problem"]').get('p').text()).toBe(ADMIN_MESSAGES.vi.problem.validation);
   });
 
   it('removes a course from a group after asking, and lists the rules that still name it on a refusal', async () => {
@@ -467,7 +468,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await get(dialog, 'prerequisite-state-list').setValue(true);
       await get(dialog, 'prerequisite-codes').setValue('  ,  ');
       await submit(w);
-      expect(get(dialog, 'prerequisite-codes-needed').text()).toBe('Nhập ít nhất một mã, hoặc chọn “Không có tiên quyết”.');
+      expect(get(dialog, 'prerequisite-codes-needed').text()).toBe(ADMIN_MESSAGES.vi.curriculum.prerequisiteCodesNeeded);
       expect(get(dialog, 'prerequisite-codes').attributes('aria-invalid')).toBe('true');
       expect(writes(fetch)).toEqual([]);
     });
@@ -563,7 +564,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       expect(calls(fetch, 'GET').length).toBe(reads + 1);
       expect(calls(fetch, 'PATCH')).toHaveLength(1);
       expect(w.find('dialog[open]').exists()).toBe(false);
-      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
       expect(useToast().message).toBe('');
       expect(groupRow(w, 'Tự chọn thử B').exists()).toBe(true);
     });
@@ -573,7 +574,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await editElective(w, 'Tự chọn thử B');
       expect(calls(fetch, 'PATCH')).toHaveLength(1);
       expect(problem(w).attributes('data-code')).toBe('not_applied');
-      expect(problem(w).text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu chưa có thay đổi này. Kiểm tra lại, rồi lưu lần nữa nếu cần.');
+      expect(problem(w).text()).toBe(ADMIN_MESSAGES.vi.problem.notApplied);
       expect((get(w.get('dialog[open]'), 'group-name').element as HTMLInputElement).value).toBe('Tự chọn thử B');
       expect(useToast().message).toBe('');
       expect(has(w, 'admin-notice')).toBe(false);
@@ -601,7 +602,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await flushPromises();
       expect(calls(fetch, 'PATCH')).toHaveLength(1);
       expect(w.find('dialog[open]').exists()).toBe(false);
-      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
       expect(useToast().message).toBe('');
       expect(groupRow(w, 'Tự chọn thử B').exists()).toBe(true);
     });
@@ -784,11 +785,11 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       expect(note.text()).toContain('“Quản trị chương trình”');
       expect((get(w, 'link-code').element as HTMLInputElement).value).toBe('ZZ104');
       expect(get(w, 'admin-refused').text()).toContain('Lần lưu vừa rồi bị từ chối');
-      expect(get(w, 'admin-refused').text()).toContain('Trang này được giữ nguyên để bạn chép lại những gì đã nhập.');
+      expect(get(w, 'admin-refused').text()).toContain(ADMIN_MESSAGES.vi.refusedKept);
       useLocale().set('en');
       await flushPromises();
       expect(get(w, 'admin-refused').text()).toContain('The last save was refused: it needs the “Program administrator” permission, which your account does not hold. Nothing was saved.');
-      expect(get(w, 'admin-refused-close').text()).toBe('Reload with my current permissions');
+      expect(get(w, 'admin-refused-close').text()).toBe(ADMIN_MESSAGES.en.refusedReload);
 
       await get(w, 'admin-refused-close').trigger('click');
       await flushPromises();
@@ -1028,7 +1029,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
 
     await chooseOption(get(w, 'admin-program'), 'ZZEMPTY · Chương trình thử chưa có khóa');
     await flushPromises();
-    expect(get(w, 'no-cohorts').text()).toBe('Chương trình này chưa có khóa nào. Bấm “Thêm khóa” để thêm khóa đầu tiên.');
+    expect(get(w, 'no-cohorts').text()).toBe(ADMIN_MESSAGES.vi.curriculum.noCohorts);
     expect(has(w, 'admin-cohort')).toBe(false);
     expect(has(w, 'add-group')).toBe(false);
   });
@@ -1049,7 +1050,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     programsDown = false;
     await get(wrapper, 'programs-failed').get('button').trigger('click');
     await flushPromises();
-    expect(get(wrapper, 'curriculum-failed').text()).toContain('Chưa tải được chương trình đào tạo của khóa này.');
+    expect(get(wrapper, 'curriculum-failed').text()).toContain(ADMIN_MESSAGES.vi.curriculum.loadFailed);
     curriculumDown = false;
     await get(wrapper, 'curriculum-failed').get('button').trigger('click');
     await flushPromises();
@@ -1059,7 +1060,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
 
   it('says when the cohort has no curriculum (404), which is not a failure', async () => {
     const { w } = await render({ [READ]: status(404, { statusCode: 404, message: 'No curriculum for this program and cohort', error: 'Not Found' }) });
-    expect(get(w, 'no-curriculum').text()).toBe('Khóa này chưa có chương trình đào tạo.');
+    expect(get(w, 'no-curriculum').text()).toBe(ADMIN_MESSAGES.vi.curriculum.noCurriculum);
     expect(has(w, 'curriculum-failed')).toBe(false);
   });
 
@@ -1069,8 +1070,8 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await flushPromises();
     expect(get(w, 'groups-title').text()).toBe('2 requirement groups');
     expect(groupRow(w, ELECTIVE_GROUP.name).findAll('td').slice(0, 2).map((cell) => cell.text())).toEqual(['Elective', 'At least 8 cr']);
-    expect(get(w, 'add-group').text()).toBe('Add group');
-    expect(get(w, 'link-submit').text()).toBe('Add course to group');
+    expect(get(w, 'add-group').text()).toBe(ADMIN_MESSAGES.en.curriculum.addGroup);
+    expect(get(w, 'link-submit').text()).toBe(ADMIN_MESSAGES.en.curriculum.linkSubmit);
     expect(get(courseRow(w, 'ZZ101'), 'edit-prerequisites').attributes('aria-label')).toBe('Edit the prerequisites of ZZ101');
     await get(courseRow(w, 'ZZ101'), 'edit-terms').trigger('click');
     await flushPromises();
@@ -1170,10 +1171,10 @@ describe("CurriculumAdmin (UC-11 A1): the program's details and its cohorts", ()
     await get(w.get('dialog[open]'), 'cohort-cohortYear').setValue('2024');
     await submit(w);
     expect(problem(w).attributes('data-code')).toBe('duplicate_cohort');
-    expect(problem(w).text()).toBe('Chương trình này đã có khóa của năm này. Chưa lưu gì.');
+    expect(problem(w).text()).toBe(ADMIN_MESSAGES.vi.problem.conflict.duplicate_cohort);
     code = 'duplicate_code';
     await submit(w);
-    expect(problem(w).text()).toBe('Đã có chương trình đào tạo mang mã này. Chưa lưu gì.');
+    expect(problem(w).text()).toBe(ADMIN_MESSAGES.vi.programs.duplicateCohortCode);
     expect((get(w.get('dialog[open]'), 'cohort-cohortYear').element as HTMLInputElement).value).toBe('2024');
   });
 
@@ -1181,7 +1182,7 @@ describe("CurriculumAdmin (UC-11 A1): the program's details and its cohorts", ()
     const { w } = await render();
     await chooseOption(get(w, 'admin-program'), 'ZZEMPTY · Chương trình thử chưa có khóa');
     await flushPromises();
-    expect(get(w, 'no-cohorts').text()).toBe('Chương trình này chưa có khóa nào. Bấm “Thêm khóa” để thêm khóa đầu tiên.');
+    expect(get(w, 'no-cohorts').text()).toBe(ADMIN_MESSAGES.vi.curriculum.noCohorts);
     expect(has(w, 'cohort-add')).toBe(true);
     expect(has(w, 'cohort-edit')).toBe(false);
     expect(has(w, 'open-import')).toBe(false);
@@ -1230,7 +1231,7 @@ describe("CurriculumAdmin (UC-11 A1): the program's details and its cohorts", ()
     await submit(w);
     expect(calls(fetch, 'POST')).toHaveLength(1);
     expect(w.find('dialog[open]').exists()).toBe(false);
-    expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+    expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
     expect(get(w, 'curriculum-summary').text()).toContain('ZZ-PROG-2026');
   });
 

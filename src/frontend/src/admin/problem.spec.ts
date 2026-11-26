@@ -83,9 +83,9 @@ describe('describeProblem: each reason in words, in both languages', () => {
   it('never says saved for a write that got no answer (UC-11 A7)', () => {
     const notApplied = describeProblem({ outcome: 'not_applied' }, en);
     expect(notApplied).toMatchObject({ code: 'not_applied', tone: 'warn', reload: false });
-    expect(notApplied.text).toBe('The server did not answer the save, so OmniCourse reloaded the saved data. The saved data does not have this change. Check it, then save again if needed.');
+    expect(notApplied.text).toBe(ADMIN_MESSAGES.en.problem.notApplied);
     const unknown = describeProblem({ outcome: 'unknown' }, vi);
     expect(unknown).toMatchObject({ code: 'unknown', tone: 'warn', reload: true });
-    expect(unknown.text).toBe('Máy chủ không trả lời, và OmniCourse cũng chưa tải lại được dữ liệu đã lưu. Chưa rõ thay đổi đã được lưu hay chưa. Hãy tải lại dữ liệu trước khi thử lại.');
+    expect(unknown.text).toBe(ADMIN_MESSAGES.vi.problem.unknown);
   });
 });

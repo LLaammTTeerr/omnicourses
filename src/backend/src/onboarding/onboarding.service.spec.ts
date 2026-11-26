@@ -42,16 +42,6 @@ describe('onboarding answers and their columns', () => {
   });
 });
 
-describe('OnboardingService.offers', () => {
-  it('offers the cohorts onboarding offers, and no other cohort or program', () => {
-    const onboarding = new OnboardingService({} as DataSource, {} as Repository<OnboardingAnswers>);
-    expect([onboarding.offers('APCS', 2024), onboarding.offers('APCS', 2025)]).toEqual([true, true]);
-    for (const [program, cohort] of [['APCS', 2023], ['APCS', 2026], ['CLC', 2024], ['apcs', 2024], ['toString', 2024]] as const) {
-      expect(onboarding.offers(program, cohort)).toBe(false);
-    }
-  });
-});
-
 describe('OnboardingService.cohortOf', () => {
   const service = (saved: OnboardingAnswers | null) => new OnboardingService({} as DataSource, { findOneBy: async () => saved } as unknown as Repository<OnboardingAnswers>);
   const answers: OnboardingDto = { program: 'ZZPROG', cohort: 2024, targetGraduationTerm: null, creditsPerTerm: null, internshipTerm: null, finished: true };

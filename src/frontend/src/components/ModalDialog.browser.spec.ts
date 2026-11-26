@@ -4,6 +4,10 @@ import { page, userEvent } from 'vitest/browser';
 import { defineComponent, h, nextTick, reactive } from 'vue';
 import ModalDialog from './ModalDialog.vue';
 
+const NO_EVENT_WAIT_MS = 100;
+const ESCAPES_WHILE_BUSY = 3;
+const MAX_ESCAPES_UNTIL_CLOSED = 6;
+
 const state = reactive({ open: true, busy: false, accept: true as boolean | 'native', closes: 0 });
 const Parent = defineComponent({
   setup() {
@@ -33,7 +37,12 @@ describe('ModalDialog in a real browser', () => {
     el.addEventListener('close', () => events.push('close'));
     return el;
   }
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
+  const waitToSeeThatNoEventFollows = () => new Promise((resolve) => setTimeout(resolve, NO_EVENT_WAIT_MS));
+  async function pressEscapeAndWaitForTheBrowser(): Promise<void> {
+    const seen = events.length;
+    await userEvent.keyboard('{Escape}');
+    await expect.poll(() => events.length > seen && events.at(-1) !== 'cancel:false').toBe(true);
+  }
 
   beforeEach(() => {
     Object.assign(state, { open: true, busy: false, accept: true, closes: 0 });
@@ -53,8 +62,8 @@ describe('ModalDialog in a real browser', () => {
     const el = await render();
     await page.getByRole('button', { name: 'Xóa' }).click();
 
-    for (let i = 0; i < 3; i++) await userEvent.keyboard('{Escape}');
-    await settle();
+    for (let i = 0; i < ESCAPES_WHILE_BUSY; i++) await userEvent.keyboard('{Escape}');
+    await waitToSeeThatNoEventFollows();
 
     expect(state.closes).toBe(0);
     expect(events).toEqual([]);
@@ -67,10 +76,7 @@ describe('ModalDialog in a real browser', () => {
   it('emits close once for an Escape the page cannot prevent, and stays closed when the parent accepts it', async () => {
     state.accept = 'native';
     const el = await render();
-    for (let i = 0; i < 6 && !events.includes('close'); i++) {
-      await userEvent.keyboard('{Escape}');
-      await settle();
-    }
+    for (let i = 0; i < MAX_ESCAPES_UNTIL_CLOSED && !events.includes('close'); i++) await pressEscapeAndWaitForTheBrowser();
 
     const prevented = events.filter((e) => e === 'cancel:true').length;
     expect(events).toEqual([...Array<string>(prevented).fill('cancel:true'), 'cancel:false', 'close']);
@@ -89,7 +95,7 @@ describe('ModalDialog in a real browser', () => {
     await expect.poll(() => events).toEqual(['close']);
     expect(el.open).toBe(true);
     expect(el.matches(':modal')).toBe(true);
-    await settle();
+    await waitToSeeThatNoEventFollows();
     expect(state.closes).toBe(0);
   });
 

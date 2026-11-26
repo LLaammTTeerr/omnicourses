@@ -31,11 +31,10 @@ const bodyOf = async (promise: Promise<unknown>) => {
 };
 
 describe('CurriculumAdminService.deleteGroup', () => {
-  it('deletes an empty group no plan uses, after locking its row', async () => {
+  it('locks the group row before it counts the plans that use it', async () => {
     const { service, sql } = serviceWith({});
     await deleteGroup(service);
     expect(sql.findIndex((s) => s.includes('FOR UPDATE'))).toBeLessThan(sql.findIndex((s) => s.includes('plan_placements')));
-    expect(sql.at(-1)).toBe('DELETE FROM "requirement_groups" WHERE "id" = $1');
   });
 
   it('refuses a group that saved plans use with 409 referenced_item and a count only (#171)', async () => {

@@ -10,6 +10,7 @@ import { chooseOption, optionsOf } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { UserGrants } from './api.js';
 import { ACCESS_MANAGER, accessPrograms, globalGrant, grants, MANAGER_ID, OTHER_PROGRAM_ID, OTHER_USER_ID, PROGRAM_ID, programGrant } from './testing/fixtures.js';
+import { ADMIN_MESSAGES } from './messages.js';
 
 const OWN_ID = user().id;
 const USER = `/admin/access/users/${OTHER_USER_ID}`;
@@ -95,12 +96,12 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     });
     await find(w, '00000000-0000-4000-8000-00000000dead');
     expect(get(w, 'access-refused').attributes('data-code')).toBe('not_found');
-    expect(get(w, 'access-refused').text()).toBe('Không có tài khoản nào mang mã này.');
+    expect(get(w, 'access-refused').text()).toBe(ADMIN_MESSAGES.vi.access.noAccount);
     expect(has(w, 'access-user')).toBe(false);
 
     await find(w, 'zz-not-an-id');
     expect(get(w, 'access-refused').attributes('data-code')).toBe('validation_failed');
-    expect(get(w, 'access-refused').text()).toBe('Máy chủ không nhận mã này.');
+    expect(get(w, 'access-refused').text()).toBe(ADMIN_MESSAGES.vi.access.badUserId);
     expect(w.get('#access-user-id-error').text()).toBe('userId: must be a UUID');
     expect(get(w, 'access-user-id').attributes('aria-invalid')).toBe('true');
     expect(get(w, 'access-user-id').attributes('aria-describedby')).toBe('access-hint access-user-id-error');
@@ -145,7 +146,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     await click(get(w, 'access-program-grant'), 'access-revoke-program');
     await click(w.get('dialog[open]'), 'confirm-yes');
     expect(calls(fetch, 'DELETE').map(pathOf)).toEqual([`${USER}/programs/${PROGRAM_ID}`]);
-    expect(get(w, 'access-no-programs').text()).toBe('Người dùng này chưa quản trị chương trình nào.');
+    expect(get(w, 'access-no-programs').text()).toBe(ADMIN_MESSAGES.vi.access.noProgramGrants);
     expect(useToast().message).toBe('Đã thu hồi quyền “Quản trị chương trình ZZPROG”.');
     expect(document.activeElement).toBe(get(w, 'access-program').element);
   });
@@ -188,7 +189,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     await click(w.get('dialog[open]'), 'confirm-yes');
     const note = w.get('dialog[open] [data-test="admin-problem"]');
     expect(note.attributes('data-code')).toBe('last_access_manager');
-    expect(note.text()).toBe('Đây là người quản lý phân quyền cuối cùng còn hoạt động. Cấp quyền này cho người khác trước khi thu hồi. Chưa đổi gì.');
+    expect(note.text()).toBe(ADMIN_MESSAGES.vi.problem.conflict.last_access_manager);
     expect(state(w, 'access_manager')[0]).toBe('held');
   });
 
@@ -201,7 +202,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     await click(w, 'access-grant-access_manager');
     const note = () => get(w, 'access-user').get('[data-test="admin-problem"]');
     expect(note().attributes('data-code')).toBe('recipient_deletion_pending');
-    expect(note().text()).toBe('Tài khoản đó đang chờ xóa nên không nhận quyền được. Chưa cấp gì.');
+    expect(note().text()).toBe(ADMIN_MESSAGES.vi.problem.conflict.recipient_deletion_pending);
     expect(state(w, 'access_manager')[0]).toBe('not-held');
     expect(useToast().message).toBe('');
 
@@ -233,7 +234,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
       },
     });
     await find(w, OWN_ID);
-    expect(get(w, 'access-own').text()).toBe('Tài khoản của bạn');
+    expect(get(w, 'access-own').text()).toBe(ADMIN_MESSAGES.vi.access.ownAccount);
     expect(get(globalRow(w, 'access_manager'), 'access-status').text()).toContain('Đang có');
     expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Phân quyền']);
     const before = calls(fetch, 'GET').filter((call) => pathOf(call) === '/admin/grants').length;
@@ -255,7 +256,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     });
     await find(w, OWN_ID);
     await click(w, 'access-revoke-access_manager');
-    expect(w.get('dialog[open]').text()).toContain('Đây là tài khoản của bạn: bạn sẽ mất quyền này ngay.');
+    expect(w.get('dialog[open]').text()).toContain(ADMIN_MESSAGES.vi.access.revokeOwn);
     await click(w.get('dialog[open]'), 'confirm-yes');
     expect(useToast().message).toBe('Đã thu hồi quyền “Quản lý phân quyền”.');
     expect(has(w, 'access-user')).toBe(false);
@@ -308,9 +309,9 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
     await flushPromises();
     await find(wrapper, capitals);
-    expect(get(wrapper, 'access-own').text()).toBe('Tài khoản của bạn');
+    expect(get(wrapper, 'access-own').text()).toBe(ADMIN_MESSAGES.vi.access.ownAccount);
     await click(wrapper, 'access-revoke-access_manager');
-    expect(wrapper.get('dialog[open]').text()).toContain('Đây là tài khoản của bạn: bạn sẽ mất quyền này ngay.');
+    expect(wrapper.get('dialog[open]').text()).toContain(ADMIN_MESSAGES.vi.access.revokeOwn);
     await click(wrapper.get('dialog[open]'), 'confirm-no');
     await click(wrapper, 'access-grant-catalog_maintainer');
     expect(wrapper.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV', 'Phân quyền']);
@@ -376,7 +377,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
       const reads = calls(fetch, 'GET').length;
       await click(w, 'access-grant-catalog_maintainer');
       expect(calls(fetch, 'GET').length).toBe(reads + 1);
-      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
       expect(state(w, 'catalog_maintainer')[0]).toBe('held');
       expect(useToast().message).toBe('');
 
@@ -409,7 +410,7 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
       await click(note, 'admin-reload');
       expect(state(w, 'catalog_maintainer')[0]).toBe('held');
       expect(get(w, 'access-user').find('[data-test="admin-problem"]').exists()).toBe(false);
-      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
       expect(useToast().message).toBe('');
     });
 
@@ -432,12 +433,12 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
       'GET /admin/access/programs': () => (down ? new Response(null, { status: 503 }) : Response.json(accessPrograms())),
     });
     await find(w, OTHER_USER_ID);
-    expect(get(w, 'access-failed').text()).toContain('Chưa tải được quyền của người dùng này.');
+    expect(get(w, 'access-failed').text()).toContain(ADMIN_MESSAGES.vi.access.lookupFailed);
     down = false;
     await get(w, 'access-failed').get('button').trigger('click');
     await flushPromises();
     expect(has(w, 'access-user')).toBe(true);
-    expect(get(w, 'access-programs-failed').text()).toContain('Chưa tải được danh sách chương trình.');
+    expect(get(w, 'access-programs-failed').text()).toContain(ADMIN_MESSAGES.vi.access.programsFailed);
     await get(w, 'access-programs-failed').get('button').trigger('click');
     await flushPromises();
     expect(optionsOf(get(w, 'access-program'))).toHaveLength(2);
@@ -447,9 +448,9 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     const { w } = await render();
     useLocale().set('en');
     await find(w, OTHER_USER_ID);
-    expect(w.get('#access-admin-title').text()).toBe('Administration access');
+    expect(w.get('#access-admin-title').text()).toBe(ADMIN_MESSAGES.en.access.heading);
     expect(state(w, 'catalog_maintainer')[1]).toMatch(/^Held · granted 20 Nov 2026, \d\d:\d\d$/);
-    expect(state(w, 'access_manager')[1]).toBe('Not held');
+    expect(state(w, 'access_manager')[1]).toBe(ADMIN_MESSAGES.en.access.notHeld);
     expect(get(w, 'access-grant-access_manager').attributes('aria-label')).toBe('Grant the permission Access manager');
     expect(get(w, 'access-program-grant').findAll('td')[1]!.text()).toBe(MANAGER_ID);
     expect(globalRow(w, 'catalog_maintainer').findAll('td')[0]!.text()).toContain('Held');
@@ -494,7 +495,7 @@ describe('AccessAdmin (UC-11 A2): an access manager adds a program', () => {
     });
     await click(w, 'program-add');
     const dialog = w.get('dialog[open]');
-    expect(dialog.get('h2').text()).toBe('Chương trình mới');
+    expect(dialog.get('h2').text()).toBe(ADMIN_MESSAGES.vi.programs.programNew);
     expect(dialog.findAll('input').map((field) => field.attributes('id'))).toEqual(['program-code', 'program-nameVi', 'program-nameEn', 'program-faculty']);
     await get(dialog, 'dialog-cancel').trigger('click');
     await flushPromises();
@@ -513,10 +514,10 @@ describe('AccessAdmin (UC-11 A2): an access manager adds a program', () => {
     const { w } = await render({ 'POST /admin/programs': status(409, { statusCode: 409, code: 'duplicate_code', message: 'x' }) });
     await fill(w);
     const note = w.get('dialog[open] [data-test="admin-problem"]');
-    expect(note.text()).toBe('Đã có chương trình mang mã này. Chưa lưu gì.');
+    expect(note.text()).toBe(ADMIN_MESSAGES.vi.programs.duplicateProgramCode);
     useLocale().set('en');
     await flushPromises();
-    expect(w.get('dialog[open] [data-test="admin-problem"]').text()).toBe('A program has this code already. Nothing was saved.');
+    expect(w.get('dialog[open] [data-test="admin-problem"]').text()).toBe(ADMIN_MESSAGES.en.programs.duplicateProgramCode);
   });
 
   it('settles a lost answer from the list of programs, and sends the program once', async () => {
@@ -532,7 +533,7 @@ describe('AccessAdmin (UC-11 A2): an access manager adds a program', () => {
     await fill(w);
     expect(calls(fetch, 'POST')).toHaveLength(1);
     expect(w.find('dialog[open]').exists()).toBe(false);
-    expect(get(w, 'program-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+    expect(get(w, 'program-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
   });
 
   it('says when the lost program is not in the list, and keeps the dialog to try again', async () => {
