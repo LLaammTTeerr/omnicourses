@@ -95,17 +95,17 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   });
 
   it('exports the account with every user table and no secret column', async () => {
-    const res = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
-    expect(res.headers['content-disposition']).toContain('attachment');
-    expect(res.body.user).toMatchObject({ id: userId, email, display_name: 'Test Student' });
-    expect(res.body.tables.sessions).toHaveLength(1);
-    for (const t of await findUserTables(db)) expect(res.body.tables).toHaveProperty(t.table);
+    const response = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
+    expect(response.headers['content-disposition']).toContain('attachment');
+    expect(response.body.user).toMatchObject({ id: userId, email, display_name: 'Test Student' });
+    expect(response.body.tables.sessions).toHaveLength(1);
+    for (const t of await findUserTables(db)) expect(response.body.tables).toHaveProperty(t.table);
     const [{ password_hash }] = await db.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
     const [{ token_hash }] = await db.query('SELECT token_hash FROM sessions WHERE user_id = $1', [userId]);
-    const body = JSON.stringify(res.body);
+    const body = JSON.stringify(response.body);
     expect(body).not.toContain(password_hash);
     expect(body).not.toContain(token_hash);
-    for (const key of ['password_hash', 'google_sub', 'token_hash']) expect(allKeys(res.body)).not.toContain(key);
+    for (const key of ['password_hash', 'google_sub', 'token_hash']) expect(allKeys(response.body)).not.toContain(key);
   });
 
   it('exports a date column as the date it holds, whatever the time zone of the server', async () => {
@@ -116,8 +116,8 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
       [userId, event],
     );
     try {
-      const res = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
-      const row = (res.body.tables.notifications as { calendar_event_id: string }[]).find((n) => n.calendar_event_id === event);
+      const response = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
+      const row = (response.body.tables.notifications as { calendar_event_id: string }[]).find((n) => n.calendar_event_id === event);
       expect(row).toMatchObject({ starts_on: '2026-11-25', ends_on: '2026-12-31' });
     } finally {
       await db.query('DELETE FROM notifications WHERE calendar_event_id = $1', [event]);
@@ -132,8 +132,8 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
       note text NOT NULL)`);
     try {
       await db.query(`INSERT INTO zz_shares VALUES ($1, $2, 'mine'), ($2, $1, 'theirs')`, [userId, other.id]);
-      const res = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
-      expect(res.body.tables.zz_shares).toEqual([{ user_id: userId, viewer_id: other.id, note: 'mine' }]);
+      const response = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
+      expect(response.body.tables.zz_shares).toEqual([{ user_id: userId, viewer_id: other.id, note: 'mine' }]);
     } finally {
       await db.query('DROP TABLE zz_shares');
       await db.query('DELETE FROM users WHERE id = $1', [other.id]);
@@ -174,8 +174,8 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
   });
 
   it('schedules deletion, signs out everywhere, and a sign-in within the grace period restores the account', async () => {
-    const res = await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
-    expect(new Date(res.body.purgeAfter).getTime()).toBeGreaterThan(Date.now() + 29 * DAY_MS);
+    const response = await http().delete('/api/users/me').set('Authorization', `Bearer ${token}`).send({ password }).expect(202);
+    expect(new Date(response.body.purgeAfter).getTime()).toBeGreaterThan(Date.now() + 29 * DAY_MS);
     await http().get('/api/users/me').set('Authorization', `Bearer ${token}`).expect(401);
 
     const signIn = await http().post('/api/auth/sign-in').send({ email, password }).expect(200);

@@ -114,7 +114,7 @@ describe('Curriculum administration API (e2e)', () => {
       await s.put(`${groupPath()}/courses/${E}`),
       await s.delete(groupPath()),
     ];
-    for (const res of refused) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+    for (const response of refused) expect([response.status, response.body.code, response.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
     const catalog = await s.patch(`/api/admin/catalog/courses/${E}`, { credits: 2 });
     expect([catalog.status, catalog.body.permission]).toEqual([403, 'catalog_maintainer']);
     const access = await s.put(`/api/admin/access/users/${stranger.userId}/programs/${apcs}`);
@@ -177,7 +177,7 @@ describe('Curriculum administration API (e2e)', () => {
       await as(maintainer.token).post('/api/admin/catalog/courses', { code: 'Z', nameVi: 'x', credits: 1 }),
       await as(admin.token).post(`/api/admin/programs/not-a-uuid/cohorts/${apcs2024}/requirement-groups`, { name: 'x', kind: 'elective' }),
     ];
-    for (const res of bad) expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+    for (const response of bad) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     expect((await readGroup('APCS', 2024, groupName)).courses.find((c) => c.code === B)!.prerequisites).toBeNull();
   });
 

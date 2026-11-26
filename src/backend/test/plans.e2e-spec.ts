@@ -39,8 +39,8 @@ describe('Plans API against PostgreSQL (e2e)', () => {
   ];
 
   async function newPlan(auth: Record<string, string>, body: Record<string, unknown> = {}) {
-    const res = await http().post('/api/plans').set(auth).send({ name: 'Main plan', programCode: program, cohortYear: 2030, ...body }).expect(201);
-    return res.body;
+    const response = await http().post('/api/plans').set(auth).send({ name: 'Main plan', programCode: program, cohortYear: 2030, ...body }).expect(201);
+    return response.body;
   }
 
   beforeAll(async () => {
@@ -105,8 +105,8 @@ describe('Plans API against PostgreSQL (e2e)', () => {
   it('refuses a new plan for a cohort onboarding does not offer, even one with a curriculum, and saves nothing', async () => {
     const { auth } = await student();
     for (const [programCode, cohortYear] of [[program, 2031], ['APCS', 2023]] as const) {
-      const res = await http().post('/api/plans').set(auth).send({ name: 'x', programCode, cohortYear }).expect(400);
-      expect(res.body.message).toBe(`Onboarding does not offer ${programCode} ${cohortYear} to students`);
+      const response = await http().post('/api/plans').set(auth).send({ name: 'x', programCode, cohortYear }).expect(400);
+      expect(response.body.message).toBe(`Onboarding does not offer ${programCode} ${cohortYear} to students`);
     }
     expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toEqual([]);
   });
@@ -215,7 +215,7 @@ describe('Plans API against PostgreSQL (e2e)', () => {
         await http().post(`/api/plans/${id}/duplicate`).set(intruder.auth).send({}),
         await http().delete(`/api/plans/${id}`).set(intruder.auth),
       ];
-      for (const res of answers) expect([res.status, res.body.message]).toEqual([404, 'No plan with this id']);
+      for (const response of answers) expect([response.status, response.body.message]).toEqual([404, 'No plan with this id']);
     }
     expect((await http().get('/api/plans').set(intruder.auth).expect(200)).body.plans).toEqual([]);
     expect((await http().get(`/api/plans/${plan.id}`).set(owner.auth).expect(200)).body).toMatchObject({ name: 'Main plan', terms: board() });

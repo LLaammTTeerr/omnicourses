@@ -23,10 +23,10 @@ describe('ShareBodyPipe', () => {
 
 describe('sharedPlanHeaders', () => {
   it('tells search engines and caches to keep nothing, then lets the request go on', () => {
-    const res = { setHeader: vi.fn() };
+    const response = { setHeader: vi.fn() };
     const next = vi.fn();
-    sharedPlanHeaders({} as Request, res as unknown as Response, next);
-    expect(res.setHeader.mock.calls).toEqual([
+    sharedPlanHeaders({} as Request, response as unknown as Response, next);
+    expect(response.setHeader.mock.calls).toEqual([
       ['X-Robots-Tag', 'noindex, nofollow'],
       ['Cache-Control', 'no-store'],
     ]);

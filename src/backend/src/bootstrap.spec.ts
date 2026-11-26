@@ -56,7 +56,7 @@ describe('configureApp', () => {
   });
 
   it('does not advertise the framework', async () => {
-    const res = await (await boot()).get('/api/anything');
-    expect(res.headers).not.toHaveProperty('x-powered-by');
+    const response = await (await boot()).get('/api/anything');
+    expect(response.headers).not.toHaveProperty('x-powered-by');
   });
 });

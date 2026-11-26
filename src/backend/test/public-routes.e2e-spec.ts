@@ -67,8 +67,8 @@ describe('Public routes (e2e)', () => {
     expect(routes.map((r) => r.key)).toContain('GET /api/users/me');
     const open: string[] = [];
     for (const { method, path, key } of routes.filter((r) => !PUBLIC_ROUTES.includes(r.key))) {
-      const res = await call(method, path);
-      if (res.status !== 401) open.push(`${key} answered ${res.status}`);
+      const response = await call(method, path);
+      if (response.status !== 401) open.push(`${key} answered ${response.status}`);
     }
     expect(open).toEqual([]);
   });

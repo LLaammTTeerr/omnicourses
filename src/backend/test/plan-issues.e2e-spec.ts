@@ -131,8 +131,8 @@ describe('Plan issues API (e2e)', () => {
     const plan = await newPlan(owner, [{ term: { year: 2030, number: 1 }, placements: [course(code(1))] }]);
     const stranger = await student();
     for (const id of [plan.id, randomUUID(), 'not-a-uuid']) {
-      const res = await http().get(`/api/plans/${id}/issues`).set(stranger);
-      expect([res.status, res.body.message, res.body.issues]).toEqual([404, 'No plan with this id', undefined]);
+      const response = await http().get(`/api/plans/${id}/issues`).set(stranger);
+      expect([response.status, response.body.message, response.body.issues]).toEqual([404, 'No plan with this id', undefined]);
     }
     await http().get(`/api/plans/${plan.id}/issues`).expect(401);
     await http().get(`/api/plans/${plan.id}/issues`).set(owner).expect(200);

@@ -52,18 +52,18 @@ describe('Plan sharing API (e2e)', () => {
   }
 
   async function share(auth: Record<string, string>, planId: string, body: Record<string, unknown> = {}): Promise<string> {
-    const res = await http().put(`/api/plans/${planId}/share`).set(auth).send(body).expect(200);
-    expect(res.body.token).toMatch(TOKEN);
-    return res.body.token;
+    const response = await http().put(`/api/plans/${planId}/share`).set(auth).send(body).expect(200);
+    expect(response.body.token).toMatch(TOKEN);
+    return response.body.token;
   }
 
   const read = (token: string) => http().get(`/api/shared-plans/${token}`);
 
   async function expectDead(token: string, why: string) {
-    const res = await read(token);
-    expect([res.status, res.body], why).toEqual([404, NOT_SHARED]);
-    expect(res.headers['x-robots-tag'], why).toBe('noindex, nofollow');
-    expect(res.headers['cache-control'], why).toBe('no-store');
+    const response = await read(token);
+    expect([response.status, response.body], why).toEqual([404, NOT_SHARED]);
+    expect(response.headers['x-robots-tag'], why).toBe('noindex, nofollow');
+    expect(response.headers['cache-control'], why).toBe('no-store');
   }
 
   beforeAll(async () => {
@@ -193,9 +193,9 @@ describe('Plan sharing API (e2e)', () => {
           await http().put(`/api/plans/${id}/share`).set(intruder.auth).send({ showName: true }),
           await http().delete(`/api/plans/${id}/share`).set(intruder.auth),
         ];
-        for (const res of answers) {
-          expect([res.status, res.body.message]).toEqual([404, 'No plan with this id']);
-          expect(JSON.stringify(res.body)).not.toContain(token);
+        for (const response of answers) {
+          expect([response.status, response.body.message]).toEqual([404, 'No plan with this id']);
+          expect(JSON.stringify(response.body)).not.toContain(token);
         }
       }
       expect((await http().get(`/api/plans/${plan.id}/share`).set(owner.auth).expect(200)).body.share).toMatchObject({ token, showName: false });
@@ -223,10 +223,10 @@ describe('Plan sharing API (e2e)', () => {
       await http().put('/api/users/me/transcript').set(owner.auth).send({ rows: [row] }).expect(200);
       const token = await share(owner.auth, plan.id);
 
-      const res = await read(token).expect(200);
-      expect(res.headers['x-robots-tag']).toBe('noindex, nofollow');
-      expect(res.headers['cache-control']).toBe('no-store');
-      const body = res.body;
+      const response = await read(token).expect(200);
+      expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+      expect(response.headers['cache-control']).toBe('no-store');
+      const body = response.body;
 
       expect(keys(body)).toEqual(KEYS.plan);
       expect(keys(body.curriculum)).toEqual(KEYS.curriculum);
@@ -371,9 +371,9 @@ describe('Plan sharing API (e2e)', () => {
       const before = (await read(token).expect(200)).body;
       const [rowBefore] = await db.query('SELECT * FROM plan_shares WHERE plan_id = $1', [plan.id]);
       for (const method of ['post', 'put', 'patch', 'delete'] as const) {
-        const res = await http()[method](`/api/shared-plans/${token}`).send({ showName: true, name: 'Changed', terms: [] });
-        expect([401, 404], method).toContain(res.status);
-        expect(res.body.message, method).not.toBe(NOT_SHARED.message);
+        const response = await http()[method](`/api/shared-plans/${token}`).send({ showName: true, name: 'Changed', terms: [] });
+        expect([401, 404], method).toContain(response.status);
+        expect(response.body.message, method).not.toBe(NOT_SHARED.message);
       }
       for (const method of ['get', 'put', 'delete'] as const) await http()[method](`/api/plans/${plan.id}/share`).set('Authorization', `Bearer ${token}`).expect(401);
       await http().put(`/api/plans/${plan.id}/placements`).set('Authorization', `Bearer ${token}`).send({ terms: [] }).expect(401);
@@ -602,9 +602,9 @@ describe('Plan sharing API (e2e)', () => {
   });
 
   describe('answers under /api/shared-plans that are not a plan', () => {
-    const expectHeaders = (res: request.Response, why: string) => {
-      expect(res.headers['x-robots-tag'], why).toBe('noindex, nofollow');
-      expect(res.headers['cache-control'], why).toBe('no-store');
+    const expectHeaders = (response: request.Response, why: string) => {
+      expect(response.headers['x-robots-tag'], why).toBe('noindex, nofollow');
+      expect(response.headers['cache-control'], why).toBe('no-store');
     };
 
     it('carry noindex and no-store: a longer path, the bare path, a path that cannot be decoded, another method', async () => {
@@ -712,7 +712,7 @@ describe('Plan sharing API (e2e)', () => {
       try {
         const pid = await backendPid(deletion);
         await deletion.query(`UPDATE users SET deletion_requested_at = now(), purge_after = now() + interval '30 days' WHERE id = $1`, [owner.userId]);
-        pending = http().put(`/api/plans/${plan.id}/share`).set(owner.auth).send({}).then((res) => res);
+        pending = http().put(`/api/plans/${plan.id}/share`).set(owner.auth).send({}).then((response) => response);
         await waitUntilAnySessionBlockedBy(db, pid);
         await deletion.query('DELETE FROM plan_shares WHERE user_id = $1', [owner.userId]);
         await deletion.commitTransaction();
@@ -731,13 +731,13 @@ describe('Plan sharing API (e2e)', () => {
       const { auth, userId } = await student();
       const plan = await newPlan(auth);
       const token = await share(auth, plan.id, { showName: true });
-      const res = await http().get('/api/users/me/export').set(auth).expect(200);
-      expect(res.body.tables.plan_shares).toEqual([{ id: expect.any(String), plan_id: plan.id, user_id: userId, show_name: true, show_transcript_checks: false, created_at: expect.any(String) }]);
+      const response = await http().get('/api/users/me/export').set(auth).expect(200);
+      expect(response.body.tables.plan_shares).toEqual([{ id: expect.any(String), plan_id: plan.id, user_id: userId, show_name: true, show_transcript_checks: false, created_at: expect.any(String) }]);
       await share(auth, plan.id, { showTranscriptChecks: true });
       const again = await http().get('/api/users/me/export').set(auth).expect(200);
       expect(again.body.tables.plan_shares).toEqual([{ id: expect.any(String), plan_id: plan.id, user_id: userId, show_name: true, show_transcript_checks: true, created_at: expect.any(String) }]);
       expect(JSON.stringify(again.body)).not.toContain(token);
-      expect(JSON.stringify(res.body)).not.toContain(token);
+      expect(JSON.stringify(response.body)).not.toContain(token);
       expect(await db.query('SELECT share_token FROM plan_shares WHERE plan_id = $1', [plan.id])).toEqual([{ share_token: token }]);
     });
   });

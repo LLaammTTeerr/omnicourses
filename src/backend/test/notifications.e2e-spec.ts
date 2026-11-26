@@ -74,10 +74,10 @@ describe('Notification inbox (e2e)', () => {
   const events = (program: string) => `/api/admin/programs/${program}/calendar-events`;
   async function enter(kind: string, startsOn: string, extra: object = {}, admin = adminA, program = programA): Promise<string> {
     const body = { academicYear: Number(startsOn.slice(0, 4)), term: 1, kind, startsOn, title: `Synthetic ${kind} ${startsOn}`, ...extra };
-    const res = await as(admin.token).post(events(program), body);
-    if (res.status === 400) return (await as(admin.token).post(events(program), { ...body, academicYear: body.academicYear - 1 }).expect(201)).body.id;
-    expect(res.status).toBe(201);
-    return res.body.id;
+    const response = await as(admin.token).post(events(program), body);
+    if (response.status === 400) return (await as(admin.token).post(events(program), { ...body, academicYear: body.academicYear - 1 }).expect(201)).body.id;
+    expect(response.status).toBe(201);
+    return response.body.id;
   }
 
   const inbox = async (user: Account, query = ''): Promise<Notice[]> => (await as(user.token).get(`/api/notifications${query}`).expect(200)).body.notifications;
@@ -666,15 +666,15 @@ describe('Notification inbox (e2e)', () => {
 
     it('refuses malformed query values with 400', async () => {
       for (const query of ['?unread=yes', '?unread=1', '?kind=party', '?kind=term_start&kind=party', '?kind=term_start&kind=term_start', '?limit=0', '?limit=101', '?limit=ten', '?limit=1.5', '?limit=1e2', '?limit=0x10', '?limit=%2B5', '?limit=%205', '?limit=5&limit=6', '?before=42']) {
-        const res = await as(owner.token).get(`/api/notifications${query}`);
-        expect(res.status, query).toBe(400);
+        const response = await as(owner.token).get(`/api/notifications${query}`);
+        expect(response.status, query).toBe(400);
       }
     });
 
     it("answers 404, never 403, for another student's notification, an unknown ID and a malformed ID, and changes nothing", async () => {
       for (const id of [othersNotice.id, randomUUID(), '42', 'not-a-uuid', "1' OR '1'='1"]) {
-        const res = await as(owner.token).post(`/api/notifications/${encodeURIComponent(id)}/read`);
-        expect([res.status, res.body.code], id).toEqual([404, 'not_found']);
+        const response = await as(owner.token).post(`/api/notifications/${encodeURIComponent(id)}/read`);
+        expect([response.status, response.body.code], id).toEqual([404, 'not_found']);
       }
       expect((await as(owner.token).get(`/api/notifications?before=${othersNotice.id}`).expect(404)).body.code).toBe('not_found');
       expect((await as(owner.token).get(`/api/notifications?before=${randomUUID()}`).expect(404)).body.code).toBe('not_found');
