@@ -66,6 +66,12 @@ describe('SharingService.read', () => {
     expect(issues.issuesFor).not.toHaveBeenCalled();
   });
 
+  it('reads nothing of the owner’s account but the display name', async () => {
+    const { svc, db } = service();
+    await svc.read(newShareToken());
+    expect(db.query.mock.calls[0]![0]).not.toMatch(/\*|password_hash|email|google_sub/);
+  });
+
   it('asks the rule engine about the plan it shows, read through the owner the link names, and without the transcript', async () => {
     const { svc, plans, issues, catalog } = service({ share: { planId: 'p1', userId: 'u1', ownerName: 'Test Student' } });
     const body = await svc.read(newShareToken());
@@ -119,7 +125,8 @@ describe('SharingService, the owner’s side', () => {
     const { svc, tx } = service();
     tx.query.mockResolvedValueOnce([{}]).mockResolvedValueOnce([row]);
     await expect(svc.share('u1', 'p1')).resolves.toEqual({ token: row.share_token, showName: false, showTranscriptChecks: false, createdAt: row.created_at });
-    const [, params] = tx.query.mock.calls[1]!;
+    const [sql, params] = tx.query.mock.calls[1]!;
+    expect(sql).toContain('WHERE "plan_shares"."user_id" = EXCLUDED."user_id"');
     expect(params).toEqual(['p1', 'u1', expect.stringMatching(/^[A-Za-z0-9_-]{43}$/), null, null]);
   });
 
