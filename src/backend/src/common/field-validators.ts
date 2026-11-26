@@ -1,6 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { TransformFnParams } from 'class-transformer';
-import { buildMessage, IsIn, IsInt, Max, Min, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
+import { applyDecorators } from '@nestjs/common';
+import { ApiProperty, type ApiPropertyOptions } from '@nestjs/swagger';
+import { Transform, TransformFnParams } from 'class-transformer';
+import { buildMessage, IsIn, IsInt, IsNotEmpty, IsString, Max, Min, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, type Term, TERM_NUMBERS } from '../terms/term.js';
 
 export const MaxCodePoints = (max: number) =>
@@ -48,6 +49,14 @@ export function changedFields<F extends string>(fields: readonly F[], stored: Re
 export const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
 export const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
 export const ifFilled = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null && value !== '');
+
+type TextFieldOptions = ApiPropertyOptions & { maxLength: number };
+
+export const RequiredTextField = (api: TextFieldOptions) =>
+  applyDecorators(MaxCodePoints(api.maxLength), IsNotEmpty(), NoNullCharacter, IsString(), Transform(trimString), ApiProperty(api));
+
+export const NullableTextField = (api: TextFieldOptions) =>
+  applyDecorators(MaxCodePoints(api.maxLength), NoNullCharacter, IsString(), ifSet, Transform(trimString), ApiProperty({ type: String, nullable: true, required: false, ...api } as ApiPropertyOptions));
 
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 

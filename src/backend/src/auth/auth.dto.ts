@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { Equals, IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
+import { RequiredTextField } from '../common/field-validators.js';
 import { UserDto } from '../users/user.dto.js';
 import { DISPLAY_NAME_MAX_LENGTH, EMAIL_MAX_LENGTH } from '../users/user.entity.js';
 
@@ -23,12 +23,7 @@ export class SignUpDto {
   @MaxLength(PASSWORD_MAX_LENGTH)
   password!: string;
 
-  @ApiProperty({ example: 'Nguyễn Văn A', maxLength: DISPLAY_NAME_MAX_LENGTH })
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(DISPLAY_NAME_MAX_LENGTH)
+  @RequiredTextField({ example: 'Nguyễn Văn A', maxLength: DISPLAY_NAME_MAX_LENGTH })
   displayName!: string;
 
   @ApiProperty({ description: 'Consent to the terms and the privacy notice. Must be true.', example: true })
