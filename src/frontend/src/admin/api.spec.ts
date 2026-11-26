@@ -4,6 +4,7 @@ import { API_URL } from '../api.js';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import * as api from './api.js';
+import { COURSE_CODE_PATTERN as API_COURSE_CODE_PATTERN } from '../../../backend/src/common/course-code.js';
 import { COURSE_CODE_PATTERN } from '../course-code.js';
 import {
   BYTES_PER_MIB,
@@ -175,8 +176,9 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     expect(csv).toContain(`At most ${IMPORT_MAX_BYTES / BYTES_PER_MIB} MiB and ${IMPORT_MAX_RECORDS.toLocaleString('en-GB')} data records.`);
   });
 
-  it('checks a course code with the pattern the catalog documents', () => {
-    expect(contract.components.schemas.CreateCourseDto.properties.code.description).toContain(COURSE_CODE_PATTERN.source);
+  it('checks a course code with the pattern the API checks', () => {
+    expect(COURSE_CODE_PATTERN.source).toBe(API_COURSE_CODE_PATTERN.source);
+    expect(COURSE_CODE_PATTERN.flags).toBe(API_COURSE_CODE_PATTERN.flags);
   });
 
   it('has the permissions of the contract', () => {

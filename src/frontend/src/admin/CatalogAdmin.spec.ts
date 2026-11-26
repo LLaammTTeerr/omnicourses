@@ -9,6 +9,7 @@ import { setup } from '../testing/signed-in.js';
 import type { UserGrants } from './api.js';
 import { useAdminAccess } from './store.js';
 import { AFFECTED_2024, AFFECTED_2025, CATALOG_MAINTAINER, catalogCourse, NO_GRANTS, SHARED_COURSE } from './testing/fixtures.js';
+import { ADMIN_MESSAGES } from './messages.js';
 
 const NOT_FOUND = status(404, { statusCode: 404, message: 'No course has this code', error: 'Not Found' });
 const lost = () => {
@@ -76,7 +77,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
   it('opens a course by its exact code, written as the catalog stores codes, with the curricula that use it', async () => {
     const { w, fetch } = await render();
     expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV']);
-    expect(w.get('#catalog-admin-title').text()).toBe('Danh mục học phần dùng chung');
+    expect(w.get('#catalog-admin-title').text()).toBe(ADMIN_MESSAGES.vi.catalog.heading);
     expect(get(w, 'catalog-find').attributes('disabled')).toBeDefined();
     await find(w, ' zz101 ');
     expect(fetch.mock.calls.map(pathOf)).toEqual(['/admin/grants', '/courses/ZZ101']);
@@ -87,7 +88,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(course.findAll('.catalog-facts > div').map((fact) => fact.text())).toEqual(['Tín chỉ4', 'Tiết lý thuyết (LT)45', 'Tiết thực hành (TH)30', 'Tiết bài tập (BT)Để trống', 'Tiết đồ án (ĐT)0']);
     expect(course.findAll('[data-test="catalog-membership"]').map((li) => li.text())).toEqual(['ZZPROG · Khóa 2024 · Kiến thức cơ sở thử', 'ZZPROG · Khóa 2025 · Nhóm thử khóa 2025']);
     await find(w, 'ZZ200');
-    expect(get(w, 'catalog-unused').text()).toBe('Chưa có chương trình đào tạo nào dùng học phần này.');
+    expect(get(w, 'catalog-unused').text()).toBe(ADMIN_MESSAGES.vi.catalog.usedInNone);
   });
 
   it('says when the catalog has no course with the code, and starts a new course from it', async () => {
@@ -96,7 +97,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(get(w, 'catalog-not-found').text()).toBe('Danh mục không có học phần mang mã ZZ999. Bấm “Thêm học phần” để tạo học phần mới với mã này.');
     expect(has(w, 'catalog-course')).toBe(false);
     const dialog = await open(w, 'catalog-add');
-    expect(dialog.get('h2').text()).toBe('Học phần mới');
+    expect(dialog.get('h2').text()).toBe(ADMIN_MESSAGES.vi.catalog.dialogNew);
     expect(value(dialog, 'course-code')).toBe('ZZ999');
     expect(get(dialog, 'course-code').attributes('readonly')).toBeUndefined();
   });
@@ -159,7 +160,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     await open(w, 'catalog-add');
     await submit(w);
     expect(problem(w).attributes('data-code')).toBe('duplicate_code');
-    expect(problem(w).text()).toBe('Danh mục đã có học phần mang mã này. Chưa lưu gì.');
+    expect(problem(w).text()).toBe(ADMIN_MESSAGES.vi.problem.conflict.duplicate_code);
     answer = status(403, { statusCode: 403, code: 'permission_required', permission: 'catalog_maintainer', message: 'This needs the catalog_maintainer permission' });
     await submit(w);
     expect(problem(w).attributes('data-code')).toBe('permission_required');
@@ -238,14 +239,14 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       });
       await find(w, 'ZZ101');
       let dialog = await open(w, 'catalog-edit');
-      expect(get(dialog, 'shared-warning').text()).toContain('Sửa ở đây đổi mọi chương trình đào tạo dùng học phần này');
+      expect(get(dialog, 'shared-warning').text()).toContain(ADMIN_MESSAGES.vi.catalog.sharedWarningTitle);
       expect(get(dialog, 'shared-warning').text()).toContain('Đang dùng: ZZPROG2024, ZZPROG2025.');
       await press(w, 'dialog-cancel');
 
       dialog = await startEdit(w);
       expect(sentBody(calls(fetch, 'PATCH')[0]![1])).toEqual({ nameVi: 'Học phần thử ZZ101 (sửa)', credits: 3 });
       const review = get(dialog, 'impact-review');
-      expect(dialog.get('h2').text()).toBe('Xem lại ảnh hưởng trước khi lưu');
+      expect(dialog.get('h2').text()).toBe(ADMIN_MESSAGES.vi.catalog.reviewTitle);
       expect(review.text()).toContain('sẽ đọc giá trị mới');
       expect(review.findAll('[data-test="impact-change"]').map((row) => row.findAll('th, td').map((cell) => cell.text()))).toEqual([
         ['Tên tiếng Việt', 'Học phần thử ZZ101', 'Học phần thử ZZ101 (sửa)'],
@@ -305,7 +306,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       const dialog = await startEdit(w);
       expect(document.activeElement).toBe(dialog.get('#course-dialog-title').element);
       expect(dialog.get('#course-dialog-title').attributes('tabindex')).toBe('-1');
-      expect(document.activeElement?.textContent).toBe('Xem lại ảnh hưởng trước khi lưu');
+      expect(document.activeElement?.textContent).toBe(ADMIN_MESSAGES.vi.catalog.reviewTitle);
       await press(w, 'impact-back');
       expect(document.activeElement).toBe(get(dialog, 'course-nameVi').element);
     });
@@ -329,7 +330,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       await press(w, 'impact-back');
       expect([value(dialog, 'course-nameEn'), value(dialog, 'course-labPeriods')]).toEqual(['Test course ZZ101 (new)', '15']);
       expect([value(dialog, 'course-nameVi'), value(dialog, 'course-credits')]).toEqual(['Học phần thử ZZ101 (sửa)', '3']);
-      expect(get(dialog, 'course-rebased').text()).toBe('Học phần này đã được sửa ở nơi khác trong lúc bạn xem lại. Các ô bạn chưa sửa đã được cập nhật theo giá trị hiện tại.');
+      expect(get(dialog, 'course-rebased').text()).toBe(ADMIN_MESSAGES.vi.catalog.rebased);
       await submit(w);
       expect(sentBody(calls(fetch, 'PATCH').at(-1)![1])).toEqual({ nameVi: 'Học phần thử ZZ101 (sửa)', credits: 3 });
     });
@@ -369,7 +370,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       await press(w, 'impact-confirm');
       expect(calls(fetch, 'PATCH')).toHaveLength(3);
       expect(w.find('dialog[open]').exists()).toBe(false);
-      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
       expect(useToast().message).toBe('');
       expect(get(w, 'catalog-credits').text()).toBe('Tín chỉ3');
     });
@@ -544,7 +545,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     let down = true;
     const { w } = await render({ 'GET /courses/ZZ200': () => (down ? new Response(null, { status: 503 }) : Response.json(saved.ZZ200)) });
     await find(w, 'ZZ200');
-    expect(get(w, 'catalog-failed').text()).toContain('Chưa tải được học phần.');
+    expect(get(w, 'catalog-failed').text()).toContain(ADMIN_MESSAGES.vi.catalog.lookupFailed);
     expect(has(w, 'catalog-not-found')).toBe(false);
     down = false;
     await get(w, 'catalog-failed').get('button').trigger('click');
@@ -561,10 +562,10 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(get(w, 'catalog-exercisePeriods').text()).toBe('Exercise periods (BT)Blank');
     expect(w.findAll('[data-test="catalog-membership"]')[0]!.text()).toBe('ZZPROG · Cohort 2024 · Kiến thức cơ sở thử');
     const dialog = await open(w, 'catalog-edit');
-    expect(get(dialog, 'shared-warning').text()).toContain('An edit here changes every curriculum that uses this course');
+    expect(get(dialog, 'shared-warning').text()).toContain(ADMIN_MESSAGES.en.catalog.sharedWarningTitle);
     await get(dialog, 'course-exercisePeriods').setValue('15');
     await submit(w);
-    expect(dialog.get('h2').text()).toBe('Review the impact before saving');
+    expect(dialog.get('h2').text()).toBe(ADMIN_MESSAGES.en.catalog.reviewTitle);
     expect(get(dialog, 'impact-change').findAll('th, td').map((cell) => cell.text())).toEqual(['Exercise periods (BT)', 'Blank', '15']);
     expect(get(dialog, 'impact-count').text()).toBe('1 curriculum affected');
     expect(get(dialog, 'impact-confirm').text()).toBe('Confirm and save');
@@ -599,7 +600,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     for (const typed of ['..', 'zz-1']) {
       await find(w, typed);
       const note = get(w, 'catalog-not-found').text();
-      expect(note).not.toContain('Thêm học phần');
+      expect(note).not.toContain(ADMIN_MESSAGES.vi.catalog.add);
       expect(note).toContain('Mã học phần gồm 2 đến 20 chữ cái A–Z hoặc chữ số');
       const dialog = await open(w, 'catalog-add');
       expect(value(dialog, 'course-code')).toBe('');

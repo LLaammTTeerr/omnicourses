@@ -5,6 +5,7 @@ import { useLocale } from '../locale.js';
 import { mockApi } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import PrivacyView from './PrivacyView.vue';
+import { PRIVACY_MESSAGES } from './messages.js';
 
 let wrapper: VueWrapper | undefined;
 
@@ -31,7 +32,7 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
   it('opens signed out, with no API call', async () => {
     const { w, router, fetch } = await render();
     expect(router.currentRoute.value.name).toBe('privacy');
-    expect(w.get('h1').text()).toBe('Quyền riêng tư');
+    expect(w.get('h1').text()).toBe(PRIVACY_MESSAGES.vi.title);
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -44,7 +45,7 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
     }
     expect(stored[0]).toContain('thời điểm bạn đồng ý');
     const text = w.text();
-    expect(text).toContain('Đến khi bạn xóa tài khoản.');
+    expect(text).toContain(PRIVACY_MESSAGES.vi.kept);
     expect(text).toContain('Sau 30 ngày');
     expect(text).toContain('Đăng nhập lại trước hạn đó sẽ hủy việc xóa.');
     expect(text).toContain('14 bản gần nhất');
@@ -70,7 +71,7 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
     expect(document.documentElement.lang).toBe('en');
     const text = w.text();
     expect(text).not.toMatch(/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i);
-    expect(text).toContain('Until you delete your account.');
+    expect(text).toContain(PRIVACY_MESSAGES.en.kept);
     expect(text).toContain('After 30 days');
     expect(text).toContain('Signing in again before then cancels the deletion.');
     expect(text).toContain('AI usage counts');

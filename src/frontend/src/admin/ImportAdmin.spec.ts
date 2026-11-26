@@ -8,6 +8,7 @@ import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { CatalogImportPreview, GroupLinkImportPreview, UserGrants } from './api.js';
 import { AFFECTED_2024, AFFECTED_2025, adminPrograms, CATALOG_MAINTAINER, CURRICULUM_2025_ID, CURRICULUM_ID, EVERY_GRANT, GROUP_BASE_ID, PROGRAM_ADMIN, PROGRAM_ID } from './testing/fixtures.js';
+import { ADMIN_MESSAGES } from './messages.js';
 
 const CATALOG = '/admin/catalog/imports';
 const LINKS = (curriculumId: string) => `/admin/programs/${PROGRAM_ID}/cohorts/${curriculumId}/imports`;
@@ -109,7 +110,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     await press(w, 'import-copy-header');
     expect(writeText).toHaveBeenCalledWith('code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods');
-    expect(useToast().message).toBe('Đã chép tiêu đề.');
+    expect(useToast().message).toBe(ADMIN_MESSAGES.vi.import.headerCopied);
     wrapper!.unmount();
 
     own = PROGRAM_ADMIN;
@@ -182,7 +183,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     await previewFile(w);
     await press(w, 'import-cancel');
     expect(posts(fetch).map(([path]) => path)).toEqual([`${CATALOG}/preview`]);
-    expect(useToast().message).toBe('Đã bỏ tệp. Chưa lưu gì.');
+    expect(useToast().message).toBe(ADMIN_MESSAGES.vi.import.cancelled);
     expect(has(w, 'import-result')).toBe(false);
     expect(disabled(w, 'import-preview')).toBe(true);
   });
@@ -200,7 +201,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     await choose(w, CATALOG_CSV);
     await previewFile(w);
     await press(w, 'import-confirm');
-    expect(get(w, 'import-changed').text()).toBe('Từ lúc xem trước, tệp hoặc dữ liệu đã lưu đã đổi. Chưa lưu gì. Kết quả dưới đây là bản xem trước mới: xem lại rồi xác nhận lần nữa.');
+    expect(get(w, 'import-changed').text()).toBe(ADMIN_MESSAGES.vi.import.reviewChanged);
     expect(has(w, 'admin-problem')).toBe(false);
     expect(previews).toBe(2);
     await press(w, 'import-confirm');
@@ -244,7 +245,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     useLocale().set('en');
     await choose(w, CATALOG_CSV);
     await previewFile(w);
-    expect(get(w, 'admin-problem').text()).toBe('The request is over a size limit of the server. A CSV file may have up to 1 MiB and 1,000 records when your account may import that type of file; otherwise a request may have only up to 100 KiB. Split the file into smaller files. Nothing was saved.');
+    expect(get(w, 'admin-problem').text()).toBe(ADMIN_MESSAGES.en.problem.tooLarge);
   });
 
   it('sends no file over 1 MiB, with more than 1,000 records, or that is not UTF-8, and says why', async () => {
@@ -256,7 +257,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     await choose(w, `requirement_group_name,course_code\n${'Nhóm thử,ZZ101\n'.repeat(1001)}`);
     expect(get(w, 'import-file-problem').text()).toBe('Tệp có 1001 bản ghi, quá 1.000. Chia thành nhiều tệp nhỏ hơn. Chưa gửi gì.');
     await choose(w, new Uint8Array([0x63, 0x6f, 0x64, 0x65, 0x0a, 0x4d, 0xf4, 0x6e]));
-    expect(get(w, 'import-file-problem').text()).toBe('Tệp này không phải văn bản UTF-8. Lưu lại tệp dưới dạng “CSV UTF-8” rồi chọn lại. Chưa gửi gì.');
+    expect(get(w, 'import-file-problem').text()).toBe(ADMIN_MESSAGES.vi.import.notUtf8);
     expect(posts(fetch)).toEqual([]);
   });
 
@@ -281,7 +282,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     it('says saved when the file previews again as nothing to do, and never sends it twice', async () => {
       const { w, fetch } = await lose(() => Response.json(appliedPreview()));
       expect(confirms(fetch)).toHaveLength(1);
-      expect(get(w, 'admin-notice').text()).toBe('Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này.');
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
       expect(has(w, 'import-result')).toBe(false);
     });
 
@@ -395,7 +396,7 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     const { w } = await render('/admin/import?type=catalog_courses', { [`POST ${CATALOG}/preview`]: appliedPreview() });
     await choose(w, CATALOG_CSV);
     await previewFile(w);
-    expect(get(w, 'import-nothing').text()).toBe('Mọi bản ghi đều giống dữ liệu đã lưu. Không có gì để lưu.');
+    expect(get(w, 'import-nothing').text()).toBe(ADMIN_MESSAGES.vi.import.nothingToSave);
     expect(disabled(w, 'import-confirm')).toBe(true);
   });
 });

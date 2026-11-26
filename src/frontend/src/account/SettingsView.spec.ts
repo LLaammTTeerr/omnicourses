@@ -10,6 +10,7 @@ import { useToast } from '../shell/toast.js';
 import { closeNatively, hung, mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SettingsView from './SettingsView.vue';
+import { SETTINGS_MESSAGES } from './messages.js';
 
 const PHONE = session({
   id: '00000000-0000-4000-8000-0000000000b2',
@@ -46,7 +47,7 @@ describe('SettingsView', () => {
 
   it('shows the profile the API knows', async () => {
     const { w } = await render();
-    expect(w.get('h1').text()).toBe('Cài đặt');
+    expect(w.get('h1').text()).toBe(SETTINGS_MESSAGES.vi.title);
     expect(w.get('[data-test="display-name"]').text()).toBe('Sinh viên thử');
     expect(w.text()).toContain('zz-student@example.com');
   });
@@ -66,12 +67,12 @@ describe('SettingsView', () => {
     const { w, fetch } = await render();
     const calls = fetch.mock.calls.length;
     const copy = w.get('[data-test="copy-user-id"]');
-    expect(copy.text()).toBe('Sao chép');
+    expect(copy.text()).toBe(SETTINGS_MESSAGES.vi.copy);
     (copy.element as HTMLElement).focus();
     await copy.trigger('click');
     await flushPromises();
     expect(writeText).toHaveBeenCalledExactlyOnceWith('00000000-0000-4000-8000-000000000001');
-    expect(useToast().message).toBe('Đã sao chép mã người dùng.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.userIdCopied);
     expect(document.activeElement).toBe(copy.element);
     expect(fetch.mock.calls.length).toBe(calls);
     vi.unstubAllGlobals();
@@ -85,7 +86,7 @@ describe('SettingsView', () => {
     await flushPromises();
     const field = w.get('[data-test="user-id"]').element as HTMLInputElement;
     expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
-    expect(useToast().message).toBe('Chưa sao chép được. Mã đã được chọn sẵn: bấm Ctrl+C để sao chép.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.userIdNotCopied);
     vi.unstubAllGlobals();
   });
 
@@ -114,7 +115,7 @@ describe('SettingsView', () => {
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining(`/auth/sessions/${PHONE.id}`), expect.objectContaining({ method: 'DELETE' }));
     expect(rows(w)).toHaveLength(1);
     expect(w.find('dialog[open]').exists()).toBe(false);
-    expect(useToast().message).toBe('Đã thu hồi phiên.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.revoked);
   });
 
   it('keeps the session when the student cancels', async () => {
@@ -148,7 +149,7 @@ describe('SettingsView', () => {
     const { w } = await render({ 'GET /users/me/export': status(500) });
     await w.findAll('button').find((b) => b.text().includes('Xuất dữ liệu'))!.trigger('click');
     await flushPromises();
-    expect(w.get('#data [role="alert"]').text()).toBe('Chưa xuất được dữ liệu. Thử lại sau ít phút.');
+    expect(w.get('#data [role="alert"]').text()).toBe(SETTINGS_MESSAGES.vi.exportFailed);
   });
 
   async function openDeletion(w: VueWrapper) {
@@ -175,7 +176,7 @@ describe('SettingsView', () => {
     await dialog.get('#delete-password').setValue('zz-wrong-password');
     await dialog.get('form').trigger('submit');
     await flushPromises();
-    expect(dialog.get('[role="alert"]').text()).toBe('Mật khẩu không đúng.');
+    expect(dialog.get('[role="alert"]').text()).toBe(SETTINGS_MESSAGES.vi.wrongPassword);
     expect(dialog.get('#delete-password').attributes('aria-invalid')).toBe('true');
     expect(useAuth().signedIn).toBe(true);
     expect(router.currentRoute.value.name).toBe('settings');
@@ -197,7 +198,7 @@ describe('SettingsView', () => {
 
     answer(status(403, { message: 'Wrong password' })());
     await flushPromises();
-    expect(w.get('dialog[open] [role="alert"]').text()).toBe('Mật khẩu không đúng.');
+    expect(w.get('dialog[open] [role="alert"]').text()).toBe(SETTINGS_MESSAGES.vi.wrongPassword);
     expect(useAuth().signedIn).toBe(true);
   });
 
@@ -261,7 +262,7 @@ describe('SettingsView', () => {
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/sign-out'), expect.objectContaining({ method: 'POST' }));
     expect(useAuth().signedIn).toBe(false);
     expect(router.currentRoute.value.name).toBe('home');
-    expect(useToast().message).toBe('Đã đăng xuất.');
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.signedOut);
   });
 
   it('switches the theme and the language', async () => {
@@ -286,7 +287,7 @@ describe('SettingsView', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let calls = 0;
     const { w } = await render({ 'GET /auth/sessions': () => (calls++ === 0 ? new Response(null, { status: 500 }) : Response.json([HERE])) });
-    expect(w.get('#security [role="alert"]').text()).toContain('Chưa tải được danh sách phiên.');
+    expect(w.get('#security [role="alert"]').text()).toContain(SETTINGS_MESSAGES.vi.sessionsFailed);
     await w.get('#security [role="alert"] button').trigger('click');
     await flushPromises();
     expect(rows(w)).toHaveLength(1);

@@ -8,6 +8,7 @@ import { NOT_STARTED, type Onboarding } from './api.js';
 import StudySettings from './StudySettings.vue';
 import { onboarding } from './testing/fixtures.js';
 import { chooseOption } from '../testing/select.js';
+import { GOAL_MESSAGES, STUDY_MESSAGES } from './messages.js';
 
 const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced', cohortYears: [2024, 2025] }];
 
@@ -45,14 +46,14 @@ describe('StudySettings (UC-01 A9)', () => {
     expect(cohort!.text()).toBe('Khóa 2024');
     expect(w.get('#study-graduation').text()).toBe('HK2 2027–2028');
     expect(value(w, '#study-credits')).toBe('18');
-    expect(w.get('#study-internship').text()).toBe('Không thực tập');
+    expect(w.get('#study-internship').text()).toBe(GOAL_MESSAGES.vi.noInternship);
 
     await chooseOption(cohort!, 'Khóa 2025');
     await w.get('#study-credits').setValue('');
     await w.get('form').trigger('submit');
     await flushPromises();
     expect(sentBody(fetch.mock.calls.find(([, init]) => init?.method === 'PUT')![1])).toEqual(onboarding({ cohort: 2025, creditsPerTerm: null }));
-    expect(useToast().message).toBe('Đã lưu chương trình và mục tiêu.');
+    expect(useToast().message).toBe(STUDY_MESSAGES.vi.saved);
   });
 
   it('does not send credits that are not a whole number of 1 or more', async () => {
@@ -60,7 +61,7 @@ describe('StudySettings (UC-01 A9)', () => {
     await w.get('#study-credits').setValue('2,5');
     await w.get('form').trigger('submit');
     await flushPromises();
-    expect(w.get('[data-test="credits-error"]').text()).toBe('Nhập một số nguyên từ 1 trở lên.');
+    expect(w.get('[data-test="credits-error"]').text()).toBe(GOAL_MESSAGES.vi.creditsProblems.whole);
     expect(fetch.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
   });
 
