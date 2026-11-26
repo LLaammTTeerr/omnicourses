@@ -20,6 +20,20 @@ describe('navigation', () => {
     expect(PUBLIC_NAV.map((item) => item.route)).toEqual(['guides']);
   });
 
+  it('gives each page its section and icon', () => {
+    expect(NAV.map(({ route, section, icon }) => ({ route, section, icon }))).toEqual([
+      { route: 'dashboard', section: 'main', icon: 'home' },
+      { route: 'calendar', section: 'main', icon: 'calendar' },
+      { route: 'audit', section: 'main', icon: 'audit' },
+      { route: 'transcript', section: 'main', icon: 'file' },
+      { route: 'explorer', section: 'main', icon: 'graph' },
+      { route: 'plans', section: 'main', icon: 'columns' },
+      { route: 'guides', section: 'main', icon: 'book' },
+      { route: 'settings', section: 'account', icon: 'sliders' },
+      { route: 'admin', section: 'account', icon: 'db' },
+    ]);
+  });
+
   it('lists each page once', () => {
     expect(new Set(NAV.map((item) => item.route)).size).toBe(NAV.length);
   });

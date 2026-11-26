@@ -70,7 +70,14 @@ export const routes: RouteRecordRaw[] = [
     component: AuditView,
     meta: {
       ...APP,
-      menu: { icon: 'audit', label: { vi: 'Xét tốt nghiệp', en: 'Degree audit' }, tab: { vi: 'Tốt nghiệp', en: 'Audit' }, group: 'gen', section: 'main', phoneTab: 3 },
+      menu: {
+        icon: 'audit',
+        label: { vi: 'Xét tốt nghiệp', en: 'Degree audit' },
+        tab: { vi: 'Tốt nghiệp', en: 'Audit' },
+        group: 'gen',
+        section: 'main',
+        phoneTab: 3,
+      },
     },
   },
   {
@@ -103,7 +110,11 @@ export const routes: RouteRecordRaw[] = [
     path: '/guides',
     name: 'guides',
     component: GuidesView,
-    meta: { layout: 'auto', keepAlive: true, menu: { icon: 'book', label: { vi: 'Hướng dẫn', en: 'Guides' }, group: 'math', section: 'main', visitors: true } },
+    meta: {
+      layout: 'auto',
+      keepAlive: true,
+      menu: { icon: 'book', label: { vi: 'Hướng dẫn', en: 'Guides' }, group: 'math', section: 'main', visitors: true },
+    },
   },
   { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
   { path: '/privacy', name: 'privacy', component: PrivacyView, meta: { layout: 'auto' } },
@@ -111,7 +122,11 @@ export const routes: RouteRecordRaw[] = [
     path: '/settings',
     name: 'settings',
     component: SettingsView,
-    meta: { ...APP, onboarding: 'optional', menu: { icon: 'sliders', label: { vi: 'Cài đặt', en: 'Settings' }, group: 'thesis', section: 'account' } },
+    meta: {
+      ...APP,
+      onboarding: 'optional',
+      menu: { icon: 'sliders', label: { vi: 'Cài đặt', en: 'Settings' }, group: 'thesis', section: 'account' },
+    },
   },
   {
     path: '/admin',
