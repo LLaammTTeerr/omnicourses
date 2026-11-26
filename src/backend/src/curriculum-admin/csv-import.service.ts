@@ -231,6 +231,8 @@ export class CsvImportService {
     private readonly curricula: CurriculumAdminService,
   ) {}
 
+  // ---- Catalog courses ---------------------------------------------------------------------
+
   // In every method the caller's grant is checked before the file is read, so a caller
   // without it gets 403 for any file and learns nothing from a 400 or a 413. A confirmation
   // checks once outside the write lock, reads the file, then checks again under the lock.
@@ -242,6 +244,8 @@ export class CsvImportService {
   confirmCatalog(callerId: string, dto: ImportConfirmRequestDto): Promise<ImportResultDto> {
     return this.guarded(async () => ({ fileType: CATALOG_FILE, summary: await this.confirm(this.catalogFlow(), callerId, dto) }));
   }
+
+  // ---- Group links -------------------------------------------------------------------------
 
   previewLinks(callerId: string, programId: string, curriculumId: string, dto: ImportPreviewRequestDto): Promise<GroupLinkImportPreviewDto> {
     return this.guarded(async () => {
