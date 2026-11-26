@@ -72,7 +72,7 @@ async function save(): Promise<void> {
     toast.show(m.value.saved(saved.length));
   } catch (e) {
     const code = statusOf(e);
-    if (code === 401) return; // App.vue takes the student to sign in.
+    if (code === 401) return;
     if (code === 400) saveError.value = m.value.saveRefused;
     else {
       console.error('Saving the transcript failed:', e);

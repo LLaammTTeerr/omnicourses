@@ -46,7 +46,7 @@ async function confirm(): Promise<void> {
     toast.show(m.value.deleted(formatDateTime(purgeAfter, locale.lang)));
   } catch (e) {
     const kind = failureKind(e);
-    if (kind === 'unauthorized') return; // Signed out elsewhere: App.vue takes the student to sign in.
+    if (kind === 'unauthorized') return;
     if (kind === 'forbidden') error.value = m.value.wrongPassword;
     else if (kind === 'rate_limited') error.value = m.value.rateLimited;
     else {

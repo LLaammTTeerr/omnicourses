@@ -98,7 +98,7 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     });
     expect(router.currentRoute.value.fullPath).toBe('/transcript');
     expect(useToast().message).toBe('Đã lưu. Bạn có thể đổi các câu trả lời này trong Cài đặt.');
-  }, 15_000); // Four steps and four saves: slower than the rest on a busy machine.
+  }, 15_000);
 
   it('resumes at the first unanswered step (A8)', async () => {
     const { w } = await render(onboarding({ finished: false, targetGraduationTerm: null }));
