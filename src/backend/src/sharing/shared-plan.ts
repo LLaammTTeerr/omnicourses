@@ -25,7 +25,7 @@ export const WITHHELD_ISSUE_CODES: PlanIssueCode[] = notAmong(SHARED_ISSUE_CODES
 
 const WITH_TRANSCRIPT_CHECKS: readonly PlanIssueCode[] = [...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES];
 
-export interface SharedPlanSource {
+interface SharedPlanSource {
   plan: PlanDto;
   report: PlanIssuesReport;
   courses: ReadonlyMap<string, CourseSummary>;

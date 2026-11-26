@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { Public } from '../auth/auth.decorators.js';
 
-export class HealthDto {
+class HealthDto {
   @ApiProperty({ enum: ['ok', 'degraded'] })
   status!: 'ok' | 'degraded';
 

@@ -4,7 +4,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import { AdminErrorDto } from '../common/api-errors.js';
 import { grantsOf, missingPermission, type Need, type PermissionKind } from './grants.js';
 
-export class PermissionRequiredDto extends AdminErrorDto {
+class PermissionRequiredDto extends AdminErrorDto {
   @ApiProperty({ enum: ['program_admin', 'catalog_maintainer', 'access_manager'], description: 'The grant the caller lacks' })
   permission!: PermissionKind;
 }

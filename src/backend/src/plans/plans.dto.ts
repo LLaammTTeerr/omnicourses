@@ -52,7 +52,7 @@ const ONLY_FOR = (kind: PlacementKind) =>
   });
 const sentFor = (kind: PlacementKind, field: keyof PlanPlacementDto) => (p: PlanPlacementDto) => p.kind === kind || (p[field] !== null && p[field] !== undefined);
 
-export class PlanPlacementDto implements Placement {
+class PlanPlacementDto implements Placement {
   @ApiProperty({ enum: PLACEMENT_KINDS, description: 'course: a course of the catalog. slot: credits held for a requirement group, no course chosen yet.' })
   @IsIn(PLACEMENT_KINDS)
   kind!: PlacementKind;
@@ -79,7 +79,7 @@ export class PlanPlacementDto implements Placement {
   credits!: number | null;
 }
 
-export class PlanTermDto implements BoardTerm {
+class PlanTermDto implements BoardTerm {
   @ApiProperty({ type: TermDto })
   @IsDefined()
   @ValidateNested()
@@ -163,7 +163,7 @@ export class DuplicatePlanDto {
   name?: string;
 }
 
-export class PlanCurriculumDto {
+class PlanCurriculumDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 

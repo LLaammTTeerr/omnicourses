@@ -14,7 +14,7 @@ export const IMPORT_JSON_LIMIT_BYTES = 7 * MIB;
 
 type LargeBodyGate = (authorization: string | undefined, need: Need) => Promise<boolean>;
 
-export function importJsonBody(globalPrefix: string, mayUseLargeParser: LargeBodyGate): RequestHandler {
+function importJsonBody(globalPrefix: string, mayUseLargeParser: LargeBodyGate): RequestHandler {
   const parseLargeJson = json({ limit: IMPORT_JSON_LIMIT_BYTES, inflate: false });
   const cohort = COHORT_IMPORTS.replace(':programId', '(?<programId>[^/]+)').replace(':curriculumId', '[^/]+');
   const importRoute = new RegExp(`^/${globalPrefix}/(?:${CATALOG_IMPORTS}|${cohort})/(?:${IMPORT_STEPS.join('|')})$`);

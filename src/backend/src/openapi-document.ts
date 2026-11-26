@@ -32,7 +32,7 @@ const sortPathItem = <T extends object>(pathItem: T): T =>
       .map(({ entry }) => entry),
   ) as T;
 
-export function sortOpenApi(document: OpenAPIObject): OpenAPIObject {
+function sortOpenApi(document: OpenAPIObject): OpenAPIObject {
   const components = document.components && {
     ...document.components,
     ...(document.components.schemas && { schemas: byKey(document.components.schemas) }),

@@ -41,7 +41,7 @@ export class ImportSummaryDto {
   noOps!: number;
 }
 
-export class CatalogImportRowDto extends CourseDto {
+class CatalogImportRowDto extends CourseDto {
   @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
 
@@ -84,7 +84,7 @@ export class CatalogImportPreviewDto extends ImportPreviewDto {
   affectedCurricula!: AffectedCurriculumDto[];
 }
 
-export class GroupLinkImportRowDto {
+class GroupLinkImportRowDto {
   @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
 

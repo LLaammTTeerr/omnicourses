@@ -8,7 +8,7 @@ import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entitie
 export const NAME_MAX_LENGTH = 255;
 const MAX_PREREQUISITES = 50;
 
-export class AdminCurriculumDto {
+class AdminCurriculumDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -266,7 +266,7 @@ export class AccessProgramListDto {
   programs!: AccessProgramDto[];
 }
 
-export class ProgramGrantDto {
+class ProgramGrantDto {
   @ApiProperty({ format: 'uuid' })
   programId!: string;
 
@@ -280,7 +280,7 @@ export class ProgramGrantDto {
   grantedBy!: string | null;
 }
 
-export class GlobalGrantDto {
+class GlobalGrantDto {
   @ApiProperty({ enum: GLOBAL_PERMISSIONS })
   permission!: GlobalPermission;
 

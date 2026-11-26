@@ -10,7 +10,7 @@ export const MAX_TRANSCRIPT_ROWS = 300;
 const MAX_ROW_CREDITS = 30;
 const MAX_GRADE = 10;
 
-export class TranscriptRowDto implements TranscriptEntry {
+class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'CSC10001' })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   @IsString()

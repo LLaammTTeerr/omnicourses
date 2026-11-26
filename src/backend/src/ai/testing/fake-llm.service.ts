@@ -2,7 +2,7 @@ import { AI_REASONS, AiUnavailableError } from '../ai-unavailable.error.js';
 import type { ChatEvent, ChatRequest, StructuredRequest } from '../llm.service.js';
 import { LlmService } from '../llm.service.js';
 
-export type FakeChatStep = { text: string } | { tool: string; args: unknown };
+type FakeChatStep = { text: string } | { tool: string; args: unknown };
 
 export class FakeLlmService extends LlmService {
   readonly structuredCalls: StructuredRequest<unknown>[] = [];

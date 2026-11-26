@@ -2,7 +2,7 @@ import type { EntityManager } from 'typeorm';
 import type { GlobalPermission } from './admin-grant.entities.js';
 import type { UserGrantsDto } from './curriculum-admin.dto.js';
 
-export interface Grants {
+interface Grants {
   programIds: ReadonlySet<string>;
   permissions: ReadonlySet<GlobalPermission>;
 }

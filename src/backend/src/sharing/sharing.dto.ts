@@ -43,7 +43,7 @@ export class PlanShareStateDto {
   share!: PlanShareDto | null;
 }
 
-export class SharedProgramDto {
+class SharedProgramDto {
   @ApiProperty({ example: 'APCS' })
   code!: string;
 
@@ -54,7 +54,7 @@ export class SharedProgramDto {
   nameEn!: string | null;
 }
 
-export class SharedCurriculumDto {
+class SharedCurriculumDto {
   @ApiProperty({ example: 'APCS2024', description: 'The curriculum version the plan was made with.' })
   code!: string;
 
@@ -91,7 +91,7 @@ export class SharedPlacementDto {
   requirementGroupName!: string | null;
 }
 
-export class SharedPlanTermDto extends PlanTermLoadDto {
+class SharedPlanTermDto extends PlanTermLoadDto {
   @ApiProperty({ example: 16, description: "The term's load as the rule engine counts it: courses at their catalog credits plus slots at theirs." })
   declare credits: number;
 
@@ -154,12 +154,12 @@ export class SharedPlanIssueDto {
   combinedMinimumName?: string | null;
 }
 
-export class SharedGroupCoverageDto extends OmitType(PlanGroupCoverageDto, ['id'] as const) {
+class SharedGroupCoverageDto extends OmitType(PlanGroupCoverageDto, ['id'] as const) {
   @ApiProperty({ description: 'Credits passed, in progress or placed, toward the cohort total.' })
   declare credits: number;
 }
 
-export class SharedCombinedMinimumCoverageDto extends OmitType(PlanCombinedMinimumCoverageDto, ['id'] as const) {}
+class SharedCombinedMinimumCoverageDto extends OmitType(PlanCombinedMinimumCoverageDto, ['id'] as const) {}
 
 export class SharedPlanCoverageDto {
   @ApiProperty({ type: [SharedGroupCoverageDto] })

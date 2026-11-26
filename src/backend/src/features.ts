@@ -18,6 +18,6 @@ import { UsersModule } from './users/users.module.js';
 
 export const FEATURE_MODULES = [HealthModule, UsersModule, AuthModule, AiModule, TranscriptModule, GuidesModule, CurriculumModule, OnboardingModule, AuditModule, PlansModule, CurriculumAdminModule, AcademicCalendarModule, SharingModule, NotificationsModule, AccountModule];
 
-export type FeatureSetup = (app: INestApplication, globalPrefix: string) => void;
+type FeatureSetup = (app: INestApplication, globalPrefix: string) => void;
 
 export const FEATURE_SETUPS: FeatureSetup[] = [installImportBodyLimit];

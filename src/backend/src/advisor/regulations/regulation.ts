@@ -18,7 +18,7 @@ export interface RegulationOverride {
   replacement: string[];
 }
 
-export interface Clause {
+interface Clause {
   id: string;
   label: string;
   level: 'article' | 'khoan' | 'diem';
@@ -342,7 +342,7 @@ export function extractRegulation(source: RegulationSource, pdftotext: string, o
 const LABEL =
   /^Điều (\d+)(?:, khoản (\d+)(?: \((thứ hai|thứ ba|thứ tư)\))?(?:, điểm ([a-zđ])(?: \((thứ hai|thứ ba|thứ tư)\))?)?)?$/u;
 
-export interface ParsedLabel {
+interface ParsedLabel {
   article: number;
   khoan: number | null;
   khoanOccurrence: number;

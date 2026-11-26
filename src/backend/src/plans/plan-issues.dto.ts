@@ -19,7 +19,7 @@ import {
   type GraduationVerdict,
 } from '../rules/types.js';
 
-export class PlanIssueDto implements PlanIssue {
+class PlanIssueDto implements PlanIssue {
   @ApiProperty({
     enum: PLAN_ISSUE_CODES,
     description:
@@ -121,7 +121,7 @@ export class PlanCombinedMinimumCoverageDto implements PlanCombinedMinimumCovera
   met!: boolean;
 }
 
-export class PlanCoverageDto implements PlanCoverage {
+class PlanCoverageDto implements PlanCoverage {
   @ApiProperty({ type: [PlanGroupCoverageDto], description: 'By name.' })
   groups!: PlanGroupCoverageDto[];
 
@@ -158,7 +158,7 @@ export class PlanIssuesDto implements PlanIssuesReport {
   coverage!: PlanCoverageDto;
 }
 
-export class PlanDropReportDto {
+class PlanDropReportDto {
   @ApiProperty({ type: TermDto })
   term!: TermDto;
 
