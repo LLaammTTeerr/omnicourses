@@ -42,11 +42,9 @@ The provider choice and alternatives are recorded in [ADR 0008](../analysis-and-
 
 ## Facts about the test environments
 
-Recorded on 26 November 2026, when the comments left the frontend code.
-
-- jsdom has no `showModal`, no close watcher and no `scrollIntoView`. `ModalDialog.vue` sets the `open` attribute when `showModal` is missing. Specs close a dialog with `closeNatively` in `testing/fetch.ts`, and a scroll test adds `scrollIntoView` and removes it again.
-- Node's `Blob` and jsdom's `Blob` are different classes, so a spec checks a file's content, not its class.
-- Vitest does not load CSS, so a `?raw` import of a stylesheet is empty. `groups.spec.ts` reads `styles.css` from the disk.
-- Font metrics differ between machines: CI measured a phone row at 275 to 279 px where a laptop measured less than 270 px. A size bound in a browser test leaves room for that. Before a long printed rule was cut to two lines, one group row was 448 px high in Vietnamese and 649 px in English; the bound in `Admin.browser.spec.ts` keeps it compact.
-- In a jsdom spec, vue-router warns that `#group-%` is not a valid selector when it scrolls to such a hash. The warning comes from the router, not from the page under test.
-- How many `cancel` events Chrome sends for Escape depends on the page's activation history, so a browser test counts the `close` events, not the `cancel` events.
+- 2026-11-26: jsdom has no `showModal`, no close watcher and no `scrollIntoView`. `ModalDialog.vue` sets the `open` attribute when `showModal` is missing. Specs close a dialog with `closeNatively` in `testing/fetch.ts`, and a scroll test adds `scrollIntoView` and removes it again.
+- 2026-11-26: Node's `Blob` and jsdom's `Blob` are different classes, so a spec checks a file's content, not its class.
+- 2026-11-26: Vitest does not load CSS, so a `?raw` import of a stylesheet is empty. `groups.spec.ts` reads `styles.css` from the disk.
+- 2026-11-26: Font metrics differ between machines: CI measured a phone row at 275 to 279 px where a laptop measured less than 270 px. A size bound in a browser test leaves room for that. Before a long printed rule was cut to two lines, one group row was 448 px high in Vietnamese and 649 px in English; the bound in `Admin.browser.spec.ts` keeps it compact.
+- 2026-11-26: In a jsdom spec, vue-router warns that `#group-%` is not a valid selector when it scrolls to such a hash. The warning comes from the router, not from the page under test.
+- 2026-11-26: How many `cancel` events Chrome sends for Escape depends on the page's activation history, so a browser test counts the `close` events, not the `cancel` events.
