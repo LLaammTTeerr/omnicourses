@@ -1,5 +1,11 @@
 # @omnicourse/backend
 
+## 0.5.2
+
+### Patch Changes
+
+- [#182](https://github.com/LLaammTTeerr/omnicourses/pull/182) [`b3b01c6`](https://github.com/LLaammTTeerr/omnicourses/commit/b3b01c635ecd518664650d8e9547e1c38c674dba) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - When the hourly account purge fails, the server log now names only the kind of failure, never a database message that can quote a student's data.
+
 ## 0.5.1
 
 ### Patch Changes
