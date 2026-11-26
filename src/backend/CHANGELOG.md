@@ -1,5 +1,13 @@
 # @omnicourse/backend
 
+## 0.5.1
+
+### Patch Changes
+
+- [`50f6ce2`](https://github.com/LLaammTTeerr/omnicourses/commit/50f6ce2c1ae665045f1ed0ad579782f17217c390) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The account export now writes a school date as the day it holds ("2026-11-25"), not as the evening before in UTC ("2026-11-24T17:00:00.000Z").
+
+- [#179](https://github.com/LLaammTTeerr/omnicourses/pull/179) [`9094df3`](https://github.com/LLaammTTeerr/omnicourses/commit/9094df34c9b3b8a471a429893274144df9a60fce) Thanks [@Anhdung1478](https://github.com/Anhdung1478)! - A text field with a null character, or one character too long once an emoji style mark is counted, is now refused with a 400 instead of failing with a 500: plan names, transcript course names, the sign-up display name, catalog courses, requirement groups, calendar events and the calendar's program filter. A program code with a null character in the curriculum page's address is a 404.
+
 ## 0.5.0
 
 ### Minor Changes
