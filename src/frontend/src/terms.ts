@@ -19,6 +19,8 @@ export function vietnamDate(now: Date): string {
   return new Date(now.getTime() + VIETNAM_UTC_PLUS_7_MS).toISOString().slice(0, 10);
 }
 
+export const currentTermNow = (): Term => currentTerm(vietnamDate(new Date()));
+
 export function currentTerm(vietnamDay: string): Term {
   const [year, month] = vietnamDay.split('-').map(Number) as [number, number];
   if (month >= TERM_1_FIRST_MONTH) return { year, number: 1 };

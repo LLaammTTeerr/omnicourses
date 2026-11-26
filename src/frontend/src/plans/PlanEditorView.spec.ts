@@ -6,16 +6,13 @@ import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { PlanIssues, PlanTerm } from './api.js';
+import { FLIP_MS } from './flip.js';
 import { course, CURRICULUM, ELECTIVE_GROUP, issue, OTHER_ID, plan, PLAN_ID, report, summary } from './testing/fixtures.js';
 
-// 1 October 2026 in Vietnam: term 1 of 2026–2027. The synthetic student's target is term 2 of 2027–2028, so the
-// editor draws five rows: 2026-1 to 2027-2.
-const NOW = new Date('2026-10-01T03:00:00Z');
+const FIRST_OCTOBER_2026_IN_VIETNAM = new Date('2026-10-01T03:00:00Z');
 
 const SAVED: PlanTerm[] = [{ term: { year: 2026, number: 1 }, placements: [course('ZZ101'), course('ZZ102')] }];
 
-// What the rule engine says about SAVED: ZZ102 misses a prerequisite, ZZ101's offering terms are not recorded, the
-// term is under the minimum, and the elective group is short.
 const REPORT: PlanIssues = report({
   terms: [{ term: { year: 2026, number: 1 }, kind: 'main', credits: 8, caps: { min: 10, max: 22 } }],
   issues: [
@@ -38,9 +35,7 @@ let wrapper: VueWrapper | undefined;
 
 interface Options {
   routes?: Record<string, unknown>;
-  /** The reports GET /issues answers, one per call; the last one repeats. */
   reports?: (PlanIssues | number)[];
-  /** What POST /issues (the drag preview) answers for a board; by default a report with no issue. */
   previews?: (terms: PlanTerm[]) => PlanIssues | number;
 }
 
@@ -54,14 +49,12 @@ async function render({ routes = {}, reports = [REPORT], previews = () => report
     'GET /programs/APCS/curricula/2024': CURRICULUM,
     'GET /users/me/transcript': { rows: [{ courseCode: 'ZZ414', courseName: 'Học máy thử', credits: 4, result: 'graded', grade: 8, term: { year: 2025, number: 1 } }] },
     'GET /plans': { plans: [summary(), summary({ id: OTHER_ID, name: 'Kế hoạch khác' })] },
-    // No audit by default: no "Taken" strip, nothing locked in the current term.
     'GET /users/me/audit': status(409, { statusCode: 409, code: 'onboarding_required', message: 'Onboarding first' }),
     [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
       const { terms } = sentBody(init) as { terms: PlanTerm[] };
       sent.push(terms);
       return Response.json(plan(terms));
     },
-    // The drag preview: one request per drag, a board per target (the placement at the end of that term).
     [`POST /plans/${PLAN_ID}/issues/drops`]: (init: RequestInit) => {
       const { terms, placement, targets } = sentBody(init) as { terms: PlanTerm[]; placement: PlanTerm['placements'][number]; targets: PlanTerm['term'][] };
       previewRequests++;
@@ -88,7 +81,6 @@ async function render({ routes = {}, reports = [REPORT], previews = () => report
   return { w: wrapper, fetch, sent, previewed, previewRequests: () => previewRequests, checks: () => checks, router: app.router };
 }
 
-/** A request the test answers when it chooses: `answer` resolves the oldest call still open. */
 function held() {
   const open: ((response: Response) => void)[] = [];
   return {
@@ -104,8 +96,6 @@ const rowCodes = (w: VueWrapper) =>
 const row = (w: VueWrapper, key: string) => w.get(`[data-test="term-${key}"]`);
 const tile = (w: VueWrapper, code: string) => w.get(`[data-test="tile-${code}"]`);
 
-// The pointer drag (drag.ts): press, move over a target, release. jsdom lays nothing out, so `elementFromPoint`
-// answers with the element the test points at.
 let under: Element | null = null;
 Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => under });
 const pointer = (type: string, x: number) => new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 300, button: 0 });
@@ -129,7 +119,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
     localStorage.clear();
     sessionStorage.clear();
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(NOW);
+    vi.setSystemTime(FIRST_OCTOBER_2026_IN_VIETNAM);
   });
   afterEach(() => {
     wrapper?.unmount();
@@ -160,20 +150,16 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(term.classes()).toContain('has-flag');
     expect(term.get('[data-test="load"]').text()).toBe('8 / 22 TC · 10–22 TC');
     expect(term.get('[data-test="when"]').text()).toBe('Tháng 9 – 12/2026');
-    // The bar shows a load under the minimum: the chip is for screen readers only.
     expect(term.get('[data-test="row-issue-flag"]').classes()).toContain('sr-only');
     expect(term.get('[data-test="row-issue-flag"]').text()).toContain('8 TC, dưới mức tối thiểu 10 TC. Được phép nếu có đơn được duyệt. QĐ 1175/QĐ-KHTN Điều 7.2.a');
 
     const panel = w.get('.issues-panel');
-    // The list holds the issues about a term or a course, each with a short title; the group still short is counted
-    // under the coverage and shown in the status strip.
     expect(panel.get('[data-test="issue-counts"]').text()).toBe('1 vi phạm1 cần xem lại1 chưa ghi nhận');
     const card = panel.get('[data-test="issue-violation"]');
     expect(panel.findAll('[data-test="issue-violation"]')).toHaveLength(1);
     expect(card.get('b').text()).toBe('Vi phạm: Thiếu môn tiên quyết');
     expect(card.get('[data-test="issue-text"]').text()).toBe('ZZ102 cần học xong ZZ101 ở một học kỳ trước.');
     expect(card.get('.vfoot .chip').text()).toBe('HK1 2026–2027');
-    // The source: a link to the regulation, labelled by its clause, the whole citation in its title and for readers.
     const source = card.get('[data-test="citation"]');
     expect(source.attributes('href')).toContain('Quy-che-dao-tao');
     expect(source.attributes('title')).toBe('Mở quy chế: QĐ 1175/QĐ-KHTN Điều 3.1.c');
@@ -237,7 +223,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
   it('adds a course found by search to the chosen term, saves the board and checks it again', async () => {
     const { w, sent, checks } = await render();
     expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual(['ZZ201', 'ZZ414']);
-    // A neutral mark for a course of the transcript; the planner never says it is passed.
     expect(w.get('[data-test="pool-ZZ414"] [data-test="in-transcript"]').text()).toBe('Trong bảng điểm');
     expect(w.findAll('[data-test="in-transcript"]')).toHaveLength(1);
     await w.get('#course-search').setValue('giai thuat');
@@ -310,10 +295,8 @@ describe('PlanEditorView (F5, UC-05)', () => {
     const { w, sent } = await render();
     await press(w.get('[data-test="pool-ZZ414"]'));
     await hover(row(w, '2027-1'));
-    // The course left behind fades; the row under the pointer shows where it would land.
     expect(w.get('[data-test="pool-ZZ414"]').classes()).toContain('dragging-src');
     expect(row(w, '2027-1').get('[data-test="placeholder"]').text()).toBe('ZZ414+4 TC');
-    // A course from the list has nowhere to go back to: no bin.
     expect(w.find('[data-test="drop-bin"]').exists()).toBe(false);
     await release();
     expect(rowCodes(w)[3]).toBe('HK1 2027–2028: ZZ414');
@@ -324,6 +307,16 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(rowCodes(w)[3]).toBe('HK1 2027–2028:');
     expect(sent).toHaveLength(2);
     expect(document.querySelector('.ghost-tile')).toBeNull();
+  });
+
+  it('shows no dashed placeholder on the row a held tile comes from, and shows it on another row', async () => {
+    const { w } = await render();
+    await press(tile(w, 'ZZ102'));
+    await hover(row(w, '2026-1'));
+    expect(row(w, '2026-1').find('[data-test="placeholder"]').exists()).toBe(false);
+    await hover(row(w, '2026-2'));
+    expect(row(w, '2026-2').get('[data-test="placeholder"]').text()).toContain('ZZ102');
+    await release();
   });
 
   it('sends a placed course back to the list when it is dropped on the bin that shows while it is held', async () => {
@@ -353,13 +346,11 @@ describe('PlanEditorView (F5, UC-05)', () => {
   it('marks the issues as being re-checked until the new report arrives', async () => {
     let answer!: (value: Response) => void;
     const { w, fetch } = await render();
-    // The next check waits until the test answers it.
     const original = fetch.getMockImplementation()!;
     fetch.mockImplementation(async (input, init) => (String(input).endsWith('/issues') ? new Promise<Response>((resolve) => (answer = resolve)) : original(input, init)));
     await tile(w, 'ZZ102').get('[data-test="later"]').trigger('click');
     await flushPromises();
     expect(w.get('[data-test="checking"]').text()).toBe('Đang kiểm tra…');
-    // The old violation stays on its tile, dimmed, while the move is checked.
     expect(tile(w, 'ZZ102').classes()).toContain('has-violation');
     expect(row(w, '2026-2').classes()).toContain('stale');
     answer(Response.json(report()));
@@ -380,7 +371,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
 
   it('keeps the board and sends it again when a save is rate limited (429), never putting the change back', async () => {
     vi.useFakeTimers({ toFake: ['Date', 'setTimeout'] });
-    vi.setSystemTime(NOW);
+    vi.setSystemTime(FIRST_OCTOBER_2026_IN_VIETNAM);
     let puts = 0;
     const { w, sent } = await render({
       routes: {
@@ -485,7 +476,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
     await flushPromises();
     await tile(w, 'ZZ102').get('[data-test="later"]').trigger('click');
     await flushPromises();
-    // The student opens another plan while the first change is still being saved.
     await router.push(`/plans/${OTHER_ID}`);
     await flushPromises();
     puts.answer(Response.json(plan(sent[0]!)));
@@ -495,7 +485,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(other).toEqual([]);
     expect(w.get('h1').text()).toBe('Nhẹ tải thử');
     expect(rowCodes(w)[0]).toBe('HK1 2026–2027: ZZ201');
-    // An edit of the plan now open is saved to it.
     await tile(w, 'ZZ201').get('[data-test="later"]').trigger('click');
     await flushPromises();
     expect(other).toEqual([[{ term: { year: 2026, number: 2 }, placements: [course('ZZ201')] }]]);
@@ -547,7 +536,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
     await flushPromises();
     puts.answer(new Response(null, { status: 503 }));
     await flushPromises();
-    // Back to the first change, which the API holds, and checked again.
     expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ102', 'HK2 2026–2027: ZZ101']);
     expect(checks()).toBe(2);
     expect(w.find('[data-test="checking"]').exists()).toBe(false);
@@ -590,7 +578,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
     });
     await tile(w, 'ZZ101').get('[data-test="remove"]').trigger('click');
     await flushPromises();
-    // The server may read the placements after the PUT commits: this report is about ZZ102 alone, at position 0.
     const afterRemoval = report({
       issues: [issue({ code: 'prerequisite_not_met', kind: 'violation', term: { year: 2026, number: 1 }, position: 0, courseCode: 'ZZ102', missingCourseCodes: ['ZZ101'] })],
     });
@@ -619,7 +606,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
     });
     await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
     await flushPromises();
-    // A GET sent now could be answered about the board being saved and pinned to the one before it.
     await w.get('[data-test="issues-failed"] button').trigger('click');
     await flushPromises();
     expect(checks()).toBe(1);
@@ -676,7 +662,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
   });
   describe('the prototype gaps (#89)', () => {
     it('counts only the groups still short, not a cohort total still short', async () => {
-      // Every group met, the cohort total 12 credits short: the total shows beside the coverage, and no group is short.
       const totalShort = report({
         issues: [issue({ code: 'requirement_not_covered', kind: 'violation', credits: 8, limit: 20, citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.b' })],
         coverage: { ...REPORT.coverage, groups: [{ ...REPORT.coverage.groups[0]!, credits: 4, remainingCredits: 0, met: true }] },
@@ -725,7 +710,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(w.get('[data-test="announcer"]').text()).toBe('Đã hoàn tác: Đã chuyển ZZ101 tới HK2 2026–2027.');
       expect(w.get('[data-test="undo"]').attributes('disabled')).toBeDefined();
 
-      // Ctrl+Z in a text box is the box's own undo.
       await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
       await flushPromises();
       const search = w.get('#course-search');
@@ -752,7 +736,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(strip.get('[data-test="strip-group"]').text()).toBe('</>Kiến thức Computer Science (A): bắt buộc: 8/8 tín chỉ8/8');
       expect(strip.get('[data-test="strip-group"]').classes()).toEqual(['g-core']);
       expect(strip.get('[data-test="save-state"]').text()).toBe('Đã lưu');
-      // Its colour follows the engine's status alone.
       expect(strip.get('[data-test="estimate"]').classes()).not.toContain('bad');
     });
 
@@ -847,7 +830,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
 
     it('asks the engine about each row when a course is dragged, and colours each row by its answer before the drop', async () => {
       const { w, previewed, previewRequests, sent } = await render({
-        // The engine says ZZ201 is not taught in term 2, and ZZ102 still misses its prerequisite.
         previews: (terms) => {
           const at = termOf(terms, 'ZZ201')!;
           const placed = terms.find((t) => t.term.year === at.year && t.term.number === at.number)!;
@@ -865,7 +847,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       });
       await press(w.get('[data-test="pool-ZZ201"]'));
       await hover(null);
-      // One request for the whole drag (the rate limit counts requests), a check per row in it, none saved.
       expect(previewRequests()).toBe(1);
       expect(previewed.map((terms) => `${termOf(terms, 'ZZ201')!.year}-${termOf(terms, 'ZZ201')!.number}`)).toEqual(['2026-1', '2026-2', '2026-3', '2027-1', '2027-2']);
       expect(sent).toHaveLength(0);
@@ -874,20 +855,20 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(row(w, '2026-2').get('[data-test="drop-reason"]').text()).toBe('ZZ201 không mở ở HK2; chỉ mở HK1, 3.');
       expect(row(w, '2027-2').classes()).toContain('bad-drop');
       expect(row(w, '2026-1').classes()).toContain('ok-drop');
-      // A drop that breaks no rule needs no words: the bar shows the new load.
       expect(row(w, '2026-1').classes()).toContain('ok-drop');
       expect(row(w, '2026-1').find('[data-test="drop-reason"]').exists()).toBe(false);
 
-      // Over a row: every row shows the load of the board with the drop made, and the panel previews the change.
       await hover(row(w, '2026-2'));
       expect(row(w, '2026-2').get('[data-test="load-delta"]').text()).toBe('+3');
       expect(w.get('[data-test="issues-preview"]').text()).toBe('Xem trước: ZZ201 → HK2 2026–2027 · thêm 1 vi phạm' + 'Không mở ở học kỳ nàyZZ201 không mở ở HK2; chỉ mở HK1, 3.');
 
-      // The drop is still the student's choice: a rule broken is reported, never refused (ADR 0012).
+      vi.useFakeTimers({ toFake: ['setTimeout'] });
       await release();
       expect(rowCodes(w)[1]).toBe('HK2 2026–2027: ZZ201');
-      // It lands, then shakes once: the rule it breaks is in the panel.
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      vi.advanceTimersByTime(FLIP_MS - 1);
+      expect(tile(w, 'ZZ201').classes()).not.toContain('shake');
+      vi.advanceTimersByTime(1);
+      vi.useRealTimers();
       expect(tile(w, 'ZZ201').classes()).toContain('shake');
       expect(w.find('.bad-drop').exists()).toBe(false);
       expect(w.find('[data-test="issues-preview"]').exists()).toBe(false);
@@ -898,7 +879,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       const zz102 = tile(w, 'ZZ102');
       await zz102.trigger('keydown', { key: ' ' });
       await flushPromises();
-      // Lifting asks about every other row at once; its own row is not asked about.
       expect(previewed).toHaveLength(4);
       expect(previewed[0]).toEqual([{ term: t1, placements: [course('ZZ101')] }, { term: t2, placements: [course('ZZ102')] }]);
       expect(row(w, '2026-1').find('[data-test="drop-reason"]').exists()).toBe(false);
@@ -916,7 +896,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
         previews: (terms) => {
           const at = termOf(terms, 'ZZ201')!;
           const loads = terms.map((t) => ({ term: t.term, kind: 'main' as const, credits: t.term.number === at.number && t.term.year === at.year ? (at.number === 1 ? 11 : 3) : 8, caps: { min: 10, max: 22 } }));
-          // Term 2: the engine cannot tell whether ZZ201 is taught then. Term 3: ZZ201 there breaks a rule on ZZ101 in term 1.
           if (at.number === 2) return report({ terms: loads, issues: [issue({ code: 'offering_terms_not_recorded', kind: 'unknown', term: at, position: 0, courseCode: 'ZZ201' })] });
           if (at.number === 3) return report({ terms: loads, issues: [issue({ code: 'prerequisite_not_met', kind: 'violation', term: t1, position: 0, courseCode: 'ZZ101', missingCourseCodes: ['ZZ100'] })] });
           return report({ terms: loads });
@@ -924,15 +903,12 @@ describe('PlanEditorView (F5, UC-05)', () => {
       });
       await press(w.get('[data-test="pool-ZZ201"]'));
       await hover(null);
-      // Unknown is neither a pass nor a fail: its own tone and words.
       expect(row(w, '2026-2').classes()).toContain('unknown-drop');
       expect(row(w, '2026-2').classes()).not.toContain('ok-drop');
       expect(row(w, '2026-2').get('[data-test="drop-reason"]').text()).toBe('Chưa kiểm tra được: ZZ201: chưa ghi nhận học kỳ mở môn.');
-      // A drop that breaks a rule elsewhere on the board is a bad drop, and says which.
       expect(row(w, `${t3.year}-${t3.number}`).classes()).toContain('bad-drop');
       expect(row(w, '2026-3').get('[data-test="drop-reason"]').text()).toBe('ZZ101 cần học xong ZZ100 ở một học kỳ trước.');
 
-      // Over term 1: the load goes 8 → 11 of a 22 cap; the meter (28 wide: the cap plus 6) fills to 8 and pulses to 11.
       await hover(row(w, '2026-1'));
       expect(row(w, '2026-1').get('[data-test="load-delta"]').text()).toBe('+3');
       const cap = row(w, '2026-1').get('.cap');
@@ -942,7 +918,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(parseFloat(pre.match(/left: ([\d.]+)%/)![1]!)).toBeCloseTo((8 / 28) * 100, 3);
       expect(parseFloat(pre.match(/width: ([\d.]+)%/)![1]!)).toBeCloseTo((3 / 28) * 100, 3);
 
-      // Over term 3: the panel counts the change and lists the new violation for a screen reader.
       await hover(row(w, '2026-3'));
       expect(w.findAll('[data-test="preview-new"]').map((n) => n.text())).toEqual(['Thiếu môn tiên quyếtZZ101 cần học xong ZZ100 ở một học kỳ trước.']);
       await release();
@@ -955,12 +930,10 @@ describe('PlanEditorView (F5, UC-05)', () => {
       await hover(null);
       expect(row(w, '2026-2').classes()).toContain('checking');
       await release();
-      // A new drag of another course starts before the first answer arrives.
       await press(w.get('[data-test="pool-ZZ414"]'));
       await hover(null);
       answers.answer(Response.json({ reports: [{ term: t2, issues: report({ issues: [issue({ code: 'not_offered', kind: 'violation', term: t2, position: 0, courseCode: 'ZZ201', offeredTermNumbers: [1] })] }) }] }));
       await flushPromises();
-      // The rows still wait for the answer about ZZ414; nothing about ZZ201 is painted on them.
       expect(w.find('.bad-drop').exists()).toBe(false);
       expect(row(w, '2026-2').classes()).toContain('checking');
       expect(w.findAll('[data-test="drop-reason"]').some((r) => r.text().includes('ZZ201'))).toBe(false);
@@ -992,12 +965,9 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(row(w, '2026-1').get('[data-test="now-ZZ201"]').text()).toBe('ZZ2013 TCGiải thuật thửĐang học, không đổi được');
       expect(row(w, '2026-1').find('[data-test="now-ZZ201"]').attributes('draggable')).toBeUndefined();
       expect(row(w, '2026-2').find('[data-test="now"]').exists()).toBe(false);
-      // A passed course (ZZ414) stays in the tray, marked: the engine allows a retake (already_passed is a flag).
-      // The course in progress (ZZ201) is not offered; the course failed before shows its grade.
       expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual(['ZZ414']);
       expect(w.get('[data-test="pool-ZZ414"] [data-test="passed"]').text()).toBe('Đã đạt');
       expect(tile(w, 'ZZ102').get('[data-test="tile-taken"]').text()).toBe('Đã học trước · điểm 3,5');
-      // Each course taken is a tag that opens it in the curriculum explorer.
       await past.get('[data-test="past-ZZ414"]').trigger('click');
       await flushPromises();
       expect(w.vm.$router.currentRoute.value).toMatchObject({ name: 'explorer', query: { course: 'ZZ414' } });
@@ -1034,7 +1004,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       await lock.trigger('click');
       expect(lock.attributes('aria-pressed')).toBe('true');
       expect(w.get('[data-test="locked-note"]').text()).toContain('Kế hoạch đang khóa');
-      // No drag, no Delete key, no undo, no new term.
       await press(tile(w, 'ZZ101'));
       await hover(row(w, '2026-2'));
       await release();
@@ -1045,7 +1014,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(rowCodes(w)).toHaveLength(5);
       expect(sent).toHaveLength(0);
       expect(w.get('[data-test="undo"]').attributes('disabled')).toBeDefined();
-      // Kept for this plan: a reload opens it locked.
       wrapper!.unmount();
       const again = await render();
       expect(again.w.get('[data-test="lock"]').attributes('aria-pressed')).toBe('true');
@@ -1070,7 +1038,6 @@ describe('PlanEditorView (F5, UC-05)', () => {
       const { w, previewed } = await render({ previews: () => (busy ? 429 : report()) });
       await press(w.get('[data-test="pool-ZZ201"]'));
       await hover(null);
-      // No colour would read as "no problem": the row says its preview is missing.
       expect(row(w, '2026-2').classes()).toContain('failed-drop');
       expect(row(w, '2026-2').get('[data-test="drop-reason"]').text()).toBe('Không xem trước được. Trỏ vào hàng này để thử lại.');
       const first = previewed.length;

@@ -55,8 +55,7 @@ describe('board changes', () => {
     expect(sameTiles(board, withNextRow(board))).toBe(true);
     const moved = moveTile(board, 0, t(2026, 2));
     expect(sameTiles(board, moved)).toBe(false);
-    expect(sameTiles(board, moveTile(moved, 0, t(2026, 1)))).toBe(false); // back, but after ZZ102
-    // Removed and added again: the same course in the same place, but a new tile, which the old report does not describe.
+    expect(sameTiles(board, moveTile(moved, 0, t(2026, 1)))).toBe(false);
     const one = boardOf([{ term: t(2026, 1), placements: [course('ZZ101')] }], [t(2026, 1)], keys());
     const again = addCourse(removeTile(one, 0), 'ZZ101', t(2026, 1), 7);
     expect(boardBody(again)).toEqual(boardBody(one));
@@ -134,19 +133,15 @@ describe('the drag preview', () => {
     const bad = issue({ code: 'not_offered', kind: 'violation', term: t(2026, 2), position: 0, courseCode: 'ZZ102' });
     const unknown = issue({ code: 'prerequisites_not_recorded', kind: 'unknown', term: t(2026, 2), position: 0, courseCode: 'ZZ102' });
     const other = issue({ code: 'prerequisite_not_met', kind: 'violation', term: t(2026, 1), position: 0, courseCode: 'ZZ101' });
-    // The board without the drop already had `other`.
     const before = attachIssues(start(), report({ issues: [other] }));
     const verdict = (issues: PlanIssue[], terms = [load]) => dropVerdict(attachIssues(board, report({ terms, issues })), PREVIEW_KEY, t(2026, 2), before);
 
     expect(verdict([other, flag, unknown, bad])).toEqual({ kind: 'violation', issues: [bad, flag, unknown], load });
     expect(verdict([flag, unknown]).kind).toBe('flag');
-    // An unknown is its own verdict: the engine could not check, which is not a pass (#80).
     expect(verdict([other, unknown], [])).toEqual({ kind: 'unknown', issues: [unknown], load: null });
     expect(verdict([other], [])).toEqual({ kind: null, issues: [], load: null });
-    // A violation the drop adds in another term counts: moving a prerequisite after the course that needs it.
     const elsewhere = issue({ code: 'not_offered', kind: 'violation', term: t(2026, 1), position: 0, courseCode: 'ZZ101' });
     expect(verdict([other, elsewhere, flag])).toEqual({ kind: 'violation', issues: [elsewhere, flag], load });
-    // With no report on the board before, nothing elsewhere is taken as new.
     expect(dropVerdict(attachIssues(board, report({ issues: [elsewhere] })), PREVIEW_KEY, t(2026, 2), null).kind).toBeNull();
   });
 

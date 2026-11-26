@@ -128,7 +128,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await card(w, 0).get('[data-test="rename"]').trigger('click');
     await flushPromises();
     const input = w.get('dialog[open] input');
-    // No maxlength: the browser counts UTF-16 units and would stop the typing at 50 emoji.
     expect(input.attributes('maxlength')).toBeUndefined();
     await input.setValue('😀'.repeat(101));
     await w.get('dialog[open] form').trigger('submit');
@@ -197,7 +196,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
     const keep = w.findAll('dialog[open] button').find((b) => b.text() === 'Giữ lại')!;
     expect(keep.attributes('disabled')).toBeDefined();
     expect(w.get('dialog[open] [role="status"]').text()).toBe('Đang xử lý…');
-    // Escape reaches the dialog as a cancel event.
     await w.get('dialog[open]').trigger('cancel');
     await flushPromises();
     expect(w.find('dialog[open]').exists()).toBe(true);
@@ -262,7 +260,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(names(w)).toEqual(['Đổi tên thử', 'Nhẹ tải thử']);
   });
 
-  // While busy, `closedby="none"` leaves the Android back gesture to the browser, which goes back in history.
   it('stays on the page when the student goes back during a deletion, and says its result', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let answer!: (response: Response) => void;
@@ -270,7 +267,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
       [`DELETE /plans/${OTHER_ID}`]: () => new Promise<Response>((resolve) => (answer = resolve)),
       'GET /guides': { guides: [] },
     });
-    // A page to go back to.
     await router.push('/guides');
     await router.push('/plans/all');
     await flushPromises();
@@ -294,7 +290,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
 
   it('says a deletion that gets no answer in its dialog, and lets the student out', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    // The request's timeout, fired by the test instead of after 30 seconds.
     const timer = new AbortController();
     vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timer.signal);
     const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: hung });
@@ -314,7 +309,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(w.find('dialog[open]').exists()).toBe(false);
   });
 
-  // A deletion that timed out here may still have gone through on the server, so a retry finds no plan.
   it('takes a plan that is already gone (404) out of the list instead of asking to try again', async () => {
     const { w } = await render({ [`DELETE /plans/${OTHER_ID}`]: status(404, { statusCode: 404, message: 'No plan with this id' }) });
     await card(w, 1).get('[data-test="delete"]').trigger('click');
@@ -353,7 +347,6 @@ describe('PlansView (F5, UC-05 A6)', () => {
       { 'GET /users/me/onboarding': () => (failures-- > 0 ? new Response(null, { status: 503 }) : Response.json(onboarding())) },
       { onboarded: null },
     );
-    // The router guard's load and the view's both failed: the program is unknown, not missing.
     expect(w.find('[data-test="no-program"]').exists()).toBe(false);
     expect(w.get('[data-test="program-failed"]').text()).toContain('Chưa tải được chương trình và khóa của bạn.');
     expect(w.get('[data-test="new-plan"]').attributes('disabled')).toBeDefined();

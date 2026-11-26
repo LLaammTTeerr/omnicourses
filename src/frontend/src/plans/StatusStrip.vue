@@ -8,11 +8,6 @@ import type { PlanGroupCoverage } from './api.js';
 import type { AttachedIssues } from './board.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-// The plan at a glance (the prototype's status strip): how many violations the rule engine finds in the terms and how
-// many rules it could not check, its graduation status as it reports it, each requirement group's credits with the
-// plan completed, and the save state. Every figure is read from the engine's report; nothing is judged here (AGENTS.md
-// hard rule 1). No graduation term is shown: the engine does not report one yet, and the client must not guess it.
-// An unknown is never worded as a pass (#80): with none found, the strip says "no violation found", not "valid".
 const props = defineProps<{
   attached: AttachedIssues | null;
   fresh: boolean;
@@ -21,11 +16,8 @@ const props = defineProps<{
 const m = useMessages(PLANNER_MESSAGES);
 
 const report = computed(() => props.attached?.report ?? null);
-/** Violations about a term or a course. Coverage shortfalls show in the groups beside. */
 const placementViolations = computed(() => report.value?.issues.filter((i) => i.kind === 'violation' && i.term !== null).length ?? 0);
-/** Rules the engine could not check for lack of data. */
 const unknowns = computed(() => report.value?.issues.filter((i) => i.kind === 'unknown').length ?? 0);
-/** The engine's own graduation status. */
 const graduation = computed(() => report.value?.coverage.graduation ?? null);
 const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
   const colour = groupColour(group);

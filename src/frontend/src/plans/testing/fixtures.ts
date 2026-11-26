@@ -1,8 +1,6 @@
 import type { Curriculum, CurriculumCourse, RequirementGroup } from '../../curriculum/api.js';
 import type { Plan, PlanIssue, PlanIssues, PlanListItem, PlanSummary, PlanTerm } from '../api.js';
 
-// Synthetic plans, curricula and reports: made-up codes (ZZ…) and names, never a real student's data.
-
 export const PLAN_ID = '00000000-0000-4000-8000-0000000000a1';
 export const OTHER_ID = '00000000-0000-4000-8000-0000000000a2';
 export const CORE_GROUP = '00000000-0000-4000-8000-000000000b01';
@@ -14,7 +12,6 @@ export function summary(overrides: Partial<PlanSummary> = {}): PlanSummary {
   return { id: PLAN_ID, name: 'Kế hoạch thử', curriculum: CURRICULUM_REF, createdAt: '2026-11-01T03:00:00.000Z', updatedAt: '2026-11-02T03:00:00.000Z', ...overrides };
 }
 
-/** A plan as the list shows it: two courses and a slot over HK1 → HK3 2026–2027 by default. */
 export function listItem(overrides: Partial<PlanListItem> = {}): PlanListItem {
   const preview = { termCount: 2, courseCount: 2, slotCount: 1, firstTerm: { year: 2026, number: 1 as const }, lastTerm: { year: 2026, number: 3 as const } };
   return { ...summary(), preview, ...overrides };
@@ -26,7 +23,7 @@ export function plan(terms: PlanTerm[] = [], overrides: Partial<Plan> = {}): Pla
   return { ...summary(), terms, ...overrides };
 }
 
-const curriculumCourse = (code: string, nameVi: string, credits = 4): CurriculumCourse => ({
+export const curriculumCourse = (code: string, nameVi: string, credits = 4): CurriculumCourse => ({
   code,
   nameVi,
   nameEn: null,
@@ -39,7 +36,7 @@ const curriculumCourse = (code: string, nameVi: string, credits = 4): Curriculum
   offeringTerms: null,
 });
 
-const group = (id: string, name: string, kind: RequirementGroup['kind'], courses: CurriculumCourse[]): RequirementGroup => ({
+export const group = (id: string, name: string, kind: RequirementGroup['kind'], courses: CurriculumCourse[]): RequirementGroup => ({
   id,
   name,
   kind,

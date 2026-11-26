@@ -7,11 +7,9 @@ import { setup } from '../testing/signed-in.js';
 import { rememberLastPlan } from './last-plan.js';
 import { listItem, OTHER_ID, PLAN_ID, plan } from './testing/fixtures.js';
 
-// The planner's front door (/plans): it opens a plan at once instead of a list.
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
-// Each opened plan's own requests are not this spec's concern: answer them with errors and keep the console quiet.
 const opened = (id: string) => ({ [`GET /plans/${id}`]: status(500), [`GET /plans/${id}/issues`]: status(500), 'GET /programs/APCS/curricula/2024': status(500) });
 
 async function render(routes: Record<string, unknown>, options: Parameters<typeof setup>[1] = {}) {

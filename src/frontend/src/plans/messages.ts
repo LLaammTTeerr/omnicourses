@@ -1,13 +1,7 @@
 import type { Lang } from '../locale.js';
 import type { PlanIssue, PlanIssueCode, PlanIssueKind } from './api.js';
 
-// The planner's words. Each issue code of the rule engine is worded here from its parameters (ADR 0006: issues are
-// codes with parameters); the API's `message` is English only. Wording an issue never judges the plan: the engine
-// already has.
-
-/** What an issue's wording may need besides the issue itself. */
 export interface IssueContext {
-  /** The name of a requirement group or a combined minimum, by id. */
   requirementName: (issue: PlanIssue) => string | null;
 }
 
@@ -49,7 +43,6 @@ interface PlannerMessages {
   deleteBody: string;
   keep: string;
   deleting: string;
-  // Editor
   allPlans: string;
   editorLead: string;
   keyboardHint: string;
@@ -74,12 +67,9 @@ interface PlannerMessages {
   inTranscript: string;
   passedMark: string;
   dropToRemove: string;
-  /** The bin shown while a placed course is dragged: dropped there, it goes back to the course list. */
   binLabel: string;
   binHint: string;
-  /** The jump from an issue to its course on the board. */
   goTo: string;
-  /** A citation that links to the regulation, as a short label and its tooltip. */
   sourceTitle: (citation: string) => string;
   noIssuesTitle: string;
   noTermViolations: string;
@@ -87,17 +77,13 @@ interface PlannerMessages {
   unknownsLeft: (n: number) => string;
   newTag: string;
   goneTag: string;
-  /** A passed course in the "Taken" strip opens the curriculum explorer at it. */
   showInExplorer: (code: string) => string;
   dropHere: string;
   addTerm: (term: string) => string;
   termsLabel: string;
   credits: (n: number) => string;
-  /** After the load figure: "/ 22 TC", or the unit alone when the term has no cap on record. */
   ofCap: (max: number | null) => string;
-  /** Before the load of a term with a course of unknown credits (load_not_checked): its load is a lower bound. */
   atLeast: string;
-  /** The months a term runs, from the calendar the API uses (term 1 from September, 2 from January, 3 from June). */
   termMonths: (term: { year: number; number: 1 | 2 | 3 }) => string;
   caps: (min: number | null, max: number) => string;
   capsUnknown: string;
@@ -114,7 +100,6 @@ interface PlannerMessages {
   added: (code: string, term: string) => string;
   removed: (code: string) => string;
   liftCancelled: (code: string) => string;
-  // Toolbar, tabs, status strip
   undo: string;
   undone: (what: string) => string;
   nothingToUndo: string;
@@ -122,7 +107,6 @@ interface PlannerMessages {
   whatIfName: (name: string) => string;
   whatIfHint: string;
   plansLabel: string;
-  /** The plan made for a student who has none, the first time the planner opens. */
   defaultPlanName: string;
   opening: string;
   backToList: string;
@@ -138,12 +122,9 @@ interface PlannerMessages {
   openPlan: (name: string) => string;
   statusLabel: string;
   invalid: (n: number) => string;
-  /** No violation, and every rule checked. */
   noViolation: string;
-  /** No violation, but `n` rules the engine could not check: not a pass (#80). */
   noViolationUnknown: (n: number) => string;
   coverageTitle: (group: string, credits: number, required: number | null) => string;
-  // Tray, past terms, current term, tiles
   allGroups: string;
   groupFilter: string;
   slotNotChosen: string;
@@ -155,10 +136,8 @@ interface PlannerMessages {
   inProgress: string;
   locked: string;
   takenBefore: (grade: string) => string;
-  // Drag preview and the issues panel
   dropChecking: string;
   dropFailed: string;
-  /** A drop the engine could not fully check: never worded as a pass (#80). */
   dropUnknown: (what: string) => string;
   previewOf: (code: string, term: string) => string;
   previewDelta: (delta: number) => string;
@@ -166,7 +145,6 @@ interface PlannerMessages {
   expand: string;
   groupsShort: (n: number) => string;
   issueTitle: Record<PlanIssueCode, string>;
-  // Issues
   issuesTitle: string;
   issuesLead: string;
   noIssues: string;
@@ -174,7 +152,6 @@ interface PlannerMessages {
   kindHeadings: Record<PlanIssueKind, string>;
   kindsPlural: Record<PlanIssueKind, (n: number) => string>;
   notRecordedYet: string;
-  /** What is not recorded, for the one line a tile gives its unknowns. */
   unknownWhat: (codes: PlanIssueCode[]) => string;
   source: string;
   wholePlan: string;

@@ -9,11 +9,6 @@ import type { AttachedIssues } from './board.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
 import { ISSUE_KINDS_SHOWN, KIND_STYLE } from './present.js';
 
-// The Issues panel (UC-05 step 2), drawn as the prototype's rail (planner.html): the rule engine's report on the saved
-// plan, as it came from GET /plans/{id}/issues. Each violation or flag is a card with its short title, its wording,
-// the term, the regulation it cites and a button to the course. Nothing here is computed: the panel only sorts the
-// report by kind and words each code. While a course is dragged, `preview` is the engine's report on the board with
-// the drop made, and the rail shows that report instead, marking what the drop would add ("New") and remove.
 const props = defineProps<{
   attached: AttachedIssues | null;
   status: 'loading' | 'failed' | 'idle';
@@ -30,16 +25,13 @@ const issues = computed(() => props.attached?.report.issues ?? []);
 const placed = computed(() => issues.value.filter((issue) => issue.term !== null));
 const ofKind = (kind: PlanIssueKind) => placed.value.filter((issue) => issue.kind === kind);
 const coverage = computed(() => props.attached?.report.coverage ?? null);
-/** Groups and combined minimums the engine finds short; the cohort total shows beside them on its own. */
 const short = computed(() => [...(coverage.value?.groups ?? []), ...(coverage.value?.combinedMinimums ?? [])].filter((g) => !g.met).length);
 const tileOf = (issue: PlanIssue) => props.attached?.tileOf.get(issue);
 
-/** An issue's identity across two reports: its code, course and term (positions move when a tile does). */
 const idOf = (i: PlanIssue) => [i.code, i.courseCode ?? '', i.term ? termKey(i.term) : '', i.requirementGroupId ?? ''].join('|');
 const listed = (a: AttachedIssues | null | undefined) => a?.report.issues.filter((i) => (i.kind === 'violation' || i.kind === 'flag') && i.term !== null) ?? [];
 const violationsOf = (a: AttachedIssues | null | undefined) => listed(a).filter((i) => i.kind === 'violation');
 
-/** The cards: the current report, or while previewing the report with the drop made, plus what it would remove. */
 const cards = computed(() => {
   const next = props.preview?.attached;
   const now = listed(props.attached);
@@ -53,12 +45,9 @@ const cards = computed(() => {
 });
 const previewNew = computed(() => cards.value.filter((c) => c.state === 'new' && c.issue.kind === 'violation'));
 const previewDelta = computed(() => (props.preview?.attached ? violationsOf(props.preview.attached).length - violationsOf(props.attached).length : null));
-/** The red count: violations of the report on show, so it moves while a course is dragged. */
 const count = computed(() => violationsOf(props.preview?.attached ?? props.attached).length);
 
-/** "QĐ 1175/QĐ-KHTN Điều 7.2.a" is a clause of the training regulation: a link to it, labelled by the clause. */
 const clause = (citation: string) => /Điều\s+[\w.]+/.exec(citation)?.[0] ?? null;
-/** A click anywhere on the folded rail opens it, as in the prototype. */
 function onRailClick(e: MouseEvent): void {
   if (props.collapsed && !(e.target as Element).closest('[data-test="issues-toggle"]')) emit('toggle');
 }
@@ -147,7 +136,6 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
             </div>
           </li>
         </TransitionGroup>
-        <!-- No card: say what is still open below (groups short, rules not checked), never "no problem" over them. -->
         <div v-else class="rail-empty" :class="{ open: short > 0 }" data-test="no-issues">
           <Icon :name="short ? 'info' : 'check'" />
           <b>{{ short ? m.noTermViolations : m.noIssuesTitle }}</b>

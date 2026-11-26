@@ -5,9 +5,6 @@ import Icon from '../shell/Icon.vue';
 import { SHELL_MESSAGES } from '../shell/messages.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-// Asks before a plan is deleted, from the plans list or the tabs above the editor. The name sits on its own lines
-// under the question, at most three of them, so a long name (or one with no spaces) wraps instead of widening the
-// dialog; the whole name is in its tooltip. Busy: Keep is disabled and Escape refused, as the deletion still goes through.
 defineProps<{ open: boolean; name: string; busy: boolean; error: string | null }>();
 const emit = defineEmits<{ close: []; confirm: [] }>();
 const m = useMessages(PLANNER_MESSAGES);
