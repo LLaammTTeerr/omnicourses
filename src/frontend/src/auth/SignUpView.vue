@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { codePoints, statusOf } from '../api.js';
 import ExternalLink from '../components/ExternalLink.vue';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
@@ -37,7 +37,7 @@ const strengthColour = computed(() => ({ short: 'var(--bad)', weak: 'var(--bad)'
 function check(): Partial<Record<Field, string>> {
   const name = form.displayName.trim();
   return {
-    displayName: !name ? m.value.displayNameRequired : name.length > DISPLAY_NAME_MAX_LENGTH ? m.value.displayNameTooLong : undefined,
+    displayName: !name ? m.value.displayNameRequired : codePoints(name) > DISPLAY_NAME_MAX_LENGTH ? m.value.displayNameTooLong : undefined,
     email: looksLikeEmail(form.email) ? undefined : m.value.emailInvalid,
     password:
       form.password.length < PASSWORD_MIN_LENGTH
@@ -95,7 +95,6 @@ usePageTitle(() => m.value.signUp);
           v-model="form.displayName"
           class="input"
           autocomplete="nickname"
-          :maxlength="DISPLAY_NAME_MAX_LENGTH"
           required
           :aria-invalid="errors.displayName ? 'true' : undefined"
           :aria-describedby="describedBy('displayName', 'sign-up-displayName-hint')"

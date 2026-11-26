@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { codePoints } from '../api.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
@@ -27,7 +28,7 @@ watch(
 
 function save(): void {
   const trimmed = name.value.trim();
-  invalid.value = trimmed.length === 0 || trimmed.length > MAX_NAME;
+  invalid.value = trimmed.length === 0 || codePoints(trimmed) > MAX_NAME;
   if (!invalid.value) emit('save', trimmed);
 }
 </script>
@@ -44,7 +45,6 @@ function save(): void {
           id="plan-name"
           v-model="name"
           class="input"
-          :maxlength="MAX_NAME"
           :placeholder="m.namePlaceholder"
           required
           autofocus

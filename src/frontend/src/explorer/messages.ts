@@ -30,11 +30,16 @@ interface ExplorerMessages {
   periodKinds: { theory: string; lab: string; exercise: string; project: string };
   memberships: string;
   membershipsFailed: string;
+  /** The curriculum does not record the course's prerequisites. */
   noPrerequisites: string;
-  /** The curriculum records the course as having no prerequisite; its offering terms are not recorded. */
+  /** The curriculum records the course as having no prerequisite. */
   prerequisitesNone: string;
-  /** The curriculum records the course's prerequisites; its offering terms are not recorded. */
+  /** The curriculum records the course's prerequisites. */
   prerequisitesListed: (codes: string[]) => string;
+  /** The curriculum does not record the course's offering terms. */
+  termsUnknown: string;
+  /** The term numbers (1, 2, 3) the curriculum records the course as offered in. */
+  termsListed: (terms: number[]) => string;
   source: string;
 }
 
@@ -69,9 +74,11 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
     periodKinds: { theory: 'LT', lab: 'TH', exercise: 'BT', project: 'ĐT' },
     memberships: 'Thuộc nhóm',
     membershipsFailed: 'Chưa tải được các nhóm của môn này.',
-    noPrerequisites: 'Chưa ghi nhận môn tiên quyết và học kỳ mở môn.',
-    prerequisitesNone: 'Không có môn tiên quyết. Chưa ghi nhận học kỳ mở môn.',
-    prerequisitesListed: (codes) => `Môn tiên quyết: ${codes.join(', ')}. Chưa ghi nhận học kỳ mở môn.`,
+    noPrerequisites: 'Chưa ghi nhận môn tiên quyết.',
+    prerequisitesNone: 'Không có môn tiên quyết.',
+    prerequisitesListed: (codes) => `Môn tiên quyết: ${codes.join(', ')}.`,
+    termsUnknown: 'Chưa ghi nhận học kỳ mở môn.',
+    termsListed: (terms) => `Học kỳ mở môn: ${terms.map((n) => `HK${n}`).join(', ')}.`,
     source: 'Dữ liệu CTĐT nhập theo văn bản gốc của trường, không do AI trích xuất.',
   },
   en: {
@@ -104,9 +111,11 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
     periodKinds: { theory: 'Lecture', lab: 'Lab', exercise: 'Exercise', project: 'Project' },
     memberships: 'In groups',
     membershipsFailed: 'The groups of this course could not be loaded.',
-    noPrerequisites: 'Prerequisites and offering terms are not recorded yet.',
-    prerequisitesNone: 'No prerequisite. Offering terms are not recorded yet.',
-    prerequisitesListed: (codes) => `Prerequisites: ${codes.join(', ')}. Offering terms are not recorded yet.`,
+    noPrerequisites: 'Prerequisites are not recorded yet.',
+    prerequisitesNone: 'No prerequisite.',
+    prerequisitesListed: (codes) => `Prerequisites: ${codes.join(', ')}.`,
+    termsUnknown: 'Offering terms are not recorded yet.',
+    termsListed: (terms) => `Offering terms: ${terms.map((n) => `term ${n}`).join(', ')}.`,
     source: 'Curriculum data is entered from the school’s official documents, not extracted by AI.',
   },
 };

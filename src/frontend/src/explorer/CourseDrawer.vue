@@ -11,10 +11,10 @@ import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // One course, opened from a tile (UI prototypes: explorer.html, the drawer). What the catalog stores, the groups
-// that list it, and a neutral mark when the student's own transcript has it. No offering term is recorded yet
-// (ADR 0011), so the drawer says so. A course its curriculum records as having no prerequisite (every APCS course
-// but CS470) says that, one with recorded prerequisites (CS470: CS469) lists them, and one with nothing recorded says
-// "not recorded", which is not the same.
+// that list it, and a neutral mark when the student's own transcript has it. It lists the offering terms the
+// curriculum records (ADR 0011), and says "not recorded" when there are none. A course its curriculum records as
+// having no prerequisite (every APCS course but CS470) says that, one with recorded prerequisites (CS470: CS469)
+// lists them, and one with nothing recorded says "not recorded", which is not the same.
 const props = defineProps<{ course: CurriculumCourse | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
@@ -28,9 +28,10 @@ const detail = useAsyncLoad(
   () => props.course?.code,
 );
 const prerequisiteNote = computed(() => {
-  const prerequisites = props.course?.prerequisites;
-  if (!prerequisites || props.course?.offeringTerms !== null) return m.value.noPrerequisites;
-  return prerequisites.length ? m.value.prerequisitesListed(prerequisites) : m.value.prerequisitesNone;
+  const prerequisites = props.course?.prerequisites ?? null;
+  const terms = props.course?.offeringTerms ?? null;
+  const said = prerequisites === null ? m.value.noPrerequisites : prerequisites.length ? m.value.prerequisitesListed(prerequisites) : m.value.prerequisitesNone;
+  return `${said} ${terms === null ? m.value.termsUnknown : m.value.termsListed(terms)}`;
 });
 const glyph = computed(() => GROUPS.find((g) => g.id === props.group?.id)?.glyph ?? '');
 const name = computed(() => (props.course ? courseName(props.course, locale.lang) : ''));

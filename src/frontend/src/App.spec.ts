@@ -9,6 +9,7 @@ import { useSidebar } from './shell/sidebar.js';
 import { useToast } from './shell/toast.js';
 import { mockApi } from './testing/fetch.js';
 import { HEALTHY } from './testing/health.js';
+import { NOT_STARTED } from './onboarding/api.js';
 import { setup } from './testing/signed-in.js';
 
 let wrapper: VueWrapper | undefined;
@@ -92,6 +93,16 @@ describe('App shell', () => {
     expect(w.find('.pub-head').exists()).toBe(true);
     expect(w.get('#main h1').text()).toBe('Quyền riêng tư');
     expect(w.get('.pub-foot a[href="/privacy"]').text()).toBe('Quyền riêng tư');
+  });
+
+  it('has one main landmark on the onboarding page, the shell’s, for the skip link', async () => {
+    mockApi({ 'GET /health': HEALTHY, 'GET /programs': { programs: [] }, 'GET /admin/grants': NO_GRANTS });
+    const { pinia, router } = await setup('/onboarding', { onboarded: NOT_STARTED });
+    wrapper = mount(App, { global: { plugins: [pinia, router] }, attachTo: document.body });
+    await flushPromises();
+    expect(router.currentRoute.value.name).toBe('onboarding');
+    expect(wrapper.findAll('main')).toHaveLength(1);
+    expect(document.querySelectorAll('#main')).toHaveLength(1);
   });
 
   it('shows sign-in without any header', async () => {

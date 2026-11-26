@@ -297,6 +297,17 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(problem(w).text()).toBe('Khóa này đã có một nhóm yêu cầu cùng tên. Chưa lưu gì.');
   });
 
+  it('says in words how many saved plans still use a group it could not delete (UC-11 A5)', async () => {
+    const { w } = await render({
+      [`DELETE ${GROUPS}/${GROUP_ELECTIVE_ID}`]: status(409, { statusCode: 409, code: 'referenced_item', message: 'Saved plans use the group; it stays while they name it', references: ['3 saved plans use it'] }),
+    });
+    await get(groupRow(w, ELECTIVE_GROUP.name), 'group-delete').trigger('click');
+    await flushPromises();
+    await get(w.get('dialog[open]'), 'confirm-yes').trigger('click');
+    await flushPromises();
+    expect(problem(w).findAll('li').map((li) => li.text())).toEqual(['3 lộ trình đã lưu đang dùng nhóm này']);
+  });
+
   it('asks before deleting a group, says what still uses it on a refusal, and deletes an empty one (UC-11 A5)', async () => {
     let refuse = true;
     const { w, fetch } = await render({

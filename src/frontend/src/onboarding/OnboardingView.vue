@@ -130,7 +130,8 @@ usePageTitle(() => m.value.title);
 </script>
 
 <template>
-  <main id="main" class="wizard" tabindex="-1">
+  <div class="wizard">
+    <!-- A div, not a main: the main of App.vue holds every page, and a page has one main landmark. -->
     <div class="wizard-top">
       <BrandLink :to="{ name: 'home' }" />
       <ol class="dots" :aria-label="m.steps">
@@ -233,12 +234,11 @@ usePageTitle(() => m.value.title);
         </button>
       </div>
     </form>
-  </main>
+  </div>
 </template>
 
 <style>
 .wizard { max-width: 860px; margin: 0 auto; display: grid; gap: 26px; padding: 24px 16px 96px; align-content: start; min-height: 100vh; }
-.wizard:focus { outline: none; }
 .wizard-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .wizard-tools { display: flex; gap: 6px; align-items: center; }
 .dots { display: flex; gap: 8px; align-items: center; list-style: none; margin: 0; padding: 0; }

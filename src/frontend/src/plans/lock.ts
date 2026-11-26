@@ -13,6 +13,15 @@ function read(): string[] {
 
 export const isLocked = (planId: string): boolean => read().includes(planId);
 
+/** Forgets every lock, when the student leaves this browser (auth/store.ts): they are this account's, not the next one's. */
+export function forgetLocks(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // Storage blocked: nothing was kept.
+  }
+}
+
 export function setLocked(planId: string, locked: boolean): void {
   const ids = read().filter((id) => id !== planId);
   try {

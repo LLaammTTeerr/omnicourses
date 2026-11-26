@@ -90,3 +90,9 @@ export function fetchHealth(): Promise<Health> {
 
 /** The HTTP status of a failed call, or null when the request never got an answer (offline, CORS, DNS). */
 export const statusOf = (e: unknown): number | null => (e instanceof HttpError ? e.status : null);
+
+/**
+ * A text's length as the API counts it (#179): in code points, as PostgreSQL does. `.length` counts UTF-16 units, so
+ * an emoji counts twice there, and the HTML maxlength attribute counts the same way.
+ */
+export const codePoints = (text: string): number => [...text].length;
