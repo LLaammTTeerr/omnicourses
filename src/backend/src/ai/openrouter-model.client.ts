@@ -10,16 +10,16 @@ const SDK_RETRIES_PER_REQUEST = 1;
 const logger = new Logger('OpenRouterModelClient');
 
 export function toSdkMessages(messages: ModelMessage[]): ChatCompletionMessageParam[] {
-  return messages.map((m): ChatCompletionMessageParam => {
-    if (m.role === 'tool') return { role: 'tool', tool_call_id: m.toolCallId, content: m.content };
-    if (m.role === 'assistant' && m.toolCalls?.length) {
+  return messages.map((message): ChatCompletionMessageParam => {
+    if (message.role === 'tool') return { role: 'tool', tool_call_id: message.toolCallId, content: message.content };
+    if (message.role === 'assistant' && message.toolCalls?.length) {
       return {
         role: 'assistant',
-        content: m.content || null,
-        tool_calls: m.toolCalls.map((c) => ({ id: c.id, type: 'function', function: { name: c.name, arguments: c.arguments } })),
+        content: message.content || null,
+        tool_calls: message.toolCalls.map((c) => ({ id: c.id, type: 'function', function: { name: c.name, arguments: c.arguments } })),
       };
     }
-    return { role: m.role, content: m.content };
+    return { role: message.role, content: message.content };
   });
 }
 

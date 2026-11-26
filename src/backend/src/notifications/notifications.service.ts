@@ -25,26 +25,26 @@ const INSERT_FOR_EVENT = `
   ON CONFLICT ("user_id", "calendar_event_id", "kind") DO NOTHING
   RETURNING "id"`;
 
-export function notificationDto(n: Notification): NotificationDto {
+export function notificationDto(notification: Notification): NotificationDto {
   return {
-    id: n.id,
-    kind: n.kind,
-    createdAt: n.createdAt,
-    readAt: n.readAt,
+    id: notification.id,
+    kind: notification.kind,
+    createdAt: notification.createdAt,
+    readAt: notification.readAt,
     event:
-      n.calendarEventId === null
+      notification.calendarEventId === null
         ? null
         : {
-            id: n.calendarEventId,
-            programCode: n.programCode!,
-            academicYear: n.academicYear!,
-            term: n.term,
-            startsOn: n.startsOn!,
-            endsOn: n.endsOn!,
-            title: n.title!,
-            titleEn: n.titleEn,
+            id: notification.calendarEventId,
+            programCode: notification.programCode!,
+            academicYear: notification.academicYear!,
+            term: notification.term,
+            startsOn: notification.startsOn!,
+            endsOn: notification.endsOn!,
+            title: notification.title!,
+            titleEn: notification.titleEn,
           },
-    links: [...LINKS_OF[n.kind]],
+    links: [...LINKS_OF[notification.kind]],
   };
 }
 

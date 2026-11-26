@@ -24,9 +24,9 @@ const byKey = <T>(record: Record<string, T>): Record<string, T> =>
 const OPENAPI_OPERATION_ORDER = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace', 'query'];
 const rank = (key: string): number => OPENAPI_OPERATION_ORDER.indexOf(key);
 
-const sortPathItem = <T extends object>(item: T): T =>
+const sortPathItem = <T extends object>(pathItem: T): T =>
   Object.fromEntries(
-    Object.entries(item)
+    Object.entries(pathItem)
       .map((entry, index) => ({ entry, index, method: rank(entry[0]) }))
       .sort((a, b) => a.method - b.method || a.index - b.index)
       .map(({ entry }) => entry),

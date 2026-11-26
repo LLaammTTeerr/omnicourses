@@ -70,18 +70,18 @@ function lastCheckedProblems(lastChecked: GuideFile['lastChecked']): string[] {
 
 function listedTexts(file: GuideFile): [string, string][] {
   return [
-    ...file.steps.map((s, i): [string, string] => [`steps[${i}].text`, s.text]),
-    ...(file.prepare ?? []).map((p, i): [string, string] => [`prepare[${i}].text`, p.text]),
-    ...(file.notes ?? []).flatMap((n, i): [string, string][] => [
-      [`notes[${i}].text`, n.text],
-      ...(n.source.kind === 'regulation' ? citationTexts(`notes[${i}].source`, n.source) : []),
+    ...file.steps.map((step, i): [string, string] => [`steps[${i}].text`, step.text]),
+    ...(file.prepare ?? []).map((preparation, i): [string, string] => [`prepare[${i}].text`, preparation.text]),
+    ...(file.notes ?? []).flatMap((note, i): [string, string][] => [
+      [`notes[${i}].text`, note.text],
+      ...(note.source.kind === 'regulation' ? citationTexts(`notes[${i}].source`, note.source) : []),
     ]),
-    ...(file.citations ?? []).flatMap((c, i) => citationTexts(`citations[${i}]`, c)),
-    ...(file.portals ?? []).flatMap((p, i): [string, string][] => [
-      [`portals[${i}].name`, p.name],
-      [`portals[${i}].url`, p.url],
-      [`portals[${i}].account`, p.account],
-      [`portals[${i}].purpose`, p.purpose],
+    ...(file.citations ?? []).flatMap((citation, i) => citationTexts(`citations[${i}]`, citation)),
+    ...(file.portals ?? []).flatMap((portal, i): [string, string][] => [
+      [`portals[${i}].name`, portal.name],
+      [`portals[${i}].url`, portal.url],
+      [`portals[${i}].account`, portal.account],
+      [`portals[${i}].purpose`, portal.purpose],
     ]),
     ...linksOf(file).flatMap(([field, link]): [string, string][] => [
       [`${field}.label`, link.label],
@@ -167,9 +167,9 @@ function proseOf(file: GuideFile): [string, string][] {
     ...file.steps.map((s, i): [string, string] => [`steps[${i}].text`, s.text]),
     ...(file.notes ?? []).map((n, i): [string, string] => [`notes[${i}].text`, n.text]),
     ...(file.ifPortalDown ? [['ifPortalDown', file.ifPortalDown] as [string, string]] : []),
-    ...(file.portals ?? []).flatMap((p, i): [string, string][] => [
-      [`portals[${i}].purpose`, p.purpose],
-      [`portals[${i}].account`, p.account],
+    ...(file.portals ?? []).flatMap((portal, i): [string, string][] => [
+      [`portals[${i}].purpose`, portal.purpose],
+      [`portals[${i}].account`, portal.account],
     ]),
     ...linksOf(file).map(([field, link]): [string, string] => [`${field}.label`, link.label]),
   ];

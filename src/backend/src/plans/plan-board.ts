@@ -37,15 +37,15 @@ export const groupIdsOf = (terms: readonly BoardTerm[]): string[] =>
 
 export function toRows(planId: string, userId: string, terms: readonly BoardTerm[]): Partial<PlanPlacement>[] {
   return terms.flatMap(({ term, placements }) =>
-    placements.map((p, position) => ({
+    placements.map((placement, position) => ({
       planId,
       userId,
       termYear: term.year,
       termNumber: term.number,
       position,
-      courseCode: p.kind === 'course' ? p.courseCode : null,
-      requirementGroupId: p.kind === 'slot' ? p.requirementGroupId : null,
-      slotCredits: p.kind === 'slot' ? p.credits : null,
+      courseCode: placement.kind === 'course' ? placement.courseCode : null,
+      requirementGroupId: placement.kind === 'slot' ? placement.requirementGroupId : null,
+      slotCredits: placement.kind === 'slot' ? placement.credits : null,
     })),
   );
 }

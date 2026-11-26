@@ -115,49 +115,49 @@ export class CurriculumService {
   }
 }
 
-function programSummary(p: Program): ProgramSummaryDto {
-  return { code: p.code, nameVi: p.nameVi, nameEn: p.nameEn, faculty: p.faculty, trainingType: p.trainingType };
+function programSummary(program: Program): ProgramSummaryDto {
+  return { code: program.code, nameVi: program.nameVi, nameEn: program.nameEn, faculty: program.faculty, trainingType: program.trainingType };
 }
 
-export function courseDto(c: Course): CourseDto {
+export function courseDto(course: Course): CourseDto {
   return {
-    code: c.code,
-    nameVi: c.nameVi,
-    nameEn: c.nameEn,
-    credits: c.credits,
-    theoryPeriods: c.theoryPeriods,
-    labPeriods: c.labPeriods,
-    exercisePeriods: c.exercisePeriods,
-    projectPeriods: c.projectPeriods,
+    code: course.code,
+    nameVi: course.nameVi,
+    nameEn: course.nameEn,
+    credits: course.credits,
+    theoryPeriods: course.theoryPeriods,
+    labPeriods: course.labPeriods,
+    exercisePeriods: course.exercisePeriods,
+    projectPeriods: course.projectPeriods,
   };
 }
 
-function curriculumCourseDto(c: Course, rules: CourseRules): CurriculumCourseDto {
-  return { ...courseDto(c), prerequisites: rules.prerequisites.get(c.code) ?? null, offeringTerms: rules.offeringTerms.get(c.code) ?? null };
+function curriculumCourseDto(course: Course, rules: CourseRules): CurriculumCourseDto {
+  return { ...courseDto(course), prerequisites: rules.prerequisites.get(course.code) ?? null, offeringTerms: rules.offeringTerms.get(course.code) ?? null };
 }
 
-function groupDto(g: RequirementGroup, rules: CourseRules): RequirementGroupDto {
+function groupDto(group: RequirementGroup, rules: CourseRules): RequirementGroupDto {
   return {
-    id: g.id,
-    name: g.name,
-    kind: g.kind,
-    creditsTotal: g.creditsTotal,
-    creditsTotalMin: g.creditsTotalMin,
-    officialNotes: g.officialNotes,
-    courses: g.courseLinks.map((link) => curriculumCourseDto(link.course, rules)).sort((a, b) => byText(a.code, b.code)),
+    id: group.id,
+    name: group.name,
+    kind: group.kind,
+    creditsTotal: group.creditsTotal,
+    creditsTotalMin: group.creditsTotalMin,
+    officialNotes: group.officialNotes,
+    courses: group.courseLinks.map((link) => curriculumCourseDto(link.course, rules)).sort((a, b) => byText(a.code, b.code)),
   };
 }
 
-function curriculumDto(c: Curriculum, rules: CourseRules): CurriculumDto {
+function curriculumDto(curriculum: Curriculum, rules: CourseRules): CurriculumDto {
   return {
-    id: c.id,
-    code: c.code,
-    program: programSummary(c.program),
-    cohortYear: c.cohortYear,
-    nameVi: c.nameVi,
-    nameEn: c.nameEn,
-    language: c.language,
-    totalCreditsMin: c.totalCreditsMin,
-    requirementGroups: c.requirementGroups.map((g) => groupDto(g, rules)).sort((a, b) => byText(a.name, b.name)),
+    id: curriculum.id,
+    code: curriculum.code,
+    program: programSummary(curriculum.program),
+    cohortYear: curriculum.cohortYear,
+    nameVi: curriculum.nameVi,
+    nameEn: curriculum.nameEn,
+    language: curriculum.language,
+    totalCreditsMin: curriculum.totalCreditsMin,
+    requirementGroups: curriculum.requirementGroups.map((g) => groupDto(g, rules)).sort((a, b) => byText(a.name, b.name)),
   };
 }

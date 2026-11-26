@@ -91,12 +91,12 @@ function checkTerm(plan: PlanContext, { term, placements: tiles }: BoardTerm, fi
   const load: LoadCourse[] = [];
   const unknownCredits: string[] = [];
 
-  tiles.forEach((p, position) => {
-    if (p.kind === 'slot' || p.courseCode === null) {
-      load.push(slotLoad(plan.rules, p));
+  tiles.forEach((placement, position) => {
+    if (placement.kind === 'slot' || placement.courseCode === null) {
+      load.push(slotLoad(plan.rules, placement));
       return;
     }
-    const tile: CourseTile = { term: at, position, courseCode: p.courseCode };
+    const tile: CourseTile = { term: at, position, courseCode: placement.courseCode };
     const credits = placedCredits(plan, tile.courseCode);
     if (credits === undefined) unknownCredits.push(tile.courseCode);
     else load.push({ credits, excludedFromMinimum: plan.placed.get(tile.courseCode)?.course.countsTowardTotal === false });
@@ -308,15 +308,15 @@ export function projectedTranscript(input: PlanCheckInput, placed: ReadonlyMap<s
   const slots: { groupId: string; slot: CurriculumRuleGroup['courses'][number] }[] = [];
 
   for (const { term, placements: tiles } of terms) {
-    tiles.forEach((p, position) => {
-      if (p.kind === 'course' && p.courseCode !== null) {
-        if (sat.has(sitting(p.courseCode, term))) return;
-        const credits = placedCredits({ placed, catalogCredits: input.catalogCredits }, p.courseCode);
-        if (credits !== undefined) entries.push(passOf(p.courseCode, credits, term));
-      } else if (p.requirementGroupId !== null && p.credits !== null) {
+    tiles.forEach((tile, position) => {
+      if (tile.kind === 'course' && tile.courseCode !== null) {
+        if (sat.has(sitting(tile.courseCode, term))) return;
+        const credits = placedCredits({ placed, catalogCredits: input.catalogCredits }, tile.courseCode);
+        if (credits !== undefined) entries.push(passOf(tile.courseCode, credits, term));
+      } else if (tile.requirementGroupId !== null && tile.credits !== null) {
         const code = `slot:${termKey(term)}-${position}`;
-        slots.push({ groupId: p.requirementGroupId, slot: { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: slotCountsTowardTotal(rules, p.requirementGroupId), countsTowardGpa: false } });
-        entries.push(passOf(code, p.credits, term));
+        slots.push({ groupId: tile.requirementGroupId, slot: { code, nameVi: code, nameEn: null, credits: tile.credits, countsTowardTotal: slotCountsTowardTotal(rules, tile.requirementGroupId), countsTowardGpa: false } });
+        entries.push(passOf(code, tile.credits, term));
       }
     });
   }
@@ -336,26 +336,26 @@ const projectedCredits = (g: GroupCoverage): number => g.passedCredits + g.overf
 const notCovered = (fields: Partial<PlanIssue> & Pick<PlanIssue, 'message'>): PlanIssue =>
   issue({ code: 'requirement_not_covered', kind: 'violation', citation: CITATIONS.graduation, ...fields });
 
-function groupNotCovered(g: GroupCoverage): PlanIssue {
-  const credits = projectedCredits(g);
-  const missing = g.kind === 'compulsory' ? g.courses.filter((c) => c.status !== 'passed' && c.status !== 'counted_in_other_group').map((c) => c.code) : [];
+function groupNotCovered(group: GroupCoverage): PlanIssue {
+  const credits = projectedCredits(group);
+  const missing = group.kind === 'compulsory' ? group.courses.filter((c) => c.status !== 'passed' && c.status !== 'counted_in_other_group').map((c) => c.code) : [];
   return notCovered({
-    requirementGroupId: g.id,
+    requirementGroupId: group.id,
     missingCourseCodes: missing,
     credits,
-    limit: g.requiredCredits,
+    limit: group.requiredCredits,
     message: missing.length
-      ? `With the plan completed, "${g.name}" still needs ${missing.join(', ')}.`
-      : `With the plan completed, "${g.name}" has ${credits} of ${g.requiredCredits} credits.`,
+      ? `With the plan completed, "${group.name}" still needs ${missing.join(', ')}.`
+      : `With the plan completed, "${group.name}" has ${credits} of ${group.requiredCredits} credits.`,
   });
 }
 
-const minimumNotCovered = (m: CombinedMinimumCoverage): PlanIssue =>
+const minimumNotCovered = (minimum: CombinedMinimumCoverage): PlanIssue =>
   notCovered({
-    combinedMinimumId: m.id,
-    credits: m.credits,
-    limit: m.creditsMin,
-    message: `With the plan completed, "${m.name}" has ${m.credits} of at least ${m.creditsMin} credits.`,
+    combinedMinimumId: minimum.id,
+    credits: minimum.credits,
+    limit: minimum.creditsMin,
+    message: `With the plan completed, "${minimum.name}" has ${minimum.credits} of at least ${minimum.creditsMin} credits.`,
   });
 
 function totalNotCovered({ towardTotal, totalRequired }: CreditSummary): PlanIssue[] {

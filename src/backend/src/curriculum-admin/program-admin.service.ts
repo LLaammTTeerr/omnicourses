@@ -78,20 +78,20 @@ export class ProgramAdminService {
   }
 }
 
-function programDto(p: Program): ProgramDetailsDto {
-  return { id: p.id, code: p.code, nameVi: p.nameVi, nameEn: p.nameEn, faculty: p.faculty, trainingType: p.trainingType, updatedAt: p.updatedAt };
+function programDto(program: Program): ProgramDetailsDto {
+  return { id: program.id, code: program.code, nameVi: program.nameVi, nameEn: program.nameEn, faculty: program.faculty, trainingType: program.trainingType, updatedAt: program.updatedAt };
 }
 
-function cohortDto(c: Curriculum): CohortDetailsDto {
+function cohortDto(curriculum: Curriculum): CohortDetailsDto {
   return {
-    id: c.id,
-    programId: c.programId,
-    cohortYear: c.cohortYear,
-    code: c.code,
-    nameVi: c.nameVi,
-    nameEn: c.nameEn,
-    language: c.language,
-    totalCreditsMin: c.totalCreditsMin,
-    updatedAt: c.updatedAt,
+    id: curriculum.id,
+    programId: curriculum.programId,
+    cohortYear: curriculum.cohortYear,
+    code: curriculum.code,
+    nameVi: curriculum.nameVi,
+    nameEn: curriculum.nameEn,
+    language: curriculum.language,
+    totalCreditsMin: curriculum.totalCreditsMin,
+    updatedAt: curriculum.updatedAt,
   };
 }

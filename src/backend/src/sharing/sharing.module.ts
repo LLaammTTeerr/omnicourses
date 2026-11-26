@@ -8,9 +8,9 @@ import { PlanShare } from './plan-share.entity.js';
 import { PlanShareController, SharedPlansController } from './sharing.controller.js';
 import { SharingService } from './sharing.service.js';
 
-export function sharedPlanHeaders(_req: Request, res: Response, next: NextFunction): void {
-  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  res.setHeader('Cache-Control', 'no-store');
+export function sharedPlanHeaders(_request: Request, response: Response, next: NextFunction): void {
+  response.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  response.setHeader('Cache-Control', 'no-store');
   next();
 }
 

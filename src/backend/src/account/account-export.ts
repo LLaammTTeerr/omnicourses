@@ -30,11 +30,11 @@ export async function findUserColumns(db: Queryable): Promise<string[]> {
   return columns;
 }
 
-export const IS_USER_ID_KEY = (c: string) => `${c}.contype = 'f'
-      AND ${c}.confrelid = 'users'::regclass
-      AND cardinality(${c}.conkey) = 1
-      AND (SELECT attname FROM pg_attribute WHERE attrelid = ${c}.conrelid AND attnum = ${c}.conkey[1]) = 'user_id'
-      AND ${c}.confkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = 'users'::regclass AND attname = 'id')]`;
+export const IS_USER_ID_KEY = (constraintAlias: string) => `${constraintAlias}.contype = 'f'
+      AND ${constraintAlias}.confrelid = 'users'::regclass
+      AND cardinality(${constraintAlias}.conkey) = 1
+      AND (SELECT attname FROM pg_attribute WHERE attrelid = ${constraintAlias}.conrelid AND attnum = ${constraintAlias}.conkey[1]) = 'user_id'
+      AND ${constraintAlias}.confkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = 'users'::regclass AND attname = 'id')]`;
 
 export async function findUserTables(db: Queryable): Promise<UserTable[]> {
   return db.query(`

@@ -256,15 +256,15 @@ export function isPlanSlotRefusal(error: unknown): boolean {
   return isRefusal(error, [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation], PLAN_SLOT_GROUP_KEY);
 }
 
-function groupDto(g: RequirementGroup): RequirementGroupAdminDto {
+function groupDto(group: RequirementGroup): RequirementGroupAdminDto {
   return {
-    id: g.id,
-    curriculumId: g.curriculumId,
-    name: g.name,
-    kind: g.kind,
-    officialNotes: g.officialNotes,
-    creditsTotal: g.creditsTotal,
-    creditsTotalMin: g.creditsTotalMin,
-    updatedAt: g.updatedAt,
+    id: group.id,
+    curriculumId: group.curriculumId,
+    name: group.name,
+    kind: group.kind,
+    officialNotes: group.officialNotes,
+    creditsTotal: group.creditsTotal,
+    creditsTotalMin: group.creditsTotalMin,
+    updatedAt: group.updatedAt,
   };
 }

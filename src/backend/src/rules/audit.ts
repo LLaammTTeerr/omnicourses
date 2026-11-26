@@ -143,15 +143,15 @@ function termSummary(
 
 function unmatched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): UnmatchedCourse[] {
   return [...records.values()]
-    .filter((r) => !placed.has(r.code))
-    .map((r) => ({
-      code: r.code,
-      name: r.name,
-      credits: recordCredits(r),
-      result: r.official?.result ?? null,
-      grade: r.official?.grade ?? null,
-      passed: r.passed,
-      inProgress: r.inProgress,
+    .filter((record) => !placed.has(record.code))
+    .map((record) => ({
+      code: record.code,
+      name: record.name,
+      credits: recordCredits(record),
+      result: record.official?.result ?? null,
+      grade: record.official?.grade ?? null,
+      passed: record.passed,
+      inProgress: record.inProgress,
     }));
 }
 
