@@ -6,7 +6,7 @@ Clause-level text of the regulations the F8 advisor answers from, so it can cite
 | --- | --- | --- |
 | `sources/<id>.pdftotext.txt` | `pdftotext -layout` | The PDF's text layer, unchanged. Anyone with the PDF can reproduce it byte for byte. The PDF itself stays out of git. |
 | `sources/<id>.source.json` | a person | Title, issuer, date, source URL, the PDF's sha256 and page count, the text file's sha256, and notes. |
-| `sources/<id>.overrides.json` | a person (a model may draft it) | Every hand correction, each with its page, the exact source lines, the replacement and the reason. |
+| `sources/<id>.overrides.json` | a person, from the regulation text; no model drafts it (ADR 0010, UC-08 §8) | Every hand correction, each with its page, the exact source lines, the replacement and the reason. |
 | `<id>.json` | `extract-regulation` | The document metadata plus `clauses`, in source order. |
 | `<id>.md` | `extract-regulation` | The same, readable. Never edit it by hand. |
 

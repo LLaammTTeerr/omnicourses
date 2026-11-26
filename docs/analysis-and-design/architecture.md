@@ -128,7 +128,7 @@ Every module reaches the database through its own TypeORM repositories and regis
 
 | Module | Folder | Feature | Routes and responsibility | Used by other modules |
 | --- | --- | --- | --- | --- |
-| health | `health/` |  | `GET /api/health`: API up and database reachable, never the PostgreSQL version (#63). Public. |  |
+| health | `health/` |  | `GET /api/health`: API up and database reachable, never the PostgreSQL version (found in #28, fixed in #63). Public. |  |
 | users | `users/` | F1 | The `users` table: identity only (email, `password_hash`, `google_sub`, consent, deletion state). `create`, find, `cancelDeletion`, "is deletion pending", and `markDeletionRequestedWithin(manager, …)`. `GET /api/users/me`. | `UsersService` |
 | auth | `auth/` | F1 | F1 sign-up, sign-in, refresh with rotation, sign-out, list and revoke sessions; argon2id passwords; the `sessions` table ([ADR 0002](adr/0002-authentication-and-sessions.md)). Sign-in before the purge deadline cancels a pending deletion. | `AuthService` (incl. `revokeAllWithin(manager, userId)`), `AuthGuard`, `@Public()`, `@CurrentUser()`, `@CurrentSession()`, `Authenticated()`, `PASSWORD_LIMIT` |
 | ai | `ai/` | F6 goal box, F8 | The AI gateway ([ADR 0003](adr/0003-language-model-scope.md)). No routes. `LlmService.structured()` and `chat()` with a tool loop; `AI_CONFIG`, a provider read once at boot from `config/env.ts`; one `preflight()` (model and key) before the cost guard reserves a call; the OpenRouter client built once; `streamChat` for SSE. Every failure is `AiUnavailableError` → 503 `ai_unavailable`. | `LlmService`, `streamChat`, `FakeLlmService` for tests |
