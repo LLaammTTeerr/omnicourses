@@ -55,6 +55,12 @@ function refusal<F extends string>(failure: Failure, m: AdminText, fields: reado
   }
 }
 
+export const fieldInvalid = <F extends string>(problem: ProblemView<F> | null, field: F): 'true' | undefined => (problem?.fields[field] ? 'true' : undefined);
+
+export function fieldDescription<F extends string>(problem: ProblemView<F> | null, prefix: string, field: F, hint?: string | false | null): string | undefined {
+  return [hint, problem?.fields[field] && `${prefix}-${field}-error`].filter(Boolean).join(' ') || undefined;
+}
+
 /** `fields`: the fields of the form the write came from; the API's validation messages are sorted by them. */
 export function describeProblem<F extends string = never>(problem: Problem, m: AdminText, fields: readonly F[] = []): ProblemView<F> {
   if (problem.outcome === 'refused') return { serverText: false, ...refusal(problem.failure, m, fields), tone: 'bad', reload: false };

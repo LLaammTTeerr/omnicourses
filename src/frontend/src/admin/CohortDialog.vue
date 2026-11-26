@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue';
+import { computed } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import { SHELL_MESSAGES } from '../shell/messages.js';
 import type { CohortDetails } from './api.js';
 import FieldErrors from './FieldErrors.vue';
-import { cohortValues, type CohortField, type CohortValues } from './forms.js';
+import { cohortValues, useValuesOnOpen, type CohortField, type CohortValues } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
-import type { ProblemView } from './problem.js';
+import { fieldDescription, fieldInvalid, type ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
 // A cohort of one program (UC-11 A1, "Thêm khóa" in admin.html), to add one or to edit one. A new cohort is a new,
@@ -19,21 +19,13 @@ const m = useMessages(ADMIN_MESSAGES);
 const shell = useMessages(SHELL_MESSAGES);
 const text = computed(() => m.value.programs);
 
-const values = reactive<CohortValues>(cohortValues(null));
-watch(
-  () => props.open,
-  (open) => {
-    if (open) Object.assign(values, cohortValues(props.cohort));
-  },
-  { immediate: true },
-);
+const values = useValuesOnOpen(() => props.open, () => cohortValues(props.cohort));
 
 const TEXT_FIELDS = ['nameVi', 'nameEn', 'language'] as const;
 const hintOf: Partial<Record<CohortField, string>> = { cohortYear: 'cohort-cohortYear-hint', code: 'cohort-code-hint', nameEn: 'cohort-nameEn-hint', language: 'cohort-language-hint' };
 const described = (field: CohortField) =>
-  [props.cohort && (field === 'cohortYear' || field === 'code') ? 'cohort-identity-hint' : hintOf[field], props.problem?.fields[field] && `cohort-${field}-error`].filter(Boolean).join(' ') ||
-  undefined;
-const invalid = (field: CohortField) => (props.problem?.fields[field] ? 'true' : undefined);
+  fieldDescription(props.problem, 'cohort', field, props.cohort && (field === 'cohortYear' || field === 'code') ? 'cohort-identity-hint' : hintOf[field]);
+const invalid = (field: CohortField) => fieldInvalid(props.problem, field);
 </script>
 
 <template>
