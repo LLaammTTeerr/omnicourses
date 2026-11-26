@@ -4,7 +4,7 @@ import { nextTick } from 'vue';
 import { EVERY_GRANT, NO_GRANTS } from './admin/testing/fixtures.js';
 import App from './App.vue';
 import { useAuth } from './auth/store.js';
-import { session } from './auth/testing/fixtures.js';
+import { authResult, session } from './auth/testing/fixtures.js';
 import { useSidebar } from './shell/sidebar.js';
 import { useToast } from './shell/toast.js';
 import { UNREAD_POLL_MS } from './notifications/store.js';
@@ -232,5 +232,15 @@ describe('the notification bell (F10)', () => {
     vi.advanceTimersByTime(UNREAD_POLL_MS);
     await flushPromises();
     expect(unreadReads()).toBe(0);
+  });
+
+  it('reads the count once when the student signs in and is sent on to the page they asked for', async () => {
+    const { w, router } = await render('/sign-in?redirect=/guides', false, { 'POST /auth/sign-in': authResult() });
+    await w.get('#sign-in-email').setValue('zz-student@example.com');
+    await w.get('#sign-in-password').setValue('zz-password');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe('/guides');
+    expect(unreadReads()).toBe(1);
   });
 });
