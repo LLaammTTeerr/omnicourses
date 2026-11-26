@@ -130,14 +130,14 @@ describe('blankRow and yearChoices in a browser outside Vietnam', () => {
   });
 
   it('starts the new academic year when September has begun in Vietnam, even if not yet where the browser is', () => {
-    const today = new Date('2026-08-31T17:30:00Z');
+    const today = new Date('2026-09-01T00:30:00+07:00');
     expect(today.getTimezoneOffset()).not.toBe(-420);
     expect(today.getMonth()).toBe(7);
     expect(blankRow(0, [], today).year).toBe(2026);
   });
 
   it('offers next year when the new year has begun in Vietnam, even if not yet where the browser is', () => {
-    const today = new Date('2026-12-31T17:30:00Z');
+    const today = new Date('2027-01-01T00:30:00+07:00');
     expect(today.getFullYear()).toBe(2026);
     expect(yearChoices([], today).at(-1)).toBe(2028);
   });

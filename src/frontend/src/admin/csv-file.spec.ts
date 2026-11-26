@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { IMPORT_MAX_BYTES } from './api.js';
 import { countDataRecords, headerLine, overLimit, readCsvFile, templateHref, templateName, utf8Bytes } from './csv-file.js';
 
+const MON_IN_WINDOWS_1258 = new Uint8Array([0x4d, 0xf4, 0x6e]);
+
 describe('reading an import file in the browser (UC-11 A9)', () => {
   it('decodes UTF-8 and drops a BOM, as the API does', async () => {
     const bytes = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('code,name_vi\nZZ101,Môn thử\n')]);
@@ -9,7 +11,7 @@ describe('reading an import file in the browser (UC-11 A9)', () => {
   });
 
   it('refuses bytes that are not UTF-8, instead of turning them into replacement characters', async () => {
-    expect(await readCsvFile(new Blob([new Uint8Array([0x4d, 0xf4, 0x6e])]))).toEqual({ ok: false, reason: 'not_utf8' });
+    expect(await readCsvFile(new Blob([MON_IN_WINDOWS_1258]))).toEqual({ ok: false, reason: 'not_utf8' });
   });
 
   it('counts the data records, not the lines: a quoted field may hold a line break, and an empty record is not one', () => {

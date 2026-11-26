@@ -234,7 +234,8 @@ describe('the administration dialogs with the keyboard', () => {
     await expect.element(dialog).toBeVisible();
     await expect.element(page.getByRole('textbox', { name: 'Tên nhóm' })).toHaveFocus();
     await userEvent.keyboard('Nhóm thử từ bàn phím');
-    for (let i = 0; i < 8; i++) await userEvent.keyboard('{Tab}');
+    const TABS_PAST_THE_LAST_BUTTON = 8;
+    for (let i = 0; i < TABS_PAST_THE_LAST_BUTTON; i++) await userEvent.keyboard('{Tab}');
     expect((dialog.element() as HTMLElement).contains(document.activeElement)).toBe(true);
     await userEvent.keyboard('{Escape}');
     await expect.element(dialog).not.toBeInTheDocument();

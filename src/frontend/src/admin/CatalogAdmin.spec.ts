@@ -265,7 +265,7 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       expect(get(w, 'catalog-name').text()).toBe('Học phần thử ZZ101 (sửa)');
     });
 
-    it('shows the new list and asks again when the impact changed during the review (409 impact_changed)', async () => {
+    it('shows the new list and asks again when, during the review, the 2025 cohort unlinked the course and someone corrected its English name (409 impact_changed)', async () => {
       const { w, fetch } = await render({
         [PATCH]: (init: RequestInit) => {
           const body = sentBody(init) as Record<string, unknown>;
