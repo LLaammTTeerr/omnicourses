@@ -15,4 +15,4 @@ PLAN-01a, d and f are API cases, confirmed against the code and the e2e tests of
 
 ## Gaps seen, not failures
 
-Drag and drop and live validation are B2 (test plan §5), so these do not fail PLAN-01. Recorded in [#89](https://github.com/LLaammTTeerr/omnicourses/issues/89): no live drop preview, no auto-scroll while dragging, no drag and drop animation, no collapse button on the issues panel, and other differences from the planner prototype.
+On 11 November, before #90, drag and drop and live validation were planned for B2 (test plan §5), so these did not fail PLAN-01. #90 later added a drag preview, which PLAN-01g checks. Recorded in [#89](https://github.com/LLaammTTeerr/omnicourses/issues/89): no live drop preview, no auto-scroll while dragging, no drag and drop animation, no collapse button on the issues panel, and other differences from the planner prototype.
