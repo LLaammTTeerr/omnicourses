@@ -1,5 +1,5 @@
 import { isCalendarDate } from '../common/field-validators.js';
-import { GUIDE_GROUPS, GUIDE_ID, GUIDE_ID_MAX, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink, textKey } from './guide-file.js';
+import { type GuideCitation, GUIDE_GROUPS, GUIDE_ID, GUIDE_ID_MAX, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink, textKey } from './guide-file.js';
 
 /** A file the seed may load: a published one always has its last-checked date. */
 export type LoadableGuideFile =
@@ -20,74 +20,92 @@ const oneOf = (values: readonly string[]) => `${values.slice(0, -1).join(', ')} 
 
 /** The problems with one content file; empty when the seed may load it. A draft only needs its identity and safe links. */
 export function validateGuideFile(file: GuideFile): string[] {
-  const problems: string[] = [];
-  const problem = (message: string) => problems.push(`${textKey(file)}: ${message}`);
-  const required = (field: string, value: string) => {
-    if (!value.trim()) problem(`${field} is required`);
-  };
+  const problems = [...identityProblems(file), ...linkProblems(file)];
+  if (file.status === 'published') problems.push(...publishedProblems(file), ...proseProblems(file));
+  return problems.map((problem) => `${textKey(file)}: ${problem}`);
+}
 
-  if (!GUIDE_ID.test(file.id) || file.id.length > GUIDE_ID_MAX) {
-    problem(`id must be lower-case words joined by hyphens, at most ${GUIDE_ID_MAX} characters`);
-  }
-  if (!GUIDE_LANGS.includes(file.lang)) problem(`lang must be ${oneOf(GUIDE_LANGS)}`);
-  if (!GUIDE_STATUSES.includes(file.status)) problem(`status must be ${oneOf(GUIDE_STATUSES)}`);
-  if (!GUIDE_GROUPS.includes(file.group)) problem(`group must be one of ${GUIDE_GROUPS.join(', ')}`);
-  if (!Number.isInteger(file.version) || file.version < 1) problem('version must be a whole number from 1');
-  for (const [field, link] of linksOf(file)) {
-    if (link.url && !isSafeUrl(link.url)) problem(`${field}.url must be an https address or an OmniCourse path starting with /`);
-  }
-  for (const [field, url] of siteUrlsOf(file)) {
-    if (url && !HTTPS_URL.test(url)) problem(`${field} must be an https address`);
-  }
+function identityProblems(file: GuideFile): string[] {
+  return [
+    ...(!GUIDE_ID.test(file.id) || file.id.length > GUIDE_ID_MAX ? [`id must be lower-case words joined by hyphens, at most ${GUIDE_ID_MAX} characters`] : []),
+    ...(GUIDE_LANGS.includes(file.lang) ? [] : [`lang must be ${oneOf(GUIDE_LANGS)}`]),
+    ...(GUIDE_STATUSES.includes(file.status) ? [] : [`status must be ${oneOf(GUIDE_STATUSES)}`]),
+    ...(GUIDE_GROUPS.includes(file.group) ? [] : [`group must be one of ${GUIDE_GROUPS.join(', ')}`]),
+    ...(Number.isInteger(file.version) && file.version >= 1 ? [] : ['version must be a whole number from 1']),
+  ];
+}
 
-  if (file.status !== 'published') return problems;
+function linkProblems(file: GuideFile): string[] {
+  return [
+    ...linksOf(file)
+      .filter(([, link]) => link.url && !isSafeUrl(link.url))
+      .map(([field]) => `${field}.url must be an https address or an OmniCourse path starting with /`),
+    ...siteUrlsOf(file)
+      .filter(([, url]) => url && !HTTPS_URL.test(url))
+      .map(([field]) => `${field} must be an https address`),
+  ];
+}
 
-  required('changeNote', file.changeNote);
-  if (!file.lastChecked) {
-    problem('lastChecked is required: the date and the name of whoever followed the guide on the portal');
-  } else {
-    if (!isCalendarDate(file.lastChecked.on)) problem('lastChecked.on must be a date written YYYY-MM-DD');
-    required('lastChecked.by', file.lastChecked.by);
-  }
-  required('title', file.title);
-  required('summary', file.summary);
-  required('when.text', file.when.text);
-  required('appliesTo', file.appliesTo);
-  required('portal.name', file.portal.name);
-  required('portal.url', file.portal.url);
-  required('portal.account', file.portal.account);
-  if (!file.keywords.length || file.keywords.some((k) => !k.trim())) problem('keywords needs at least one word, and no empty ones');
-  if (!file.steps.length) problem('steps needs at least one step');
-  file.steps.forEach((s, i) => required(`steps[${i}].text`, s.text));
-  file.prepare?.forEach((p, i) => required(`prepare[${i}].text`, p.text));
-  file.notes?.forEach((n, i) => {
-    required(`notes[${i}].text`, n.text);
-    if (n.source.kind === 'regulation') {
-      required(`notes[${i}].source.document`, n.source.document);
-      required(`notes[${i}].source.clause`, n.source.clause);
-      required(`notes[${i}].source.url`, n.source.url);
-    }
-  });
-  file.citations?.forEach((c, i) => {
-    required(`citations[${i}].document`, c.document);
-    required(`citations[${i}].clause`, c.clause);
-    required(`citations[${i}].url`, c.url);
-  });
-  file.portals?.forEach((p, i) => {
-    required(`portals[${i}].name`, p.name);
-    required(`portals[${i}].url`, p.url);
-    required(`portals[${i}].account`, p.account);
-    required(`portals[${i}].purpose`, p.purpose);
-  });
-  for (const [field, link] of linksOf(file)) {
-    required(`${field}.label`, link.label);
-    required(`${field}.url`, link.url);
-  }
-  for (const [field, text] of proseOf(file)) {
-    if (CREDIT_NUMBER.test(text)) problem(`${field} types a credit number; cite the clause instead (AGENTS.md hard rule 1)`);
-    if (TYPED_DATE.test(text)) problem(`${field} types a date; link the school's announcement instead (guides plan §3 rule 4)`);
-  }
-  return problems;
+const missing = ([field, value]: [string, string]): string[] => (value.trim() ? [] : [`${field} is required`]);
+
+function publishedProblems(file: GuideFile): string[] {
+  const shown: [string, string][] = [
+    ['title', file.title],
+    ['summary', file.summary],
+    ['when.text', file.when.text],
+    ['appliesTo', file.appliesTo],
+    ['portal.name', file.portal.name],
+    ['portal.url', file.portal.url],
+    ['portal.account', file.portal.account],
+  ];
+  return [
+    ...missing(['changeNote', file.changeNote]),
+    ...lastCheckedProblems(file.lastChecked),
+    ...shown.flatMap(missing),
+    ...(!file.keywords.length || file.keywords.some((k) => !k.trim()) ? ['keywords needs at least one word, and no empty ones'] : []),
+    ...(file.steps.length ? [] : ['steps needs at least one step']),
+    ...listedTexts(file).flatMap(missing),
+  ];
+}
+
+function lastCheckedProblems(lastChecked: GuideFile['lastChecked']): string[] {
+  if (!lastChecked) return ['lastChecked is required: the date and the name of whoever followed the guide on the portal'];
+  return [...(isCalendarDate(lastChecked.on) ? [] : ['lastChecked.on must be a date written YYYY-MM-DD']), ...missing(['lastChecked.by', lastChecked.by])];
+}
+
+function listedTexts(file: GuideFile): [string, string][] {
+  return [
+    ...file.steps.map((s, i): [string, string] => [`steps[${i}].text`, s.text]),
+    ...(file.prepare ?? []).map((p, i): [string, string] => [`prepare[${i}].text`, p.text]),
+    ...(file.notes ?? []).flatMap((n, i): [string, string][] => [
+      [`notes[${i}].text`, n.text],
+      ...(n.source.kind === 'regulation' ? citationTexts(`notes[${i}].source`, n.source) : []),
+    ]),
+    ...(file.citations ?? []).flatMap((c, i) => citationTexts(`citations[${i}]`, c)),
+    ...(file.portals ?? []).flatMap((p, i): [string, string][] => [
+      [`portals[${i}].name`, p.name],
+      [`portals[${i}].url`, p.url],
+      [`portals[${i}].account`, p.account],
+      [`portals[${i}].purpose`, p.purpose],
+    ]),
+    ...linksOf(file).flatMap(([field, link]): [string, string][] => [
+      [`${field}.label`, link.label],
+      [`${field}.url`, link.url],
+    ]),
+  ];
+}
+
+const citationTexts = (field: string, citation: GuideCitation): [string, string][] => [
+  [`${field}.document`, citation.document],
+  [`${field}.clause`, citation.clause],
+  [`${field}.url`, citation.url],
+];
+
+function proseProblems(file: GuideFile): string[] {
+  return proseOf(file).flatMap(([field, text]) => [
+    ...(CREDIT_NUMBER.test(text) ? [`${field} types a credit number; cite the clause instead (AGENTS.md hard rule 1)`] : []),
+    ...(TYPED_DATE.test(text) ? [`${field} types a date; link the school's announcement instead (guides plan §3 rule 4)`] : []),
+  ]);
 }
 
 /** The problems with a set of content files the seed loads together. */
