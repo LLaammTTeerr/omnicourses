@@ -6,7 +6,7 @@ import { PERMISSION_KINDS, type AffectedCurriculum, type ImportRowError, type Pe
 // referenced item a 409, and both are refusals that saved nothing. Nothing here judges a value itself.
 
 /** The 409 reasons that need no further step from the screen. */
-export const CONFLICT_CODES = ['duplicate_name', 'duplicate_code', 'duplicate_cohort', 'referenced_item', 'last_access_manager', 'recipient_deletion_pending'] as const;
+const CONFLICT_CODES = ['duplicate_name', 'duplicate_code', 'duplicate_cohort', 'referenced_item', 'last_access_manager', 'recipient_deletion_pending'] as const;
 export type ConflictCode = (typeof CONFLICT_CODES)[number];
 
 export type Failure =

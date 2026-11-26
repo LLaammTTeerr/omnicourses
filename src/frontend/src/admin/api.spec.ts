@@ -4,8 +4,12 @@ import { API_URL } from '../api.js';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import * as api from './api.js';
+import { COURSE_CODE_PATTERN } from '../course-code.js';
 import {
+  BYTES_PER_MIB,
   GLOBAL_PERMISSIONS,
+  IMPORT_MAX_BYTES,
+  IMPORT_MAX_RECORDS,
   PERMISSION_KINDS,
   IMPORT_HEADERS,
   type AccessProgram,
@@ -164,6 +168,15 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     expect(summary('/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview').endsWith(`Header: ${IMPORT_HEADERS.group_links.join(',')}`)).toBe(true);
     expect(contractEnum('CatalogImportRowDto', 'action')).toEqual(['insert', 'no_op', 'update']);
     expect(contractEnum('GroupLinkImportRowDto', 'action')).toEqual(['insert', 'no_op']);
+  });
+
+  it('checks a file against the limits the import routes document', () => {
+    const csv = contract.components.schemas.ImportPreviewRequestDto.properties.csv.description;
+    expect(csv).toContain(`At most ${IMPORT_MAX_BYTES / BYTES_PER_MIB} MiB and ${IMPORT_MAX_RECORDS.toLocaleString('en-GB')} data records.`);
+  });
+
+  it('checks a course code with the pattern the catalog documents', () => {
+    expect(contract.components.schemas.CreateCourseDto.properties.code.description).toContain(COURSE_CODE_PATTERN.source);
   });
 
   it('has the permissions of the contract', () => {

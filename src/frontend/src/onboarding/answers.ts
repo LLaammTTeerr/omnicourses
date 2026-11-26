@@ -11,7 +11,7 @@ import { useOnboarding } from './store.js';
 // wizard and the settings section, which save the same object (UC-01 A9).
 
 /** The goal fields of the form: a term key ("2026-1") or "", the credits as typed, and a term key, "none" or "". */
-export interface GoalDraft {
+interface GoalDraft {
   graduation: string;
   credits: string;
   internship: string;
@@ -56,7 +56,7 @@ export function goalTermChoices(saved: (Term | null)[], now: Date = new Date()):
   return [...old, ...terms];
 }
 
-export interface ProgramChoice {
+interface ProgramChoice {
   code: string;
   program: Program | null;
   /** The cohorts both offered in this release and with a curriculum. */

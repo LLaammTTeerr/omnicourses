@@ -1,4 +1,5 @@
 import type { Lang } from '../locale.js';
+import { OFFERED_COHORTS } from './api.js';
 import type { CreditsProblem } from './answers.js';
 
 interface OnboardingMessages {
@@ -45,6 +46,8 @@ interface GoalMessages {
   noInternship: string;
 }
 
+const OFFERED_PROGRAMS = Object.keys(OFFERED_COHORTS).join(', ');
+
 export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
   vi: {
     title: 'Bắt đầu',
@@ -53,7 +56,7 @@ export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
     step: (n, of, name) => `Câu ${n} / ${of} · ${name}`,
     stepNames: ['Chương trình', 'Khóa', 'Mục tiêu', 'Tải học'],
     programQuestion: 'Bạn đang học chương trình nào?',
-    programNote: 'Mỗi chương trình có CTĐT và quy định tín chỉ riêng. Bản này chỉ có APCS; chương trình khác sẽ có khi dữ liệu được kiểm tra xong.',
+    programNote: `Mỗi chương trình có CTĐT và quy định tín chỉ riêng. Bản này chỉ có ${OFFERED_PROGRAMS}; chương trình khác sẽ có khi dữ liệu được kiểm tra xong.`,
     otherPrograms: (n) => `${n} chương trình khác chưa hỗ trợ trong bản này`,
     cohortQuestion: 'Bạn vào trường năm nào?',
     cohortOption: (year) => `Khóa ${year}`,
@@ -82,7 +85,7 @@ export const ONBOARDING_MESSAGES: Record<Lang, OnboardingMessages> = {
     step: (n, of, name) => `Question ${n} of ${of} · ${name}`,
     stepNames: ['Program', 'Cohort', 'Goal', 'Load'],
     programQuestion: 'Which program are you in?',
-    programNote: 'Each program has its own curriculum and credit rules. This release has APCS only; others come once their data is checked.',
+    programNote: `Each program has its own curriculum and credit rules. This release has ${OFFERED_PROGRAMS} only; others come once their data is checked.`,
     otherPrograms: (n) => `${n} other ${n === 1 ? 'program is' : 'programs are'} not in this release yet`,
     cohortQuestion: 'Which year did you start?',
     cohortOption: (year) => `Cohort ${year}`,

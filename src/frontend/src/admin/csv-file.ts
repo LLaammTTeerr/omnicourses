@@ -5,7 +5,7 @@ import { IMPORT_HEADERS, IMPORT_MAX_BYTES, IMPORT_MAX_RECORDS, type ImportFileTy
 // far too large is not sent at all: the API checks them again, with every row, and decides. Nothing here reads a
 // value of a row.
 
-export type ReadFile = { ok: true; text: string } | { ok: false; reason: 'not_utf8' | 'unreadable' };
+type ReadFile = { ok: true; text: string } | { ok: false; reason: 'not_utf8' | 'unreadable' };
 
 /**
  * The file's text, decoded as UTF-8; a BOM at the start is dropped, as the API would. A byte that is not UTF-8 is
@@ -62,7 +62,7 @@ export function countDataRecords(text: string): number {
 }
 
 /** Over an input limit of the API: the file is not sent. */
-export type OverLimit = { limit: 'bytes'; bytes: number } | { limit: 'records'; records: number };
+type OverLimit = { limit: 'bytes'; bytes: number } | { limit: 'records'; records: number };
 
 export function overLimit(text: string): OverLimit | null {
   const bytes = utf8Bytes(text);

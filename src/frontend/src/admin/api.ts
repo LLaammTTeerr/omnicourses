@@ -230,9 +230,13 @@ export const IMPORT_HEADERS: Record<ImportFileType, readonly string[]> = {
   group_links: ['requirement_group_name', 'course_code'],
 };
 
+export const BYTES_PER_KIB = 1024;
+export const BYTES_PER_MIB = 1024 * BYTES_PER_KIB;
+
 /** The input limits of the API; it checks them itself, and decides. */
-export const IMPORT_MAX_BYTES = 1024 * 1024;
+export const IMPORT_MAX_BYTES = BYTES_PER_MIB;
 export const IMPORT_MAX_RECORDS = 1000;
+export const SIGNED_OUT_BODY_MAX_KIB = 100;
 
 export interface ImportPreviewBody {
   /** The whole file as text. */

@@ -1,6 +1,7 @@
 import type { RequirementGroupKind } from '../curriculum/api.js';
-import type { Lang } from '../locale.js';
-import type { PermissionKind } from './api.js';
+import { COURSE_CODE_LENGTH } from '../course-code.js';
+import { LANGUAGES, type Lang } from '../locale.js';
+import { BYTES_PER_MIB, IMPORT_MAX_BYTES, IMPORT_MAX_RECORDS, SIGNED_OUT_BODY_MAX_KIB, type PermissionKind } from './api.js';
 import type { ConflictCode, Reference } from './errors.js';
 import type { CohortField, CourseField, ProgramField } from './forms.js';
 import type { ImportFileType } from './api.js';
@@ -319,6 +320,10 @@ interface AdminMessages {
   import: ImportMessages;
 }
 
+const MAX_MIB = `${IMPORT_MAX_BYTES / BYTES_PER_MIB} MiB`;
+const maxRecords = (lang: Lang) => IMPORT_MAX_RECORDS.toLocaleString(LANGUAGES[lang].tag);
+const { min: CODE_MIN, max: CODE_MAX } = COURSE_CODE_LENGTH;
+
 export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
   vi: {
     title: 'Quản trị',
@@ -368,7 +373,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       impact: 'Học phần này dùng chung cho nhiều chương trình đào tạo, nên cần xem lại ảnh hưởng trước khi lưu. Chưa lưu gì.',
       file: 'Máy chủ không đọc được tệp này. Chưa lưu gì. Sửa tệp theo các lỗi sau:',
       reviewChanged: 'Tệp, hoặc dữ liệu đã lưu, đã đổi từ lúc xem trước. Chưa lưu gì. Xem trước lại rồi xác nhận lần nữa.',
-      tooLarge: 'Yêu cầu vượt giới hạn kích thước của máy chủ. Một tệp CSV được tối đa 1 MiB và 1.000 bản ghi khi tài khoản có quyền nhập loại tệp đó; nếu không, một yêu cầu chỉ được tối đa 100 KiB. Chia tệp thành nhiều tệp nhỏ hơn. Chưa lưu gì.',
+      tooLarge: `Yêu cầu vượt giới hạn kích thước của máy chủ. Một tệp CSV được tối đa ${MAX_MIB} và ${maxRecords('vi')} bản ghi khi tài khoản có quyền nhập loại tệp đó; nếu không, một yêu cầu chỉ được tối đa ${SIGNED_OUT_BODY_MAX_KIB} KiB. Chia tệp thành nhiều tệp nhỏ hơn. Chưa lưu gì.`,
       compressed: 'Máy chủ không nhận yêu cầu đã nén. Chưa lưu gì.',
       rateLimited: 'Quá nhiều yêu cầu. Đợi một phút rồi thử lại. Chưa lưu gì.',
       refused: (status) => `Máy chủ từ chối yêu cầu (mã ${status}). Chưa lưu gì.`,
@@ -492,7 +497,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       lookupHint: 'Danh mục chưa có trang liệt kê hay tìm theo tên. Nhập đúng mã của học phần.',
       notFound: (code) => `Danh mục không có học phần mang mã ${code}.`,
       notFoundAdd: 'Bấm “Thêm học phần” để tạo học phần mới với mã này.',
-      notACode: 'Mã học phần gồm 2 đến 20 chữ cái A–Z hoặc chữ số, nên không thể tạo học phần với mã này.',
+      notACode: `Mã học phần gồm ${CODE_MIN} đến ${CODE_MAX} chữ cái A–Z hoặc chữ số, nên không thể tạo học phần với mã này.`,
       lookupFailed: 'Chưa tải được học phần.',
       importLink: 'Nhập học phần từ tệp CSV',
       fields: {
@@ -515,7 +520,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       deleteLabel: (course) => `Xóa học phần ${course}`,
       dialogNew: 'Học phần mới',
       dialogEdit: (course) => `Sửa học phần ${course}`,
-      codeHint: 'Chữ in hoa và số, 2 đến 20 ký tự, ví dụ CS101. Mã không đổi được sau khi tạo.',
+      codeHint: `Chữ in hoa và số, ${CODE_MIN} đến ${CODE_MAX} ký tự, ví dụ CS101. Mã không đổi được sau khi tạo.`,
       codeFixed: 'Mã không đổi được ở đây.',
       nameEnHint: 'Để trống nếu văn bản chính thức không có tên tiếng Anh.',
       periodsHintNew: 'Số tiết theo bảng chính thức. Ô để trống được lưu là 0.',
@@ -634,12 +639,12 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       headerNotCopied: 'Chưa chép được. Tiêu đề đã được chọn: bấm Ctrl+C để chép.',
       downloadTemplate: 'Tải tệp mẫu',
       file: 'Tệp CSV',
-      fileHint: 'Văn bản UTF-8, phân cách bằng dấu phẩy. Tối đa 1 MiB và 1.000 bản ghi.',
+      fileHint: `Văn bản UTF-8, phân cách bằng dấu phẩy. Tối đa ${MAX_MIB} và ${maxRecords('vi')} bản ghi.`,
       fileChosen: (name, size) => `Đã đọc ${name} (${size}).`,
       notUtf8: 'Tệp này không phải văn bản UTF-8. Lưu lại tệp dưới dạng “CSV UTF-8” rồi chọn lại. Chưa gửi gì.',
       unreadable: 'Chưa đọc được tệp này. Chọn lại tệp. Chưa gửi gì.',
-      tooBig: (size) => `Tệp nặng ${size}, quá 1 MiB. Chia thành nhiều tệp nhỏ hơn. Chưa gửi gì.`,
-      tooMany: (count) => `Tệp có ${count} bản ghi, quá 1.000. Chia thành nhiều tệp nhỏ hơn. Chưa gửi gì.`,
+      tooBig: (size) => `Tệp nặng ${size}, quá ${MAX_MIB}. Chia thành nhiều tệp nhỏ hơn. Chưa gửi gì.`,
+      tooMany: (count) => `Tệp có ${count} bản ghi, quá ${maxRecords('vi')}. Chia thành nhiều tệp nhỏ hơn. Chưa gửi gì.`,
       preview: 'Xem trước',
       previewing: 'Đang xem trước…',
       previewFailed: 'Chưa xem trước được: máy chủ không trả lời. Thử lại.',
@@ -712,7 +717,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       impact: 'Several curricula share this course, so its impact must be reviewed before saving. Nothing was saved.',
       file: 'The server could not read this file. Nothing was saved. Correct the file at these places:',
       reviewChanged: 'The file or the saved data changed since the preview. Nothing was saved. Preview it again, then confirm again.',
-      tooLarge: 'The request is over a size limit of the server. A CSV file may have up to 1 MiB and 1,000 records when your account may import that type of file; otherwise a request may have only up to 100 KiB. Split the file into smaller files. Nothing was saved.',
+      tooLarge: `The request is over a size limit of the server. A CSV file may have up to ${MAX_MIB} and ${maxRecords('en')} records when your account may import that type of file; otherwise a request may have only up to ${SIGNED_OUT_BODY_MAX_KIB} KiB. Split the file into smaller files. Nothing was saved.`,
       compressed: 'The server does not accept a compressed request. Nothing was saved.',
       rateLimited: 'Too many requests. Wait a minute, then try again. Nothing was saved.',
       refused: (status) => `The server refused the request (status ${status}). Nothing was saved.`,
@@ -836,7 +841,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       lookupHint: 'The catalog has no listing or search by name yet. Enter the exact code of the course.',
       notFound: (code) => `The catalog has no course with the code ${code}.`,
       notFoundAdd: 'Press “Add course” to create a new course with this code.',
-      notACode: 'A course code has 2 to 20 letters A–Z or digits, so no course can be created with this one.',
+      notACode: `A course code has ${CODE_MIN} to ${CODE_MAX} letters A–Z or digits, so no course can be created with this one.`,
       lookupFailed: 'Could not load the course.',
       importLink: 'Import courses from a CSV file',
       fields: {
@@ -859,7 +864,7 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       deleteLabel: (course) => `Delete the course ${course}`,
       dialogNew: 'New course',
       dialogEdit: (course) => `Edit the course ${course}`,
-      codeHint: 'Capital letters and digits, 2 to 20 characters, such as CS101. The code cannot change once created.',
+      codeHint: `Capital letters and digits, ${CODE_MIN} to ${CODE_MAX} characters, such as CS101. The code cannot change once created.`,
       codeFixed: 'The code cannot be changed here.',
       nameEnHint: 'Leave empty if the official document gives no English name.',
       periodsHintNew: 'Periods as the official table prints them. An empty box is saved as 0.',
@@ -978,12 +983,12 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
       headerNotCopied: 'Could not copy it. The header is selected: press Ctrl+C to copy it.',
       downloadTemplate: 'Download a template',
       file: 'CSV file',
-      fileHint: 'UTF-8 text, separated by commas. At most 1 MiB and 1,000 records.',
+      fileHint: `UTF-8 text, separated by commas. At most ${MAX_MIB} and ${maxRecords('en')} records.`,
       fileChosen: (name, size) => `Read ${name} (${size}).`,
       notUtf8: 'This file is not UTF-8 text. Save it again as “CSV UTF-8”, then choose it again. Nothing was sent.',
       unreadable: 'Could not read this file. Choose it again. Nothing was sent.',
-      tooBig: (size) => `The file is ${size}, over 1 MiB. Split it into smaller files. Nothing was sent.`,
-      tooMany: (count) => `The file has ${count} records, over 1,000. Split it into smaller files. Nothing was sent.`,
+      tooBig: (size) => `The file is ${size}, over ${MAX_MIB}. Split it into smaller files. Nothing was sent.`,
+      tooMany: (count) => `The file has ${count} records, over ${maxRecords('en')}. Split it into smaller files. Nothing was sent.`,
       preview: 'Preview',
       previewing: 'Previewing…',
       previewFailed: 'Could not preview: the server did not answer. Try again.',

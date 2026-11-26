@@ -52,7 +52,7 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
     expect(text).toContain('giữ 7 ngày');
     expect(text).toContain('Không bao giờ gửi tên, email hay mã số sinh viên.');
     expect(text).toContain('không bao giờ hỏi hay lưu mật khẩu cổng thông tin');
-    expect(text).toContain('Cập nhật ngày 12/11/2026.');
+    expect(text).toContain('Cập nhật ngày 26/11/2026.');
   });
 
   it('names the Settings labels the student will see to export or delete', async () => {
@@ -76,7 +76,7 @@ describe('PrivacyView (UC-01 step 2, TC-B1-USER-01p)', () => {
     expect(text).toContain('Signing in again before then cancels the deletion.');
     expect(text).toContain('AI usage counts');
     expect(text).toContain('Never what you asked or what the AI answered.');
-    expect(text).toContain('Last updated 12 Nov 2026.');
+    expect(text).toContain('Last updated 26 Nov 2026.');
     expect(w.get('[data-test="export"]').text()).toContain('Settings → Your data → Export data');
     expect(w.get('[data-test="delete"]').text()).toContain('Settings → Your data → Delete account');
   });

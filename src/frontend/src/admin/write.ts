@@ -46,7 +46,7 @@ export async function settleWrite<T>(write: () => Promise<T>, landed: () => Prom
 }
 
 /** What became of a write that got no answer, read from the saved data. It sends no write. */
-export async function settleLost(landed: () => Promise<boolean>): Promise<Exclude<WriteOutcome<never>, { outcome: 'saved' }>> {
+async function settleLost(landed: () => Promise<boolean>): Promise<Exclude<WriteOutcome<never>, { outcome: 'saved' }>> {
   try {
     return { outcome: (await landed()) ? 'confirmed' : 'not_applied' };
   } catch (e) {

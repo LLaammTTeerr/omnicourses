@@ -3,7 +3,7 @@ import { RouterLink } from 'vue-router';
 import { HOME_SIGNED_IN } from '../auth/redirect.js';
 import { useAuth } from '../auth/store.js';
 import ApiStatus from '../components/ApiStatus.vue';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { GROUP_IDS, GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -30,15 +30,15 @@ const m = useMessages({
     open: 'Mở tổng quan',
     readGuides: 'Đọc hướng dẫn thủ tục',
     noPortal: 'Không cần mật khẩu cổng trường. Dữ liệu là do bạn nhập.',
-    stage: '8 nhóm tín chỉ, mỗi nhóm một màu và một ký hiệu.',
+    stage: `${GROUP_IDS.length} nhóm tín chỉ, mỗi nhóm một màu và một ký hiệu.`,
     featuresTitle: 'Mọi thứ về việc học, xếp gọn trong một màn hình.',
     soon: 'Sắp có',
     features: [
       { group: 'phys', glyph: '↗', title: 'Hướng dẫn thủ tục', text: 'Đăng ký học phần, đóng học phí, tải bảng điểm. Link thẳng tới cổng, các bước, ngày kiểm tra gần nhất. Đọc được khi chưa đăng nhập.' },
       { group: 'gen', glyph: '≡', title: 'Bảng điểm của bạn', text: 'Nhập từng môn, duyệt từng dòng rồi lưu. Dòng chưa đủ thông tin không lưu được. Lưu lần sau thay toàn bộ lần trước.' },
       { group: 'thesis', glyph: '⇣', title: 'Dữ liệu là của bạn', text: 'Tải toàn bộ dữ liệu về một file JSON, hoặc xóa tài khoản bất cứ lúc nào.' },
-      { group: 'core', glyph: '%', title: 'Xét tốt nghiệp theo từng nhóm', text: '8 nhóm tín chỉ, mỗi nhóm một màu. Đã đạt, đang học, còn thiếu, theo đúng quy chế.' },
-      { group: 'elec', glyph: '⇄', title: 'Lộ trình kéo thả', text: 'Kéo môn vào học kỳ. Tiên quyết, kỳ mở môn và giới hạn tín chỉ được kiểm tra ngay khi thả.', soon: true },
+      { group: 'core', glyph: '%', title: 'Xét tốt nghiệp theo từng nhóm', text: `${GROUP_IDS.length} nhóm tín chỉ, mỗi nhóm một màu. Đã đạt, đang học, còn thiếu, theo đúng quy chế.` },
+      { group: 'elec', glyph: '⇄', title: 'Lộ trình kéo thả', text: 'Kéo môn vào học kỳ. Tiên quyết, kỳ mở môn và giới hạn tín chỉ được kiểm tra ngay khi thả.' },
       { group: 'pol', glyph: '?', title: 'Trợ lý có trích dẫn', text: 'Mỗi câu trả lời kèm điều khoản. Việc liên quan hồ sơ của bạn do rule engine kiểm tra.', soon: true },
     ] satisfies Feature[],
     promiseTitle: 'Ba điều không bao giờ làm.',
@@ -60,15 +60,15 @@ const m = useMessages({
     open: 'Open your dashboard',
     readGuides: 'Read the school task guides',
     noPortal: 'No school portal password needed. You enter your own data.',
-    stage: '8 credit groups, each with its own colour and glyph.',
+    stage: `${GROUP_IDS.length} credit groups, each with its own colour and glyph.`,
     featuresTitle: 'Everything about your studies, on one screen.',
     soon: 'Coming soon',
     features: [
       { group: 'phys', glyph: '↗', title: 'School task guides', text: 'Register for courses, pay tuition, download your transcript. A direct link to the portal, the steps and the date they were last checked. Readable without an account.' },
       { group: 'gen', glyph: '≡', title: 'Your transcript', text: 'Enter each course, review every row, then save. An incomplete row cannot be saved. A later save replaces the earlier one.' },
       { group: 'thesis', glyph: '⇣', title: 'Your data is yours', text: 'Download everything as one JSON file, or delete your account at any time.' },
-      { group: 'core', glyph: '%', title: 'Degree audit by group', text: '8 credit groups, one colour each. Passed, in progress and still needed, by the regulation.' },
-      { group: 'elec', glyph: '⇄', title: 'Drag-and-drop roadmap', text: 'Drag a course into a term. Prerequisites, offering terms and credit caps are checked as you drop.', soon: true },
+      { group: 'core', glyph: '%', title: 'Degree audit by group', text: `${GROUP_IDS.length} credit groups, one colour each. Passed, in progress and still needed, by the regulation.` },
+      { group: 'elec', glyph: '⇄', title: 'Drag-and-drop roadmap', text: 'Drag a course into a term. Prerequisites, offering terms and credit caps are checked as you drop.' },
       { group: 'pol', glyph: '?', title: 'An advisor that cites', text: 'Every answer cites its clause. Anything about your record is checked by the rule engine.', soon: true },
     ] satisfies Feature[],
     promiseTitle: 'Three things we never do.',

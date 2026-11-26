@@ -6,16 +6,16 @@ import type { Lang } from '../locale.js';
 // ADR 0003 (AI).
 
 /** The day the text below last changed. */
-export const PRIVACY_UPDATED_ON = '2026-11-12';
+export const PRIVACY_UPDATED_ON = '2026-11-26';
 
 /** The account deletion grace period (ACCOUNT_DELETION_GRACE_DAYS, default 30 in the API and .env.example). */
 export const DELETION_GRACE_DAYS = 30;
 
 /** The pre-deploy database copies kept on the server (deploy/server/omnicourse-root: `tail -n +15`). */
-export const DEPLOY_COPIES_KEPT = 14;
+const DEPLOY_COPIES_KEPT = 14;
 
 /** Settings' own labels, so the steps name exactly what the student sees there. */
-export interface SettingsPath {
+interface SettingsPath {
   settings: string;
   section: string;
   button: string;
@@ -67,7 +67,7 @@ export const PRIVACY_MESSAGES: Record<Lang, PrivacyMessages> = {
     backupsTitle: 'Bản sao lưu',
     backups: [
       `Trước mỗi lần cập nhật OmniCourse, máy chủ lưu một bản sao cơ sở dữ liệu để có thể quay lại nếu cập nhật lỗi. Chỉ giữ ${DEPLOY_COPIES_KEPT} bản gần nhất, nên dữ liệu của tài khoản đã xóa có thể còn trong các bản này cho tới khi thêm ${DEPLOY_COPIES_KEPT} lần cập nhật nữa.`,
-      'Sao lưu hằng đêm, giữ 7 ngày, dự kiến bắt đầu cuối tháng 11/2026. Hiện chưa chạy.',
+      'Sao lưu hằng đêm, giữ 7 ngày, đã có kế hoạch. Hiện chưa chạy.',
     ],
     aiTitle: 'AI',
     ai: [
@@ -102,7 +102,7 @@ export const PRIVACY_MESSAGES: Record<Lang, PrivacyMessages> = {
     backupsTitle: 'Backups',
     backups: [
       `Before each update of OmniCourse, the server saves a copy of the database so a failed update can be undone. Only the ${DEPLOY_COPIES_KEPT} latest copies are kept, so data from a deleted account can stay in them until ${DEPLOY_COPIES_KEPT} more updates have run.`,
-      'Nightly backups, kept for 7 days, are planned from late November 2026. They are not running yet.',
+      'Nightly backups, kept for 7 days, are planned. They are not running yet.',
     ],
     aiTitle: 'AI',
     ai: [

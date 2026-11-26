@@ -130,7 +130,7 @@ interface Owned<T> {
   value: T;
 }
 
-export interface AccountCache<T> {
+interface AccountCache<T> {
   value: ComputedRef<T | null>;
   load(options?: { fresh?: boolean }): Promise<T>;
   isLatest(load: Promise<T>): boolean;

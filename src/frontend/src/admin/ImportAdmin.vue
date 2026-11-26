@@ -7,6 +7,8 @@ import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import {
+  BYTES_PER_KIB,
+  BYTES_PER_MIB,
   confirmCatalogImport,
   confirmLinkImport,
   IMPORT_FILE_TYPES,
@@ -82,7 +84,7 @@ const draft = shallowRef<{ name: string; bytes: number; csv: string } | null>(nu
 const fileProblem = ref<string | null>(null);
 const reading = ref(false);
 
-const size = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KiB` : `${(bytes / 1024 / 1024).toFixed(1)} MiB`);
+const size = (bytes: number) => (bytes < BYTES_PER_MIB ? `${Math.max(1, Math.round(bytes / BYTES_PER_KIB))} KiB` : `${(bytes / BYTES_PER_MIB).toFixed(1)} MiB`);
 
 async function choose(): Promise<void> {
   const file = fileInput.value?.files?.[0];

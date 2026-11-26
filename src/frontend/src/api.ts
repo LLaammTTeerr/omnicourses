@@ -86,7 +86,7 @@ export function fetchHealth(): Promise<Health> {
 /** The HTTP status of a failed call, or null when the request never got an answer (offline, CORS, DNS). */
 export const statusOf = (e: unknown): number | null => (e instanceof HttpError ? e.status : null);
 
-export type FailureKind = 'unauthorized' | 'invalid' | 'forbidden' | 'not_found' | 'conflict' | 'rate_limited' | 'server_error' | 'timed_out' | 'unreachable' | 'other';
+type FailureKind = 'unauthorized' | 'invalid' | 'forbidden' | 'not_found' | 'conflict' | 'rate_limited' | 'server_error' | 'timed_out' | 'unreachable' | 'other';
 
 const FAILURE_BY_STATUS: Readonly<Record<number, FailureKind>> = { 400: 'invalid', 401: 'unauthorized', 403: 'forbidden', 404: 'not_found', 409: 'conflict', 429: 'rate_limited' };
 const FIRST_SERVER_ERROR = 500;
