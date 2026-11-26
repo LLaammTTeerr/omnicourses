@@ -1,5 +1,11 @@
 # @omnicourse/frontend
 
+## 0.5.3
+
+### Patch Changes
+
+- [#125](https://github.com/LLaammTTeerr/omnicourses/pull/125) [`eef63e2`](https://github.com/LLaammTTeerr/omnicourses/commit/eef63e266ca0cef11f8d90313461bb16d36d4847) Thanks [@rakun68](https://github.com/rakun68)! - Calendar: a failed load now says so (no more "no school dates yet" on a 404); Week and Month are pressed buttons with a visible focus ring; "+N" and each day number in the month have a spoken name with the weekday in words; on a phone the week opens scrolled to today, and Previous and Next scroll it too.
+
 ## 0.5.2
 
 ### Patch Changes
