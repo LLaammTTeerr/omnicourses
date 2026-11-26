@@ -14,6 +14,8 @@ import {
 import { Program } from './program.entity.js';
 import { RequirementGroup } from './requirement-group.entity.js';
 
+export const LANGUAGE_MAX_LENGTH = 10;
+
 @Entity({ name: 'curriculums' })
 @Unique('uq_curriculums_program_cohort', ['programId', 'cohortYear'])
 @Check('ck_curriculums_cohort_year_range', `"cohort_year" BETWEEN 2000 AND 2100`)
@@ -41,7 +43,7 @@ export class Curriculum {
   @Column({ name: 'name_en', type: 'varchar', length: 255, nullable: true })
   nameEn!: string | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true })
+  @Column({ type: 'varchar', length: LANGUAGE_MAX_LENGTH, nullable: true })
   language!: string | null;
 
   @Column({ name: 'total_credits_min', type: 'integer', nullable: true })

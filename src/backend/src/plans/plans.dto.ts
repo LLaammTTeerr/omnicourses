@@ -24,9 +24,9 @@ import { PROGRAM_CODE_MAX_LENGTH } from '../curriculum/program.entity.js';
 import { MaxCodePoints, NoNullCharacter, TermDto, trimString } from '../common/field-validators.js';
 import { type BoardTerm, type Placement, PLACEMENT_KINDS, type PlacementKind } from '../rules/types.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
+import { PLAN_NAME_MAX_LENGTH } from './plan.entity.js';
 import { MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS } from './plan-board.js';
 
-const PLAN_NAME_MAX_LENGTH = 100;
 const MAX_SLOT_CREDITS = 30;
 
 const PlanName = () =>

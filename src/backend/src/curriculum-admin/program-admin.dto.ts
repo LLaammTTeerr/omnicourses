@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsInt, IsString, Matches, Max, Min } from 'class-validator';
 import { ifPresent, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
+import { LANGUAGE_MAX_LENGTH } from '../curriculum/curriculum.entity.js';
 import { FACULTY_MAX_LENGTH, TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
 import { NAME_MAX_LENGTH } from './curriculum-admin.dto.js';
@@ -12,7 +13,6 @@ const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined
 
 export const canonicalAdminCode = (input: unknown): unknown => (typeof input === 'string' ? input.trim().toUpperCase() : input);
 
-const LANGUAGE_MAX_LENGTH = 10;
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
