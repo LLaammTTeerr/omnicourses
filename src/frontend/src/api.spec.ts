@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, getJson, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
+import { API_URL, codePoints, getJson, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
@@ -114,5 +114,15 @@ describe('getJson', () => {
     expect(vi.mocked(fetch).mock.calls[0]![1]).toMatchObject({ method: 'GET', headers: {} });
     timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
     expect(await pending).toMatchObject({ name: 'TimeoutError' });
+  });
+});
+
+describe('codePoints', () => {
+  it('counts characters as the API counts a text length (#179), not UTF-16 units', () => {
+    expect(codePoints('')).toBe(0);
+    expect(codePoints('Học máy')).toBe(7);
+    expect(codePoints('😀😀')).toBe(2);
+    // A variation selector is a code point of its own, as PostgreSQL counts it.
+    expect(codePoints('✌️')).toBe(2);
   });
 });

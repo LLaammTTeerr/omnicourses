@@ -117,6 +117,30 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(w.find('dialog[open]').exists()).toBe(false);
   });
 
+  it('counts a plan name in characters as the API does, so 100 emoji pass and 101 do not (#179)', async () => {
+    let body: unknown;
+    const { w } = await render({
+      [`PATCH /plans/${PLAN_ID}`]: (init: RequestInit) => {
+        body = sentBody(init);
+        return Response.json({ ...plan(), name: '😀'.repeat(100) });
+      },
+    });
+    await card(w, 0).get('[data-test="rename"]').trigger('click');
+    await flushPromises();
+    const input = w.get('dialog[open] input');
+    // No maxlength: the browser counts UTF-16 units and would stop the typing at 50 emoji.
+    expect(input.attributes('maxlength')).toBeUndefined();
+    await input.setValue('😀'.repeat(101));
+    await w.get('dialog[open] form').trigger('submit');
+    await flushPromises();
+    expect(body).toBeUndefined();
+    expect(w.get('dialog[open]').text()).toContain('Hãy nhập tên, tối đa 100 ký tự.');
+    await input.setValue('😀'.repeat(100));
+    await w.get('dialog[open] form').trigger('submit');
+    await flushPromises();
+    expect(body).toEqual({ name: '😀'.repeat(100) });
+  });
+
   it('keeps the rename dialog open with the error when the rename fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render({ [`PATCH /plans/${PLAN_ID}`]: status(500) });

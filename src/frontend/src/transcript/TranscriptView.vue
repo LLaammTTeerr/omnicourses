@@ -178,7 +178,7 @@ usePageTitle(() => m.value.title);
                     />
                   </td>
                   <td :data-label="m.columns.courseName">
-                    <input v-model="row.courseName" class="input" maxlength="255" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
+                    <input v-model="row.courseName" class="input" :aria-label="m.fieldLabel(m.columns.courseName, label(i))" :aria-invalid="rowProblems.includes('courseName') || undefined"
                       :aria-describedby="describedBy(row, rowProblems, 'courseName')" />
                   </td>
                   <td :data-label="m.columns.credits">

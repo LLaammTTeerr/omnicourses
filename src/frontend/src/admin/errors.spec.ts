@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HttpError } from '../api.js';
 import { byField, readFailure, readReference } from './errors.js';
+import { ADMIN_MESSAGES } from './messages.js';
 
 const answer = (status: number, body: Record<string, unknown> | null) =>
   new HttpError('/admin/x', status, 'PUT', typeof body?.message === 'string' ? [body.message] : ((body?.message as string[] | undefined) ?? []), typeof body?.code === 'string' ? body.code : null, body);
@@ -116,12 +117,24 @@ describe('readReference', () => {
     ['3 offering-term rows name it', { kind: 'count', what: 'offering_terms', count: 3 }],
     ['4 transcript rows name it', { kind: 'count', what: 'transcript_rows', count: 4 }],
     ['1 saved plans place it', { kind: 'count', what: 'plans', count: 1 }],
+    // A requirement group's delete (curriculum-admin.service.ts): a count of distinct saved plans, or no number.
+    ['2 saved plans use it', { kind: 'group_plans', count: 2 }],
+    ['saved plans use it', { kind: 'group_plans', count: null }],
   ])('reads "%s"', (text, reference) => {
     expect(readReference(text)).toEqual(reference);
   });
 
   it('keeps a sentence it does not know as the API wrote it', () => {
     expect(readReference('5 new things name it')).toEqual({ kind: 'other', text: '5 new things name it' });
+  });
+
+  it('words the saved plans that use a group in both languages, with and without a number', () => {
+    const say = (lang: 'vi' | 'en', text: string) => ADMIN_MESSAGES[lang].reference(readReference(text));
+    expect(say('en', '3 saved plans use it')).toBe('3 saved plans use this group');
+    expect(say('en', '1 saved plans use it')).toBe('1 saved plan uses this group');
+    expect(say('en', 'saved plans use it')).toBe('saved plans use this group');
+    expect(say('vi', '3 saved plans use it')).toBe('3 lộ trình đã lưu đang dùng nhóm này');
+    expect(say('vi', 'saved plans use it')).toBe('có lộ trình đã lưu đang dùng nhóm này');
   });
 
 });

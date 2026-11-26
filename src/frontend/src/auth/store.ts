@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { statusOf } from '../api.js';
+import { forgetLastPlan } from '../plans/last-plan.js';
+import { forgetLocks } from '../plans/lock.js';
 import * as api from './api.js';
 import type { AuthResult, SignInBody, SignUpBody, User } from './api.js';
 
@@ -16,6 +18,12 @@ function readToken(): string | null {
   } catch {
     return null;
   }
+}
+
+/** What this browser keeps of the account beside the token, forgotten when the session ends here. */
+function forgetAccountData(): void {
+  forgetLastPlan();
+  forgetLocks();
 }
 
 function writeToken(token: string | null): void {
@@ -39,11 +47,12 @@ export const useAuth = defineStore('auth', () => {
     writeToken(result.token);
   }
 
-  /** Forgets the session on this device, without calling the API. */
+  /** Forgets the session on this device, and the account's plan choices kept here, without calling the API. */
   function clear(): void {
     token.value = null;
     user.value = null;
     writeToken(null);
+    forgetAccountData();
   }
 
   /**
@@ -58,8 +67,10 @@ export const useAuth = defineStore('auth', () => {
       try {
         adopt(await api.refresh(saved));
       } catch (e) {
-        if (statusOf(e) === 401) writeToken(null);
-        else console.error('Restoring the session failed:', e);
+        if (statusOf(e) === 401) {
+          writeToken(null);
+          forgetAccountData();
+        } else console.error('Restoring the session failed:', e);
       }
     })();
     return started;

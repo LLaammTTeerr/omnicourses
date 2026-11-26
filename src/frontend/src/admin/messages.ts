@@ -396,6 +396,8 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
             transcript_rows: `${r.count} dòng bảng điểm ghi học phần này`,
             plans: `${r.count} vị trí trong lộ trình đã lưu đặt học phần này`,
           }[r.what];
+        case 'group_plans':
+          return r.count === null ? 'có lộ trình đã lưu đang dùng nhóm này' : `${r.count} lộ trình đã lưu đang dùng nhóm này`;
         case 'other':
           return r.text;
       }
@@ -738,6 +740,8 @@ export const ADMIN_MESSAGES: Record<Lang, AdminMessages> = {
             transcript_rows: `${r.count} transcript ${r.count === 1 ? 'row names' : 'rows name'} this course`,
             plans: `${r.count} ${r.count === 1 ? 'place in a saved plan holds' : 'places in saved plans hold'} this course`,
           }[r.what];
+        case 'group_plans':
+          return r.count === null ? 'saved plans use this group' : `${r.count} ${r.count === 1 ? 'saved plan uses' : 'saved plans use'} this group`;
         case 'other':
           return r.text;
       }

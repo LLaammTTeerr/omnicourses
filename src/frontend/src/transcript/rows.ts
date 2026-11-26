@@ -1,4 +1,6 @@
+import { codePoints } from '../api.js';
 import { COURSE_CODE_PATTERN } from '../course-code.js';
+import { currentTerm, vietnamDate } from '../terms.js';
 import { TERM_NUMBERS, TRANSCRIPT_RESULTS, type Term, type TranscriptResult, type TranscriptRow } from './api.js';
 
 // A row of the review table (UC-02 step 5) as the student edits it, and the checks TranscriptRowDto makes, so the
@@ -54,7 +56,7 @@ export function problems(row: DraftRow): Problem[] {
   if (!Number.isInteger(row.year) || row.year < MIN_YEAR || row.year > MAX_YEAR || !TERM_NUMBERS.includes(row.number)) found.push('term');
   if (!COURSE_CODE_PATTERN.test(normalizeCode(row.courseCode))) found.push('courseCode');
   const name = row.courseName.trim();
-  if (name.length === 0 || name.length > MAX_NAME_LENGTH) found.push('courseName');
+  if (name.length === 0 || codePoints(name) > MAX_NAME_LENGTH) found.push('courseName');
   if (parseCredits(row.credits) === null) found.push('credits');
   if (!(TRANSCRIPT_RESULTS as readonly string[]).includes(row.result)) found.push('result');
   else if (row.result === 'graded' && parseGrade(row.grade) === null) found.push('grade');
@@ -87,16 +89,17 @@ export function fromRow(row: TranscriptRow, key: number): DraftRow {
   };
 }
 
-/** A new row in the term of the last row, or else the academic year `today` falls in (it starts in September). */
+/** A new row in the term of the last row, or else the academic year `today` falls in, in Vietnam time (it starts in September). */
 export function blankRow(key: number, rows: readonly DraftRow[], today = new Date()): DraftRow {
   const last = rows.at(-1);
-  const year = last?.year ?? (today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1);
+  const year = last?.year ?? currentTerm(vietnamDate(today)).year;
   return { key, year, number: last?.number ?? 1, courseCode: '', courseName: '', credits: '', result: '', grade: '' };
 }
 
 /** The academic years the term picker offers: ten years back to next year, plus any year a row already has. */
 export function yearChoices(rows: readonly DraftRow[], today = new Date()): number[] {
-  const now = today.getFullYear();
+  // The year in Vietnam, as the API's term calendar counts it, not in the browser's time zone.
+  const now = Number(vietnamDate(today).slice(0, 4));
   const years = new Set<number>();
   for (let year = now - 10; year <= now + 1; year++) years.add(year);
   for (const row of rows) if (Number.isInteger(row.year)) years.add(row.year);

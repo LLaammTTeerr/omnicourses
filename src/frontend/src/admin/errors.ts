@@ -112,6 +112,8 @@ export type Reference =
   | { kind: 'links'; course: string }
   | { kind: 'linked_in'; curriculum: string }
   | { kind: 'count'; what: 'prerequisite_lists' | 'required_by' | 'offering_terms' | 'transcript_rows' | 'plans'; count: number }
+  /** Saved plans whose slots name a requirement group: count is the number of distinct plans, or null when the API gave none. */
+  | { kind: 'group_plans'; count: number | null }
   /** A sentence this screen does not know: shown as the API wrote it. */
   | { kind: 'other'; text: string };
 
@@ -135,6 +137,8 @@ export function readReference(text: string): Reference {
   if (match) return { kind: 'links', course: match[1]! };
   match = /^linked in (.+)$/.exec(text);
   if (match) return { kind: 'linked_in', curriculum: match[1]! };
+  match = /^(?:(\d+) )?saved plans use it$/.exec(text);
+  if (match) return { kind: 'group_plans', count: match[1] === undefined ? null : Number(match[1]) };
   match = /^(\d+) (.+)$/.exec(text);
   if (match && Object.hasOwn(COUNTED, match[2]!)) return { kind: 'count', what: COUNTED[match[2]!]!, count: Number(match[1]) };
   return { kind: 'other', text };
