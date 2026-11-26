@@ -92,7 +92,7 @@ Two GitHub rulesets on `main` enforce these rules. `protect-main` (pull request,
 
 ### Releases
 
-Every merge to `main` updates an open **chore(release): version packages** PR (opened by GitHub Actions). It bumps the version and writes the changelog from the changesets merged so far. It goes through the same review. Merging it is the release, and production deploys it like any other merge. Never edit `CHANGELOG.md` or a package version by hand. The bump guide is in [.changeset/README.md](.changeset/README.md).
+Every merge to `main` updates an open **chore(release): version packages** PR (opened by GitHub Actions). It bumps the version and writes the changelog from the changesets merged so far. It goes through the same review. Merge it as soon as it holds a user-facing change (Project Lead, 24 November 2026: "release more often"); do not wait for the end of a sprint. Merging it is the release, and production deploys it like any other merge. Never edit `CHANGELOG.md` or a package version by hand. The bump guide is in [.changeset/README.md](.changeset/README.md).
 
 ## 5. AI policy
 
