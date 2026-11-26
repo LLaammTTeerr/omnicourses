@@ -9,7 +9,7 @@ import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { termKey, type Term } from '../terms.js';
+import { currentTermNow, termKey, type Term } from '../terms.js';
 import {
   addCourse,
   addSlot,
@@ -33,7 +33,7 @@ import { isLocked, setLocked } from './lock.js';
 import { PLANNER_MESSAGES } from './messages.js';
 import PlanTabs from './PlanTabs.vue';
 import { BAR_CODES, KIND_STYLE, usePlanCourses, usePlanView } from './present.js';
-import { currentTermNow, useDropPreview, usePlanSession } from './session.js';
+import { useDropPreview, usePlanSession } from './session.js';
 import StatusStrip from './StatusStrip.vue';
 
 const HISTORY_MAX = 50;

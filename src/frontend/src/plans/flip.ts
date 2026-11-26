@@ -1,9 +1,9 @@
-
 export type Snapshot = Map<string, DOMRect>;
 
 export const FLIP_MS = 440;
 const FADE_IN_MS = 240;
 const GLIDE_MS = 320;
+export const SETTLE_EASING = 'cubic-bezier(.2, .8, .2, 1)';
 
 export const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -35,14 +35,14 @@ export function play(root: ParentNode | null, before: Snapshot, lift?: Lift): vo
     }
     const was = before.get(el.dataset.flip!);
     if (!was) {
-      el.animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: FADE_IN_MS, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+      el.animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: FADE_IN_MS, easing: SETTLE_EASING });
       return;
     }
     const now = el.getBoundingClientRect();
     const dx = was.left - now.left;
     const dy = was.top - now.top;
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
-    el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: GLIDE_MS, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+    el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: GLIDE_MS, easing: SETTLE_EASING });
   });
 }
 

@@ -8,11 +8,11 @@ import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { LANGUAGES, useLocale, useMessages } from '../locale.js';
 import type { IconName } from '../shell/icons.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
-import { termKey, termName, type Term } from '../terms.js';
+import { currentTermNow, termKey, termName, type Term } from '../terms.js';
 import type { Plan, PlanIssue, PlanIssueCode, PlanIssueKind, PlanTermLoad } from './api.js';
 import { compareTerms, findTile, isHome, type AttachedIssues, type Board, type Moving, type Row, type Tile } from './board.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
-import { currentTermNow, type RowPreview } from './session.js';
+import type { RowPreview } from './session.js';
 
 export const ISSUE_KINDS_SHOWN = ['violation', 'flag', 'unknown'] as const satisfies readonly PlanIssueKind[];
 

@@ -309,6 +309,16 @@ describe('PlanEditorView (F5, UC-05)', () => {
     expect(document.querySelector('.ghost-tile')).toBeNull();
   });
 
+  it('shows no dashed placeholder on the row a held tile comes from, and shows it on another row', async () => {
+    const { w } = await render();
+    await press(tile(w, 'ZZ102'));
+    await hover(row(w, '2026-1'));
+    expect(row(w, '2026-1').find('[data-test="placeholder"]').exists()).toBe(false);
+    await hover(row(w, '2026-2'));
+    expect(row(w, '2026-2').get('[data-test="placeholder"]').text()).toContain('ZZ102');
+    await release();
+  });
+
   it('sends a placed course back to the list when it is dropped on the bin that shows while it is held', async () => {
     const { w, sent } = await render();
     await press(tile(w, 'ZZ102'));
@@ -855,8 +865,9 @@ describe('PlanEditorView (F5, UC-05)', () => {
       vi.useFakeTimers({ toFake: ['setTimeout'] });
       await release();
       expect(rowCodes(w)[1]).toBe('HK2 2026–2027: ZZ201');
+      vi.advanceTimersByTime(FLIP_MS - 1);
       expect(tile(w, 'ZZ201').classes()).not.toContain('shake');
-      vi.advanceTimersByTime(FLIP_MS);
+      vi.advanceTimersByTime(1);
       vi.useRealTimers();
       expect(tile(w, 'ZZ201').classes()).toContain('shake');
       expect(w.find('.bad-drop').exists()).toBe(false);

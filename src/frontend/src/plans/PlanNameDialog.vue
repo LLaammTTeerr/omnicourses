@@ -5,9 +5,9 @@ import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { SHELL_MESSAGES } from '../shell/messages.js';
+import { PLAN_NAME_MAX_CODE_POINTS } from './actions.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
-const MAX_NAME = 100;
 
 const props = defineProps<{ open: boolean; title: string; body?: string; submit: string; initial: string; busy: boolean; error: string | null }>();
 const emit = defineEmits<{ close: []; save: [name: string] }>();
@@ -27,7 +27,7 @@ watch(
 
 function save(): void {
   const trimmed = name.value.trim();
-  invalid.value = trimmed.length === 0 || codePoints(trimmed) > MAX_NAME;
+  invalid.value = trimmed.length === 0 || codePoints(trimmed) > PLAN_NAME_MAX_CODE_POINTS;
   if (!invalid.value) emit('save', trimmed);
 }
 </script>

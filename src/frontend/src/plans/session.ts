@@ -3,7 +3,7 @@ import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
-import { currentTerm, termKey, vietnamDate, type Term } from '../terms.js';
+import { currentTermNow, termKey, type Term } from '../terms.js';
 import { fetchPlan, fetchPlanIssues, previewPlanDrops, savePlacements, type Plan } from './api.js';
 import {
   attachIssues,
@@ -26,8 +26,6 @@ import { rememberLastPlan } from './last-plan.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
 export const SAVE_RETRY_MS = [2000, 5000, 10000];
-
-export const currentTermNow = (): Term => currentTerm(vietnamDate(new Date()));
 
 export interface SessionHooks {
   reset(): void;

@@ -1,4 +1,4 @@
-import { edgeScroll } from './flip.js';
+import { edgeScroll, reducedMotion, SETTLE_EASING } from './flip.js';
 
 export type DropTarget = string;
 
@@ -13,8 +13,15 @@ export interface DragHandlers<W> {
 
 const START = 6;
 const HOLD = 280;
-const EASE = 'cubic-bezier(.2, .8, .2, 1)';
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const GHOST_SCALE = 1.05;
+const MAX_LEAN_DEG = 8;
+const LEAN_PER_SPEED = 0.8;
+const LEAN_EASING = 0.18;
+const SPEED_DECAY = 0.8;
+const GRAB_POINT_EASING = 0.25;
+const FLY_HOME_MS = 300;
+const FLY_HOME_FALLBACK_MS = 400;
+const HOLD_VIBRATION_MS = 15;
 
 export function pointerDrag<W>(h: DragHandlers<W>) {
   const hit = h.hit ?? ((x: number, y: number) => (typeof document.elementFromPoint === 'function' ? document.elementFromPoint(x, y) : null));
@@ -56,14 +63,14 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
 
   function place(): void {
     if (!state?.ghost) return;
-    state.ghost.style.transform = `translate(${state.x - state.dx}px, ${state.y - state.dy}px) rotate(${state.rot.toFixed(2)}deg) scale(1.05)`;
+    state.ghost.style.transform = `translate(${state.x - state.dx}px, ${state.y - state.dy}px) rotate(${state.rot.toFixed(2)}deg) scale(${GHOST_SCALE})`;
   }
   function loop(): void {
     if (!state?.on) return;
-    state.rot += (Math.max(-8, Math.min(8, state.vx * 0.8)) - state.rot) * 0.18;
-    state.vx *= 0.8;
-    state.dx += (state.cx - state.dx) * 0.25;
-    state.dy += (state.cy - state.dy) * 0.25;
+    state.rot += (Math.max(-MAX_LEAN_DEG, Math.min(MAX_LEAN_DEG, state.vx * LEAN_PER_SPEED)) - state.rot) * LEAN_EASING;
+    state.vx *= SPEED_DECAY;
+    state.dx += (state.cx - state.dx) * GRAB_POINT_EASING;
+    state.dy += (state.cy - state.dy) * GRAB_POINT_EASING;
     place();
     if (edgeScroll(state.y)) retarget();
     state.frame = requestAnimationFrame(loop);
@@ -115,14 +122,14 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
     h.cancel(s.what);
     if (!ghost) return;
     const home = s.el.getBoundingClientRect();
-    const fly = calm() || typeof ghost.animate !== 'function' ? null : ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${home.left}px, ${home.top}px)` }], { duration: 300, easing: EASE });
+    const fly = reducedMotion() || typeof ghost.animate !== 'function' ? null : ghost.animate([{ transform: ghost.style.transform }, { transform: `translate(${home.left}px, ${home.top}px)` }], { duration: FLY_HOME_MS, easing: SETTLE_EASING });
     if (!fly) {
       ghost.remove();
       return;
     }
     const done = () => ghost.remove();
     fly.onfinish = done;
-    setTimeout(done, 400);
+    setTimeout(done, FLY_HOME_FALLBACK_MS);
   }
 
   function onMove(e: Event): void {
@@ -178,7 +185,7 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
       if (touch) {
         state.hold = setTimeout(() => {
           begin();
-          navigator.vibrate?.(15);
+          navigator.vibrate?.(HOLD_VIBRATION_MS);
         }, HOLD);
       }
       window.addEventListener('pointermove', onMove);
