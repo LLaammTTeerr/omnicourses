@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TranscriptEntry } from '../src/transcript/transcript-entry.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 import { bootApp } from './support/app.js';
-import { backendPid, waitUntilBlockedBy, within } from './support/locks.js';
+import { backendPid, waitUntilAnySessionBlockedBy, within } from './support/locks.js';
 import { PASSWORD as password, signedInUser, storedUser } from './support/users.js';
 
 const first: TranscriptEntry[] = [
@@ -118,7 +118,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       );
 
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
-      await waitUntilBlockedBy(db, pid);
+      await waitUntilAnySessionBlockedBy(db, pid);
       await other.commitTransaction();
     } finally {
       if (other.isTransactionActive) await other.rollbackTransaction();
@@ -140,11 +140,11 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       const pid = await backendPid(other);
       await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
-      await waitUntilBlockedBy(db, pid);
+      await waitUntilAnySessionBlockedBy(db, pid);
 
       const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((res) => res.status);
       expect(await within(signIn, SIGN_IN_LIMIT_MS)).toBe(200);
-      await waitUntilBlockedBy(db, pid);
+      await waitUntilAnySessionBlockedBy(db, pid);
     } finally {
       if (other.isTransactionActive) await other.rollbackTransaction();
       await other.release();

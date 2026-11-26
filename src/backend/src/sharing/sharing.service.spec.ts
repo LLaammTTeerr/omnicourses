@@ -66,7 +66,7 @@ describe('SharingService.read', () => {
     expect(issues.issuesFor).not.toHaveBeenCalled();
   });
 
-  it('reads nothing of the owner’s account but the display name', async () => {
+  it('never selects every column, the password hash, the email or the Google ID of the owner’s account', async () => {
     const { svc, db } = service();
     await svc.read(newShareToken());
     expect(db.query.mock.calls[0]![0]).not.toMatch(/\*|password_hash|email|google_sub/);
