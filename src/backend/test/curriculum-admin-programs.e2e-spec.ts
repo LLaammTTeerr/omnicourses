@@ -53,7 +53,7 @@ describe('Program and cohort administration API (e2e)', () => {
     db.query('SELECT c.* FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code LIKE $1 ORDER BY p.code, c.cohort_year', [`${P}%`]) as Promise<Record<string, unknown>[]>;
   const stored = async () => ({ programs: await programRows(), cohorts: await cohortRows() });
   const grantsOn = (program: string) => db.query('SELECT user_id FROM program_admin_grants WHERE program_id = $1', [program]) as Promise<{ user_id: string }[]>;
-  const refusal = (res: request.Response) => [res.status, res.body.code, res.body.permission];
+  const refusal = (response: request.Response) => [response.status, response.body.code, response.body.permission];
 
   beforeAll(async () => {
     app = await bootApp();
@@ -90,7 +90,7 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(manager).post(cohortsPath(programA), { cohortYear: 2024, code: `${codeA}-2024`, nameVi: 'Khóa thử' }),
       await as(manager).get(cohortsPath(programA)),
     ];
-    for (const res of refused) expect(refusal(res)).toEqual([403, 'permission_required', 'program_admin']);
+    for (const response of refused) expect(refusal(response)).toEqual([403, 'permission_required', 'program_admin']);
     expect(await stored()).toEqual(before);
 
     const { body: access } = await as(manager).get('/api/admin/access/programs').expect(200);
@@ -114,24 +114,24 @@ describe('Program and cohort administration API (e2e)', () => {
       await http().get(cohort),
       await http().patch(cohort).send({ nameVi: 'x' }),
     ];
-    expect(refused.map((res) => res.status)).toEqual([401, 401, 401, 401, 401, 401]);
+    expect(refused.map((response) => response.status)).toEqual([401, 401, 401, 401, 401, 401]);
   });
 
   it('refuses a duplicate program code and saves nothing, also when two requests race', async () => {
     const before = await programRows();
     for (const code of [codeA, codeA.toLowerCase(), ` ${codeA} `]) {
-      const res = await as(manager).post(programsPath, { code, nameVi: 'Chương trình trùng mã' });
-      expect([res.status, res.body.code]).toEqual([409, 'duplicate_code']);
+      const response = await as(manager).post(programsPath, { code, nameVi: 'Chương trình trùng mã' });
+      expect([response.status, response.body.code]).toEqual([409, 'duplicate_code']);
     }
     expect(await programRows()).toEqual(before);
 
     const racing = await Promise.all([1, 2].map((n) => as(manager).post(programsPath, { code: codeB, nameVi: `Chương trình thử B ${n}` })));
-    expect(racing.map((res) => res.status).sort()).toEqual([201, 409]);
-    expect(racing.find((res) => res.status === 409)!.body.code).toBe('duplicate_code');
+    expect(racing.map((response) => response.status).sort()).toEqual([201, 409]);
+    expect(racing.find((response) => response.status === 409)!.body.code).toBe('duplicate_code');
     const rows = await programRows();
     expect(rows.map((r) => r.code)).toEqual([codeA, codeB]);
     programB = rows[1].id as string;
-    expect(racing.find((res) => res.status === 201)!.body).toMatchObject({ id: programB, code: codeB, nameVi: rows[1].name_vi });
+    expect(racing.find((response) => response.status === 201)!.body).toMatchObject({ id: programB, code: codeB, nameVi: rows[1].name_vi });
     await grantProgram(db, adminB.userId, programB);
   });
 
@@ -152,7 +152,7 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(manager).post(programsPath, { code: `${P}-${'C'.repeat(50)}`, nameVi: 'x' }),
       await as(manager).post(programsPath, { code: `${P}-C` }),
     ];
-    for (const res of bad) expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+    for (const response of bad) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     expect(bad[0].body.message).toContain('code: property code should not exist');
     expect(bad[3].body.message).toContain('trainingType: property trainingType should not exist');
     expect(await programRows()).toEqual(before);
@@ -228,7 +228,7 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminA).post(cohortsPath(programA), cohort),
       await as(adminA).post(cohortsPath(programA), { cohortYear: 2027, code: `${codeA} 2027`, nameVi: 'Khóa thử' }),
     ];
-    for (const res of bad) expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+    for (const response of bad) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     expect(bad[0].body.message).toContain('cohortYear: property cohortYear should not exist');
     expect(bad[4].body.message).toContain('totalCreditsMin: property totalCreditsMin should not exist');
     expect(await cohortRows()).toEqual(before);
@@ -255,7 +255,7 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(stranger).get(cohortPath(programA, a2024)),
       await as(maintainer).patch(cohortPath(programA, a2024), { nameVi: 'Chiếm quyền' }),
     ];
-    for (const res of direct) expect(refusal(res)).toEqual([403, 'permission_required', 'program_admin']);
+    for (const response of direct) expect(refusal(response)).toEqual([403, 'permission_required', 'program_admin']);
     for (const res of direct) expect(JSON.stringify(res.body)).not.toContain(codeB);
 
     const substituted = [
@@ -304,7 +304,7 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminA).patch(cohortPath(programA, a2025), { nameVi: 'Sau khi thu hồi' }),
       await as(adminA).get(cohortsPath(programA)),
     ];
-    for (const res of refused) expect(refusal(res)).toEqual([403, 'permission_required', 'program_admin']);
+    for (const response of refused) expect(refusal(response)).toEqual([403, 'permission_required', 'program_admin']);
     expect(await stored()).toEqual(before);
   });
 });
@@ -370,10 +370,10 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
       callers.map((caller, i) => as(caller).post(cohortsPath(i % 2 ? programB : programA), { cohortYear: 2040 + i, code, nameVi: `Khóa đua ${i}` })),
     );
 
-    expect(racing.map((res) => res.status).sort()).toEqual([201, ...Array<number>(19).fill(409)]);
+    expect(racing.map((response) => response.status).sort()).toEqual([201, ...Array<number>(19).fill(409)]);
     for (const res of racing.filter((r) => r.status === 409)) expect(res.body.code).toBe('duplicate_code');
     const added = (await cohortRows()).filter((row) => !before.some((b) => b.id === row.id));
-    expect(added.map((row) => [row.code, row.id])).toEqual([[code, racing.find((res) => res.status === 201)!.body.id]]);
+    expect(added.map((row) => [row.code, row.id])).toEqual([[code, racing.find((response) => response.status === 201)!.body.id]]);
   });
 
   it('accepts a program or cohort ID in upper case from the holder of the grant, and still refuses others', async () => {
@@ -404,8 +404,8 @@ describe('Program and cohort routes: an empty cohort, races, path IDs and stored
       [() => as(adminA).patch(cohortPath(programA, stored), { nameVi: 'Khóa\u0000' }), 'nameVi must not contain a null character (U+0000)'],
     ];
     for (const [send, message] of sent) {
-      const res = await send();
-      expect([res.status, res.body.code, res.body.message]).toEqual([400, 'validation_failed', [message]]);
+      const response = await send();
+      expect([response.status, response.body.code, response.body.message]).toEqual([400, 'validation_failed', [message]]);
     }
     expect({ programs: await programRows(), cohorts: await cohortRows() }).toEqual(before);
     const longest = 'x'.repeat(253) + '\u{1F600}\u{1F600}';

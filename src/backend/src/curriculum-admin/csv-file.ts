@@ -62,15 +62,15 @@ export function readCsv<C extends string>(csv: string, header: readonly C[]): Cs
   if (LONE_SURROGATE.test(csv) || csv.includes('\u0000')) throw importRejected('The CSV is not UTF-8 text', []);
 
   const records = parseRecords(csv).map(({ record }, index) => ({ record: index + 1, cells: record.map((cell) => cell.trim()), raw: record }));
-  const data = records.slice(1).filter((r) => r.cells.some((cell) => cell !== ''));
-  if (data.length > CSV_MAX_RECORDS) throw payloadTooLarge(`The CSV has more than ${CSV_MAX_RECORDS} data records`);
+  const dataRecords = records.slice(1).filter((dataRecord) => dataRecord.cells.some((cell) => cell !== ''));
+  if (dataRecords.length > CSV_MAX_RECORDS) throw payloadTooLarge(`The CSV has more than ${CSV_MAX_RECORDS} data records`);
 
   const first = records[0];
   if (!first || first.raw.length !== header.length || first.raw.some((cell, i) => cell !== header[i])) {
     const message = `the header must be exactly: ${header.join(',')}`;
     throw importRejected('The CSV does not have the header of this template', [{ record: 1, field: null, message }]);
   }
-  return rowsOf(data, header);
+  return rowsOf(dataRecords, header);
 }
 
 function parseRecords(csv: string): { record: string[] }[] {
@@ -83,9 +83,9 @@ function parseRecords(csv: string): { record: string[] }[] {
   }
 }
 
-function rowsOf<C extends string>(data: { record: number; cells: string[] }[], header: readonly C[]): CsvFile<C> {
+function rowsOf<C extends string>(dataRecords: { record: number; cells: string[] }[], header: readonly C[]): CsvFile<C> {
   const file: CsvFile<C> = { rows: [], errors: [] };
-  for (const { record, cells } of data) {
+  for (const { record, cells } of dataRecords) {
     if (cells.length !== header.length) {
       file.errors.push({ record, field: null, message: `has ${cells.length} fields; the template has ${header.length}` });
     } else {

@@ -24,11 +24,11 @@ import {
   type UnmatchedCourse,
 } from '../rules/types.js';
 import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
-import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
+import { CLASSIFICATIONS, type Classification, YEAR_LEVELS } from '../rules/grades.js';
 import { TermDto } from '../common/field-validators.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
-export class CourseCoverageDto implements CourseCoverage {
+class CourseCoverageDto implements CourseCoverage {
   @ApiProperty({ example: 'CS160' })
   code!: string;
 
@@ -64,7 +64,7 @@ export class CourseCoverageDto implements CourseCoverage {
   countedInGroupId!: string | null;
 }
 
-export class GroupCoverageDto implements GroupCoverage {
+class GroupCoverageDto implements GroupCoverage {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -102,7 +102,7 @@ export class GroupCoverageDto implements GroupCoverage {
   courses!: CourseCoverageDto[];
 }
 
-export class CombinedMinimumCoverageDto implements CombinedMinimumCoverage {
+class CombinedMinimumCoverageDto implements CombinedMinimumCoverage {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -131,7 +131,7 @@ export class CombinedMinimumCoverageDto implements CombinedMinimumCoverage {
   met!: boolean;
 }
 
-export class UnmatchedCourseDto implements UnmatchedCourse {
+class UnmatchedCourseDto implements UnmatchedCourse {
   @ApiProperty({ example: 'ZZ101' })
   code!: string;
 
@@ -154,7 +154,7 @@ export class UnmatchedCourseDto implements UnmatchedCourse {
   inProgress!: boolean;
 }
 
-export class CreditSummaryDto implements CreditSummary {
+class CreditSummaryDto implements CreditSummary {
   @ApiProperty({ description: 'Credits of every passed course of the curriculum, GDTC and GDQP-AN included (Điều 11.4)' })
   accumulated!: number;
 
@@ -170,11 +170,11 @@ export class CreditSummaryDto implements CreditSummary {
   @ApiProperty({ type: Number, nullable: true })
   remaining!: number | null;
 
-  @ApiProperty({ enum: [1, 2, 3, 4], description: 'Year of study from the accumulated credits (Điều 15.3)' })
-  yearLevel!: 1 | 2 | 3 | 4;
+  @ApiProperty({ enum: YEAR_LEVELS, description: 'Year of study from the accumulated credits (Điều 15.3)' })
+  yearLevel!: (typeof YEAR_LEVELS)[number];
 }
 
-export class GpaSummaryDto implements GpaSummary {
+class GpaSummaryDto implements GpaSummary {
   @ApiProperty({ type: Number, nullable: true, description: 'Điểm trung bình (Điều 15.1.a): every course studied, by its official grade, 10-point scale' })
   average!: number | null;
 
@@ -199,7 +199,7 @@ export class CreditCapsDto implements CreditCaps {
   max!: number;
 }
 
-export class CapViolationDto implements CapViolation {
+class CapViolationDto implements CapViolation {
   @ApiProperty({ enum: CAP_RULES })
   rule!: CapRule;
 
@@ -216,7 +216,7 @@ export class CapViolationDto implements CapViolation {
   petition!: string;
 }
 
-export class TermSummaryDto implements TermSummary {
+class TermSummaryDto implements TermSummary {
   @ApiProperty({ type: TermDto })
   term!: TermDto;
 
@@ -251,7 +251,7 @@ export class TermSummaryDto implements TermSummary {
   capViolations!: CapViolationDto[];
 }
 
-export class GraduationConditionDto implements GraduationCondition {
+class GraduationConditionDto implements GraduationCondition {
   @ApiProperty({ example: 'total_credits' })
   id!: string;
 
@@ -265,7 +265,7 @@ export class GraduationConditionDto implements GraduationCondition {
   status!: ConditionStatus;
 }
 
-export class GraduationStatusDto implements GraduationStatus {
+class GraduationStatusDto implements GraduationStatus {
   @ApiProperty({ enum: GRADUATION_STATUSES, description: 'done: every condition the data can check is met; the notChecked ones still need the school' })
   status!: GraduationVerdict;
 
@@ -279,7 +279,7 @@ export class GraduationStatusDto implements GraduationStatus {
   notChecked!: GraduationConditionDto[];
 }
 
-export class AuditWarningDto implements AuditWarning {
+class AuditWarningDto implements AuditWarning {
   @ApiProperty({ enum: AUDIT_WARNING_CODES })
   code!: AuditWarningCode;
 

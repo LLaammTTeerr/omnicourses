@@ -14,6 +14,7 @@ import {
 } from 'typeorm';
 import { Curriculum } from './curriculum.entity.js';
 import { RequirementGroup } from './requirement-group.entity.js';
+import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 
 @Entity({ name: 'combined_minimums' })
 @Unique('uq_combined_minimums_curriculum_name', ['curriculumId', 'name'])
@@ -29,7 +30,7 @@ export class CombinedMinimum {
   @JoinColumn({ name: 'curriculum_id', foreignKeyConstraintName: 'combined_minimums_curriculum_id_fkey' })
   curriculum!: Curriculum;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: NAME_MAX_LENGTH })
   name!: string;
 
   @Column({ name: 'credits_min', type: 'integer' })

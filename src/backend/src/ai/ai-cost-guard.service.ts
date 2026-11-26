@@ -9,7 +9,7 @@ import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { AiUsage } from './ai-usage.entity.js';
 import type { AiCallContext } from './llm.service.js';
 
-export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
+type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
 
 @Injectable()
 export class AiCostGuard {

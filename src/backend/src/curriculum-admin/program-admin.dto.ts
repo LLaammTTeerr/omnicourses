@@ -1,19 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Matches, Max, Min } from 'class-validator';
-import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
+import { IsInt, IsString, Matches, Max, Min } from 'class-validator';
+import { ifPresent, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
+import { LANGUAGE_MAX_LENGTH } from '../curriculum/curriculum.entity.js';
+import { FACULTY_MAX_LENGTH, TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
-import { NAME_MAX_LENGTH } from './curriculum-admin.dto.js';
+import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
 
 export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
-export const ADMIN_CODE_MAX_LENGTH = 50;
 const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
 
 export const canonicalAdminCode = (input: unknown): unknown => (typeof input === 'string' ? input.trim().toUpperCase() : input);
-
-const FACULTY_MAX_LENGTH = 100;
-const LANGUAGE_MAX_LENGTH = 10;
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
@@ -21,67 +18,37 @@ const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
 export class CreateProgramDto {
   @ApiProperty({
     example: 'ZZ-PROG',
-    maxLength: ADMIN_CODE_MAX_LENGTH,
+    maxLength: CODE_MAX_LENGTH,
     pattern: CODE_PATTERN,
     description: 'Trimmed and upper-cased, then checked. Unique among programs. Cannot change later: the read API and the onboarding answers name a program by it.',
   })
   @canonicalCode
   @IsString()
-  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
-  @ApiProperty({ maxLength: NAME_MAX_LENGTH })
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @RequiredTextField({ maxLength: NAME_MAX_LENGTH })
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: FACULTY_MAX_LENGTH, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(FACULTY_MAX_LENGTH)
+  @NullableTextField({ maxLength: FACULTY_MAX_LENGTH, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
   faculty?: string | null;
 }
 
 export const PROGRAM_FIELDS = ['nameVi', 'nameEn', 'faculty'] as const;
 
 export class UpdateProgramDto {
-  @ApiProperty({ required: false, maxLength: NAME_MAX_LENGTH })
   @ifPresent
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @RequiredTextField({ required: false, maxLength: NAME_MAX_LENGTH })
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: FACULTY_MAX_LENGTH })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(FACULTY_MAX_LENGTH)
+  @NullableTextField({ maxLength: FACULTY_MAX_LENGTH })
   faculty?: string | null;
 }
 
@@ -117,67 +84,37 @@ export class CreateCohortDto {
 
   @ApiProperty({
     example: 'ZZ-PROG-2026',
-    maxLength: ADMIN_CODE_MAX_LENGTH,
+    maxLength: CODE_MAX_LENGTH,
     pattern: CODE_PATTERN,
     description: "The curriculum's code. Trimmed and upper-cased, then checked. Unique among all curricula. Cannot change later.",
   })
   @canonicalCode
   @IsString()
-  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   @Matches(ADMIN_CODE_PATTERN, { message: ADMIN_CODE_MESSAGE })
   code!: string;
 
-  @ApiProperty({ maxLength: NAME_MAX_LENGTH })
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @RequiredTextField({ maxLength: NAME_MAX_LENGTH })
   nameVi!: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH, description: 'Blank is stored as null' })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: LANGUAGE_MAX_LENGTH, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(LANGUAGE_MAX_LENGTH)
+  @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
   language?: string | null;
 }
 
 export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language'] as const;
 
 export class UpdateCohortDto {
-  @ApiProperty({ required: false, maxLength: NAME_MAX_LENGTH })
   @ifPresent
-  @Transform(trimString)
-  @IsString()
-  @NoNullCharacter
-  @IsNotEmpty()
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @RequiredTextField({ required: false, maxLength: NAME_MAX_LENGTH })
   nameVi?: string;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: NAME_MAX_LENGTH })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(NAME_MAX_LENGTH)
+  @NullableTextField({ maxLength: NAME_MAX_LENGTH })
   nameEn?: string | null;
 
-  @ApiProperty({ type: String, nullable: true, required: false, maxLength: LANGUAGE_MAX_LENGTH })
-  @Transform(trimString)
-  @ifSet
-  @IsString()
-  @NoNullCharacter
-  @MaxCodePoints(LANGUAGE_MAX_LENGTH)
+  @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH })
   language?: string | null;
 }
 

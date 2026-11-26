@@ -48,7 +48,7 @@ export function classify(numerator: number, denominator: number, cohortYear: num
 }
 
 const CREDITS_PER_YEAR = 38;
-const YEAR_LEVELS = [1, 2, 3, 4] as const;
+export const YEAR_LEVELS = [1, 2, 3, 4] as const;
 
 export function yearLevel(accumulatedCredits: number): (typeof YEAR_LEVELS)[number] {
   return YEAR_LEVELS.find((level) => accumulatedCredits < level * CREDITS_PER_YEAR) ?? YEAR_LEVELS[YEAR_LEVELS.length - 1];

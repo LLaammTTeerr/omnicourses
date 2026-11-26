@@ -9,10 +9,10 @@ export interface TranscriptSave {
 
 export type TranscriptSaveListener = (tx: EntityManager, save: TranscriptSave) => Promise<void>;
 
-const key = (e: TranscriptEntry): string => JSON.stringify([e.term.year, e.term.number, e.courseCode, e.courseName, e.credits, e.result, e.grade]);
+const key = (entry: TranscriptEntry): string => JSON.stringify([entry.term.year, entry.term.number, entry.courseCode, entry.courseName, entry.credits, entry.result, entry.grade]);
 
-export function sameEntries(a: readonly TranscriptEntry[], b: readonly TranscriptEntry[]): boolean {
-  if (a.length !== b.length) return false;
-  const [x, y] = [a.map(key).sort(), b.map(key).sort()];
+export function sameEntries(left: readonly TranscriptEntry[], right: readonly TranscriptEntry[]): boolean {
+  if (left.length !== right.length) return false;
+  const [x, y] = [left.map(key).sort(), right.map(key).sort()];
   return x.every((k, i) => k === y[i]);
 }

@@ -142,7 +142,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
       await waitUntilAnySessionBlockedBy(db, pid);
 
-      const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((res) => res.status);
+      const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((response) => response.status);
       expect(await within(signIn, SIGN_IN_LIMIT_MS)).toBe(200);
       await waitUntilAnySessionBlockedBy(db, pid);
     } finally {

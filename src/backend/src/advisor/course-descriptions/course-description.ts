@@ -11,7 +11,7 @@ export interface CourseDescriptionSource {
   notes: string[];
 }
 
-export interface CourseDescription {
+interface CourseDescription {
   id: string;
   code: string;
   name_vi: string | null;

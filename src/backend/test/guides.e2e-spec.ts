@@ -27,8 +27,8 @@ describe('Guides API (e2e)', () => {
   const http = () => request(app.getHttpServer());
   const listed = async (token?: string): Promise<Listed[]> => {
     const req = http().get('/api/guides');
-    const res = await (token ? req.set('Authorization', `Bearer ${token}`) : req).expect(200);
-    return (res.body.guides as Listed[]).filter((g) => g.id.startsWith('zz-'));
+    const response = await (token ? req.set('Authorization', `Bearer ${token}`) : req).expect(200);
+    return (response.body.guides as Listed[]).filter((g) => g.id.startsWith('zz-'));
   };
 
   beforeAll(async () => {
@@ -93,8 +93,8 @@ describe('Guides API (e2e)', () => {
 
   it('answers an unknown, draft or withdrawn guide with the same 404', async () => {
     for (const id of ['no-such-guide', 'zz-draft', 'zz-withdrawn', 'NOT A GUIDE', 'a'.repeat(65)]) {
-      const res = await http().get(`/api/guides/${encodeURIComponent(id)}`).expect(404);
-      expect(res.body, id).toEqual({ message: 'Guide not found', error: 'Not Found', statusCode: 404 });
+      const response = await http().get(`/api/guides/${encodeURIComponent(id)}`).expect(404);
+      expect(response.body, id).toEqual({ message: 'Guide not found', error: 'Not Found', statusCode: 404 });
     }
   });
 

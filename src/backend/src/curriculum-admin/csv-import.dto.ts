@@ -5,6 +5,8 @@ import { AffectedCurriculumDto, ImportRowErrorDto } from './admin-errors.js';
 import { CSV_MAX_BYTES, CSV_MAX_RECORDS, inMiB } from './csv-file.js';
 import { COURSE_FIELDS, type CourseField } from './curriculum-admin.dto.js';
 
+const REVIEW_VERSION_MAX_LENGTH = 128;
+
 export const CATALOG_FILE = 'catalog_courses';
 export const GROUP_LINKS_FILE = 'group_links';
 
@@ -21,10 +23,10 @@ export class ImportConfirmRequestDto {
   @IsString()
   csv!: string;
 
-  @ApiProperty({ maxLength: 128, description: 'The reviewVersion of the preview of this file. It is refused once the file, the saved values or the references it covers have changed.' })
+  @ApiProperty({ maxLength: REVIEW_VERSION_MAX_LENGTH, description: 'The reviewVersion of the preview of this file. It is refused once the file, the saved values or the references it covers have changed.' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(128)
+  @MaxLength(REVIEW_VERSION_MAX_LENGTH)
   reviewVersion!: string;
 }
 
@@ -39,7 +41,7 @@ export class ImportSummaryDto {
   noOps!: number;
 }
 
-export class CatalogImportRowDto extends CourseDto {
+class CatalogImportRowDto extends CourseDto {
   @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
 
@@ -82,7 +84,7 @@ export class CatalogImportPreviewDto extends ImportPreviewDto {
   affectedCurricula!: AffectedCurriculumDto[];
 }
 
-export class GroupLinkImportRowDto {
+class GroupLinkImportRowDto {
   @ApiProperty({ example: 2, description: 'The logical CSV record; the header is record 1' })
   record!: number;
 

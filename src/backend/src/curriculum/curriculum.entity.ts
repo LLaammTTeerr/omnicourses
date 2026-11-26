@@ -13,6 +13,9 @@ import {
 } from 'typeorm';
 import { Program } from './program.entity.js';
 import { RequirementGroup } from './requirement-group.entity.js';
+import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
+
+export const LANGUAGE_MAX_LENGTH = 10;
 
 @Entity({ name: 'curriculums' })
 @Unique('uq_curriculums_program_cohort', ['programId', 'cohortYear'])
@@ -32,16 +35,16 @@ export class Curriculum {
   @Column({ name: 'cohort_year', type: 'integer' })
   cohortYear!: number;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: CODE_MAX_LENGTH })
   code!: string;
 
-  @Column({ name: 'name_vi', type: 'varchar', length: 255 })
+  @Column({ name: 'name_vi', type: 'varchar', length: NAME_MAX_LENGTH })
   nameVi!: string;
 
-  @Column({ name: 'name_en', type: 'varchar', length: 255, nullable: true })
+  @Column({ name: 'name_en', type: 'varchar', length: NAME_MAX_LENGTH, nullable: true })
   nameEn!: string | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true })
+  @Column({ type: 'varchar', length: LANGUAGE_MAX_LENGTH, nullable: true })
   language!: string | null;
 
   @Column({ name: 'total_credits_min', type: 'integer', nullable: true })

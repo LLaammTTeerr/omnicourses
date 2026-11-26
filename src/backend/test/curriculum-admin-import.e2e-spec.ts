@@ -133,7 +133,7 @@ describe('CSV import of catalog courses (e2e)', () => {
     const files = [FILE, `${COURSES_HEADER}\n${P}N2,"Tên" x,,3,,,,`, 'not,the,header\n1,2,3', `${COURSES_HEADER}\n${'x\n'.repeat(1001)}`];
     for (const account of [admin, stranger]) {
       for (const csv of files) {
-        for (const res of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'catalog_maintainer']);
+        for (const response of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([response.status, response.body.code, response.body.permission]).toEqual([403, 'permission_required', 'catalog_maintainer']);
       }
     }
     expect(await course(`${P}N2`)).toBeUndefined();
@@ -236,8 +236,8 @@ describe('CSV import of catalog courses (e2e)', () => {
       `${COURSES_HEADER}\n${P}H1,"Tên" x,,3,,,,`,
     ];
     for (const csv of files) {
-      for (const res of [await preview(csv), await confirm(csv, reviewed)]) {
-        expect([res.status, res.body.code, res.body.errors]).toEqual([400, 'validation_failed', [expect.objectContaining({ field: null })]]);
+      for (const response of [await preview(csv), await confirm(csv, reviewed)]) {
+        expect([response.status, response.body.code, response.body.errors]).toEqual([400, 'validation_failed', [expect.objectContaining({ field: null })]]);
       }
     }
     const m = f.as(maintainer);
@@ -285,8 +285,8 @@ describe('CSV import of catalog courses (e2e)', () => {
   it('answers 409 and writes nothing when the file, a saved value, the impact or the catalog changed since the preview', async () => {
     const file = (rows: string[]) => [COURSES_HEADER, ...rows].join('\n');
     const stale = async (csv: string, version: string) => {
-      const res = await confirm(csv, version);
-      expect([res.status, res.body.code]).toEqual([409, 'impact_changed']);
+      const response = await confirm(csv, version);
+      expect([response.status, response.body.code]).toEqual([409, 'impact_changed']);
     };
 
     const first = await preview(file([`${P}T1,Tên,,3,,,,`])).expect(200);
@@ -413,11 +413,11 @@ describe('CSV import of catalog courses (e2e)', () => {
   it('refuses a credit or period count above what the database stores, in manual entry as in a file', async () => {
     const m = f.as(maintainer);
     const tooLarge = 2_147_483_648;
-    for (const res of [
+    for (const response of [
       await m.post('/api/admin/catalog/courses', { code: `${P}X1`, nameVi: 'Tên', credits: tooLarge }),
       await m.patch(`/api/admin/catalog/courses/${P}K`, { theoryPeriods: tooLarge }),
     ]) {
-      expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+      expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     }
     const { body } = await preview(`${COURSES_HEADER}\n${P}X1,Tên,,${tooLarge},,,,`).expect(200);
     expect(body.errors).toEqual([{ record: 2, field: 'credits', message: 'must not be greater than 2147483647' }]);
@@ -470,7 +470,7 @@ describe('CSV import of group links (e2e)', () => {
   it('needs the grant of the program in the route: 403 without it, 404 for a cohort of another program', async () => {
     for (const account of [maintainer, stranger]) {
       for (const csv of [file([`${one},${L}A`]), 'not,the,header\n1,2,3', file([`${one},"${L}"A`]), file(Array.from({ length: 1001 }, (_, n) => `${one},ZZ${n}`))]) {
-        for (const res of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+        for (const response of [await preview(csv, account), await confirm(csv, 'x', account)]) expect([response.status, response.body.code, response.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
       }
     }
     const a = f.as(admin);
@@ -539,7 +539,7 @@ describe('CSV import of group links (e2e)', () => {
 
   it('takes the program and the cohort from the route only: no column and no body field can change them', async () => {
     const scoped = `${LINKS_HEADER},curriculum_id\n${one},${L}A,${f.apcs2025}`;
-    for (const res of [await preview(scoped), await confirm(scoped, reviewed)]) expect([res.status, res.body.code]).toEqual([400, 'validation_failed']);
+    for (const response of [await preview(scoped), await confirm(scoped, reviewed)]) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     const a = f.as(admin);
     for (const res of [
       await a.post(`${base}/preview`, { csv: file([`${one},${L}A`]), curriculumId: f.apcs2025 }),
@@ -566,8 +566,8 @@ describe('CSV import of group links (e2e)', () => {
 
   it('answers 409 and writes nothing when the file, a link, a group or a catalog course changed since the preview', async () => {
     const stale = async (csv: string, version: string) => {
-      const res = await confirm(csv, version);
-      expect([res.status, res.body.code]).toEqual([409, 'impact_changed']);
+      const response = await confirm(csv, version);
+      expect([response.status, response.body.code]).toEqual([409, 'impact_changed']);
     };
     const groups = `/api/admin/programs/${f.apcs}/cohorts/${f.apcs2024}/requirement-groups`;
 
@@ -773,7 +773,7 @@ describe('CSV import limits (e2e)', () => {
       await request(f.app.getHttpServer()).post('/api/auth/sign-in').send({ email: 'limits@example.com', password: large }),
       await m.post(`${CATALOG}/preview/again`, { csv: large }),
     ];
-    expect(refused.map((res) => res.status)).toEqual([413, 413, 413, 413, 413, 413]);
+    expect(refused.map((response) => response.status)).toEqual([413, 413, 413, 413, 413, 413]);
     await m.post('/api/admin/catalog/courses', { code: `${M}SMALL`, nameVi: 'x'.repeat(255), credits: 3 }).expect(201);
   });
 

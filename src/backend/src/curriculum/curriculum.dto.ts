@@ -139,7 +139,7 @@ export class CurriculumDto {
   requirementGroups!: RequirementGroupDto[];
 }
 
-export class CourseMembershipDto {
+class CourseMembershipDto {
   @ApiProperty({ example: 'APCS' })
   programCode!: string;
 

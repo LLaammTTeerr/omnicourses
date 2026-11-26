@@ -89,9 +89,9 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
     const { auth } = await student();
     await http().put('/api/users/me/onboarding').set(auth).send(FULL).expect(200);
     for (const creditsPerTerm of [-1, 2.5, 'abc']) {
-      const res = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, creditsPerTerm }).expect(400);
-      expect(res.body.message).toEqual(['creditsPerTerm must be a whole number of 1 or more']);
-      expect(JSON.stringify(res.body)).not.toMatch(/cap/i);
+      const response = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, creditsPerTerm }).expect(400);
+      expect(response.body.message).toEqual(['creditsPerTerm must be a whole number of 1 or more']);
+      expect(JSON.stringify(response.body)).not.toMatch(/cap/i);
     }
     expect((await http().get('/api/users/me/onboarding').set(auth).expect(200)).body.creditsPerTerm).toBe(18);
     await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, creditsPerTerm: null }).expect(200);
@@ -150,8 +150,8 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
   ])('refuses %s and keeps the saved answers', async (_, overrides, message) => {
     const { auth } = await student();
     await http().put('/api/users/me/onboarding').set(auth).send(FULL).expect(200);
-    const res = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, ...overrides }).expect(400);
-    expect(res.body.message).toEqual([expect.stringMatching(message)]);
+    const response = await http().put('/api/users/me/onboarding').set(auth).send({ ...FULL, ...overrides }).expect(400);
+    expect(response.body.message).toEqual([expect.stringMatching(message)]);
     expect((await http().get('/api/users/me/onboarding').set(auth).expect(200)).body).toEqual(FULL);
   });
 

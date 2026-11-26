@@ -30,7 +30,7 @@ export interface GuideCitation {
   url: string;
 }
 
-export type GuideNoteSource = ({ kind: 'regulation' } & GuideCitation) | { kind: 'team' };
+type GuideNoteSource = ({ kind: 'regulation' } & GuideCitation) | { kind: 'team' };
 
 export interface GuideFile {
   id: string;

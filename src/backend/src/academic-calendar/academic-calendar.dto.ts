@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, Min } from 'class-validator';
 import { ifFilled, ifPresent, ifSet, IsCalendarDate, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
-import { ADMIN_CODE_MAX_LENGTH } from '../curriculum-admin/program-admin.dto.js';
+import { CODE_MAX_LENGTH } from '../common/column-limits.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, TERM_NUMBERS, type TermNumber } from '../terms/term.js';
 import {
   CALENDAR_EVENT_KIND_DOC,
@@ -22,7 +22,7 @@ export class AcademicCalendarQueryDto {
   @IsOptional()
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(ADMIN_CODE_MAX_LENGTH)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   program?: string;
 
   @ApiProperty({ required: false, example: 2026, description: 'Only this academic year (ADR 0009: 2026 is 2026–2027)' })

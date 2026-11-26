@@ -36,19 +36,19 @@ export const NOT_CHECKED_CONDITIONS: readonly GraduationCondition[] = [
 const status = (met: boolean): GraduationCondition['status'] => (met ? 'met' : 'not_met');
 
 export function graduationStatus(groups: readonly GroupCoverage[], combined: readonly CombinedMinimumCoverage[], credits: CreditSummary): GraduationStatus {
-  const ruled = groups.filter((g) => g.kind === 'compulsory' || g.requiredCredits !== null);
+  const ruled = groups.filter((group) => group.kind === 'compulsory' || group.requiredCredits !== null);
   const conditions: GraduationCondition[] = [
-    ...ruled.map((g) => ({
-      id: `group:${g.id}`,
-      description: `Requirement group "${g.name}"`,
+    ...ruled.map((group) => ({
+      id: `group:${group.id}`,
+      description: `Requirement group "${group.name}"`,
       citation: CITATIONS.graduation,
-      status: status(g.met),
+      status: status(group.met),
     })),
-    ...combined.map((m) => ({
-      id: `combined:${m.id}`,
-      description: `"${m.name}": at least ${m.creditsMin} credits across its groups`,
+    ...combined.map((minimum) => ({
+      id: `combined:${minimum.id}`,
+      description: `"${minimum.name}": at least ${minimum.creditsMin} credits across its groups`,
       citation: CITATIONS.graduation,
-      status: status(m.met),
+      status: status(minimum.met),
     })),
     credits.totalRequired === null
       ? { id: 'total_credits', description: 'The cohort total is not recorded', citation: CITATIONS.graduation, status: 'not_checked' as const }

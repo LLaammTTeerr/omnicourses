@@ -96,7 +96,7 @@ export class CatalogAdminService {
   }
 }
 
-export async function affectedCurricula(em: EntityManager, code: string): Promise<AffectedCurriculumDto[]> {
+async function affectedCurricula(em: EntityManager, code: string): Promise<AffectedCurriculumDto[]> {
   const rows: { curriculum_id: string; curriculum_code: string; program_code: string; cohort_year: number }[] = await em.query(
     `SELECT DISTINCT c."id" AS "curriculum_id", c."code" AS "curriculum_code", p."code" AS "program_code", c."cohort_year"
      FROM "requirement_group_courses" l

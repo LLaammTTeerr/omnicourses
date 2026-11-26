@@ -2,6 +2,7 @@ import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, 
 import type { TermNumber } from '../terms/term.js';
 import { User } from '../users/user.entity.js';
 import type { NotificationKind } from './notification-kinds.js';
+import { CODE_MAX_LENGTH } from '../common/column-limits.js';
 
 @Entity({ name: 'notifications' })
 @Unique('uq_notifications_user_event_kind', ['userId', 'calendarEventId', 'kind'])
@@ -31,7 +32,7 @@ export class Notification {
   @Column({ name: 'calendar_event_id', type: 'uuid', nullable: true })
   calendarEventId!: string | null;
 
-  @Column({ name: 'program_code', type: 'varchar', length: 50, nullable: true })
+  @Column({ name: 'program_code', type: 'varchar', length: CODE_MAX_LENGTH, nullable: true })
   programCode!: string | null;
 
   @Column({ name: 'academic_year', type: 'smallint', nullable: true })

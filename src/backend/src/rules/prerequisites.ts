@@ -1,6 +1,6 @@
 import type { Term } from '../terms/term.js';
 
-export type PrerequisiteCheck =
+type PrerequisiteCheck =
   | { status: 'not_recorded' }
   | { status: 'none' }
   | { status: 'met' }
@@ -13,7 +13,7 @@ export function checkPrerequisites(prerequisites: readonly string[] | null, pass
   return missing.length ? { status: 'not_met', missing } : { status: 'met' };
 }
 
-export type OfferingTermCheck = { status: 'not_recorded' } | { status: 'offered' } | { status: 'not_offered'; offeredTermNumbers: Term['number'][] };
+type OfferingTermCheck = { status: 'not_recorded' } | { status: 'offered' } | { status: 'not_offered'; offeredTermNumbers: Term['number'][] };
 
 export function checkOfferingTerm(offeredTermNumbers: readonly Term['number'][] | null, term: Term): OfferingTermCheck {
   if (offeredTermNumbers === null) return { status: 'not_recorded' };

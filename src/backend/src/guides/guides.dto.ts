@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { GUIDE_GROUPS, type GuideGroup } from './guide-file.js';
 import { OUT_OF_DATE_MONTHS } from './out-of-date.js';
 
-export class GuideLinkDto {
+class GuideLinkDto {
   @ApiProperty({ example: 'Thông báo của Phòng Đào tạo' })
   label!: string;
 
@@ -10,7 +10,7 @@ export class GuideLinkDto {
   url!: string;
 }
 
-export class GuidePortalDto {
+class GuidePortalDto {
   @ApiProperty({ example: 'Cổng thông tin sinh viên' })
   name!: string;
 
@@ -21,7 +21,7 @@ export class GuidePortalDto {
   account!: string;
 }
 
-export class GuideWhenDto {
+class GuideWhenDto {
   @ApiProperty()
   text!: string;
 
@@ -29,7 +29,7 @@ export class GuideWhenDto {
   announcement?: GuideLinkDto;
 }
 
-export class GuideItemDto {
+class GuideItemDto {
   @ApiProperty()
   text!: string;
 
@@ -37,7 +37,7 @@ export class GuideItemDto {
   link?: GuideLinkDto;
 }
 
-export class GuideNoteSourceDto {
+class GuideNoteSourceDto {
   @ApiProperty({ enum: ['regulation', 'team'], description: "regulation: a clause, with document, clause and url. team: the team's experience." })
   kind!: 'regulation' | 'team';
 
@@ -51,7 +51,7 @@ export class GuideNoteSourceDto {
   url?: string;
 }
 
-export class GuideNoteDto {
+class GuideNoteDto {
   @ApiProperty()
   text!: string;
 
@@ -59,7 +59,7 @@ export class GuideNoteDto {
   source!: GuideNoteSourceDto;
 }
 
-export class GuideCitationDto {
+class GuideCitationDto {
   @ApiProperty()
   document!: string;
 
@@ -70,7 +70,7 @@ export class GuideCitationDto {
   url!: string;
 }
 
-export class GuideBoardPortalDto extends GuidePortalDto {
+class GuideBoardPortalDto extends GuidePortalDto {
   @ApiProperty({ description: 'What the student does on this site' })
   purpose!: string;
 }
@@ -95,7 +95,7 @@ export class GuideListTextDto {
   outOfDate!: boolean;
 }
 
-export class GuideListTextsDto {
+class GuideListTextsDto {
   @ApiProperty({ type: GuideListTextDto, required: false })
   vi?: GuideListTextDto;
 
@@ -157,7 +157,7 @@ export class GuideTextDto extends GuideListTextDto {
   portals!: GuideBoardPortalDto[];
 }
 
-export class GuideTextsDto {
+class GuideTextsDto {
   @ApiProperty({ type: GuideTextDto, required: false })
   vi?: GuideTextDto;
 

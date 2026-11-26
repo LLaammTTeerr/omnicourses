@@ -8,7 +8,7 @@ type SeededTable = (typeof SEEDED_TABLES)[number];
 type Query = [sql: string, parameters: unknown[]];
 type Group = CurriculumSeed['groups'][number];
 
-export interface SeedReport {
+interface SeedReport {
   inserted: Record<SeededTable, number>;
   skipped: Record<SeededTable, number>;
 }

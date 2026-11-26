@@ -7,8 +7,8 @@ export function loadEnvFiles(): void {
 }
 
 function positiveInt(value: string | undefined, fallback: number): number {
-  const n = Number(value?.trim() || NaN);
-  return Number.isInteger(n) && n > 0 ? n : fallback;
+  const parsed = Number(value?.trim() || NaN);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 export const port = (): number => positiveInt(process.env.PORT, 3000);

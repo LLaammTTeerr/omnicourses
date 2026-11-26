@@ -20,12 +20,13 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
+import { CODE_MAX_LENGTH } from '../common/column-limits.js';
 import { MaxCodePoints, NoNullCharacter, TermDto, trimString } from '../common/field-validators.js';
 import { type BoardTerm, type Placement, PLACEMENT_KINDS, type PlacementKind } from '../rules/types.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
+import { PLAN_NAME_MAX_LENGTH } from './plan.entity.js';
 import { MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS } from './plan-board.js';
 
-const PLAN_NAME_MAX_LENGTH = 100;
 const MAX_SLOT_CREDITS = 30;
 
 const PlanName = () =>
@@ -51,7 +52,7 @@ const ONLY_FOR = (kind: PlacementKind) =>
   });
 const sentFor = (kind: PlacementKind, field: keyof PlanPlacementDto) => (p: PlanPlacementDto) => p.kind === kind || (p[field] !== null && p[field] !== undefined);
 
-export class PlanPlacementDto implements Placement {
+class PlanPlacementDto implements Placement {
   @ApiProperty({ enum: PLACEMENT_KINDS, description: 'course: a course of the catalog. slot: credits held for a requirement group, no course chosen yet.' })
   @IsIn(PLACEMENT_KINDS)
   kind!: PlacementKind;
@@ -78,7 +79,7 @@ export class PlanPlacementDto implements Placement {
   credits!: number | null;
 }
 
-export class PlanTermDto implements BoardTerm {
+class PlanTermDto implements BoardTerm {
   @ApiProperty({ type: TermDto })
   @IsDefined()
   @ValidateNested()
@@ -131,7 +132,7 @@ export class CreatePlanDto {
   @ApiProperty({ example: 'APCS', description: 'The program of the curriculum the plan is made against.' })
   @IsString()
   @NoNullCharacter
-  @MaxCodePoints(50)
+  @MaxCodePoints(CODE_MAX_LENGTH)
   programCode!: string;
 
   @ApiProperty({ example: 2024, description: 'The cohort of that curriculum.' })
@@ -162,7 +163,7 @@ export class DuplicatePlanDto {
   name?: string;
 }
 
-export class PlanCurriculumDto {
+class PlanCurriculumDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 

@@ -117,8 +117,8 @@ describe('Text fields refuse a null character and a value too long in code point
   ];
 
   it.each(CASES)('%s: 400, not 500', async (_route, send, message) => {
-    const res = await send();
-    expect([res.status, res.body.message]).toEqual([400, [message]]);
+    const response = await send();
+    expect([response.status, response.body.message]).toEqual([400, [message]]);
   });
 
   it('GET /programs/{program}/curricula/{cohort} with a null character in the program: 404, as for any unknown code', async () => {

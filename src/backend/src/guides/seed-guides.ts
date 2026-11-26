@@ -7,7 +7,7 @@ import { contentOf, type GuideFile, textKey } from './guide-file.js';
 import type { GuideText } from './guide-text.entity.js';
 import { type LoadableGuideFile, parseGuideSet } from './validate-guide.js';
 
-export interface GuideSeedReport {
+interface GuideSeedReport {
   inserted: number;
   updated: number;
   rechecked: number;

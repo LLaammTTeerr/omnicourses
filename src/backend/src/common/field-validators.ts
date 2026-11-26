@@ -1,6 +1,7 @@
+import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { TransformFnParams } from 'class-transformer';
-import { buildMessage, IsIn, IsInt, Max, Min, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
+import { Transform, TransformFnParams } from 'class-transformer';
+import { buildMessage, IsIn, IsInt, IsNotEmpty, IsString, Max, Min, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, type Term, TERM_NUMBERS } from '../terms/term.js';
 
 export const MaxCodePoints = (max: number) =>
@@ -49,13 +50,26 @@ export const ifPresent = ValidateIf((_: object, value: unknown) => value !== und
 export const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
 export const ifFilled = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null && value !== '');
 
+interface TextFieldOptions {
+  maxLength: number;
+  required?: boolean;
+  example?: string;
+  description?: string;
+}
+
+export const RequiredTextField = (api: TextFieldOptions) =>
+  applyDecorators(MaxCodePoints(api.maxLength), IsNotEmpty(), NoNullCharacter, IsString(), Transform(trimString), ApiProperty(api));
+
+export const NullableTextField = (api: TextFieldOptions) =>
+  applyDecorators(MaxCodePoints(api.maxLength), NoNullCharacter, IsString(), ifSet, Transform(trimString), ApiProperty({ type: String, nullable: true, required: false, ...api }));
+
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export function isCalendarDate(value: unknown): value is string {
   if (typeof value !== 'string') return false;
-  const m = DATE_ONLY.exec(value);
-  if (!m) return false;
-  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const match = DATE_ONLY.exec(value);
+  if (!match) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }

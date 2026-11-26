@@ -19,7 +19,7 @@ import type { CurriculumSeed } from './seed-types.js';
 
 const notThis = (name: string) => ALL_SPECIALISATIONS.filter((s) => s !== name);
 
-export const clc2025Mmt: CurriculumSeed = clc2025Seed({
+const clc2025Mmt: CurriculumSeed = clc2025Seed({
   key: 'MMT',
   name_vi: 'Mạng máy tính và Viễn thông',
   file: 'TCTA_CTDT_2025_MMT.pdf',
@@ -38,7 +38,7 @@ export const clc2025Mmt: CurriculumSeed = clc2025Seed({
   rows: clc2025MmtRows,
 });
 
-export const clc2025Httt: CurriculumSeed = clc2025Seed({
+const clc2025Httt: CurriculumSeed = clc2025Seed({
   key: 'HTTT',
   name_vi: 'Hệ thống thông tin',
   file: 'TCTA_CTDT_2025_HTTT.pdf',
@@ -57,7 +57,7 @@ export const clc2025Httt: CurriculumSeed = clc2025Seed({
   rows: clc2025HtttRows,
 });
 
-export const clc2025Ktpm: CurriculumSeed = clc2025Seed({
+const clc2025Ktpm: CurriculumSeed = clc2025Seed({
   key: 'KTPM',
   name_vi: 'Kỹ thuật phần mềm',
   file: 'TCTA_CTDT_2025_KTPM.pdf',
@@ -76,7 +76,7 @@ export const clc2025Ktpm: CurriculumSeed = clc2025Seed({
   rows: clc2025KtpmRows,
 });
 
-export const clc2025Khmt: CurriculumSeed = clc2025Seed({
+const clc2025Khmt: CurriculumSeed = clc2025Seed({
   key: 'KHMT',
   name_vi: 'Khoa học máy tính',
   file: 'TCTA_CTDT_2025_KHMT.pdf',
@@ -98,7 +98,7 @@ export const clc2025Khmt: CurriculumSeed = clc2025Seed({
 const CNTTHUC_SIX = ['CSC10204', 'CSC15201', 'CSC15202'];
 const CNTTHUC_FOUR = ['CSC15104', 'CSC15105', 'CSC15106'];
 
-export const clc2025Cntthuc: CurriculumSeed = clc2025Seed({
+const clc2025Cntthuc: CurriculumSeed = clc2025Seed({
   key: 'CNTTHUC',
   name_vi: 'Công nghệ tri thức',
   file: 'TCTA_CTDT_2025_CNTTHUC.pdf',
@@ -124,7 +124,7 @@ export const clc2025Cntthuc: CurriculumSeed = clc2025Seed({
   rows: clc2025CntthucRows,
 });
 
-export const clc2025Tgmt: CurriculumSeed = clc2025Seed({
+const clc2025Tgmt: CurriculumSeed = clc2025Seed({
   key: 'TGMT',
   name_vi: 'Thị giác máy tính',
   file: 'TCTA_CTDT_2025_TGMT.pdf',
@@ -143,7 +143,7 @@ export const clc2025Tgmt: CurriculumSeed = clc2025Seed({
   rows: clc2025TgmtRows,
 });
 
-export const clc2025Attt: CurriculumSeed = clc2025Seed({
+const clc2025Attt: CurriculumSeed = clc2025Seed({
   key: 'ATTT',
   name_vi: 'An toàn thông tin',
   file: 'TCTA_CTDT_2025_ATTT.pdf',
@@ -170,7 +170,7 @@ export const clc2025Attt: CurriculumSeed = clc2025Seed({
   rows: clc2025AtttRows,
 });
 
-export const clc2025Khdl: CurriculumSeed = clc2025Seed({
+const clc2025Khdl: CurriculumSeed = clc2025Seed({
   key: 'KHDL',
   name_vi: 'Khoa học dữ liệu',
   file: 'TCTA_CTDT_2025_KHDL.pdf',
@@ -199,7 +199,7 @@ export const clc2025Khdl: CurriculumSeed = clc2025Seed({
   ],
 });
 
-export const clc2025Cnttin: CurriculumSeed = clc2025Seed({
+const clc2025Cnttin: CurriculumSeed = clc2025Seed({
   key: 'CNTTIN',
   name_vi: 'Công nghệ thông tin',
   file: 'TCTA_CTDT_2025_CNTTIN.pdf',

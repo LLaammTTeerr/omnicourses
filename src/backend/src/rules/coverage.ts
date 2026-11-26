@@ -73,7 +73,7 @@ function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRe
 }
 
 function overflows(tallies: readonly Tally[]): { overflowIn: Map<string, number>; overflowOut: Map<string, number> } {
-  const ids = new Set(tallies.map((t) => t.group.id));
+  const ids = new Set(tallies.map((tally) => tally.group.id));
   const overflowIn = new Map<string, number>();
   const overflowOut = new Map<string, number>();
   for (const t of tallies) {
@@ -114,29 +114,29 @@ export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<strin
 
 export function combinedMinimumCoverage(rules: CurriculumRules, groups: readonly GroupCoverage[]): CombinedMinimumCoverage[] {
   const byId = new Map(groups.map((g) => [g.id, g]));
-  return rules.combinedMinimums.map((m) => {
-    const members = new Set(m.groupIds.filter((id) => byId.has(id)));
+  return rules.combinedMinimums.map((minimum) => {
+    const members = new Set(minimum.groupIds.filter((id) => byId.has(id)));
     let credits = 0;
     let inProgress = 0;
     for (const id of members) {
-      const g = byId.get(id)!;
-      credits += g.passedCredits;
-      if (g.overflowToGroupId !== null && !members.has(g.overflowToGroupId)) credits -= g.overflowOutCredits;
-      inProgress += g.inProgressCredits;
+      const group = byId.get(id)!;
+      credits += group.passedCredits;
+      if (group.overflowToGroupId !== null && !members.has(group.overflowToGroupId)) credits -= group.overflowOutCredits;
+      inProgress += group.inProgressCredits;
     }
     for (const g of groups) {
       if (!members.has(g.id) && g.overflowToGroupId !== null && members.has(g.overflowToGroupId)) credits += g.overflowOutCredits;
     }
     return {
-      id: m.id,
-      name: m.name,
-      creditsMin: m.creditsMin,
-      officialNotes: m.officialNotes,
-      groupIds: [...m.groupIds],
+      id: minimum.id,
+      name: minimum.name,
+      creditsMin: minimum.creditsMin,
+      officialNotes: minimum.officialNotes,
+      groupIds: [...minimum.groupIds],
       credits,
       inProgressCredits: inProgress,
-      remainingCredits: Math.max(0, m.creditsMin - credits - inProgress),
-      met: credits >= m.creditsMin,
+      remainingCredits: Math.max(0, minimum.creditsMin - credits - inProgress),
+      met: credits >= minimum.creditsMin,
     };
   });
 }

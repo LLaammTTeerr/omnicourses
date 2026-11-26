@@ -25,7 +25,7 @@ export const WITHHELD_ISSUE_CODES: PlanIssueCode[] = notAmong(SHARED_ISSUE_CODES
 
 const WITH_TRANSCRIPT_CHECKS: readonly PlanIssueCode[] = [...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES];
 
-export interface SharedPlanSource {
+interface SharedPlanSource {
   plan: PlanDto;
   report: PlanIssuesReport;
   courses: ReadonlyMap<string, CourseSummary>;
@@ -82,13 +82,13 @@ function withTranscriptChecks(report: PlanIssuesReport): Pick<SharedPlanDto, 'is
   };
 }
 
-function sharedPlacement(p: Placement, courses: ReadonlyMap<string, CourseSummary>, curriculum: CurriculumLabels): SharedPlacementDto {
-  if (p.kind === 'course' && p.courseCode !== null) {
-    const course = courses.get(p.courseCode);
-    return { kind: 'course', courseCode: p.courseCode, nameVi: course?.nameVi ?? null, nameEn: course?.nameEn ?? null, credits: course?.credits ?? null, requirementGroupName: null };
+function sharedPlacement(placement: Placement, courses: ReadonlyMap<string, CourseSummary>, curriculum: CurriculumLabels): SharedPlacementDto {
+  if (placement.kind === 'course' && placement.courseCode !== null) {
+    const course = courses.get(placement.courseCode);
+    return { kind: 'course', courseCode: placement.courseCode, nameVi: course?.nameVi ?? null, nameEn: course?.nameEn ?? null, credits: course?.credits ?? null, requirementGroupName: null };
   }
-  const groupName = p.requirementGroupId === null ? null : (curriculum.groupNames.get(p.requirementGroupId) ?? null);
-  return { kind: 'slot', courseCode: null, nameVi: null, nameEn: null, credits: p.credits, requirementGroupName: groupName };
+  const groupName = placement.requirementGroupId === null ? null : (curriculum.groupNames.get(placement.requirementGroupId) ?? null);
+  return { kind: 'slot', courseCode: null, nameVi: null, nameEn: null, credits: placement.credits, requirementGroupName: groupName };
 }
 
 export function sharedPlan({ plan, report, courses, curriculum, ownerName, showTranscriptChecks = false }: SharedPlanSource): SharedPlanDto {

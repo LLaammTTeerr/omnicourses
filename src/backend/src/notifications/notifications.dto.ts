@@ -41,7 +41,7 @@ export class NotificationsQueryDto {
   before?: string;
 }
 
-export class NotificationEventDto {
+class NotificationEventDto {
   @ApiProperty({ format: 'uuid', description: 'The ID of the school date. The date may have been changed or deleted since' })
   id!: string;
 

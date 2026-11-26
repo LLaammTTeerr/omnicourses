@@ -119,7 +119,7 @@ Agents have full authority over the branch → PR → merge cycle, under these c
 2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human.
 3. **Fill in "Why this design"** in the PR template: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). Generated code must be explained and defended.
 4. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
-5. **Do not deploy by hand.** Production deploys by itself after CI passes on `main`. Tag a build only when a human asks (the command is in CONTRIBUTING.md §4).
+5. **Production deploys by itself** after CI passes on `main`. Run `gh workflow run deploy.yml --ref main -f environment=production` by hand only in two cases: a human asks for a build tag (add `-f build_tag=B<n>`), or the automatic run was dropped. A manual run must name `environment=production`: the default, `staging`, fails on `main`.
 6. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
 
 Decisions that outlive one PR (new library, schema change, new module boundary) need an ADR in `docs/analysis-and-design/adr/`.

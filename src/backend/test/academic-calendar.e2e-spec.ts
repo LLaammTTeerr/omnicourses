@@ -90,14 +90,14 @@ describe('Academic calendar API (e2e)', () => {
   });
 
   it('answers 404 not_found for an unknown program code', async () => {
-    const res = await as(student.token).get(calendar(`?program=ZZNOPE${suffix}`)).expect(404);
-    expect(res.body.code).toBe('not_found');
+    const response = await as(student.token).get(calendar(`?program=ZZNOPE${suffix}`)).expect(404);
+    expect(response.body.code).toBe('not_found');
   });
 
   it('refuses writes to a student, to an access manager and catalog maintainer, and to the administrator of another program', async () => {
     for (const caller of [student, manager, adminB]) {
-      const res = await as(caller.token).post(events(programA), valid);
-      expect([res.status, res.body.code, res.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
+      const response = await as(caller.token).post(events(programA), valid);
+      expect([response.status, response.body.code, response.body.permission]).toEqual([403, 'permission_required', 'program_admin']);
     }
     expect((await as(student.token).get(calendar()).expect(200)).body.events).toEqual([]);
   });
@@ -237,8 +237,8 @@ describe('Academic calendar API (e2e)', () => {
         { kind: 'term_start', startsOn: '2026-09-07', title: 'no year' },
       ];
       for (const body of bad) {
-        const res = await as(adminA.token).post(events(programA), body);
-        expect([res.status, res.body.code], JSON.stringify(body)).toEqual([400, 'validation_failed']);
+        const response = await as(adminA.token).post(events(programA), body);
+        expect([response.status, response.body.code], JSON.stringify(body)).toEqual([400, 'validation_failed']);
       }
       expect((await as(student.token).get(calendar()).expect(200)).body.events).toHaveLength(3);
     });
@@ -266,8 +266,8 @@ describe('Academic calendar API (e2e)', () => {
       expect((await as(adminA.token).patch(crossPath, { title: 'x' }).expect(404)).body.code).toBe('not_found');
       await as(adminA.token).delete(crossPath).expect(404);
       const own = `${events(programA)}/${termStart.id}`;
-      for (const res of [await as(adminB.token).patch(own, { title: 'x' }), await as(adminB.token).delete(own), await as(student.token).delete(own)]) {
-        expect([res.status, res.body.code]).toEqual([403, 'permission_required']);
+      for (const response of [await as(adminB.token).patch(own, { title: 'x' }), await as(adminB.token).delete(own), await as(student.token).delete(own)]) {
+        expect([response.status, response.body.code]).toEqual([403, 'permission_required']);
       }
       expect((await as(student.token).get(calendar(`?program=${codeB}`)).expect(200)).body.events[0].title).toBe('Thi cuối kỳ');
     });

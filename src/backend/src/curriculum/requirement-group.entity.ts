@@ -14,6 +14,7 @@ import {
 } from 'typeorm';
 import { Course } from './course.entity.js';
 import { Curriculum } from './curriculum.entity.js';
+import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 
 export const REQUIREMENT_GROUP_KINDS = ['compulsory', 'elective'] as const;
 export type RequirementGroupKind = (typeof REQUIREMENT_GROUP_KINDS)[number];
@@ -33,7 +34,7 @@ export class RequirementGroup {
   @JoinColumn({ name: 'curriculum_id', foreignKeyConstraintName: 'requirement_groups_curriculum_id_fkey' })
   curriculum!: Curriculum;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: NAME_MAX_LENGTH })
   name!: string;
 
   @Column({ type: 'varchar', length: 20 })

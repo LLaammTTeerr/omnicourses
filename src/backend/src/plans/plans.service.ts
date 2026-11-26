@@ -151,11 +151,11 @@ function preview(rows: readonly PlanPlacement[]): PlanPreviewDto {
 }
 
 function summary(plan: Plan): PlanSummaryDto {
-  const c = plan.curriculum;
+  const curriculum = plan.curriculum;
   return {
     id: plan.id,
     name: plan.name,
-    curriculum: { id: c.id, code: c.code, programCode: c.program.code, cohortYear: c.cohortYear },
+    curriculum: { id: curriculum.id, code: curriculum.code, programCode: curriculum.program.code, cohortYear: curriculum.cohortYear },
     createdAt: plan.createdAt,
     updatedAt: plan.updatedAt,
   };

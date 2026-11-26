@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../users/user.entity.js';
+import { CODE_MAX_LENGTH } from '../common/column-limits.js';
 
 @Entity({ name: 'onboarding_answers' })
 export class OnboardingAnswers {
@@ -10,7 +11,7 @@ export class OnboardingAnswers {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @Column({ name: 'program_code', type: 'varchar', length: 50, nullable: true })
+  @Column({ name: 'program_code', type: 'varchar', length: CODE_MAX_LENGTH, nullable: true })
   programCode!: string | null;
 
   @Column({ name: 'cohort_year', type: 'smallint', nullable: true })

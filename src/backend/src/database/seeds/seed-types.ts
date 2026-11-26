@@ -31,14 +31,14 @@ export interface PrintedGroup {
   needs_check?: string;
 }
 
-export interface AppendixRow {
+interface AppendixRow {
   code: string;
   name_vi: string;
   name_en: string;
   page: Page;
 }
 
-export interface PrintedBlock {
+interface PrintedBlock {
   name: string;
   credits: number;
   at_least: boolean;
@@ -46,7 +46,7 @@ export interface PrintedBlock {
   page: Page;
 }
 
-export interface SeedProgram {
+interface SeedProgram {
   code: string;
   name_vi: string;
   name_en: string | null;
@@ -55,7 +55,7 @@ export interface SeedProgram {
   page: Page;
 }
 
-export interface SeedCurriculum {
+interface SeedCurriculum {
   cohort_year: number;
   code: string;
   name_vi: string;
@@ -72,7 +72,7 @@ export interface KnownDiscrepancy {
   resolution: string;
 }
 
-export interface PrintedSubtotal {
+interface PrintedSubtotal {
   name: string;
   credits: number;
   groups: string[];
@@ -87,7 +87,7 @@ export interface NoPrerequisitesDecision {
   except: PrerequisiteException[];
 }
 
-export interface PrerequisiteException {
+interface PrerequisiteException {
   code: string;
   requires: string[];
   printed: string;

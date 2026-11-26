@@ -2,6 +2,8 @@ import { Check, Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, 
 import { Curriculum } from '../curriculum/curriculum.entity.js';
 import { User } from '../users/user.entity.js';
 
+export const PLAN_NAME_MAX_LENGTH = 100;
+
 @Entity({ name: 'plans' })
 @Unique('uq_plans_id_user', ['id', 'userId'])
 @Check('ck_plans_name', `length(btrim("name")) > 0`)
@@ -25,7 +27,7 @@ export class Plan {
   @JoinColumn({ name: 'curriculum_id', foreignKeyConstraintName: 'plans_curriculum_id_fkey' })
   curriculum!: Curriculum;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: PLAN_NAME_MAX_LENGTH })
   name!: string;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

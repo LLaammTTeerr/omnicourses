@@ -14,23 +14,23 @@ export const IMPORT_JSON_LIMIT_BYTES = 7 * MIB;
 
 type LargeBodyGate = (authorization: string | undefined, need: Need) => Promise<boolean>;
 
-export function importJsonBody(globalPrefix: string, mayUseLargeParser: LargeBodyGate): RequestHandler {
+function importJsonBody(globalPrefix: string, mayUseLargeParser: LargeBodyGate): RequestHandler {
   const parseLargeJson = json({ limit: IMPORT_JSON_LIMIT_BYTES, inflate: false });
   const cohort = COHORT_IMPORTS.replace(':programId', '(?<programId>[^/]+)').replace(':curriculumId', '[^/]+');
   const importRoute = new RegExp(`^/${globalPrefix}/(?:${CATALOG_IMPORTS}|${cohort})/(?:${IMPORT_STEPS.join('|')})$`);
-  return function importJsonBodyLimit(req: Request, res: Response, next: NextFunction): void {
-    const route = req.method === 'POST' ? importRoute.exec(req.path) : null;
+  return function importJsonBodyLimit(request: Request, response: Response, next: NextFunction): void {
+    const route = request.method === 'POST' ? importRoute.exec(request.path) : null;
     if (!route) return next();
-    const encoding = req.headers['content-encoding']?.trim().toLowerCase();
+    const encoding = request.headers['content-encoding']?.trim().toLowerCase();
     if (encoding && encoding !== 'identity') return next(compressedBody());
 
     const programId = route.groups?.programId;
     const need: Need = programId ? { program: programId.toLowerCase() } : { permission: 'catalog_maintainer' };
-    void mayUseLargeParser(req.headers.authorization, need)
+    void mayUseLargeParser(request.headers.authorization, need)
       .catch(() => false)
       .then((allowed) => {
         if (!allowed) return next();
-        parseLargeJson(req, res, (error?: unknown) => {
+        parseLargeJson(request, response, (error?: unknown) => {
           const tooLarge = (error as { type?: string } | undefined)?.type === 'entity.too.large';
           next(tooLarge ? payloadTooLarge(`The request body is larger than ${inMiB(IMPORT_JSON_LIMIT_BYTES)}`) : error);
         });

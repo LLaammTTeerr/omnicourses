@@ -1,5 +1,6 @@
 export const TERM_NUMBERS = [1, 2, 3] as const;
 export type TermNumber = (typeof TERM_NUMBERS)[number];
+export const LAST_TERM_NUMBER: TermNumber = TERM_NUMBERS[TERM_NUMBERS.length - 1];
 
 export const MIN_ACADEMIC_YEAR = 2000;
 export const MAX_ACADEMIC_YEAR = 2100;
@@ -21,8 +22,8 @@ export function currentTerm(vietnamDay: string): Term {
   throw new RangeError(`Not a date: ${vietnamDay}`);
 }
 
-export function compareTerms(a: Term, b: Term): number {
-  return a.year - b.year || a.number - b.number;
+export function compareTerms(left: Term, right: Term): number {
+  return left.year - right.year || left.number - right.number;
 }
 
 export function termLabel(term: Term): string {
