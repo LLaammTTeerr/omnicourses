@@ -3,13 +3,12 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { CatalogAdminService } from '../src/curriculum-admin/catalog-admin.service.js';
 import { CsvImportService } from '../src/curriculum-admin/csv-import.service.js';
-import { CurriculumAdminService } from '../src/curriculum-admin/curriculum-admin.service.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { type Account, authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';
+import { withInsertRefused } from './support/faults.js';
 import { signedInUser } from './support/users.js';
 
 const COURSES_HEADER = 'code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods';
@@ -353,13 +352,6 @@ describe('CSV import of catalog courses (e2e)', () => {
     const { body } = await preview(csv).expect(200);
     expect(body.summary).toEqual({ inserts: 4, updates: 1, noOps: 0 });
 
-    const catalog = f.app.get(CatalogAdminService);
-    const insert = catalog.insertCourse.bind(catalog);
-    let inserts = 0;
-    vi.spyOn(catalog, 'insertCourse').mockImplementation(async (em, code, values) => {
-      if (++inserts === 3) await em.query('SELECT $1::integer', [values.nameVi]);
-      return insert(em, code, values);
-    });
     const logged: string[] = [];
     for (const stream of [process.stdout, process.stderr]) {
       vi.spyOn(stream, 'write').mockImplementation((chunk: string | Uint8Array) => {
@@ -367,14 +359,13 @@ describe('CSV import of catalog courses (e2e)', () => {
         return true;
       });
     }
-    const failed = await confirm(csv, body.reviewVersion);
+    const failed = await withInsertRefused(f.db, { table: 'courses', column: 'code', value: `${P}F4` }, () => confirm(csv, body.reviewVersion));
     vi.restoreAllMocks();
 
     expect([failed.status, failed.body]).toEqual([500, { statusCode: 500, message: 'Internal server error' }]);
-    expect(inserts).toBe(3);
     expect(await savedCourses()).toEqual(before);
-    const INVALID_TEXT_REPRESENTATION = '22P02';
-    expect(logged.join('')).toContain(`A CSV import failed and saved nothing: QueryFailedError, SQLSTATE ${INVALID_TEXT_REPRESENTATION}`);
+    const CHECK_VIOLATION = '23514';
+    expect(logged.join('')).toContain(`A CSV import failed and saved nothing: QueryFailedError, SQLSTATE ${CHECK_VIOLATION}`);
     expect(logged.join('')).not.toContain(MARK);
     expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 4, updates: 1, noOps: 0 });
   });
@@ -626,19 +617,11 @@ describe('CSV import of group links (e2e)', () => {
     const { body } = await preview(csv).expect(200);
     expect(body.summary).toEqual({ inserts: 3, updates: 0, noOps: 0 });
 
-    const curricula = f.app.get(CurriculumAdminService);
-    const insert = curricula.insertLink.bind(curricula);
-    let inserts = 0;
-    vi.spyOn(curricula, 'insertLink').mockImplementation(async (em, groupId, code) => {
-      if (++inserts === 3) throw new Error('injected');
-      return insert(em, groupId, code);
-    });
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const failed = await confirm(csv, body.reviewVersion);
+    const failed = await withInsertRefused(f.db, { table: 'requirement_group_courses', column: 'course_code', value: `${L}C` }, () => confirm(csv, body.reviewVersion));
     vi.restoreAllMocks();
 
     expect([failed.status, failed.body]).toEqual([500, { statusCode: 500, message: 'Internal server error' }]);
-    expect(inserts).toBe(3);
     expect(await allLinks()).toEqual(before);
     expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 3, updates: 0, noOps: 0 });
   });

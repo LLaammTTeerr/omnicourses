@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { degreeAudit } from './audit.js';
 import type { DegreeAudit, GroupCoverage } from './types.js';
-import { NOT_CHECKED_CONDITIONS } from './graduation.js';
-import { course, graded, group, term, ungraded, zzCurriculum, zzGraduatingTranscript } from './testing/fixtures.js';
+import { course, EXPECTED_NOT_CHECKED_CONDITIONS, graded, group, term, ungraded, zzCurriculum, zzGraduatingTranscript } from './testing/fixtures.js';
 
 const groupOf = (audit: DegreeAudit, id: string): GroupCoverage => audit.groups.find((g) => g.id === id)!;
 const statusOf = (audit: DegreeAudit, groupId: string, code: string) => groupOf(audit, groupId).courses.find((c) => c.code === code)!.status;
@@ -50,14 +49,7 @@ describe('degree audit', () => {
     });
 
     it('lists the conditions the data cannot check, never as met', () => {
-      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
-      expect(audit.graduation.notChecked.map((c) => c.id)).toEqual([
-        'no_prosecution_or_suspension',
-        'defence_education_certificate',
-        'foreign_language_standard',
-        'it_standard',
-        'study_time_limit',
-      ]);
+      expect(audit.graduation.notChecked).toEqual(EXPECTED_NOT_CHECKED_CONDITIONS);
     });
 
     it('has no unmatched course and no warning', () => {

@@ -1,10 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TranscriptEntry } from '../src/transcript/transcript-entry.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 import { bootApp } from './support/app.js';
+import { backendPid, waitUntilAnySessionBlockedBy, within } from './support/locks.js';
 import { PASSWORD as password, signedInUser, storedUser } from './support/users.js';
 
 const first: TranscriptEntry[] = [
@@ -16,17 +17,12 @@ const first: TranscriptEntry[] = [
   { courseCode: 'PED00001', courseName: 'Physical Education 1', credits: 1, result: 'pass', grade: null, term: { year: 2026, number: 1 } },
 ];
 
+const SIGN_IN_LIMIT_MS = 3_000;
+
 describe('Transcript against PostgreSQL (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
   const http = () => request(app.getHttpServer());
-
-  async function blockedBy(pid: number): Promise<void> {
-    await vi.waitFor(async () => {
-      const [{ n }] = await db.query('SELECT count(*)::int AS n FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))', [pid]);
-      expect(n).toBeGreaterThan(0);
-    });
-  }
 
   beforeAll(async () => {
     app = await bootApp();
@@ -113,7 +109,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     let saving!: Promise<TranscriptEntry[]>;
     try {
       await other.startTransaction();
-      const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
+      const pid = await backendPid(other);
       await other.query('SELECT 1 FROM users WHERE id = $1 FOR NO KEY UPDATE', [userId]);
       await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
       await other.query(
@@ -122,7 +118,7 @@ describe('Transcript against PostgreSQL (e2e)', () => {
       );
 
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
-      await blockedBy(pid);
+      await waitUntilAnySessionBlockedBy(db, pid);
       await other.commitTransaction();
     } finally {
       if (other.isTransactionActive) await other.rollbackTransaction();
@@ -141,14 +137,14 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     let saving!: Promise<unknown>;
     try {
       await other.startTransaction();
-      const [{ pid }] = await other.query('SELECT pg_backend_pid() AS pid');
+      const pid = await backendPid(other);
       await other.query('DELETE FROM transcript_rows WHERE user_id = $1', [userId]);
       saving = app.get(TranscriptService).replace(userId, [first[3]]);
-      await blockedBy(pid);
+      await waitUntilAnySessionBlockedBy(db, pid);
 
       const signIn = http().post('/api/auth/sign-in').send({ email, password }).then((res) => res.status);
-      const outcome = await Promise.race([signIn, new Promise((resolve) => setTimeout(() => resolve('still waiting'), 3000))]);
-      expect(outcome).toBe(200);
+      expect(await within(signIn, SIGN_IN_LIMIT_MS)).toBe(200);
+      await waitUntilAnySessionBlockedBy(db, pid);
     } finally {
       if (other.isTransactionActive) await other.rollbackTransaction();
       await other.release();

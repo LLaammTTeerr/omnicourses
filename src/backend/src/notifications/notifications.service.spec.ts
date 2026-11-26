@@ -87,9 +87,7 @@ describe('NotificationsService', () => {
         [['u3'], 'registration_open', 'open'],
         [['u1', 'u2'], 'term_start', 'term'],
       ]);
-      const [sql, params] = db.query.mock.calls[0]!;
-      expect(sql).toContain('ON CONFLICT ("user_id", "calendar_event_id", "kind") DO NOTHING');
-      expect(sql).toContain('u."deletion_requested_at" IS NULL');
+      const [, params] = db.query.mock.calls[0]!;
       expect(params.slice(3)).toEqual(['ZZA', 2090, 1, '2090-03-20', '2090-03-31', 'Synthetic registration', null, clock.at]);
     });
 

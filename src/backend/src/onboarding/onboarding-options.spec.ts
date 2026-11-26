@@ -13,6 +13,7 @@ describe('offered programs (B1 §6 item 1)', () => {
     ['APCS', 2026],
     ['APCS', '2024'],
     ['APCS', 2024.5],
+    ['apcs', 2024],
     ['CLC', 2025],
     ['toString', 2024],
   ])('does not offer %s %j', (program, cohort) => {
