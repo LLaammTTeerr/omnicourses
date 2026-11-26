@@ -6,24 +6,8 @@ How the engineering skills should consume this repo's domain documentation when 
 
 - **`GLOSSARY.md`** at the repo root.
 - **`docs/analysis-and-design/adr/`**: read ADRs that touch the area you're about to work in.
-- **`docs/requirements/`**: the Vision document's features (F1–F12) and NFRs, when the work traces to a feature.
-
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
-
-## File structure
-
-```
-/
-├── GLOSSARY.md
-├── docs/
-│   └── analysis-and-design/
-│       └── adr/
-│           ├── 0001-technology-stack.md
-│           └── 0002-authentication-and-sessions.md
-└── src/
-    ├── backend/
-    └── frontend/
-```
+- **`docs/requirements/use-cases/`**: the use case behind the feature you work on. The Vision document's features (F1–F12) and NFRs are in `report/assignments/PA2/Vision.tex`.
+- **[README.md, What is built](../../README.md#what-is-built)**: which features have an API and a screen today.
 
 ## ADRs in this repo
 

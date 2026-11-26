@@ -2,8 +2,8 @@
 
 - Feature: F8 AI academic advisor chat (Vision §5, kept by [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md))
 - Owner: Dũng
-- Status: draft for the use-case model (PA2); describes work still to be built (Sprint 5, build B3)
-- Built so far: the AI gateway's `chat()` with tools, streaming and the per-user daily cap (PR #12). The `advisor` module, its prompt, tools and screen are not built.
+- Status: draft for the use-case model (PA2); planned for build B3
+- What is built: the [README feature table](../../../README.md#what-is-built). The AI gateway's `chat()` with tools, streaming and the per-user daily cap is [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md).
 - Naming: "advisor chat" is the F8 feature. In the glossary an **advisor** is a lecturer who reads a shared plan (UC-09), so this use case does not call the chatbot "the advisor".
 
 ## 1. Brief description

@@ -5,6 +5,7 @@
 - Status: ready for team review for PA3; a plan, not a test report or build approval
 - Covers: B0 carry-over, B1 (15 November), B2 (29 November), B3 (13 December 2026)
 - Reviewers: Dũng for cases and reports, Triết for academic results and data, Hoà for browser journeys, Lâm for scope and acceptance
+- Current state: this plan records what was known when each row was written. What is built today is in the [README feature table](../../README.md#what-is-built).
 
 ## 1. Purpose
 
