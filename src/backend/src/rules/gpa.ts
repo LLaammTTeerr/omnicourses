@@ -9,7 +9,7 @@ export interface WeightedGrade {
 }
 
 /** An exact average: numerator / denominator on the 10-point (or 4-point) scale. */
-export interface ExactAverage {
+interface ExactAverage {
   /** Rounded half up to two decimals, for display. */
   value: number;
   numerator: number;

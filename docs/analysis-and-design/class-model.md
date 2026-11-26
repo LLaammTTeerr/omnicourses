@@ -94,7 +94,7 @@ classDiagram
 
 ### 1.2 Curriculum, course catalog, prerequisites and offering terms
 
-Sources: `curriculum/*.entity.ts`; migrations `create-curriculum-course-schema`, `create-curriculum-admin`, `add-audit-rules-to-curriculum`.
+Sources: `curriculum/*.entity.ts`, `curriculum/course-rules.entities.ts`; migrations `create-curriculum-course-schema`, `create-curriculum-admin`, `add-audit-rules-to-curriculum`.
 
 ```mermaid
 classDiagram
@@ -450,7 +450,7 @@ The rule engine is the set of pure functions in `src/backend/src/rules/` plus `R
 
 ### 2.1 Inputs
 
-Sources: `curriculum/curriculum-rules.reader.ts`, `curriculum/course-rules.service.ts`, `transcript/transcript-entry.ts`, `terms/term.ts`, `plans/plan-board.ts`, `rules/plan-issues.ts`.
+Sources: `curriculum/curriculum-rules.reader.ts`, `transcript/transcript-entry.ts`, `terms/term.ts`, `rules/types.ts`, `rules/plan-issues.ts`.
 
 ```mermaid
 classDiagram
@@ -528,17 +528,17 @@ classDiagram
     TranscriptEntry *-- "1" Term : term
     BoardTerm *-- "1" Term : term
     BoardTerm *-- "0..*" Placement : placements
+    CurriculumRules --|> CourseRules
     PlanCheckInput --> "1" CurriculumRules : rules
-    PlanCheckInput --> "1" CourseRules : courseRules
     PlanCheckInput --> "0..*" TranscriptEntry : transcript
     PlanCheckInput --> "0..*" BoardTerm : terms
 ```
 
-`CurriculumRulesReader.rulesFor(programCode, cohortYear)` builds `CurriculumRules` from the entities of §1.2; `CourseRulesService.rulesFor(curriculumId)` builds `CourseRules`, where a course absent from a map means "not recorded"; `TranscriptService.rowsFor(userId)` returns the `TranscriptEntry` list. `rules/coverage.ts` has its own `Placement` (a curriculum course and the group it counts in); the one drawn here is the plan board's, from `plans/plan-board.ts`.
+`CurriculumRulesReader.rulesFor(curriculumId)` builds `CurriculumRules` from the entities of §1.2, with the `CourseRules` of the curriculum, where a course absent from a map means "not recorded"; `TranscriptService.rowsFor(userId)` returns the `TranscriptEntry` list. `rules/coverage.ts` calls a curriculum course and the group it counts in a `CountedLink`; `Placement` is the plan board's, from `rules/types.ts`.
 
 ### 2.2 Degree audit result
 
-Source: `rules/audit-types.ts`, `rules/credit-caps.ts`. The HTTP classes in `audit/audit.dto.ts` (`DegreeAuditDto` and the others) implement these interfaces one to one, so the API contract cannot drift from the engine.
+Source: `rules/types.ts`, `rules/credit-caps.ts`. The HTTP classes in `audit/audit.dto.ts` (`DegreeAuditDto` and the others) implement these interfaces one to one, so the API contract cannot drift from the engine.
 
 ```mermaid
 classDiagram
@@ -679,16 +679,14 @@ A `CapViolation` never blocks anything: the regulation allows a load outside the
 
 ### 2.3 Plan issues report
 
-Source: `plans/plan-issues.ts` (the types sit in `plans` so that `plans` does not import `rules`; `RulesService` implements `PlanIssuesProvider`, [ADR 0014](adr/0014-plan-model.md)). `plans/plan-issues.dto.ts` implements them for the API.
+Source: `rules/types.ts` (the rule engine owns its result types; `RulesService` serves them, [ADR 0014](adr/0014-plan-model.md)). `plans/plan-issues.dto.ts` implements them for the API.
 
 ```mermaid
 classDiagram
     direction LR
-    class PlanIssuesProvider {
-        <<interface>>
-        issuesFor(userId, plan) PlanIssuesReport
-        issuesWithoutTranscript(plan) PlanIssuesReport
-        issuesForBoards(userId, plan, boards) PlanIssuesReport list
+    class RulesService {
+        issuesFor(plan, userId?) PlanIssuesReport
+        issuesForBoards(plan, boards, userId?) PlanIssuesReport list
     }
     class PlanIssuesReport {
         <<interface>>
@@ -750,7 +748,7 @@ classDiagram
         remainingCredits : number
         met : boolean
     }
-    PlanIssuesProvider ..> PlanIssuesReport : returns
+    RulesService ..> PlanIssuesReport : returns
     PlanIssuesReport *-- "0..*" PlanTermLoad : terms
     PlanIssuesReport *-- "0..*" PlanIssue : issues
     PlanIssuesReport *-- "1" PlanCoverage : coverage
@@ -775,7 +773,7 @@ Every function below is pure (no database, no clock, no model) and is exported f
 | `coverage.ts` | `combinedMinimumCoverage(rules, groups)` | → `CombinedMinimumCoverage[]` | Combined minimums over several groups |
 | `graduation.ts` | `graduationStatus(groups, combined, credits)` | → `GraduationStatus` | Which conditions are met, unmet, or cannot be checked from the data (`NOT_CHECKED_CONDITIONS`) |
 | `gpa.ts` | `weightedAverage(items)`, `fourPointAverage(items)` | `WeightedGrade[]` → `ExactAverage` or null | Điều 15 averages, kept as exact fractions |
-| `grades.ts` | `isPassingGrade(grade)`, `letterGrade(grade)`, `fourPointTenths(grade)`, `classify(numerator, denominator, cohortYear)`, `yearLevel(accumulatedCredits)` | numbers → `boolean`, `LetterGrade`, `Classification`, 1–4 | Pass mark, letter and 4-point scale, classification, year level |
+| `grades.ts` | `isPassingGrade(grade)`, `fourPointTenths(grade)`, `classify(numerator, denominator, cohortYear)`, `yearLevel(accumulatedCredits)` | numbers → `boolean`, `Classification`, 1–4 | Pass mark, 4-point scale, classification, year level |
 | `credit-caps.ts` | `termKind(trainingType, number)`, `creditCaps(trainingType, kind)`, `checkTermLoad(trainingType, number, courses)` | → `TermKind`, `CreditCaps`, `TermLoadCheck` | Main or summer term; the credit caps by training type; a term's load against them |
 | `prerequisites.ts` | `checkPrerequisites(prerequisites, passedCodes)` | → `PrerequisiteCheck`: `not_recorded`, `none`, `met`, or `not_met` with the missing codes | Prerequisites (Điều 3.1.c) |
 | `prerequisites.ts` | `checkOfferingTerm(offeredTermNumbers, term)` | → `OfferingTermCheck`: `not_recorded`, `offered`, or `not_offered` with the offered term numbers | Offering terms |
@@ -786,18 +784,8 @@ classDiagram
     direction LR
     class RulesService {
         +auditFor(userId) AuditOutcome
-        +issuesFor(userId, plan) PlanIssuesReport
-        +issuesWithoutTranscript(plan) PlanIssuesReport
-        +issuesForBoards(userId, plan, boards) PlanIssuesReport list
-        +degreeAudit
-        +checkTermLoad
-        +checkPrerequisites
-        +checkOfferingTerm
-        +termKind
-        +creditCaps
-    }
-    class PlanIssuesProvider {
-        <<interface>>
+        +issuesFor(plan, userId?) PlanIssuesReport
+        +issuesForBoards(plan, boards, userId?) PlanIssuesReport list
     }
     class AuditOutcome {
         <<union>>
@@ -823,24 +811,21 @@ classDiagram
         violations : CapViolation list
     }
     class CurriculumRulesReader {
-        +rulesFor(programCode, cohortYear) CurriculumRules
-    }
-    class CourseRulesService {
-        +rulesFor(curriculumId) CourseRules
+        +rulesFor(curriculumId) CurriculumRules
+        +courseRules(curriculumId) CourseRules
     }
     class TranscriptService {
         +rowsFor(userId) TranscriptEntry list
     }
     class OnboardingService {
-        +answersFor(userId) OnboardingDto
+        +cohortOf(userId) StudentCohort
     }
     class CurriculumService {
-        +courseCredits(codes) Map
+        +findCurriculumId(programCode, cohortYear) string
+        +catalogCourses(codes) Map
     }
-    RulesService ..|> PlanIssuesProvider
     RulesService ..> AuditOutcome : returns
     RulesService --> CurriculumRulesReader
-    RulesService --> CourseRulesService
     RulesService --> TranscriptService
     RulesService --> OnboardingService
     RulesService --> CurriculumService
@@ -848,7 +833,7 @@ classDiagram
     RulesService ..> TermLoadCheck : checkTermLoad returns
 ```
 
-Source: `rules/rules.service.ts`, `rules/rules.module.ts`. `RulesModule` provides `RulesService` and the same instance under the token `PLAN_ISSUES_PROVIDER`.
+Source: `rules/rules.service.ts`, `rules/rules.module.ts`. `RulesModule` provides `RulesService`; `plans` and `sharing` inject it directly. `RulesService` holds no rule: it loads the inputs and calls `degreeAudit` and `checkPlan`. A spec (`rules.service.spec.ts`) fails when a pure file of `rules/` imports framework, database or HTTP code.
 
 ## 3. Services and controllers
 
@@ -939,6 +924,7 @@ classDiagram
     }
     class OnboardingService {
         +answersFor(userId) OnboardingDto
+        +cohortOf(userId) StudentCohort
         +userIdsByProgram(programCodes, onlyUserId) Map
         +save(userId, dto) OnboardingDto
     }
@@ -963,27 +949,20 @@ classDiagram
         +findCourse(code) CourseDetailDto
         +getCourse(code) CourseDetailDto
         +findCurriculumId(programCode, cohortYear) string
-        +knownCourseCodes(codes) Set
-        +courseCredits(codes) Map
+        +catalogCourses(codes) Map
         +requirementGroupIds(curriculumId) Set
     }
-    class CourseRulesService {
-        +rulesFor(curriculumId) CourseRules
-    }
     class CurriculumRulesReader {
-        +rulesFor(programCode, cohortYear) CurriculumRules
+        +rulesFor(curriculumId) CurriculumRules
+        +courseRules(curriculumId) CourseRules
     }
     class AuditController {
         +get(user) DegreeAuditDto
     }
     class RulesService {
         +auditFor(userId) AuditOutcome
-        +issuesFor(userId, plan) PlanIssuesReport
-        +issuesWithoutTranscript(plan) PlanIssuesReport
-        +issuesForBoards(userId, plan, boards) PlanIssuesReport list
-    }
-    class PlanIssuesProvider {
-        <<interface>>
+        +issuesFor(plan, userId?) PlanIssuesReport
+        +issuesForBoards(plan, boards, userId?) PlanIssuesReport list
     }
     class PlansController {
         +list(user) PlanListDto
@@ -1012,20 +991,18 @@ classDiagram
     OnboardingController --> OnboardingService
     TranscriptController --> TranscriptService
     CurriculumController --> CurriculumService
-    CurriculumService --> CourseRulesService
+    CurriculumService --> CurriculumRulesReader
     AuditController --> RulesService
-    RulesService ..|> PlanIssuesProvider
     RulesService --> OnboardingService
     RulesService --> TranscriptService
     RulesService --> CurriculumRulesReader
-    RulesService --> CourseRulesService
     RulesService --> CurriculumService
     PlansController --> PlansService
-    PlansController --> PlanIssuesProvider : PLAN_ISSUES_PROVIDER
+    PlansController --> RulesService
     PlansService --> CurriculumService
 ```
 
-Each service reaches its own tables through TypeORM repositories (left out of the drawing): `OnboardingService` → `OnboardingAnswers`; `TranscriptService` → `TranscriptRow`; `CurriculumService` → `Program`, `Curriculum`, `Course`, `RequirementGroupCourse`; `CourseRulesService` → `CoursePrerequisiteList`, `CourseOfferingTerm`; `CurriculumRulesReader` → `Curriculum`, `CombinedMinimum`, `RequirementGroupOverflow`; `PlansService` → `Plan`, `PlanPlacement`. No service in this diagram reads another module's data from its tables: `RulesService` and `PlansService` go through the services drawn. The one statement on another module's table is a row lock: `TranscriptService` locks the student's `users` row while it replaces the transcript and selects no column. Outside this diagram, `AccountService` reads every table with a `user_id` by design ([ADR 0004](adr/0004-account-export-and-deletion.md), section 3.1), and the curriculum administration services write the curriculum tables (section 3.3).
+Each service reaches its own tables through TypeORM repositories (left out of the drawing): `OnboardingService` → `OnboardingAnswers`; `TranscriptService` → `TranscriptRow`; `CurriculumService` → `Program`, `Curriculum`, `Course`, `RequirementGroupCourse`; `CurriculumRulesReader` → `Curriculum`, `CombinedMinimum`, `RequirementGroupOverflow`, `CoursePrerequisiteList`, `CourseOfferingTerm`; `PlansService` → `Plan`, `PlanPlacement`. No service in this diagram reads another module's data from its tables: `RulesService` and `PlansService` go through the services drawn. The one statement on another module's table is a row lock: `TranscriptService` locks the student's `users` row while it replaces the transcript and selects no column. Outside this diagram, `AccountService` reads every table with a `user_id` by design ([ADR 0004](adr/0004-account-export-and-deletion.md), section 3.1), and the curriculum administration services write the curriculum tables (section 3.3).
 
 | Controller | Routes |
 | --- | --- |
@@ -1338,8 +1315,8 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `CombinedMinimum`, `CombinedMinimumGroup`, `RequirementGroupOverflow`, `CurriculumRulesReader`, `DegreeAudit` and its parts, `degreeAudit`, `AuditController` | 1.2, 2.2, 2.4, 3.2 | F3 | [ADR 0013](adr/0013-rule-engine-and-degree-audit.md) |
 | `CreditCaps`, `CapViolation`, `creditCaps`, `checkTermLoad`, `Program.trainingType` | 2.2, 2.4 | F3, F5 | [ADR 0012](adr/0012-credit-caps-by-training-type.md) |
 | `Term`, `termYear` and `termNumber` columns | 1.1, 1.4, 2.1 | F2, F3, F5 | [ADR 0009](adr/0009-term-encoding.md) |
-| `Plan`, `PlanPlacement`, `BoardTerm`, `Placement`, `PlansService`, `PlanIssuesProvider`, `PlanIssuesReport`, `checkPlan` | 1.4, 2.3, 2.4, 3.2 | F5 (and the copy a what-if scenario of F7 starts from) | [ADR 0014](adr/0014-plan-model.md); [ADR 0015](adr/0015-rule-engine-in-the-browser.md) for where the drag preview runs |
-| `CoursePrerequisiteList`, `CoursePrerequisite`, `CourseOfferingTerm`, `CourseRulesService`, `checkPrerequisites`, `checkOfferingTerm` | 1.2, 2.4 | F4, F5, F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
+| `Plan`, `PlanPlacement`, `BoardTerm`, `Placement`, `PlansService`, `RulesService`, `PlanIssuesReport`, `checkPlan` | 1.4, 2.3, 2.4, 3.2 | F5 (and the copy a what-if scenario of F7 starts from) | [ADR 0014](adr/0014-plan-model.md); [ADR 0015](adr/0015-rule-engine-in-the-browser.md) for where the drag preview runs |
+| `CoursePrerequisiteList`, `CoursePrerequisite`, `CourseOfferingTerm`, `CurriculumRulesReader`, `checkPrerequisites`, `checkOfferingTerm` | 1.2, 2.4 | F4, F5, F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
 | `ProgramAdminGrant`, `GlobalAdminGrant`, `AdminWriteService`, the three administration services and controllers | 1.3, 3.3 | F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
 | `Guide`, `GuideText`, `GuideContent`, `GuidesService` | 1.5, 3.4 | F11 | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | `AiUsage`, `LlmService`, `GatewayLlmService`, `AiCostGuard`, `ModelClient` | 1.1, 3.4 | F6 goal box and F8 (the gateway) | [ADR 0003](adr/0003-language-model-scope.md) |

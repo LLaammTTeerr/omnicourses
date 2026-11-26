@@ -1,6 +1,6 @@
 import type { CourseSummary, CurriculumLabels } from '../curriculum/curriculum.service.js';
 import type { PlanDto } from '../plans/plans.dto.js';
-import { PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, type PlanIssuesReport } from '../rules/types.js';
+import { type Placement, PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, type PlanIssuesReport } from '../rules/types.js';
 import { copyTerm, termKey } from '../terms/term.js';
 import type { SharedPlacementDto, SharedPlanCoverageDto, SharedPlanDto, SharedPlanIssueDto } from './sharing.dto.js';
 
@@ -114,6 +114,15 @@ function withTranscriptChecks(report: PlanIssuesReport): Pick<SharedPlanDto, 'is
   };
 }
 
+function sharedPlacement(p: Placement, courses: ReadonlyMap<string, CourseSummary>, curriculum: CurriculumLabels): SharedPlacementDto {
+  if (p.kind === 'course' && p.courseCode !== null) {
+    const course = courses.get(p.courseCode);
+    return { kind: 'course', courseCode: p.courseCode, nameVi: course?.nameVi ?? null, nameEn: course?.nameEn ?? null, credits: course?.credits ?? null, requirementGroupName: null };
+  }
+  const groupName = p.requirementGroupId === null ? null : (curriculum.groupNames.get(p.requirementGroupId) ?? null);
+  return { kind: 'slot', courseCode: null, nameVi: null, nameEn: null, credits: p.credits, requirementGroupName: groupName };
+}
+
 export function sharedPlan({ plan, report, courses, curriculum, ownerName, showTranscriptChecks = false }: SharedPlanSource): SharedPlanDto {
   const loads = new Map(report.terms.map((load) => [termKey(load.term), load]));
   return {
@@ -136,14 +145,7 @@ export function sharedPlan({ plan, report, courses, curriculum, ownerName, showT
         kind: load.kind,
         credits: load.credits,
         caps: load.caps ? { min: load.caps.min, max: load.caps.max } : null,
-        placements: placements.map((p): SharedPlacementDto => {
-          if (p.kind === 'course' && p.courseCode !== null) {
-            const course = courses.get(p.courseCode);
-            return { kind: 'course', courseCode: p.courseCode, nameVi: course?.nameVi ?? null, nameEn: course?.nameEn ?? null, credits: course?.credits ?? null, requirementGroupName: null };
-          }
-          const groupName = p.requirementGroupId === null ? null : (curriculum.groupNames.get(p.requirementGroupId) ?? null);
-          return { kind: 'slot', courseCode: null, nameVi: null, nameEn: null, credits: p.credits, requirementGroupName: groupName };
-        }),
+        placements: placements.map((p) => sharedPlacement(p, courses, curriculum)),
       };
     }),
     ...(showTranscriptChecks

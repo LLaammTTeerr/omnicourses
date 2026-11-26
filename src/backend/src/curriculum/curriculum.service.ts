@@ -164,7 +164,7 @@ function groupDto(g: RequirementGroup, rules: CourseRules): RequirementGroupDto 
   };
 }
 
-export function curriculumDto(c: Curriculum, rules: CourseRules): CurriculumDto {
+function curriculumDto(c: Curriculum, rules: CourseRules): CurriculumDto {
   return {
     id: c.id,
     code: c.code,

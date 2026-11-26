@@ -90,3 +90,14 @@ Not stored, with the reason:
   - Offering terms are entered through F12 (ADR 0011 amendment); none is seeded, so a plan reports them as unknown until they are. Prerequisites are the same for CLC. APCS 2024 and 2025 courses are seeded as having no prerequisite, except CS469 before CS470 (ADR 0011, amendment of 15 November 2026). Not verified: whether CS468 and CS404 have a credit or year gate. Not stored: rule (ii) of the note under APCS 7.3, which gives no credit for CS469 when CS470 is not taken; the audit still counts a passed CS469.
   - Which courses are general foreign language (the đại trà minimum) and which are Tin học cơ sở (the GPA) is not recorded; no seeded curriculum has one.
   - The estimated graduation term is a planner output (GLOSSARY), not the audit's.
+
+## Amendment, 26 November 2026: the rule engine is a plain library, injected directly
+
+*Decided by the coordinator under the Project Lead's standing delegation, 26 November 2026 (backend cleanup).* No academic rule changes: every value, citation and result stays the same.
+
+- `PlanIssuesProvider` and the `PLAN_ISSUES_PROVIDER` token are removed. `plans` and `sharing` inject `RulesService`. The token's stated reason, that `plans` must not import `rules`, stopped being true when `PlansModule` started to import `RulesModule`.
+- The engine owns its types. The plan-issue types, the board types (`BoardTerm`, `Placement`) and one citation table (`CITATIONS`) are in `rules/types.ts`, which replaces `rules/audit-types.ts`. The engine takes a plain plan (`PlanUnderCheck`: an id, a curriculum id and the board), not the HTTP `PlanDto`.
+- `RulesService` has two plan methods, `issuesFor(plan, userId)` and `issuesForBoards(plan, boards, userId)`. A null `userId` replaces `issuesWithoutTranscript`: the transcript is then not read (ADR 0010).
+- `RulesService` no longer exposes the pure functions (`termKind`, `creditCaps`, `checkTermLoad`, `checkPrerequisites`, `checkOfferingTerm`, `degreeAudit`). No module used them. The advisor (F8) imports them from `rules/` when it is built. This changes the module-boundary row above, which said that `RulesService` exposes them.
+- `CurriculumRulesReader.rulesFor(curriculumId)` reads one curriculum by its id, with its prerequisites and offering terms; `CourseRulesService` is merged into it. The audit finds the id with `CurriculumService.findCurriculumId(program, cohort)`.
+- A spec fails when a pure file of `rules/` imports framework, database or HTTP code at run time (`rules.service.spec.ts`).

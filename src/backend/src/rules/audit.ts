@@ -99,44 +99,55 @@ function gpaSummary(records: ReadonlyMap<string, CourseRecord>, placed: Readonly
   };
 }
 
+function transcriptTerms(transcript: readonly TranscriptEntry[]): Term[] {
+  const terms: Term[] = [];
+  for (const entry of [...transcript].sort((a, b) => compareTerms(a.term, b.term))) {
+    if (!terms.some((t) => compareTerms(t, entry.term) === 0)) terms.push(entry.term);
+  }
+  return terms;
+}
+
 function termSummaries(
   rules: CurriculumRules,
   transcript: readonly TranscriptEntry[],
   records: ReadonlyMap<string, CourseRecord>,
   placed: ReadonlyMap<string, CountedLink>,
 ): TermSummary[] {
-  const terms: Term[] = [];
-  for (const entry of [...transcript].sort((a, b) => compareTerms(a.term, b.term))) {
-    if (!terms.some((t) => compareTerms(t, entry.term) === 0)) terms.push(entry.term);
-  }
-  return terms.map((term) => {
-    const rows = transcript.filter((e) => compareTerms(e.term, term) === 0);
-    // Every sitting of the term, retakes included (Điều 15.1.a; the audit prototype: "ĐTB học kỳ tính mọi lần học").
-    const graded = rows.flatMap((e): (WeightedGrade & { passes: boolean })[] => {
-      const place = placed.get(e.courseCode);
-      if (!place || !place.course.countsTowardGpa || e.result !== 'graded' || e.grade === null) return [];
-      return [{ grade: e.grade, credits: creditsOf(place.course, e.credits), passes: attemptPasses(e) }];
-    });
-    const asOf = [...records.values()].map((r) => recordAsOf(r, term)).filter((r): r is CourseRecord => r !== null);
-    const load = checkTermLoad(
-      rules.trainingType,
-      term.number,
-      rows.map((e) => ({ credits: e.credits, excludedFromMinimum: placed.get(e.courseCode)?.course.countsTowardTotal === false })),
-    );
-    return {
-      term: { year: term.year, number: term.number },
-      kind: load.kind,
-      credits: load.credits,
-      passedCredits: rows.filter(attemptPasses).reduce((sum, e) => sum + e.credits, 0),
-      average: weightedAverage(graded)?.value ?? null,
-      accumulatedAverage: weightedAverage(graded.filter((g) => g.passes))?.value ?? null,
-      cumulativeAccumulatedAverage: weightedAverage(gpaCourses(asOf, placed, true))?.value ?? null,
-      failedCourseCodes: unique(rows.filter((e) => isCompleted(e) && !attemptPasses(e)).map((e) => e.courseCode)),
-      inProgressCourseCodes: unique(rows.filter((e) => e.result === 'in_progress').map((e) => e.courseCode)),
-      caps: load.caps,
-      capViolations: load.violations,
-    };
+  return transcriptTerms(transcript).map((term) => termSummary(rules, term, transcript.filter((e) => compareTerms(e.term, term) === 0), records, placed));
+}
+
+function termSummary(
+  rules: CurriculumRules,
+  term: Term,
+  rows: readonly TranscriptEntry[],
+  records: ReadonlyMap<string, CourseRecord>,
+  placed: ReadonlyMap<string, CountedLink>,
+): TermSummary {
+  // Every sitting of the term, retakes included (Điều 15.1.a; the audit prototype: "ĐTB học kỳ tính mọi lần học").
+  const graded = rows.flatMap((e): (WeightedGrade & { passes: boolean })[] => {
+    const place = placed.get(e.courseCode);
+    if (!place || !place.course.countsTowardGpa || e.result !== 'graded' || e.grade === null) return [];
+    return [{ grade: e.grade, credits: creditsOf(place.course, e.credits), passes: attemptPasses(e) }];
   });
+  const asOf = [...records.values()].map((r) => recordAsOf(r, term)).filter((r): r is CourseRecord => r !== null);
+  const load = checkTermLoad(
+    rules.trainingType,
+    term.number,
+    rows.map((e) => ({ credits: e.credits, excludedFromMinimum: placed.get(e.courseCode)?.course.countsTowardTotal === false })),
+  );
+  return {
+    term: { year: term.year, number: term.number },
+    kind: load.kind,
+    credits: load.credits,
+    passedCredits: rows.filter(attemptPasses).reduce((sum, e) => sum + e.credits, 0),
+    average: weightedAverage(graded)?.value ?? null,
+    accumulatedAverage: weightedAverage(graded.filter((g) => g.passes))?.value ?? null,
+    cumulativeAccumulatedAverage: weightedAverage(gpaCourses(asOf, placed, true))?.value ?? null,
+    failedCourseCodes: unique(rows.filter((e) => isCompleted(e) && !attemptPasses(e)).map((e) => e.courseCode)),
+    inProgressCourseCodes: unique(rows.filter((e) => e.result === 'in_progress').map((e) => e.courseCode)),
+    caps: load.caps,
+    capViolations: load.violations,
+  };
 }
 
 function unmatched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): UnmatchedCourse[] {
@@ -154,38 +165,39 @@ function unmatched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyM
 }
 
 function warnings(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): AuditWarning[] {
+  return [...records.values()].flatMap((record) => recordWarnings(record, placed.get(record.code)));
+}
+
+function recordWarnings(record: CourseRecord, place: CountedLink | undefined): AuditWarning[] {
   const list: AuditWarning[] = [];
-  for (const record of records.values()) {
-    const place = placed.get(record.code);
-    if (!place) {
-      list.push({
-        code: 'not_in_curriculum',
-        courseCode: record.code,
-        message: 'No requirement group of the curriculum lists this course, and no course equivalence is recorded, so it counts toward nothing.',
-        transcriptCredits: null,
-        curriculumCredits: null,
-      });
-      continue;
-    }
-    const differing = [...new Set(record.attempts.filter((a) => a.credits !== place.course.credits).map((a) => a.credits))].sort((x, y) => x - y);
-    if (differing.length) {
-      list.push({
-        code: 'credits_differ',
-        courseCode: record.code,
-        message: `The transcript gives ${differing.join(', ')} credits and the curriculum ${place.course.credits}; the audit counts the smaller number.`,
-        transcriptCredits: differing,
-        curriculumCredits: place.course.credits,
-      });
-    }
-    if (record.sameTermAttempts) {
-      list.push({
-        code: 'same_term_attempts',
-        courseCode: record.code,
-        message: 'Several completed attempts in the same term: which was last is unknown, so the worse result counts.',
-        transcriptCredits: null,
-        curriculumCredits: null,
-      });
-    }
+  if (!place) {
+    list.push({
+      code: 'not_in_curriculum',
+      courseCode: record.code,
+      message: 'No requirement group of the curriculum lists this course, and no course equivalence is recorded, so it counts toward nothing.',
+      transcriptCredits: null,
+      curriculumCredits: null,
+    });
+    return list;
+  }
+  const differing = [...new Set(record.attempts.filter((a) => a.credits !== place.course.credits).map((a) => a.credits))].sort((x, y) => x - y);
+  if (differing.length) {
+    list.push({
+      code: 'credits_differ',
+      courseCode: record.code,
+      message: `The transcript gives ${differing.join(', ')} credits and the curriculum ${place.course.credits}; the audit counts the smaller number.`,
+      transcriptCredits: differing,
+      curriculumCredits: place.course.credits,
+    });
+  }
+  if (record.sameTermAttempts) {
+    list.push({
+      code: 'same_term_attempts',
+      courseCode: record.code,
+      message: 'Several completed attempts in the same term: which was last is unknown, so the worse result counts.',
+      transcriptCredits: null,
+      curriculumCredits: null,
+    });
   }
   return list;
 }
