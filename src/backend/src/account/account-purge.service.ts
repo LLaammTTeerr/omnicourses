@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThanOrEqual, Repository } from 'typeorm';
-import { failureKind, failureStack } from '../common/failure-kind.js';
+import { logFailure } from '../common/failure-kind.js';
 import { User } from '../users/user.entity.js';
 
 const HOUR_MS = 3_600_000;
@@ -33,7 +33,9 @@ export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDest
     try {
       due = await this.users.find({ select: { id: true }, where: { purgeAfter: LessThanOrEqual(now) } });
     } catch (error) {
-      this.logFailure('Account purge failed', error);
+      // The error's class and its SQLSTATE only: a database message can quote row values (AGENTS.md
+      // hard rule 3). The frames of an error that is not a database error, to find the code that threw it.
+      logFailure(this.logger, 'Account purge failed', error);
       return 0;
     }
     let purged = 0;
@@ -45,19 +47,11 @@ export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDest
         if (affected) purged++;
       } catch (error) {
         failed++;
-        this.logFailure('Could not purge an account', error);
+        logFailure(this.logger, 'Could not purge an account', error);
       }
     }
     if (purged) this.logger.log(`Purged ${purged} account(s) after the deletion grace period`);
     if (failed) this.logger.error(`${failed} account(s) are past their deletion deadline and could not be purged; retrying next hour`);
     return purged;
-  }
-
-  // The error's class and its SQLSTATE only: a database message can quote row values (AGENTS.md
-  // hard rule 3). The frames of an error that is not a database error, to find the code that threw it.
-  private logFailure(line: string, error: unknown): void {
-    const stack = failureStack(error);
-    if (stack) this.logger.error(`${line}: ${failureKind(error)}`, stack);
-    else this.logger.error(`${line}: ${failureKind(error)}`);
   }
 }

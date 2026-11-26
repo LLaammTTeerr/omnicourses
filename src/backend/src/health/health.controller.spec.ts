@@ -2,12 +2,11 @@ import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import { HealthController } from './health.controller.js';
-import { HealthService } from './health.service.js';
 
 async function controllerWith(query: DataSource['query']): Promise<HealthController> {
   const moduleRef = await Test.createTestingModule({
     controllers: [HealthController],
-    providers: [HealthService, { provide: DataSource, useValue: { query } }],
+    providers: [{ provide: DataSource, useValue: { query } }],
   }).compile();
   return moduleRef.get(HealthController);
 }

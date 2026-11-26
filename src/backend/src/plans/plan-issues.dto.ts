@@ -3,7 +3,7 @@ import { CreditCapsDto } from '../audit/audit.dto.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
-import { TermDto } from '../terms/term.dto.js';
+import { TermDto } from '../terms/term.js';
 import {
   PLAN_ISSUE_CODES,
   PLAN_ISSUE_KINDS,

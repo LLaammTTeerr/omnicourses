@@ -1,18 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy, ValidateIf } from 'class-validator';
-import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
-import { trimString } from '../common/transforms.js';
+import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy } from 'class-validator';
+import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
 
 // Request and response shapes of F12 (ADR 0011). Requests go through StrictBody: a field not
 // declared here (an identifier, a parent, a gated credit total) is a 400, never ignored.
-
-/** Present: validated. Absent: left as it is. */
-export const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
-/** Present and not null: validated. null clears the column. */
-export const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
 
 // ---- Programs the caller administers -------------------------------------------------------
 

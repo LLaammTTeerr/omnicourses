@@ -22,7 +22,7 @@ import {
 } from '../rules/audit-types.js';
 import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
 import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
-import { TermDto } from '../terms/term.dto.js';
+import { TermDto } from '../terms/term.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
 // The degree audit response (F3, ADR 0013). Each class implements the rule engine's result type,

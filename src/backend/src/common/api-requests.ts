@@ -1,5 +1,30 @@
-import { createParamDecorator, ExecutionContext, type Type, ValidationError, ValidationPipe } from '@nestjs/common';
-import { validationFailed } from './admin-errors.js';
+import { type ArgumentMetadata, createParamDecorator, ExecutionContext, ParseUUIDPipe, type PipeTransform, type Type, ValidationError, ValidationPipe } from '@nestjs/common';
+import { validationFailed } from './api-errors.js';
+
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * A path UUID in the form PostgreSQL prints it: lower case. A grant check compares the path's ID
+ * with a stored one as text, so an upper-case spelling of a granted program would answer 403.
+ */
+class LowerCaseUuidPipe extends ParseUUIDPipe {
+  override async transform(value: string, metadata: ArgumentMetadata) {
+    const id = await super.transform(value, metadata);
+    return typeof id === 'string' ? id.toLowerCase() : id;
+  }
+}
+
+/** A path ID that must be a UUID: otherwise `400 validation_failed`, before any lookup. Any letter case; the handler gets it in lower case. */
+export const uuidParam = (name: string) => new LowerCaseUuidPipe({ exceptionFactory: () => validationFailed(`${name}: must be a UUID`) });
+
+export class UuidOr404Pipe implements PipeTransform<string, string> {
+  constructor(private readonly notFound: () => Error) {}
+
+  transform(value: string): string {
+    if (!UUID_PATTERN.test(value)) throw this.notFound();
+    return value.toLowerCase();
+  }
+}
 
 /** "parent.child: message" for every failed constraint, nested ones included. */
 export function flattenErrors(errors: ValidationError[], parent = ''): string[] {

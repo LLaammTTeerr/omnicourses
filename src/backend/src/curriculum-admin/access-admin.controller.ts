@@ -1,11 +1,12 @@
 import { Controller, Delete, Get, Param, PipeTransform, Put } from '@nestjs/common';
 import { ApiConflictResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { AdminErrorDto, validationFailed } from '../common/api-errors.js';
+import { uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
-import { AdminErrorDto, validationFailed } from './admin-errors.js';
-import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
-import { AdminErrors, uuidParam } from './admin-params.js';
 import { AccessAdminService } from './access-admin.service.js';
+import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
+import { AdminErrors } from './admin-write.service.js';
 import { AccessProgramListDto, UserGrantsDto } from './curriculum-admin.dto.js';
 
 const permissionParam: PipeTransform<string, GlobalPermission> = {

@@ -1,14 +1,15 @@
 import { applyDecorators, Controller, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiConflictResponse, ApiOkResponse, ApiOperation, ApiPayloadTooLargeResponse, ApiTags, ApiUnsupportedMediaTypeResponse } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { AdminErrorDto } from '../common/api-errors.js';
+import { StrictBody, uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
-import { AdminErrorDto, ImportRejectedDto } from './admin-errors.js';
-import { AdminErrors, uuidParam } from './admin-params.js';
+import { ImportRejectedDto } from './admin-errors.js';
+import { AdminErrors } from './admin-write.service.js';
 import { CATALOG_COURSES_HEADER, GROUP_LINKS_HEADER } from './csv-file.js';
 import { CatalogImportPreviewDto, GroupLinkImportPreviewDto, ImportConfirmRequestDto, ImportPreviewRequestDto, ImportResultDto } from './csv-import.dto.js';
 import { CsvImportService } from './csv-import.service.js';
 import { CATALOG_IMPORTS, COHORT_IMPORTS } from './import-body-limit.js';
-import { StrictBody } from './strict-body.js';
 
 const REFUSED_FILE = '`validation_failed`: the file is malformed, has another header or (on confirm) has a row error; `errors` says where. Also an unknown body field. Nothing is saved.';
 const TOO_LARGE =

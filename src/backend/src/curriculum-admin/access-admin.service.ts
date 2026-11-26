@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { conflict, notFound } from './admin-errors.js';
+import { conflict, notFound } from '../common/api-errors.js';
 import type { GlobalPermission } from './admin-grant.entities.js';
 import { AdminWriteService, lockAdminWrite } from './admin-write.service.js';
 import { AccessProgramDto, UserGrantsDto } from './curriculum-admin.dto.js';

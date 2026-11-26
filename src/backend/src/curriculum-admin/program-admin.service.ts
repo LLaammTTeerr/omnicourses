@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import type { EntityManager } from 'typeorm';
+import { conflict, notFound } from '../common/api-errors.js';
+import { trimmedOrNull } from '../common/field-validators.js';
 import { Curriculum } from '../curriculum/curriculum.entity.js';
 import { Program } from '../curriculum/program.entity.js';
-import { conflict, notFound } from './admin-errors.js';
 import { AdminWriteService } from './admin-write.service.js';
 import { COHORT_FIELDS, CohortDetailsDto, CreateCohortDto, CreateProgramDto, PROGRAM_FIELDS, ProgramDetailsDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 
 /** The optional text columns: a blank value is stored as null. The Vietnamese name is required and is never one. */
 const NULLABLE_TEXT: ReadonlySet<string> = new Set(['nameEn', 'faculty', 'language']);
-
-const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
 
 /**
  * The declared editable fields that the body holds and that differ from the stored row. A field
@@ -21,7 +20,7 @@ export function detailsPatch<T, F extends keyof T & string>(fields: readonly F[]
   for (const field of fields) {
     const sent = dto[field];
     if (sent === undefined) continue;
-    const value = NULLABLE_TEXT.has(field) ? (blankToNull(sent as string | null) as T[F]) : sent;
+    const value = NULLABLE_TEXT.has(field) ? (trimmedOrNull(sent as string | null) as T[F]) : sent;
     if (value !== stored[field]) patch[field] = value;
   }
   return patch;
@@ -44,7 +43,7 @@ export class ProgramAdminService {
       const programs = em.getRepository(Program);
       if (await programs.existsBy({ code: dto.code })) throw conflict('duplicate_code', `A program already has the code ${dto.code}`);
       // No grant row is written: creation never grants editing access (ADR 0011).
-      const { identifiers } = await programs.insert({ code: dto.code, nameVi: dto.nameVi, nameEn: blankToNull(dto.nameEn), faculty: blankToNull(dto.faculty) });
+      const { identifiers } = await programs.insert({ code: dto.code, nameVi: dto.nameVi, nameEn: trimmedOrNull(dto.nameEn), faculty: trimmedOrNull(dto.faculty) });
       return programDto(await programs.findOneByOrFail({ id: identifiers[0].id as string }));
     });
   }
@@ -89,8 +88,8 @@ export class ProgramAdminService {
         cohortYear: dto.cohortYear,
         code: dto.code,
         nameVi: dto.nameVi,
-        nameEn: blankToNull(dto.nameEn),
-        language: blankToNull(dto.language),
+        nameEn: trimmedOrNull(dto.nameEn),
+        language: trimmedOrNull(dto.language),
       });
       return cohortDto(await curriculums.findOneByOrFail({ id: identifiers[0].id as string }));
     });

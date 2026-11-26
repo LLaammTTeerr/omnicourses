@@ -3,14 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
-import { TermDto } from '../terms/term.dto.js';
+import { TermDto } from '../terms/term.js';
 import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, Placement, toBoard, toRows, withPlacement } from './plan-board.js';
 import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
 import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
 
 /** The answer for a plan that is missing or someone else's: the same, so it reveals nothing. */
-const notFound = () => new NotFoundException('No plan with this id');
+export const planNotFound = () => new NotFoundException('No plan with this id');
 
 /**
  * The answer for a new plan on a cohort onboarding does not offer (Project Lead, 25 November 2026,
@@ -56,7 +56,7 @@ export class PlansService {
   /** One of the student's plans with its placements, or a 404. */
   async get(userId: string, planId: string): Promise<PlanDto> {
     const plan = await this.find(userId, planId);
-    if (!plan) throw notFound();
+    if (!plan) throw planNotFound();
     return plan;
   }
 
@@ -81,7 +81,7 @@ export class PlansService {
 
   async rename(userId: string, planId: string, name: string): Promise<PlanDto> {
     const { affected } = await this.plans.update({ id: planId, userId }, { name });
-    if (!affected) throw notFound();
+    if (!affected) throw planNotFound();
     return this.get(userId, planId);
   }
 
@@ -98,7 +98,7 @@ export class PlansService {
          WHERE p."id" = $1 AND p."user_id" = $2 FOR SHARE OF p`,
         [planId, userId],
       );
-      if (!source) throw notFound();
+      if (!source) throw planNotFound();
       if (!this.onboarding.offers(source.program_code, source.cohort_year)) throw notOffered(source.program_code, source.cohort_year);
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId: source.curriculum_id, name: name ?? source.name });
       const copyId = identifiers[0].id as string;
@@ -119,7 +119,7 @@ export class PlansService {
       // Ownership and the lock in one statement. NO KEY UPDATE serializes two saves of one plan
       // without blocking the key-share lock of an insert that references it (a duplicate, a share).
       const [plan] = await tx.query('SELECT "curriculum_id" FROM "plans" WHERE "id" = $1 AND "user_id" = $2 FOR NO KEY UPDATE', [planId, userId]);
-      if (!plan) throw notFound();
+      if (!plan) throw planNotFound();
       await this.checkBoard(plan.curriculum_id, terms);
       await tx.delete(PlanPlacement, { planId });
       await insertBoard(tx, planId, userId, terms);
@@ -158,7 +158,7 @@ export class PlansService {
   /** Deletes the plan and its placements. */
   async delete(userId: string, planId: string): Promise<void> {
     const { affected } = await this.plans.delete({ id: planId, userId });
-    if (!affected) throw notFound();
+    if (!affected) throw planNotFound();
   }
 
   // Shape and references only: every course is in the catalog, every slot's group is in the

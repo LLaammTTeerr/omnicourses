@@ -39,5 +39,7 @@ describe('addDays', () => {
     expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
     expect(addDays('2027-01-04', -7)).toBe('2026-12-28');
     expect(addDays('2026-12-02', 0)).toBe('2026-12-02');
+    expect(addDays('2026-05-13', -1)).toBe('2026-05-12');
+    expect(addDays('2026-02-28', 1)).toBe('2026-03-01');
   });
 });

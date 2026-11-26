@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto';
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { EntityManager, In } from 'typeorm';
+import { conflict } from '../common/api-errors.js';
+import { validateStrict } from '../common/api-requests.js';
+import { logFailure } from '../common/failure-kind.js';
 import { Course } from '../curriculum/course.entity.js';
-import { AffectedCurriculumDto, conflict, importRejected, ImportRowErrorDto } from './admin-errors.js';
+import { AffectedCurriculumDto, importRejected, ImportRowErrorDto } from './admin-errors.js';
 import { AdminWriteService } from './admin-write.service.js';
 import { CatalogAdminService, type CourseChange, courseChange, type CourseValues, newCourseValues } from './catalog-admin.service.js';
 import { CATALOG_COURSES_HEADER, type CatalogColumn, type CsvFile, type CsvRow, GROUP_LINKS_HEADER, type GroupLinkColumn, readCsv } from './csv-file.js';
@@ -19,7 +22,6 @@ import {
 import { COURSE_FIELDS, type CourseField, CreateCourseDto, wholeNumberOrText } from './curriculum-admin.dto.js';
 import { CurriculumAdminService, curriculumIn, noCatalogCourse, parseCourseCode } from './curriculum-admin.service.js';
 import type { Need } from './grant-scope.js';
-import { validateStrict } from './strict-body.js';
 
 /**
  * The revision of the checks an import runs, inside every reviewVersion. ADR 0011 asks for
@@ -133,13 +135,6 @@ function assertReviewed(plan: Plan<unknown>, reviewVersion: string): void {
   if (plan.reviewVersion === null || plan.reviewVersion !== reviewVersion) {
     throw conflict('impact_changed', 'The file, or the saved data it touches, changed since the preview; preview it again');
   }
-}
-
-/** What failed, without the failure's own text: a driver error carries the statement's parameters, which are rows of the file. */
-function failureKind(error: unknown): string {
-  const name = error instanceof Error ? error.constructor.name : typeof error;
-  const sqlState = (error as { driverError?: { code?: unknown } } | null)?.driverError?.code;
-  return typeof sqlState === 'string' && /^[0-9A-Z]{5}$/.test(sqlState) ? `${name}, SQLSTATE ${sqlState}` : name;
 }
 
 // F12 CSV bulk entry (ADR 0011, "CSV contract and UC-11 handoff"; UC-11 A9): a catalog
@@ -348,7 +343,7 @@ export class CsvImportService {
       return await work();
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      this.logger.error(`A CSV import failed and saved nothing: ${failureKind(error)}`);
+      logFailure(this.logger, 'A CSV import failed and saved nothing', error);
       throw new HttpException({ statusCode: 500, message: 'Internal server error' }, 500);
     }
   }

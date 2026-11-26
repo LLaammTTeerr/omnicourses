@@ -6,7 +6,7 @@ import { findUserTables } from '../src/account/account-export.js';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { vietnamDate } from '../src/config/time.js';
 import { OnboardingService } from '../src/onboarding/onboarding.service.js';
-import { currentTerm } from '../src/terms/current-term.js';
+import { currentTerm } from '../src/terms/term.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 

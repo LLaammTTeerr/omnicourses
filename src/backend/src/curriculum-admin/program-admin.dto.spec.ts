@@ -1,7 +1,7 @@
 import type { Type } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
+import { flattenErrors, validateStrict } from '../common/api-requests.js';
 import { CreateCohortDto, CreateProgramDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
-import { flattenErrors, validateStrict } from './strict-body.js';
 
 // The DTOs under the validation of @StrictBody(): what a route accepts, and the words of its 400.
 const errorsOf = async (dto: Type<object>, body: unknown): Promise<string[]> => {

@@ -1,7 +1,6 @@
 // Which attempt of a course counts (QĐ 1175/QĐ-KHTN Điều 14) and what passes (Điều 11.4, 13).
 // Pure functions over the transcript's entries (ADR 0007): every attempt is its own entry.
-import { compareTerms } from '../terms/current-term.js';
-import type { Term } from '../terms/term.js';
+import { compareTerms, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { isPassingGrade, toTenths } from './grades.js';
 

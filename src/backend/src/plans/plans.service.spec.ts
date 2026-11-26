@@ -6,7 +6,6 @@ import type { OnboardingService } from '../onboarding/onboarding.service.js';
 import type { BoardTerm, Placement } from './plan-board.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 import type { Plan } from './plan.entity.js';
-import { PlanIdPipe } from './plans.controller.js';
 import { PlansService } from './plans.service.js';
 
 // Synthetic catalog only (AGENTS.md hard rule 3). The database is faked: the e2e suite covers
@@ -175,13 +174,5 @@ describe('PlansService', () => {
     expect(tx.insert).toHaveBeenCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'Main plan' });
     await svc.duplicate('u1', 'p1', 'What if');
     expect(tx.insert).toHaveBeenLastCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'What if' });
-  });
-});
-
-describe('PlanIdPipe', () => {
-  it('answers 404 for a malformed plan id, as for an unknown one, and lower-cases a valid one', () => {
-    const pipe = new PlanIdPipe();
-    for (const id of ['not-a-uuid', '1', "' OR 1=1 --"]) expect(() => pipe.transform(id)).toThrow(NotFoundException);
-    expect(pipe.transform('3F2B8C1E-0D4A-4C6B-9E1F-2A3B4C5D6E7F')).toBe('3f2b8c1e-0d4a-4c6b-9e1f-2a3b4c5d6e7f');
   });
 });

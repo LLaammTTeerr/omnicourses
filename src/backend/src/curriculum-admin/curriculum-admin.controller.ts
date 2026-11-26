@@ -1,9 +1,11 @@
 import { Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { AdminErrorDto } from '../common/api-errors.js';
+import { StrictBody, uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
-import { PrerequisiteCycleDto, ReferencedItemDto, AdminErrorDto } from './admin-errors.js';
-import { AdminErrors, uuidParam } from './admin-params.js';
+import { PrerequisiteCycleDto, ReferencedItemDto } from './admin-errors.js';
+import { AdminErrors } from './admin-write.service.js';
 import {
   AdminProgramListDto,
   CreateRequirementGroupDto,
@@ -16,7 +18,6 @@ import {
   UserGrantsDto,
 } from './curriculum-admin.dto.js';
 import { CurriculumAdminService } from './curriculum-admin.service.js';
-import { StrictBody } from './strict-body.js';
 
 const COHORT = 'admin/programs/:programId/cohorts/:curriculumId';
 

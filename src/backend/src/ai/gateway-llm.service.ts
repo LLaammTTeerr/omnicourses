@@ -1,11 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
-import { AI_CONFIG, type AiConfig } from './ai-config.js';
+import { failureKind } from '../common/failure-kind.js';
+import { AI_CONFIG, type AiConfig } from '../config/env.js';
 import { AiCostGuard } from './ai-cost-guard.service.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
-import type { ChatEvent, ChatMessage, ChatRequest, ChatTool, StructuredRequest } from './llm.service.js';
-import { LlmService } from './llm.service.js';
-import { logErrorName } from './log-error-name.js';
+import { type ChatEvent, type ChatMessage, type ChatRequest, type ChatTool, LlmService, type StructuredRequest } from './llm.service.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelToolCall, ModelUsage } from './model-client.js';
 
 const DEFAULT_MAX_STEPS = 5;
@@ -185,7 +184,7 @@ export class GatewayLlmService extends LlmService {
 
   private unavailable(error: unknown): AiUnavailableError {
     if (error instanceof AiUnavailableError) return error;
-    logErrorName(this.logger, 'Unexpected AI gateway error', error);
+    this.logger.warn(`Unexpected AI gateway error: ${failureKind(error)}`);
     return new AiUnavailableError();
   }
 

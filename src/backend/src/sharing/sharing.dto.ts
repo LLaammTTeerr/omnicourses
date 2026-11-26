@@ -5,7 +5,7 @@ import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculu
 import { PLACEMENT_KINDS, type PlacementKind } from '../plans/plan-board.js';
 import { PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlanIssueCode, type PlanIssueKind } from '../plans/plan-issues.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
-import { TermDto } from '../terms/term.dto.js';
+import { TermDto } from '../terms/term.js';
 
 // F9 sharing (UC-09, ADR 0010). Two contracts: what the owner sees of their link, and what a
 // reader of the link sees of the plan. The second lists every field on purpose: a reader gets

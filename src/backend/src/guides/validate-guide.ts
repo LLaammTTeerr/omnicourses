@@ -1,3 +1,4 @@
+import { isCalendarDate } from '../common/field-validators.js';
 import { GUIDE_GROUPS, GUIDE_ID, GUIDE_ID_MAX, GUIDE_LANGS, GUIDE_STATUSES, type GuideFile, type GuideLink, textKey } from './guide-file.js';
 
 /** A file the seed may load: a published one always has its last-checked date. */
@@ -6,7 +7,6 @@ export type LoadableGuideFile =
   | (GuideFile & { status: 'withdrawn' })
   | (GuideFile & { status: 'published'; lastChecked: NonNullable<GuideFile['lastChecked']> });
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 // AGENTS.md hard rule 1: a guide never types a credit count ("25 credits", "14–25 TC", "20 tín chỉ").
 const CREDIT_NUMBER = /\d\s*(?:tín chỉ|tc\b|credits?\b)/iu;
 // Guides plan §3 rule 4: a date that changes every term is linked, never typed ("15/11", "2026-11-15").
@@ -16,8 +16,6 @@ const HTTPS_URL = /^https:\/\/\S+$/;
 // One leading `/` and no backslash: a browser reads `\` as `/`, so `/\host` and `//host` both leave OmniCourse.
 const APP_PATH = /^\/(?![/\\])[^\s\\]*$/;
 const isSafeUrl = (url: string) => HTTPS_URL.test(url) || APP_PATH.test(url);
-const isRealDate = (date: string) =>
-  ISO_DATE.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00Z`)) && new Date(`${date}T00:00:00Z`).toISOString().startsWith(date);
 const oneOf = (values: readonly string[]) => `${values.slice(0, -1).join(', ')} or ${values.at(-1)}`;
 
 /** The problems with one content file; empty when the seed may load it. A draft only needs its identity and safe links. */
@@ -48,7 +46,7 @@ export function validateGuideFile(file: GuideFile): string[] {
   if (!file.lastChecked) {
     problem('lastChecked is required: the date and the name of whoever followed the guide on the portal');
   } else {
-    if (!isRealDate(file.lastChecked.on)) problem('lastChecked.on must be a date written YYYY-MM-DD');
+    if (!isCalendarDate(file.lastChecked.on)) problem('lastChecked.on must be a date written YYYY-MM-DD');
     required('lastChecked.by', file.lastChecked.by);
   }
   required('title', file.title);

@@ -1,10 +1,12 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
+import { conflict, notFound } from '../common/api-errors.js';
+import { trimmedOrNull } from '../common/field-validators.js';
 import { Course } from '../curriculum/course.entity.js';
 import type { CourseDto } from '../curriculum/curriculum.dto.js';
 import { courseDto } from '../curriculum/curriculum.service.js';
-import { AffectedCurriculumDto, conflict, notFound, referencedItem } from './admin-errors.js';
+import { AffectedCurriculumDto, referencedItem } from './admin-errors.js';
 import { AdminWriteService } from './admin-write.service.js';
 import { COURSE_FIELDS, type CourseField, CreateCourseDto, UpdateCourseDto } from './curriculum-admin.dto.js';
 import { courseCodeOr400 } from './curriculum-admin.service.js';
@@ -134,13 +136,11 @@ async function countOf(em: EntityManager, code: string, table: string, column: s
   return n ? [`${n} ${words}`] : [];
 }
 
-const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
-
 /** The values a new course is saved with: a blank English name is null, an absent period count is 0. */
 export function newCourseValues(dto: CreateCourseDto): CourseValues {
   return {
     nameVi: dto.nameVi,
-    nameEn: blankToNull(dto.nameEn),
+    nameEn: trimmedOrNull(dto.nameEn),
     credits: dto.credits,
     theoryPeriods: dto.theoryPeriods ?? 0,
     labPeriods: dto.labPeriods ?? 0,
@@ -154,7 +154,7 @@ export function courseChange(course: CourseValues, fields: Partial<CourseValues>
   const proposed: CourseValues = Object.fromEntries(COURSE_FIELDS.map((f) => [f, course[f]])) as CourseValues;
   for (const field of COURSE_FIELDS) {
     const value = fields[field];
-    if (value !== undefined) (proposed as Record<CourseField, unknown>)[field] = field === 'nameEn' ? blankToNull(value as string | null) : value;
+    if (value !== undefined) (proposed as Record<CourseField, unknown>)[field] = field === 'nameEn' ? trimmedOrNull(value as string | null) : value;
   }
   return { proposed, changed: COURSE_FIELDS.filter((f) => proposed[f] !== course[f]) };
 }

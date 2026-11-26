@@ -20,9 +20,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
-import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
-import { trimString } from '../common/transforms.js';
-import { TermDto } from '../terms/term.dto.js';
+import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
+import { TermDto } from '../terms/term.js';
 import { BoardTerm, MAX_BOARD_PLACEMENTS, MAX_BOARD_TERMS, MAX_TERM_PLACEMENTS, Placement, PLACEMENT_KINDS, PlacementKind } from './plan-board.js';
 
 const PlanName = () =>

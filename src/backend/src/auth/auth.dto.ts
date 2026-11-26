@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { Equals, IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
-import { trimString } from '../common/transforms.js';
+import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { UserDto } from '../users/user.dto.js';
 
 export const PASSWORD_MAX_LENGTH = 128;

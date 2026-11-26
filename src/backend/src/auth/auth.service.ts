@@ -2,7 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash, verify } from '@node-rs/argon2';
-import { EntityManager, IsNull, MoreThan, QueryFailedError, Repository } from 'typeorm';
+import { EntityManager, IsNull, MoreThan, Repository } from 'typeorm';
+import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { sessionTtlDays } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
 import { UserDto } from '../users/user.dto.js';
@@ -127,7 +128,7 @@ export class AuthService {
 
 // PostgreSQL's unique_violation. Only email is unique on a row signUp inserts.
 const isUniqueViolation = (error: unknown): boolean =>
-  error instanceof QueryFailedError && (error.driverError as { code?: unknown }).code === '23505';
+  isRefusal(error, [SQLSTATE.uniqueViolation]);
 
 function newToken(): string {
   return randomBytes(32).toString('base64url');

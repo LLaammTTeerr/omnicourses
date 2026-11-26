@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { TermDto } from '../terms/term.dto.js';
+import { TermDto } from '../terms/term.js';
 import { OnboardingDto } from './onboarding.dto.js';
 
 // Validated on a fixed day, 9 November 2026 in Vietnam: the current term is 2026–2027 term 1.

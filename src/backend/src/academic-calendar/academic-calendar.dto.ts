@@ -1,21 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, Min, ValidateIf } from 'class-validator';
-import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
-import { trimString } from '../common/transforms.js';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, Min } from 'class-validator';
+import { ifFilled, ifPresent, ifSet, IsCalendarDate, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { TERM_NUMBERS } from '../terms/term.js';
 import { CALENDAR_EVENT_KINDS, type CalendarEventKind } from './academic-calendar-event.entity.js';
-import { IsCalendarDate } from './calendar-date.js';
 
 // Request and response shapes of the academic calendar (ADR 0017). Admin requests go through
 // StrictBody: a field not declared here is a 400 `validation_failed`, never ignored.
-
-/** Present: validated. Absent: left as it is. */
-const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
-/** Present and not null: validated. null clears the column. */
-const ifSet = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null);
-/** Present, not null and not blank: validated. null or '' clears the column (an empty form field). */
-const ifFilled = ValidateIf((_: object, value: unknown) => value !== undefined && value !== null && value !== '');
 
 const httpsUrl = IsUrl({ protocols: ['https'], require_protocol: true, require_tld: true }, { message: 'sourceUrl must be an https:// link' });
 // IsUrl accepts HTTPS:// too; the database CHECK (LIKE 'https://%') does not, so require lowercase here.
