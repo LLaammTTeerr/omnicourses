@@ -21,6 +21,8 @@ A clause is the finest unit the document numbers: Điều › khoản › điể
 
 A khoản's clause holds only its own lead-in text; each of its điểm is a clause of its own. Text under a Điều before its first khoản is a clause with level `article`.
 
+- 2026-11-26: In a list of điểm, `đ` comes after `d`. Some documents skip `đ` and go from `d` to `e`. The parser accepts both.
+
 ## Verification
 
 `regulation.spec.ts` runs for every document in `sources/` and fails when:

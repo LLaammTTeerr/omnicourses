@@ -53,6 +53,8 @@ Not stored, with the reason:
 | **Averages are exact**: Σ tenths × credits, divided once and rounded half up to two decimals. The 4-point average converts each course grade first, and is shown for reference only. Classification uses the cohort's table. Year of study uses the accumulated credits. | Điều 11.2 (4-point and letter "chỉ mang tính tham khảo"), 15.2.b, 15.3 |
 | **When the transcript and the catalog give different credits** for a course, the audit counts the smaller number and warns (`credits_differ`). *Judgment call*: two sources that disagree never add credits. | — |
 
+- 2026-11-26: The classification codes stand for the bands of Điều 15.2.b: `excellent` Xuất sắc, `very_good` Giỏi, `good` Khá, `fairly_good` Trung bình khá, `average` Trung bình, `weak` Yếu and `poor` Kém. Only cohorts up to 2020 have the Trung bình khá band.
+
 ### Coverage and graduation (amended 10 November 2026)
 
 | Decision | Evidence |
@@ -64,6 +66,8 @@ Not stored, with the reason:
 | **Graduation is `done` when every condition the data can check is met**: every group, every combined minimum, and the cohort total. *Amended 10 November 2026:* an elective group with no minimum of its own is not a condition, since its rule is the combined minimum, which is one; listed as met, it showed a student with no transcript a condition met. `done` is unchanged, as the condition could never be unmet. The audit always lists, as not checked, what it cannot see: no prosecution or suspension (Điều 17.3.a), the GDQP-AN certificate (17.3.c; passing the courses is checked with their group), the foreign-language standard (17.3.d), the IT standard (17.3.e) and the maximum study time (Điều 2.7). None is ever assumed met. | Điều 17.3, 2.7 |
 | **Prerequisites and offering terms are checked by pure functions that take the data as input**: a course's prerequisite codes, or null, and its offering term numbers, or null. Null gives `not_recorded`, distinct from `none`. The APCS PDFs print none (`teaching plan.prerequisites` is empty), so they are entered through F12 (ADR 0011 amendment) and none is seeded or invented. *Amended 15 November 2026 and 24 November 2026:* the Project Lead decided that APCS courses have no prerequisite (15 November), except CS469 before CS470 (24 November; the seed has recorded the pair since 21 November, see ADR 0011). That rule is printed in the note under 7.3 of the APCS 2024 and 2025 PDFs (p. 8 and p. 9), so "the APCS PDFs print none" is true only of their tables. The seed records each other APCS 2024 and 2025 course as having none, so its check answers `none`, and records CS469 for CS470 (ADR 0011, amendment of 15 November 2026). Offering terms are still not recorded. | Điều 3.1.c; ADR 0011 (prerequisite storage is F12's) |
 | **Credit caps** follow ADR 0012: `termKind(trainingType, number)` makes term 3 a summer term only in a đại trà program; `checkTermLoad` reports a load outside the caps with Điều 7.2 and the petition route, never blocking. The audit reports each transcript term's load the same way. For đại trà, courses outside the cohort total (GDTC, GDQP-AN) are left out of the minimum; general foreign language is not identified yet. | Điều 6.4, 7.1.b, 7.2 |
+
+- 2026-11-26: The group names are ordered by code point, because that order is the same on every machine. A locale collation can differ between machines, so the engine does not use one.
 
 ### Plan issues (amended 9 November 2026)
 

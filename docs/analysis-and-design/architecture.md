@@ -150,13 +150,17 @@ Other folders under `src/backend/src/` are not feature modules:
 - `terms/`: the shared `Term` interface and `TermDto` ([ADR 0009](adr/0009-term-encoding.md)).
 - `common/`: validators and helpers that several modules share.
 - `advisor/`: the regulation files and course descriptions for F8. It has no module yet.
+- 2026-11-26: `advisor/course-descriptions/` holds the APCS course-description booklet in the same layout as `advisor/regulations/`: the `pdftotext -layout` output of the PDF, a hand-written `sources/<id>.source.json` with the sha256 of the PDF and of the text, and `<id>.json` with the courses. The wording is exact: only line wraps are joined, and the letterhead and page number that every page repeats are dropped. "Course goals" and "Course content" are split into one item per bullet; text before the first bullet is one item. `course-descriptions.spec.ts` checks every field of every course against the text of its pages. When it fails, fix the data, not the test.
+- 2026-11-26: `guides/`: `OUT_OF_DATE_MONTHS` in `guides/out-of-date.ts` sets the 6 months after which a guide shows as out of date. The frontend wording in `src/frontend/src/guides/messages.ts` repeats the number, so a change must update both.
 - `config/`, `database/`, `bootstrap.ts`, `app.module.ts`, `features.ts`: the app wiring. `app.module.ts` and `openapi-document.ts` (the document `npm run openapi` writes and the drift test compares) both load `FEATURE_MODULES`, so the contract always lists every route. `config/env.ts` holds `loadEnvFiles()` and typed getters; `configureApp()` sets the `/api` prefix, the validation pipe, CORS and Swagger for the server and the e2e tests alike. `database/` holds the data source, `migrations/index.ts` (the ordered list of migrations) and the curriculum seeds.
 
 **CLI jobs.** All three load the environment through `config/env.ts`.
 
 - `npm run db:migrate -w src/backend` applies pending migrations from `migrations/index.ts`, each in its own transaction.
-- `npm run db:seed -w src/backend` calls each feature's `seed(dataSource, options)` in order: curriculum data first, then guides. It inserts only what is missing. `--guide-fixtures` adds the synthetic test guides and is refused when `NODE_ENV=production`.
+- `npm run db:seed -w src/backend` calls each feature's `seed(dataSource, options)` in order: guides first, so a refused `--guide-fixtures` run stops before anything is written, then curriculum data. It inserts only what is missing. `--guide-fixtures` adds the synthetic test guides and is refused when `NODE_ENV=production`.
 - `npm run admin:bootstrap -w src/backend` grants the first access manager from a trusted shell ([ADR 0011](adr/0011-curriculum-administration.md)); it is never an HTTP route.
+- 2026-11-26: `db:seed` runs the seed of each feature in its own transaction. Run `db:migrate` first.
+- 2026-11-26: The guides seed first locks the `guide_texts` table, so a second seed that runs at the same time waits until the first one ends.
 
 ### The rule engine
 
@@ -227,6 +231,14 @@ The routes are in `src/frontend/src/router.ts`; that file is the list of screens
 | Schema changes | TypeORM migrations, listed as imported classes in `migrations/index.ts`; applied migrations are never edited. A decision that outlives one PR (new table family, new module boundary) needs an ADR. | `database/migrations/` | [ADR 0001](adr/0001-technology-stack.md), [ADR 0002](adr/0002-authentication-and-sessions.md) |
 | Languages | Every screen in Vietnamese and English. Guides are stored per language; the reader's language is chosen in the SPA. | `locale.ts`, guide content files | Vision §6 Usability |
 
+- 2026-11-26: Dates: a PostgreSQL `date` column reaches the app as its `YYYY-MM-DD` text, never as a JavaScript Date. By default node-postgres reads a `date` as local midnight, so a server at UTC+7 moved the day back by one (issue #174). `database/data-source.ts` sets the parser for every connection. TypeORM also gives a `date` entity column as a string.
+- 2026-11-26: Logging: outside the AI gateway, a log line names a failure by its error class and, for a database error, its SQLSTATE. It never holds the error message, the statement or its parameters, because a database error message can quote row values. For a failure that is not a database error, the log also holds the "at …" lines of the stack, without the first line, because that line repeats the message.
+- 2026-11-26: Configuration: a variable already set in the environment (shell, CI) wins over both files, and `.env` wins over `../../.env`.
+- 2026-11-26: OpenAPI contract: the security scheme is named `bearer`, because `@ApiBearerAuth()` uses that name by default. `sortOpenApi` sorts the paths, schemas and tags by name, and the operations of a path in the order of the OpenAPI specification. The properties inside a schema keep the order the code declares. So the document does not depend on the order in which Nest meets the modules, and the list in `features.ts` can have any order.
+- 2026-11-26: Term encoding: the current term comes from the Vietnam date by month: term 1 from September, term 2 from January, term 3 from June. These months are an assumption from the UI prototype (`ui-prototypes/assets/data.js`), not from the regulation or the academic calendar. The weeks between two terms count as the earlier term.
+- 2026-11-26: Concurrent saves: onboarding answers are saved with one `INSERT … ON CONFLICT DO UPDATE` statement, so two saves at the same time do not interleave and do not fail on the primary key.
+- 2026-11-26: Rate limits: the throttler is a guard, and Nest runs guards before validation, so a request with an invalid body still counts toward the rate limit. Without `TRUST_PROXY`, the API ignores `X-Forwarded-For`, so a client cannot escape the rate limit with invented addresses.
+
 ## 7. Deployment view
 
 Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy/README.md`](../../deploy/README.md) is the operator's guide; this section states what the architecture depends on.
@@ -246,6 +258,8 @@ Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy
 | Instances | One API instance per environment is enough. The hourly purge would also be safe with more, because each purge is an idempotent `DELETE`. | ADR 0004 |
 | Backups | A `pg_dump` before every deploy, 14 kept in `/var/backups/omnicourse`. A rollback restores code, not data. The nightly backup kept 7 days and a restore rehearsal before B3 (Vision NFR Recovery) are not set up yet. Purged accounts stay in backups until they rotate out; the privacy notice must say so. | `deploy/README.md`; Vision NFR Recovery; ADR 0004 |
 | HTTPS | Cloudflare in front, and a certificate on the host from certbot. SPA and API share one origin per environment, the case in which ADR 0002 says to revisit bearer tokens versus cookies. | `deploy/README.md`, ADR 0002 |
+
+- 2026-11-26: Listen address: with `LISTEN_HOST=127.0.0.1`, the API accepts connections only from nginx on the same host. When `LISTEN_HOST` is not set, it listens on every interface.
 
 ## 8. Architecture decisions
 

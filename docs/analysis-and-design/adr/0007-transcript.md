@@ -54,3 +54,4 @@ What is built today is in the [README feature table](../../../README.md#what-is-
 - Other modules adopt the term encoding of [ADR 0009](0009-term-encoding.md), and #23's catalog the course-code format above, or change them before they ship.
 - Open:
   - Confirm, on a real portal transcript read locally, how the portal writes an exemption and a pass/fail result, so the F2 parser maps them to `exempt`, `pass` and `fail`. The summer-term number is open in ADR 0009.
+- 2026-11-26: The pg driver returns a `numeric` column as a string. The entity turns `grade` back into a number when it reads a row.

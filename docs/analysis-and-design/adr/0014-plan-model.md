@@ -29,6 +29,10 @@ AGENTS.md hard rule 1 leaves every academic rule to the rule engine, and [ADR 00
 | **Another student's plan answers 404, as a missing or malformed id does.** | 403 | A 403 would confirm that the plan exists. |
 | **No primary or active plan in the database yet.** The UI remembers the open plan. | An `is_primary` column | It needs an "exactly one per student" rule and a choice of the next primary on delete, and nothing in B1 reads it. Add it when sharing, notifications or the advisor need "the student's plan". |
 
+- 2026-11-26: Bounds on input, not rules: at most 30 terms, 30 placements in a term and 300 placements in a plan. They stop oversized requests. They are far above any real plan: APCS has 12 terms of about 8 courses.
+- 2026-11-26: A copy reads the original plan with `FOR SHARE`, so a save of the original that is in progress finishes first and the copy never holds half of it.
+- 2026-11-26: A save locks the plan row with `FOR NO KEY UPDATE`, as the transcript does (ADR 0007). Two saves of one plan then run one after the other, and the lock does not block the `KEY SHARE` lock that an insert that references the plan takes (a copy, a link).
+
 ## Consequences
 
 - The rule engine registers a `PlanIssuesProvider` and serves `GET /api/plans/{id}/issues` (ADR 0013, "Plan issues").
@@ -36,6 +40,7 @@ AGENTS.md hard rule 1 leaves every academic rule to the rule engine, and [ADR 00
 - F12 must refuse to delete a curriculum or requirement group that a plan uses; the database refuses it already. A course-code correction must update `plan_placements.course_code` in the same migration as the transcript (ADR 0011).
 - The plan generator saves its result with `POST /api/plans` and `terms` in the body, in one request.
 - Open: whether past terms belong in a plan or are always read from the transcript. The model allows both; the prototype draws past terms from the transcript.
+- 2026-11-26: The drag preview adds the dropped placement at the end of each target term. The planner draws a drop in the same place, so the positions in each report match the planner's tiles.
 
 ## Amendment, 26 November 2026: no provider interface
 

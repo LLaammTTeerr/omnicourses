@@ -118,6 +118,8 @@ Catalog previews return old/proposed values, all affected `(programId, curriculu
 
 Shared corrections affect every linked curriculum without rewriting transcripts or saved plan placements. Refuse cohort-specific course values. Adding a cohort preserves the original curriculum identity, membership, saved plans and audit/validation results; only confirmed shared corrections may change computed results across cohorts.
 
+- 2026-11-26: The `FOR NO KEY UPDATE` lock on the caller and on each grant recipient makes a deletion request for one of these users wait until the F12 write commits or rolls back.
+
 ### Validation, errors and removal
 
 Normalize course codes by trimming and uppercasing, then require `^[A-Z0-9]{2,20}$` in manual and CSV paths, matching ADR 0007 and #23. Follow the merged schema's lengths and uniqueness keys; require nonempty names, positive integer catalog credits and nonnegative integer period counts. `cohort_year` follows #23's 2000–2100 bound. These are structural checks; totals and academic consistency use Triết's reviewed rule-engine contract, never a sum-of-credits rule invented in F12.
@@ -140,6 +142,8 @@ Reject unsupported fields and nonexistent references before saving. Reconcile #2
 Unexpected storage failures roll back and return the existing server-error response without SQL, credentials or private data. A lost response leaves the client in an unknown state: reload the saved resource before retrying or reporting success. Cancellation before confirmation sends no write.
 
 Deleting a group requires confirmation and refusal if it still has course links or another saved reference; unlink courses explicitly first. Deleting a course requires catalog permission, no catalog/curriculum/plan references, and the same write serialization. The implementation must inventory both foreign-key and plain-code consumers before enabling deletion; absence of a foreign key is not proof of no reference. In particular, ADR 0007 stores transcript codes without a catalog foreign key. If the required reference check is unavailable, deletion stays unavailable. This ADR introduces no program/cohort delete route or archival state. The database's existing cascades do not bypass these service rules.
+
+- 2026-11-26: Every F12 error body carries a stable `code`, in the same shape as `ai_unavailable`, so a client branches on the code and never on the message.
 
 ## CSV contract and UC-11 handoff
 

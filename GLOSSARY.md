@@ -55,7 +55,7 @@ Credits a student passes in a requirement group beyond its own minimum that the 
 _Avoid_: excess transfer, spill-over, tín chỉ dư (in English text)
 
 **Compulsory course**:
-A course every student of the cohort must pass.
+A course every student of the cohort must pass. The curriculum PDFs mark a compulsory course BB (bắt buộc) and an elective course TC (tự chọn) (added 2026-11-26).
 _Avoid_: required course, mandatory course, core course
 
 **Elective group**:
