@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term } from '../terms/term.js';
+import { toTerm } from '../terms/term.js';
 import { sameEntries, type TranscriptSaveListener } from './transcript-change.js';
 import { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
@@ -43,15 +43,12 @@ export class TranscriptService {
       // check, so inserts that reference the user (a sign-in's session) don't wait.
       await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
       // With no listener nothing compares the rows, so neither read runs.
-      if (!this.saveListeners.size) {
-        await tx.delete(TranscriptRow, { userId });
-        await tx.insert(TranscriptRow, rows.map((r) => toEntity(userId, r)));
-        return;
-      }
+      const listened = this.saveListeners.size > 0;
       // Read under the lock: what this save replaces is what the previous save committed.
-      const before = (await tx.findBy(TranscriptRow, { userId })).map(toEntry);
+      const before = listened ? (await tx.findBy(TranscriptRow, { userId })).map(toEntry) : [];
       await tx.delete(TranscriptRow, { userId });
       await tx.insert(TranscriptRow, rows.map((r) => toEntity(userId, r)));
+      if (!listened) return;
       // Compared as stored (a grade is numeric(3,1)), not as sent.
       const after = (await tx.findBy(TranscriptRow, { userId })).map(toEntry);
       const save = { userId, wasEmpty: before.length === 0, changed: !sameEntries(before, after) };
@@ -68,7 +65,7 @@ function toEntry(row: TranscriptRow): TranscriptEntry {
     credits: row.credits,
     result: row.result,
     grade: row.grade,
-    term: { year: row.termYear, number: row.termNumber as Term['number'] },
+    term: toTerm(row.termYear, row.termNumber),
   };
 }
 

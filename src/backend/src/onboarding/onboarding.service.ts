@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Term } from '../terms/term.js';
+import { Term, toTerm } from '../terms/term.js';
 import { isOfferedCohort } from './onboarding-options.js';
 import { OnboardingAnswers } from './onboarding-answers.entity.js';
 import { NO_INTERNSHIP, OnboardingDto } from './onboarding.dto.js';
+
+export interface StudentCohort {
+  programCode: string;
+  cohortYear: number;
+}
 
 // The student's onboarding answers (UC-01 steps 6–10, A8, A9): their program, cohort and default
 // planning goal. Stored as given: the credit cap and every other academic rule belong to the rule
@@ -30,6 +35,12 @@ export class OnboardingService {
     return toOnboarding(await this.answers.findOneBy({ userId }));
   }
 
+  async cohortOf(userId: string): Promise<StudentCohort | null> {
+    const answers = await this.answersFor(userId);
+    if (!answers.finished || answers.program === null || answers.cohort === null) return null;
+    return { programCode: answers.program, cohortYear: answers.cohort };
+  }
+
   /**
    * The IDs of the students whose saved program is one of `programCodes`, by program code. With
    * `onlyUserId`, that student alone, or nobody. Read-only: the notification inbox addresses the
@@ -52,7 +63,7 @@ export class OnboardingService {
 
   /** Replaces every answer. finished_at keeps the first Finish; finished false clears it. */
   async save(userId: string, dto: OnboardingDto): Promise<OnboardingDto> {
-    const c = toColumns(dto);
+    const columns = toColumns(dto);
     // One statement: two saves at once never interleave or fail on the primary key.
     await this.db.query(
       `INSERT INTO "onboarding_answers" AS a (
@@ -72,14 +83,14 @@ export class OnboardingService {
          "updated_at" = now()`,
       [
         userId,
-        c.programCode,
-        c.cohortYear,
-        c.targetGraduationTermYear,
-        c.targetGraduationTermNumber,
-        c.creditsPerTerm,
-        c.internshipTermYear,
-        c.internshipTermNumber,
-        c.noInternshipPlanned,
+        columns.programCode,
+        columns.cohortYear,
+        columns.targetGraduationTermYear,
+        columns.targetGraduationTermNumber,
+        columns.creditsPerTerm,
+        columns.internshipTermYear,
+        columns.internshipTermNumber,
+        columns.noInternshipPlanned,
         dto.finished,
       ],
     );
@@ -89,8 +100,7 @@ export class OnboardingService {
 
 type AnswerColumns = Omit<OnboardingAnswers, 'userId' | 'user' | 'finishedAt' | 'createdAt' | 'updatedAt'>;
 
-const term = (year: number | null, number: number | null): Term | null =>
-  year === null || number === null ? null : { year, number: number as Term['number'] };
+const term = (year: number | null, number: number | null): Term | null => (year === null || number === null ? null : toTerm(year, number));
 
 export function toOnboarding(row: OnboardingAnswers | null): OnboardingDto {
   if (!row) {

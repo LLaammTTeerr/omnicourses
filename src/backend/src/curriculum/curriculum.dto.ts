@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { COURSE_CODE_PATTERN } from '../common/course-code.js';
 import { TRAINING_TYPES, type TrainingType } from './program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from './requirement-group.entity.js';
 
@@ -41,7 +42,7 @@ export class ProgramListDto {
 
 /** A course of the shared catalog. */
 export class CourseDto {
-  @ApiProperty({ example: 'CSC10001', pattern: '^[A-Z0-9]{2,20}$' })
+  @ApiProperty({ example: 'CSC10001', pattern: COURSE_CODE_PATTERN.source })
   code!: string;
 
   @ApiProperty({ example: 'Nhập môn lập trình' })

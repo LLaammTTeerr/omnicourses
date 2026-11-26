@@ -1,16 +1,17 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
+import { groupBy } from '../common/collections.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
-import { TermDto } from '../terms/term.js';
-import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, Placement, toBoard, toRows, withPlacement } from './plan-board.js';
+import { courseCodesOf } from '../rules/plan-issues.js';
+import type { BoardTerm, Placement } from '../rules/types.js';
+import { compareTerms, type Term, termKey, toTerm } from '../terms/term.js';
+import { boardProblems, groupIdsOf, toBoard, toRows, withPlacement } from './plan-board.js';
+import { planNotFound } from './plan-id.js';
 import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
 import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
-
-/** The answer for a plan that is missing or someone else's: the same, so it reveals nothing. */
-export const planNotFound = () => new NotFoundException('No plan with this id');
 
 /**
  * The answer for a new plan on a cohort onboarding does not offer (Project Lead, 25 November 2026,
@@ -21,7 +22,7 @@ const notOffered = (programCode: string, cohortYear: number) => new BadRequestEx
 
 // A student's plans (F5, ADR 0014): the placements they saved, nothing more. It decides no
 // academic rule (AGENTS.md hard rule 1): a plan that breaks one is saved as it is, and the rule
-// engine reports the violation (ADR 0012) through PlanIssuesProvider (plan-issues.ts).
+// engine reports the violation (ADR 0012) through RulesService.
 // Every read and write is scoped to the owner: another student's plan is a 404, never a 403.
 @Injectable()
 export class PlansService {
@@ -37,8 +38,7 @@ export class PlansService {
   async list(userId: string): Promise<PlanListItemDto[]> {
     const rows = await this.plans.find({ where: { userId }, relations: { curriculum: { program: true } }, order: { createdAt: 'ASC', id: 'ASC' } });
     const placements = await this.placements.find({ where: { userId }, select: { planId: true, termYear: true, termNumber: true, courseCode: true } });
-    const byPlan = new Map<string, PlanPlacement[]>();
-    for (const p of placements) byPlan.set(p.planId, [...(byPlan.get(p.planId) ?? []), p]);
+    const byPlan = groupBy(placements, (p) => p.planId);
     return rows.map((plan) => ({ ...summary(plan), preview: preview(byPlan.get(plan.id) ?? []) }));
   }
 
@@ -144,8 +144,8 @@ export class PlansService {
    * The boards of a drag preview: `placement` dropped on each target in turn, each board checked as a save would
    * check it. The references are checked once, on the board with the placement in the first target.
    */
-  async dropBoards(userId: string, planId: string, terms: BoardTerm[], placement: Placement, targets: TermDto[]): Promise<{ plan: PlanDto; boards: BoardTerm[][] }> {
-    const seen = new Set(targets.map((t) => `${t.year}-${t.number}`));
+  async dropBoards(userId: string, planId: string, terms: BoardTerm[], placement: Placement, targets: Term[]): Promise<{ plan: PlanDto; boards: BoardTerm[][] }> {
+    const seen = new Set(targets.map(termKey));
     if (seen.size !== targets.length) throw new BadRequestException('A target term is listed twice');
     const plan = await this.get(userId, planId);
     const boards = targets.map((to) => withPlacement(terms, placement, to));
@@ -168,7 +168,7 @@ export class PlansService {
     const problems = boardProblems(terms);
     if (problems.length) throw new BadRequestException(problems);
     const codes = courseCodesOf(terms);
-    const known = await this.curriculum.knownCourseCodes(codes);
+    const known = await this.curriculum.catalogCourses(codes);
     const unknown = codes.filter((c) => !known.has(c));
     if (unknown.length) throw new BadRequestException(`No course in the catalog has the code ${unknown.join(', ')}`);
     const groups = groupIdsOf(terms);
@@ -185,10 +185,10 @@ async function insertBoard(tx: EntityManager, planId: string, userId: string, te
 }
 
 function preview(rows: readonly PlanPlacement[]): PlanPreviewDto {
-  const terms = [...new Set(rows.map((r) => r.termYear * 10 + r.termNumber))].sort((a, b) => a - b);
-  const term = (n: number | undefined) => (n === undefined ? null : { year: Math.floor(n / 10), number: (n % 10) as TermDto['number'] });
+  const byKey = new Map(rows.map((r) => toTerm(r.termYear, r.termNumber)).map((t) => [termKey(t), t]));
+  const terms = [...byKey.values()].sort(compareTerms);
   const courseCount = rows.filter((r) => r.courseCode !== null).length;
-  return { termCount: terms.length, courseCount, slotCount: rows.length - courseCount, firstTerm: term(terms[0]), lastTerm: term(terms.at(-1)) };
+  return { termCount: terms.length, courseCount, slotCount: rows.length - courseCount, firstTerm: terms[0] ?? null, lastTerm: terms.at(-1) ?? null };
 }
 
 function summary(plan: Plan): PlanSummaryDto {

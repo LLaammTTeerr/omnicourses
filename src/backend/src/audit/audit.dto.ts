@@ -2,9 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import {
+  AUDIT_UNAVAILABLE_CODES,
   AUDIT_WARNING_CODES,
   CONDITION_STATUSES,
   COURSE_STATUSES,
+  GRADUATION_STATUSES,
+  type GraduationVerdict,
   type AuditWarning,
   type AuditWarningCode,
   type CombinedMinimumCoverage,
@@ -19,10 +22,10 @@ import {
   type GroupCoverage,
   type TermSummary,
   type UnmatchedCourse,
-} from '../rules/audit-types.js';
+} from '../rules/types.js';
 import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
 import { CLASSIFICATIONS, type Classification } from '../rules/grades.js';
-import { TermDto } from '../terms/term.js';
+import { TermDto } from '../common/field-validators.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
 
 // The degree audit response (F3, ADR 0013). Each class implements the rule engine's result type,
@@ -266,8 +269,8 @@ export class GraduationConditionDto implements GraduationCondition {
 }
 
 export class GraduationStatusDto implements GraduationStatus {
-  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every condition the data can check is met; the notChecked ones still need the school' })
-  status!: 'done' | 'not_yet';
+  @ApiProperty({ enum: GRADUATION_STATUSES, description: 'done: every condition the data can check is met; the notChecked ones still need the school' })
+  status!: GraduationVerdict;
 
   @ApiProperty({ type: [GraduationConditionDto] })
   met!: GraduationConditionDto[];
@@ -339,8 +342,8 @@ export class AuditUnavailableDto {
   @ApiProperty({ example: 409 })
   statusCode!: number;
 
-  @ApiProperty({ enum: ['onboarding_required', 'curriculum_not_found'] })
-  code!: 'onboarding_required' | 'curriculum_not_found';
+  @ApiProperty({ enum: AUDIT_UNAVAILABLE_CODES })
+  code!: (typeof AUDIT_UNAVAILABLE_CODES)[number];
 
   @ApiProperty()
   message!: string;

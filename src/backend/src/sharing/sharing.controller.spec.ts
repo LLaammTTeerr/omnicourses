@@ -1,8 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { describe, expect, it, vi } from 'vitest';
-import { sharedPlanHeaders } from './shared-plan-headers.js';
 import { ShareBodyPipe } from './sharing.controller.js';
+import { sharedPlanHeaders } from './sharing.module.js';
 
 describe('ShareBodyPipe', () => {
   const pipe = new ShareBodyPipe();

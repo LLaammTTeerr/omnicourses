@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { CourseSummary, CurriculumLabels } from '../curriculum/curriculum.service.js';
-import type { BoardTerm, Placement } from '../plans/plan-board.js';
-import { PLAN_ISSUE_CODES, type PlanIssue, type PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
 import { checkPlan } from '../rules/plan-issues.js';
 import { graded, term, ungraded, zzCurriculum } from '../rules/testing/fixtures.js';
+import { type BoardTerm, type Placement, PLAN_ISSUE_CODES, type PlanIssue, type PlanIssuesReport } from '../rules/types.js';
 import type { Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { SHARED_ISSUE_CODES, sharedPlan, TRANSCRIPT_ISSUE_CODES, WITHHELD_ISSUE_CODES } from './shared-plan.js';
@@ -22,7 +21,7 @@ const ALL_CODES = rules.groups.flatMap((g) => g.courses.map((c) => c.code));
 const recorded = ALL_CODES.filter((c) => c !== 'ZZT1');
 const courseRules = {
   prerequisites: new Map(recorded.map((c) => [c, c === 'ZZB1' ? ['ZZA1'] : []])),
-  offeringTerms: new Map(recorded.map((c) => [c, c === 'ZZC1' ? [1] : [1, 2, 3]])),
+  offeringTerms: new Map(recorded.map((c) => [c, (c === 'ZZC1' ? [1] : [1, 2, 3]) as Term['number'][]])),
 };
 
 // 2025-1: 4 credits, below the minimum of 10; ZZB1's prerequisite ZZA1 is not placed. 2025-2: a
@@ -50,7 +49,7 @@ const labels: CurriculumLabels = {
 
 const catalog = new Map<string, CourseSummary>(rules.groups.flatMap((g) => g.courses.map((c) => [c.code, { nameVi: c.nameVi, nameEn: c.nameEn, credits: c.credits }] as const)));
 
-const reportWith = (transcript: TranscriptEntry[]) => checkPlan({ planId: plan.id, rules, courseRules, transcript, terms: BOARD, catalogCredits: new Map() });
+const reportWith = (transcript: TranscriptEntry[]) => checkPlan({ planId: plan.id, rules: { ...rules, ...courseRules }, transcript, terms: BOARD, catalogCredits: new Map() });
 const shared = (transcript: TranscriptEntry[] = [], ownerName: string | null = null) => sharedPlan({ plan, report: reportWith(transcript), courses: catalog, curriculum: labels, ownerName });
 
 /** A transcript that changes what the engine says of BOARD in every way it can: passed, in progress, failed and retaken courses. */
@@ -182,13 +181,13 @@ describe('sharedPlan', () => {
 
   it('shows an empty plan as no terms and no issues', () => {
     const empty = { ...plan, terms: [] };
-    const report = checkPlan({ planId: plan.id, rules, courseRules, transcript: RICH_TRANSCRIPT, terms: [], catalogCredits: new Map() });
+    const report = checkPlan({ planId: plan.id, rules: { ...rules, ...courseRules }, transcript: RICH_TRANSCRIPT, terms: [], catalogCredits: new Map() });
     expect(sharedPlan({ plan: empty, report, courses: catalog, curriculum: labels, ownerName: null })).toMatchObject({ terms: [], issues: [] });
   });
 
   // A report of another board is a bug in the caller: a wrong load must never be shown as the engine's.
   it('refuses a report that is not of this board', () => {
-    const report = checkPlan({ planId: plan.id, rules, courseRules, transcript: [], terms: [BOARD[0]!], catalogCredits: new Map() });
+    const report = checkPlan({ planId: plan.id, rules: { ...rules, ...courseRules }, transcript: [], terms: [BOARD[0]!], catalogCredits: new Map() });
     expect(() => sharedPlan({ plan, report, courses: catalog, curriculum: labels, ownerName: null })).toThrow(/no load for term 2025-2/);
   });
 });

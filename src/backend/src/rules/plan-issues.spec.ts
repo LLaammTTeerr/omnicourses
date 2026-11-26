@@ -1,15 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import type { BoardTerm, Placement } from '../plans/plan-board.js';
-import type { PlanIssue } from '../plans/plan-issues.js';
 import type { Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { CAP_CITATION, PETITION_NOTE } from './credit-caps.js';
-import { checkPlan, CURRICULUM_CITATION, GRADUATION_CITATION, IMPROVEMENT_CITATION, OFFERING_CITATION, PLAN_MODEL_CITATION, PREREQUISITE_CITATION, projectedTranscript } from './plan-issues.js';
+import { placements } from './coverage.js';
+import { checkPlan, projectedTranscript } from './plan-issues.js';
+import type { BoardTerm, Placement, PlanIssue } from './types.js';
 import { course as fixtureCourse, graded, group, term, ungraded, zzCurriculum } from './testing/fixtures.js';
 
 // Synthetic curriculum and transcripts only (AGENTS.md hard rule 3): zzCurriculum is Tiên tiến,
 // 10–22 credits in every term, and needs 38 credits.
+
+const PREREQUISITE_CITATION = 'QĐ 1175/QĐ-KHTN Điều 3.1.c';
+const OFFERING_CITATION = 'QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a';
+const CAP_CITATION = 'QĐ 1175/QĐ-KHTN Điều 7.2';
+const IMPROVEMENT_CITATION = 'QĐ 1175/QĐ-KHTN Điều 14.2';
+const CURRICULUM_CITATION = 'QĐ 1175/QĐ-KHTN Điều 15.1';
+const GRADUATION_CITATION = 'QĐ 1175/QĐ-KHTN Điều 17.3.b';
+const PLAN_MODEL_CITATION = 'ADR 0014';
+const PETITION_NOTE = 'Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b).';
 
 const course = (courseCode: string): Placement => ({ kind: 'course', courseCode, requirementGroupId: null, credits: null });
 const slot = (requirementGroupId: string, credits: number): Placement => ({ kind: 'slot', courseCode: null, requirementGroupId, credits });
@@ -37,8 +45,7 @@ function check(terms: BoardTerm[], options: Options = {}) {
   const offering = options.offering ?? Object.fromEntries(ALL_CODES.map((c) => [c, [1, 2, 3]]));
   return checkPlan({
     planId: 'plan-1',
-    rules: options.rules ?? zzCurriculum(),
-    courseRules: { prerequisites: new Map(Object.entries(prerequisites)), offeringTerms: new Map(Object.entries(offering)) },
+    rules: { ...(options.rules ?? zzCurriculum()), prerequisites: new Map(Object.entries(prerequisites)), offeringTerms: new Map(Object.entries(offering)) as Map<string, Term['number'][]> },
     transcript: options.transcript ?? [],
     terms,
     catalogCredits: new Map(Object.entries(options.catalog ?? {})),
@@ -321,7 +328,7 @@ describe('checkPlan', () => {
     it('projects one sitting for a course the plan places in a term the transcript already has it in', () => {
       const terms = [at(term(2025, 1), course('ZZA1'), course('ZZA2')), at(term(2025, 2), course('ZZB1'))];
       const transcript = [ungraded('ZZA1', 3, 'in_progress', term(2025, 1)), graded('ZZB1', 4, 3, term(2024, 3))];
-      const { entries } = projectedTranscript({ planId: 'plan-1', rules: zzCurriculum(), courseRules: { prerequisites: new Map(), offeringTerms: new Map() }, transcript, terms, catalogCredits: new Map() }, terms);
+      const { entries } = projectedTranscript({ planId: 'plan-1', rules: zzCurriculum(), transcript, terms, catalogCredits: new Map() }, placements(zzCurriculum()), terms);
       expect(entries).toEqual([
         { ...transcript[0], result: 'pass' },
         transcript[1],

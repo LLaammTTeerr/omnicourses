@@ -36,3 +36,7 @@ AGENTS.md hard rule 1 leaves every academic rule to the rule engine, and [ADR 00
 - F12 must refuse to delete a curriculum or requirement group that a plan uses; the database refuses it already. A course-code correction must update `plan_placements.course_code` in the same migration as the transcript (ADR 0011).
 - The plan generator saves its result with `POST /api/plans` and `terms` in the body, in one request.
 - Open: whether past terms belong in a plan or are always read from the transcript. The model allows both; the prototype draws past terms from the transcript.
+
+## Amendment, 26 November 2026: no provider interface
+
+*Decided by the coordinator under the Project Lead's standing delegation, 26 November 2026 (backend cleanup).* `PlanIssuesProvider` and the `PLAN_ISSUES_PROVIDER` token are removed. `PlansController` and `SharingService` inject `RulesService`, and the plan-issue types are in `rules/types.ts`. Violations are still computed on read and never stored. The plan id route parameter, its 404 answer and its description are in `plans/plan-id.ts`, which `sharing` uses too. See ADR 0013, amendment of 26 November 2026.

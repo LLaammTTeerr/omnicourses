@@ -1,6 +1,6 @@
 // The read contract of the transcript for other modules (ADR 0007): plain types, so a
 // change to the HTTP DTOs of the review table doesn't reach the degree audit or the advisor.
-import { Term } from '../terms/term.js';
+import type { Term } from '../terms/term.js';
 
 /**
  * What the transcript says about one attempt (ADR 0007). Only `graded` carries a grade.

@@ -1,5 +1,6 @@
 // Which attempt of a course counts (QĐ 1175/QĐ-KHTN Điều 14) and what passes (Điều 11.4, 13).
 // Pure functions over the transcript's entries (ADR 0007): every attempt is its own entry.
+import { byText, groupBy } from '../common/collections.js';
 import { compareTerms, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { isPassingGrade, toTenths } from './grades.js';
@@ -26,10 +27,14 @@ export function attemptPasses(entry: TranscriptEntry): boolean {
   }
 }
 
+const UNGRADED_PASS_SEVERITY = 1000;
+const FAILED_GRADE_OFFSET = 1000;
+const UNGRADED_FAIL_SEVERITY = -2000;
+
 /** Lower is worse: a failed attempt, then the lower grade. */
 function severity(entry: TranscriptEntry): number {
-  if (!attemptPasses(entry)) return entry.result === 'graded' && entry.grade !== null ? toTenths(entry.grade) - 1000 : -2000;
-  return entry.result === 'graded' && entry.grade !== null ? toTenths(entry.grade) : 1000;
+  if (!attemptPasses(entry)) return entry.result === 'graded' && entry.grade !== null ? toTenths(entry.grade) - FAILED_GRADE_OFFSET : UNGRADED_FAIL_SEVERITY;
+  return entry.result === 'graded' && entry.grade !== null ? toTenths(entry.grade) : UNGRADED_PASS_SEVERITY;
 }
 
 /** One course of the transcript, with every attempt and the one that counts. */
@@ -58,10 +63,9 @@ const sameTerm = (a: Term, b: Term) => compareTerms(a, b) === 0;
 
 /** Groups the transcript by course code and resolves each course's official attempt. */
 export function courseRecords(entries: readonly TranscriptEntry[]): Map<string, CourseRecord> {
-  const byCode = new Map<string, TranscriptEntry[]>();
-  for (const entry of entries) byCode.set(entry.courseCode, [...(byCode.get(entry.courseCode) ?? []), entry]);
+  const byCode = groupBy(entries, (entry) => entry.courseCode);
   const records = new Map<string, CourseRecord>();
-  for (const [code, list] of [...byCode].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+  for (const [code, list] of [...byCode].sort(([a], [b]) => byText(a, b))) {
     // A stable sort keeps transcript order inside a term.
     const attempts = [...list].sort((a, b) => compareTerms(a.term, b.term));
     records.set(code, resolve(code, attempts));

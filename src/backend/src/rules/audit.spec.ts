@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { degreeAudit } from './audit.js';
-import type { DegreeAudit, GroupCoverage } from './audit-types.js';
+import type { DegreeAudit, GroupCoverage } from './types.js';
 import { NOT_CHECKED_CONDITIONS } from './graduation.js';
 import { course, graded, group, term, ungraded, zzCurriculum, zzGraduatingTranscript } from './testing/fixtures.js';
 

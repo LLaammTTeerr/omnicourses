@@ -1,7 +1,7 @@
 import type { CourseSummary, CurriculumLabels } from '../curriculum/curriculum.service.js';
-import { PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, type PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
-import type { Term } from '../terms/term.js';
+import { type Placement, PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, type PlanIssuesReport } from '../rules/types.js';
+import { copyTerm, termKey } from '../terms/term.js';
 import type { SharedPlacementDto, SharedPlanCoverageDto, SharedPlanDto, SharedPlanIssueDto } from './sharing.dto.js';
 
 // What a reader of a shared plan's link gets (UC-09 step 2, ADR 0010). A pure function: the rule
@@ -26,7 +26,6 @@ export const SHARED_ISSUE_CODES = [
   'not_in_curriculum',
   'credits_not_recorded',
 ] as const satisfies readonly PlanIssueCode[];
-export type SharedIssueCode = (typeof SHARED_ISSUE_CODES)[number];
 
 /**
  * The codes the engine decides from the owner's transcript: each one, by being there or by being
@@ -46,9 +45,6 @@ const notAmong = (shown: readonly PlanIssueCode[]): PlanIssueCode[] => PLAN_ISSU
 export const WITHHELD_ISSUE_CODES: PlanIssueCode[] = notAmong(SHARED_ISSUE_CODES);
 
 const WITH_TRANSCRIPT_CHECKS: readonly PlanIssueCode[] = [...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES];
-
-const termKey = (t: Term): string => `${t.year}-${t.number}`;
-const copyTerm = (t: Term): Term => ({ year: t.year, number: t.number });
 
 export interface SharedPlanSource {
   plan: PlanDto;
@@ -118,6 +114,15 @@ function withTranscriptChecks(report: PlanIssuesReport): Pick<SharedPlanDto, 'is
   };
 }
 
+function sharedPlacement(p: Placement, courses: ReadonlyMap<string, CourseSummary>, curriculum: CurriculumLabels): SharedPlacementDto {
+  if (p.kind === 'course' && p.courseCode !== null) {
+    const course = courses.get(p.courseCode);
+    return { kind: 'course', courseCode: p.courseCode, nameVi: course?.nameVi ?? null, nameEn: course?.nameEn ?? null, credits: course?.credits ?? null, requirementGroupName: null };
+  }
+  const groupName = p.requirementGroupId === null ? null : (curriculum.groupNames.get(p.requirementGroupId) ?? null);
+  return { kind: 'slot', courseCode: null, nameVi: null, nameEn: null, credits: p.credits, requirementGroupName: groupName };
+}
+
 export function sharedPlan({ plan, report, courses, curriculum, ownerName, showTranscriptChecks = false }: SharedPlanSource): SharedPlanDto {
   const loads = new Map(report.terms.map((load) => [termKey(load.term), load]));
   return {
@@ -140,14 +145,7 @@ export function sharedPlan({ plan, report, courses, curriculum, ownerName, showT
         kind: load.kind,
         credits: load.credits,
         caps: load.caps ? { min: load.caps.min, max: load.caps.max } : null,
-        placements: placements.map((p): SharedPlacementDto => {
-          if (p.kind === 'course' && p.courseCode !== null) {
-            const course = courses.get(p.courseCode);
-            return { kind: 'course', courseCode: p.courseCode, nameVi: course?.nameVi ?? null, nameEn: course?.nameEn ?? null, credits: course?.credits ?? null, requirementGroupName: null };
-          }
-          const groupName = p.requirementGroupId === null ? null : (curriculum.groupNames.get(p.requirementGroupId) ?? null);
-          return { kind: 'slot', courseCode: null, nameVi: null, nameEn: null, credits: p.credits, requirementGroupName: groupName };
-        }),
+        placements: placements.map((p) => sharedPlacement(p, courses, curriculum)),
       };
     }),
     ...(showTranscriptChecks

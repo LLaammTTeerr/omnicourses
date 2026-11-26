@@ -1,10 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsInt, Max, Min } from 'class-validator';
-
 // Shared term types (ADR 0009), not a Nest module: the transcript, plans, offering terms
 // and the planner all import Term from here, so none of them depends on another for it.
 
 export const TERM_NUMBERS = [1, 2, 3] as const;
+
+export const MIN_ACADEMIC_YEAR = 2000;
+export const MAX_ACADEMIC_YEAR = 2100;
 
 /** A term (ADR 0009): `year` 2026 is the academic year 2026–2027; terms 1, 2 and 3. Term 3 is a main term in APCS (QĐ 1175/QĐ-KHTN Điều 6.4b) and can be a summer term in other programs. */
 export interface Term {
@@ -40,15 +40,10 @@ export function termLabel(term: Term): string {
   return `${term.year}–${term.year + 1} term ${term.number}`;
 }
 
-// Any request body that names a term nests this DTO, so every module validates terms alike.
-export class TermDto implements Term {
-  @ApiProperty({ example: 2026, description: 'First calendar year of the academic year: 2026 means 2026–2027.' })
-  @IsInt()
-  @Min(2000)
-  @Max(2100)
-  year!: number;
+export const termKey = (term: Term): string => `${term.year}-${term.number}`;
 
-  @ApiProperty({ enum: TERM_NUMBERS, description: 'Term of the academic year: 1, 2 or 3. Whether 3 is a main or a summer term depends on the program (APCS: main, QĐ 1175/QĐ-KHTN Điều 6.4b).' })
-  @IsIn(TERM_NUMBERS)
-  number!: Term['number'];
-}
+export const copyTerm = (term: Term): Term => ({ year: term.year, number: term.number });
+
+export const asTermNumber = (number: number): Term['number'] => number as Term['number'];
+
+export const toTerm = (year: number, number: number): Term => ({ year, number: asTermNumber(number) });

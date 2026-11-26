@@ -2,11 +2,11 @@ import { NotFoundException } from '@nestjs/common';
 import { QueryFailedError, type DataSource } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import type { CurriculumService } from '../curriculum/curriculum.service.js';
-import type { PlanIssuesProvider, PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
 import type { PlansService } from '../plans/plans.service.js';
-import { newShareToken } from './share-token.js';
-import { SharingService } from './sharing.service.js';
+import type { RulesService } from '../rules/rules.service.js';
+import type { PlanIssuesReport } from '../rules/types.js';
+import { isShareToken, newShareToken, SharingService } from './sharing.service.js';
 
 // The database is faked: the e2e suite (test/plan-sharing.e2e-spec.ts) covers the SQL. This covers
 // what the service answers before, between and after its queries. Synthetic data only.
@@ -36,11 +36,11 @@ function service(found: { share?: Record<string, unknown> | null; plan?: PlanDto
   const db = { query: vi.fn().mockResolvedValue(share ? [share] : []), transaction: vi.fn((work: (t: typeof tx) => unknown) => work(tx)) };
   const plans = { find: vi.fn().mockResolvedValue(found.plan === undefined ? plan : found.plan), get: vi.fn().mockResolvedValue(plan) };
   const catalog = {
-    courseSummaries: vi.fn().mockResolvedValue(new Map([['ZZ001', { nameVi: 'Học phần thử', nameEn: null, credits: 4 }]])),
+    catalogCourses: vi.fn().mockResolvedValue(new Map([['ZZ001', { nameVi: 'Học phần thử', nameEn: null, credits: 4 }]])),
     curriculumLabels: vi.fn().mockResolvedValue(found.labels === undefined ? labels : found.labels),
   };
-  const issues = { issuesFor: vi.fn().mockResolvedValue(report), issuesWithoutTranscript: vi.fn().mockResolvedValue(report), issuesForBoards: vi.fn() };
-  const svc = new SharingService(db as unknown as DataSource, plans as unknown as PlansService, catalog as unknown as CurriculumService, issues as unknown as PlanIssuesProvider);
+  const issues = { issuesFor: vi.fn().mockResolvedValue(report), issuesForBoards: vi.fn() };
+  const svc = new SharingService(db as unknown as DataSource, plans as unknown as PlansService, catalog as unknown as CurriculumService, issues as unknown as RulesService);
   return { svc, db, tx, plans, catalog, issues };
 }
 
@@ -60,7 +60,6 @@ describe('SharingService.read', () => {
     expect(db.query).toHaveBeenCalledExactlyOnceWith(expect.any(String), [token]);
     expect(plans.find).not.toHaveBeenCalled();
     expect(issues.issuesFor).not.toHaveBeenCalled();
-    expect(issues.issuesWithoutTranscript).not.toHaveBeenCalled();
   });
 
   // The plan was deleted after its link was found: the same answer, not the plans module's 404.
@@ -68,7 +67,6 @@ describe('SharingService.read', () => {
     const { svc, issues } = service({ plan: null });
     await expect(svc.read(newShareToken())).rejects.toEqual(NOT_SHARED);
     expect(issues.issuesFor).not.toHaveBeenCalled();
-    expect(issues.issuesWithoutTranscript).not.toHaveBeenCalled();
   });
 
   // The read uses no column of users but display_name, and that one only when the owner chose it (AGENTS.md: never read password_hash).
@@ -88,11 +86,10 @@ describe('SharingService.read', () => {
     const { svc, plans, issues, catalog } = service({ share: { planId: 'p1', userId: 'u1', ownerName: 'Test Student' } });
     const body = await svc.read(newShareToken());
     expect(plans.find).toHaveBeenCalledExactlyOnceWith('u1', 'p1');
-    expect(issues.issuesWithoutTranscript).toHaveBeenCalledExactlyOnceWith(plan);
-    expect(issues.issuesWithoutTranscript.mock.calls[0]![0]).toBe(plan);
-    expect(issues.issuesFor).not.toHaveBeenCalled();
+    expect(issues.issuesFor).toHaveBeenCalledExactlyOnceWith(plan, null);
+    expect(issues.issuesFor.mock.calls[0]![0]).toBe(plan);
     expect(issues.issuesForBoards).not.toHaveBeenCalled();
-    expect(catalog.courseSummaries).toHaveBeenCalledWith(['ZZ001']);
+    expect(catalog.catalogCourses).toHaveBeenCalledWith(['ZZ001']);
     expect(catalog.curriculumLabels).toHaveBeenCalledWith('c1');
     expect(body).toMatchObject({ name: 'Main plan', ownerName: 'Test Student', terms: [{ credits: 4, placements: [{ courseCode: 'ZZ001', nameVi: 'Học phần thử', credits: 4 }] }] });
   });
@@ -104,17 +101,15 @@ describe('SharingService.read', () => {
     expect(on.coverage).toEqual({ groups: [], combinedMinimums: [], totalRequired: null, totalCredits: 0, totalRemaining: null, graduation: 'not_yet' });
     expect(on.issueCodesNotShown).toEqual([]);
     // Only then is the engine asked with the owner's transcript, for the very plan that is shown.
-    expect(chosen.issues.issuesFor).toHaveBeenCalledExactlyOnceWith('u1', plan);
-    expect(chosen.issues.issuesFor.mock.calls[0]![1]).toBe(plan);
-    expect(chosen.issues.issuesWithoutTranscript).not.toHaveBeenCalled();
+    expect(chosen.issues.issuesFor).toHaveBeenCalledExactlyOnceWith(plan, 'u1');
+    expect(chosen.issues.issuesFor.mock.calls[0]![0]).toBe(plan);
 
     for (const value of [false, undefined, null, 'true', 1]) {
       const notChosen = service({ share: { planId: 'p1', userId: 'u1', ownerName: null, showTranscriptChecks: value } });
       const off = await notChosen.svc.read(newShareToken());
       expect(Object.keys(off), String(value)).not.toContain('coverage');
       expect(off.issueCodesNotShown, String(value)).toEqual(['prerequisite_not_met', 'already_passed', 'already_in_progress', 'requirement_not_covered']);
-      expect(notChosen.issues.issuesFor, String(value)).not.toHaveBeenCalled();
-      expect(notChosen.issues.issuesWithoutTranscript, String(value)).toHaveBeenCalledExactlyOnceWith(plan);
+      expect(notChosen.issues.issuesFor, String(value)).toHaveBeenCalledExactlyOnceWith(plan, null);
     }
     const { svc, db } = service();
     await svc.read(newShareToken());
@@ -197,5 +192,27 @@ describe('SharingService, the owner’s side', () => {
     const manager = { delete: vi.fn() };
     await service().svc.stopAllWithin(manager as never, 'u1');
     expect(manager.delete).toHaveBeenCalledExactlyOnceWith(expect.anything(), { userId: 'u1' });
+  });
+});
+
+describe('share token', () => {
+  // UC-09 §7: at least as strong as a session token, 32 random bytes (ADR 0002).
+  it('holds 32 random bytes in base64url', () => {
+    const token = newShareToken();
+    expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(Buffer.from(token, 'base64url')).toHaveLength(32);
+    expect(isShareToken(token)).toBe(true);
+  });
+
+  it('is new each time', () => {
+    const tokens = new Set(Array.from({ length: 200 }, newShareToken));
+    expect(tokens.size).toBe(200);
+  });
+
+  it('refuses anything that is not a whole token', () => {
+    const token = newShareToken();
+    for (const value of ['', 'abc', token.slice(1), `${token}A`, `${token.slice(0, 42)}=`, `${token.slice(0, 42)}/`, `${token}\n`, 'x'.repeat(5000), undefined, null, 42, [token]]) {
+      expect(isShareToken(value), String(value).slice(0, 50)).toBe(false);
+    }
   });
 });

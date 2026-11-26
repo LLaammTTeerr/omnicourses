@@ -4,7 +4,7 @@
 - Drawn from the code on `main` (15 November 2026): `src/frontend/src/plans/` (`PlannerEntry.vue`, `PlanEditorView.vue`, `board.ts`, `drag.ts`, `api.ts`), `src/backend/src/plans/`, `src/backend/src/rules/` ([ADR 0014](../adr/0014-plan-model.md), [ADR 0012](../adr/0012-credit-caps-by-training-type.md))
 - Built: opening a plan, the board with live issues from the rule engine, the drag preview, saving on every change with a retry on 429, undo, keyboard moves, several plans. Not built: the estimated graduation term and the fix suggestion with **Apply** (A2); a term that would break a rule does not refuse the drop. See [the differences list](../design-differences.md).
 
-The editor never judges a placement itself. Every colour, load, cap and reason on the board comes from a report of the rule engine: `GET /api/plans/{id}/issues` for the saved board, `POST /api/plans/{id}/issues/drops` for a drag. `PlansController` reaches the engine through the `PlanIssuesProvider` interface, which `RulesService` implements.
+The editor never judges a placement itself. Every colour, load, cap and reason on the board comes from a report of the rule engine: `GET /api/plans/{id}/issues` for the saved board, `POST /api/plans/{id}/issues/drops` for a drag. `PlansController` injects `RulesService` and asks it.
 
 ## Open the planner and a plan (steps 1–2, A7, A8)
 
@@ -17,7 +17,7 @@ sequenceDiagram
     participant Api as plans/api.ts
     participant Ctrl as PlansController
     participant Plans as PlansService
-    participant Rules as RulesService (PlanIssuesProvider)
+    participant Rules as RulesService
     participant Engine as checkPlan (rules/plan-issues.ts)
     participant DB as PostgreSQL
 
@@ -50,17 +50,15 @@ sequenceDiagram
     Editor->>Api: fetchPlanIssues(token, id)
     Api->>Ctrl: GET /api/plans/{id}/issues
     Ctrl->>Plans: get(user.id, id)
-    Ctrl->>Rules: issuesFor(user.id, plan)
-    par the four inputs of issuesForBoards
-        Rules->>DB: CurriculumRulesReader.rulesFor(plan's program and cohort)
-    and
-        Rules->>DB: CourseRulesService.rulesFor(plan's curriculum)
+    Ctrl->>Rules: issuesFor(plan, user.id)
+    par the three inputs of issuesForBoards
+        Rules->>DB: CurriculumRulesReader.rulesFor(plan's curriculum), with its prerequisites and offering terms
     and
         Rules->>DB: TranscriptService.rowsFor(user.id)
     and
-        Rules->>DB: CurriculumService.courseCredits(placed codes)
+        Rules->>DB: CurriculumService.catalogCourses(placed codes)
     end
-    Rules->>Engine: checkPlan({ planId, rules, courseRules, transcript, terms, catalogCredits })
+    Rules->>Engine: checkPlan({ planId, rules, transcript, terms, catalogCredits })
     Engine-->>Rules: PlanIssuesReport: terms with loads and caps, issues, coverage
     Rules-->>Ctrl: PlanIssuesReport
     Ctrl-->>Editor: 200 PlanIssuesDto
@@ -83,7 +81,7 @@ sequenceDiagram
     participant Api as plans/api.ts
     participant Ctrl as PlansController
     participant Plans as PlansService
-    participant Rules as RulesService (PlanIssuesProvider)
+    participant Rules as RulesService
     participant Engine as checkPlan (rules/plan-issues.ts)
 
     Student->>Editor: picks up a tile with the pointer, or lifts it with Space
@@ -97,8 +95,8 @@ sequenceDiagram
     Plans->>Plans: withPlacement(terms, placement, target) for each target
     Plans->>Plans: boardProblems on every board, checkBoard on the first
     Plans-->>Ctrl: { plan, boards }, nothing written
-    Ctrl->>Rules: issuesForBoards(user.id, plan, boards)
-    Note over Rules: the four inputs are read once for all the boards
+    Ctrl->>Rules: issuesForBoards(plan, boards, user.id)
+    Note over Rules: the three inputs are read once for all the boards
     loop each board
         Rules->>Engine: checkPlan(input with this board)
         Engine-->>Rules: PlanIssuesReport
@@ -147,7 +145,7 @@ sequenceDiagram
         Plans->>DB: BEGIN
         Plans->>DB: SELECT curriculum_id FROM plans WHERE id = id AND user_id = user.id<br/>FOR NO KEY UPDATE
         Plans->>Plans: checkBoard: boardProblems(terms)
-        Plans->>Cur: knownCourseCodes(codes), requirementGroupIds(curriculumId)
+        Plans->>Cur: catalogCourses(codes), requirementGroupIds(curriculumId)
         Plans->>DB: DELETE plan_placements WHERE plan_id = id
         Plans->>DB: INSERT plan_placements from toRows(id, user.id, terms)
         Plans->>DB: UPDATE plans SET updated_at = now()
