@@ -1,4 +1,7 @@
+import { getMetadataArgsStorage } from 'typeorm';
 import { describe, expect, it } from 'vitest';
+import { TERM_NUMBERS } from '../terms/term.js';
+import { ACADEMIC_YEAR_MAX, ACADEMIC_YEAR_MIN, AcademicCalendarEvent, CALENDAR_EVENT_KINDS } from './academic-calendar-event.entity.js';
 import { datesProblem } from './academic-calendar.service.js';
 
 describe('datesProblem', () => {
@@ -14,5 +17,15 @@ describe('datesProblem', () => {
   it('refuses a first day outside the two calendar years of the academic year', () => {
     expect(datesProblem({ academicYear: 2026, startsOn: '2025-12-31', endsOn: '2026-01-02' })).toMatch(/^startsOn: .*2026–2027/);
     expect(datesProblem({ academicYear: 2026, startsOn: '2028-01-01', endsOn: '2028-01-01' })).toMatch(/^startsOn: /);
+  });
+});
+
+describe('the CHECK constraints of academic_calendar', () => {
+  const checkOf = (name: string) => getMetadataArgsStorage().checks.find((check) => check.target === AcademicCalendarEvent && check.name === name)?.expression;
+
+  it('allow exactly the kinds, terms and years the API accepts', () => {
+    expect(checkOf('ck_academic_calendar_kind')).toBe(`"kind" IN (${CALENDAR_EVENT_KINDS.map((kind) => `'${kind}'`).join(', ')})`);
+    expect(checkOf('ck_academic_calendar_term')).toBe(`"term" IN (${TERM_NUMBERS.join(', ')})`);
+    expect(checkOf('ck_academic_calendar_academic_year')).toBe(`"academic_year" BETWEEN ${ACADEMIC_YEAR_MIN} AND ${ACADEMIC_YEAR_MAX}`);
   });
 });

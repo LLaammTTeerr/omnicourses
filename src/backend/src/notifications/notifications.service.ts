@@ -94,44 +94,48 @@ export class NotificationsService implements OnModuleInit {
    */
   async createDue(onlyUserId?: string): Promise<number> {
     const now = this.clock.now();
-    const day = vietnamDate(now);
-    const events = await this.calendar.startingOn(startDaysDueOn(day), NOTIFYING_EVENT_KINDS);
-    const due: { event: CalendarEventStart; kind: CalendarNotificationKind }[] = events.flatMap((event) => notificationsDue(event, day).map((kind) => ({ event, kind })));
+    const due = await this.dueOn(vietnamDate(now));
     if (!due.length) return 0;
     const students = await this.onboarding.userIdsByProgram([...new Set(due.map((d) => d.event.programCode))], onlyUserId);
-    let created = 0;
-    let statements = 0;
-    const failures: string[] = [];
-    let stack: string | undefined;
+    const run = { created: 0, statements: 0, failures: [] as string[], stack: undefined as string | undefined };
     for (const { event, kind } of due) {
       const userIds = students.get(event.programCode);
       if (!userIds?.length) continue;
-      statements++;
+      run.statements++;
       try {
-        // this.db, never a transaction's manager: in a shared transaction the first failure
-        // would make PostgreSQL refuse every statement after it (SQLSTATE 25P02).
-        const rows: unknown[] = await this.db.query(INSERT_FOR_EVENT, [
-          userIds,
-          kind,
-          event.id,
-          event.programCode,
-          event.academicYear,
-          event.term,
-          event.startsOn,
-          event.endsOn,
-          event.title,
-          event.titleEn,
-          now,
-        ]);
-        created += rows.length;
+        run.created += await this.insertForEvent(event, kind, userIds, now);
       } catch (error) {
-        failures.push(failureKind(error));
-        stack ??= failureStack(error);
+        run.failures.push(failureKind(error));
+        run.stack ??= failureStack(error);
       }
     }
     // One line for the run, counts and failure kinds only: no student, no date, no title.
-    if (failures.length) this.logFailure(onlyUserId !== undefined, `Could not create the notifications of ${failures.length} of ${statements} school date(s) that are due: ${[...new Set(failures)].join('; ')}`, stack);
-    return created;
+    if (run.failures.length) this.logFailure(onlyUserId !== undefined, `Could not create the notifications of ${run.failures.length} of ${run.statements} school date(s) that are due: ${[...new Set(run.failures)].join('; ')}`, run.stack);
+    return run.created;
+  }
+
+  private async dueOn(day: string): Promise<{ event: CalendarEventStart; kind: CalendarNotificationKind }[]> {
+    const events = await this.calendar.startingOn(startDaysDueOn(day), NOTIFYING_EVENT_KINDS);
+    return events.flatMap((event) => notificationsDue(event, day).map((kind) => ({ event, kind })));
+  }
+
+  private async insertForEvent(event: CalendarEventStart, kind: CalendarNotificationKind, userIds: string[], now: Date): Promise<number> {
+    // this.db, never a transaction's manager: in a shared transaction the first failure
+    // would make PostgreSQL refuse every statement after it (SQLSTATE 25P02).
+    const rows: unknown[] = await this.db.query(INSERT_FOR_EVENT, [
+      userIds,
+      kind,
+      event.id,
+      event.programCode,
+      event.academicYear,
+      event.term,
+      event.startsOn,
+      event.endsOn,
+      event.title,
+      event.titleEn,
+      now,
+    ]);
+    return rows.length;
   }
 
   /**
@@ -171,15 +175,15 @@ export class NotificationsService implements OnModuleInit {
   async list(userId: string, query: NotificationsQueryDto): Promise<NotificationListDto> {
     await this.createDueBeforeRead(userId);
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
-    const qb = this.notifications.createQueryBuilder('n').where('n.userId = :userId', { userId });
-    if (query.unread !== undefined) qb.andWhere(query.unread ? 'n.readAt IS NULL' : 'n.readAt IS NOT NULL');
-    if (query.kind?.length) qb.andWhere('n.kind IN (:...kinds)', { kinds: query.kind });
+    const notifications = this.notifications.createQueryBuilder('n').where('n.userId = :userId', { userId });
+    if (query.unread !== undefined) notifications.andWhere(query.unread ? 'n.readAt IS NULL' : 'n.readAt IS NOT NULL');
+    if (query.kind?.length) notifications.andWhere('n.kind IN (:...kinds)', { kinds: query.kind });
     if (query.before) {
       if (!(await this.notifications.existsBy({ id: query.before, userId }))) throw notificationNotFound();
       // Compared inside PostgreSQL: a timestamp read into JavaScript loses its microseconds.
-      qb.andWhere('(n.createdAt, n.id) < (SELECT c."created_at", c."id" FROM "notifications" c WHERE c."id" = :before AND c."user_id" = :userId)', { before: query.before });
+      notifications.andWhere('(n.createdAt, n.id) < (SELECT c."created_at", c."id" FROM "notifications" c WHERE c."id" = :before AND c."user_id" = :userId)', { before: query.before });
     }
-    const rows = await qb
+    const rows = await notifications
       .orderBy('n.createdAt', 'DESC')
       .addOrderBy('n.id', 'DESC')
       .take(limit + 1)
@@ -191,7 +195,7 @@ export class NotificationsService implements OnModuleInit {
   /** How many of the caller's notifications are unread, after creating the ones due today for the caller alone. */
   async unreadCount(userId: string): Promise<UnreadCountDto> {
     await this.createDueBeforeRead(userId);
-    return { unread: await this.notifications.countBy({ userId, readAt: IsNull() }) };
+    return this.unreadOf(userId);
   }
 
   /** Marks one of the caller's notifications read. Again does nothing: the first time stays. */
@@ -205,6 +209,10 @@ export class NotificationsService implements OnModuleInit {
   /** Marks every unread notification of the caller read (UC-12 A3). */
   async markAllRead(userId: string): Promise<UnreadCountDto> {
     await this.notifications.update({ userId, readAt: IsNull() }, { readAt: this.clock.now() });
+    return this.unreadOf(userId);
+  }
+
+  private async unreadOf(userId: string): Promise<UnreadCountDto> {
     return { unread: await this.notifications.countBy({ userId, readAt: IsNull() }) };
   }
 

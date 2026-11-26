@@ -2,6 +2,7 @@
 // and the planner all import Term from here, so none of them depends on another for it.
 
 export const TERM_NUMBERS = [1, 2, 3] as const;
+export type TermNumber = (typeof TERM_NUMBERS)[number];
 
 export const MIN_ACADEMIC_YEAR = 2000;
 export const MAX_ACADEMIC_YEAR = 2100;
