@@ -8,7 +8,6 @@ import { EXPLORER_MESSAGES } from './messages.js';
 import { useLocale } from '../locale.js';
 import { chooseOption } from '../testing/select.js';
 
-// A synthetic curriculum: made-up codes and names, the group headings of the real APCS tables.
 const course = (code: string, nameVi: string, credits = 4, nameEn: string | null = null): CurriculumCourse => ({
   code,
   nameVi,
@@ -46,7 +45,6 @@ const CURRICULUM: Curriculum = {
     group('0a02', 'Kiến thức Math', 'compulsory', [course('ZZ101', 'Giải tích thử'), course('ZZ102', 'Đại số thử', 3)], {
       officialNotes: 'Ghi chú thử của nhóm.',
     }),
-    // ZZ201 is recorded as having no prerequisite, as the seed records every APCS course but CS470.
     group('0a03', 'Kiến thức Computer Science (A): bắt buộc', 'compulsory', [{ ...course('ZZ201', 'Lập trình thử'), prerequisites: [] }]),
   ],
 };

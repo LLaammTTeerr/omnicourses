@@ -7,8 +7,6 @@ import { NO_INTERNSHIP } from './api.js';
 import { creditsProblem, goalTermChoices } from './answers.js';
 import { GOAL_MESSAGES } from './messages.js';
 
-// The default planning goal (UC-01 step 8): every field optional. The wizard shows it in two steps, settings in one.
-// `errors` are the API's messages for a field, shown under it; the credits check runs as the student types.
 type Field = 'graduation' | 'credits' | 'internship';
 
 const props = withDefaults(defineProps<{ fields?: Field[]; idPrefix: string; errors?: Partial<Record<Field, string[]>> }>(), {

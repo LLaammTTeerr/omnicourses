@@ -1,4 +1,3 @@
-// api.spec.ts checks this against HealthDto in src/backend/openapi.json.
 export interface Health {
   status: 'ok' | 'degraded';
   database: 'up' | 'down';
@@ -11,11 +10,8 @@ export class HttpError extends Error {
     path: string,
     readonly status: number,
     method = 'GET',
-    /** The messages of a Nest error body, such as each failed validation of a 400. */
     readonly details: string[] = [],
-    /** The machine-readable `code` of the error body, such as `onboarding_required` on a 409, or null. */
     readonly code: string | null = null,
-    /** The whole JSON error body, for the fields an error adds beside `code` (the `permission` of a 403); null when it is not a JSON object. */
     readonly body: Readonly<Record<string, unknown>> | null = null,
   ) {
     super(`${method} ${path} failed: ${status}`);
@@ -25,21 +21,11 @@ export class HttpError extends Error {
 
 export interface RequestOptions {
   body?: unknown;
-  /** The session token (ADR 0002), sent as `Authorization: Bearer`. */
   token?: string | null;
-  /** Aborts the request, with any timeout. */
   signal?: AbortSignal;
-  /**
-   * Milliseconds before the request fails, reading the answer included; null for none. `request` defaults to
-   * REQUEST_TIMEOUT_MS; `send` has none, for a download or a stream that may take longer.
-   */
   timeout?: number | null;
 }
 
-/**
- * How long a JSON call may take before it fails, so a hung connection ends in an error the screen can say and
- * re-enables its buttons. The server may still have done what a timed-out write asked.
- */
 export const REQUEST_TIMEOUT_MS = 30_000;
 
 async function errorBody(res: Response): Promise<{ details: string[]; code: string | null; body: Record<string, unknown> | null }> {
@@ -54,7 +40,6 @@ async function errorBody(res: Response): Promise<{ details: string[]; code: stri
   }
 }
 
-/** Sends a request with an optional JSON body and token; throws HttpError on any status but 2xx. */
 export async function send(method: string, path: string, { body, token, signal, timeout }: RequestOptions = {}): Promise<Response> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
@@ -73,7 +58,6 @@ export async function send(method: string, path: string, { body, token, signal, 
   return res;
 }
 
-/** Like send, with the JSON answer parsed and a timeout of REQUEST_TIMEOUT_MS by default. Resolves to undefined on 204. */
 export async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
   const res = await send(method, path, { ...options, timeout: options.timeout === undefined ? REQUEST_TIMEOUT_MS : options.timeout });
   return (res.status === 204 ? undefined : await res.json()) as T;
@@ -83,7 +67,6 @@ export function fetchHealth(): Promise<Health> {
   return request<Health>('GET', '/health');
 }
 
-/** The HTTP status of a failed call, or null when the request never got an answer (offline, CORS, DNS). */
 export const statusOf = (e: unknown): number | null => (e instanceof HttpError ? e.status : null);
 
 type FailureKind = 'unauthorized' | 'invalid' | 'forbidden' | 'not_found' | 'conflict' | 'rate_limited' | 'server_error' | 'timed_out' | 'unreachable' | 'other';
@@ -97,11 +80,6 @@ export function failureKind(error: unknown): FailureKind {
   return FAILURE_BY_STATUS[error.status] ?? 'other';
 }
 
-/**
- * The API's validation messages by the field each one names at its start ("credits must not be less than 1",
- * "prerequisites: ZZ101 not a course of this curriculum"). A message that names none of `fields`, such as an
- * unknown property, is in `other`. The messages are the API's English text: it sends no code per field.
- */
 export function byField<F extends string>(details: readonly string[], fields: readonly F[]): { fields: Partial<Record<F, string[]>>; other: string[] } {
   const found: Partial<Record<F, string[]>> = {};
   const other: string[] = [];
@@ -113,18 +91,9 @@ export function byField<F extends string>(details: readonly string[], fields: re
   return { fields: found, other };
 }
 
-/**
- * One path segment of an API address, from a value the user typed or an ID. A segment of only dots would be
- * resolved by the browser as a relative path ("." this folder, ".." the one above), so the request would reach
- * another address; a trailing space keeps it one segment, and the API then refuses it as a value or answers 404.
- */
 export const segment = (value: string): string => {
   const encoded = encodeURIComponent(value);
   return /^\.+$/.test(encoded) ? `${encoded}%20` : encoded;
 };
 
-/**
- * A text's length as the API counts it (#179): in code points, as PostgreSQL does. `.length` counts UTF-16 units, so
- * an emoji counts twice there, and the HTML maxlength attribute counts the same way.
- */
 export const codePoints = (text: string): number => [...text].length;

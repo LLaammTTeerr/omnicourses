@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { GROUP_IDS, GROUPS, groupClass } from './groups.js';
 
-// Read from disk: Vitest does not load CSS, so a ?raw import comes back empty.
 const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
 
 describe('requirement groups', () => {

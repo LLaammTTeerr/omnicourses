@@ -28,18 +28,12 @@ import ProblemNote from './ProblemNote.vue';
 import { useAdminAccess, useProgramPicker } from './store.js';
 import { stayWhileBusy, useWrites } from './write.js';
 
-// CSV bulk entry (ADR 0011, "CSV contract and UC-11 handoff"; UC-11 A9): catalog courses for a catalog maintainer,
-// or the group links of one cohort for its program administrator. The file is read in the browser and sent as JSON
-// text to the preview route, which writes nothing; Confirm sends the same text with the preview's review version,
-// and the API saves the whole file or nothing. Cancel sends nothing. Every check is the API's: this page checks only
-// the input limits, so that a file far too large is not sent, and reads no value of a row.
 const access = useAdminAccess();
 const route = useRoute();
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.import);
 
-// ---------- The file type, and for group links the cohort ----------
 const offered = computed(() => IMPORT_FILE_TYPES.filter((type) => access.holds(type === 'catalog_courses' ? 'catalog_maintainer' : 'program_admin')));
 const asked = typeof route.query.type === 'string' ? route.query.type : null;
 const type = ref<ImportFileType | null>(null);
@@ -65,7 +59,6 @@ watch(
 );
 
 
-/** Where a file goes: the catalog, or one cohort. The preview and its confirmation keep the one they were made for. */
 interface Target {
   type: ImportFileType;
   cohort: CohortRef | null;
@@ -77,9 +70,7 @@ const target = computed<Target | null>(() => {
 });
 const targetKey = computed(() => (target.value ? `${target.value.type}:${target.value.cohort?.curriculumId ?? ''}` : ''));
 
-// ---------- The file, read in the browser ----------
 const fileInput = ref<HTMLInputElement | null>(null);
-/** The text that was read: what is previewed, and sent again as it is on confirmation. */
 const draft = shallowRef<{ name: string; bytes: number; csv: string } | null>(null);
 const fileProblem = ref<string | null>(null);
 const reading = ref(false);
@@ -111,14 +102,10 @@ async function choose(): Promise<void> {
   }
 }
 
-// ---------- Preview ----------
 const preview = shallowRef<{ target: Target; csv: string; result: ImportPreview } | null>(null);
 const previewing = ref(false);
-/** The preview got no answer. */
 const previewLost = ref(false);
-/** The API refused the preview: a file it cannot read (by record), a limit, a permission. */
 const refusal = shallowRef<Exclude<Failure, { kind: 'no_answer' }> | null>(null);
-/** The last confirmation was refused because something changed since the preview, which was then made again. */
 const changed = ref(false);
 const notice = ref<string | null>(null);
 const newest = newestOnly();
@@ -132,17 +119,11 @@ function dropPreview(): void {
   changed.value = false;
   writes.clear();
 }
-// Another file type or another cohort: the preview was for the one before.
 watch(targetKey, dropPreview);
 
 const runPreview = (of: Target, csv: string): Promise<ImportPreview> =>
   of.cohort ? previewLinkImport(of.cohort, csv) : previewCatalogImport(csv);
 
-/**
- * Previews `csv` for `of` and shows it. A preview writes nothing, so it is never in doubt: it is simply asked again.
- * Resolves to 'shown', to 'failed' (the preview on screen, if any, is dropped), or to 'stale' when another preview
- * or another target took its place.
- */
 async function show(of: Target, csv: string): Promise<'shown' | 'failed' | 'stale'> {
   const isNewest = newest.start();
   previewing.value = true;
@@ -155,7 +136,6 @@ async function show(of: Target, csv: string): Promise<'shown' | 'failed' | 'stal
     return 'shown';
   } catch (e) {
     if (!isNewest()) return 'stale';
-    // An older preview must not stay on screen, with a Confirm for its review version, as if it were the new one.
     preview.value = null;
     const failure = readFailure(e);
     if (failure.kind === 'signed_out') return 'failed';
@@ -181,14 +161,10 @@ async function previewDraft(): Promise<void> {
 }
 
 const refusalView = computed(() => (refusal.value && refusal.value.kind !== 'file' ? describeProblem({ outcome: 'refused', failure: refusal.value }, m.value) : null));
-/** Where the file is wrong, by record: from a preview, or from a file the API could not read at all. */
 const errors = computed<ImportRowError[]>(() => (refusal.value?.kind === 'file' ? refusal.value.errors : (preview.value?.result.errors ?? [])));
 
-// ---------- Confirm or cancel ----------
 const writes = useWrites();
-/** The preview made again to settle a confirmation that got no answer. */
 let landedPreview: { target: Target; csv: string; result: ImportPreview } | null = null;
-/** Where the last confirmation went, and the text it sent: its outcome is said for that file and that target. */
 let sent: { target: Target; csv: string } | null = null;
 
 stayWhileBusy(() => writes.busy.value || previewing.value);
@@ -215,7 +191,6 @@ async function confirm(): Promise<void> {
   sent = { target: of, csv };
   const result = await writes.send(
     () => (of.cohort ? confirmLinkImport(of.cohort, csv, version) : confirmCatalogImport(csv, version)),
-    // A file already saved previews as nothing to do: no error, nothing new, nothing changed.
     async () => {
       const fresh = await runPreview(of, csv);
       landedPreview = { target: of, csv, result: fresh };
@@ -236,27 +211,22 @@ async function settle(outcome: string, summary: { inserts: number; updates: numb
     notice.value = m.value.problem.confirmed;
     return;
   }
-  // Not saved: what is saved now is the preview just made.
   if (outcome === 'not_applied' && landedPreview) preview.value = landedPreview;
   if (failure?.kind === 'review_changed' && sent) {
-    // Nothing was saved, and the 409 carries no new review: preview the same file again, for the same target.
     const { target: of, csv } = sent;
     const refused = writes.problem.value;
     writes.clear();
     const shown = await show(of, csv);
     if (shown === 'shown') changed.value = true;
-    // No new preview: say that nothing was saved, beside why the preview failed.
     else if (shown === 'failed') writes.problem.value = refused;
   }
 }
 
-/** "Reload the data" after an unknown outcome: the file is previewed again, and nothing is sent to be saved. */
 async function recheck(): Promise<void> {
   const result = await writes.recheck();
   if (result) await settle(result.outcome, null, result.outcome === 'refused' ? result.failure : null);
 }
 
-/** Cancel (UC-11 A9): the file and its preview are dropped, and nothing is sent. */
 async function cancel(): Promise<void> {
   if (writes.busy.value) return;
   const had = draft.value !== null;
@@ -268,7 +238,6 @@ async function cancel(): Promise<void> {
 
 const confirmProblem = computed(() => (writes.problem.value ? describeProblem(writes.problem.value, m.value) : null));
 
-// ---------- What the preview shows ----------
 const header = computed(() => (type.value ? headerLine(type.value) : ''));
 const headerBox = ref<HTMLInputElement | null>(null);
 async function copyHeader(): Promise<void> {
@@ -276,7 +245,6 @@ async function copyHeader(): Promise<void> {
     await navigator.clipboard.writeText(header.value);
     toast.show(text.value.headerCopied);
   } catch (e) {
-    // No clipboard permission, or a page not served over HTTPS: select the header, so one key press copies it.
     console.error('Copying the header failed:', e);
     headerBox.value?.select();
     toast.show(text.value.headerNotCopied);
@@ -293,7 +261,6 @@ const changesOf = (row: CatalogImportRow) =>
   );
 const chip = { insert: 'ok', update: 'warn', no_op: '' } as const;
 
-// While a confirmation is out the target stays as it was sent, so its outcome is said for that target.
 function pickProgram(programId: string): void {
   if (writes.busy.value) return;
   picked.value = { programId, curriculumId: null };
@@ -510,7 +477,6 @@ function pickCohort(curriculumId: string): void {
 .import-changes { margin: 0; padding-left: 16px; font-size: 13px; }
 .import-affected > div { display: grid; gap: 4px; min-width: 0; }
 .import-affected ul { margin: 0; padding-left: 18px; font-size: 14px; }
-/* A cell of a phone card is narrow: a long action wraps inside it instead of running into the code beside it. */
 .import-rows .chip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .import-acts { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 620px) {

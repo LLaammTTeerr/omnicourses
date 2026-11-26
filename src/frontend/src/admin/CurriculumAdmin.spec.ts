@@ -29,7 +29,6 @@ import {
   PROGRAM_ID,
 } from './testing/fixtures.js';
 
-// Synthetic programs and courses only (AGENTS.md hard rule 3).
 const READ = 'GET /programs/ZZPROG/curricula/2024';
 const COHORT = `/admin/programs/${PROGRAM_ID}/cohorts/${CURRICULUM_ID}`;
 const GROUPS = `${COHORT}/requirement-groups`;
@@ -38,7 +37,6 @@ const lost = () => {
   throw new TypeError('Failed to fetch');
 };
 
-/** A grant for each of the two programs the fixture lists. */
 const BOTH_PROGRAMS = grants({ programs: [programGrant({ programId: OTHER_PROGRAM_ID, programCode: 'ZZEMPTY' }), programGrant()] });
 const ONLY_EMPTY_PROGRAM = grants({ programs: [programGrant({ programId: OTHER_PROGRAM_ID, programCode: 'ZZEMPTY' })] });
 const NEW_COHORT_ID = '00000000-0000-4000-8000-0000000000c9';
@@ -58,9 +56,7 @@ const cohortDetails = (overrides: Record<string, unknown> = {}) => ({
 const NO_PROGRAM_PERMISSION = status(403, { statusCode: 403, code: 'permission_required', permission: 'program_admin', message: 'This needs the program_admin permission' });
 
 let wrapper: VueWrapper | undefined;
-/** What the API has saved: the read route answers it, so a test changes it as a write would. */
 let saved: Curriculum;
-/** The grants the API answers for the signed-in administrator; a test changes them as a revocation would. */
 let own: UserGrants;
 
 async function render(routes: Record<string, unknown> = {}) {
@@ -68,7 +64,6 @@ async function render(routes: Record<string, unknown> = {}) {
   const app = await setup('/admin/curriculum');
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
-  // The fixture lists a program without a cohort first: open the one with cohorts.
   await chooseOption(wrapper.get('[data-test="admin-program"]'), 'ZZPROG · Chương trình thử');
   await flushPromises();
   return { w: wrapper, fetch, ...app };
@@ -112,9 +107,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       ['</>Kiến thức cơ sở thử', 'Bắt buộc', '12 TC', '3'],
       ['★Tự chọn thử', 'Tự chọn', 'Tối thiểu 8 TC', '0'],
     ]);
-    // A group's printed rule sits on its own line under the row; a group without one has no such line.
     expect(w.findAll('[data-test="group-note"]').map((note) => note.text())).toEqual(['Chọn tối thiểu 8 tín chỉ.']);
-    // The first group is open, with its courses.
     expect(get(w, 'group-panel').get('h3').text()).toBe('Kiến thức cơ sở thử · 3 học phần');
     expect(groupRow(w, BASE_GROUP.name).get('[data-test="group-open"]').attributes('aria-expanded')).toBe('true');
     expect(w.findAll('[data-test="course-row"]').map((row) => row.attributes('data-course'))).toEqual(['ZZ101', 'ZZ102', 'ZZ103']);
@@ -122,7 +115,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
 
   it('builds no control for what has no route: no program creation here, no credit-total or training-type box', async () => {
     const { w } = await render();
-    // Program creation is the access manager's, on the access screen; the import has its own section.
     expect(w.text()).not.toMatch(/Thêm chương trình/);
     expect(w.find('input[type="file"]').exists()).toBe(false);
     expect(get(w, 'open-import').attributes('href')).toBe(`/admin/import?type=group_links&program=${PROGRAM_ID}&cohort=${CURRICULUM_ID}`);
@@ -173,12 +165,10 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await get(dialog, 'group-notes').setValue('Ghi chú thử');
     await submit(w);
 
-    // The name goes as typed: the API trims it.
     expect(sentBody(calls(fetch, 'POST')[0]![1])).toEqual({ name: '  Nhóm thử mới ', kind: 'elective', officialNotes: 'Ghi chú thử' });
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(useToast().message).toBe('Đã thêm nhóm Nhóm thử mới.');
     expect(get(w, 'groups-title').text()).toBe('3 nhóm yêu cầu');
-    // The new group is opened, and the focus is back on the button that started it.
     expect(get(w, 'group-panel').attributes('data-group-id')).toBe(NEW_GROUP_ID);
     expect(get(w, 'no-courses').text()).toBe('Nhóm này chưa có học phần nào.');
     expect(document.activeElement).toBe(add.element);
@@ -200,7 +190,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     const dialog = w.get('dialog[open]');
     expect(problem(w).attributes('data-code')).toBe('validation_failed');
     expect(problem(w).get('p').text()).toBe('Máy chủ từ chối giá trị đã nhập. Chưa lưu gì.');
-    // A message that names no field of the form is listed below, as the API wrote it.
     expect(problem(w).findAll('li').map((li) => [li.text(), li.attributes('lang')])).toEqual([['property creditsTotal should not exist', 'en']]);
     const name = get(dialog, 'group-name');
     expect(name.attributes('aria-invalid')).toBe('true');
@@ -225,7 +214,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await edit.trigger('click');
     await flushPromises();
     const dialog = w.get('dialog[open]');
-    // The form opens on the saved values.
     expect((get(dialog, 'group-name').element as HTMLInputElement).value).toBe('Tự chọn thử');
     expect((get(dialog, 'group-kind-elective').element as HTMLInputElement).checked).toBe(true);
     expect((get(dialog, 'group-notes').element as HTMLTextAreaElement).value).toBe('Chọn tối thiểu 8 tín chỉ.');
@@ -235,7 +223,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(sentBody(calls(fetch, 'PATCH')[0]![1])).toEqual({ name: 'Tự chọn thử (sửa)', officialNotes: null });
     expect(useToast().message).toBe('Đã lưu nhóm Tự chọn thử (sửa).');
     expect(groupRow(w, 'Tự chọn thử (sửa)').exists()).toBe(true);
-    // The same row, so the focus is still on its Edit button.
     expect(document.activeElement).toBe(get(groupRow(w, 'Tự chọn thử (sửa)'), 'group-edit').element);
   });
 
@@ -261,7 +248,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(document.activeElement).toBe(edit.element);
 
-    // The draft is gone: the form opens on the saved name again. Escape reaches the dialog as a cancel event.
     await edit.trigger('click');
     await flushPromises();
     expect((get(w.get('dialog[open]'), 'group-name').element as HTMLInputElement).value).toBe('Tự chọn thử');
@@ -322,7 +308,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     const dialog = w.get('dialog[open]');
     expect(dialog.attributes('role')).toBe('alertdialog');
     expect(dialog.text()).toContain('Nhóm “Kiến thức cơ sở thử” sẽ bị xóa khỏi khóa này.');
-    // Asking sends nothing.
     expect(writes(fetch)).toEqual([]);
     await get(dialog, 'confirm-yes').trigger('click');
     await flushPromises();
@@ -342,7 +327,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(useToast().message).toBe('Đã xóa nhóm Tự chọn thử.');
     expect(w.findAll('[data-test="group-row"]')).toHaveLength(1);
-    // The row and its buttons are gone: the focus goes to a control that is still there.
     expect(document.activeElement?.id).toBe('add-group');
   });
 
@@ -551,7 +535,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await get(dialog, 'term-2').setValue(false);
       await get(dialog, 'term-3').setValue(false);
       await submit(w);
-      // An offering list is never empty: nothing ticked is a DELETE, not an empty PUT.
       expect(calls(fetch, 'PUT')).toHaveLength(1);
       expect(calls(fetch, 'DELETE').map(pathOf)).toEqual([RULE('ZZ103')]);
       expect([cell().attributes('data-state'), cell().text()]).toEqual(['not-recorded', 'Chưa ghi nhận']);
@@ -571,7 +554,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     it('reloads the saved data, and says the change is saved only because the reloaded data has it', async () => {
       const { w, fetch } = await render({
         [`PATCH ${GROUPS}/${GROUP_ELECTIVE_ID}`]: () => {
-          // The API saved it, but the answer never arrived.
           saved = curriculum([BASE_GROUP, { ...ELECTIVE_GROUP, name: 'Tự chọn thử B' }]);
           return lost();
         },
@@ -612,10 +594,8 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       expect(problem(w).text()).toContain('Chưa rõ thay đổi đã được lưu hay chưa. Hãy tải lại dữ liệu trước khi thử lại.');
       expect(useToast().message).toBe('');
       expect(w.text()).not.toContain('Đã lưu nhóm');
-      // The page still shows the values from before the write.
       expect(groupRow(w, 'Tự chọn thử').exists()).toBe(true);
 
-      // Reload reads the saved data again and settles the same write from it; the write itself is not sent again.
       offline = false;
       await get(w.get('dialog[open]'), 'admin-reload').trigger('click');
       await flushPromises();
@@ -641,7 +621,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       });
       await editElective(w, 'Tự chọn thử B');
       expect(problem(w).attributes('data-code')).toBe('unknown');
-      // Still offline: still unknown, and still no claim either way.
       await get(w.get('dialog[open]'), 'admin-reload').trigger('click');
       await flushPromises();
       expect(problem(w).attributes('data-code')).toBe('unknown');
@@ -655,7 +634,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await get(w.get('dialog[open]'), 'dialog-cancel').trigger('click');
       await flushPromises();
 
-      // The link form, which has no dialog, settles the same way beside its box.
       await get(w, 'link-code').setValue('ZZ104');
       await get(w, 'group-panel').get('form').trigger('submit');
       await flushPromises();
@@ -718,7 +696,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await flushPromises();
       expect(get(w, 'group-panel').get('[data-test="admin-problem"]').attributes('data-code')).toBe('unknown');
 
-      // The link may be saved: no other write starts before the saved data has been read.
       await get(w, 'add-group').trigger('click');
       await flushPromises();
       expect(w.find('dialog[open]').exists()).toBe(false);
@@ -743,7 +720,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await flushPromises();
     await get(w.get('dialog[open]'), 'confirm-yes').trigger('click');
     await flushPromises();
-    // The API answered: it is deleted. Only the list on screen is old.
     expect(useToast().message).toBe('Đã xóa nhóm Tự chọn thử.');
     expect(get(w, 'curriculum-stale').text()).toContain('Chưa tải lại được dữ liệu đã lưu. Những gì đang hiện có thể đã cũ.');
     offline = false;
@@ -768,15 +744,12 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await submit(w);
       await flushPromises();
 
-      // The grants were asked again: the navigation no longer lists Administration.
       expect(useAdminAccess(pinia).any).toBe(false);
-      // The form is still there, with what was typed, and says why nothing was saved.
       expect(problem(w).attributes('data-code')).toBe('permission_required');
       expect(problem(w).text()).toBe('Thao tác này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó. Chưa lưu gì.');
       expect((get(w.get('dialog[open]'), 'group-name').element as HTMLInputElement).value).toBe('Nhóm đang nhập dở');
       expect(has(w, 'admin-no-permission')).toBe(false);
 
-      // After Cancel the page is kept, and still says that the save was refused, and why.
       await get(w.get('dialog[open]'), 'dialog-cancel').trigger('click');
       await flushPromises();
       const refused = get(w, 'admin-refused');
@@ -786,7 +759,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       expect(groupRow(w, BASE_GROUP.name).exists()).toBe(true);
       expect(has(w, 'admin-no-permission')).toBe(false);
 
-      // Only when the administrator has read it does the page follow the grants they hold now.
       await get(w, 'admin-refused-close').trigger('click');
       await flushPromises();
       expect(has(w, 'admin-refused')).toBe(false);
@@ -805,7 +777,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await get(w, 'group-panel').get('form').trigger('submit');
       await flushPromises();
       await flushPromises();
-      // The sections follow the grants held now, but this one is not closed under the message.
       expect(w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV']);
       expect(has(w, 'admin-section-denied')).toBe(false);
       const note = get(w, 'group-panel').get('[data-test="admin-problem"]');
@@ -856,9 +827,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await submit(w);
       await flushPromises();
       expect(problem(w).attributes('data-code')).toBe('permission_required');
-      // The administrator still holds a program grant, so the section stays; the page is kept until the refusal is read.
       expect(optionsOf(get(w, 'admin-program'))).toHaveLength(2);
-      // A second Save of the kept draft goes to the same cohort, which refuses it again.
       await submit(w);
       await flushPromises();
       expect(calls(fetch, 'PATCH').map(pathOf)).toEqual(Array(2).fill(`${GROUPS}/${GROUP_ELECTIVE_ID}`));
@@ -892,7 +861,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
         [`PUT ${GROUPS}/${GROUP_BASE_ID}/courses/ZZ104`]: () =>
           new Promise<Response>((_resolve, reject) => {
             lose = () => {
-              // The API linked the course in cohort 2024; only the answer is lost.
               saved = curriculum([{ ...BASE_GROUP, courses: [...BASE_GROUP.courses, course('ZZ104')] }, ELECTIVE_GROUP]);
               reject(new TypeError('Failed to fetch'));
             };
@@ -901,19 +869,16 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await get(w, 'link-code').setValue('ZZ104');
       await get(w, 'group-panel').get('form').trigger('submit');
       await flushPromises();
-      // The request is still out when the administrator opens another cohort.
       await chooseOption(get(w, 'admin-cohort'), 'Khóa 2025');
       await flushPromises();
       expect(get(w, 'curriculum-summary').text()).toContain('ZZPROG2025');
       const [before2024, before2025] = [reads(fetch, 2024), reads(fetch, 2025)];
       lose();
       await flushPromises();
-      // The saved data of cohort 2024 is read, not that of the cohort now on screen.
       expect([reads(fetch, 2024), reads(fetch, 2025)]).toEqual([before2024 + 1, before2025]);
       const late = get(w, 'admin-late');
       expect(late.text()).toContain('ZZPROG · Khóa 2024');
       expect(late.text()).toContain('Dữ liệu đã lưu có thay đổi này.');
-      // Nothing claims the link is missing, and cohort 2025 stays on screen untouched.
       expect(w.find('[data-test="admin-problem"]').exists()).toBe(false);
       expect(w.findAll('[data-test="group-row"]').map((row) => row.attributes('data-group-name'))).toEqual(['Nhóm thử khóa 2025']);
     });
@@ -927,7 +892,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await get(w.get('dialog[open]'), 'group-kind-elective').setValue(true);
       await get(w.get('dialog[open]'), 'group-notes').setValue(ELECTIVE_GROUP.officialNotes!);
       await submit(w);
-      // "OmniCourse reloaded the saved data" is said only after a reload.
       expect(reads(fetch, 2024)).toBe(before + 1);
       expect(problem(w).attributes('data-code')).toBe('not_applied');
     });
@@ -965,7 +929,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       await get(w.get('dialog[open]'), 'group-name').setValue('Tự chọn thử B');
       await submit(w);
       expect(problem(w).attributes('data-code')).toBe('unknown');
-      // The same write cannot be sent again before the saved data has been read.
       expect(get(w.get('dialog[open]'), 'dialog-save').attributes('disabled')).toBeDefined();
       await submit(w);
       expect(calls(fetch, 'PATCH')).toHaveLength(1);
@@ -1000,7 +963,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     answer(NO_PROGRAM_PERMISSION());
     await flushPromises();
     expect(problem(w).attributes('data-code')).toBe('permission_required');
-    // The request is answered and its result is on screen: the administrator may leave.
     await router.push('/admin/access');
     expect(router.currentRoute.value.name).toBe('admin-access');
   });
@@ -1013,7 +975,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await get(w, 'group-panel').get('form').trigger('submit');
     await flushPromises();
     expect(w.find('#link-error').exists()).toBe(true);
-    // Typing a new code: the old refusal is no longer about what is in the box.
     await get(w, 'link-code').setValue('ZZ104');
     expect(w.find('#link-error').exists()).toBe(false);
     expect(get(w, 'group-panel').find('[data-test="admin-problem"]').exists()).toBe(false);
@@ -1022,7 +983,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await get(w, 'group-panel').get('form').trigger('submit');
     await flushPromises();
     expect(w.find('#link-error').exists()).toBe(true);
-    // Another action on the page, here opening a form.
     await get(courseRow(w, 'ZZ103'), 'edit-terms').trigger('click');
     await flushPromises();
     expect(w.find('#link-error').exists()).toBe(false);
@@ -1035,16 +995,13 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     const { w } = await render();
     const rows = w.findAll('[data-test="group-note-row"]');
     expect(rows).toHaveLength(2);
-    // The short rule: all of it, and nothing to press.
     expect(rows[0]!.get('[data-test="group-note"]').classes()).not.toContain('clamped');
     expect(rows[0]!.find('[data-test="group-note-toggle"]').exists()).toBe(false);
-    // The long rule: the whole text is in the page, cut to two lines for the eye, with a button that says its state.
     const note = rows[1]!.get('[data-test="group-note"]');
     const toggle = rows[1]!.get('[data-test="group-note-toggle"]');
     expect(note.text()).toBe(long);
     expect(note.classes()).toContain('clamped');
     expect([toggle.element.tagName, toggle.text(), toggle.attributes('aria-expanded'), toggle.attributes('aria-controls')]).toEqual(['BUTTON', 'Xem thêm', 'false', note.attributes('id')]);
-    // The name a screen reader says starts with the words on the button, then says which group.
     expect(toggle.attributes('aria-label')).toBe('Xem thêm ghi chú quy tắc của nhóm Tự chọn thử khác');
     await toggle.trigger('click');
     expect(note.classes()).not.toContain('clamped');
@@ -1063,7 +1020,6 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     await flushPromises();
     expect(get(w, 'curriculum-summary').text()).toContain('CTĐT thử khóa 2025 · ZZPROG2025');
     expect(w.findAll('[data-test="group-row"]').map((row) => row.attributes('data-group-name'))).toEqual(['Nhóm thử khóa 2025']);
-    // A write goes to the cohort on screen.
     await get(w, 'add-group').trigger('click');
     await flushPromises();
     await submit(w);
@@ -1153,7 +1109,6 @@ describe("CurriculumAdmin (UC-11 A1): the program's details and its cohorts", ()
     vi.restoreAllMocks();
   });
 
-  /** The programs the API lists, with a cohort of 2026 once it was created. */
   const withNewCohort = () => {
     const list = adminPrograms();
     list.programs[1]!.curricula.push({ id: NEW_COHORT_ID, code: 'ZZ-PROG-2026', cohortYear: 2026 });
@@ -1178,7 +1133,6 @@ describe("CurriculumAdmin (UC-11 A1): the program's details and its cohorts", ()
     expect(writes(fetch).map((call) => [pathOf(call), sentBody(call[1])])).toEqual([[`/admin/programs/${PROGRAM_ID}`, { nameEn: 'Test program' }]]);
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(useToast().message).toBe('Đã lưu chương trình ZZPROG.');
-    // The programs are listed again, for the name in the program list.
     expect(calls(fetch, 'GET').filter((call) => pathOf(call) === '/admin/programs')).toHaveLength(2);
   });
 

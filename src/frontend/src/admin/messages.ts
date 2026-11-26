@@ -7,7 +7,6 @@ import type { CohortField, CourseField, ProgramField } from './forms.js';
 import type { ImportFileType } from './api.js';
 import type { AdminSection } from './sections.js';
 
-/** The curriculum editor: requirement groups, their courses, prerequisites and offering terms (program grant). */
 interface CurriculumMessages {
   heading: string;
   program: string;
@@ -91,7 +90,6 @@ interface CurriculumMessages {
   termsCleared: (course: string) => string;
 }
 
-/** The shared course catalog (catalog maintainer, UC-11 A8). */
 interface CatalogMessages {
   heading: string;
   shared: string;
@@ -141,7 +139,6 @@ interface CatalogMessages {
   rebased: string;
 }
 
-/** Programs (created by an access manager) and their cohorts (program grant), UC-11 A1 and A2. */
 interface ProgramMessages {
   programsTitle: string;
   programsLead: string;
@@ -177,7 +174,6 @@ interface ProgramMessages {
   noChange: string;
 }
 
-/** CSV bulk entry (UC-11 A9): catalog courses, or group links of one cohort. */
 interface ImportMessages {
   heading: string;
   lead: string;
@@ -225,7 +221,6 @@ interface ImportMessages {
   reviewChanged: string;
 }
 
-/** Grants and revocations by user ID (access manager). */
 interface AccessMessages {
   heading: string;
   lead: string;
@@ -288,11 +283,8 @@ interface AdminMessages {
   cancel: string;
   close: string;
   notRecorded: string;
-  /** Names of permissions, any one of which is enough: “A” or “B”. */
   anyOf: (names: string[]) => string;
-  /** One error of an import file, by its record number (the header is record 1), never a line number. */
   importRowError: (record: number, field: string | null, message: string) => string;
-  /** What a failed write means, each from the API's error code (ADR 0011). */
   problem: {
     validation: string;
     serverAnswered: string;

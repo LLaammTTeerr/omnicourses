@@ -17,9 +17,6 @@ import DeleteAccountDialog from './DeleteAccountDialog.vue';
 import { SETTINGS_MESSAGES } from './messages.js';
 import { describeDevice } from './user-agent.js';
 
-// Settings (UI prototypes: settings.html), the parts with an API today: the onboarding answers (UC-01 A9), sessions
-// (ADR 0002), theme, language, export and deletion (ADR 0004), sign-out. Profile edits, password change and AI
-// consent wait for their API.
 const auth = useAuth();
 const locale = useLocale();
 const router = useRouter();
@@ -28,7 +25,6 @@ const toast = useToast();
 const m = useMessages(SETTINGS_MESSAGES);
 
 const sessions = useAsyncLoad('the sessions', () => listSessions());
-// The current session first, then the newest.
 const sorted = computed(() =>
   [...(sessions.data.value ?? [])].sort((a, b) => Number(b.current) - Number(a.current) || b.createdAt.localeCompare(a.createdAt)),
 );
@@ -73,8 +69,6 @@ async function download(): Promise<void> {
 
 const deleting = ref(false);
 
-// ADR 0011: an access manager grants a permission to an exact user ID, and there is no user search, so the user
-// copies their own ID from here. It is `UserDto.id`, as GET /users/me and every sign-in answer give it.
 const userIdField = ref<HTMLInputElement | null>(null);
 async function copyUserId(): Promise<void> {
   const id = auth.user?.id;
@@ -83,7 +77,6 @@ async function copyUserId(): Promise<void> {
     await navigator.clipboard.writeText(id);
     toast.show(m.value.userIdCopied);
   } catch (e) {
-    // No clipboard permission, or a page not served over HTTPS: select the ID, so one key press copies it.
     console.error('Copying the user ID failed:', e);
     userIdField.value?.select();
     toast.show(m.value.userIdNotCopied);
@@ -91,7 +84,6 @@ async function copyUserId(): Promise<void> {
 }
 
 async function signOut(): Promise<void> {
-  // Leave the private page first, so App.vue does not read the sign-out as a session that ended by itself.
   await router.push({ name: 'home' });
   await auth.signOut();
   toast.show(m.value.signedOut);
@@ -253,7 +245,6 @@ usePageTitle(() => m.value.title);
 .srow .value { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .srow-note { padding: 0 22px 8px; }
 .user-id { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-/* The whole ID shows: 36 characters, in the fixed-width font. */
 .user-id .input { flex: 1 1 calc(36ch + 28px); width: calc(36ch + 28px); min-width: 0; font-size: 13px; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .danger-zone { border-color: var(--bad); box-shadow: 4px 4px 0 var(--bad); }
@@ -268,7 +259,6 @@ usePageTitle(() => m.value.title);
 @media (max-width: 620px) {
   .srow { padding: 14px 16px; }
   .srow-note { padding: 0 16px 8px; }
-  /* Sessions read as one block each on a phone, each date with its label. */
   .sessions thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .sessions tr { display: grid; gap: 4px; padding: 12px 16px; border-top: 1px solid var(--line); }
   .sessions td { display: block; padding: 0; border: 0; text-align: left; }

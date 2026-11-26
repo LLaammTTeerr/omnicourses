@@ -9,11 +9,6 @@ import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
-// One course, opened from a tile (UI prototypes: explorer.html, the drawer). What the catalog stores, the groups
-// that list it, and a neutral mark when the student's own transcript has it. It lists the offering terms the
-// curriculum records (ADR 0011), and says "not recorded" when there are none. A course its curriculum records as
-// having no prerequisite (every APCS course but CS470) says that, one with recorded prerequisites (CS470: CS469)
-// lists them, and one with nothing recorded says "not recorded", which is not the same.
 const props = defineProps<{ course: CurriculumCourse | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 

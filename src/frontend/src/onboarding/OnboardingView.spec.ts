@@ -9,7 +9,6 @@ import { NOT_STARTED, type Onboarding } from './api.js';
 import { onboarding } from './testing/fixtures.js';
 import { chooseOption } from '../testing/select.js';
 
-// Synthetic programs: APCS as the API lists it, and one the release does not offer.
 const PROGRAMS: Program[] = [
   { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: 'Advanced Program (test)', faculty: null, trainingType: 'advanced', cohortYears: [2023, 2024, 2025] },
   { code: 'ZZCLC', nameVi: 'Chương trình thử chưa hỗ trợ', nameEn: null, faculty: null, trainingType: null, cohortYears: [2025] },
@@ -73,7 +72,6 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     expect(w.get('[data-test="program-APCS"]').attributes('aria-pressed')).toBe('true');
     await next(w);
 
-    // Only the offered cohorts that have a curriculum.
     expect(w.findAll('[data-test^="cohort-"]').map((b) => b.text())).toEqual([expect.stringContaining('Khóa 2024'), expect.stringContaining('Khóa 2025')]);
     expect(document.activeElement).toBe(w.get('h1').element);
     await w.get('[data-test="cohort-2025"]').trigger('click');

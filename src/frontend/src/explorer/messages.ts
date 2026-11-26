@@ -30,15 +30,10 @@ interface ExplorerMessages {
   periodKinds: { theory: string; lab: string; exercise: string; project: string };
   memberships: string;
   membershipsFailed: string;
-  /** The curriculum does not record the course's prerequisites. */
   noPrerequisites: string;
-  /** The curriculum records the course as having no prerequisite. */
   prerequisitesNone: string;
-  /** The curriculum records the course's prerequisites. */
   prerequisitesListed: (codes: string[]) => string;
-  /** The curriculum does not record the course's offering terms. */
   termsUnknown: string;
-  /** The term numbers (1, 2, 3) the curriculum records the course as offered in. */
   termsListed: (terms: number[]) => string;
   source: string;
 }

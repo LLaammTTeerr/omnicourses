@@ -106,7 +106,6 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     useAuth().clear();
     await nextTick();
     expect(access.grants).toBeNull();
-    // Signed out, the grants were revoked. The same account signs in again in this tab.
     answer = NO_GRANTS;
     signIn();
     expect(access.any).toBe(false);
@@ -144,7 +143,6 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     const access = useAdminAccess();
     await access.load();
     expect(access.any).toBe(true);
-    // Another account signs in in the same tab: nothing of the first one shows, before or after its own answer.
     signIn({ id: other });
     expect([access.any, access.grants]).toEqual([false, null]);
     answer = grants({ userId: other });
@@ -157,7 +155,6 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     const fetch = mockApi({ 'GET /admin/grants': () => new Promise<Response>((resolve) => answers.push(resolve)) });
     const access = useAdminAccess();
     const before = access.load();
-    // A grant changed after the first request left: a fresh load must ask again, not wait for the older answer.
     const fresh = access.load({ fresh: true });
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
     answers[1]!(Response.json(NO_GRANTS));
@@ -178,7 +175,6 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     await access.load({ fresh: true });
     expect([access.failed, access.retryable]).toEqual([true, false]);
     expect(fetch).toHaveBeenCalledTimes(3);
-    // The page's own Try again still asks, and an answer starts the count again.
     fail = false;
     await access.load({ fresh: true });
     expect([access.failed, access.retryable, access.any]).toEqual([false, false, true]);

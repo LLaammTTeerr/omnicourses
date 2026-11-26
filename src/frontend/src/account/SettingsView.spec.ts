@@ -22,7 +22,6 @@ const HERE = session({ id: '00000000-0000-4000-8000-0000000000b1', current: true
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
-/** `routed`: through a RouterView, so the view's route guards run. */
 async function render(routes: Record<string, unknown> = {}, { routed = false } = {}) {
   const fetch = mockApi({ 'GET /auth/sessions': [OLD, PHONE, HERE], 'GET /programs': { programs: [] }, ...routes });
   const app = await setup('/settings');
@@ -74,7 +73,6 @@ describe('SettingsView', () => {
     expect(writeText).toHaveBeenCalledExactlyOnceWith('00000000-0000-4000-8000-000000000001');
     expect(useToast().message).toBe('Đã sao chép mã người dùng.');
     expect(document.activeElement).toBe(copy.element);
-    // The ID is the one the session already holds: copying asks the API nothing.
     expect(fetch.mock.calls.length).toBe(calls);
     vi.unstubAllGlobals();
   });
@@ -139,7 +137,6 @@ describe('SettingsView', () => {
     await w.findAll('button').find((b) => b.text().includes('Xuất dữ liệu'))!.trigger('click');
     await flushPromises();
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/users/me/export'), expect.objectContaining({ headers: { Authorization: 'Bearer zz-token' } }));
-    // The file holds what the API sent. (Node's Blob and jsdom's differ, so check the content, not the class.)
     const saved = vi.mocked(URL.createObjectURL).mock.calls[0]![0] as Blob;
     expect(JSON.parse(await saved.text())).toEqual({ exportedAt: '2026-11-09T00:00:00.000Z', user: {}, tables: {} });
     expect(downloads).toEqual(['omnicourse-account.json']);
@@ -193,7 +190,6 @@ describe('SettingsView', () => {
     await flushPromises();
     expect(dialog.findAll('button').find((b) => b.text() === 'Giữ lại')!.attributes('disabled')).toBeDefined();
     expect(dialog.get('[role="status"]').text()).toBe('Đang xử lý…');
-    // Escape reaches the dialog as a cancel event; a browser without `closedby` may then close it anyway.
     await dialog.trigger('cancel');
     closeNatively(dialog.element);
     await flushPromises();
@@ -205,14 +201,12 @@ describe('SettingsView', () => {
     expect(useAuth().signedIn).toBe(true);
   });
 
-  // While busy, `closedby="none"` leaves the Android back gesture to the browser, which goes back in history.
   it('stays on the page when the student goes back during the deletion, then leaves once it is done', async () => {
     let answer!: (response: Response) => void;
     const { w } = await render(
       { 'DELETE /users/me': () => new Promise<Response>((resolve) => (answer = resolve)), 'GET /health': { status: 'ok', database: 'up' }, 'GET /guides': { guides: [] } },
       { routed: true },
     );
-    // A page to go back to.
     await router.push('/guides');
     await router.push('/settings');
     await flushPromises();
@@ -231,7 +225,6 @@ describe('SettingsView', () => {
     expect(useAuth().signedIn).toBe(false);
   });
 
-  // The server may have done it: a retry then gets a 401, which signs the student out, and signing in cancels it.
   it('says a deletion that got no answer may have gone through', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const timer = new AbortController();

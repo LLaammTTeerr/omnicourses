@@ -71,7 +71,6 @@ describe('guide types against the contract', () => {
   });
 
   it('has the note sources of the contract', () => {
-    // Stricter than the contract on purpose: the backend's guide validation requires the regulation fields.
     const kinds: Record<GuideNoteSource['kind'], true> = { regulation: true, team: true };
     const regulation: Record<keyof RegulationSource, true> = { kind: true, document: true, clause: true, url: true };
     expect(Object.keys(kinds).sort()).toEqual(contractEnum('GuideNoteSourceDto', 'kind'));

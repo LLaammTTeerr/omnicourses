@@ -8,9 +8,6 @@ import type { AuditOutcome, DegreeAudit } from './api.js';
 import { AUDIT_MESSAGES } from './messages.js';
 import { readyAudit } from './present.js';
 
-// The states both audit screens share: loading, failed with a retry, no program or curriculum yet (409, ADR 0013),
-// and the audit itself, with a note when no transcript is saved (UC-03 A1). A 401 shows nothing: the session is
-// over, and App.vue is already taking the student to sign in.
 const props = defineProps<{
   status: 'loading' | 'loaded' | 'failed';
   data: AuditOutcome | null;
@@ -21,7 +18,6 @@ defineSlots<{ default(props: { audit: DegreeAudit }): unknown }>();
 const m = useMessages(AUDIT_MESSAGES);
 
 const audit = computed(() => readyAudit(props.data));
-// Every transcript row has a term, so an audit with no term is one worked out from no transcript.
 const noTranscript = computed(() => audit.value !== null && audit.value.terms.length === 0);
 </script>
 

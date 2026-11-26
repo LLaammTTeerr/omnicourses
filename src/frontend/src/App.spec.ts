@@ -59,7 +59,6 @@ describe('App shell', () => {
     expect(holder.w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
     holder.w.unmount();
 
-    // The API could not say: the entry stays out, and nothing else breaks.
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const unknown = await render('/guides', true, { 'GET /admin/grants': () => new Response(null, { status: 503 }) });
     expect(unknown.w.find('[data-test="nav-admin"]').exists()).toBe(false);
@@ -75,7 +74,6 @@ describe('App shell', () => {
     await router.push('/privacy');
     await flushPromises();
     expect(w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
-    // Once it has an answer it does not ask on every page.
     const asked = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/admin/grants')).length;
     const before = asked();
     await router.push('/guides');

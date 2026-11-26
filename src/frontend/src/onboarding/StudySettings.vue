@@ -9,8 +9,6 @@ import GoalFields from './GoalFields.vue';
 import { STUDY_MESSAGES } from './messages.js';
 import { useOnboarding } from './store.js';
 
-// Settings: the onboarding answers, changed later (UC-01 A9). The same object is saved, finished stays as it is.
-// An unfinished onboarding is finished in the wizard, which this links to.
 const onboarding = useOnboarding();
 const toast = useToast();
 const m = useMessages(STUDY_MESSAGES);

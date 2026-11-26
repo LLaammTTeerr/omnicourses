@@ -143,7 +143,6 @@ describe('codePoints', () => {
     expect(codePoints('')).toBe(0);
     expect(codePoints('Học máy')).toBe(7);
     expect(codePoints('😀😀')).toBe(2);
-    // A variation selector is a code point of its own, as PostgreSQL counts it.
     expect(codePoints('✌️')).toBe(2);
   });
 });

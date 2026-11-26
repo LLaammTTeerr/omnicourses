@@ -216,6 +216,24 @@ The routes are in `src/frontend/src/router.ts`; that file is the list of screens
 | Feature folders | `auth/`, `onboarding/`, `transcript/`, `audit/`, `explorer/`, `curriculum/`, `plans/`, `calendar/`, `guides/`, `account/`, `privacy/`, `admin/` | One folder per feature. Which feature has a screen is in the [README feature table](../../README.md#what-is-built). |
 | Home | `views/HomeView.vue`, `components/ApiStatus.vue` | Landing page and API health. |
 
+### Browser behaviour the screens rely on
+
+Recorded on 26 November 2026, when the comments left the frontend code. The code does these things; this list says why.
+
+- **Busy dialogs.** `ModalDialog.vue` uses the native `<dialog>`. While a request is out, the dialog sets `closedby="none"`, so Escape cannot close it. Chrome lets a page prevent only one `cancel` event for each user activation (HTML close watchers). In a browser without `closedby`, a later Escape closes the dialog, so the component shows it again at once. `closedby` does not stop the Android back gesture, which goes back in history. So a screen with a busy dialog refuses to leave its route until the request answers. A 401 signs the user out, and the user may then leave.
+- **Focus.** Not every browser focuses a button when it is clicked, so a screen gives the focus back to the button it was given, not to `document.activeElement`.
+- **Downloads.** The export link is clicked, and its object URL is revoked only after the click has been handled. Some browsers cancel the download when the URL is revoked at once.
+- **Copy.** `navigator.clipboard` needs a permission and a page served over HTTPS. Without them, the screen selects the text, so one key press copies it.
+- **Browser storage.** Students' browsers keep the keys `omnicourse.session` and `omnicourse.lang`. A new key name signs everyone out once, or forgets every saved language choice. When the browser blocks storage (private mode, site data off), the screen language starts in Vietnamese.
+- **Text length.** `String.length` and the HTML `maxlength` attribute count UTF-16 units, so an emoji counts twice. The API counts code points (#179). The forms count code points too, and use no `maxlength`.
+- **Path segments.** A path segment of only dots is read by the browser as "this folder" or "the folder above". `segment()` in `api.ts` adds an encoded space to it, so the request stays at its address and the API refuses the value.
+- **Links to a part of a page.** vue-router decodes the hash before the page gets it; decoding it again throws on a stray `%`. The router scrolls before the data has loaded, so the audit page scrolls to the target itself once it is drawn.
+- **Return after sign-in.** The `redirect` in the address is used only when it is a path in the app. Another site, `//host`, `/\host` or a list is ignored, so a crafted link cannot send a student away.
+- **First paint.** `index.html` applies the saved theme before the first paint, so a dark page never flashes white; `shell/theme.ts` owns the theme after that. The fonts are Be Vietnam Pro for text and JetBrains Mono for course codes, both with the Vietnamese subset.
+- **Dates.** A `YYYY-MM-DD` date is a calendar date, not an instant, so it is formatted in UTC and no time zone moves it.
+- **Select menus.** `SelectMenu.vue` follows the WAI-ARIA "select-only combobox" pattern. Its list is fixed to the viewport, so a table or a scrolling card never clips it.
+- **Accessibility.** Colour is never the only cue: each status, refusal and requirement group is also given in words or a glyph. A page has one `main` landmark, the one in `App.vue`, so a view uses a `div`. A narrow administration table becomes cards: the column heads leave the screen but stay for screen readers, and each value shows its column's name from `data-label`. A live region is in the page from the start, so its text is announced when it appears. When an action removes the control that had the focus, the focus goes to a control that is still there, or to the title of the page or dialog. The privacy link on sign-up is outside the consent label, so a click opens the notice and does not tick the box.
+
 ## 6. Cross-cutting concerns
 
 | Concern | Rule | Where it lives | Decided in |

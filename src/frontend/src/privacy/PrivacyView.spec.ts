@@ -9,7 +9,6 @@ import PrivacyView from './PrivacyView.vue';
 let wrapper: VueWrapper | undefined;
 
 async function render(signedIn = false) {
-  // The notice is static: any API call is a mistake, and mockApi fails it.
   const fetch = mockApi({});
   const { pinia, router } = await setup('/privacy', { signedIn });
   wrapper = mount(PrivacyView, { global: { plugins: [pinia, router] }, attachTo: document.body });

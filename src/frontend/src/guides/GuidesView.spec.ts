@@ -79,7 +79,6 @@ describe('GuidesView (UC-10 steps 1–3)', () => {
     const empty = w.get('[data-test="no-match"]');
     expect(empty.text()).toContain('Chưa có hướng dẫn cho việc này.');
     expect(empty.findAll('button').map((b) => b.text())).toEqual(['Đăng ký học phần', 'Học phí và lệ phí']);
-    // B1: no Suggest a guide and no advisor link (UC-10 A2, B3).
     expect(empty.findAll('a')).toHaveLength(0);
 
     await empty.findAll('button')[1].trigger('click');

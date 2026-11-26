@@ -39,3 +39,13 @@ Place browser tests next to the feature as `*.browser.spec.ts`. `vite.config.ts`
 The frontend CI job installs Chromium's headless shell and its Linux libraries, then runs `npm run test:browser`. Failed assertions fail that required job. Vitest captures failure screenshots under `src/frontend/test-artifacts/browser`; CI uploads available screenshots as `browser-failures`. Startup failures may have no screenshot, so check the command log as well. Generated screenshots are ignored by Git.
 
 The provider choice and alternatives are recorded in [ADR 0008](../analysis-and-design/adr/0008-browser-testing.md).
+
+## Facts about the test environments
+
+Recorded on 26 November 2026, when the comments left the frontend code.
+
+- jsdom has no `showModal`, no close watcher and no `scrollIntoView`. `ModalDialog.vue` sets the `open` attribute when `showModal` is missing. Specs close a dialog with `closeNatively` in `testing/fetch.ts`, and a scroll test adds `scrollIntoView` and removes it again.
+- Node's `Blob` and jsdom's `Blob` are different classes, so a spec checks a file's content, not its class.
+- Vitest does not load CSS, so a `?raw` import of a stylesheet is empty. `groups.spec.ts` reads `styles.css` from the disk.
+- Font metrics differ between machines: CI measured a phone row at 275 to 279 px where a laptop measured less than 270 px. A size bound in a browser test leaves room for that.
+- How many `cancel` events Chrome sends for Escape depends on the page's activation history, so a browser test counts the `close` events, not the `cancel` events.

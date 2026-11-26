@@ -87,8 +87,6 @@ describe('auth store (ADR 0002)', () => {
     expect(useAuth().signedIn).toBe(false);
   });
 
-  // The plan the student had open last and their plan locks are this account's: the next account on this browser
-  // must not find them.
   const leaveAccountData = () => {
     rememberLastPlan('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
     setLocked('dddddddd-dddd-4ddd-8ddd-dddddddddddd', true);

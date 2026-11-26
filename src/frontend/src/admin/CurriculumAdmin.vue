@@ -67,23 +67,15 @@ import ProblemNote from './ProblemNote.vue';
 import { useAdminAccess, useProgramPicker } from './store.js';
 import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
-// The curriculum editor of a program administrator (ADR 0011, UC-11 basic flow; UI prototypes: admin.html, "Nhóm
-// yêu cầu"): the requirement groups of one granted program and cohort, the courses each links, and each course's
-// prerequisites and offering terms in that cohort. Every check is the API's: the page sends what was entered and
-// shows what the API answers, and it computes no academic rule (AGENTS.md hard rule 1). The program administrator
-// also edits the program's details, adds a cohort and edits one (UC-11 A1; "Thêm khóa" in the prototype). The
-// prototype's version line, the training type and credit-total editing have no route, so they are not here.
 const access = useAdminAccess();
 const locale = useLocale();
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.curriculum);
 
-// ---------- Program and cohort: only the ones the API lists for this user ----------
 const { programList, programsStatus, loadPrograms, picked, program, cohort } = useProgramPicker('the programs to administer');
 void loadPrograms();
 
-/** One cohort of one program: where a write goes, and where its saved data is read again. */
 interface Scope {
   ref: CohortRef;
   programCode: string;
@@ -94,29 +86,17 @@ const scope = computed<Scope | null>(() =>
 );
 const onScreen = (of: Scope): boolean => scope.value?.ref.curriculumId === of.ref.curriculumId;
 
-// The program grants changed (one was revoked, or given): offer the programs the user holds now. While a refused
-// save is on screen the page is kept as it was (AdminView), and the list follows once the refusal has been read.
 const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
 const listedIds = computed(() => (programList.value ?? []).map((item) => item.id).sort().join());
 watch([grantedIds, () => access.refusal], () => {
   if (!access.refusal && access.grants && programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void loadPrograms(true);
 });
 
-// ---------- The saved curriculum ----------
 const curriculum = shallowRef<Curriculum | null>(null);
 const status = ref<'loading' | 'loaded' | 'failed' | 'missing'>('loading');
-/**
- * What is on screen may be older than what is saved: a reload after a save failed, or a write whose outcome is
- * not known was left without reading the saved data. No other write starts until the reload has worked.
- */
 const stale = ref(false);
 const newest = newestOnly();
 
-/**
- * Reads the saved curriculum of `of` again. When `of` is the cohort on screen it is shown, with the page kept as it
- * is meanwhile, so the focus and the open group stay; a cohort the administrator has left is read and not shown.
- * Rejects when it cannot.
- */
 async function readSaved(of: Scope): Promise<Curriculum> {
   const isNewest = onScreen(of) ? newest.start() : null;
   const fresh = await fetchCurriculum(of.programCode, of.cohortYear);
@@ -128,7 +108,6 @@ async function readSaved(of: Scope): Promise<Curriculum> {
   return fresh;
 }
 
-/** Opens a cohort: nothing of the cohort before it stays on screen. */
 async function load(): Promise<void> {
   curriculum.value = null;
   stale.value = false;
@@ -147,7 +126,6 @@ async function load(): Promise<void> {
   }
 }
 
-/** Shows the saved values of the cohort on screen, after a write the API confirmed or on request; a failed reload is said, not hidden. */
 async function showSaved(): Promise<void> {
   const of = scope.value;
   if (!of) return;
@@ -163,21 +141,17 @@ async function showSaved(): Promise<void> {
 const groups = computed(() => curriculum.value?.requirementGroups ?? []);
 const openId = ref<string | null>(null);
 const openGroup = computed(() => groups.value.find((group) => group.id === openId.value) ?? null);
-// One group is open, as in the prototype: the first one, until another is opened.
 watch(groups, (list) => {
   if (!list.some((group) => group.id === openId.value)) openId.value = list[0]?.id ?? null;
 });
 
 const colour = (group: RequirementGroup) => groupColour(group);
 const glyph = (group: RequirementGroup) => GROUPS.find((item) => item.id === colour(group))!.glyph;
-/** The stored total, as stored: nothing here adds credits up. */
 const credits = (group: RequirementGroup) =>
   group.creditsTotal !== null ? text.value.creditsTotal(group.creditsTotal) : group.creditsTotalMin !== null ? text.value.creditsMin(group.creditsTotalMin) : m.value.notRecorded;
 
-// A printed rule can run to a paragraph. A long one shows two lines, with a button to read all of it, so the rows
-// stay short; a rule up to this length is always shown whole, so nothing is ever cut without that button.
-const LONG_NOTE = 120;
-const isLong = (notes: string) => notes.length > LONG_NOTE || notes.includes('\n');
+const NOTE_SHOWN_WHOLE_MAX_LENGTH = 120;
+const isLong = (notes: string) => notes.length > NOTE_SHOWN_WHOLE_MAX_LENGTH || notes.includes('\n');
 const expanded = ref<ReadonlySet<string>>(new Set());
 function toggleNote(groupId: string): void {
   const next = new Set(expanded.value);
@@ -185,44 +159,32 @@ function toggleNote(groupId: string): void {
   expanded.value = next;
 }
 
-// ---------- Writes ----------
 type Ask =
   | { type: 'group'; group: RequirementGroup | null }
   | { type: 'delete-group'; group: RequirementGroup }
   | { type: 'unlink'; group: RequirementGroup; course: CurriculumCourse }
   | { type: 'prerequisites'; course: CurriculumCourse }
   | { type: 'terms'; course: CurriculumCourse };
-/** A lost answer that the reloaded data settled: said on the page, since the dialog has closed. */
 const notice = ref<string | null>(null);
-/** `at`: the cohort on screen when the form opened. Its write goes there, whatever is on screen when it is sent. */
 const asking = useAdminDialog<Ask & { at: Scope }>({
   fallback: 'add-group',
   notice,
-  // Left with its outcome unknown: the page may not show what is saved, and says so until it is reloaded.
   stale: { reloadId: 'curriculum-reload', is: () => stale.value, mark: () => (stale.value = true) },
 });
-/** A write is answered and the saved data is being shown: the dialog stays busy until then. */
 const { dialog, writes: dialogWrites, busy } = asking;
 const linkWrites = useWrites();
-/** What became of a link sent for a cohort the administrator has since left: said on the page, with that cohort's name. */
 const late = shallowRef<{ tone: 'ok' | 'bad' | 'warn'; text: string; items: string[] } | null>(null);
 
-// A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
-// the request answers, so its result is said. A 401 has signed the user out, who may leave.
 stayWhileBusy(() => linkWrites.busy.value);
 
-/** The link form's message is about the last code sent: it goes when the administrator does something else. */
 function dropLinkProblem(): void {
-  // An outcome that is still unknown is not forgotten: the page says it may be out of date.
   if (linkWrites.problem.value?.outcome === 'unknown') stale.value = true;
   linkWrites.clear();
 }
 
-/** `from`: the click that asked for it. Its button gets the focus back; not every browser focuses a button on a click. */
 function open(next: Ask, from: Event): void {
   const at = scope.value;
   if (!at) return;
-  // First: a link whose outcome is unknown makes the page stale, and a stale page opens no form.
   dropLinkProblem();
   if (stale.value) return;
   notice.value = null;
@@ -230,21 +192,13 @@ function open(next: Ask, from: Event): void {
   asking.open({ ...next, at }, from);
 }
 
-/** Closes the dialog and puts the focus back where it was, or on `fallback` when that control is gone. */
 const close = asking.close;
 
-/** Cancel (UC-11 A6): the draft is dropped and nothing is sent. Refused while a request is out. */
 const cancel = asking.cancel;
 
-/** Ends a dialog's write: closed with its result said when it is saved, left open with the problem when it is not. */
 const finish = (result: WriteOutcome<unknown>, saved: string, fallback?: string): Promise<boolean> =>
-  // Saved for sure: show the saved values before the dialog closes. Confirmed: the reload has just been done.
   asking.finish(result, saved, { before: () => (result.outcome === 'saved' ? showSaved() : undefined), fallback });
 
-/**
- * "Reload the data" after an unknown outcome (UC-11 A7): reads the saved curriculum again and says what it shows
- * of the same write, which is not sent again. Saved: the dialog closes with the notice. Not saved: it says so.
- */
 async function recheckDialog(): Promise<void> {
   if ((await dialogWrites.recheck())?.outcome !== 'confirmed') return;
   await close();
@@ -279,7 +233,6 @@ async function saveGroup(entered: GroupValues): Promise<void> {
     await finish(result, text.value.groupSaved(name));
     return;
   }
-  // The new group is the one whose ID was not there before: a group of the same name already on screen is not it.
   const before = new Set(onScreen(at) ? groups.value.map((group) => group.id) : []);
   const isNew = (group: RequirementGroup) => !before.has(group.id) && groupMatches(group, entered);
   const result = await dialogWrites.send(
@@ -316,8 +269,6 @@ async function link(): Promise<void> {
     async () => groupHas(await readSaved(at), group.id, code),
   );
   if (!onScreen(at) || openId.value !== group.id) {
-    // The administrator opened another cohort, or another group, while the request was out: the outcome is about
-    // the group it was sent to, and is said with that group's name, not under the link box now on screen.
     const where = onScreen(at) ? text.value.groupLabel(at.programCode, at.cohortYear, group.name) : text.value.cohortLabel(at.programCode, at.cohortYear);
     const problem = linkWrites.problem.value && describeProblem(linkWrites.problem.value, m.value, LINK_FIELDS);
     linkWrites.clear();
@@ -363,7 +314,6 @@ async function savePrerequisites(choice: PrerequisiteChoice): Promise<void> {
   await finish(result, choice.state === 'not_recorded' ? text.value.prerequisitesCleared(code) : text.value.prerequisitesSaved(code));
 }
 
-/** No term: back to not recorded, since an offering list is never empty. */
 async function saveTerms(terms: number[]): Promise<void> {
   const current = dialog.value;
   if (current?.type !== 'terms') return;
@@ -380,20 +330,15 @@ async function saveTerms(terms: number[]): Promise<void> {
   await finish(result, terms.length ? text.value.termsSaved(code) : text.value.termsCleared(code));
 }
 
-// ---------- The program's details and its cohorts (UC-11 A1) ----------
-// Their own dialog and writes: they do not depend on the curriculum on screen, and a program with no cohort yet
-// still offers "Add a cohort".
 type ProgramAsk =
   | { type: 'program'; programId: string; saved: SavedProgram }
   | { type: 'add-cohort'; programId: string; programCode: string }
   | { type: 'edit-cohort'; ref: CohortRef; programCode: string; saved: CohortDetails };
 const programForm = useAdminDialog<ProgramAsk>({ fallback: 'cohort-add', notice });
 const { dialog: programDialog, writes: programWrites, busy: programBusy } = programForm;
-/** The details to edit could not be read: said in the banner, with nothing opened. */
 const detailsFailed = ref<string | null>(null);
 const opening = ref(false);
 
-/** The program's details as the read API gives them: GET /admin/programs lists only its code and Vietnamese name. */
 async function readProgram(code: string): Promise<SavedProgram | null> {
   const { programs } = await fetchPrograms();
   return programs.find((item) => item.code === code) ?? null;
@@ -451,7 +396,6 @@ function editCohort(from: Event): void {
 const closeProgramDialog = programForm.close;
 const cancelProgramDialog = programForm.cancel;
 
-/** Ends a program or cohort write: the programs are listed again, then the dialog closes with its result. */
 async function finishProgram(result: WriteOutcome<unknown>, saved: string, after?: () => void): Promise<void> {
   await programForm.finish(result, saved, {
     before: async () => {
@@ -495,7 +439,6 @@ async function saveCohort(values: CohortValues): Promise<void> {
       () => updateCohort(at, body),
       async () => cohortMatches(await fetchCohort(at), values),
     );
-    // The curriculum's names are on screen: show the saved ones.
     if (result.outcome === 'saved' || result.outcome === 'confirmed') await showSaved();
     await finishProgram(result, m.value.programs.cohortSaved(saved.cohortYear));
     return;
@@ -512,13 +455,11 @@ async function saveCohort(values: CohortValues): Promise<void> {
     },
   );
   if (result.outcome === 'saved') created = result.value.id;
-  // The new cohort is opened: it has no group yet.
   await finishProgram(result, m.value.programs.cohortCreated(values.cohortYear.trim()), () => {
     if (created) picked.value = { programId, curriculumId: created };
   });
 }
 
-/** "Reload the data" after an unknown outcome: the same write is settled from the saved data, not sent again. */
 async function recheckProgram(): Promise<void> {
   const result = await programWrites.recheck();
   if (result?.outcome === 'confirmed') await finishProgram(result, '');
@@ -531,11 +472,9 @@ const programProblem = computed<ProblemView<(typeof PROGRAM_FIELDS)[number]> | n
 const cohortProblem = computed<ProblemView<(typeof COHORT_FIELDS)[number]> | null>(() => {
   if (!programDialog.value || programDialog.value.type === 'program' || !programWrites.problem.value) return null;
   const problem = describeProblem(programWrites.problem.value, m.value, COHORT_FIELDS);
-  // A curriculum has this code, not a catalog course.
   return problem.code === 'duplicate_code' ? { ...problem, text: m.value.programs.duplicateCohortCode } : problem;
 });
 
-// ---------- What a write that is not known to be saved says ----------
 const groupProblem = computed(() => (dialog.value?.type === 'group' && dialogWrites.problem.value ? describeProblem(dialogWrites.problem.value, m.value, GROUP_FIELDS) : null));
 const prerequisitesProblem = computed(() =>
   dialog.value?.type === 'prerequisites' && dialogWrites.problem.value ? describeProblem(dialogWrites.problem.value, m.value, PREREQUISITE_FIELDS) : null,
@@ -547,7 +486,6 @@ const confirmProblem = computed(() =>
 const linkProblem = computed(() => {
   if (!linkWrites.problem.value) return null;
   const problem = describeProblem(linkWrites.problem.value, m.value, LINK_FIELDS);
-  // A 404 here is the catalog not having the code (or the group being gone): say that, not "this item".
   return problem.code === 'not_found' ? { ...problem, text: text.value.linkNotFound } : problem;
 });
 const confirmText = computed(() => {
@@ -618,7 +556,6 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
       </div>
       <p v-if="detailsFailed" class="callout bad" role="alert" data-test="details-failed"><Icon name="alert" /><span>{{ detailsFailed }}</span></p>
 
-      <!-- The outcome of a link sent for a cohort the administrator has since left, with that cohort's name. -->
       <div v-if="late" class="callout admin-late" :class="late.tone" :role="late.tone === 'ok' ? 'status' : 'alert'" data-test="admin-late">
         <Icon :name="late.tone === 'ok' ? 'check' : 'alert'" />
         <div>
@@ -659,7 +596,6 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
           <p class="admin-note small t3">{{ text.totalsReadOnly }}</p>
           <p v-if="groups.length === 0" class="admin-empty t2" data-test="no-groups">{{ text.noGroups }}</p>
           <div v-else class="table-wrap">
-            <!-- On a narrow screen each row is a card (the styles below): every value with its name, the actions in view. -->
             <table class="table admin-cards admin-groups">
               <thead>
                 <tr>
@@ -693,7 +629,6 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                       </div>
                     </td>
                   </tr>
-                  <!-- The printed rule, on its own line under the row. All of a long one is a button away, never cut for good. -->
                   <tr v-if="group.officialNotes" :class="['group-note', groupClass(colour(group)), { on: group.id === openId }]" data-test="group-note-row" :data-group-id="group.id">
                     <td colspan="5">
                       <div class="note">
@@ -760,7 +695,6 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                     <th scope="row"><span class="code c">{{ course.code }}</span></th>
                     <td class="name">{{ courseName(course, locale.lang) }}</td>
                     <td class="r" :data-label="text.courseColumns.credits">{{ course.credits }}</td>
-                    <!-- Not recorded (unknown) and none (recorded) are different facts: each in its own words, never by colour alone. -->
                     <td data-test="prerequisites" :data-state="prerequisiteState(course)" :data-label="text.courseColumns.prerequisites">
                       <div class="rule">
                         <span v-if="course.prerequisites === null" class="chip warn"><Icon name="info" size="sm" />{{ m.notRecorded }}</span>
@@ -863,7 +797,6 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
 </template>
 
 <style>
-/* The admin prototype (ui-prototypes/admin.html): the program and cohort banner, the groups table, one open group. */
 .admin-banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: color-mix(in oklab, var(--hi) 55%, var(--surface)); border-radius: 16px; border: 1px solid var(--edge); flex-wrap: wrap; }
 .admin-banner .field { min-width: 180px; }
 .admin-banner .grow { flex: 1; min-width: 200px; }
@@ -876,7 +809,6 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
 .admin-empty { padding: 24px 22px; }
 .admin-groups tr.on > * { background: var(--c-air); }
 .admin-groups .group-name { display: flex; gap: 10px; align-items: center; min-width: 160px; }
-/* A row and the line of its printed rule read as one: no rule between them. */
 .admin-section .admin-groups tr.noted > * { border-bottom: 0; padding-bottom: 6px; }
 .admin-groups tr.group-note > td { padding-top: 0; }
 .admin-groups .note { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 13px; color: var(--ink-2); padding-left: 36px; }
@@ -892,14 +824,12 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
   .admin-note { padding: 0 16px 8px; }
   .group-panel { padding: 16px; }
 }
-/* Narrow: each row is a card (the shared rules are in AdminView.vue). */
 @media (max-width: 760px) {
   .admin-groups tr.on { background: var(--c-air); }
   .admin-groups tr.noted { padding-bottom: 6px; }
   .admin-groups tr.group-note { display: block; border-top: 0; padding-top: 0; }
   .admin-groups .note { padding-left: 0; }
   .admin-groups .group-name { min-width: 0; }
-  /* A course: its code and the button that removes it on the first line, then its name and each rule with its name. */
   .admin-courses tr { grid-template-columns: minmax(0, 1fr) auto; }
   .admin-courses th[scope='row'] { grid-column: 1; grid-row: 1; align-self: center; }
   .admin-courses td.acts { grid-column: 2; grid-row: 1; }

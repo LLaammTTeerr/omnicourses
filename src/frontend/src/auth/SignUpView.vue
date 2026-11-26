@@ -13,8 +13,6 @@ import { passwordStrength, strengthFill } from './password-strength.js';
 import { afterSignIn } from './redirect.js';
 import { useAuth } from './store.js';
 
-// F1 sign-up (issue #13), with the consent the API records as consent_at (Luật 91/2025/QH15). The form checks what
-// SignUpDto checks, so a 400 should not happen; if it does, the API's answer wins.
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();
@@ -146,7 +144,6 @@ usePageTitle(() => m.value.signUp);
           />
           <span><b>{{ m.consent }}</b><br /><span id="sign-up-consent-detail" class="small t2">{{ m.consentDetail }}</span></span>
         </label>
-        <!-- Outside the label, so a click opens the notice instead of ticking the box; a new tab keeps what was typed. -->
         <p class="small privacy-link">
           <ExternalLink class="link" :href="router.resolve({ name: 'privacy' }).href" data-test="privacy-link">{{ m.privacyLink }}</ExternalLink>
         </p>
@@ -177,8 +174,7 @@ usePageTitle(() => m.value.signUp);
 </template>
 
 <style scoped>
-/* Lined up with the consent text: the checkbox's 20 px plus the label's 10 px gap. */
 .privacy-link {
-  margin: 6px 0 0 30px;
+  margin: 6px 0 0 calc(20px + 10px);
 }
 </style>

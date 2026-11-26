@@ -2,10 +2,6 @@
 import { computed, nextTick, onBeforeUnmount, ref, useAttrs, useId, watch } from 'vue';
 import Icon from '../shell/Icon.vue';
 
-// The app's own select (WAI-ARIA "select-only combobox"): a button that shows the choice and opens a styled list.
-// Focus stays on the button; the arrows, Home, End and a first letter move through the options, Enter or Space
-// picks, Escape closes. The list is fixed to the viewport, so a table or a scrolling card never clips it. Attributes
-// such as aria-label, aria-invalid, aria-describedby, id and data-test go on the button; class goes on the wrapper.
 defineOptions({ inheritAttrs: false });
 
 interface SelectOption<V> {
@@ -211,7 +207,6 @@ onBeforeUnmount(() => {
 .ui-select-list li[aria-disabled='true'] { color: var(--ink-3); cursor: not-allowed; }
 :root[data-theme='dark'] .ui-select-list { background: var(--surface-2); border-color: var(--edge-strong); }
 :root[data-theme='dark'] .ui-select-list li.active { background: var(--surface-3); }
-/* It drops down: the list unrolls from its top edge (from its bottom edge when it opens upward). */
 @keyframes ui-select-in { from { opacity: 0.4; clip-path: inset(0 0 100% 0 round 12px); transform: translateY(-6px); } to { opacity: 1; clip-path: inset(0 0 0 0 round 12px); } }
 @keyframes ui-select-in-up { from { opacity: 0.4; clip-path: inset(100% 0 0 0 round 12px); transform: translateY(calc(-100% + 6px)); } to { opacity: 1; clip-path: inset(0 0 0 0 round 12px); transform: translateY(-100%); } }
 .ui-select-list li { animation: ui-select-item 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

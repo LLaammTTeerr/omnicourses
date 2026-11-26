@@ -71,7 +71,6 @@ describe('SignUpView (F1, issue #13)', () => {
   it('counts the display name in characters as the API does, so 100 emoji pass and 101 do not (#179)', async () => {
     const fetch = mockApi({ 'POST /auth/sign-up': () => Response.json(authResult(), { status: 201 }) });
     const { w } = await render();
-    // No maxlength: the browser counts UTF-16 units and would stop the typing at 50 emoji.
     expect(w.get('#sign-up-displayName').attributes('maxlength')).toBeUndefined();
     await fill(w, { name: '😀'.repeat(101) });
     await submit(w);
@@ -105,7 +104,6 @@ describe('SignUpView (F1, issue #13)', () => {
     const link = w.get('.box [data-test="privacy-link"]');
     expect(link.attributes('href')).toBe('/privacy');
     expect(link.attributes('target')).toBe('_blank');
-    // Outside the label: following the link must not tick the consent box.
     expect(link.element.closest('label')).toBeNull();
     expect(link.text()).toBe('Đọc thông báo quyền riêng tư (mở ở tab mới)');
     useLocale().set('en');

@@ -185,13 +185,11 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
   });
 });
 
-// Synthetic IDs and codes (AGENTS.md hard rule 3).
 const TOKEN = 'zz-token';
 const COHORT = { programId: '00000000-0000-4000-8000-0000000000a1', curriculumId: '00000000-0000-4000-8000-0000000000c1' };
 const GROUP = '00000000-0000-4000-8000-000000000a01';
 const USER = '00000000-0000-4000-8000-000000000002';
 
-/** Every call of api.ts, with the method and the contract path it must reach. */
 const CALLS: [name: string, call: () => Promise<unknown>, method: string, path: string][] = [
   ['fetchOwnGrants', () => api.fetchOwnGrants(), 'get', '/api/admin/grants'],
   ['fetchAdminPrograms', () => api.fetchAdminPrograms(), 'get', '/api/admin/programs'],
@@ -242,7 +240,6 @@ describe('administration addresses against the contract', () => {
     expect(paths[path], `the contract has no ${path}`).toBeDefined();
     expect(Object.keys(paths[path]!)).toContain(method);
     expect(matches(path, sent), `${sent} is not ${path}`).toBe(true);
-    // No other route of the contract takes this address: the call cannot land on a neighbour.
     expect(Object.keys(paths).filter((other) => matches(other, sent) && Object.hasOwn(paths[other]!, method))).toEqual([path]);
   });
 
@@ -272,7 +269,6 @@ describe('administration addresses against the contract', () => {
   it('keeps a typed value one path segment, whatever it holds', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
     await api.linkCourse(COHORT, GROUP, ' zz 1/01 ');
-    // Only dots would be read by the browser as "the folder above": the API gets it as a value, and refuses it.
     await api.linkCourse(COHORT, GROUP, '..');
     await api.fetchUserGrants('.');
     const base = `${API_URL}/admin/programs/${COHORT.programId}/cohorts/${COHORT.curriculumId}/requirement-groups/${GROUP}/courses`;

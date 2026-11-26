@@ -8,7 +8,6 @@ import { setup } from '../testing/signed-in.js';
 import type { TranscriptRow } from './api.js';
 import { chooseOption } from '../testing/select.js';
 
-// Synthetic rows only (AGENTS.md hard rule 3).
 const SAVED: TranscriptRow[] = [
   { courseCode: 'ZZ101', courseName: 'Môn thử một', credits: 4, result: 'graded', grade: 8.5, term: { year: 2024, number: 1 } },
   { courseCode: 'ZZ102', courseName: 'Môn thử hai', credits: 3, result: 'in_progress', grade: null, term: { year: 2025, number: 1 } },
@@ -21,7 +20,6 @@ async function render(routes: Record<string, unknown> = {}) {
   const fetch = mockApi({ 'GET /users/me/transcript': { rows: SAVED }, ...routes });
   const app = await setup('/transcript');
   router = app.router;
-  // Through RouterView, as the app shows it, so the page's leave guard is registered.
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch };
@@ -73,7 +71,6 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(w.get('[data-test="problems-2"]').text()).toBe('Cần sửa: mã môn (2–20 chữ hoặc số), tên môn (tối đa 255 ký tự), số TC (0–30), kết quả');
     const code = row(w, 2).get('input.code-input');
     expect(code.attributes('aria-invalid')).toBe('true');
-    // The words under the row describe each field it names, so a screen reader hears what to fix.
     expect(document.getElementById(code.attributes('aria-describedby')!)?.textContent?.trim()).toBe(w.get('[data-test="problems-2"]').text());
     expect(row(w, 2).find('[role="combobox"]').attributes('aria-describedby')).toBeUndefined();
     expect(saveButton(w).attributes('disabled')).toBeDefined();
@@ -114,7 +111,6 @@ describe('TranscriptView (F2, UC-02)', () => {
     expect(term.attributes('aria-label')).toBe('Học kỳ, dòng 1 (ZZ101)');
     expect(term.text()).toBe('HK1 2024–2025');
     await chooseOption(term, 'HK3 2023–2024');
-    // Term 3 is a main term in APCS, not summer (ADR 0009, amended 9 November 2026).
     expect(term.text()).toBe('HK3 2023–2024');
     await saveButton(w).trigger('click');
     await flushPromises();

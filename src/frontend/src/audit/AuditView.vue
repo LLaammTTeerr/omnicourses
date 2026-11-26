@@ -12,17 +12,10 @@ import AuditGate from './AuditGate.vue';
 import { AUDIT_MESSAGES } from './messages.js';
 import { combinedNamesOf, conditionFor, conditionLabel, formatScore, groupName, notPassedByStatus, shownGroups, useAudit, withoutOwnCondition } from './present.js';
 
-// The degree audit (F3, UC-03, ADR 0013): every requirement group with the courses counted in it, its credits and
-// what is missing; the minimums across groups; the graduation conditions with the clause each one cites; each term's
-// load and averages; and the courses that count toward nothing. All of it is the API's answer, shown as it comes
-// (AGENTS.md hard rule 1).
 const locale = useLocale();
 const m = useMessages(AUDIT_MESSAGES);
 const { status, data, error, reload, audit } = useAudit();
 
-// The dashboard links to a group, a combined minimum or the conditions by hash. The router scrolls before the audit
-// has loaded, when the target does not exist yet, so the page scrolls to it once it is drawn. The router has already
-// decoded the hash; decoding it again would throw on a stray %.
 const route = useRoute();
 watch(
   () => [status.value, route.hash] as const,
@@ -36,18 +29,12 @@ watch(
 
 const score = (value: number | null) => formatScore(value, locale.lang) ?? '–';
 
-/** The grade, or the result when there is no grade (exempt, pass, fail), or nothing. */
 function outcome(course: Pick<CourseCoverage, 'grade' | 'result'>): string {
   if (course.grade !== null) return score(course.grade);
   if (course.result === 'exempt' || course.result === 'pass' || course.result === 'fail') return m.value.results[course.result];
   return '–';
 }
 
-/**
- * What a group still needs, in words: the API's remaining credits (none written as 0: what is left may all be in
- * progress), and for a compulsory group its courses not passed, by status. A group with no condition of its own
- * points to the combined minimum that is its rule.
- */
 function missingLine(a: DegreeAudit, group: GroupCoverage): string {
   if (withoutOwnCondition(a, group)) {
     const names = combinedNamesOf(a, group.id);
@@ -63,7 +50,6 @@ function missingLine(a: DegreeAudit, group: GroupCoverage): string {
 
 const groupCondition = (a: DegreeAudit, id: string) => conditionFor(a, `group:${id}`);
 const combinedCondition = (a: DegreeAudit, id: string) => conditionFor(a, `combined:${id}`);
-// The list's heading says the status in words; the glyph repeats it beside each condition.
 const stateGlyph = (condition: GraduationCondition) => (condition.status === 'met' ? '✓' : condition.status === 'not_met' ? '○' : '?');
 
 usePageTitle(() => m.value.auditTitle);
@@ -304,7 +290,6 @@ usePageTitle(() => m.value.auditTitle);
   border: 1px solid var(--edge); white-space: normal; overflow-wrap: anywhere;
 }
 .au-group { display: grid; gap: 12px; }
-/* The dashboard links here by hash: a target keeps clear of the top edge, and of the phone's sticky top bar. */
 .audit-page :is(#graduation, .au-group, .au-list > li[id]) { scroll-margin-top: 16px; }
 .au-group-head { display: flex; gap: 12px; align-items: flex-start; }
 .au-group-title { flex: 1; min-width: 0; display: grid; gap: 2px; }

@@ -2,9 +2,6 @@ import type { RequirementGroupKind } from '../curriculum/api.js';
 import type { Lang } from '../locale.js';
 import type { AuditWarning, AuditWarningCode, CapRule, Classification, CourseStatus, TermKind } from './api.js';
 
-// The words of the dashboard and the degree audit. Every number they hold is the API's; these only phrase it.
-
-/** "1 credit", "4 credits". */
 const credits = (n: number) => `${n} credit${n === 1 ? '' : 's'}`;
 
 interface AuditMessages {
@@ -24,7 +21,6 @@ interface AuditMessages {
   noTranscriptTitle: string;
   noTranscriptText: string;
   enterTranscript: string;
-  // Graduation
   graduation: string;
   graduationDone: string;
   graduationNotYet: string;
@@ -36,7 +32,6 @@ interface AuditMessages {
   notCheckedText: string;
   metTitle: string;
   unmetTitle: string;
-  // Credits
   creditsTitle: string;
   creditsOf: (passed: number, total: number | null) => string;
   totalNotRecorded: string;
@@ -45,7 +40,6 @@ interface AuditMessages {
   accumulated: (n: number) => string;
   accumulatedHint: string;
   creditsShort: (n: number) => string;
-  // GPA
   gpaTitle: string;
   average: string;
   accumulatedAverage: string;
@@ -53,7 +47,6 @@ interface AuditMessages {
   classification: string;
   classifications: Record<Classification, string>;
   noGrade: string;
-  // Groups
   groupsTitle: string;
   legendPassed: string;
   legendOverflow: string;
@@ -73,12 +66,10 @@ interface AuditMessages {
   combinedTitle: string;
   combinedCredits: (credits: number, min: number) => string;
   combinedOf: (names: string) => string;
-  // Unmet on the dashboard
   attentionTitle: string;
   attentionNone: string;
   attentionMore: (n: number) => string;
   seeAudit: string;
-  // Courses
   courseTable: (group: string) => string;
   code: string;
   course: string;
@@ -90,7 +81,6 @@ interface AuditMessages {
   outsideTotal: string;
   outsideGpa: string;
   results: { exempt: string; pass: string; fail: string };
-  // Terms
   termsTitle: string;
   term: string;
   termKinds: Record<TermKind, string>;
@@ -101,17 +91,14 @@ interface AuditMessages {
   caps: (min: number | null, max: number) => string;
   capRules: Record<CapRule, (credits: number, limit: number) => string>;
   noViolation: string;
-  // Unmatched and warnings
   unmatchedTitle: string;
   unmatchedText: string;
   warningsTitle: string;
   warnings: Record<AuditWarningCode, (warning: AuditWarning) => string>;
-  // Conditions
   totalCondition: (n: number | null) => string;
   combinedCondition: (name: string, min: number) => string;
   conditions: Record<string, string>;
   citation: string;
-  // Links
   nextTitle: string;
   openAudit: string;
   openAuditText: string;
