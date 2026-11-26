@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import type { EntityManager } from 'typeorm';
-import { conflict, notFound } from '../common/api-errors.js';
-import { trimmedOrNull } from '../common/field-validators.js';
+import { conflict } from '../common/api-errors.js';
+import { changedFields, trimmedOrNull } from '../common/field-validators.js';
 import { Curriculum } from '../curriculum/curriculum.entity.js';
 import { Program } from '../curriculum/program.entity.js';
+import { cohortIn, programIn } from './admin-lookups.js';
 import { AdminWriteService } from './admin-write.service.js';
 import { COHORT_FIELDS, CohortDetailsDto, CreateCohortDto, CreateProgramDto, PROGRAM_FIELDS, ProgramDetailsDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 
 /** The optional text columns: a blank value is stored as null. The Vietnamese name is required and is never one. */
-const NULLABLE_TEXT: ReadonlySet<string> = new Set(['nameEn', 'faculty', 'language']);
+const NULLABLE_TEXT = { nameEn: trimmedOrNull, faculty: trimmedOrNull, language: trimmedOrNull };
 
 /**
  * The declared editable fields that the body holds and that differ from the stored row. A field
@@ -16,14 +16,7 @@ const NULLABLE_TEXT: ReadonlySet<string> = new Set(['nameEn', 'faculty', 'langua
  * a gated column is never written, whatever reached the DTO.
  */
 export function detailsPatch<T, F extends keyof T & string>(fields: readonly F[], stored: T, dto: { [K in F]?: T[K] }): { [K in F]?: T[K] } {
-  const patch: { [K in F]?: T[K] } = {};
-  for (const field of fields) {
-    const sent = dto[field];
-    if (sent === undefined) continue;
-    const value = NULLABLE_TEXT.has(field) ? (trimmedOrNull(sent as string | null) as T[F]) : sent;
-    if (value !== stored[field]) patch[field] = value;
-  }
-  return patch;
+  return changedFields(fields, stored as Record<F, unknown>, dto, NULLABLE_TEXT) as { [K in F]?: T[K] };
 }
 
 // Programs and their cohorts (ADR 0011, UC-11 A1 and A2). An access manager creates a program
@@ -104,20 +97,6 @@ export class ProgramAdminService {
       return cohortDto(await curriculums.findOneByOrFail({ id: curriculumId }));
     });
   }
-}
-
-/** The program of the path. A grant references its program, so a caller who passed the grant check always finds it. */
-async function programIn(em: EntityManager, programId: string): Promise<Program> {
-  const program = await em.getRepository(Program).findOneBy({ id: programId });
-  if (!program) throw notFound('No program has this ID');
-  return program;
-}
-
-/** The cohort, only if it belongs to the path's program. */
-async function cohortIn(em: EntityManager, programId: string, curriculumId: string): Promise<Curriculum> {
-  const cohort = await em.getRepository(Curriculum).findOneBy({ id: curriculumId, programId });
-  if (!cohort) throw notFound('No such cohort in this program');
-  return cohort;
 }
 
 function programDto(p: Program): ProgramDetailsDto {

@@ -64,3 +64,22 @@ export const compressedBody = () =>
   new UnsupportedMediaTypeException({ statusCode: 415, code: 'unsupported_content_encoding', message: 'The import routes do not accept a compressed request body' });
 
 export const referencedItem = (message: string, references: string[]) => conflict('referenced_item', message, { references });
+
+const COUNTED_REFERENCES = {
+  prerequisiteLists: 'curricula record its prerequisites',
+  requiredBy: 'courses require it',
+  offeringTerms: 'offering-term rows name it',
+  transcriptRows: 'transcript rows name it',
+  plans: 'saved plans place it',
+} as const;
+export type CountedReference = keyof typeof COUNTED_REFERENCES;
+
+export const REFERENCES = {
+  links: (code: string) => `links ${code}`,
+  requires: (course: string, code: string) => `${course} requires ${code}`,
+  ownPrerequisites: (code: string) => `prerequisites of ${code} are recorded`,
+  ownTerms: (code: string) => `offering terms of ${code} are recorded`,
+  linkedIn: (curriculumCode: string) => `linked in ${curriculumCode}`,
+  groupPlans: (count: number | null) => (count === null ? 'saved plans use it' : `${count} saved plans use it`),
+  counted: (count: number, what: CountedReference) => `${count} ${COUNTED_REFERENCES[what]}`,
+} as const;

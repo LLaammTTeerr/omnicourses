@@ -12,7 +12,7 @@ import { CsvImportController } from './csv-import.controller.js';
 import { CsvImportService } from './csv-import.service.js';
 import { CurriculumAdminController } from './curriculum-admin.controller.js';
 import { CurriculumAdminService } from './curriculum-admin.service.js';
-import { ImportBodyGate } from './import-body-gate.js';
+import { ImportBodyGate } from './import-body-limit.js';
 import { ProgramAdminController } from './program-admin.controller.js';
 import { ProgramAdminService } from './program-admin.service.js';
 

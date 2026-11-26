@@ -39,6 +39,24 @@ export const trimmedOrNull = (value: string | null | undefined): string | null =
 
 export const nullIfBlank = (value: string | null | undefined): string | null => (value === undefined || value === null || value.trim() === '' ? null : value);
 
+type Normalisers = Readonly<Record<string, (value: never) => unknown>>;
+
+export function sentFields<F extends string>(fields: readonly F[], body: Partial<Record<F, unknown>>, normalise: Normalisers = {}): Partial<Record<F, unknown>> {
+  const patch: Partial<Record<F, unknown>> = {};
+  for (const field of fields) {
+    const value = body[field];
+    if (value === undefined) continue;
+    const normaliser = normalise[field] as ((value: unknown) => unknown) | undefined;
+    patch[field] = normaliser ? normaliser(value) : value;
+  }
+  return patch;
+}
+
+export function changedFields<F extends string>(fields: readonly F[], stored: Record<F, unknown>, body: Partial<Record<F, unknown>>, normalise: Normalisers = {}): Partial<Record<F, unknown>> {
+  const sent = sentFields(fields, body, normalise);
+  return Object.fromEntries(fields.filter((field) => field in sent && sent[field] !== stored[field]).map((field) => [field, sent[field]])) as Partial<Record<F, unknown>>;
+}
+
 /** Present: validated. Absent: left as it is. */
 export const ifPresent = ValidateIf((_: object, value: unknown) => value !== undefined);
 /** Present and not null: validated. null clears the column. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GlobalPermission } from './admin-grant.entities.js';
-import { missingPermission } from './grant-scope.js';
+import { missingPermission } from './grants.js';
 
 const APCS = '00000000-0000-4000-8000-00000000000a';
 const CLC = '00000000-0000-4000-8000-00000000000c';

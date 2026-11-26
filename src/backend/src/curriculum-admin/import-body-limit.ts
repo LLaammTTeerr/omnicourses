@@ -1,8 +1,10 @@
-import type { INestApplication } from '@nestjs/common';
+import { type INestApplication, Injectable } from '@nestjs/common';
 import { json, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
+import { DataSource } from 'typeorm';
+import { AuthService } from '../auth/auth.service.js';
 import { compressedBody, payloadTooLarge } from './admin-errors.js';
-import type { Need } from './grant-scope.js';
-import { ImportBodyGate } from './import-body-gate.js';
+import { inMiB, MIB } from './csv-file.js';
+import { grantsOf, missingPermission, type Need } from './grants.js';
 
 // The four CSV import routes and their JSON body limit (ADR 0011, "CSV contract and UC-11
 // handoff"). The controller builds its paths from the same two constants, so the limit and
@@ -10,13 +12,13 @@ import { ImportBodyGate } from './import-body-gate.js';
 
 export const CATALOG_IMPORTS = 'admin/catalog/imports';
 export const COHORT_IMPORTS = 'admin/programs/:programId/cohorts/:curriculumId/imports';
-export const IMPORT_STEPS = ['preview', 'confirm'] as const;
+const IMPORT_STEPS = ['preview', 'confirm'] as const;
 
 /** A 1 MiB CSV with every character JSON-escaped (six bytes each), the wrapper and a review version. */
-export const IMPORT_JSON_LIMIT_BYTES = 7 * 1024 * 1024;
+export const IMPORT_JSON_LIMIT_BYTES = 7 * MIB;
 
 /** Whether the sender of this `Authorization` header may use the large parser for a route that needs `need`. */
-export type LargeBodyGate = (authorization: string | undefined, need: Need) => Promise<boolean>;
+type LargeBodyGate = (authorization: string | undefined, need: Need) => Promise<boolean>;
 
 /**
  * Parses the JSON body of `POST` on the four import routes with the 7 MiB limit, for the
@@ -56,10 +58,38 @@ export function importJsonBody(globalPrefix: string, mayUseLargeParser: LargeBod
         if (!allowed) return next();
         parseLargeJson(req, res, (error?: unknown) => {
           const tooLarge = (error as { type?: string } | undefined)?.type === 'entity.too.large';
-          next(tooLarge ? payloadTooLarge('The request body is larger than 7 MiB') : error);
+          next(tooLarge ? payloadTooLarge(`The request body is larger than ${inMiB(IMPORT_JSON_LIMIT_BYTES)}`) : error);
         });
       });
   };
+}
+
+/**
+ * Decides who gets the 7 MiB JSON parser of the CSV import routes (import-body-limit.ts).
+ * Body parsers run before every guard, so before authentication and before the rate limit:
+ * without this gate anyone could make the server read 7 MiB per request on those paths.
+ *
+ * It is not the authorization of an import. That stays in the services, in the transaction
+ * and, for a confirmation, under the write lock. A caller this gate refuses still reaches the
+ * route, with the default 100 KiB parser, and gets the usual 401 or 403 there.
+ */
+@Injectable()
+export class ImportBodyGate {
+  constructor(
+    private readonly auth: AuthService,
+    private readonly db: DataSource,
+  ) {}
+
+  /**
+   * True only for a live session (the lookup of the AuthGuard, `AuthService.authenticate`)
+   * whose user holds, right now, the grant the route needs: catalog maintainer for the
+   * catalog imports, the path's program for the cohort imports.
+   */
+  async allows(authorization: string | string[] | undefined, need: Need): Promise<boolean> {
+    const found = await this.auth.authenticateHeader(authorization);
+    if (!found) return false;
+    return missingPermission(await grantsOf(this.db.manager, found.user.id), need) === null;
+  }
 }
 
 // Here, so that the deployed app and the e2e app get the same limits: 7 MiB of JSON on the

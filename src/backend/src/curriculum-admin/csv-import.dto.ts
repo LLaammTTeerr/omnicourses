@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { CourseDto } from '../curriculum/curriculum.dto.js';
 import { AffectedCurriculumDto, ImportRowErrorDto } from './admin-errors.js';
+import { CSV_MAX_BYTES, CSV_MAX_RECORDS, inMiB } from './csv-file.js';
 import { COURSE_FIELDS, type CourseField } from './curriculum-admin.dto.js';
 
 // Request and response shapes of the F12 CSV import (ADR 0011, "CSV contract and UC-11
@@ -10,8 +11,7 @@ import { COURSE_FIELDS, type CourseField } from './curriculum-admin.dto.js';
 export const CATALOG_FILE = 'catalog_courses';
 export const GROUP_LINKS_FILE = 'group_links';
 
-const CSV_DESCRIPTION =
-  'The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most 1 MiB and 1,000 data records.';
+const CSV_DESCRIPTION = `The whole file as text: UTF-8, optional BOM, comma-delimited, LF or CRLF, fields quoted with doubled quotes where needed. At most ${inMiB(CSV_MAX_BYTES)} and ${CSV_MAX_RECORDS.toLocaleString('en')} data records.`;
 
 export class ImportPreviewRequestDto {
   @ApiProperty({ description: CSV_DESCRIPTION })
