@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
-import { onBeforeRouteLeave, useRoute } from 'vue-router';
-import { useAuth } from '../auth/store.js';
+import { useRoute } from 'vue-router';
+import { newestOnly } from '../async-load.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
@@ -9,11 +9,9 @@ import { useToast } from '../shell/toast.js';
 import {
   confirmCatalogImport,
   confirmLinkImport,
-  fetchAdminPrograms,
   IMPORT_FILE_TYPES,
   previewCatalogImport,
   previewLinkImport,
-  type AdminProgram,
   type CatalogImportRow,
   type CohortRef,
   type ImportFileType,
@@ -25,15 +23,14 @@ import { readFailure, type Failure } from './errors.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
-import { useAdminAccess } from './store.js';
-import { useWrites } from './write.js';
+import { useAdminAccess, useProgramPicker } from './store.js';
+import { stayWhileBusy, useWrites } from './write.js';
 
 // CSV bulk entry (ADR 0011, "CSV contract and UC-11 handoff"; UC-11 A9): catalog courses for a catalog maintainer,
 // or the group links of one cohort for its program administrator. The file is read in the browser and sent as JSON
 // text to the preview route, which writes nothing; Confirm sends the same text with the preview's review version,
 // and the API saves the whole file or nothing. Cancel sends nothing. Every check is the API's: this page checks only
 // the input limits, so that a file far too large is not sent, and reads no value of a row.
-const auth = useAuth();
 const access = useAdminAccess();
 const route = useRoute();
 const toast = useToast();
@@ -53,19 +50,10 @@ watch(
   { immediate: true },
 );
 
-const programList = shallowRef<AdminProgram[] | null>(null);
-const programsStatus = ref<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
-async function loadPrograms(): Promise<void> {
-  programsStatus.value = 'loading';
-  try {
-    programList.value = (await fetchAdminPrograms()).programs;
-    programsStatus.value = 'loaded';
-  } catch (e) {
-    if (readFailure(e).kind === 'signed_out') return;
-    console.error('Loading the programs to import into failed:', e);
-    programsStatus.value = 'failed';
-  }
-}
+const { programList, programsStatus, loadPrograms, picked, program, cohort } = useProgramPicker('the programs to import into', {
+  programId: typeof route.query.program === 'string' ? route.query.program : null,
+  curriculumId: typeof route.query.cohort === 'string' ? route.query.cohort : null,
+});
 watch(
   type,
   (now) => {
@@ -74,15 +62,6 @@ watch(
   { immediate: true },
 );
 
-const picked = ref<{ programId: string | null; curriculumId: string | null }>({
-  programId: typeof route.query.program === 'string' ? route.query.program : null,
-  curriculumId: typeof route.query.cohort === 'string' ? route.query.cohort : null,
-});
-const program = computed(() => {
-  const list = programList.value ?? [];
-  return list.find((item) => item.id === picked.value.programId) ?? list[0] ?? null;
-});
-const cohort = computed(() => program.value?.curricula.find((item) => item.id === picked.value.curriculumId) ?? program.value?.curricula[0] ?? null);
 
 /** Where a file goes: the catalog, or one cohort. The preview and its confirmation keep the one they were made for. */
 interface Target {
@@ -140,10 +119,10 @@ const refusal = shallowRef<Exclude<Failure, { kind: 'no_answer' }> | null>(null)
 /** The last confirmation was refused because something changed since the preview, which was then made again. */
 const changed = ref(false);
 const notice = ref<string | null>(null);
-let latest = 0;
+const newest = newestOnly();
 
 function dropPreview(): void {
-  latest++;
+  newest.drop();
   preview.value = null;
   previewing.value = false;
   previewLost.value = false;
@@ -163,17 +142,17 @@ const runPreview = (of: Target, csv: string): Promise<ImportPreview> =>
  * or another target took its place.
  */
 async function show(of: Target, csv: string): Promise<'shown' | 'failed' | 'stale'> {
-  const call = ++latest;
+  const isNewest = newest.start();
   previewing.value = true;
   previewLost.value = false;
   refusal.value = null;
   try {
     const result = await runPreview(of, csv);
-    if (call !== latest) return 'stale';
+    if (!isNewest()) return 'stale';
     preview.value = { target: of, csv, result };
     return 'shown';
   } catch (e) {
-    if (call !== latest) return 'stale';
+    if (!isNewest()) return 'stale';
     // An older preview must not stay on screen, with a Confirm for its review version, as if it were the new one.
     preview.value = null;
     const failure = readFailure(e);
@@ -187,7 +166,7 @@ async function show(of: Target, csv: string): Promise<'shown' | 'failed' | 'stal
     }
     return 'failed';
   } finally {
-    if (call === latest) previewing.value = false;
+    if (isNewest()) previewing.value = false;
   }
 }
 
@@ -210,7 +189,7 @@ let landedPreview: { target: Target; csv: string; result: ImportPreview } | null
 /** Where the last confirmation went, and the text it sent: its outcome is said for that file and that target. */
 let sent: { target: Target; csv: string } | null = null;
 
-onBeforeRouteLeave(() => !(writes.busy.value || previewing.value) || !auth.signedIn);
+stayWhileBusy(() => writes.busy.value || previewing.value);
 
 const changes = computed(() => (preview.value ? preview.value.result.summary.inserts + preview.value.result.summary.updates : 0));
 const confirmable = computed(() => !!preview.value?.result.reviewVersion && preview.value.result.errors.length === 0 && changes.value > 0);
@@ -346,7 +325,7 @@ function pickCohort(curriculumId: string): void {
         <template v-if="type === 'group_links'">
           <p v-if="programsStatus === 'loading'" class="t3" role="status">{{ m.loading }}</p>
           <p v-else-if="programsStatus === 'failed'" class="callout bad" role="alert" data-test="import-programs-failed">
-            <Icon name="alert" /><span>{{ text.programsFailed }} <button class="btn sm" type="button" @click="loadPrograms">{{ m.retry }}</button></span>
+            <Icon name="alert" /><span>{{ text.programsFailed }} <button class="btn sm" type="button" @click="loadPrograms()">{{ m.retry }}</button></span>
           </p>
           <p v-else-if="!program" class="callout" role="status" data-test="import-no-programs"><Icon name="info" /><span>{{ text.noPrograms }}</span></p>
           <div v-else class="import-target" role="group" :aria-label="text.target">

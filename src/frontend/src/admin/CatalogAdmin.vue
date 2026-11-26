@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, shallowRef } from 'vue';
-import { onBeforeRouteLeave, RouterLink } from 'vue-router';
-import { useAuth } from '../auth/store.js';
+import { computed, ref, shallowRef } from 'vue';
+import { RouterLink } from 'vue-router';
+import { newestOnly } from '../async-load.js';
 import { isCourseCode } from '../course-code.js';
 import { fetchCourse, type Course, type CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
@@ -14,13 +14,12 @@ import { readFailure } from './errors.js';
 import { COURSE_FIELDS, courseChanges, courseHas, EDITABLE_COURSE_FIELDS, newCourseBody, storedCode, type CourseValues, type ImpactReview } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
-import { useWrites, type WriteOutcome } from './write.js';
+import { useAdminDialog, type WriteOutcome } from './write.js';
 
 // The shared course catalog of a catalog maintainer (ADR 0011, UC-11 A8; UI prototypes: admin.html, "Danh mục học
 // phần"). The API has no route that lists or searches the catalog (ADR 0011, review finding 1), so a course is
 // opened by its exact code; the prototype's table of every course is not here. A correction to a course that
 // curricula link goes through the API's shared-impact review before it is saved. Every check is the API's.
-const auth = useAuth();
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.catalog);
@@ -33,7 +32,7 @@ const code = ref('');
 const status = ref<'idle' | 'loading' | 'found' | 'missing' | 'failed'>('idle');
 /** A missing course can be created with its code only when the API accepts that code: `..` is never a course. */
 const creatable = computed(() => status.value === 'missing' && isCourseCode(code.value));
-let latest = 0;
+const newest = newestOnly();
 
 /** The saved course, or null when the catalog has none with this code. Rejects when the API cannot say. */
 async function read(of: string): Promise<CourseDetail | null> {
@@ -47,9 +46,9 @@ async function read(of: string): Promise<CourseDetail | null> {
 
 /** Reads `of` again and shows it, keeping the page as it is meanwhile. */
 async function refresh(of = code.value): Promise<CourseDetail | null> {
-  const call = ++latest;
+  const isNewest = newest.start();
   const fresh = await read(of);
-  if (call === latest) {
+  if (isNewest()) {
     code.value = of;
     course.value = fresh;
     status.value = fresh ? 'found' : 'missing';
@@ -64,11 +63,11 @@ async function find(): Promise<void> {
   notice.value = null;
   course.value = null;
   status.value = 'loading';
-  const call = latest + 1;
+  const isNewest = newest.upcoming();
   try {
     await refresh(wanted);
   } catch (e) {
-    if (call !== latest || readFailure(e).kind === 'signed_out') return;
+    if (!isNewest() || readFailure(e).kind === 'signed_out') return;
     console.error('Loading a catalog course failed:', e);
     code.value = wanted;
     status.value = 'failed';
@@ -77,18 +76,13 @@ async function find(): Promise<void> {
 
 // ---------- Writes ----------
 type Dialog = { type: 'create' } | { type: 'edit' } | { type: 'delete' };
-const dialog = shallowRef<Dialog | null>(null);
 const review = shallowRef<ImpactReview | null>(null);
 /**
  * The course an edit dialog was opened for, as it was then. A reload while the dialog is open can find the course
  * gone; the dialog stays about this course, and Save still sends the correction, so the API says what became of it.
  */
 const editing = shallowRef<CourseDetail | null>(null);
-const writes = useWrites();
-const settling = ref(false);
-const busy = computed(() => writes.busy.value || settling.value);
 const notice = ref<string | null>(null);
-let opener: HTMLElement | null = null;
 /** The code of the course the last write was about. */
 let written = '';
 /**
@@ -99,28 +93,24 @@ const stale = ref<string | null>(null);
 
 // A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
 // the request answers, so its result is said. A 401 has signed the user out, who may leave.
-onBeforeRouteLeave(() => !busy.value || !auth.signedIn);
+// Cancel (UC-11 A6): the draft, and a review not yet confirmed, are dropped and nothing is sent.
+const { dialog, writes, busy, close, cancel, finish: finishDialog, ...dialogs } = useAdminDialog<Dialog>({
+  fallback: 'catalog-code',
+  notice,
+  // Left with its outcome unknown: the page may not show what is saved, and says so until that course is read again.
+  stale: { reloadId: 'catalog-reload', is: () => stale.value !== null, mark: () => (stale.value = written) },
+  onClose: () => {
+    review.value = null;
+    editing.value = null;
+  },
+});
 
 function open(next: Dialog, from: Event): void {
   if (stale.value) return;
-  opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
-  writes.clear();
   review.value = null;
   notice.value = null;
   editing.value = next.type === 'edit' ? course.value : null;
-  dialog.value = next;
-}
-
-async function close(fallback = 'catalog-code'): Promise<void> {
-  // Left with its outcome unknown: the page may not show what is saved, and says so until that course is read again.
-  if (writes.problem.value?.outcome === 'unknown') stale.value = written;
-  dialog.value = null;
-  review.value = null;
-  editing.value = null;
-  writes.clear();
-  await nextTick();
-  (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'catalog-reload' : fallback))?.focus();
-  opener = null;
+  dialogs.open(next, from);
 }
 
 /** Reads the course of the write whose outcome was left unknown, and shows it: the page is up to date again. */
@@ -134,11 +124,6 @@ async function reloadStale(): Promise<void> {
   } catch (e) {
     if (readFailure(e).kind !== 'signed_out') console.error('Reloading the catalog course failed:', e);
   }
-}
-
-/** Cancel (UC-11 A6): the draft, and a review not yet confirmed, are dropped and nothing is sent. */
-function cancel(): void {
-  if (!busy.value) void close();
 }
 
 /**
@@ -158,19 +143,8 @@ async function showSaved(of: string, answered?: Course): Promise<void> {
   }
 }
 
-async function finish(result: WriteOutcome<Course>, of: string, saved: string): Promise<boolean> {
-  if (result.outcome !== 'saved' && result.outcome !== 'confirmed') return false;
-  settling.value = true;
-  try {
-    if (result.outcome === 'saved') await showSaved(of, result.value);
-    await close();
-    if (result.outcome === 'saved') toast.show(saved);
-    else notice.value = m.value.problem.confirmed;
-    return true;
-  } finally {
-    settling.value = false;
-  }
-}
+const finish = (result: WriteOutcome<Course>, of: string, saved: string): Promise<boolean> =>
+  finishDialog(result, saved, { before: () => (result.outcome === 'saved' ? showSaved(of, result.value) : undefined) });
 
 async function create(values: CourseValues): Promise<void> {
   const body = newCourseBody(values);

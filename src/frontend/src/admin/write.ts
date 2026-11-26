@@ -1,6 +1,10 @@
-import { ref, shallowRef } from 'vue';
+import { computed, nextTick, ref, shallowRef, type Ref } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { useAuth } from '../auth/store.js';
+import { useMessages } from '../locale.js';
+import { useToast } from '../shell/toast.js';
 import { readFailure, type Failure } from './errors.js';
+import { ADMIN_MESSAGES } from './messages.js';
 import { useAdminAccess } from './store.js';
 
 // One administration write and what became of it (UC-11 A7, ADR 0011: "A lost response leaves the client in an
@@ -118,4 +122,78 @@ export function useWrites() {
   }
 
   return { busy, problem, send, recheck, clear };
+}
+
+export function stayWhileBusy(busy: () => boolean): void {
+  const auth = useAuth();
+  onBeforeRouteLeave(() => !busy() || !auth.signedIn);
+}
+
+interface AdminDialogOptions {
+  fallback: string;
+  notice: Ref<string | null>;
+  stale?: { reloadId: string; is: () => boolean; mark: () => void };
+  onClose?: () => void;
+}
+
+interface FinishOptions {
+  before?: (result: WriteOutcome<unknown>) => Promise<void> | void;
+  fallback?: string;
+}
+
+export function useAdminDialog<D>(options: AdminDialogOptions) {
+  const toast = useToast();
+  const m = useMessages(ADMIN_MESSAGES);
+  const writes = useWrites();
+  const dialog = shallowRef<D | null>(null);
+  const settling = ref(false);
+  const busy = computed(() => writes.busy.value || settling.value);
+  let opener: HTMLElement | null = null;
+  stayWhileBusy(() => busy.value);
+
+  function rememberOpener(from: Event): void {
+    opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
+  }
+
+  function open(next: D, from?: Event): void {
+    if (from) rememberOpener(from);
+    writes.clear();
+    dialog.value = next;
+  }
+
+  function focusBack(fallback: string): void {
+    const usable = opener?.isConnected && !(opener as HTMLButtonElement).disabled;
+    const id = options.stale?.is() ? options.stale.reloadId : fallback;
+    (usable ? opener : document.getElementById(id))?.focus();
+    opener = null;
+  }
+
+  async function close(fallback = options.fallback): Promise<void> {
+    if (writes.problem.value?.outcome === 'unknown') options.stale?.mark();
+    dialog.value = null;
+    options.onClose?.();
+    writes.clear();
+    await nextTick();
+    focusBack(fallback);
+  }
+
+  function cancel(): void {
+    if (!busy.value) void close();
+  }
+
+  async function finish(result: WriteOutcome<unknown>, saved: string, { before, fallback }: FinishOptions = {}): Promise<boolean> {
+    if (result.outcome !== 'saved' && result.outcome !== 'confirmed') return false;
+    settling.value = true;
+    try {
+      await before?.(result);
+      await close(fallback);
+      if (result.outcome === 'saved') toast.show(saved);
+      else options.notice.value = m.value.problem.confirmed;
+      return true;
+    } finally {
+      settling.value = false;
+    }
+  }
+
+  return { dialog, writes, busy, rememberOpener, open, close, cancel, finish };
 }

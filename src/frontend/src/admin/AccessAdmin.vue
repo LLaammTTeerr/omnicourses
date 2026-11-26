@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
 import { byField } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
+import { newestOnly, useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
@@ -30,7 +29,7 @@ import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 import ProgramDialog from './ProgramDialog.vue';
 import { useAdminAccess } from './store.js';
-import { useWrites, type WriteOutcome } from './write.js';
+import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
 // Grants and revocations of an access manager (ADR 0011, UC-11 section 8). A user is found by their exact user
 // ID, which they copy from Settings: the API has no user directory and no search. The answer holds grants only,
@@ -53,16 +52,16 @@ const grants = shallowRef<UserGrants | null>(null);
 const userId = ref('');
 const status = ref<'idle' | 'loading' | 'found' | 'refused' | 'failed'>('idle');
 const lookupFailure = shallowRef<Failure | null>(null);
-let latest = 0;
+const newest = newestOnly();
 
 /** The same account: an ID is the same in capitals or small letters, and the API answers it as it was typed. */
 const sameId = (a: string | null | undefined, b: string | null | undefined): boolean => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
 /** Reads the saved grants of `of` again, and shows them when `of` is still the user on screen. Rejects when the API cannot say. */
 async function refresh(of = userId.value): Promise<UserGrants> {
-  const call = ++latest;
+  const isNewest = newest.start();
   const fresh = await fetchUserGrants(of);
-  if (call === latest && sameId(of, userId.value)) show(fresh);
+  if (isNewest() && sameId(of, userId.value)) show(fresh);
   return fresh;
 }
 
@@ -85,11 +84,11 @@ async function find(): Promise<void> {
   lookupFailure.value = null;
   userId.value = wanted;
   status.value = 'loading';
-  const call = latest + 1;
+  const isNewest = newest.upcoming();
   try {
     await refresh(wanted);
   } catch (e) {
-    if (call !== latest) return;
+    if (!isNewest()) return;
     const failure = readFailure(e);
     if (failure.kind === 'signed_out') return;
     lookupFailure.value = failure;
@@ -117,23 +116,26 @@ const programId = ref<string | null>(null);
 // ---------- Writes ----------
 /** Grants are sent from the page; a revocation asks first, in a dialog. */
 const inlineWrites = useWrites();
-const dialogWrites = useWrites();
 type Revocation = { type: 'program'; grant: ProgramGrant } | { type: 'global'; permission: GlobalPermission };
-const revoking = shallowRef<Revocation | null>(null);
 const notice = ref<string | null>(null);
-let opener: HTMLElement | null = null;
-const writing = computed(() => inlineWrites.busy.value || dialogWrites.busy.value);
 /**
  * A revocation was left with its outcome unknown: the grants on screen may be older than the saved ones. No other
  * change starts until they have been read again.
  */
 const stale = ref(false);
-/** No grant or revocation starts while the page may be out of date, or while an outcome is unknown. */
-const held = computed(() => stale.value || inlineWrites.problem.value?.outcome === 'unknown');
-
 // A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
 // the request answers, so its result is said. A 401 has signed the user out, who may leave.
-onBeforeRouteLeave(() => !(writing.value || programWrites.busy.value) || !auth.signedIn);
+stayWhileBusy(() => inlineWrites.busy.value);
+const revocation = useAdminDialog<Revocation>({
+  fallback: 'access-user-id',
+  notice,
+  // Left with its outcome unknown: the grants on screen may not be the saved ones, and the page says so.
+  stale: { reloadId: 'access-reload', is: () => stale.value, mark: () => (stale.value = true) },
+});
+const { dialog: revoking, writes: dialogWrites } = revocation;
+const writing = computed(() => inlineWrites.busy.value || dialogWrites.busy.value);
+/** No grant or revocation starts while the page may be out of date, or while an outcome is unknown. */
+const held = computed(() => stale.value || inlineWrites.problem.value?.outcome === 'unknown');
 
 const holdsProgram = (saved: UserGrants, id: string) => saved.programs.some((grant) => grant.programId === id);
 const holdsGlobal = (saved: UserGrants, permission: GlobalPermission) => saved.permissions.some((grant) => grant.permission === permission);
@@ -184,23 +186,13 @@ async function giveGlobal(permission: GlobalPermission): Promise<void> {
 
 function askRevoke(next: Revocation, from: Event): void {
   if (held.value) return;
-  opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
-  dialogWrites.clear();
   inlineWrites.clear();
   notice.value = null;
-  revoking.value = next;
+  revocation.open(next, from);
 }
 
 /** Closes the dialog and puts the focus back where it was, or on `fallback` when that control is gone. */
-async function closeDialog(fallback = 'access-user-id'): Promise<void> {
-  // Left with its outcome unknown: the grants on screen may not be the saved ones, and the page says so.
-  if (dialogWrites.problem.value?.outcome === 'unknown') stale.value = true;
-  revoking.value = null;
-  dialogWrites.clear();
-  await nextTick();
-  (opener?.isConnected && !(opener as HTMLButtonElement).disabled ? opener : document.getElementById(stale.value ? 'access-reload' : fallback))?.focus();
-  opener = null;
-}
+const closeDialog = revocation.close;
 
 /** Reads the grants of the user on screen again: the page is up to date, and changes may start again. */
 async function reloadStale(): Promise<void> {
@@ -213,9 +205,7 @@ async function reloadStale(): Promise<void> {
 }
 
 /** Cancel (UC-11 A6): nothing is revoked and nothing is sent. */
-function cancel(): void {
-  if (!dialogWrites.busy.value) void closeDialog();
-}
+const cancel = revocation.cancel;
 
 const revokingName = computed(() => {
   const current = revoking.value;
@@ -242,29 +232,14 @@ async function revoke(): Promise<void> {
 }
 
 // ---------- A new program (UC-11 A2) ----------
-const programWrites = useWrites();
-const programOpen = ref(false);
-const programSettling = ref(false);
-const programBusy = computed(() => programWrites.busy.value || programSettling.value);
-let programOpener: HTMLElement | null = null;
+const programNotice = ref<string | null>(null);
+const programForm = useAdminDialog<true>({ fallback: 'program-add', notice: programNotice });
+const { writes: programWrites, busy: programBusy, cancel: cancelProgram } = programForm;
+const programOpen = computed(() => programForm.dialog.value !== null);
 
 function openProgram(from: Event): void {
-  programOpener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
-  programWrites.clear();
   notice.value = null;
-  programOpen.value = true;
-}
-
-async function closeProgram(): Promise<void> {
-  programOpen.value = false;
-  programWrites.clear();
-  await nextTick();
-  (programOpener?.isConnected ? programOpener : document.getElementById('program-add'))?.focus();
-  programOpener = null;
-}
-
-function cancelProgram(): void {
-  if (!programBusy.value) void closeProgram();
+  programForm.open(true, from);
 }
 
 /** The access manager's list of programs has the new one: found again by its code and name after a lost answer. */
@@ -273,31 +248,21 @@ async function programListed(values: ProgramValues): Promise<boolean> {
   return listed.some((item) => item.code === storedCode(values.code) && item.nameVi === values.nameVi.trim());
 }
 
-async function endProgram(outcome: 'saved' | 'confirmed', code: string): Promise<void> {
-  programSettling.value = true;
-  try {
-    // The grant form lists the new program at once.
-    await programs.reload();
-    await closeProgram();
-    if (outcome === 'saved') toast.show(m.value.programs.programCreated(code));
-    else programNotice.value = m.value.problem.confirmed;
-  } finally {
-    programSettling.value = false;
-  }
-}
+// The grant form lists the new program at once.
+const endProgram = (result: WriteOutcome<unknown>, code: string) => programForm.finish(result, m.value.programs.programCreated(code), { before: programs.reload });
 
-const programNotice = ref<string | null>(null);
 async function saveProgram(values: ProgramValues): Promise<void> {
   programNotice.value = null;
   const result = await programWrites.send(
     () => createProgram(newProgramBody(values)),
     () => programListed(values),
   );
-  if (result.outcome === 'saved' || result.outcome === 'confirmed') await endProgram(result.outcome, result.outcome === 'saved' ? result.value.code : storedCode(values.code));
+  await endProgram(result, result.outcome === 'saved' ? result.value.code : storedCode(values.code));
 }
 
 async function recheckProgram(): Promise<void> {
-  if ((await programWrites.recheck())?.outcome === 'confirmed') await endProgram('confirmed', '');
+  const result = await programWrites.recheck();
+  if (result?.outcome === 'confirmed') await endProgram(result, '');
 }
 
 const programProblem = computed(() => {

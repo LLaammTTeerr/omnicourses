@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, watch } from 'vue';
 import { statusOf } from '../api.js';
+import { newestOnly } from '../async-load.js';
 import { useAccountCache, useAuth } from '../auth/store.js';
-import { fetchOwnGrants, GLOBAL_PERMISSIONS, type PermissionKind, type UserGrants } from './api.js';
+import { fetchAdminPrograms, fetchOwnGrants, GLOBAL_PERMISSIONS, type AdminProgram, type PermissionKind, type UserGrants } from './api.js';
+import { readFailure } from './errors.js';
 
 // The signed-in user's own administration grants (ADR 0011), from GET /admin/grants. They only decide what the
 // screens offer: the navigation entry and the sections of the administration page. The API checks the current
@@ -91,3 +93,41 @@ export const useAdminAccess = defineStore('admin-access', () => {
 
   return { seed: cache.seed, grants, failed, retryable, held, any, holds, load, refusal };
 });
+
+interface ProgramPick {
+  programId: string | null;
+  curriculumId: string | null;
+}
+
+export function useProgramPicker(what: string, initial: ProgramPick | null = null) {
+  const programList = shallowRef<AdminProgram[] | null>(null);
+  const programsStatus = ref<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
+  const newest = newestOnly();
+
+  /** `quiet`: the list is replaced when the answer is in, and the page stays as it is meanwhile. */
+  async function loadPrograms(quiet = false): Promise<void> {
+    const isNewest = newest.start();
+    if (!quiet) {
+      programList.value = null;
+      programsStatus.value = 'loading';
+    }
+    try {
+      const { programs } = await fetchAdminPrograms();
+      if (!isNewest()) return;
+      programList.value = programs;
+      programsStatus.value = 'loaded';
+    } catch (e) {
+      if (!isNewest() || readFailure(e).kind === 'signed_out') return;
+      console.error(`Loading ${what} failed:`, e);
+      if (!quiet) programsStatus.value = 'failed';
+    }
+  }
+
+  const picked = ref<ProgramPick | null>(initial);
+  const program = computed(() => {
+    const list = programList.value ?? [];
+    return list.find((item) => item.id === picked.value?.programId) ?? list[0] ?? null;
+  });
+  const cohort = computed(() => program.value?.curricula.find((item) => item.id === picked.value?.curriculumId) ?? program.value?.curricula[0] ?? null);
+  return { programList, programsStatus, loadPrograms, picked, program, cohort };
+}
