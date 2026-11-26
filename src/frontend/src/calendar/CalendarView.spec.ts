@@ -164,6 +164,26 @@ describe('CalendarView (F10 school dates)', () => {
     expect(text(w, 'subtitle')).toBe('HK1 2026–2027 · Tuần 16');
   });
 
+  it('keeps the week on screen when a date picked from the list is already in it', async () => {
+    const { w } = await render();
+    await w.get('[data-test="next"]').trigger('click');
+    expect(text(w, 'range')).toBe('16/11 – 22/11');
+    await w.findAll('[data-test="upcoming-item"]')[0]!.trigger('click');
+    expect(text(w, 'range')).toBe('16/11 – 22/11');
+    expect(w.get('[data-test="detail"]').text()).toContain('Đăng ký học phần học kỳ 2');
+  });
+
+  it('does not call a date that has ended ongoing', async () => {
+    const { w } = await render();
+    for (let week = 0; week < 8; week++) await w.get('[data-test="prev"]').trigger('click');
+    expect(text(w, 'range')).toBe('14/9 – 20/9');
+    await cell(w, '2026-09-14').get('[data-test="event"]').trigger('click');
+    const detail = w.get('[data-test="detail"]');
+    expect(detail.text()).toContain('Điều chỉnh đăng ký HK1');
+    expect(detail.text()).toContain('5 ngày');
+    expect(detail.text()).not.toContain('Đang diễn ra');
+  });
+
   it('uses the English title in English, and the Vietnamese one when there is none', async () => {
     const { w, pinia } = await render();
     useLocale(pinia).set('en');

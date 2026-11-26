@@ -345,7 +345,7 @@ usePageTitle(() => m.value.title);
               <span class="d"><b>{{ dayOfMonth(firstDayShown(e)) }}</b><small>{{ m.monthShort(firstDayShown(e)) }}</small></span>
               <span class="t">
                 <b>{{ titleOf(e) }}</b>
-                <small><template v-if="e.startsOn <= today">{{ m.ongoing }} · </template>{{ m.kinds[e.kind] }} · {{ spanOf(e) }}</small>
+                <small><template v-if="ongoing(e)">{{ m.ongoing }} · </template>{{ m.kinds[e.kind] }} · {{ spanOf(e) }}</small>
               </span>
             </button>
           </div>

@@ -1,5 +1,6 @@
 import type { Lang } from '../locale.js';
 import type { CalendarEventKind } from './api.js';
+import { weekday } from './dates.js';
 
 interface CalendarMessages {
   title: string;
@@ -55,10 +56,12 @@ const VI_WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 const VI_SPOKEN_WEEKDAYS = ['thứ Hai', 'thứ Ba', 'thứ Tư', 'thứ Năm', 'thứ Sáu', 'thứ Bảy', 'Chủ nhật'];
 const EN_SPOKEN_WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const EN_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const dow = (iso: string) => (new Date(`${iso}T00:00:00Z`).getUTCDay() + 6) % 7;
-const viLongDay = (iso: string) => `${VI_WEEKDAYS[dow(iso)]}, ${pad(parts(iso)[2])}/${pad(parts(iso)[1])}/${parts(iso)[0]}`;
-const viSpokenDay = (iso: string) => `${VI_SPOKEN_WEEKDAYS[dow(iso)]}, ${pad(parts(iso)[2])}/${pad(parts(iso)[1])}/${parts(iso)[0]}`;
-const enLongDay = (iso: string) => `${EN_WEEKDAYS[dow(iso)]}, ${Number(parts(iso)[2])} ${EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3)} ${parts(iso)[0]}`;
+const SHORT_MONTH_LENGTH = 3;
+const enMonth = (iso: string) => EN_MONTHS[Number(parts(iso)[1]) - 1]!;
+const enMonthShort = (iso: string) => enMonth(iso).slice(0, SHORT_MONTH_LENGTH);
+const viLongDay = (iso: string) => `${VI_WEEKDAYS[weekday(iso)]}, ${pad(parts(iso)[2])}/${pad(parts(iso)[1])}/${parts(iso)[0]}`;
+const viSpokenDay = (iso: string) => `${VI_SPOKEN_WEEKDAYS[weekday(iso)]}, ${pad(parts(iso)[2])}/${pad(parts(iso)[1])}/${parts(iso)[0]}`;
+const enLongDay = (iso: string) => `${EN_WEEKDAYS[weekday(iso)]}, ${Number(parts(iso)[2])} ${enMonthShort(iso)} ${parts(iso)[0]}`;
 
 export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
   vi: {
@@ -129,11 +132,11 @@ export const CALENDAR_MESSAGES: Record<Lang, CalendarMessages> = {
     weekNumber: (n) => `Week ${n}`,
     weekdays: EN_WEEKDAYS,
     spokenWeekdays: EN_SPOKEN_WEEKDAYS,
-    day: (iso) => `${Number(parts(iso)[2])} ${EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3)}`,
+    day: (iso) => `${Number(parts(iso)[2])} ${enMonthShort(iso)}`,
     longDay: enLongDay,
     spokenDay: enLongDay,
-    monthName: (iso) => `${EN_MONTHS[Number(parts(iso)[1]) - 1]} ${parts(iso)[0]}`,
-    monthShort: (iso) => EN_MONTHS[Number(parts(iso)[1]) - 1]!.slice(0, 3),
+    monthName: (iso) => `${enMonth(iso)} ${parts(iso)[0]}`,
+    monthShort: enMonthShort,
     days: (n) => (n === 1 ? '1 day' : `${n} days`),
     kinds: {
       term_start: 'Term starts',
