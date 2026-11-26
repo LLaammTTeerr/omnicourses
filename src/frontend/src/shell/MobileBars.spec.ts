@@ -34,7 +34,6 @@ describe('the phone tab bar', () => {
 
   it('shows four pages, then More, in both languages', async () => {
     const w = await render('/dashboard');
-    // The audit is "Xét tốt nghiệp / Degree audit" in the sidebar (GLOSSARY); its tab is shorter, to fit one line.
     expect(tabs(w)).toEqual(['Tổng quan', 'Lộ trình', 'Tốt nghiệp', 'Chương trình', 'Thêm']);
     expect(w.findAll('.tabbar a').map((a) => a.attributes('href'))).toEqual(['/dashboard', '/plans', '/audit', '/explorer']);
     useLocale().set('en');
@@ -88,7 +87,6 @@ describe('the phone tab bar', () => {
     };
 
     await open();
-    // Escape reaches the dialog as a cancel event.
     await sheet(w).trigger('cancel');
     await flushPromises();
     closed();
@@ -99,7 +97,6 @@ describe('the phone tab bar', () => {
     closed();
 
     await open();
-    // A click inside the sheet keeps it open; one that starts and ends on the dialog itself (the backdrop) closes it.
     await sheet(w).get('#more-title').trigger('mousedown');
     await sheet(w).get('#more-title').trigger('click');
     await flushPromises();
@@ -114,7 +111,6 @@ describe('the phone tab bar', () => {
     const w = await render('/dashboard');
     await more(w).trigger('click');
     await flushPromises();
-    // The browser sends the click to the dialog, the common ancestor of where the press began and ended.
     await sheet(w).get('.more-list').trigger('mousedown');
     await sheet(w).trigger('click');
     await flushPromises();
@@ -144,7 +140,6 @@ describe('the phone tab bar', () => {
   it.each(['/transcript', '/guides', '/settings'])('marks More as the current tab on %s', async (path) => {
     const w = await render(path);
     expect(more(w).classes()).toContain('router-link-active');
-    // Screen readers hear the current page too, as they did when every page was a tab.
     expect(more(w).attributes('aria-current')).toBe('page');
     expect(w.findAll('.tabbar a.router-link-active')).toHaveLength(0);
   });

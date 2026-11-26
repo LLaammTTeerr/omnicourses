@@ -5,7 +5,6 @@ import Icon from './Icon.vue';
 import { SHELL_MESSAGES } from './messages.js';
 import { useTheme } from './theme.js';
 
-// Names the theme it switches to (UI prototypes). `iconOnly` keeps the name for screen readers and the tooltip.
 defineProps<{ iconOnly?: boolean }>();
 const theme = useTheme();
 const m = useMessages(SHELL_MESSAGES);

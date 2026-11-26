@@ -43,5 +43,4 @@ export const SHELL_MESSAGES = {
   },
 } satisfies Record<Lang, Record<string, string>>;
 
-/** The school's training regulation (QĐ 1175/QĐ-KHTN), as the prototypes link it. */
 export const REGULATION_URL = 'https://www.ctda.hcmus.edu.vn/wp-content/uploads/2023/03/Quy-che-dao-tao-2021.pdf';
