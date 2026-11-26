@@ -25,7 +25,7 @@ const savedState = ref('[]');
 const snapshot = (list: readonly DraftRow[]) => JSON.stringify(list.map(({ key: _key, ...fields }) => fields));
 
 const { status, reload } = useAsyncLoad('the transcript', async () => {
-  const { rows: saved } = await auth.authed(fetchTranscript);
+  const { rows: saved } = await fetchTranscript();
   rows.value = saved.map((row) => fromRow(row, nextKey++));
   savedState.value = snapshot(rows.value);
 });
@@ -69,7 +69,7 @@ async function save(): Promise<void> {
   if (toFix.value > 0 || saving.value) return;
   saving.value = true;
   try {
-    const { rows: saved } = await auth.authed((token) => saveTranscript(token, rows.value.map(toRow)));
+    const { rows: saved } = await saveTranscript(rows.value.map(toRow));
     rows.value = saved.map((row) => fromRow(row, nextKey++));
     savedState.value = snapshot(rows.value);
     toast.show(m.value.saved(saved.length));

@@ -874,7 +874,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       const { w, pinia } = await render({ 'GET /admin/programs': () => Response.json(own === BOTH_PROGRAMS ? adminPrograms() : { programs: [adminPrograms().programs[0]] }) });
       expect(optionsOf(get(w, 'admin-program'))).toHaveLength(2);
       own = ONLY_EMPTY_PROGRAM;
-      useAdminAccess(pinia).cache = { userId: own.userId, grants: own };
+      useAdminAccess(pinia).seed(own.userId, own);
       await flushPromises();
       expect(optionsOf(get(w, 'admin-program'))).toEqual(['ZZEMPTY · Chương trình thử chưa có khóa']);
     });

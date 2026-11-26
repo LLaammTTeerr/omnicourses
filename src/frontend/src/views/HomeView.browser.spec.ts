@@ -43,6 +43,15 @@ describe('HomeView in a real browser', () => {
     await expect.element(page.getByText('Checking API…')).not.toBeInTheDocument();
   });
 
+  it('offers the roadmap planner as available and only the advisor as coming soon', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json(HEALTHY));
+    wrapper = mount(HomeView, { attachTo: host, global: { plugins: plugins() } });
+
+    await expect.element(page.getByRole('heading', { level: 3, name: 'Lộ trình kéo thả', exact: true })).toBeVisible();
+    await expect.element(page.getByRole('heading', { level: 3, name: 'Trợ lý có trích dẫn Sắp có' })).toBeVisible();
+    expect(host.querySelectorAll('.feature.soon')).toHaveLength(1);
+  });
+
   it('shows a degraded database response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       Response.json({ status: 'degraded', database: 'down' }),

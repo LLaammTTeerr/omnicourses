@@ -1,4 +1,5 @@
 import type { Lang } from '../locale.js';
+import { DELETION_GRACE_DAYS } from './api.js';
 
 interface SettingsMessages {
   title: string;
@@ -113,11 +114,11 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     exported: (file) => `Đã tải về ${file}.`,
     exportFailed: 'Chưa xuất được dữ liệu. Thử lại sau ít phút.',
     deleteTitle: 'Xóa tài khoản',
-    deleteNote: 'Đăng xuất mọi thiết bị ngay. Xóa vĩnh viễn sau 30 ngày.',
+    deleteNote: `Đăng xuất mọi thiết bị ngay. Xóa vĩnh viễn sau ${DELETION_GRACE_DAYS} ngày.`,
     delete: 'Xóa tài khoản',
     deleteDialogTitle: 'Xóa tài khoản?',
     deleteDialogBody:
-      'Mọi phiên đăng nhập bị thu hồi ngay. Dữ liệu của bạn bị xóa vĩnh viễn sau 30 ngày. Đăng nhập lại trước hạn đó sẽ hủy việc xóa. Nên xuất dữ liệu trước nếu bạn muốn giữ một bản.',
+      `Mọi phiên đăng nhập bị thu hồi ngay. Dữ liệu của bạn bị xóa vĩnh viễn sau ${DELETION_GRACE_DAYS} ngày. Đăng nhập lại trước hạn đó sẽ hủy việc xóa. Nên xuất dữ liệu trước nếu bạn muốn giữ một bản.`,
     deletePassword: 'Nhập mật khẩu để xác nhận',
     deleting: 'Đang xóa…',
     keep: 'Giữ lại',
@@ -178,11 +179,11 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     exported: (file) => `Downloaded ${file}.`,
     exportFailed: 'Could not export your data. Try again in a moment.',
     deleteTitle: 'Delete account',
-    deleteNote: 'Signs out every device at once. Deleted for good after 30 days.',
+    deleteNote: `Signs out every device at once. Deleted for good after ${DELETION_GRACE_DAYS} days.`,
     delete: 'Delete account',
     deleteDialogTitle: 'Delete your account?',
     deleteDialogBody:
-      'Every session is revoked at once. Your data is deleted for good after 30 days. Signing in again before then cancels the deletion. Export your data first if you want to keep a copy.',
+      `Every session is revoked at once. Your data is deleted for good after ${DELETION_GRACE_DAYS} days. Signing in again before then cancels the deletion. Export your data first if you want to keep a copy.`,
     deletePassword: 'Enter your password to confirm',
     deleting: 'Deleting…',
     keep: 'Keep my account',

@@ -1,4 +1,5 @@
-import { byField, readReference, type Failure } from './errors.js';
+import { byField } from '../api.js';
+import { readReference, type Failure } from './errors.js';
 import type { AdminText } from './messages.js';
 import type { Problem } from './write.js';
 
@@ -52,6 +53,12 @@ function refusal<F extends string>(failure: Failure, m: AdminText, fields: reado
     case 'no_answer':
       return { code: failure.kind, text: m.problem.unknown, items: [], fields: {} };
   }
+}
+
+export const fieldInvalid = <F extends string>(problem: ProblemView<F> | null, field: F): 'true' | undefined => (problem?.fields[field] ? 'true' : undefined);
+
+export function fieldDescription<F extends string>(problem: ProblemView<F> | null, prefix: string, field: F, hint?: string | false | null): string | undefined {
+  return [hint, problem?.fields[field] && `${prefix}-${field}-error`].filter(Boolean).join(' ') || undefined;
 }
 
 /** `fields`: the fields of the form the write came from; the API's validation messages are sorted by them. */

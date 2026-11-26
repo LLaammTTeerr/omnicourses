@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { computed, ref, shallowRef } from 'vue';
-import { statusOf } from '../api.js';
+import { computed, ref, shallowRef, type ComputedRef } from 'vue';
+import { request, send, statusOf, type RequestOptions } from '../api.js';
 import { forgetLastPlan } from '../plans/last-plan.js';
 import { forgetLocks } from '../plans/lock.js';
 import * as api from './api.js';
@@ -114,3 +114,84 @@ export const useAuth = defineStore('auth', () => {
 
   return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, authed };
 });
+
+type UserRequestOptions = Omit<RequestOptions, 'token'>;
+
+export function requestAsUser<T>(method: string, path: string, options: UserRequestOptions = {}): Promise<T> {
+  return useAuth().authed((token) => request<T>(method, path, { ...options, token }));
+}
+
+export function sendAsUser(method: string, path: string, options: UserRequestOptions = {}): Promise<Response> {
+  return useAuth().authed((token) => send(method, path, { ...options, token }));
+}
+
+interface Owned<T> {
+  userId: string;
+  value: T;
+}
+
+interface AccountCache<T> {
+  value: ComputedRef<T | null>;
+  load(options?: { fresh?: boolean }): Promise<T>;
+  isLatest(load: Promise<T>): boolean;
+  keep(userId: string, value: T): T;
+  seed(userId: string, value: T): void;
+  forget(): void;
+}
+
+function sharedLoad<T>(fetchValue: () => Promise<T>, keep: (userId: string, value: T) => T) {
+  let pending: { userId: string; load: Promise<T> } | null = null;
+  let latest: Promise<T> | null = null;
+
+  function start(userId: string): Promise<T> {
+    const load: Promise<T> = fetchValue().then((loaded) => (latest === load ? keep(userId, loaded) : loaded));
+    latest = load;
+    pending = { userId, load };
+    const settle = () => {
+      if (pending?.load === load) pending = null;
+    };
+    load.then(settle, settle);
+    return load;
+  }
+
+  return {
+    start,
+    pendingFor: (userId: string) => (pending?.userId === userId ? pending.load : null),
+    isLatest: (load: Promise<T>) => load === latest,
+    drop: () => void ((pending = null), (latest = null)),
+  };
+}
+
+export function useAccountCache<T>(fetchValue: () => Promise<T>): AccountCache<T> {
+  const auth = useAuth();
+  const owned = shallowRef<Owned<T> | null>(null);
+  const value = computed(() => (owned.value && owned.value.userId === auth.user?.id ? owned.value.value : null));
+
+  function keep(userId: string, next: T): T {
+    if (auth.user?.id === userId) owned.value = { userId, value: next };
+    return next;
+  }
+
+  const loads = sharedLoad(fetchValue, keep);
+
+  function load({ fresh = false }: { fresh?: boolean } = {}): Promise<T> {
+    const userId = auth.user?.id;
+    if (!userId) return Promise.reject(new Error('Not signed in'));
+    if (!fresh && value.value !== null) return Promise.resolve(value.value);
+    return (fresh ? null : loads.pendingFor(userId)) ?? loads.start(userId);
+  }
+
+  function forget(): void {
+    owned.value = null;
+    loads.drop();
+  }
+
+  return {
+    value,
+    load,
+    isLatest: loads.isLatest,
+    keep,
+    seed: (userId, next) => void (owned.value = { userId, value: next }),
+    forget,
+  };
+}

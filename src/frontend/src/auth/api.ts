@@ -51,5 +51,3 @@ export const signIn = (body: SignInBody) => request<AuthResult>('POST', '/auth/s
 /** A new token for the session; the one sent stops working at once (ADR 0002). */
 export const refresh = (token: string) => request<AuthResult>('POST', '/auth/refresh', { token });
 export const signOut = (token: string) => request<void>('POST', '/auth/sign-out', { token });
-export const listSessions = (token: string) => request<Session[]>('GET', '/auth/sessions', { token });
-export const revokeSession = (token: string, id: string) => request<void>('DELETE', `/auth/sessions/${encodeURIComponent(id)}`, { token });

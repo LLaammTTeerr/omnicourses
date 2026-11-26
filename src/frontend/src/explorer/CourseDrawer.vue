@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { fetchCourse, type CurriculumCourse } from '../curriculum/api.js';
 import { courseName } from '../curriculum/present.js';
@@ -18,13 +17,12 @@ import { EXPLORER_MESSAGES } from './messages.js';
 const props = defineProps<{ course: CurriculumCourse | null; group: { id: GroupId; name: string } | null; inTranscript: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
-const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
 
 const detail = useAsyncLoad(
   'the course',
-  async () => (props.course ? auth.authed((token) => fetchCourse(token, props.course!.code)) : null),
+  async () => (props.course ? fetchCourse(props.course!.code) : null),
   () => props.course?.code,
 );
 const prerequisiteNote = computed(() => {

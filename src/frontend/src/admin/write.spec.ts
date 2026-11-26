@@ -1,9 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpError } from '../api.js';
-import { useAuth } from '../auth/store.js';
+import { requestAsUser, useAuth } from '../auth/store.js';
 import { user } from '../auth/testing/fixtures.js';
-import { mockApi } from '../testing/fetch.js';
+import { mockApi, status } from '../testing/fetch.js';
 import { useAdminAccess } from './store.js';
 import { PROGRAM_ADMIN } from './testing/fixtures.js';
 import { settleWrite, useWrites } from './write.js';
@@ -79,16 +79,16 @@ describe('useWrites', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it('is busy while the write is out, sends the token, and has no problem once saved', async () => {
+  it('is busy while the write is out, and has no problem once saved', async () => {
     const writes = useWrites();
     let answer!: (value: string) => void;
     const sent = writes.send(
-      (token) => new Promise<string>((resolve) => (answer = (value) => resolve(`${value} ${token}`))),
+      () => new Promise<string>((resolve) => (answer = resolve)),
       async () => false,
     );
     expect(writes.busy.value).toBe(true);
     answer('saved with');
-    expect(await sent).toEqual({ outcome: 'saved', value: 'saved with zz-token' });
+    expect(await sent).toEqual({ outcome: 'saved', value: 'saved with' });
     expect(writes.busy.value).toBe(false);
     expect(writes.problem.value).toBeNull();
   });
@@ -187,7 +187,8 @@ describe('useWrites', () => {
 
   it('signs the user out on a 401 and shows no problem: the shell takes them to sign in', async () => {
     const writes = useWrites();
-    const result = await writes.send(() => Promise.reject(new HttpError('/admin/x', 401, 'PUT')), async () => false);
+    mockApi({ 'PUT /admin/x': status(401) });
+    const result = await writes.send(() => requestAsUser('PUT', '/admin/x'), async () => false);
     expect(result).toEqual({ outcome: 'refused', failure: { kind: 'signed_out' } });
     expect(writes.problem.value).toBeNull();
     expect(useAuth().signedIn).toBe(false);

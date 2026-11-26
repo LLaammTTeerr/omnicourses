@@ -1,6 +1,10 @@
-import { ref, shallowRef } from 'vue';
+import { computed, nextTick, ref, shallowRef, type Ref } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { useAuth } from '../auth/store.js';
+import { useMessages } from '../locale.js';
+import { useToast } from '../shell/toast.js';
 import { readFailure, type Failure } from './errors.js';
+import { ADMIN_MESSAGES } from './messages.js';
 import { useAdminAccess } from './store.js';
 
 // One administration write and what became of it (UC-11 A7, ADR 0011: "A lost response leaves the client in an
@@ -42,7 +46,7 @@ export async function settleWrite<T>(write: () => Promise<T>, landed: () => Prom
 }
 
 /** What became of a write that got no answer, read from the saved data. It sends no write. */
-export async function settleLost(landed: () => Promise<boolean>): Promise<Exclude<WriteOutcome<never>, { outcome: 'saved' }>> {
+async function settleLost(landed: () => Promise<boolean>): Promise<Exclude<WriteOutcome<never>, { outcome: 'saved' }>> {
   try {
     return { outcome: (await landed()) ? 'confirmed' : 'not_applied' };
   } catch (e) {
@@ -72,7 +76,7 @@ export function useWrites() {
     problem.value = settled ? null : (result as Problem);
   }
 
-  async function send<T>(write: (token: string) => Promise<T>, landed: () => Promise<boolean>): Promise<WriteOutcome<T>> {
+  async function send<T>(write: () => Promise<T>, landed: () => Promise<boolean>): Promise<WriteOutcome<T>> {
     // While the outcome of the last write is not known, nothing more is sent: the saved data is read first
     // (`recheck`), or the screen drops the problem and says that it may be out of date.
     if (problem.value?.outcome === 'unknown') return { outcome: 'unknown' };
@@ -85,7 +89,7 @@ export function useWrites() {
     problem.value = null;
     lastLanded = landed;
     try {
-      const result = await settleWrite(() => auth.authed(write), landed);
+      const result = await settleWrite(write, landed);
       if (result.outcome === 'refused' && result.failure.kind === 'permission') {
         access.refusal = { permission: result.failure.permission };
         void access.load({ fresh: true });
@@ -118,4 +122,84 @@ export function useWrites() {
   }
 
   return { busy, problem, send, recheck, clear };
+}
+
+export function stayWhileBusy(busy: () => boolean): void {
+  const auth = useAuth();
+  onBeforeRouteLeave(() => !busy() || !auth.signedIn);
+}
+
+interface AdminDialogOptions {
+  fallback: string;
+  notice: Ref<string | null>;
+  stale?: { reloadId: string; is: () => boolean; mark: () => void };
+  onClose?: () => void;
+}
+
+interface FinishOptions {
+  before?: (result: WriteOutcome<unknown>) => Promise<void> | void;
+  fallback?: string;
+}
+
+function useFocusReturn(stale: AdminDialogOptions['stale']) {
+  let opener: HTMLElement | null = null;
+
+  function rememberOpener(from: Event): void {
+    opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
+  }
+
+  function focusBack(fallback: string): void {
+    const usable = opener?.isConnected && !(opener as HTMLButtonElement).disabled;
+    const id = stale?.is() ? stale.reloadId : fallback;
+    (usable ? opener : document.getElementById(id))?.focus();
+    opener = null;
+  }
+
+  return { rememberOpener, focusBack };
+}
+
+export function useAdminDialog<D>(options: AdminDialogOptions) {
+  const toast = useToast();
+  const m = useMessages(ADMIN_MESSAGES);
+  const writes = useWrites();
+  const dialog = shallowRef<D | null>(null);
+  const settling = ref(false);
+  const busy = computed(() => writes.busy.value || settling.value);
+  const { rememberOpener, focusBack } = useFocusReturn(options.stale);
+  stayWhileBusy(() => busy.value);
+
+  function open(next: D, from?: Event): void {
+    if (from) rememberOpener(from);
+    writes.clear();
+    dialog.value = next;
+  }
+
+  async function close(fallback = options.fallback): Promise<void> {
+    if (writes.problem.value?.outcome === 'unknown') options.stale?.mark();
+    dialog.value = null;
+    options.onClose?.();
+    writes.clear();
+    await nextTick();
+    focusBack(fallback);
+  }
+
+  function cancel(): void {
+    if (!busy.value) void close();
+  }
+
+  async function finish(result: WriteOutcome<unknown>, saved: string, { before, fallback }: FinishOptions = {}): Promise<boolean> {
+    if (result.outcome !== 'saved' && result.outcome !== 'confirmed') return false;
+    settling.value = true;
+    try {
+      await before?.(result);
+      await close(fallback);
+      if (result.outcome === 'saved') toast.show(saved);
+      else options.notice.value = m.value.problem.confirmed;
+      return true;
+    } finally {
+      settling.value = false;
+    }
+  }
+
+  return { dialog, writes, busy, rememberOpener, open, close, cancel, finish };
 }

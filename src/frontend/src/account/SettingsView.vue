@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
-import { listSessions, revokeSession, type Session } from '../auth/api.js';
+import type { Session } from '../auth/api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { GROUPS, groupClass } from '../groups.js';
@@ -11,7 +11,7 @@ import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { EXPORT_FILE_NAME, exportAccount, saveFile } from './api.js';
+import { EXPORT_FILE_NAME, exportAccount, listSessions, revokeSession, saveFile } from './api.js';
 import StudySettings from '../onboarding/StudySettings.vue';
 import DeleteAccountDialog from './DeleteAccountDialog.vue';
 import { SETTINGS_MESSAGES } from './messages.js';
@@ -27,7 +27,7 @@ const theme = useTheme();
 const toast = useToast();
 const m = useMessages(SETTINGS_MESSAGES);
 
-const sessions = useAsyncLoad('the sessions', () => auth.authed(listSessions));
+const sessions = useAsyncLoad('the sessions', () => listSessions());
 // The current session first, then the newest.
 const sorted = computed(() =>
   [...(sessions.data.value ?? [])].sort((a, b) => Number(b.current) - Number(a.current) || b.createdAt.localeCompare(a.createdAt)),
@@ -42,7 +42,7 @@ async function revoke(): Promise<void> {
   if (!session) return;
   revokeBusy.value = true;
   try {
-    await auth.authed((token) => revokeSession(token, session.id));
+    await revokeSession(session.id);
     toast.show(m.value.revoked);
     revoking.value = null;
     await sessions.reload();
@@ -61,7 +61,7 @@ async function download(): Promise<void> {
   exporting.value = true;
   exportFailed.value = false;
   try {
-    saveFile(await auth.authed(exportAccount), EXPORT_FILE_NAME);
+    saveFile(await exportAccount(), EXPORT_FILE_NAME);
     toast.show(m.value.exported(EXPORT_FILE_NAME));
   } catch (e) {
     console.error('Exporting the account failed:', e);

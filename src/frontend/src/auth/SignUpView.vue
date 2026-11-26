@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { codePoints, statusOf } from '../api.js';
+import { codePoints, failureKind } from '../api.js';
 import ExternalLink from '../components/ExternalLink.vue';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
@@ -65,10 +65,10 @@ async function submit(): Promise<void> {
     await auth.signUp({ displayName: form.displayName.trim(), email: form.email.trim(), password: form.password, acceptedTerms: true });
     await router.replace(afterSignIn(route.query.redirect));
   } catch (e) {
-    const status = statusOf(e);
-    if (status === 409) failure.value = 'taken';
-    else if (status === 429) failure.value = m.value.rateLimited;
-    else if (status === 400) failure.value = m.value.checkFields;
+    const kind = failureKind(e);
+    if (kind === 'conflict') failure.value = 'taken';
+    else if (kind === 'rate_limited') failure.value = m.value.rateLimited;
+    else if (kind === 'invalid') failure.value = m.value.checkFields;
     else {
       console.error('Signing up failed:', e);
       failure.value = m.value.unreachable;

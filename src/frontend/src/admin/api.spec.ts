@@ -1,10 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import contract from '../../../backend/openapi.json';
 import { API_URL } from '../api.js';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { signedInPinia } from '../testing/signed-in.js';
 import * as api from './api.js';
+import { COURSE_CODE_PATTERN } from '../course-code.js';
 import {
+  BYTES_PER_MIB,
   GLOBAL_PERMISSIONS,
+  IMPORT_MAX_BYTES,
+  IMPORT_MAX_RECORDS,
   PERMISSION_KINDS,
   IMPORT_HEADERS,
   type AccessProgram,
@@ -165,6 +170,15 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     expect(contractEnum('GroupLinkImportRowDto', 'action')).toEqual(['insert', 'no_op']);
   });
 
+  it('checks a file against the limits the import routes document', () => {
+    const csv = contract.components.schemas.ImportPreviewRequestDto.properties.csv.description;
+    expect(csv).toContain(`At most ${IMPORT_MAX_BYTES / BYTES_PER_MIB} MiB and ${IMPORT_MAX_RECORDS.toLocaleString('en-GB')} data records.`);
+  });
+
+  it('checks a course code with the pattern the catalog documents', () => {
+    expect(contract.components.schemas.CreateCourseDto.properties.code.description).toContain(COURSE_CODE_PATTERN.source);
+  });
+
   it('has the permissions of the contract', () => {
     expect([...GLOBAL_PERMISSIONS].sort()).toEqual(contractEnum('GlobalGrantDto', 'permission'));
     expect([...PERMISSION_KINDS].sort()).toEqual(contractEnum('PermissionRequiredDto', 'permission'));
@@ -179,42 +193,43 @@ const USER = '00000000-0000-4000-8000-000000000002';
 
 /** Every call of api.ts, with the method and the contract path it must reach. */
 const CALLS: [name: string, call: () => Promise<unknown>, method: string, path: string][] = [
-  ['fetchOwnGrants', () => api.fetchOwnGrants(TOKEN), 'get', '/api/admin/grants'],
-  ['fetchAdminPrograms', () => api.fetchAdminPrograms(TOKEN), 'get', '/api/admin/programs'],
-  ['createGroup', () => api.createGroup(TOKEN, COHORT, { name: 'Nhóm thử', kind: 'elective' }), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups'],
-  ['updateGroup', () => api.updateGroup(TOKEN, COHORT, GROUP, { name: 'Nhóm thử' }), 'patch', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}'],
-  ['deleteGroup', () => api.deleteGroup(TOKEN, COHORT, GROUP), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}'],
-  ['linkCourse', () => api.linkCourse(TOKEN, COHORT, GROUP, 'ZZ101'), 'put', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}/courses/{courseCode}'],
-  ['unlinkCourse', () => api.unlinkCourse(TOKEN, COHORT, GROUP, 'ZZ101'), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}/courses/{courseCode}'],
-  ['setPrerequisites', () => api.setPrerequisites(TOKEN, COHORT, 'ZZ102', ['ZZ101']), 'put', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/prerequisites'],
-  ['clearPrerequisites', () => api.clearPrerequisites(TOKEN, COHORT, 'ZZ102'), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/prerequisites'],
-  ['setOfferingTerms', () => api.setOfferingTerms(TOKEN, COHORT, 'ZZ102', [1, 3]), 'put', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/offering-terms'],
-  ['clearOfferingTerms', () => api.clearOfferingTerms(TOKEN, COHORT, 'ZZ102'), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/offering-terms'],
-  ['createCourse', () => api.createCourse(TOKEN, { code: 'ZZ101', nameVi: 'Môn thử', credits: 4 }), 'post', '/api/admin/catalog/courses'],
-  ['updateCourse', () => api.updateCourse(TOKEN, 'ZZ101', { credits: 3 }), 'patch', '/api/admin/catalog/courses/{courseCode}'],
-  ['deleteCourse', () => api.deleteCourse(TOKEN, 'ZZ101'), 'delete', '/api/admin/catalog/courses/{courseCode}'],
-  ['createProgram', () => api.createProgram(TOKEN, { code: 'ZZ-NEW', nameVi: 'Chương trình thử' }), 'post', '/api/admin/programs'],
-  ['updateProgram', () => api.updateProgram(TOKEN, COHORT.programId, { faculty: null }), 'patch', '/api/admin/programs/{programId}'],
-  ['fetchCohorts', () => api.fetchCohorts(TOKEN, COHORT.programId), 'get', '/api/admin/programs/{programId}/cohorts'],
-  ['createCohort', () => api.createCohort(TOKEN, COHORT.programId, { cohortYear: 2026, code: 'ZZ-NEW-2026', nameVi: 'Khóa thử' }), 'post', '/api/admin/programs/{programId}/cohorts'],
-  ['fetchCohort', () => api.fetchCohort(TOKEN, COHORT), 'get', '/api/admin/programs/{programId}/cohorts/{curriculumId}'],
-  ['updateCohort', () => api.updateCohort(TOKEN, COHORT, { language: 'en' }), 'patch', '/api/admin/programs/{programId}/cohorts/{curriculumId}'],
-  ['previewCatalogImport', () => api.previewCatalogImport(TOKEN, 'x'), 'post', '/api/admin/catalog/imports/preview'],
-  ['confirmCatalogImport', () => api.confirmCatalogImport(TOKEN, 'x', 'zz-review'), 'post', '/api/admin/catalog/imports/confirm'],
-  ['previewLinkImport', () => api.previewLinkImport(TOKEN, COHORT, 'x'), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview'],
-  ['confirmLinkImport', () => api.confirmLinkImport(TOKEN, COHORT, 'x', 'zz-review'), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm'],
-  ['fetchAccessPrograms', () => api.fetchAccessPrograms(TOKEN), 'get', '/api/admin/access/programs'],
-  ['fetchUserGrants', () => api.fetchUserGrants(TOKEN, USER), 'get', '/api/admin/access/users/{userId}/grants'],
-  ['grantProgram', () => api.grantProgram(TOKEN, USER, COHORT.programId), 'put', '/api/admin/access/users/{userId}/programs/{programId}'],
-  ['revokeProgram', () => api.revokeProgram(TOKEN, USER, COHORT.programId), 'delete', '/api/admin/access/users/{userId}/programs/{programId}'],
-  ['grantGlobal', () => api.grantGlobal(TOKEN, USER, 'catalog_maintainer'), 'put', '/api/admin/access/users/{userId}/global/{permission}'],
-  ['revokeGlobal', () => api.revokeGlobal(TOKEN, USER, 'access_manager'), 'delete', '/api/admin/access/users/{userId}/global/{permission}'],
+  ['fetchOwnGrants', () => api.fetchOwnGrants(), 'get', '/api/admin/grants'],
+  ['fetchAdminPrograms', () => api.fetchAdminPrograms(), 'get', '/api/admin/programs'],
+  ['createGroup', () => api.createGroup(COHORT, { name: 'Nhóm thử', kind: 'elective' }), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups'],
+  ['updateGroup', () => api.updateGroup(COHORT, GROUP, { name: 'Nhóm thử' }), 'patch', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}'],
+  ['deleteGroup', () => api.deleteGroup(COHORT, GROUP), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}'],
+  ['linkCourse', () => api.linkCourse(COHORT, GROUP, 'ZZ101'), 'put', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}/courses/{courseCode}'],
+  ['unlinkCourse', () => api.unlinkCourse(COHORT, GROUP, 'ZZ101'), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}/courses/{courseCode}'],
+  ['setPrerequisites', () => api.setPrerequisites(COHORT, 'ZZ102', ['ZZ101']), 'put', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/prerequisites'],
+  ['clearPrerequisites', () => api.clearPrerequisites(COHORT, 'ZZ102'), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/prerequisites'],
+  ['setOfferingTerms', () => api.setOfferingTerms(COHORT, 'ZZ102', [1, 3]), 'put', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/offering-terms'],
+  ['clearOfferingTerms', () => api.clearOfferingTerms(COHORT, 'ZZ102'), 'delete', '/api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/offering-terms'],
+  ['createCourse', () => api.createCourse({ code: 'ZZ101', nameVi: 'Môn thử', credits: 4 }), 'post', '/api/admin/catalog/courses'],
+  ['updateCourse', () => api.updateCourse('ZZ101', { credits: 3 }), 'patch', '/api/admin/catalog/courses/{courseCode}'],
+  ['deleteCourse', () => api.deleteCourse('ZZ101'), 'delete', '/api/admin/catalog/courses/{courseCode}'],
+  ['createProgram', () => api.createProgram({ code: 'ZZ-NEW', nameVi: 'Chương trình thử' }), 'post', '/api/admin/programs'],
+  ['updateProgram', () => api.updateProgram(COHORT.programId, { faculty: null }), 'patch', '/api/admin/programs/{programId}'],
+  ['fetchCohorts', () => api.fetchCohorts(COHORT.programId), 'get', '/api/admin/programs/{programId}/cohorts'],
+  ['createCohort', () => api.createCohort(COHORT.programId, { cohortYear: 2026, code: 'ZZ-NEW-2026', nameVi: 'Khóa thử' }), 'post', '/api/admin/programs/{programId}/cohorts'],
+  ['fetchCohort', () => api.fetchCohort(COHORT), 'get', '/api/admin/programs/{programId}/cohorts/{curriculumId}'],
+  ['updateCohort', () => api.updateCohort(COHORT, { language: 'en' }), 'patch', '/api/admin/programs/{programId}/cohorts/{curriculumId}'],
+  ['previewCatalogImport', () => api.previewCatalogImport('x'), 'post', '/api/admin/catalog/imports/preview'],
+  ['confirmCatalogImport', () => api.confirmCatalogImport('x', 'zz-review'), 'post', '/api/admin/catalog/imports/confirm'],
+  ['previewLinkImport', () => api.previewLinkImport(COHORT, 'x'), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview'],
+  ['confirmLinkImport', () => api.confirmLinkImport(COHORT, 'x', 'zz-review'), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm'],
+  ['fetchAccessPrograms', () => api.fetchAccessPrograms(), 'get', '/api/admin/access/programs'],
+  ['fetchUserGrants', () => api.fetchUserGrants(USER), 'get', '/api/admin/access/users/{userId}/grants'],
+  ['grantProgram', () => api.grantProgram(USER, COHORT.programId), 'put', '/api/admin/access/users/{userId}/programs/{programId}'],
+  ['revokeProgram', () => api.revokeProgram(USER, COHORT.programId), 'delete', '/api/admin/access/users/{userId}/programs/{programId}'],
+  ['grantGlobal', () => api.grantGlobal(USER, 'catalog_maintainer'), 'put', '/api/admin/access/users/{userId}/global/{permission}'],
+  ['revokeGlobal', () => api.revokeGlobal(USER, 'access_manager'), 'delete', '/api/admin/access/users/{userId}/global/{permission}'],
 ];
 
 const paths = contract.paths as Record<string, Record<string, unknown>>;
 const matches = (template: string, url: string) => new RegExp(`^${template.replace(/\{[^}]+\}/g, '[^/]+')}$`).test(url);
 
 describe('administration addresses against the contract', () => {
+  beforeEach(() => signedInPinia());
   afterEach(() => vi.restoreAllMocks());
 
   it.each(CALLS)('%s calls a route the API serves, with the token', async (_name, call, method, path) => {
@@ -238,12 +253,12 @@ describe('administration addresses against the contract', () => {
 
   it('sends the bodies the API documents', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
-    await api.setPrerequisites(TOKEN, COHORT, 'ZZ102', []);
-    await api.setOfferingTerms(TOKEN, COHORT, 'ZZ102', [2]);
-    await api.updateCourse(TOKEN, 'ZZ101', { credits: 3, confirmImpact: 'zz-review' });
-    await api.grantGlobal(TOKEN, USER, 'access_manager');
-    await api.previewLinkImport(TOKEN, COHORT, 'a,b\n');
-    await api.confirmCatalogImport(TOKEN, 'a,b\n', 'zz-review');
+    await api.setPrerequisites(COHORT, 'ZZ102', []);
+    await api.setOfferingTerms(COHORT, 'ZZ102', [2]);
+    await api.updateCourse('ZZ101', { credits: 3, confirmImpact: 'zz-review' });
+    await api.grantGlobal(USER, 'access_manager');
+    await api.previewLinkImport(COHORT, 'a,b\n');
+    await api.confirmCatalogImport('a,b\n', 'zz-review');
     expect(fetch.mock.calls.map(([, init]) => init?.body)).toEqual([
       '{"prerequisites":[]}',
       '{"terms":[2]}',
@@ -256,10 +271,10 @@ describe('administration addresses against the contract', () => {
 
   it('keeps a typed value one path segment, whatever it holds', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
-    await api.linkCourse(TOKEN, COHORT, GROUP, ' zz 1/01 ');
+    await api.linkCourse(COHORT, GROUP, ' zz 1/01 ');
     // Only dots would be read by the browser as "the folder above": the API gets it as a value, and refuses it.
-    await api.linkCourse(TOKEN, COHORT, GROUP, '..');
-    await api.fetchUserGrants(TOKEN, '.');
+    await api.linkCourse(COHORT, GROUP, '..');
+    await api.fetchUserGrants('.');
     const base = `${API_URL}/admin/programs/${COHORT.programId}/cohorts/${COHORT.curriculumId}/requirement-groups/${GROUP}/courses`;
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([`${base}/%20zz%201%2F01%20`, `${base}/..%20`, `${API_URL}/admin/access/users/.%20/grants`]);
   });

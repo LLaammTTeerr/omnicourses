@@ -1,3 +1,4 @@
+import { reactive, watch } from 'vue';
 import type { Course, CurriculumCourse, Curriculum, RequirementGroup, RequirementGroupKind } from '../curriculum/api.js';
 import type {
   AffectedCurriculum,
@@ -34,24 +35,54 @@ export const blankToNull = (text: string): string | null => text.trim() || null;
 /** A code as the API stores it. */
 export const storedCode = (typed: string): string => typed.trim().toUpperCase();
 
-export const newGroupBody = (entered: GroupValues): Entered<CreateGroupBody> => ({
-  name: entered.name,
-  kind: entered.kind || null,
-  officialNotes: blankToNull(entered.officialNotes),
+export function useValuesOnOpen<V extends object>(open: () => boolean, initial: () => V): V {
+  const values = reactive(initial()) as V;
+  watch(open, (opened) => {
+    if (opened) Object.assign(values, initial());
+  });
+  return values;
+}
+
+interface TextFields<F extends string> {
+  required: readonly F[];
+  optional: readonly F[];
+}
+
+function sentText<F extends string>(values: Record<F, string>, { required, optional }: TextFields<F>): Record<F, string | null> {
+  const sent = [...required.map((field) => [field, values[field]]), ...optional.map((field) => [field, blankToNull(values[field])])];
+  return Object.fromEntries(sent) as Record<F, string | null>;
+}
+
+function textChanges<F extends string>(saved: Record<F, string | null>, values: Record<F, string>, { required, optional }: TextFields<F>): Partial<Record<F, string | null>> {
+  const body: Partial<Record<F, string | null>> = {};
+  for (const field of required) if (values[field].trim() !== saved[field]) body[field] = values[field];
+  for (const field of optional) if (blankToNull(values[field]) !== saved[field]) body[field] = blankToNull(values[field]);
+  return body;
+}
+
+const textMatches = <F extends string>(saved: Record<F, string | null>, values: Record<F, string>, { required, optional }: TextFields<F>): boolean =>
+  required.every((field) => saved[field] === values[field].trim()) && optional.every((field) => saved[field] === blankToNull(values[field]));
+
+const GROUP_TEXT: TextFields<'name' | 'officialNotes'> = { required: ['name'], optional: ['officialNotes'] };
+
+export const groupValues = (saved: RequirementGroup | null): GroupValues => ({
+  name: saved?.name ?? '',
+  kind: saved?.kind ?? '',
+  officialNotes: saved?.officialNotes ?? '',
 });
+
+export const newGroupBody = (entered: GroupValues): Entered<CreateGroupBody> => ({ ...sentText(entered, GROUP_TEXT), kind: entered.kind || null }) as Entered<CreateGroupBody>;
 
 /** Only the fields that differ from the saved group; empty when nothing changed. */
 export function groupChanges(saved: Pick<RequirementGroup, 'name' | 'kind' | 'officialNotes'>, entered: GroupValues): Entered<UpdateGroupBody> {
-  const body: Entered<UpdateGroupBody> = {};
-  if (entered.name.trim() !== saved.name) body.name = entered.name;
+  const body: Entered<UpdateGroupBody> = textChanges(saved, entered, GROUP_TEXT);
   if (entered.kind !== saved.kind) body.kind = entered.kind || null;
-  if (blankToNull(entered.officialNotes) !== saved.officialNotes) body.officialNotes = blankToNull(entered.officialNotes);
   return body;
 }
 
 /** The saved group reads as the form was filled in. */
 export const groupMatches = (saved: Pick<RequirementGroup, 'name' | 'kind' | 'officialNotes'>, entered: GroupValues): boolean =>
-  saved.name === entered.name.trim() && saved.kind === entered.kind && saved.officialNotes === blankToNull(entered.officialNotes);
+  textMatches(saved, entered, GROUP_TEXT) && saved.kind === entered.kind;
 
 // ---- Courses of a curriculum -----------------------------------------------------------------------------------
 
@@ -169,6 +200,7 @@ export type ProgramField = (typeof PROGRAM_FIELDS)[number];
 export type ProgramValues = Record<ProgramField, string>;
 /** A program's details as saved; the code never changes. */
 export type SavedProgram = { code: string; nameVi: string; nameEn: string | null; faculty: string | null };
+const PROGRAM_TEXT: TextFields<'nameVi' | 'nameEn' | 'faculty'> = { required: ['nameVi'], optional: ['nameEn', 'faculty'] };
 
 export const programValues = (saved: SavedProgram | null): ProgramValues => ({
   code: saved?.code ?? '',
@@ -177,32 +209,19 @@ export const programValues = (saved: SavedProgram | null): ProgramValues => ({
   faculty: saved?.faculty ?? '',
 });
 
-export const newProgramBody = (values: ProgramValues): Entered<CreateProgramBody> => ({
-  code: values.code,
-  nameVi: values.nameVi,
-  nameEn: blankToNull(values.nameEn),
-  faculty: blankToNull(values.faculty),
-});
+export const newProgramBody = (values: ProgramValues): Entered<CreateProgramBody> => ({ code: values.code, ...sentText(values, PROGRAM_TEXT) }) as Entered<CreateProgramBody>;
 
 /** Only the fields that differ from the saved program; empty when nothing changed. */
-export function programChanges(saved: SavedProgram, values: ProgramValues): Entered<UpdateProgramBody> {
-  const body: Entered<UpdateProgramBody> = {};
-  if (values.nameVi.trim() !== saved.nameVi) body.nameVi = values.nameVi;
-  if (blankToNull(values.nameEn) !== saved.nameEn) body.nameEn = blankToNull(values.nameEn);
-  if (blankToNull(values.faculty) !== saved.faculty) body.faculty = blankToNull(values.faculty);
-  return body;
-}
+export const programChanges = (saved: SavedProgram, values: ProgramValues): Entered<UpdateProgramBody> => textChanges(saved, values, PROGRAM_TEXT);
 
 /** The saved program reads as the form was filled in (a create also matches its code). */
 export const programMatches = (saved: SavedProgram, values: ProgramValues, withCode = false): boolean =>
-  (!withCode || saved.code === storedCode(values.code)) &&
-  saved.nameVi === values.nameVi.trim() &&
-  saved.nameEn === blankToNull(values.nameEn) &&
-  saved.faculty === blankToNull(values.faculty);
+  (!withCode || saved.code === storedCode(values.code)) && textMatches(saved, values, PROGRAM_TEXT);
 
 export const COHORT_FIELDS = ['cohortYear', 'code', 'nameVi', 'nameEn', 'language'] as const;
 export type CohortField = (typeof COHORT_FIELDS)[number];
 export type CohortValues = Record<CohortField, string>;
+const COHORT_TEXT: TextFields<'nameVi' | 'nameEn' | 'language'> = { required: ['nameVi'], optional: ['nameEn', 'language'] };
 
 export const cohortValues = (saved: CohortDetails | null): CohortValues => ({
   cohortYear: saved ? String(saved.cohortYear) : '',
@@ -212,26 +231,12 @@ export const cohortValues = (saved: CohortDetails | null): CohortValues => ({
   language: saved?.language ?? '',
 });
 
-export const newCohortBody = (values: CohortValues): Entered<CreateCohortBody> => ({
-  cohortYear: enteredNumber(values.cohortYear),
-  code: values.code,
-  nameVi: values.nameVi,
-  nameEn: blankToNull(values.nameEn),
-  language: blankToNull(values.language),
-});
+export const newCohortBody = (values: CohortValues): Entered<CreateCohortBody> =>
+  ({ cohortYear: enteredNumber(values.cohortYear), code: values.code, ...sentText(values, COHORT_TEXT) }) as Entered<CreateCohortBody>;
 
 /** Only the fields that differ from the saved cohort; the year and the code never change. */
-export function cohortChanges(saved: CohortDetails, values: CohortValues): Entered<UpdateCohortBody> {
-  const body: Entered<UpdateCohortBody> = {};
-  if (values.nameVi.trim() !== saved.nameVi) body.nameVi = values.nameVi;
-  if (blankToNull(values.nameEn) !== saved.nameEn) body.nameEn = blankToNull(values.nameEn);
-  if (blankToNull(values.language) !== saved.language) body.language = blankToNull(values.language);
-  return body;
-}
+export const cohortChanges = (saved: CohortDetails, values: CohortValues): Entered<UpdateCohortBody> => textChanges(saved, values, COHORT_TEXT);
 
 /** The saved cohort reads as the form was filled in (a create also matches its year and code). */
 export const cohortMatches = (saved: CohortDetails, values: CohortValues, withIdentity = false): boolean =>
-  (!withIdentity || (String(saved.cohortYear) === values.cohortYear.trim() && saved.code === storedCode(values.code))) &&
-  saved.nameVi === values.nameVi.trim() &&
-  saved.nameEn === blankToNull(values.nameEn) &&
-  saved.language === blankToNull(values.language);
+  (!withIdentity || (String(saved.cohortYear) === values.cohortYear.trim() && saved.code === storedCode(values.code))) && textMatches(saved, values, COHORT_TEXT);

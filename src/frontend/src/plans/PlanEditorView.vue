@@ -4,7 +4,6 @@ import { RouterLink, useRouter } from 'vue-router';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { fetchAudit, type DegreeAudit } from '../audit/api.js';
-import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour, matches, orderGroups } from '../curriculum/present.js';
@@ -62,7 +61,6 @@ import StatusStrip from './StatusStrip.vue';
 // A report is pinned to the board it was computed for, so its issues follow their tiles, and they are dimmed while
 // the board on screen holds other tiles than that one.
 const props = defineProps<{ id: string }>();
-const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
 const toast = useToast();
@@ -101,7 +99,7 @@ async function check(snapshotBoard: Board): Promise<void> {
   const { id } = opened;
   issuesStatus.value = 'loading';
   try {
-    const report = await auth.authed((token) => fetchPlanIssues(token, id));
+    const report = await fetchPlanIssues(id);
     if (call !== checkCall) return;
     issues.value = attachIssues(snapshotBoard, report);
     issuesStatus.value = 'idle';
@@ -149,7 +147,7 @@ async function save(): Promise<void> {
       if (issuesStatus.value === 'loading') issuesStatus.value = 'idle';
       let updated: Plan;
       try {
-        updated = await auth.authed((token) => savePlacements(token, mine.id, boardBody(sending)));
+        updated = await savePlacements(mine.id, boardBody(sending));
       } catch (e) {
         // 429: too many requests, not a refusal. Keep the board, wait, and send the board on screen again.
         if (statusOf(e) !== 429 || waits >= SAVE_RETRY_MS.length) throw e;
@@ -264,7 +262,7 @@ const loaded = useAsyncLoad(
     saveError.value = null;
     lifted.value = null;
     history.value = [];
-    const found = await auth.authed((token) => fetchPlan(token, mine.id));
+    const found = await fetchPlan(mine.id);
     // The rows run to the target graduation term; without onboarding answers they stop at the plan's last term.
     const target = await onboarding.load().then(
       (answers) => answers.targetGraduationTerm,
@@ -297,7 +295,7 @@ const curriculum = useAsyncLoad(
   'the curriculum of the plan',
   async () => {
     const c = plan.value?.curriculum;
-    return c ? auth.authed((token) => fetchCurriculum(token, c.programCode, c.cohortYear)) : null;
+    return c ? fetchCurriculum(c.programCode, c.cohortYear) : null;
   },
   () => plan.value?.curriculum.id ?? null,
 );
@@ -321,8 +319,7 @@ const transcriptCodes = useTranscriptCodes('the planner');
 // The degree audit (the rule engine's reading of the transcript, F3): the terms already taken, the courses it counts
 // as passed or in progress, and their grades. Without one (no transcript, no onboarding, a failure) none of it shows.
 const audit = shallowRef<DegreeAudit | null>(null);
-auth
-  .authed(fetchAudit)
+fetchAudit()
   .then((outcome) => (audit.value = outcome.status === 'ready' ? outcome.audit : null))
   .catch((e) => statusOf(e) === 401 || console.error('Loading the audit for the planner failed:', e));
 const auditCourses = computed(() => audit.value?.groups.flatMap((g) => g.courses) ?? []);
@@ -416,8 +413,7 @@ function previewRows(what: Moving, terms: readonly Term[]): void {
   const before = issues.value;
   const { signal } = previewAbort!;
   const { id } = opened;
-  auth
-    .authed((token) => previewPlanDrops(token, id, { terms: boardBody(without), placement, targets: todo }, signal))
+  previewPlanDrops(id, { terms: boardBody(without), placement, targets: todo }, signal)
     .then(({ reports }) => {
       const byTerm = new Map(reports.map((r) => [termKey(r.term), r.issues]));
       setAll((term) => {

@@ -8,7 +8,7 @@ import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
 import { courseValues, EDITABLE_COURSE_FIELDS, type CourseField, type CourseValues, type ImpactReview } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
-import type { ProblemView } from './problem.js';
+import { fieldDescription, fieldInvalid, type ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
 // A catalog course, to create one or to correct one (ADR 0011, UC-11 A8; UI prototypes: admin.html, the catalog
@@ -66,8 +66,8 @@ watch(
 
 const NUMBERS = ['credits', 'theoryPeriods', 'labPeriods', 'exercisePeriods', 'projectPeriods'] as const;
 const usedIn = computed(() => [...new Set((props.course?.memberships ?? []).map((item) => item.curriculumCode))]);
-const described = (field: CourseField, hint?: string) => [hint, props.problem?.fields[field] && `course-${field}-error`].filter(Boolean).join(' ') || undefined;
-const invalid = (field: CourseField) => (props.problem?.fields[field] ? 'true' : undefined);
+const described = (field: CourseField, hint?: string) => fieldDescription(props.problem, 'course', field, hint);
+const invalid = (field: CourseField) => fieldInvalid(props.problem, field);
 
 /** A value in the review table: an empty one in words. */
 const shown = (value: unknown) => (value === null || value === undefined || value === '' ? text.value.blank : String(value));

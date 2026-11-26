@@ -1,5 +1,5 @@
-import { request } from '../api.js';
-import { segment } from '../path-segment.js';
+import { segment } from '../api.js';
+import { requestAsUser } from '../auth/store.js';
 
 // The curriculum read DTOs of the API (F4, ADR 0005), written by hand; api.spec.ts checks them against
 // src/backend/openapi.json. They carry only what the database stores: prerequisites and offering terms are null
@@ -88,11 +88,11 @@ export interface CourseDetail extends Course {
   memberships: CourseMembership[];
 }
 
-export const fetchPrograms = (token: string) => request<ProgramList>('GET', '/programs', { token });
+export const fetchPrograms = () => requestAsUser<ProgramList>('GET', '/programs');
 
 /** 404: the program has no curriculum for this cohort. */
-export const fetchCurriculum = (token: string, program: string, cohort: number) =>
-  request<Curriculum>('GET', `/programs/${encodeURIComponent(program)}/curricula/${cohort}`, { token });
+export const fetchCurriculum = (program: string, cohort: number) =>
+  requestAsUser<Curriculum>('GET', `/programs/${segment(program)}/curricula/${cohort}`);
 
 /** 404: no course has this code. */
-export const fetchCourse = (token: string, code: string) => request<CourseDetail>('GET', `/courses/${segment(code)}`, { token });
+export const fetchCourse = (code: string) => requestAsUser<CourseDetail>('GET', `/courses/${segment(code)}`);

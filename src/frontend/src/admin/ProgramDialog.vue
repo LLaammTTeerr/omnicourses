@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue';
+import { computed } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
-import { programValues, type ProgramField, type ProgramValues, type SavedProgram } from './forms.js';
+import { programValues, useValuesOnOpen, type ProgramField, type ProgramValues, type SavedProgram } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
-import type { ProblemView } from './problem.js';
+import { fieldDescription, fieldInvalid, type ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
 // A program's details, to create one (an access manager, UC-11 A2) or to edit one (its program administrator). The
@@ -19,19 +19,12 @@ const m = useMessages(ADMIN_MESSAGES);
 const shell = useMessages(SHELL_MESSAGES);
 const text = computed(() => m.value.programs);
 
-const values = reactive<ProgramValues>(programValues(null));
-watch(
-  () => props.open,
-  (open) => {
-    if (open) Object.assign(values, programValues(props.program));
-  },
-  { immediate: true },
-);
+const values = useValuesOnOpen(() => props.open, () => programValues(props.program));
 
 const TEXT_FIELDS = ['nameVi', 'nameEn', 'faculty'] as const;
 const hints: Partial<Record<ProgramField, 'blank'>> = { nameEn: 'blank', faculty: 'blank' };
-const described = (field: ProgramField, hint?: string) => [hint, props.problem?.fields[field] && `program-${field}-error`].filter(Boolean).join(' ') || undefined;
-const invalid = (field: ProgramField) => (props.problem?.fields[field] ? 'true' : undefined);
+const described = (field: ProgramField, hint?: string) => fieldDescription(props.problem, 'program', field, hint);
+const invalid = (field: ProgramField) => fieldInvalid(props.problem, field);
 </script>
 
 <template>
