@@ -1,6 +1,6 @@
 // The averages of QĐ 1175/QĐ-KHTN Điều 15. Pure functions, in integer arithmetic: grades in tenths
 // times credits, divided once at the end, so every machine gives the same result.
-import { fourPointTenths, toTenths } from './grades.js';
+import { fourPointTenths, TENTHS_PER_POINT, toTenths } from './grades.js';
 
 /** A grade with the credits that weight it (Điều 15.2.a: aᵢ the course grade, nᵢ its credits). */
 export interface WeightedGrade {
@@ -16,16 +16,18 @@ export interface ExactAverage {
   denominator: number;
 }
 
+const HUNDREDTHS = 100;
+
 /** numerator / denominator, rounded half up to two decimals, without floating-point division. */
 function toHundredths(numerator: number, denominator: number): number {
-  return Math.floor((numerator * 200 + denominator) / (2 * denominator)) / 100;
+  return Math.floor((numerator * 2 * HUNDREDTHS + denominator) / (2 * denominator)) / HUNDREDTHS;
 }
 
 function weighted(items: readonly WeightedGrade[], tenthsOf: (grade: number) => number): ExactAverage | null {
   const credits = items.reduce((sum, i) => sum + i.credits, 0);
   if (credits === 0) return null;
   const numerator = items.reduce((sum, i) => sum + tenthsOf(i.grade) * i.credits, 0);
-  const denominator = credits * 10;
+  const denominator = credits * TENTHS_PER_POINT;
   return { value: toHundredths(numerator, denominator), numerator, denominator };
 }
 

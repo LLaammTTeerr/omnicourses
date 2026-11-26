@@ -1,14 +1,25 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
-import { courseCodesOf } from '../plans/plan-board.js';
-import { PLAN_ISSUES_PROVIDER, type PlanIssuesProvider } from '../plans/plan-issues.js';
-import { planNotFound, PlansService } from '../plans/plans.service.js';
+import { planNotFound } from '../plans/plan-id.js';
+import { PlansService } from '../plans/plans.service.js';
+import { courseCodesOf } from '../rules/plan-issues.js';
+import { RulesService } from '../rules/rules.service.js';
 import { PlanShare } from './plan-share.entity.js';
-import { isShareToken, newShareToken } from './share-token.js';
 import { sharedPlan } from './shared-plan.js';
 import { NOT_SHARED_MESSAGE, PlanShareDto, SharedPlanDto } from './sharing.dto.js';
+
+// The token of a shared plan's link (UC-09 §7, ADR 0010): 32 bytes from the operating system's
+// random source, as strong as a session token (ADR 0002), written in base64url so it fits a URL.
+const TOKEN_BYTES = 32;
+const SHARE_TOKEN = /^[A-Za-z0-9_-]{43}$/;
+
+export const newShareToken = (): string => randomBytes(TOKEN_BYTES).toString('base64url');
+
+/** Whether the text has the shape of a token. Anything else is not looked up at all. */
+export const isShareToken = (value: unknown): value is string => typeof value === 'string' && SHARE_TOKEN.test(value);
 
 /** The one answer to every link that opens no plan (UC-09 A2, A6, A7, A8), so a link reveals nothing about what existed. */
 const notShared = () => new NotFoundException(NOT_SHARED_MESSAGE);
@@ -19,11 +30,11 @@ interface ShareRow {
   show_transcript_checks: boolean;
   created_at: Date;
 }
-const toDto = (row: ShareRow): PlanShareDto => ({ token: row.share_token, showName: row.show_name, showTranscriptChecks: row.show_transcript_checks, createdAt: row.created_at });
+const toShareDto = (row: ShareRow): PlanShareDto => ({ token: row.share_token, showName: row.show_name, showTranscriptChecks: row.show_transcript_checks, createdAt: row.created_at });
 const SHARE_COLUMNS = '"share_token", "show_name", "show_transcript_checks", "created_at"';
 
 /** The owner's choices for a link. A choice left out keeps what the link has, and is off on a new link. */
-export interface ShareChoices {
+interface ShareChoices {
   showName?: boolean;
   showTranscriptChecks?: boolean;
 }
@@ -38,14 +49,14 @@ export class SharingService {
     private readonly db: DataSource,
     private readonly plans: PlansService,
     private readonly catalog: CurriculumService,
-    @Inject(PLAN_ISSUES_PROVIDER) private readonly issues: PlanIssuesProvider,
+    private readonly rules: RulesService,
   ) {}
 
   /** The live link of one of the student's plans, or null when it is not shared. 404 for a plan that is not theirs. */
   async shareOf(userId: string, planId: string): Promise<PlanShareDto | null> {
     await this.plans.get(userId, planId);
     const [row]: ShareRow[] = await this.db.query(`SELECT ${SHARE_COLUMNS} FROM "plan_shares" WHERE "plan_id" = $1 AND "user_id" = $2`, [planId, userId]);
-    return row ? toDto(row) : null;
+    return row ? toShareDto(row) : null;
   }
 
   /**
@@ -83,7 +94,7 @@ export class SharingService {
       throw error;
     }
     if (!rows[0]) throw planNotFound();
-    return toDto(rows[0]);
+    return toShareDto(rows[0]);
   }
 
   /** Stops sharing: the link is dead at once (UC-09 A2). Nothing happens when the plan is not shared. 404 for a plan that is not theirs. */
@@ -119,8 +130,8 @@ export class SharingService {
     // not read at all, so neither the answer nor the time it takes depends on what the transcript holds.
     const showTranscriptChecks = share.showTranscriptChecks === true;
     const [report, courses, curriculum] = await Promise.all([
-      showTranscriptChecks ? this.issues.issuesFor(share.userId, plan) : this.issues.issuesWithoutTranscript(plan),
-      this.catalog.courseSummaries(courseCodesOf(plan.terms)),
+      this.rules.issuesFor(plan, showTranscriptChecks ? share.userId : null),
+      this.catalog.catalogCourses(courseCodesOf(plan.terms)),
       this.catalog.curriculumLabels(plan.curriculum.id),
     ]);
     // ON DELETE RESTRICT keeps a plan's curriculum (ADR 0014), so this is a broken invariant.

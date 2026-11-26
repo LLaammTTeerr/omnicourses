@@ -1,14 +1,12 @@
 // Requirement coverage (F3, ADR 0013): for each requirement group of the curriculum, what the
 // transcript has passed, has in progress and still needs. Pure functions.
+import { byText } from '../common/collections.js';
 import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
 import type { CourseRecord } from './attempts.js';
-import type { CombinedMinimumCoverage, CourseCoverage, CourseStatus, GroupCoverage } from './audit-types.js';
-
-/** Code-point order: the same on every machine. */
-export const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+import type { CombinedMinimumCoverage, CourseCoverage, CourseStatus, GroupCoverage } from './types.js';
 
 /** Where a curriculum course counts, and the link it counts through. */
-export interface Placement {
+export interface CountedLink {
   group: CurriculumRuleGroup;
   course: CurriculumRuleCourse;
 }
@@ -19,11 +17,11 @@ export interface Placement {
  * then the group id. No seeded curriculum links a course twice; the rule keeps the result
  * deterministic and never counts credits twice.
  */
-export function placements(rules: CurriculumRules): Map<string, Placement> {
+export function placements(rules: CurriculumRules): Map<string, CountedLink> {
   const order = [...rules.groups].sort(
     (a, b) => Number(a.kind !== 'compulsory') - Number(b.kind !== 'compulsory') || byText(a.name, b.name) || byText(a.id, b.id),
   );
-  const result = new Map<string, Placement>();
+  const result = new Map<string, CountedLink>();
   for (const group of order) {
     for (const course of group.courses) if (!result.has(course.code)) result.set(course.code, { group, course });
   }
@@ -58,7 +56,7 @@ interface Tally {
   courses: CourseCoverage[];
 }
 
-function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, Placement>): Tally {
+function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): Tally {
   const required = group.kind === 'compulsory' ? group.creditsTotal : group.creditsTotalMin;
   let passed = 0;
   let inProgress = 0;
@@ -95,7 +93,7 @@ function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRe
  * count toward its overflow target in the same curriculum. Only passed credits overflow, one hop
  * only, and overflow never makes the source group met.
  */
-export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, Placement>): GroupCoverage[] {
+export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): GroupCoverage[] {
   const tallies = rules.groups.map((g) => tally(g, records, placed));
   const ids = new Set(rules.groups.map((g) => g.id));
   const overflowIn = new Map<string, number>();

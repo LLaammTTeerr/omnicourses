@@ -1,7 +1,7 @@
 import type { CourseSummary, CurriculumLabels } from '../curriculum/curriculum.service.js';
-import { PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, type PlanIssuesReport } from '../plans/plan-issues.js';
 import type { PlanDto } from '../plans/plans.dto.js';
-import type { Term } from '../terms/term.js';
+import { PLAN_ISSUE_CODES, type PlanIssue, type PlanIssueCode, type PlanIssuesReport } from '../rules/types.js';
+import { copyTerm, termKey } from '../terms/term.js';
 import type { SharedPlacementDto, SharedPlanCoverageDto, SharedPlanDto, SharedPlanIssueDto } from './sharing.dto.js';
 
 // What a reader of a shared plan's link gets (UC-09 step 2, ADR 0010). A pure function: the rule
@@ -26,7 +26,6 @@ export const SHARED_ISSUE_CODES = [
   'not_in_curriculum',
   'credits_not_recorded',
 ] as const satisfies readonly PlanIssueCode[];
-export type SharedIssueCode = (typeof SHARED_ISSUE_CODES)[number];
 
 /**
  * The codes the engine decides from the owner's transcript: each one, by being there or by being
@@ -46,9 +45,6 @@ const notAmong = (shown: readonly PlanIssueCode[]): PlanIssueCode[] => PLAN_ISSU
 export const WITHHELD_ISSUE_CODES: PlanIssueCode[] = notAmong(SHARED_ISSUE_CODES);
 
 const WITH_TRANSCRIPT_CHECKS: readonly PlanIssueCode[] = [...SHARED_ISSUE_CODES, ...TRANSCRIPT_ISSUE_CODES];
-
-const termKey = (t: Term): string => `${t.year}-${t.number}`;
-const copyTerm = (t: Term): Term => ({ year: t.year, number: t.number });
 
 export interface SharedPlanSource {
   plan: PlanDto;

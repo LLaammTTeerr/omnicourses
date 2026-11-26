@@ -1,12 +1,13 @@
 // The degree audit (F3, ADR 0013): the student's transcript against their curriculum. One pure
 // function; RulesService loads the inputs.
+import { byText } from '../common/collections.js';
 import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
 import { compareTerms, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { attemptPasses, courseRecords, isCompleted, recordAsOf, type CourseRecord } from './attempts.js';
-import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermSummary, UnmatchedCourse } from './audit-types.js';
+import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermSummary, UnmatchedCourse } from './types.js';
 import { checkTermLoad } from './credit-caps.js';
-import { byText, combinedMinimumCoverage, creditsOf, groupCoverage, placements, recordCredits, type Placement } from './coverage.js';
+import { combinedMinimumCoverage, type CountedLink, creditsOf, groupCoverage, placements, recordCredits } from './coverage.js';
 import { fourPointAverage, weightedAverage, type WeightedGrade } from './gpa.js';
 import { classify, yearLevel } from './grades.js';
 import { graduationStatus } from './graduation.js';
@@ -37,7 +38,7 @@ export function degreeAudit(rules: CurriculumRules, transcript: readonly Transcr
 }
 
 /** Each curriculum course once, with the credits it is worth to the audit. */
-function matched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, Placement>) {
+function matched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>) {
   return [...records.values()]
     .filter((r) => placed.has(r.code))
     .map((record) => {
@@ -46,7 +47,7 @@ function matched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap
     });
 }
 
-function creditSummary(rules: CurriculumRules, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, Placement>): CreditSummary {
+function creditSummary(rules: CurriculumRules, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): CreditSummary {
   let accumulated = 0;
   let towardTotal = 0;
   let inProgressTowardTotal = 0;
@@ -74,7 +75,7 @@ function creditSummary(rules: CurriculumRules, records: ReadonlyMap<string, Cour
  * ("nằm trong yêu cầu của chương trình đào tạo"), not the ones it leaves out (Điều 15.1.c), and only
  * graded results: exempt (Điều 13.3) and pass/fail courses have no grade to average.
  */
-function gpaCourses(records: Iterable<CourseRecord>, placed: ReadonlyMap<string, Placement>, passedOnly: boolean): WeightedGrade[] {
+function gpaCourses(records: Iterable<CourseRecord>, placed: ReadonlyMap<string, CountedLink>, passedOnly: boolean): WeightedGrade[] {
   const items: WeightedGrade[] = [];
   for (const record of records) {
     const place = placed.get(record.code);
@@ -86,7 +87,7 @@ function gpaCourses(records: Iterable<CourseRecord>, placed: ReadonlyMap<string,
   return items;
 }
 
-function gpaSummary(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, Placement>, cohortYear: number): GpaSummary {
+function gpaSummary(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>, cohortYear: number): GpaSummary {
   const passed = gpaCourses(records.values(), placed, true);
   const accumulated = weightedAverage(passed);
   return {
@@ -102,7 +103,7 @@ function termSummaries(
   rules: CurriculumRules,
   transcript: readonly TranscriptEntry[],
   records: ReadonlyMap<string, CourseRecord>,
-  placed: ReadonlyMap<string, Placement>,
+  placed: ReadonlyMap<string, CountedLink>,
 ): TermSummary[] {
   const terms: Term[] = [];
   for (const entry of [...transcript].sort((a, b) => compareTerms(a.term, b.term))) {
@@ -138,7 +139,7 @@ function termSummaries(
   });
 }
 
-function unmatched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, Placement>): UnmatchedCourse[] {
+function unmatched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): UnmatchedCourse[] {
   return [...records.values()]
     .filter((r) => !placed.has(r.code))
     .map((r) => ({
@@ -152,7 +153,7 @@ function unmatched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyM
     }));
 }
 
-function warnings(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, Placement>): AuditWarning[] {
+function warnings(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): AuditWarning[] {
   const list: AuditWarning[] = [];
   for (const record of records.values()) {
     const place = placed.get(record.code);

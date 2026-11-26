@@ -1,5 +1,7 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { TransformFnParams } from 'class-transformer';
-import { buildMessage, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
+import { buildMessage, IsIn, IsInt, Max, Min, registerDecorator, ValidateBy, ValidateIf, ValidationOptions } from 'class-validator';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, type Term, TERM_NUMBERS } from '../terms/term.js';
 
 // PostgreSQL refuses U+0000 in any text value and counts a varchar's length in code points. A
 // text field of a request checks both, so a value the route accepts never makes the query fail
@@ -73,3 +75,16 @@ export function IsCalendarDate(options?: ValidationOptions): PropertyDecorator {
 
 /** The calendar year of a `YYYY-MM-DD` date. */
 export const yearOf = (date: string): number => Number(date.slice(0, 4));
+
+// Any request body that names a term nests this DTO, so every module validates terms alike.
+export class TermDto implements Term {
+  @ApiProperty({ example: 2026, description: 'First calendar year of the academic year: 2026 means 2026–2027.' })
+  @IsInt()
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
+  year!: number;
+
+  @ApiProperty({ enum: TERM_NUMBERS, description: 'Term of the academic year: 1, 2 or 3. Whether 3 is a main or a summer term depends on the program (APCS: main, QĐ 1175/QĐ-KHTN Điều 6.4b).' })
+  @IsIn(TERM_NUMBERS)
+  number!: Term['number'];
+}

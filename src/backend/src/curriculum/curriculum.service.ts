@@ -1,14 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { byText } from '../common/collections.js';
 import { isCourseCode } from '../common/course-code.js';
 import { Course } from './course.entity.js';
-import { type CourseRules, CourseRulesService } from './course-rules.service.js';
+import { cohortCurriculum, type CourseRules, CurriculumRulesReader } from './curriculum-rules.reader.js';
 import { Curriculum } from './curriculum.entity.js';
 import { CourseDetailDto, CourseDto, CurriculumCourseDto, CurriculumDto, ProgramDto, ProgramSummaryDto, RequirementGroupDto } from './curriculum.dto.js';
 import { Program } from './program.entity.js';
-import { RequirementGroupCourse } from './requirement-group-course.entity.js';
-import type { RequirementGroup } from './requirement-group.entity.js';
+import { type RequirementGroup, RequirementGroupCourse } from './requirement-group.entity.js';
 
 /** A catalog course as a plan tile names it. */
 export interface CourseSummary {
@@ -27,9 +27,6 @@ export interface CurriculumLabels {
   groupNames: Map<string, string>;
 }
 
-/** Code-point order: the same on every machine, unlike a locale collation. */
-const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
-
 // Serves the curriculum data the seed or, later, F12 (ADR 0011) stored. It decides no
 // academic rule (AGENTS.md hard rule 1): the rule engine reads these shapes and decides.
 @Injectable()
@@ -39,7 +36,7 @@ export class CurriculumService {
     @InjectRepository(Curriculum) private readonly curriculums: Repository<Curriculum>,
     @InjectRepository(Course) private readonly courses: Repository<Course>,
     @InjectRepository(RequirementGroupCourse) private readonly links: Repository<RequirementGroupCourse>,
-    private readonly rules: CourseRulesService,
+    private readonly rules: CurriculumRulesReader,
   ) {}
 
   /** Every program by code, with the cohorts that have a curriculum, oldest first. */
@@ -52,12 +49,10 @@ export class CurriculumService {
 
   /** The curriculum of one cohort of a program, or null when there is none. */
   async findCurriculum(programCode: string, cohortYear: number): Promise<CurriculumDto | null> {
-    if (!Number.isInteger(cohortYear)) return null;
-    const row = await this.curriculums.findOne({
-      where: { cohortYear, program: { code: programCode } },
-      relations: { program: true, requirementGroups: { courseLinks: { course: true } } },
-    });
-    return row ? curriculumDto(row, await this.rules.rulesFor(row.id)) : null;
+    const where = cohortCurriculum(programCode, cohortYear);
+    if (!where) return null;
+    const row = await this.curriculums.findOne({ where, relations: { program: true, requirementGroups: { courseLinks: { course: true } } } });
+    return row ? curriculumDto(row, await this.rules.courseRules(row.id)) : null;
   }
 
   /** Like findCurriculum, for a route: a missing curriculum is a 404. */
@@ -98,29 +93,14 @@ export class CurriculumService {
 
   /** The id of the curriculum of one cohort of a program, or null when there is none. */
   async findCurriculumId(programCode: string, cohortYear: number): Promise<string | null> {
-    if (!Number.isInteger(cohortYear)) return null;
-    const row = await this.curriculums.findOne({ select: { id: true }, where: { cohortYear, program: { code: programCode } } });
+    const where = cohortCurriculum(programCode, cohortYear);
+    if (!where) return null;
+    const row = await this.curriculums.findOne({ select: { id: true }, where });
     return row?.id ?? null;
   }
 
-  /** The codes among these that the catalog has, in one query (a whole plan at once). Codes must be exact (ADR 0007). */
-  async knownCourseCodes(codes: readonly string[]): Promise<Set<string>> {
-    const wellFormed = [...new Set(codes)].filter(isCourseCode);
-    if (!wellFormed.length) return new Set();
-    const rows = await this.courses.find({ select: { code: true }, where: { code: In(wellFormed) } });
-    return new Set(rows.map((c) => c.code));
-  }
-
-  /** Catalog credits by code for the codes among these that the catalog has, in one query (a whole plan at once). */
-  async courseCredits(codes: readonly string[]): Promise<Map<string, number>> {
-    const wellFormed = [...new Set(codes)].filter(isCourseCode);
-    if (!wellFormed.length) return new Map();
-    const rows = await this.courses.find({ select: { code: true, credits: true }, where: { code: In(wellFormed) } });
-    return new Map(rows.map((c) => [c.code, c.credits]));
-  }
-
-  /** Catalog name and credits by code, for the codes among these that the catalog has, in one query (a whole plan at once). */
-  async courseSummaries(codes: readonly string[]): Promise<Map<string, CourseSummary>> {
+  /** Catalog name and credits by code, for the codes among these that the catalog has, in one query (a whole plan at once). Codes must be exact (ADR 0007). */
+  async catalogCourses(codes: readonly string[]): Promise<Map<string, CourseSummary>> {
     const wellFormed = [...new Set(codes)].filter(isCourseCode);
     if (!wellFormed.length) return new Map();
     const rows = await this.courses.find({ select: { code: true, nameVi: true, nameEn: true, credits: true }, where: { code: In(wellFormed) } });

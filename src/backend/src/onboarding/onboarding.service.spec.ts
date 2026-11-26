@@ -52,3 +52,18 @@ describe('OnboardingService.offers', () => {
     }
   });
 });
+
+describe('OnboardingService.cohortOf', () => {
+  const service = (saved: OnboardingAnswers | null) => new OnboardingService({} as DataSource, { findOneBy: async () => saved } as unknown as Repository<OnboardingAnswers>);
+  const answers: OnboardingDto = { program: 'ZZPROG', cohort: 2024, targetGraduationTerm: null, creditsPerTerm: null, internshipTerm: null, finished: true };
+
+  it('names the program and cohort once onboarding is finished', async () => {
+    expect(await service(asRow(answers, new Date())).cohortOf('u')).toEqual({ programCode: 'ZZPROG', cohortYear: 2024 });
+  });
+
+  it('names nothing while onboarding is not finished, even with a program saved, or names no program and cohort', async () => {
+    expect(await service(asRow(answers, null)).cohortOf('u')).toBeNull();
+    expect(await service(asRow({ ...answers, program: null, cohort: null }, new Date())).cohortOf('u')).toBeNull();
+    expect(await service(null).cohortOf('u')).toBeNull();
+  });
+});

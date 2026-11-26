@@ -48,6 +48,8 @@ export function zzCurriculum(overrides: Partial<CurriculumRules> = {}): Curricul
       group('tn', 'elective', 10, [course('ZZT1', 10), course('ZZT2', 5), course('ZZT3', 5)]),
     ],
     combinedMinimums: [{ id: 'bc', name: 'B + C', creditsMin: 12, officialNotes: null, groupIds: ['b', 'c'] }],
+    prerequisites: new Map(),
+    offeringTerms: new Map(),
     ...overrides,
   };
 }

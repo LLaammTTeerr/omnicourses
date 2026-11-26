@@ -2,11 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
-import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
-import { TermDto } from '../terms/term.js';
+import { MaxCodePoints, NoNullCharacter, TermDto, trimString } from '../common/field-validators.js';
 import { TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
 
 export const MAX_TRANSCRIPT_ROWS = 300;
+const MAX_ROW_CREDITS = 30;
 
 export class TranscriptRowDto implements TranscriptEntry {
   @ApiProperty({ example: 'CSC10001' })
@@ -23,10 +23,10 @@ export class TranscriptRowDto implements TranscriptEntry {
   @MaxCodePoints(255)
   courseName!: string;
 
-  @ApiProperty({ example: 4, minimum: 0, maximum: 30 })
+  @ApiProperty({ example: 4, minimum: 0, maximum: MAX_ROW_CREDITS })
   @IsInt()
   @Min(0)
-  @Max(30)
+  @Max(MAX_ROW_CREDITS)
   credits!: number;
 
   // Must be sent: a row without a result is incomplete and cannot be saved (UC-02 A2).

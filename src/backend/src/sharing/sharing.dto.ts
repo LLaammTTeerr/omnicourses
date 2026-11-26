@@ -2,10 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, ValidateIf } from 'class-validator';
 import { CreditCapsDto } from '../audit/audit.dto.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
-import { PLACEMENT_KINDS, type PlacementKind } from '../plans/plan-board.js';
-import { PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlanIssueCode, type PlanIssueKind } from '../plans/plan-issues.js';
+import { GRADUATION_STATUSES, type GraduationVerdict, PLACEMENT_KINDS, PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlacementKind, type PlanIssueCode, type PlanIssueKind } from '../rules/types.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
-import { TermDto } from '../terms/term.js';
+import { TermDto } from '../common/field-validators.js';
 
 // F9 sharing (UC-09, ADR 0010). Two contracts: what the owner sees of their link, and what a
 // reader of the link sees of the plan. The second lists every field on purpose: a reader gets
@@ -226,8 +225,8 @@ export class SharedPlanCoverageDto {
   @ApiProperty({ type: Number, nullable: true })
   totalRemaining!: number | null;
 
-  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every requirement the data can check would be met with the plan completed; the school still checks the rest (Điều 17.3).' })
-  graduation!: 'done' | 'not_yet';
+  @ApiProperty({ enum: GRADUATION_STATUSES, description: 'done: every requirement the data can check would be met with the plan completed; the school still checks the rest (Điều 17.3).' })
+  graduation!: GraduationVerdict;
 }
 
 /** Everything a reader of a shared plan's link gets (UC-09 step 2). No field identifies the owner except `ownerName`, when they chose it. */
