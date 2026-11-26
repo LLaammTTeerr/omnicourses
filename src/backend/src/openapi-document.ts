@@ -21,8 +21,8 @@ export async function buildOpenApiDocument(modules: readonly Module[] = FEATURE_
 const byKey = <T>(record: Record<string, T>): Record<string, T> =>
   Object.fromEntries(Object.entries(record).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
-const METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace', 'query'];
-const rank = (key: string): number => METHODS.indexOf(key);
+const OPENAPI_OPERATION_ORDER = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace', 'query'];
+const rank = (key: string): number => OPENAPI_OPERATION_ORDER.indexOf(key);
 
 const sortPathItem = <T extends object>(item: T): T =>
   Object.fromEntries(

@@ -258,9 +258,9 @@ describe('Plan sharing API (e2e)', () => {
         },
       ]);
 
-      const text = JSON.stringify({ ...body, updatedAt: null });
+      const textWithoutUpdatedAt = JSON.stringify({ ...body, updatedAt: null });
       const forbidden = [owner.userId, owner.email, 'Test Student', plan.id, other.id, 'My other secret plan', 'Transcript wording', '8.6', curriculumId, electives, 'password', 'email', 'grade', 'transcript'];
-      for (const value of forbidden) expect(text, value).not.toContain(value);
+      for (const value of forbidden) expect(textWithoutUpdatedAt, value).not.toContain(value);
     });
 
     it("shows the rule engine's issues of the plan as the owner sees them, without the ones the transcript decides", async () => {
@@ -319,8 +319,8 @@ describe('Plan sharing API (e2e)', () => {
 
       const after = (await read(token).expect(200)).body;
       expect(after).toEqual(before);
-      const text = JSON.stringify({ ...after, updatedAt: null });
-      for (const value of ['Transcript wording', '8.6', '9.4', '2.6', '6.4', '9.9', '"in_progress"', '"fail"', code(4)]) expect(text, value).not.toContain(value);
+      const textWithoutUpdatedAt = JSON.stringify({ ...after, updatedAt: null });
+      for (const value of ['Transcript wording', '8.6', '9.4', '2.6', '6.4', '9.9', '"in_progress"', '"fail"', code(4)]) expect(textWithoutUpdatedAt, value).not.toContain(value);
     });
 
     it('shows an edit and a rename in the next read', async () => {
@@ -467,9 +467,9 @@ describe('Plan sharing API (e2e)', () => {
       const { issues: _oi, issueCodesNotShown: _on, ...offRest } = off;
       expect(rest).toEqual(offRest);
 
-      const text = JSON.stringify({ ...on, updatedAt: null });
+      const textWithoutUpdatedAt = JSON.stringify({ ...on, updatedAt: null });
       const forbidden = ['8.6', '2.6', code(4), 'Transcript wording', '"grade"', '"result"', '"courseName"', '"graded"', '"in_progress"', owner.userId, owner.email, 'Test Student', plan.id, curriculumId, core, electives, '"id"', 'Id"', 'password', 'email'];
-      for (const value of forbidden) expect(text, value).not.toContain(value);
+      for (const value of forbidden) expect(textWithoutUpdatedAt, value).not.toContain(value);
 
       expect((await putShare(owner.auth, plan.id, { showName: true })).body).toMatchObject({ token, showName: true, showTranscriptChecks: true });
       expect((await putShare(owner.auth, plan.id, {})).body).toMatchObject({ token, showName: true, showTranscriptChecks: true });
@@ -530,8 +530,8 @@ describe('Plan sharing API (e2e)', () => {
       const shown = on.issues.filter((i: { code: string }) => offBefore.issueCodesNotShown.includes(i.code)).map(brief);
       expect(shown).toContainEqual(['prerequisite_not_met', code(2), null, [code(1)]]);
       expect(shown).toContainEqual(['requirement_not_covered', null, 'Core', [code(1)]]);
-      const text = JSON.stringify({ ...on, updatedAt: null });
-      for (const value of ['2.6', 'Transcript wording', '"grade"', '"result"', '"graded"', '"fail"', '"courseName"']) expect(text, value).not.toContain(value);
+      const textWithoutUpdatedAt = JSON.stringify({ ...on, updatedAt: null });
+      for (const value of ['2.6', 'Transcript wording', '"grade"', '"result"', '"graded"', '"fail"', '"courseName"']) expect(textWithoutUpdatedAt, value).not.toContain(value);
 
       await putShare(owner.auth, plan.id, { showTranscriptChecks: false });
       expect((await read(token).expect(200)).body).toEqual(offBefore);

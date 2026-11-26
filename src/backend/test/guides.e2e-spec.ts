@@ -10,8 +10,8 @@ import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
-const NOW = new Date('2026-11-13T05:00:00Z');
-const TODAY = vietnamDate(NOW);
+const NOON_IN_VIETNAM_ON_GUIDE_01J_RUN_DAY = new Date('2026-11-13T05:00:00Z');
+const TODAY = vietnamDate(NOON_IN_VIETNAM_ON_GUIDE_01J_RUN_DAY);
 const FIXTURES = guideFixtures(TODAY);
 const fixture = (id: string, lang: string) => FIXTURES.find((f) => f.id === id && f.lang === lang)!;
 
@@ -32,7 +32,7 @@ describe('Guides API (e2e)', () => {
   };
 
   beforeAll(async () => {
-    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue({ now: () => NOW }));
+    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue({ now: () => NOON_IN_VIETNAM_ON_GUIDE_01J_RUN_DAY }));
     db = app.get(DataSource);
     await seedGuides(db, [...GUIDE_FILES, ...FIXTURES]);
   });

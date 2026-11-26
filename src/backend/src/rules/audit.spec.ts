@@ -106,7 +106,7 @@ describe('degree audit', () => {
     expect(audit.gpa).toMatchObject({ average: 6, accumulatedAverage: 6, gradedCredits: 4 });
   });
 
-  it('keeps Thể dục and GDQP out of the GPA and the total even when graded (Điều 15.1.c)', () => {
+  it('keeps Thể dục and GDQP out of the GPA and the total even when graded, but its group still needs them passed (Điều 15.1.c)', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZPE1', 2, 10), graded('ZZN1', 4, 6)]);
     expect(audit.gpa.average).toBe(6);
     expect(audit.credits).toMatchObject({ accumulated: 6, towardTotal: 4 });
@@ -243,7 +243,7 @@ describe('degree audit', () => {
     });
   });
 
-  it('lists a transcript course outside the curriculum as unmatched and counts it toward nothing', () => {
+  it('lists a transcript course outside the curriculum as unmatched and counts it toward nothing but its term load (Điều 7.1.b)', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZ999', 3, 9), ungraded('ZZ998', 2, 'in_progress'), graded('ZZA1', 4, 6)]);
     expect(audit.unmatchedCourses).toEqual([
       { code: 'ZZ998', name: 'Course ZZ998', credits: 2, result: null, grade: null, passed: false, inProgress: true },

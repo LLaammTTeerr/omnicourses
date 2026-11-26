@@ -36,7 +36,7 @@ export class AuthService {
         consentAt: this.clock.now(),
       })
       .catch((error: unknown) => {
-        throw isUniqueViolation(error) ? taken() : error;
+        throw isEmailTaken(error) ? taken() : error;
       });
     return { ...(await this.issue(user, userAgent)), accountRestored: false };
   }
@@ -123,7 +123,7 @@ export class AuthService {
   }
 }
 
-const isUniqueViolation = (error: unknown): boolean =>
+const isEmailTaken = (error: unknown): boolean =>
   isRefusal(error, [SQLSTATE.uniqueViolation]);
 
 function bearerToken(header: string | string[] | undefined): string | null {

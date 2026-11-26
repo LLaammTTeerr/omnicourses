@@ -373,7 +373,8 @@ describe('CSV import of catalog courses (e2e)', () => {
     expect([failed.status, failed.body]).toEqual([500, { statusCode: 500, message: 'Internal server error' }]);
     expect(inserts).toBe(3);
     expect(await savedCourses()).toEqual(before);
-    expect(logged.join('')).toContain('A CSV import failed and saved nothing: QueryFailedError, SQLSTATE 22P02');
+    const INVALID_TEXT_REPRESENTATION = '22P02';
+    expect(logged.join('')).toContain(`A CSV import failed and saved nothing: QueryFailedError, SQLSTATE ${INVALID_TEXT_REPRESENTATION}`);
     expect(logged.join('')).not.toContain(MARK);
     expect((await confirm(csv, body.reviewVersion).expect(200)).body.summary).toEqual({ inserts: 4, updates: 1, noOps: 0 });
   });
