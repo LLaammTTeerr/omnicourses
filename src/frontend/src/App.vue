@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import { useAdminAccess } from './admin/store.js';
 import { useAuth } from './auth/store.js';
 import { useMessages } from './locale.js';
+import { UNREAD_POLL_MS, useUnread } from './notifications/store.js';
 import AppSidebar from './shell/AppSidebar.vue';
 import { SHELL_MESSAGES } from './shell/messages.js';
 import MobileBars from './shell/MobileBars.vue';
@@ -21,6 +22,7 @@ const route = useRoute();
 const router = useRouter();
 const sidebar = useSidebar();
 const toast = useToast();
+const unread = useUnread();
 const m = useMessages(SHELL_MESSAGES);
 useTheme();
 
@@ -52,6 +54,17 @@ watch(
     if (auth.signedIn && access.retryable) void access.load();
   },
 );
+
+watch(
+  () => [auth.user?.id, route.fullPath],
+  () => {
+    if (auth.signedIn) void unread.refresh();
+  },
+  { immediate: true },
+);
+let unreadPoll: ReturnType<typeof setInterval> | undefined;
+onMounted(() => (unreadPoll = setInterval(() => void unread.refresh(), UNREAD_POLL_MS)));
+onBeforeUnmount(() => clearInterval(unreadPoll));
 
 watch(
   () => auth.accountRestored,

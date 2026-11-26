@@ -29,7 +29,7 @@ This table is the one place that says what is built. It describes `main` at comm
 | F8 AI academic advisor chat | none (the AI gateway in `src/backend/src/ai/` has no route; [#77](https://github.com/LLaammTTeerr/omnicourses/pull/77) is open) | none | All of F8 |
 | F9 Plan export and sharing | `plans/:id/share`, `shared-plans/:token` (public) | none | Share panel, shared page, PDF |
 | F10 Notifications: school dates | `academic-calendar`, `admin/programs/:programId/calendar-events` | Calendar page | An administration screen for the dates |
-| F10 Notifications: inbox | `notifications`, `notifications/unread-count`, `notifications/read-all`, `notifications/:id/read` | none | Bell, popover, inbox screen |
+| F10 Notifications: inbox | `notifications`, `notifications/unread-count`, `notifications/read-all`, `notifications/:id/read` | Inbox page, bell with the unread count | Popover, filters |
 | F11 Quicklinks and guides | `guides`, `guides/:id` (public) | Guide list and guide pages, open without signing in | Values from the student's own data, problem reports. The first guides stay drafts until they are checked on the school portals |
 | F12 Curriculum administration | `admin/*`: programs, cohorts, requirement groups, course links, prerequisites, offering terms, catalog courses, CSV import, access grants | `/admin`: curriculum, catalog, CSV import, access | Entry of a program's training type and of credit totals, the change-history log |
 

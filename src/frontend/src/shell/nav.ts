@@ -13,6 +13,7 @@ export interface MenuEntry {
   phoneTab?: number;
   visitors?: true;
   grant?: true;
+  unreadBadge?: true;
 }
 
 export interface NavItem extends MenuEntry {

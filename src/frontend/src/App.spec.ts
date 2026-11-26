@@ -7,6 +7,7 @@ import { useAuth } from './auth/store.js';
 import { session } from './auth/testing/fixtures.js';
 import { useSidebar } from './shell/sidebar.js';
 import { useToast } from './shell/toast.js';
+import { UNREAD_POLL_MS } from './notifications/store.js';
 import { mockApi } from './testing/fetch.js';
 import { HEALTHY } from './testing/health.js';
 import { NOT_STARTED } from './onboarding/api.js';
@@ -21,6 +22,7 @@ async function render(path: string, signedIn: boolean, routes: Record<string, un
     'GET /auth/sessions': [session({ current: true })],
     'GET /users/me/transcript': { rows: [] },
     'GET /admin/grants': NO_GRANTS,
+    'GET /notifications/unread-count': { unread: 0 },
     ...routes,
   });
   const { pinia, router } = await setup(path, { signedIn });
@@ -48,21 +50,21 @@ describe('App shell', () => {
 
     const student = await render('/guides', true);
     expect(student.w.find('.pub-head').exists()).toBe(false);
-    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
+    expect(student.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Thông báo', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt']);
     expect(student.w.get('.side .nav a[href="/guides"]').classes()).toContain('router-link-active');
     expect(student.w.get('.side .me').text()).toContain('Sinh viên thử');
   });
 
   it('lists Administration in the sidebar only for a user who holds a grant, as the API says (ADR 0011)', async () => {
     const holder = await render('/guides', true, { 'GET /admin/grants': EVERY_GRANT });
-    expect(holder.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
+    expect(holder.w.findAll('.side .nav a').map((a) => a.text())).toEqual(['Tổng quan', 'Lịch', 'Thông báo', 'Xét tốt nghiệp', 'Bảng điểm', 'Chương trình', 'Lộ trình', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
     expect(holder.w.get('[data-test="nav-admin"]').attributes('href')).toBe('/admin');
     holder.w.unmount();
 
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const unknown = await render('/guides', true, { 'GET /admin/grants': () => new Response(null, { status: 503 }) });
     expect(unknown.w.find('[data-test="nav-admin"]').exists()).toBe(false);
-    expect(unknown.w.findAll('.side .nav a')).toHaveLength(8);
+    expect(unknown.w.findAll('.side .nav a')).toHaveLength(9);
   });
 
   it('asks for the grants again on the next page when the first request failed, so the entry appears without a reload', async () => {
@@ -94,7 +96,7 @@ describe('App shell', () => {
   });
 
   it('has one main landmark on the onboarding page, the shell’s, for the skip link', async () => {
-    mockApi({ 'GET /health': HEALTHY, 'GET /programs': { programs: [] }, 'GET /admin/grants': NO_GRANTS });
+    mockApi({ 'GET /health': HEALTHY, 'GET /programs': { programs: [] }, 'GET /admin/grants': NO_GRANTS, 'GET /notifications/unread-count': { unread: 0 } });
     const { pinia, router } = await setup('/onboarding', { onboarded: NOT_STARTED });
     wrapper = mount(App, { global: { plugins: [pinia, router] }, attachTo: document.body });
     await flushPromises();
@@ -175,4 +177,56 @@ describe('App shell', () => {
     expect(logged.mock.calls.filter(([text]) => String(text).includes('administration grants'))).toHaveLength(3);
   });
 
+});
+
+describe('the notification bell (F10)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = undefined;
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  const unreadReads = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).endsWith('/notifications/unread-count')).length;
+
+  it('shows the unread count on the Notifications entry, spoken as a count', async () => {
+    const { w } = await render('/guides', true, { 'GET /notifications/unread-count': { unread: 3 } });
+    const entry = w.get('[data-test="nav-notifications"]');
+    expect(entry.attributes('href')).toBe('/notifications');
+    expect(entry.get('[data-test="unread-badge"]').text()).toBe('33 chưa đọc');
+    expect(entry.get('.badge [aria-hidden="true"]').text()).toBe('3');
+  });
+
+  it('shows no badge when nothing is unread, and caps a large count', async () => {
+    const none = await render('/guides', true);
+    expect(none.w.find('[data-test="unread-badge"]').exists()).toBe(false);
+    none.w.unmount();
+    const many = await render('/guides', true, { 'GET /notifications/unread-count': { unread: 150 } });
+    expect(many.w.get('.badge [aria-hidden="true"]').text()).toBe('99+');
+  });
+
+  it('reads the count again on each page and every minute, and never while signed out', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const { router } = await render('/guides', true);
+    const first = unreadReads();
+    expect(first).toBe(1);
+    await router.push('/privacy');
+    await flushPromises();
+    expect(unreadReads()).toBe(first + 1);
+    vi.advanceTimersByTime(UNREAD_POLL_MS);
+    await flushPromises();
+    expect(unreadReads()).toBe(first + 2);
+    wrapper!.unmount();
+    wrapper = undefined;
+    vi.restoreAllMocks();
+
+    await render('/guides', false);
+    vi.advanceTimersByTime(UNREAD_POLL_MS);
+    await flushPromises();
+    expect(unreadReads()).toBe(0);
+  });
 });

@@ -15,7 +15,7 @@ describe('navigation', () => {
   });
 
   it('lists the pages in route order, and the phone tabs in their own order', () => {
-    expect(NAV.map((item) => item.route)).toEqual(['dashboard', 'calendar', 'audit', 'transcript', 'explorer', 'plans', 'guides', 'settings', 'admin']);
+    expect(NAV.map((item) => item.route)).toEqual(['dashboard', 'calendar', 'notifications', 'audit', 'transcript', 'explorer', 'plans', 'guides', 'settings', 'admin']);
     expect(PHONE_TABS.map((item) => item.route)).toEqual(['dashboard', 'plans', 'audit', 'explorer']);
     expect(PUBLIC_NAV.map((item) => item.route)).toEqual(['guides']);
   });
@@ -24,6 +24,7 @@ describe('navigation', () => {
     expect(NAV.map(({ route, section, icon }) => ({ route, section, icon }))).toEqual([
       { route: 'dashboard', section: 'main', icon: 'home' },
       { route: 'calendar', section: 'main', icon: 'calendar' },
+      { route: 'notifications', section: 'main', icon: 'bell' },
       { route: 'audit', section: 'main', icon: 'audit' },
       { route: 'transcript', section: 'main', icon: 'file' },
       { route: 'explorer', section: 'main', icon: 'graph' },
@@ -49,7 +50,7 @@ describe('navigation', () => {
     expect(NAV.filter((item) => item.grant).map((item) => item.route)).toEqual(['admin']);
     expect(listed(NAV, false).map((item) => item.route)).not.toContain('admin');
     expect(listed(NAV, true).map((item) => item.route)).toEqual(NAV.map((item) => item.route));
-    expect(listed(PHONE_MORE, false).map((item) => item.route)).toEqual(['calendar', 'transcript', 'guides', 'settings']);
+    expect(listed(PHONE_MORE, false).map((item) => item.route)).toEqual(['calendar', 'notifications', 'transcript', 'guides', 'settings']);
     expect(listed(PHONE_MORE, true).at(-1)!.route).toBe('admin');
     expect(record('admin')!.meta.auth).toBe('required');
   });
