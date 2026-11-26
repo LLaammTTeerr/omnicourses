@@ -49,6 +49,7 @@ Vision v1.0 §5 puts a language model in four features: F2 (transcript extractio
 ## Notes
 
 - 2026-10-29 (Lâm): the curriculum seed files (`src/backend/src/database/seeds/`) were transcribed from the official PDFs by a model, and humans check every row against its printed page. This is allowed: it is a one-time dev-time seed reviewed like code, not a runtime import feature, and the deterministic rule engine still decides every rule.
+- 2026-11-26: `npm run test:live -w src/backend` is manual only and never runs in CI. It needs `OPENROUTER_API_KEY`, `AI_MODEL_STRUCTURED` and `AI_MODEL_CHAT`, and it spends credit.
 - 2026-11-26: One AI call is one `structured()` or one `chat()`, whatever the number of model requests and tool steps. The daily cap counts the calls of the last 24 hours, not of a calendar day, so no time zone is involved.
 - 2026-11-26: A `structured()` schema uses `.nullable()`, not `.optional()`, because the strict JSON Schema mode requires every property.
 - 2026-11-26: In the F8 stream, `text` events come from every model turn, also the short text before a tool call. `done.text` holds only the text of the last turn.

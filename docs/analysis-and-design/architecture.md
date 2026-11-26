@@ -144,7 +144,7 @@ Every module reaches the database through its own TypeORM repositories and regis
 | notifications | `notifications/` | F10 inbox | `/api/notifications`: list, unread count, mark one read, mark all read. Creates the notifications that school dates and transcript changes cause ([ADR 0018](adr/0018-notification-inbox.md)). |  |
 | account | `account/` | F1, privacy NFR | `GET /api/users/me/export` and `DELETE /api/users/me`. Owns the deletion flows: request, find accounts past their deadline, purge one account at a time, hourly ([ADR 0004](adr/0004-account-export-and-deletion.md)). Scheduling a deletion and revoking every session commit in one transaction, through the `…Within(manager)` methods of `users` and `auth`; `account` never writes the `sessions` table itself. |  |
 
-2026-11-26, guides: `OUT_OF_DATE_MONTHS` in `guides/out-of-date.ts` sets the 6 months after which a guide shows as out of date. The frontend wording in `src/frontend/src/guides/messages.ts` repeats the number, so a change must update both.
+- 2026-11-26: guides: `OUT_OF_DATE_MONTHS` in `guides/out-of-date.ts` sets the 6 months after which a guide shows as out of date. The frontend wording in `src/frontend/src/guides/messages.ts` repeats the number, so a change must update both.
 
 Other folders under `src/backend/src/` are not feature modules:
 
@@ -238,6 +238,7 @@ The routes are in `src/frontend/src/router.ts`; that file is the list of screens
 - 2026-11-26: OpenAPI contract: the security scheme is named `bearer`, because `@ApiBearerAuth()` uses that name by default. `sortOpenApi` sorts the paths, schemas and tags by name, and the operations of a path in the order of the OpenAPI specification. The properties inside a schema keep the order the code declares. So the document does not depend on the order in which Nest meets the modules, and the list in `features.ts` can have any order.
 - 2026-11-26: Term encoding: the current term comes from the Vietnam date by month: term 1 from September, term 2 from January, term 3 from June. These months are an assumption from the UI prototype (`ui-prototypes/assets/data.js`), not from the regulation or the academic calendar. The weeks between two terms count as the earlier term.
 - 2026-11-26: Concurrent saves: onboarding answers are saved with one `INSERT … ON CONFLICT DO UPDATE` statement, so two saves at the same time do not interleave and do not fail on the primary key.
+- 2026-11-26: Security headers: the API turns off the `X-Powered-By: Express` header that Express sends by default, so an answer does not name the server software (`bootstrap.ts`, found in #28).
 - 2026-11-26: Rate limits: the throttler is a guard, and Nest runs guards before validation, so a request with an invalid body still counts toward the rate limit. Without `TRUST_PROXY`, the API ignores `X-Forwarded-For`, so a client cannot escape the rate limit with invented addresses.
 
 ## 7. Deployment view

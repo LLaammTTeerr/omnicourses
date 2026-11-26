@@ -252,7 +252,7 @@ describe('Plan sharing API (e2e)', () => {
         {
           term: { year: 2030, number: 2 },
           kind: 'main',
-          credits: 11,
+          credits: 4 + 3 + 4,
           caps: { min: 10, max: 22 },
           placements: [tile(5), { kind: 'slot', courseCode: null, nameVi: null, nameEn: null, credits: 3, requirementGroupName: 'Electives' }, tile(6)],
         },

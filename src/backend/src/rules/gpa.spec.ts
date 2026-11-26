@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { fourPointAverage, weightedAverage } from './gpa.js';
 
+const halfUpTo2 = (numerator: number, denominator: number): number => Math.round((numerator * 100) / denominator) / 100;
+
 describe('averages (Điều 15.2.a)', () => {
   it('weights each grade by its credits', () => {
-    expect(weightedAverage([{ grade: 8, credits: 4 }, { grade: 6.5, credits: 2 }])).toEqual({ value: 7.5, numerator: 450, denominator: 60 });
+    expect(weightedAverage([{ grade: 8, credits: 4 }, { grade: 6.5, credits: 2 }])).toEqual({ value: (8 * 4 + 6.5 * 2) / 6, numerator: 450, denominator: 60 });
   });
 
   it('rounds half up to two decimals without floating-point drift', () => {
-    expect(weightedAverage([{ grade: 7, credits: 1 }, { grade: 8, credits: 2 }])?.value).toBe(7.67);
-    expect(weightedAverage([{ grade: 8, credits: 1 }, { grade: 7, credits: 2 }])?.value).toBe(7.33);
-    expect(weightedAverage([{ grade: 8.1, credits: 1 }, { grade: 8.2, credits: 1 }])?.value).toBe(8.15);
-    expect(weightedAverage([{ grade: 8.1, credits: 3 }, { grade: 8.2, credits: 1 }])?.value).toBe(8.13);
+    expect(weightedAverage([{ grade: 7, credits: 1 }, { grade: 8, credits: 2 }])?.value).toBe(halfUpTo2(7 * 1 + 8 * 2, 3));
+    expect(weightedAverage([{ grade: 8, credits: 1 }, { grade: 7, credits: 2 }])?.value).toBe(halfUpTo2(8 * 1 + 7 * 2, 3));
+    expect(weightedAverage([{ grade: 8.1, credits: 1 }, { grade: 8.2, credits: 1 }])?.value).toBe(halfUpTo2(81 + 82, 10 * 2));
+    expect(weightedAverage([{ grade: 8.1, credits: 3 }, { grade: 8.2, credits: 1 }])?.value).toBe(halfUpTo2(81 * 3 + 82, 10 * 4));
   });
 
   it('has no average without credits', () => {
@@ -19,6 +21,6 @@ describe('averages (Điều 15.2.a)', () => {
   });
 
   it('averages each grade converted to the 4-point scale (Điều 11.1)', () => {
-    expect(fourPointAverage([{ grade: 8.5, credits: 4 }, { grade: 6, credits: 2 }])?.value).toBe(3.17);
+    expect(fourPointAverage([{ grade: 8.5, credits: 4 }, { grade: 6, credits: 2 }])?.value).toBe(halfUpTo2(3.5 * 4 + 2.5 * 2, 6));
   });
 });

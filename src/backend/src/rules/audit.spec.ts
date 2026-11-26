@@ -6,6 +6,7 @@ import { course, graded, group, term, ungraded, zzCurriculum, zzGraduatingTransc
 
 const groupOf = (audit: DegreeAudit, id: string): GroupCoverage => audit.groups.find((g) => g.id === id)!;
 const statusOf = (audit: DegreeAudit, groupId: string, code: string) => groupOf(audit, groupId).courses.find((c) => c.code === code)!.status;
+const halfUpTo2 = (numerator: number, denominator: number): number => Math.round((numerator * 100) / denominator) / 100;
 const without = (code: string) => zzGraduatingTranscript().filter((e) => e.courseCode !== code);
 
 describe('degree audit', () => {
@@ -32,7 +33,9 @@ describe('degree audit', () => {
     });
 
     it('averages the graded curriculum courses (Điều 15.1, 15.2.a)', () => {
-      expect(audit.gpa).toEqual({ average: 7.74, accumulatedAverage: 7.74, accumulatedAverageFourPoint: 3.32, classification: 'good', gradedCredits: 38 });
+      const average = halfUpTo2(8 * 4 + 7 * 4 + 9 * 4 + 6 * 4 + 7.5 * 4 + 8.5 * 4 + 5 * 4 + 9 * 10, 38);
+      const fourPoint = halfUpTo2((3.5 + 3 + 4 + 2.5 + 3 + 3.5 + 2) * 4 + 4 * 10, 38);
+      expect(audit.gpa).toEqual({ average, accumulatedAverage: average, accumulatedAverageFourPoint: fourPoint, classification: 'good', gradedCredits: 38 });
     });
 
     it('summarises each term, with its averages and its load against the APCS caps', () => {
@@ -91,9 +94,9 @@ describe('degree audit', () => {
     expect(groupOf(audit, 'a-bb')).toMatchObject({ passedCredits: 8, met: true });
     expect(statusOf(audit, 'a-bb', 'ZZA1')).toBe('passed');
     expect(audit.credits.accumulated).toBe(8);
-    expect(audit.gpa.average).toBe(7.5);
+    expect(audit.gpa.average).toBe((8 + 7) / 2);
     expect(audit.terms.map((t) => [t.average, t.accumulatedAverage, t.cumulativeAccumulatedAverage, t.failedCourseCodes])).toEqual([
-      [5, 7, 7, ['ZZA1']],
+      [(3 * 4 + 7 * 4) / 8, 7, 7, ['ZZA1']],
       [8, 8, 7.5, []],
     ]);
   });
@@ -114,12 +117,12 @@ describe('degree audit', () => {
     expect(groupOf(degreeAudit(zzCurriculum(), [graded('ZZN1', 4, 6)]), 'non')).toMatchObject({ passedCredits: 4, remainingCredits: 0, met: false });
   });
 
-  it('reports a failed course as failed, in the average but not the accumulated average', () => {
+  it('reports a failed course as failed, in the average but not the accumulated average (Điều 15.1.a, 15.1.b)', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 4), graded('ZZA2', 4, 8), ungraded('ZZB1', 4, 'fail')]);
     expect(statusOf(audit, 'a-bb', 'ZZA1')).toBe('failed');
     expect(statusOf(audit, 'b', 'ZZB1')).toBe('failed');
     expect(groupOf(audit, 'a-bb')).toMatchObject({ passedCredits: 4, remainingCredits: 4, met: false });
-    expect(audit.gpa).toMatchObject({ average: 6, accumulatedAverage: 8 });
+    expect(audit.gpa).toMatchObject({ average: (4 * 4 + 8 * 4) / 8, accumulatedAverage: 8 });
     expect(audit.terms[0].failedCourseCodes).toEqual(['ZZA1', 'ZZB1']);
     expect(audit.terms[0].passedCredits).toBe(4);
   });
@@ -193,7 +196,7 @@ describe('degree audit', () => {
       const audit = degreeAudit(zzCurriculum(), allOfA);
       expect(groupOf(audit, 'a-tc')).toMatchObject({ passedCredits: 12, overflowOutCredits: 8, overflowToGroupId: 'c', met: true });
       expect(groupOf(audit, 'c')).toMatchObject({ passedCredits: 0, overflowInCredits: 8 });
-      expect(audit.combinedMinimums[0]).toMatchObject({ credits: 12, met: true });
+      expect(audit.combinedMinimums[0]).toMatchObject({ credits: 4 + 0 + 8, met: true });
       expect(audit.credits.towardTotal).toBe(16);
     });
 
@@ -237,7 +240,7 @@ describe('degree audit', () => {
       });
       const audit = degreeAudit(rules, ['ZZP1', 'ZZP2', 'ZZR1', 'ZZR2'].map((c) => graded(c, 4, 7)));
       expect(audit.combinedMinimums.map((m) => [m.id, m.credits, m.met])).toEqual([
-        ['pq', 12, true],
+        ['pq', 8 + 0 + 4, true],
         ['r-only', 4, false],
       ]);
     });
@@ -261,7 +264,7 @@ describe('degree audit', () => {
   it('counts the smaller credit number when the transcript and the catalog disagree, and warns', () => {
     const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 3, 8), graded('ZZA2', 5, 6)]);
     expect(groupOf(audit, 'a-bb')).toMatchObject({ passedCredits: 7, requiredCredits: 8, met: true, remainingCredits: 0 });
-    expect(audit.gpa.average).toBe(6.86);
+    expect(audit.gpa.average).toBe(halfUpTo2(8 * 3 + 6 * 4, 7));
     expect(audit.warnings.map((w) => [w.code, w.courseCode, w.transcriptCredits, w.curriculumCredits])).toEqual([
       ['credits_differ', 'ZZA1', [3], 4],
       ['credits_differ', 'ZZA2', [5], 4],

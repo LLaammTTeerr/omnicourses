@@ -90,7 +90,7 @@ describe('sharedPlan', () => {
         {
           term: { year: 2025, number: 2 },
           kind: 'main',
-          credits: 21,
+          credits: 4 + 10 + 4 + 3,
           caps: { min: 10, max: 22 },
           placements: [
             { kind: 'course', courseCode: 'ZZC1', nameVi: 'Học phần ZZC1', nameEn: null, credits: 4, requirementGroupName: null },
@@ -209,7 +209,7 @@ describe('sharedPlan when the owner shows the checks that come from their transc
     const uncovered = sharedWith([]).issues.filter((i) => i.code === 'requirement_not_covered');
     const form = (i: (typeof uncovered)[number]) => [i.requirementGroupName, i.combinedMinimumName, i.credits, i.limit, i.missingCourseCodes];
     expect(uncovered.map(form)).toContainEqual(['Group a-bb', null, 4, 8, ['ZZA1']]);
-    expect(uncovered.map(form)).toContainEqual([null, 'B + C', 11, 12, []]);
+    expect(uncovered.map(form)).toContainEqual([null, 'B + C', 4 + 4 + 3, 12, []]);
     const total = uncovered.filter((i) => i.requirementGroupName === null && i.combinedMinimumName === null);
     expect(total).toHaveLength(1);
     expect(total[0]).toMatchObject({ limit: 38, term: null, courseCode: null });

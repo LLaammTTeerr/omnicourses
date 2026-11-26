@@ -41,6 +41,8 @@ const TRANSCRIPT = [
   row('CS412', 4, 'in_progress', null, 2025, 2),
 ];
 
+const halfUpTo2 = (numerator: number, denominator: number): number => Math.round((numerator * 100) / denominator) / 100;
+
 const ONBOARDED = { program: 'APCS', cohort: 2024, targetGraduationTerm: null, creditsPerTerm: null, internshipTerm: null, finished: true };
 
 describe('Degree audit API (e2e)', () => {
@@ -133,16 +135,24 @@ describe('Degree audit API (e2e)', () => {
 
     it('adds (B) and (C) together, with the overflow from (A), against 43', () => {
       expect(audit.combinedMinimums).toEqual([
-        expect.objectContaining({ name: 'Kiến thức tự chọn', creditsMin: 43, credits: 12, inProgressCredits: 4, remainingCredits: 27, met: false }),
+        expect.objectContaining({ name: 'Kiến thức tự chọn', creditsMin: 43, credits: 4 + 0 + 8, inProgressCredits: 4, remainingCredits: 43 - 12 - 4, met: false }),
       ]);
     });
 
     it('counts the credits', () => {
-      expect(audit.credits).toEqual({ accumulated: 50, towardTotal: 44, inProgressTowardTotal: 4, totalRequired: 163, remaining: 119, yearLevel: 2 });
+      expect(audit.credits).toEqual({ accumulated: 4 * 5 + 2 + 6 * 4 + 4, towardTotal: 50 - 4 - 2, inProgressTowardTotal: 4, totalRequired: 163, remaining: 119, yearLevel: 2 });
     });
 
     it('computes the averages (Điều 15)', () => {
-      expect(audit.gpa).toEqual({ average: 7.05, accumulatedAverage: 7.35, accumulatedAverageFourPoint: 3.15, classification: 'good', gradedCredits: 40 });
+      const passedGradePoints = (8 + 7 + 6.5 + 9 + 8 + 7 + 7 + 6 + 8 + 7) * 4;
+      const fourPointGradePoints = (3.5 + 3 + 2.5 + 4 + 3.5 + 3 + 3 + 2.5 + 3.5 + 3) * 4;
+      expect(audit.gpa).toEqual({
+        average: halfUpTo2(passedGradePoints + 4 * 4, 44),
+        accumulatedAverage: halfUpTo2(passedGradePoints, 40),
+        accumulatedAverageFourPoint: halfUpTo2(fourPointGradePoints, 40),
+        classification: 'good',
+        gradedCredits: 40,
+      });
     });
 
     it('summarises each term, with the APCS caps', () => {
@@ -159,9 +169,9 @@ describe('Degree audit API (e2e)', () => {
         t.capViolations.map((v: { rule: string; credits: number; limit: number }) => `${v.rule} ${v.credits}/${v.limit}`),
       ]);
       expect(terms).toEqual([
-        ['2024-1', 'main', 23, 19, 6, 7.5, 7.5, ['MTH251'], [], ['above_maximum 23/22']],
-        ['2024-2', 'main', 18, 14, 6.88, 7.83, 7.7, ['CS163'], [], []],
-        ['2024-3', 'main', 8, 8, 7, 7, 7.5, [], [], ['below_minimum 8/10']],
+        ['2024-1', 'main', 23, 19, (8 * 4 + 7 * 4 + 3 * 4) / 12, (32 + 28) / 8, (32 + 28) / 8, ['MTH251'], [], ['above_maximum 23/22']],
+        ['2024-2', 'main', 18, 14, halfUpTo2(26 + 36 + 32 + 16, 16), halfUpTo2(26 + 36 + 32, 12), halfUpTo2(154, 20), ['CS163'], [], []],
+        ['2024-3', 'main', 8, 8, 7, 7, halfUpTo2(210, 28), [], [], ['below_minimum 8/10']],
         ['2025-1', 'main', 12, 12, 7, 7, 7.35, [], [], []],
         ['2025-2', 'main', 4, 0, null, null, 7.35, [], ['CS412'], ['below_minimum 4/10']],
       ]);
@@ -221,15 +231,15 @@ describe('Degree audit API (e2e)', () => {
       ]);
       const courses = (audit.groups as { courses: { code: string; status: string }[] }[]).flatMap((g) => g.courses);
       expect(courses.filter((c) => ['BAA00021', 'BAA00022', 'BAA00030'].includes(c.code)).map((c) => c.status)).toEqual(['passed', 'passed', 'passed']);
-      expect(audit.combinedMinimums).toEqual([expect.objectContaining({ name: 'Kiến thức tự chọn', creditsMin: 43, credits: 44, remainingCredits: 0, met: true })]);
+      expect(audit.combinedMinimums).toEqual([expect.objectContaining({ name: 'Kiến thức tự chọn', creditsMin: 43, credits: 8 + 36, remainingCredits: 0, met: true })]);
     });
 
     it('counts 164 credits toward the 163', () => {
-      expect(audit.credits).toEqual({ accumulated: 172, towardTotal: 164, inProgressTowardTotal: 0, totalRequired: 163, remaining: 0, yearLevel: 4 });
+      expect(audit.credits).toEqual({ accumulated: 164 + 2 + 2 + 4, towardTotal: 40 + 16 + 26 + 16 + 12 + 10 + 36 + 8, inProgressTowardTotal: 0, totalRequired: 163, remaining: 0, yearLevel: 4 });
     });
 
-    it('computes the averages from the 42 graded courses', () => {
-      expect(audit.gpa).toEqual({ average: 7.77, accumulatedAverage: 7.77, accumulatedAverageFourPoint: 3.3, classification: 'good', gradedCredits: 164 });
+    it('computes the averages from the 42 graded courses (Điều 15)', () => {
+      expect(audit.gpa).toEqual({ average: halfUpTo2(1274, 164), accumulatedAverage: halfUpTo2(1274, 164), accumulatedAverageFourPoint: halfUpTo2(540.5, 164), classification: 'good', gradedCredits: 164 });
     });
 
     it('keeps every term within the APCS caps', () => {

@@ -95,7 +95,7 @@ describe('Plan issues API (e2e)', () => {
     expect(body.issues[1]).toMatchObject({ kind: 'violation', offeredTermNumbers: [2], citation: 'QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a' });
     expect(body.issues[2]).toMatchObject({ kind: 'unknown', position: 2 });
     expect(body.issues[3]).toMatchObject({ kind: 'flag', citation: 'QĐ 1175/QĐ-KHTN Điều 14.2' });
-    expect(body.coverage).toMatchObject({ totalRequired: 16, totalCredits: 20, totalRemaining: 0, graduation: 'done' });
+    expect(body.coverage).toMatchObject({ totalRequired: 16, totalCredits: 8 + 12, totalRemaining: 0, graduation: 'done' });
     expect(body.coverage.groups.map((g: { name: string; credits: number; met: boolean }) => [g.name, g.credits, g.met])).toEqual([
       ['Core', 8, true],
       ['Electives', 12, true],
