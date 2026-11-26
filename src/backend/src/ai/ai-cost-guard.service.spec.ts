@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Clock } from '../config/clock.js';
 import { AiCostGuard } from './ai-cost-guard.service.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 
@@ -13,7 +14,7 @@ describe('AiCostGuard', () => {
   beforeEach(() => {
     em = { query: vi.fn(async () => []), count: vi.fn(async () => 0), insert: vi.fn(async () => ({ identifiers: [{ id: 'row-1' }] })) };
     usage = { manager: { transaction: vi.fn(async (work: (m: typeof em) => unknown) => work(em)) }, update: vi.fn(async () => undefined), delete: vi.fn(async () => undefined) };
-    guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 20 });
+    guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 20 }, new Clock());
   });
 
   afterEach(() => vi.restoreAllMocks());
@@ -25,7 +26,7 @@ describe('AiCostGuard', () => {
     });
 
     it('refuses at the configured cap without inserting', async () => {
-      guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 3 });
+      guard = new AiCostGuard(usage as never, { dailyCallsPerUser: 3 }, new Clock());
       em.count.mockResolvedValue(3);
       await expect(guard.reserve(context, 'chat-model')).rejects.toThrow(new AiUnavailableError(AI_REASONS.dailyLimit));
       expect(em.insert).not.toHaveBeenCalled();

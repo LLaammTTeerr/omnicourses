@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { bearerToken } from '../auth/auth.guard.js';
 import { AuthService } from '../auth/auth.service.js';
 import { grantsOf } from './admin-write.service.js';
 import { missingPermission, type Need } from './grant-scope.js';
@@ -27,8 +26,7 @@ export class ImportBodyGate {
    * catalog imports, the path's program for the cohort imports.
    */
   async allows(authorization: string | string[] | undefined, need: Need): Promise<boolean> {
-    const token = bearerToken(authorization);
-    const found = token ? await this.auth.authenticate(token) : null;
+    const found = await this.auth.authenticateHeader(authorization);
     if (!found) return false;
     return missingPermission(await grantsOf(this.db.manager, found.user.id), need) === null;
   }

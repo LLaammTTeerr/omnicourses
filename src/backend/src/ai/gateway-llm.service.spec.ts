@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { z } from 'zod';
+import { Clock } from '../config/clock.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { type CostGuard, GatewayLlmService } from './gateway-llm.service.js';
 import type { ChatEvent, ChatRequest } from './llm.service.js';
@@ -51,7 +52,7 @@ describe('GatewayLlmService', () => {
   beforeEach(() => {
     model = new ScriptedModel();
     guard = { reserve: vi.fn(async () => 'row-1'), finish: vi.fn(async () => undefined), release: vi.fn(async () => undefined) };
-    llm = new GatewayLlmService(model, guard, config);
+    llm = new GatewayLlmService(model, guard, config, new Clock());
   });
 
   describe('structured', () => {
@@ -87,14 +88,14 @@ describe('GatewayLlmService', () => {
     });
 
     it('answers ai_unavailable without calling the model when no model is configured', async () => {
-      llm = new GatewayLlmService(model, guard, { ...config, structuredModel: null });
+      llm = new GatewayLlmService(model, guard, { ...config, structuredModel: null }, new Clock());
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(model.completeCalls).toHaveLength(0);
       expect(guard.reserve).not.toHaveBeenCalled();
     });
 
     it('answers ai_unavailable without reserving a call when the provider has no key, so it does not count', async () => {
-      llm = new GatewayLlmService(null, guard, config);
+      llm = new GatewayLlmService(null, guard, config, new Clock());
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(guard.reserve).not.toHaveBeenCalled();
       expect(guard.finish).not.toHaveBeenCalled();
@@ -281,7 +282,7 @@ describe('GatewayLlmService', () => {
     });
 
     it('does not reserve a call or reach the model without a provider key', async () => {
-      llm = new GatewayLlmService(null, guard, config);
+      llm = new GatewayLlmService(null, guard, config, new Clock());
       await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(guard.reserve).not.toHaveBeenCalled();
     });

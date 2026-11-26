@@ -39,6 +39,7 @@ const rows: TranscriptEntry[] = [
 // e2e file, or a developer, entered in the shared database.
 /** The CHECK constraint the failure test adds to make PostgreSQL refuse the rows of one date. */
 const FAIL_ONE_DATE = 'zz_notifications_fail_one_date';
+const SESSION_DAYS_LONGER_THAN_THE_CLOCK_MOVES = '1000';
 
 describe('Notification inbox (e2e)', () => {
   let app: INestApplication;
@@ -112,6 +113,7 @@ describe('Notification inbox (e2e)', () => {
   const save = (user: Account, body: TranscriptEntry[]) => as(user.token).put('/api/users/me/transcript', { rows: body });
 
   beforeAll(async () => {
+    vi.stubEnv('SESSION_TTL_DAYS', SESSION_DAYS_LONGER_THAN_THE_CLOCK_MOVES);
     app = await bootApp((builder) => builder.overrideProvider(Clock).useValue(clock));
     db = app.get(DataSource);
     notifications = app.get(NotificationsService);
@@ -134,6 +136,7 @@ describe('Notification inbox (e2e)', () => {
       await db.query('DELETE FROM programs WHERE id = ANY($1)', [programs]);
     }
     await app?.close();
+    vi.unstubAllEnvs();
   });
 
   it('maps the table exactly as migration 1795575059760 creates it', async () => {

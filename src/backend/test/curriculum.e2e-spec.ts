@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { apcs2024 } from '../src/database/seeds/apcs-2024.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
-import { seedCurricula } from '../src/database/seeds/seed-curricula.js';
+import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 

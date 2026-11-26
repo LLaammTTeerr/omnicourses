@@ -1,7 +1,5 @@
-import { DataSource } from 'typeorm';
 import { UUID_PATTERN } from '../common/api-requests.js';
-import { databaseUrl, loadEnvFiles } from '../config/env.js';
-import { dataSourceOptions } from '../database/data-source.js';
+import { withDatabase } from '../database/data-source.js';
 import { bootstrapAccessManager } from './access-admin.service.js';
 
 // `npm run admin:bootstrap -w src/backend -- --user-id <uuid>` (ADR 0011): makes an existing
@@ -11,15 +9,8 @@ async function main(): Promise<void> {
   const at = process.argv.indexOf('--user-id');
   const userId = at > 0 ? process.argv[at + 1] : undefined;
   if (!userId || !UUID_PATTERN.test(userId)) throw new Error('Usage: npm run admin:bootstrap -w src/backend -- --user-id <user-uuid> (GET /api/users/me shows it)');
-  loadEnvFiles();
-  const dataSource = new DataSource({ ...dataSourceOptions, url: databaseUrl() });
-  await dataSource.initialize();
-  try {
-    await bootstrapAccessManager(dataSource, userId);
-    console.log(`${userId} is now an access manager.`);
-  } finally {
-    await dataSource.destroy();
-  }
+  await withDatabase((dataSource) => bootstrapAccessManager(dataSource, userId));
+  console.log(`${userId} is now an access manager.`);
 }
 
 void main().catch((error: unknown) => {

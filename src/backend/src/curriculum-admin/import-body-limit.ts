@@ -1,6 +1,8 @@
+import type { INestApplication } from '@nestjs/common';
 import { json, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { compressedBody, payloadTooLarge } from './admin-errors.js';
 import type { Need } from './grant-scope.js';
+import { ImportBodyGate } from './import-body-gate.js';
 
 // The four CSV import routes and their JSON body limit (ADR 0011, "CSV contract and UC-11
 // handoff"). The controller builds its paths from the same two constants, so the limit and
@@ -58,4 +60,13 @@ export function importJsonBody(globalPrefix: string, mayUseLargeParser: LargeBod
         });
       });
   };
+}
+
+// Here, so that the deployed app and the e2e app get the same limits: 7 MiB of JSON on the
+// four CSV import routes for a caller who holds the grant (ADR 0011), the default 100 KiB
+// for everyone and everything else. After CORS, so that a browser can read its 413.
+// The gate is looked up per request: providers do not exist yet when this runs.
+// An app without the curriculum-admin module has no gate: the lookup throws, and nobody gets the large parser.
+export function installImportBodyLimit(app: INestApplication, globalPrefix: string): void {
+  app.use(importJsonBody(globalPrefix, async (authorization, need) => app.get(ImportBodyGate, { strict: false }).allows(authorization, need)));
 }

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { bootApp } from './support/app.js';
 
 // ADR 0002: 10 requests a minute from one address on a route that takes a
@@ -45,18 +45,19 @@ describe('Rate limits (e2e)', () => {
 // visitor nginx names in X-Forwarded-For; without it that header is ignored, so a client cannot
 // dodge the limit by inventing addresses.
 describe('Rate limits behind a proxy (e2e)', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   const signIn = (app: INestApplication, ip: string) =>
     request(app.getHttpServer()).post('/api/auth/sign-in').set('X-Forwarded-For', ip).send({});
 
   it('counts each forwarded visitor separately when TRUST_PROXY=loopback', async () => {
-    process.env.TRUST_PROXY = 'loopback';
+    vi.stubEnv('TRUST_PROXY', 'loopback');
     const app = await bootApp();
     try {
       for (let i = 0; i < 11; i++) await signIn(app, `203.0.113.${i + 1}`).expect(400);
       for (let i = 0; i < 10; i++) await signIn(app, '198.51.100.7').expect(400);
       await signIn(app, '198.51.100.7').expect(429);
     } finally {
-      delete process.env.TRUST_PROXY;
       await app.close();
     }
   });

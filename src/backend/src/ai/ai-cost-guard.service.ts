@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { failureKind } from '../common/failure-kind.js';
+import { Clock } from '../config/clock.js';
 import { AI_CONFIG, type AiConfig } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
@@ -27,6 +28,7 @@ export class AiCostGuard {
   constructor(
     @InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>,
     @Inject(AI_CONFIG) private readonly config: Pick<AiConfig, 'dailyCallsPerUser'>,
+    private readonly clock: Clock,
   ) {}
 
   /**
@@ -38,7 +40,7 @@ export class AiCostGuard {
     const cap = this.config.dailyCallsPerUser;
     return this.usage.manager.transaction(async (em) => {
       await em.query('SELECT pg_advisory_xact_lock(hashtext($1))', [context.userId]);
-      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(Date.now() - DAY_MS)) } });
+      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(this.clock.now().getTime() - DAY_MS)) } });
       if (used >= cap) throw new AiUnavailableError(AI_REASONS.dailyLimit);
       const { identifiers } = await em.insert(AiUsage, { userId: context.userId, feature: context.feature, model });
       return identifiers[0].id as string;

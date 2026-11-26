@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { MIGRATIONS } from './index.js';
 
@@ -17,5 +18,14 @@ describe('MIGRATIONS', () => {
   it('gives every migration a timestamp of its own', () => {
     const timestamps = MIGRATIONS.map((Migration) => timestamp(Migration.name));
     expect(timestamps.filter((t, i) => timestamps.indexOf(t) !== i)).toEqual([]);
+  });
+
+  it('lists every migration file in the folder', async () => {
+    const files = readdirSync(__dirname).filter((name) => /^\d{13}-.+\.ts$/.test(name));
+    for (const name of files) {
+      const exported: unknown[] = Object.values(await import(`./${name}`));
+      expect(MIGRATIONS.some((Migration) => exported.includes(Migration)), name).toBe(true);
+    }
+    expect(files).toHaveLength(MIGRATIONS.length);
   });
 });
