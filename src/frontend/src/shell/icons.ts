@@ -1,5 +1,3 @@
-// The stroke icons of the UI prototypes (assets/shell.js), the subset the shipped screens use. Icon.vue draws them.
-
 export const ICONS = {
   alert: '<path d="M12 3.5 2.5 20h19Z"/><path d="M12 10v4M12 17h.01"/>',
   audit: '<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',

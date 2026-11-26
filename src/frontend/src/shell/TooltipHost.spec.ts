@@ -25,7 +25,6 @@ const tip = () => document.querySelector<HTMLElement>('[role="tooltip"]');
 describe('TooltipHost', () => {
   it('shows a title in its own tooltip after a short hover, instead of the browser one', async () => {
     button.dispatchEvent(new Event('pointerover', { bubbles: true }));
-    // The browser's own tooltip would show too: the title moves aside while ours is up.
     expect(button.hasAttribute('title')).toBe(false);
     expect(tip()?.hidden).toBe(true);
     vi.advanceTimersByTime(400);

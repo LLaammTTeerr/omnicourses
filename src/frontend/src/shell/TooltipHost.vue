@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
-// One tooltip for the whole app, in place of the browser's: any element with a `title` shows it here, after a short
-// hover or at once on keyboard focus. While it shows, the title moves to a data attribute (so the browser does not
-// show its own as well) and the element is described by the tooltip; it comes back when the tooltip hides. Nothing
-// shows while a course is dragged (body.dragging).
 const ID = 'app-tooltip';
 const DELAY = 350;
 
@@ -68,7 +64,6 @@ function leave(event: Event): void {
 const onOver = (e: Event) => take(e.target, false);
 const onFocus = (e: Event) => {
   const t = e.target as Element | null;
-  // Only a keyboard focus shows it at once; a click that focuses waits for the hover like a pointer does.
   if (t?.matches?.(':focus-visible') !== false) take(t, true);
 };
 const onKey = (e: KeyboardEvent) => {
@@ -124,7 +119,6 @@ onBeforeUnmount(() => {
 }
 .app-tooltip.below::after { bottom: auto; top: -5px; border-width: 1px 0 0 1px; }
 .app-tooltip:not(.below)::after { bottom: -5px; }
-/* White with black words in both themes; the outline sets it apart from a white page. */
 @keyframes tip-in { from { opacity: 0; transform: translate(-50%, calc(-100% + 4px)) scale(0.96); } }
 @keyframes tip-in-below { from { opacity: 0; transform: translate(-50%, -4px) scale(0.96); } }
 </style>

@@ -9,7 +9,6 @@ import { SHELL_MESSAGES } from './messages.js';
 import { PUBLIC_NAV } from './nav.js';
 import ThemeButton from './ThemeButton.vue';
 
-// The header of the pages a visitor can open without an account (UI prototypes: public header).
 const auth = useAuth();
 const locale = useLocale();
 const m = useMessages(SHELL_MESSAGES);
@@ -47,7 +46,6 @@ const m = useMessages(SHELL_MESSAGES);
 .pub-head .ico, .mobile-top .ico { display: grid; place-items: center; }
 .pub-head .ico .icon, .mobile-top .ico .icon { width: 16px; height: 16px; }
 @media (max-width: 620px) {
-  /* A phone keeps the brand, Guides, theme, language and one way in; sign-up is one tap away on sign-in. */
   .pub-head .end .sign-in { display: none; }
   .pub-head .brand .name { font-size: 15px; }
   .pub-nav a { padding: 8px; }

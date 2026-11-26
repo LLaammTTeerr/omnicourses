@@ -14,9 +14,6 @@ import { SHELL_MESSAGES } from './messages.js';
 import { listed, PHONE_MORE, PHONE_TABS } from './nav.js';
 import ThemeButton from './ThemeButton.vue';
 
-// Below 960 px the sidebar gives way to a top bar and a tab bar at the bottom (UI prototypes). `part` picks which.
-// The tab bar holds four pages and "More", a modal sheet with the rest: the native <dialog> traps focus, makes the
-// page behind it inert, closes on Escape and gives focus back to "More".
 defineProps<{ part: 'top' | 'tabs' }>();
 const auth = useAuth();
 const access = useAdminAccess();
@@ -26,16 +23,10 @@ const m = useMessages(SHELL_MESSAGES);
 const initial = computed(() => auth.user?.displayName.trim()[0]?.toUpperCase() ?? '');
 
 const moreOpen = ref(false);
-/** The page in "More" the student is on, if any: "More" then shows as the current tab, in that page's colour. */
-// Administration is under "More" only for a user who holds a grant, as in the sidebar.
 const more = computed(() => listed(PHONE_MORE, access.any));
 const inMore = computed(() => more.value.find((item) => route.matched.some((record) => record.name === item.route)) ?? null);
-// Following a link, or going back, closes the sheet.
 watch(() => route.fullPath, () => (moreOpen.value = false));
 
-// A tap on the backdrop lands on the <dialog> itself. The content fills the dialog, so a tap in the sheet's margin
-// lands on the content; and a drag that starts inside and ends on the backdrop sends its click to the dialog, so the
-// sheet closes only when the press began on the dialog itself too.
 let pressedOnBackdrop = false;
 function press(event: MouseEvent): void {
   pressedOnBackdrop = event.target === event.currentTarget;

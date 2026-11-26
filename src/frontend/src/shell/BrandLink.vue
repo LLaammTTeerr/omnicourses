@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, type RouteLocationRaw } from 'vue-router';
 
-// The logo: four rounded squares in four group colours, then the name.
 defineProps<{ to: RouteLocationRaw }>();
 </script>
 

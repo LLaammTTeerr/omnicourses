@@ -14,15 +14,12 @@ import { listed, NAV } from './nav.js';
 import { isSidebarKey, useSidebar } from './sidebar.js';
 import ThemeButton from './ThemeButton.vue';
 
-// The signed-in sidebar (UI prototypes: app shell). Narrows to icons with the button at its foot or the `[` key;
-// in the narrow rail each label stays in the accessibility tree and shows as a tooltip.
 const auth = useAuth();
 const access = useAdminAccess();
 const locale = useLocale();
 const sidebar = useSidebar();
 const m = useMessages(SHELL_MESSAGES);
 
-// Administration is listed only for a user who holds a grant (App.vue asks the API once per sign-in).
 const nav = computed(() => listed(NAV, access.any));
 const main = computed(() => nav.value.filter((item) => item.section === 'main'));
 const account = computed(() => nav.value.filter((item) => item.section === 'account'));
@@ -101,7 +98,6 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
   background: var(--surface-3); color: var(--ink); font-weight: 650; font-size: 13px; text-decoration: none;
 }
 
-/* The narrow rail: icons only, labels kept for screen readers. */
 .side-mini { --side: 72px; }
 .side-mini .side .brand .name, .side-mini .side .tx { opacity: 0; transition-delay: 0s; }
 .side-mini .nav-label { height: 0; padding: 6px 0 0; margin: 6px 10px; border-top: 1px solid var(--edge); }

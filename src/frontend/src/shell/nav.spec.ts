@@ -14,6 +14,12 @@ describe('navigation', () => {
     expect(item.label.vi && item.label.en).toBeTruthy();
   });
 
+  it('lists the pages in route order, and the phone tabs in their own order', () => {
+    expect(NAV.map((item) => item.route)).toEqual(['dashboard', 'calendar', 'audit', 'transcript', 'explorer', 'plans', 'guides', 'settings', 'admin']);
+    expect(PHONE_TABS.map((item) => item.route)).toEqual(['dashboard', 'plans', 'audit', 'explorer']);
+    expect(PUBLIC_NAV.map((item) => item.route)).toEqual(['guides']);
+  });
+
   it('lists each page once', () => {
     expect(new Set(NAV.map((item) => item.route)).size).toBe(NAV.length);
   });
@@ -31,7 +37,6 @@ describe('navigation', () => {
     expect(listed(NAV, true).map((item) => item.route)).toEqual(NAV.map((item) => item.route));
     expect(listed(PHONE_MORE, false).map((item) => item.route)).toEqual(['calendar', 'transcript', 'guides', 'settings']);
     expect(listed(PHONE_MORE, true).at(-1)!.route).toBe('admin');
-    // The page itself opens for any signed-in user and says "no permission": hiding the link is not the protection.
     expect(record('admin')!.meta.auth).toBe('required');
   });
 
