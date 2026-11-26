@@ -14,8 +14,6 @@ import { SharingModule } from './sharing/sharing.module.js';
 import { TranscriptModule } from './transcript/transcript.module.js';
 import { UsersModule } from './users/users.module.js';
 
-// The app and the OpenAPI contract both load this list, and openapi.json lists the routes in the
-// order Nest meets the modules. AccountModule is last because it imports SharingModule (a deletion
-// request stops the shared plans' links): listed earlier, it would pull that module and the ones it
-// imports ahead of the rest and reorder the whole contract.
+// The app and the OpenAPI contract both load this list. Its order is free: openapi.json sorts the
+// paths and schemas by name (sortOpenApi in openapi-document.ts).
 export const FEATURE_MODULES = [HealthModule, UsersModule, AuthModule, AiModule, TranscriptModule, GuidesModule, CurriculumModule, OnboardingModule, AuditModule, PlansModule, CurriculumAdminModule, AcademicCalendarModule, SharingModule, NotificationsModule, AccountModule];
