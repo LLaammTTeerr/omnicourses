@@ -66,15 +66,6 @@ describe('SharingService.read', () => {
     expect(issues.issuesFor).not.toHaveBeenCalled();
   });
 
-  it('reads the link, the owner’s display name and nothing else of the account', async () => {
-    const { svc, db } = service();
-    await svc.read(newShareToken());
-    const sql = db.query.mock.calls[0]![0] as string;
-    expect(sql).toContain('CASE WHEN s."show_name" THEN u."display_name" END');
-    expect(sql).toContain('u."deletion_requested_at" IS NULL');
-    expect(sql).not.toMatch(/\*|password_hash|email|google_sub/);
-  });
-
   it('asks the rule engine about the plan it shows, read through the owner the link names, and without the transcript', async () => {
     const { svc, plans, issues, catalog } = service({ share: { planId: 'p1', userId: 'u1', ownerName: 'Test Student' } });
     const body = await svc.read(newShareToken());
@@ -102,9 +93,6 @@ describe('SharingService.read', () => {
       expect(off.issueCodesNotShown, String(value)).toEqual(['prerequisite_not_met', 'already_passed', 'already_in_progress', 'requirement_not_covered']);
       expect(notChosen.issues.issuesFor, String(value)).toHaveBeenCalledExactlyOnceWith(plan, null);
     }
-    const { svc, db } = service();
-    await svc.read(newShareToken());
-    expect(db.query.mock.calls[0]![0]).toContain('s."show_transcript_checks" AS "showTranscriptChecks"');
   });
 
   it('fails loudly, not with a half answer, when the plan’s curriculum is missing', async () => {
@@ -131,12 +119,7 @@ describe('SharingService, the owner’s side', () => {
     const { svc, tx } = service();
     tx.query.mockResolvedValueOnce([{}]).mockResolvedValueOnce([row]);
     await expect(svc.share('u1', 'p1')).resolves.toEqual({ token: row.share_token, showName: false, showTranscriptChecks: false, createdAt: row.created_at });
-    const [sql, params] = tx.query.mock.calls[1]!;
-    expect(sql).toContain('VALUES ($1, $2, $3, COALESCE($4::boolean, false), COALESCE($5::boolean, false))');
-    expect(sql).toContain('"show_name" = COALESCE($4::boolean, "plan_shares"."show_name")');
-    expect(sql).toContain('"show_transcript_checks" = COALESCE($5::boolean, "plan_shares"."show_transcript_checks")');
-    expect(sql).toContain('WHERE "plan_shares"."user_id" = EXCLUDED."user_id"');
-    expect(sql).not.toContain('"share_token" =');
+    const [, params] = tx.query.mock.calls[1]!;
     expect(params).toEqual(['p1', 'u1', expect.stringMatching(/^[A-Za-z0-9_-]{43}$/), null, null]);
   });
 

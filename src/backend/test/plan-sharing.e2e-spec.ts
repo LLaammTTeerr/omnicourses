@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { TranscriptService } from '../src/transcript/transcript.service.js';
 import { bootApp } from './support/app.js';
+import { backendPid, waitUntilBlockedBy } from './support/locks.js';
 import { offerAlso } from './support/offer.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
@@ -709,9 +710,10 @@ describe('Plan sharing API (e2e)', () => {
       await deletion.startTransaction();
       let pending: Promise<request.Response>;
       try {
+        const pid = await backendPid(deletion);
         await deletion.query(`UPDATE users SET deletion_requested_at = now(), purge_after = now() + interval '30 days' WHERE id = $1`, [owner.userId]);
         pending = http().put(`/api/plans/${plan.id}/share`).set(owner.auth).send({}).then((res) => res);
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        await waitUntilBlockedBy(db, pid);
         await deletion.query('DELETE FROM plan_shares WHERE user_id = $1', [owner.userId]);
         await deletion.commitTransaction();
       } finally {
