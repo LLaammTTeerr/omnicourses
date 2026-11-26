@@ -1,16 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, ValidateIf } from 'class-validator';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { IsBoolean } from 'class-validator';
 import { CreditCapsDto } from '../audit/audit.dto.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { GRADUATION_STATUSES, type GraduationVerdict, PLACEMENT_KINDS, PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, type PlacementKind, type PlanIssueCode, type PlanIssueKind } from '../rules/types.js';
-import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
-import { TermDto } from '../common/field-validators.js';
-
-const ifSent = ValidateIf((_: object, value: unknown) => value !== undefined);
+import { ifPresent, TermDto } from '../common/field-validators.js';
+import { PlanCombinedMinimumCoverageDto, PlanGroupCoverageDto, PlanTermLoadDto } from '../plans/plan-issues.dto.js';
 
 export class SharePlanDto {
   @ApiProperty({ required: false, description: "Whether a reader sees the owner's display name. Left out: unchanged on a live link, hidden on a new one." })
-  @ifSent
+  @ifPresent
   @IsBoolean()
   showName?: boolean;
 
@@ -19,7 +16,7 @@ export class SharePlanDto {
     description:
       "Whether a reader sees the checks the rule engine decides from the owner's transcript (missing prerequisites, courses already passed or in progress, requirements not covered) and the coverage of each requirement. With it on, a reader can tell which courses the owner has passed, failed or is taking; grades and transcript rows are never shown. Left out: unchanged on a live link, off on a new one.",
   })
-  @ifSent
+  @ifPresent
   @IsBoolean()
   showTranscriptChecks?: boolean;
 }
@@ -94,18 +91,12 @@ export class SharedPlacementDto {
   requirementGroupName!: string | null;
 }
 
-export class SharedPlanTermDto {
-  @ApiProperty({ type: TermDto })
-  term!: TermDto;
-
-  @ApiProperty({ enum: TERM_KINDS, nullable: true, description: "null: the program's training type is not recorded." })
-  kind!: TermKind | null;
-
+export class SharedPlanTermDto extends PlanTermLoadDto {
   @ApiProperty({ example: 16, description: "The term's load as the rule engine counts it: courses at their catalog credits plus slots at theirs." })
-  credits!: number;
+  declare credits: number;
 
   @ApiProperty({ type: CreditCapsDto, nullable: true, description: 'The credit caps of the term (ADR 0012); null when the training type is not recorded.' })
-  caps!: CreditCapsDto | null;
+  declare caps: CreditCapsDto | null;
 
   @ApiProperty({ type: [SharedPlacementDto], description: 'In order.' })
   placements!: SharedPlacementDto[];
@@ -163,42 +154,12 @@ export class SharedPlanIssueDto {
   combinedMinimumName?: string | null;
 }
 
-export class SharedGroupCoverageDto {
-  @ApiProperty({ example: 'Kiến thức Math' })
-  name!: string;
-
-  @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS })
-  kind!: RequirementGroupKind;
-
-  @ApiProperty({ type: Number, nullable: true, description: 'null: the group has no minimum of its own.' })
-  requiredCredits!: number | null;
-
+export class SharedGroupCoverageDto extends OmitType(PlanGroupCoverageDto, ['id'] as const) {
   @ApiProperty({ description: 'Credits passed, in progress or placed, toward the cohort total.' })
-  credits!: number;
-
-  @ApiProperty({ type: Number, nullable: true })
-  remainingCredits!: number | null;
-
-  @ApiProperty()
-  met!: boolean;
+  declare credits: number;
 }
 
-export class SharedCombinedMinimumCoverageDto {
-  @ApiProperty({ example: 'Kiến thức tự chọn' })
-  name!: string;
-
-  @ApiProperty({ example: 43 })
-  creditsMin!: number;
-
-  @ApiProperty()
-  credits!: number;
-
-  @ApiProperty()
-  remainingCredits!: number;
-
-  @ApiProperty()
-  met!: boolean;
-}
+export class SharedCombinedMinimumCoverageDto extends OmitType(PlanCombinedMinimumCoverageDto, ['id'] as const) {}
 
 export class SharedPlanCoverageDto {
   @ApiProperty({ type: [SharedGroupCoverageDto] })
