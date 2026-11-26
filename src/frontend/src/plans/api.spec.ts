@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
 import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { signedInPinia } from '../testing/signed-in.js';
 import {
   createPlan,
   deletePlan,
@@ -110,20 +111,21 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
 });
 
 describe('plan requests', () => {
+  beforeEach(() => signedInPinia());
   afterEach(() => vi.restoreAllMocks());
 
   it('sends each call to its route with the token and the body', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => (init?.method === 'DELETE' ? new Response(null, { status: 204 }) : Response.json({})));
     const terms = [{ term: { year: 2026, number: 1 as const }, placements: [course('ZZ101')] }];
-    await fetchPlans('zz-token');
-    await createPlan('zz-token', { name: 'A', programCode: 'APCS', cohortYear: 2024 });
-    await fetchPlan('zz-token', PLAN_ID);
-    await renamePlan('zz-token', PLAN_ID, 'B');
-    await duplicatePlan('zz-token', PLAN_ID, 'C');
-    await expect(deletePlan('zz-token', PLAN_ID)).resolves.toBeUndefined();
-    await savePlacements('zz-token', PLAN_ID, terms);
-    await fetchPlanIssues('zz-token', PLAN_ID);
-    await previewPlanIssues('zz-token', PLAN_ID, terms);
+    await fetchPlans();
+    await createPlan({ name: 'A', programCode: 'APCS', cohortYear: 2024 });
+    await fetchPlan(PLAN_ID);
+    await renamePlan(PLAN_ID, 'B');
+    await duplicatePlan(PLAN_ID, 'C');
+    await expect(deletePlan(PLAN_ID)).resolves.toBeUndefined();
+    await savePlacements(PLAN_ID, terms);
+    await fetchPlanIssues(PLAN_ID);
+    await previewPlanIssues(PLAN_ID, terms);
     const calls = fetch.mock.calls.map(([url, init]) => [init?.method, String(url).slice(API_URL.length), init?.body === undefined ? undefined : JSON.parse(String(init.body))]);
     expect(calls).toEqual([
       ['GET', '/plans', undefined],
@@ -142,7 +144,7 @@ describe('plan requests', () => {
   it('lets a drag preview be cancelled with its signal', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
     const controller = new AbortController();
-    await previewPlanIssues('zz-token', PLAN_ID, [], controller.signal);
+    await previewPlanIssues(PLAN_ID, [], controller.signal);
     const signal = fetch.mock.calls[0]![1]!.signal!;
     expect(signal.aborted).toBe(false);
     controller.abort();
@@ -151,7 +153,7 @@ describe('plan requests', () => {
 
   it('escapes the id in the path', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
-    await fetchPlan('zz-token', 'a/b');
+    await fetchPlan('a/b');
     expect(String(fetch.mock.calls[0]![0])).toBe(`${API_URL}/plans/a%2Fb`);
   });
 });

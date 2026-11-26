@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
+import { byField } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
@@ -21,7 +22,7 @@ import {
   type UserGrants,
 } from './api.js';
 import ConfirmDialog from './ConfirmDialog.vue';
-import { byField, readFailure, type Failure } from './errors.js';
+import { readFailure, type Failure } from './errors.js';
 import FieldErrors from './FieldErrors.vue';
 import { newProgramBody, PROGRAM_FIELDS, storedCode, type ProgramValues } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
@@ -43,7 +44,7 @@ const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.access);
 
-const programs = useAsyncLoad('the programs to grant', async () => (await auth.authed(fetchAccessPrograms)).programs);
+const programs = useAsyncLoad('the programs to grant', async () => (await fetchAccessPrograms()).programs);
 
 // ---------- The user on screen, by their ID ----------
 const typed = ref('');
@@ -60,7 +61,7 @@ const sameId = (a: string | null | undefined, b: string | null | undefined): boo
 /** Reads the saved grants of `of` again, and shows them when `of` is still the user on screen. Rejects when the API cannot say. */
 async function refresh(of = userId.value): Promise<UserGrants> {
   const call = ++latest;
-  const fresh = await auth.authed((token) => fetchUserGrants(token, of));
+  const fresh = await fetchUserGrants(of);
   if (call === latest && sameId(of, userId.value)) show(fresh);
   return fresh;
 }
@@ -161,7 +162,7 @@ async function giveProgram(): Promise<void> {
   notice.value = null;
   const program = programs.data.value?.find((item) => item.id === id);
   const result = await inlineWrites.send(
-    (token) => grantProgram(token, to, id),
+    () => grantProgram(to, id),
     async () => holdsProgram(await refresh(to), id),
   );
   if (settle(result, text.value.granted(text.value.programPermission(program?.code ?? id)), to)) programId.value = null;
@@ -172,7 +173,7 @@ async function giveGlobal(permission: GlobalPermission): Promise<void> {
   if (!to || inlineWrites.busy.value || held.value) return;
   notice.value = null;
   const result = await inlineWrites.send(
-    (token) => grantGlobal(token, to, permission),
+    () => grantGlobal(to, permission),
     async () => holdsGlobal(await refresh(to), permission),
   );
   settle(result, text.value.granted(m.value.permissions[permission]), to);
@@ -228,11 +229,11 @@ async function revoke(): Promise<void> {
   const result =
     current.type === 'program'
       ? await dialogWrites.send(
-          (token) => revokeProgram(token, from, current.grant.programId),
+          () => revokeProgram(from, current.grant.programId),
           async () => !holdsProgram(await refresh(from), current.grant.programId),
         )
       : await dialogWrites.send(
-          (token) => revokeGlobal(token, from, current.permission),
+          () => revokeGlobal(from, current.permission),
           async () => !holdsGlobal(await refresh(from), current.permission),
         );
   if (!settle(result, text.value.revoked(name), from)) return;
@@ -268,7 +269,7 @@ function cancelProgram(): void {
 
 /** The access manager's list of programs has the new one: found again by its code and name after a lost answer. */
 async function programListed(values: ProgramValues): Promise<boolean> {
-  const { programs: listed } = await auth.authed(fetchAccessPrograms);
+  const { programs: listed } = await fetchAccessPrograms();
   return listed.some((item) => item.code === storedCode(values.code) && item.nameVi === values.nameVi.trim());
 }
 
@@ -289,7 +290,7 @@ const programNotice = ref<string | null>(null);
 async function saveProgram(values: ProgramValues): Promise<void> {
   programNotice.value = null;
   const result = await programWrites.send(
-    (token) => createProgram(token, newProgramBody(values)),
+    () => createProgram(newProgramBody(values)),
     () => programListed(values),
   );
   if (result.outcome === 'saved' || result.outcome === 'confirmed') await endProgram(result.outcome, result.outcome === 'saved' ? result.value.code : storedCode(values.code));

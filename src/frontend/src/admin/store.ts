@@ -80,7 +80,7 @@ export const useAdminAccess = defineStore('admin-access', () => {
       const during = signIn;
       const mine = ++started;
       const current = () => during === signIn && auth.user?.id === userId && mine === started;
-      const run: Promise<UserGrants | null> = auth.authed(fetchOwnGrants).then(
+      const run: Promise<UserGrants | null> = fetchOwnGrants().then(
         (loaded) => {
           if (current()) {
             cache.value = { userId, grants: loaded };

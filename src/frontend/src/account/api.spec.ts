@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
 import { contractShape, type Shape } from '../testing/contract.js';
-import { exportAccount, saveFile, type DeleteAccountBody, type DeletionScheduled } from './api.js';
+import { signedInPinia } from '../testing/signed-in.js';
+import { exportAccount, revokeSession, saveFile, type DeleteAccountBody, type DeletionScheduled } from './api.js';
 
 describe('account types against the contract', () => {
   it.each([
@@ -13,13 +14,25 @@ describe('account types against the contract', () => {
 });
 
 describe('exportAccount', () => {
+  beforeEach(() => signedInPinia());
   afterEach(() => vi.restoreAllMocks());
 
   it('downloads the export with the token, as a file', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ exportedAt: '2026-11-09T00:00:00.000Z' }));
-    const blob = await exportAccount('zz-token');
+    const blob = await exportAccount();
     expect(fetch).toHaveBeenCalledWith(`${API_URL}/users/me/export`, expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer zz-token' } }));
     expect(JSON.parse(await blob.text())).toEqual({ exportedAt: '2026-11-09T00:00:00.000Z' });
+  });
+});
+
+describe('revokeSession', () => {
+  beforeEach(() => signedInPinia());
+  afterEach(() => vi.restoreAllMocks());
+
+  it('names the session in the address, escaped, and sends the token', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+    await revokeSession('a/b');
+    expect(fetch).toHaveBeenCalledWith(`${API_URL}/auth/sessions/a%2Fb`, expect.objectContaining({ method: 'DELETE', headers: { Authorization: 'Bearer zz-token' } }));
   });
 });
 

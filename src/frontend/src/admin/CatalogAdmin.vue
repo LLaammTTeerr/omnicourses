@@ -38,7 +38,7 @@ let latest = 0;
 /** The saved course, or null when the catalog has none with this code. Rejects when the API cannot say. */
 async function read(of: string): Promise<CourseDetail | null> {
   try {
-    return await auth.authed((token) => fetchCourse(token, of));
+    return await fetchCourse(of);
   } catch (e) {
     if (readFailure(e).kind === 'not_found') return null;
     throw e;
@@ -177,7 +177,7 @@ async function create(values: CourseValues): Promise<void> {
   const stored = storedCode(values.code);
   written = stored;
   const result = await writes.send(
-    (token) => createCourse(token, body),
+    () => createCourse(body),
     async () => {
       const saved = await refresh(stored);
       return saved !== null && courseHas(saved, body);
@@ -193,7 +193,7 @@ async function correct(body: ImpactReview['body'], confirming: ImpactReview | nu
   if (!of) return;
   written = of;
   const result = await writes.send(
-    (token) => updateCourse(token, of, confirming ? { ...body, confirmImpact: confirming.reviewVersion } : body),
+    () => updateCourse(of, confirming ? { ...body, confirmImpact: confirming.reviewVersion } : body),
     async () => {
       const saved = await refresh(of);
       return saved !== null && courseHas(saved, body);
@@ -234,7 +234,7 @@ async function remove(): Promise<void> {
   if (!of) return;
   written = of;
   const result = await writes.send(
-    (token) => deleteCourse(token, of),
+    () => deleteCourse(of),
     async () => (await refresh(of)) === null,
   );
   if (result.outcome !== 'saved' && result.outcome !== 'confirmed') return;

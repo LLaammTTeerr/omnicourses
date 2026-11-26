@@ -72,7 +72,7 @@ export function useWrites() {
     problem.value = settled ? null : (result as Problem);
   }
 
-  async function send<T>(write: (token: string) => Promise<T>, landed: () => Promise<boolean>): Promise<WriteOutcome<T>> {
+  async function send<T>(write: () => Promise<T>, landed: () => Promise<boolean>): Promise<WriteOutcome<T>> {
     // While the outcome of the last write is not known, nothing more is sent: the saved data is read first
     // (`recheck`), or the screen drops the problem and says that it may be out of date.
     if (problem.value?.outcome === 'unknown') return { outcome: 'unknown' };
@@ -85,7 +85,7 @@ export function useWrites() {
     problem.value = null;
     lastLanded = landed;
     try {
-      const result = await settleWrite(() => auth.authed(write), landed);
+      const result = await settleWrite(write, landed);
       if (result.outcome === 'refused' && result.failure.kind === 'permission') {
         access.refusal = { permission: result.failure.permission };
         void access.load({ fresh: true });

@@ -95,7 +95,7 @@ async function loadPrograms(quiet = false): Promise<void> {
     programsStatus.value = 'loading';
   }
   try {
-    const { programs } = await auth.authed(fetchAdminPrograms);
+    const { programs } = await fetchAdminPrograms();
     if (call !== programsCall) return;
     programList.value = programs;
     programsStatus.value = 'loaded';
@@ -150,7 +150,7 @@ let latest = 0;
  */
 async function readSaved(of: Scope): Promise<Curriculum> {
   const call = onScreen(of) ? ++latest : null;
-  const fresh = await auth.authed((token) => fetchCurriculum(token, of.programCode, of.cohortYear));
+  const fresh = await fetchCurriculum(of.programCode, of.cohortYear);
   if (call !== null && call === latest && onScreen(of)) {
     curriculum.value = fresh;
     status.value = 'loaded';
@@ -322,7 +322,7 @@ async function saveGroup(entered: GroupValues): Promise<void> {
       return;
     }
     const result = await dialogWrites.send(
-      (token) => updateGroup(token, at.ref, id, body),
+      () => updateGroup(at.ref, id, body),
       async () => {
         const saved = (await readSaved(at)).requirementGroups.find((group) => group.id === id);
         return saved !== undefined && groupMatches(saved, entered);
@@ -335,7 +335,7 @@ async function saveGroup(entered: GroupValues): Promise<void> {
   const before = new Set(onScreen(at) ? groups.value.map((group) => group.id) : []);
   const isNew = (group: RequirementGroup) => !before.has(group.id) && groupMatches(group, entered);
   const result = await dialogWrites.send(
-    (token) => createGroup(token, at.ref, newGroupBody(entered)),
+    () => createGroup(at.ref, newGroupBody(entered)),
     async () => (await readSaved(at)).requirementGroups.some(isNew),
   );
   if (await finish(result, text.value.groupCreated(name))) {
@@ -350,7 +350,7 @@ async function removeGroup(): Promise<void> {
   const { at } = current;
   const { id, name } = current.group;
   const result = await dialogWrites.send(
-    (token) => deleteGroup(token, at.ref, id),
+    () => deleteGroup(at.ref, id),
     async () => !(await readSaved(at)).requirementGroups.some((group) => group.id === id),
   );
   await finish(result, text.value.groupDeleted(name));
@@ -364,7 +364,7 @@ async function link(): Promise<void> {
   late.value = null;
   const code = storedCode(typed);
   const result = await linkWrites.send(
-    (token) => linkCourse(token, at.ref, group.id, typed),
+    () => linkCourse(at.ref, group.id, typed),
     async () => groupHas(await readSaved(at), group.id, code),
   );
   if (!onScreen(at) || openId.value !== group.id) {
@@ -393,7 +393,7 @@ async function unlink(): Promise<void> {
   if (current?.type !== 'unlink') return;
   const { at, group, course } = current;
   const result = await dialogWrites.send(
-    (token) => unlinkCourse(token, at.ref, group.id, course.code),
+    () => unlinkCourse(at.ref, group.id, course.code),
     async () => !groupHas(await readSaved(at), group.id, course.code),
   );
   await finish(result, text.value.unlinked(course.code), 'link-code');
@@ -406,7 +406,7 @@ async function savePrerequisites(choice: PrerequisiteChoice): Promise<void> {
   const { code } = current.course;
   const want = storedPrerequisites(choice);
   const result = await dialogWrites.send(
-    (token) => (choice.state === 'not_recorded' ? clearPrerequisites(token, at.ref, code) : setPrerequisites(token, at.ref, code, choice.state === 'none' ? [] : choice.codes)),
+    () => (choice.state === 'not_recorded' ? clearPrerequisites(at.ref, code) : setPrerequisites(at.ref, code, choice.state === 'none' ? [] : choice.codes)),
     async () => {
       const saved = courseIn(await readSaved(at), code);
       return saved !== null && sameList(saved.prerequisites, want);
@@ -423,7 +423,7 @@ async function saveTerms(terms: number[]): Promise<void> {
   const { code } = current.course;
   const want = terms.length ? [...terms].sort((a, b) => a - b) : null;
   const result = await dialogWrites.send(
-    (token) => (terms.length ? setOfferingTerms(token, at.ref, code, terms) : clearOfferingTerms(token, at.ref, code)),
+    () => (terms.length ? setOfferingTerms(at.ref, code, terms) : clearOfferingTerms(at.ref, code)),
     async () => {
       const saved = courseIn(await readSaved(at), code);
       return saved !== null && sameList(saved.offeringTerms, want);
@@ -450,7 +450,7 @@ let programOpener: HTMLElement | null = null;
 
 /** The program's details as the read API gives them: GET /admin/programs lists only its code and Vietnamese name. */
 async function readProgram(code: string): Promise<SavedProgram | null> {
-  const { programs } = await auth.authed(fetchPrograms);
+  const { programs } = await fetchPrograms();
   return programs.find((item) => item.code === code) ?? null;
 }
 
@@ -497,7 +497,7 @@ function editCohort(from: Event): void {
   const of = scope.value;
   if (!of) return;
   void openProgramDialog(
-    async () => ({ type: 'edit-cohort', ref: of.ref, programCode: of.programCode, saved: await auth.authed((token) => fetchCohort(token, of.ref)) }),
+    async () => ({ type: 'edit-cohort', ref: of.ref, programCode: of.programCode, saved: await fetchCohort(of.ref) }),
     from,
     m.value.programs.cohortLoadFailed,
   );
@@ -541,7 +541,7 @@ async function saveProgramDetails(values: ProgramValues): Promise<void> {
     return;
   }
   const result = await programWrites.send(
-    (token) => updateProgram(token, programId, body),
+    () => updateProgram(programId, body),
     async () => {
       const found = await readProgram(saved.code);
       return found !== null && programMatches(found, values);
@@ -561,8 +561,8 @@ async function saveCohort(values: CohortValues): Promise<void> {
       return;
     }
     const result = await programWrites.send(
-      (token) => updateCohort(token, at, body),
-      async () => cohortMatches(await auth.authed((token) => fetchCohort(token, at)), values),
+      () => updateCohort(at, body),
+      async () => cohortMatches(await fetchCohort(at), values),
     );
     // The curriculum's names are on screen: show the saved ones.
     if (result.outcome === 'saved' || result.outcome === 'confirmed') await showSaved();
@@ -573,9 +573,9 @@ async function saveCohort(values: CohortValues): Promise<void> {
   const { programId } = current;
   let created: string | null = null;
   const result = await programWrites.send(
-    (token) => createCohort(token, programId, newCohortBody(values)),
+    () => createCohort(programId, newCohortBody(values)),
     async () => {
-      const { cohorts } = await auth.authed((token) => fetchCohorts(token, programId));
+      const { cohorts } = await fetchCohorts(programId);
       created = cohorts.find((item) => cohortMatches(item, values, true))?.id ?? null;
       return created !== null;
     },

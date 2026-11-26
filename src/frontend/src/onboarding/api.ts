@@ -1,4 +1,4 @@
-import { request } from '../api.js';
+import { requestAsUser } from '../auth/store.js';
 import type { Term } from '../terms.js';
 
 // The onboarding DTO of the API (UC-01 steps 6–9, A8, A9), written by hand; api.spec.ts checks it against
@@ -36,7 +36,7 @@ export const NOT_STARTED: Onboarding = {
  */
 export const OFFERED_COHORTS: Readonly<Record<string, readonly number[]>> = { APCS: [2024, 2025] };
 
-export const fetchOnboarding = (token: string) => request<Onboarding>('GET', '/users/me/onboarding', { token });
+export const fetchOnboarding = () => requestAsUser<Onboarding>('GET', '/users/me/onboarding');
 
 /** Replaces every answer, so the whole object is sent; the saved answers come back. 400: an answer is invalid. */
-export const saveOnboarding = (token: string, answers: Onboarding) => request<Onboarding>('PUT', '/users/me/onboarding', { token, body: answers });
+export const saveOnboarding = (answers: Onboarding) => requestAsUser<Onboarding>('PUT', '/users/me/onboarding', { body: answers });

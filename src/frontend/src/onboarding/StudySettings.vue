@@ -2,7 +2,6 @@
 import { computed, reactive, ref, shallowRef } from 'vue';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { fetchPrograms } from '../curriculum/api.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -15,7 +14,6 @@ import { useOnboarding } from './store.js';
 
 // Settings: the onboarding answers, changed later (UC-01 A9). The same object is saved, finished stays as it is.
 // An unfinished onboarding is finished in the wizard, which this links to.
-const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
 const toast = useToast();
@@ -31,7 +29,7 @@ const { status, reload } = useAsyncLoad('the onboarding answers', async () => {
   Object.assign(goal, goalDraft(answers));
   return answers;
 });
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
+const programs = useAsyncLoad('the programs', () => fetchPrograms());
 const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
 const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
 const programName = (choice: (typeof choices.value)[number]) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;

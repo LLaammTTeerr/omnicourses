@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HttpError } from '../api.js';
-import { byField, readFailure, readReference } from './errors.js';
+import { byField } from '../api.js';
+import { readFailure, readReference } from './errors.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import references from '../../../backend/test/fixtures/admin-references.json';
 

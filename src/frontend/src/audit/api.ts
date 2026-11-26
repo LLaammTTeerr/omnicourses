@@ -1,4 +1,5 @@
-import { request, statusOf, type HttpError } from '../api.js';
+import { statusOf, type HttpError } from '../api.js';
+import { requestAsUser } from '../auth/store.js';
 import type { RequirementGroupKind, TrainingType } from '../curriculum/api.js';
 import type { Term } from '../terms.js';
 import type { TranscriptResult } from '../transcript/api.js';
@@ -182,9 +183,9 @@ export type AuditOutcome = { status: 'ready'; audit: DegreeAudit } | { status: A
 const isUnavailableCode = (code: string | null): code is AuditUnavailableCode => (AUDIT_UNAVAILABLE_CODES as readonly (string | null)[]).includes(code);
 
 /** The signed-in student's degree audit, worked out by the API from their saved transcript on every call. */
-export async function fetchAudit(token: string): Promise<AuditOutcome> {
+export async function fetchAudit(): Promise<AuditOutcome> {
   try {
-    return { status: 'ready', audit: await request<DegreeAudit>('GET', '/users/me/audit', { token }) };
+    return { status: 'ready', audit: await requestAsUser<DegreeAudit>('GET', '/users/me/audit') };
   } catch (e) {
     const code = statusOf(e) === 409 ? (e as HttpError).code : null;
     if (isUnavailableCode(code)) return { status: code };

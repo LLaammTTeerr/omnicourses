@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { afterSignIn } from '../auth/redirect.js';
-import { useAuth } from '../auth/store.js';
 import { fetchPrograms } from '../curriculum/api.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -24,7 +23,6 @@ import { useOnboarding } from './store.js';
 // Every step saves the whole object with finished false, so a student who leaves resumes at the first unanswered
 // step (A8); Finish saves it with finished true. The program list comes from the curriculum API, and only the
 // programs and cohorts the release offers can be picked (A7).
-const auth = useAuth();
 const onboarding = useOnboarding();
 const locale = useLocale();
 const route = useRoute();
@@ -46,7 +44,7 @@ const { status, reload } = useAsyncLoad('the onboarding answers', async () => {
   step.value = resumeStep(answers);
 });
 // The names of the programs. Without them the offered codes still show, so onboarding never waits on this list.
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
+const programs = useAsyncLoad('the programs', () => fetchPrograms());
 const choices = computed(() => programChoices(programs.data.value?.programs ?? []));
 const offered = computed(() => choices.value.filter((choice) => choice.offered));
 const notOffered = computed(() => choices.value.filter((choice) => !choice.offered));

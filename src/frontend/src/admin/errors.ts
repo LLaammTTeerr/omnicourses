@@ -1,4 +1,4 @@
-import { HttpError } from '../api.js';
+import { failureKind, HttpError } from '../api.js';
 import { PERMISSION_KINDS, type AffectedCurriculum, type ImportRowError, type PermissionKind } from './api.js';
 
 // What a failed administration call means, read from the API's answer (ADR 0011, "Validation, errors and
@@ -57,12 +57,12 @@ function rowErrors(value: unknown[]): ImportRowError[] {
 
 /** Reads a failed call. Anything that is not an answer from the API is `no_answer`. */
 export function readFailure(error: unknown): Failure {
-  if (!(error instanceof HttpError)) return { kind: 'no_answer' };
-  const { status, code, details } = error;
-  const body = error.body ?? {};
-  if (status === 401) return { kind: 'signed_out' };
+  const kind = failureKind(error);
+  if (kind === 'unauthorized') return { kind: 'signed_out' };
   // A gateway or the API itself failed: a write may or may not have been committed.
-  if (status >= 500) return { kind: 'no_answer' };
+  if (kind === 'server_error' || kind === 'timed_out' || kind === 'unreachable') return { kind: 'no_answer' };
+  const { status, code, details } = error as HttpError;
+  const body = (error as HttpError).body ?? {};
   if (code === 'validation_failed' && Array.isArray(body.errors)) return { kind: 'file', details, errors: rowErrors(body.errors) };
   if (code === 'validation_failed') return { kind: 'validation', details };
   if (code === 'prerequisite_cycle') return { kind: 'cycle', cycle: strings(body.cycle) };
@@ -82,26 +82,10 @@ export function readFailure(error: unknown): Failure {
   if (status === 415 || code === 'unsupported_content_encoding') return { kind: 'compressed' };
   if ((CONFLICT_CODES as readonly (string | null)[]).includes(code)) return { kind: 'conflict', code: code as ConflictCode, references: strings(body.references) };
   // The read routes answer a plain 404 without a code.
-  if (code === 'not_found' || (status === 404 && code === null)) return { kind: 'not_found' };
+  if (code === 'not_found' || (kind === 'not_found' && code === null)) return { kind: 'not_found' };
   // A 400 from a route outside F12's strict bodies still lists what it refused.
-  if (status === 400 && code === null) return { kind: 'validation', details };
+  if (kind === 'invalid' && code === null) return { kind: 'validation', details };
   return { kind: 'refused', status, code, details };
-}
-
-/**
- * The API's validation messages by the field each one names at its start ("credits must not be less than 1",
- * "prerequisites: ZZ101 not a course of this curriculum"). A message that names none of `fields`, such as an
- * unknown property, is in `other`. The messages are the API's English text: it sends no code per field.
- */
-export function byField<F extends string>(details: readonly string[], fields: readonly F[]): { fields: Partial<Record<F, string[]>>; other: string[] } {
-  const found: Partial<Record<F, string[]>> = {};
-  const other: string[] = [];
-  for (const detail of details) {
-    const field = fields.find((name) => detail.startsWith(name) && !/^[A-Za-z0-9_]/.test(detail.slice(name.length)));
-    if (field) (found[field] ??= []).push(detail);
-    else other.push(detail);
-  }
-  return { fields: found, other };
 }
 
 /** What still needs an item the API refused to remove (409 referenced_item), read from its English sentence. */

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { failureKind } from '../api.js';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -36,11 +36,11 @@ async function submit(): Promise<void> {
     await auth.signIn({ email: email.value.trim(), password: password.value });
     await router.replace(afterSignIn(route.query.redirect));
   } catch (e) {
-    const status = statusOf(e);
+    const kind = failureKind(e);
     // ADR 0002: one answer for an unknown email and a wrong password.
-    if (status === 401) failure.value = m.value.wrongCredentials;
-    else if (status === 429) failure.value = m.value.rateLimited;
-    else if (status === 400) failure.value = m.value.checkFields;
+    if (kind === 'unauthorized') failure.value = m.value.wrongCredentials;
+    else if (kind === 'rate_limited') failure.value = m.value.rateLimited;
+    else if (kind === 'invalid') failure.value = m.value.checkFields;
     else {
       console.error('Signing in failed:', e);
       failure.value = m.value.unreachable;

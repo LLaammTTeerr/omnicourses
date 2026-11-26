@@ -32,7 +32,7 @@ export const useOnboarding = defineStore('onboarding', () => {
     if (!userId) return Promise.reject(new Error('Not signed in'));
     if (answers.value) return Promise.resolve(answers.value);
     if (pending?.userId !== userId) {
-      const load = auth.authed(fetchOnboarding).then((loaded) => keep(userId, loaded));
+      const load = fetchOnboarding().then((loaded) => keep(userId, loaded));
       pending = { userId, load };
       load.then(
         () => (pending = null),
@@ -46,7 +46,7 @@ export const useOnboarding = defineStore('onboarding', () => {
   async function save(next: Onboarding): Promise<Onboarding> {
     const userId = auth.user?.id;
     if (!userId) throw new Error('Not signed in');
-    return keep(userId, await auth.authed((token) => saveOnboarding(token, next)));
+    return keep(userId, await saveOnboarding(next));
   }
 
   return { cache, answers, finished, load, save };

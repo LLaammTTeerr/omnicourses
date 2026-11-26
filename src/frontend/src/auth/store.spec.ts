@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, HttpError } from '../api.js';
-import { SESSION_STORAGE_KEY, useAuth } from './store.js';
+import { requestAsUser, sendAsUser, SESSION_STORAGE_KEY, useAuth } from './store.js';
 import { authResult } from './testing/fixtures.js';
 import { rememberLastPlan } from '../plans/last-plan.js';
 import { setLocked } from '../plans/lock.js';
@@ -133,5 +133,18 @@ describe('auth store (ADR 0002)', () => {
     expect(seen).toEqual(['zz-live']);
     expect(auth.signedIn).toBe(false);
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it('sends a call as the signed-in student with their token, and signs them out on a 401', async () => {
+    const fetch = fetchMock().mockResolvedValueOnce(Response.json(authResult({ token: 'zz-live' }))).mockResolvedValueOnce(Response.json({ ok: true }));
+    const auth = useAuth();
+    await auth.signIn({ email: 'zz@example.com', password: 'zz-password-1' });
+
+    await expect(requestAsUser('GET', '/x')).resolves.toEqual({ ok: true });
+    expect(fetch).toHaveBeenLastCalledWith(`${API_URL}/x`, expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer zz-live' } }));
+
+    fetch.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    await expect(sendAsUser('GET', '/x')).rejects.toThrow('401');
+    expect(auth.signedIn).toBe(false);
   });
 });

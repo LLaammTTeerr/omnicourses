@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
-import { statusOf } from '../api.js';
+import { request, send, statusOf, type RequestOptions } from '../api.js';
 import { forgetLastPlan } from '../plans/last-plan.js';
 import { forgetLocks } from '../plans/lock.js';
 import * as api from './api.js';
@@ -114,3 +114,13 @@ export const useAuth = defineStore('auth', () => {
 
   return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, authed };
 });
+
+type UserRequestOptions = Omit<RequestOptions, 'token'>;
+
+export function requestAsUser<T>(method: string, path: string, options: UserRequestOptions = {}): Promise<T> {
+  return useAuth().authed((token) => request<T>(method, path, { ...options, token }));
+}
+
+export function sendAsUser(method: string, path: string, options: UserRequestOptions = {}): Promise<Response> {
+  return useAuth().authed((token) => send(method, path, { ...options, token }));
+}

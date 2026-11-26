@@ -58,7 +58,7 @@ const programsStatus = ref<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
 async function loadPrograms(): Promise<void> {
   programsStatus.value = 'loading';
   try {
-    programList.value = (await auth.authed(fetchAdminPrograms)).programs;
+    programList.value = (await fetchAdminPrograms()).programs;
     programsStatus.value = 'loaded';
   } catch (e) {
     if (readFailure(e).kind === 'signed_out') return;
@@ -155,7 +155,7 @@ function dropPreview(): void {
 watch(targetKey, dropPreview);
 
 const runPreview = (of: Target, csv: string): Promise<ImportPreview> =>
-  auth.authed<ImportPreview>((token) => (of.cohort ? previewLinkImport(token, of.cohort, csv) : previewCatalogImport(token, csv)));
+  of.cohort ? previewLinkImport(of.cohort, csv) : previewCatalogImport(csv);
 
 /**
  * Previews `csv` for `of` and shows it. A preview writes nothing, so it is never in doubt: it is simply asked again.
@@ -233,7 +233,7 @@ async function confirm(): Promise<void> {
   landedPreview = null;
   sent = { target: of, csv };
   const result = await writes.send(
-    (token) => (of.cohort ? confirmLinkImport(token, of.cohort, csv, version) : confirmCatalogImport(token, csv, version)),
+    () => (of.cohort ? confirmLinkImport(of.cohort, csv, version) : confirmCatalogImport(csv, version)),
     // A file already saved previews as nothing to do: no error, nothing new, nothing changed.
     async () => {
       const fresh = await runPreview(of, csv);

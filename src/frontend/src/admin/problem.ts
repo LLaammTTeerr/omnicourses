@@ -1,4 +1,5 @@
-import { byField, readReference, type Failure } from './errors.js';
+import { byField } from '../api.js';
+import { readReference, type Failure } from './errors.js';
 import type { AdminText } from './messages.js';
 import type { Problem } from './write.js';
 

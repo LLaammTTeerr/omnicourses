@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, codePoints, getJson, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
+import { API_URL, codePoints, failureKind, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
@@ -101,7 +101,7 @@ describe('request', () => {
   });
 });
 
-describe('getJson', () => {
+describe('request for a public read', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('sends no token (ADR 0010) and fails a read that gets no answer in time, like any JSON call', async () => {
@@ -109,11 +109,32 @@ describe('getJson', () => {
     const timeout = vi.spyOn(AbortSignal, 'timeout');
     const timer = new AbortController();
     timeout.mockReturnValue(timer.signal);
-    const pending = getJson('/guides').catch((e: unknown) => e);
+    const pending = request('GET', '/guides').catch((e: unknown) => e);
     expect(timeout).toHaveBeenCalledExactlyOnceWith(REQUEST_TIMEOUT_MS);
     expect(vi.mocked(fetch).mock.calls[0]![1]).toMatchObject({ method: 'GET', headers: {} });
     timer.abort(new DOMException('The operation timed out.', 'TimeoutError'));
     expect(await pending).toMatchObject({ name: 'TimeoutError' });
+  });
+});
+
+describe('failureKind', () => {
+  it.each([
+    [400, 'invalid'],
+    [401, 'unauthorized'],
+    [403, 'forbidden'],
+    [404, 'not_found'],
+    [409, 'conflict'],
+    [429, 'rate_limited'],
+    [500, 'server_error'],
+    [502, 'server_error'],
+    [418, 'other'],
+  ] as const)('reads a %s answer as %s', (status, kind) => {
+    expect(failureKind(new HttpError('/x', status))).toBe(kind);
+  });
+
+  it('tells a timeout from a request that never reached the API', () => {
+    expect(failureKind(new DOMException('The operation timed out.', 'TimeoutError'))).toBe('timed_out');
+    expect(failureKind(new TypeError('Failed to fetch'))).toBe('unreachable');
   });
 });
 
