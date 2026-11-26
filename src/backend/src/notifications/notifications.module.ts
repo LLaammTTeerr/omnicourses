@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AcademicCalendarModule } from '../academic-calendar/academic-calendar.module.js';
-import { Clock } from '../config/clock.js';
 import { OnboardingModule } from '../onboarding/onboarding.module.js';
 import { TranscriptModule } from '../transcript/transcript.module.js';
 import { NotificationSchedule } from './notification-schedule.js';
@@ -16,6 +15,6 @@ import { NotificationsService } from './notifications.service.js';
 @Module({
   imports: [TypeOrmModule.forFeature([Notification]), AcademicCalendarModule, OnboardingModule, TranscriptModule],
   controllers: [NotificationsController],
-  providers: [Clock, NotificationsService, NotificationSchedule],
+  providers: [NotificationsService, NotificationSchedule],
 })
 export class NotificationsModule {}

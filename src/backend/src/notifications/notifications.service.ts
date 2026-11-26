@@ -4,7 +4,7 @@ import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { AcademicCalendarService, type CalendarEventStart } from '../academic-calendar/academic-calendar.service.js';
 import { failureKind, failureStack } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
-import { vietnamDate } from '../config/time.js';
+import { MINUTE_MS, vietnamDate } from '../config/time.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
 import type { TranscriptSave } from '../transcript/transcript-change.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
@@ -13,7 +13,7 @@ import { Notification } from './notification.entity.js';
 import { DEFAULT_PAGE_SIZE, NotificationDto, NotificationListDto, NotificationsQueryDto, UnreadCountDto } from './notifications.dto.js';
 
 /** At most one line a minute about the failures of reads (ADR 0018, decision 15). */
-export const READ_FAILURE_LOG_INTERVAL_MS = 60_000;
+export const READ_FAILURE_LOG_INTERVAL_MS = MINUTE_MS;
 
 /** Unknown, malformed and another student's ID answer the same 404: the answer never tells them apart. */
 export const notificationNotFound = () => new NotFoundException({ statusCode: 404, code: 'not_found', message: 'No notification with this ID' });

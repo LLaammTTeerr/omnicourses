@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { vietnamDate } from '../config/time.js';
+import { MINUTE_MS, vietnamDate } from '../config/time.js';
 import { MIN_DELAY_MS, msUntilNextRun, NotificationSchedule, RUN_INTERVAL_MS } from './notification-schedule.js';
 
 describe('msUntilNextRun', () => {
@@ -11,7 +11,7 @@ describe('msUntilNextRun', () => {
   });
 
   it('aims at 00:00 in Vietnam (17:00 UTC) when that comes before the interval ends', () => {
-    expect(msUntilNextRun(new Date('2090-03-01T16:57:00Z'))).toBe(3 * 60_000);
+    expect(msUntilNextRun(new Date('2090-03-01T16:57:00Z'))).toBe(3 * MINUTE_MS);
     expect(msUntilNextRun(new Date('2090-03-01T16:59:58Z'))).toBe(2000);
   });
 
@@ -58,7 +58,7 @@ describe('NotificationSchedule', () => {
     expect(createDue).toHaveBeenCalledTimes(2);
 
     // 16:55 UTC: midnight in Vietnam is five minutes away, sooner than the interval.
-    await vi.advanceTimersByTimeAsync(5 * 60_000 - 1);
+    await vi.advanceTimersByTimeAsync(5 * MINUTE_MS - 1);
     expect(createDue).toHaveBeenCalledTimes(2);
     await vi.advanceTimersByTimeAsync(1);
     expect(createDue).toHaveBeenCalledTimes(3);
