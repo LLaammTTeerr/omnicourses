@@ -33,8 +33,8 @@ C4Context
   Person(reader, "Signed-out reader", "A student before signing up, or an advisor opening a shared plan link (F9)")
   Person(staff, "Program administrator, catalog maintainer or access manager", "Maintains curriculum data and grants (F12)")
   Person(student, "Student", "Signed in. Owns their transcript and plans")
-  System_Ext(openrouter, "OpenRouter", "LLM provider. Used only by the F6 goal box and the F8 advisor (ADR 0003)")
-  System(omni, "OmniCourse", "Degree audit, curriculum explorer, plans, guides, AI goal box and advisor")
+  System_Ext(openrouter, "OpenRouter", "LLM provider. Used only by the F6 goal box and the F8 advisor chat (ADR 0003)")
+  System(omni, "OmniCourse", "Degree audit, curriculum explorer, plans, guides, AI goal box and advisor chat")
   System_Ext(portals, "HCMUS portals", "Registration, grades, tuition. Linked only: never automated, no portal password stored")
 
   Rel(reader, omni, "Reads guides, shared plans", "HTTPS")
@@ -42,7 +42,7 @@ C4Context
   Rel(student, portals, "Does the school task", "HTTPS")
   Rel(staff, omni, "Maintains curriculum", "HTTPS")
   Rel(omni, portals, "Links only", "hyperlink")
-  Rel(omni, openrouter, "Goal box, advisor", "HTTPS")
+  Rel(omni, openrouter, "Goal box, advisor chat", "HTTPS")
 
   UpdateRelStyle(reader, omni, $offsetX="-150")
   UpdateRelStyle(student, omni, $offsetX="30")
@@ -54,13 +54,13 @@ C4Context
 **People.** One person plays several roles over time ([GLOSSARY: User](../../GLOSSARY.md)).
 
 - A **signed-out reader** can read guides and open a shared plan ([ADR 0010](adr/0010-public-pages-and-guide-content.md)). An advisor needs no account.
-- A **student** signs in for everything that uses their own data: transcript, degree audit, plans, the goal box and the advisor.
+- A **student** signs in for everything that uses their own data: transcript, degree audit, plans, the goal box and the advisor chat.
 - A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), accepted).
 
 **External systems.**
 
 - **HCMUS portals.** OmniCourse only links to them. It never stores a portal password and never automates a registration (AGENTS.md hard rule 2). A [guide](../requirements/guides-plan.md) gives the link, the steps and the account the portal needs; the student does the task on the portal.
-- **OpenRouter** is the language-model provider, reached only through the AI gateway and only by F6's goal box and F8's advisor ([ADR 0003](adr/0003-language-model-scope.md)). Training opt-out and a monthly credit limit are set on the OpenRouter account. The model receives no name, email or student ID.
+- **OpenRouter** is the language-model provider, reached only through the AI gateway and only by F6's goal box and F8's advisor chat ([ADR 0003](adr/0003-language-model-scope.md)). Training opt-out and a monthly credit limit are set on the OpenRouter account. The model receives no name, email or student ID.
 - **GitHub Actions** runs CI on every pull request (typecheck, unit and e2e tests against PostgreSQL 18.6, browser tests, build, the OpenAPI export, and the signed-commit, Conventional Commits and changeset checks). The deploy workflow deploys `main` to production once CI passes and the `staging` branch to staging, and can tag builds B0–B3. It is not drawn in the context diagram because it builds and deploys OmniCourse rather than running with it ([§7](#7-deployment-view)).
 
 ## 3. L2 Containers
@@ -111,7 +111,7 @@ C4Container
 **Protocols.**
 
 - **SPA → API:** JSON over HTTPS. A signed-in request carries `Authorization: Bearer <token>`, where the token is 32 random bytes the server stores only as a SHA-256 hash ([ADR 0002](adr/0002-authentication-and-sessions.md)). Bearer, not cookies, so no CSRF defence is needed while the SPA and API sit on different origins; CORS allows only `CORS_ORIGIN`.
-- **F8 advisor stream:** `POST` answered with `text/event-stream`. The SPA reads it with `fetch`, because `EventSource` cannot send the bearer header ([ADR 0003](adr/0003-language-model-scope.md)). The helper is `streamChat` in `ai/sse.ts`.
+- **F8 advisor chat stream:** `POST` answered with `text/event-stream`. The SPA reads it with `fetch`, because `EventSource` cannot send the bearer header ([ADR 0003](adr/0003-language-model-scope.md)). The helper is `streamChat` in `ai/sse.ts`.
 - **API → OpenRouter:** HTTPS through the `openai` SDK with OpenRouter's `baseURL`.
 - **API, CLI → Database:** SQL through `pg`; the API uses TypeORM repositories and transactions.
 
@@ -164,7 +164,7 @@ Other folders under `src/backend/src/` are not feature modules:
 
 A module that needs an academic answer calls `RulesService` and only reads its answer. Today `audit`, `plans` and `sharing` do. F6's planner and F8's tool handlers must do the same ([ADR 0006](adr/0006-plan-generator.md), [ADR 0003](adr/0003-language-model-scope.md)).
 
-**The AI gateway never decides a rule.** In the goal box, the model only turns a sentence into the planning-goal form; the student reviews it, and the planner then works over the engine. In the advisor, the gateway runs the tool loop: a tool handler calls the engine and returns its answer for the model to explain. Nothing the model returns is written back as a rule, a placement or a status.
+**The AI gateway never decides a rule.** In the goal box, the model only turns a sentence into the planning-goal form; the student reviews it, and the planner then works over the engine. In the advisor chat, the gateway runs the tool loop: a tool handler calls the engine and returns its answer for the model to explain. Nothing the model returns is written back as a rule, a placement or a status.
 
 **Transcript and curriculum data are never read by a model.** F2 rows are typed or pasted by the student and parsed deterministically ([ADR 0007, amendment of 15 November 2026](adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); F12 data is entered by people or by CSV through the same validated services ([ADR 0003](adr/0003-language-model-scope.md), [ADR 0011](adr/0011-curriculum-administration.md)).
 
