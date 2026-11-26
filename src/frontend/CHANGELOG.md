@@ -1,5 +1,13 @@
 # @omnicourse/frontend
 
+## 0.5.4
+
+### Patch Changes
+
+- [#196](https://github.com/LLaammTTeerr/omnicourses/pull/196) [`ee3c730`](https://github.com/LLaammTTeerr/omnicourses/commit/ee3c730fa44c4d48cec52c7344df08a1f9208dc8) Thanks [@rakun68](https://github.com/rakun68)! - Calendar: screen readers hear the weekday in words ("thứ Sáu", not "T6") in the week and month headers and the detail card.
+
+- [#197](https://github.com/LLaammTTeerr/omnicourses/pull/197) [`f1ca8c1`](https://github.com/LLaammTTeerr/omnicourses/commit/f1ca8c1590fa01a1404b2eb8a4487d0d4cc3be8a) Thanks [@rakun68](https://github.com/rakun68)! - Planner: a violating drop shakes once its landing glide (440 ms) ends, instead of 20 ms before.
+
 ## 0.5.3
 
 ### Patch Changes
