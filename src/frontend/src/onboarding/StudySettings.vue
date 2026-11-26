@@ -1,71 +1,31 @@
 <script setup lang="ts">
-import { computed, reactive, ref, shallowRef } from 'vue';
-import { HttpError, statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
+import { computed } from 'vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchPrograms } from '../curriculum/api.js';
-import { useLocale, useMessages } from '../locale.js';
+import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
-import { creditsProblem, errorsByField, goalAnswers, goalDraft, programChoices, type AnswerField, type GoalDraft } from './answers.js';
+import { creditsProblem, useAnswerForm } from './answers.js';
 import GoalFields from './GoalFields.vue';
-import { STUDY_MESSAGES } from './study-messages.js';
+import { STUDY_MESSAGES } from './messages.js';
 import { useOnboarding } from './store.js';
 
 // Settings: the onboarding answers, changed later (UC-01 A9). The same object is saved, finished stays as it is.
 // An unfinished onboarding is finished in the wizard, which this links to.
 const onboarding = useOnboarding();
-const locale = useLocale();
 const toast = useToast();
 const m = useMessages(STUDY_MESSAGES);
 
-const program = ref<string | null>(null);
-const cohort = ref<number | null>(null);
-const goal = reactive<GoalDraft>({ graduation: '', credits: '', internship: '' });
-const { status, reload } = useAsyncLoad('the onboarding answers', async () => {
-  const answers = await onboarding.load();
-  program.value = answers.program;
-  cohort.value = answers.cohort;
-  Object.assign(goal, goalDraft(answers));
-  return answers;
-});
-const programs = useAsyncLoad('the programs', () => fetchPrograms());
-const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
-const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
-const programName = (choice: (typeof choices.value)[number]) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
+const { status, reload, program, cohort, goal, choices: allChoices, cohorts, programName, saving, saveFailed, goalErrors, otherErrors, save: saveAnswers } = useAnswerForm();
+const choices = computed(() => allChoices.value.filter((choice) => choice.offered));
 
 function pickProgram(code: string): void {
   program.value = code;
   if (cohort.value === null || !cohorts.value.includes(cohort.value)) cohort.value = cohorts.value[0] ?? null;
 }
 
-const saving = ref(false);
-const saveFailed = ref(false);
-const apiErrors = shallowRef<Partial<Record<AnswerField, string[]>>>({});
-const goalErrors = computed(() => ({
-  graduation: apiErrors.value.targetGraduationTerm,
-  credits: apiErrors.value.creditsPerTerm,
-  internship: apiErrors.value.internshipTerm,
-}));
-const otherErrors = computed(() => [...(apiErrors.value.program ?? []), ...(apiErrors.value.cohort ?? []), ...(apiErrors.value.finished ?? [])]);
-
 async function save(): Promise<void> {
   if (creditsProblem(goal.credits)) return;
-  saving.value = true;
-  saveFailed.value = false;
-  apiErrors.value = {};
-  try {
-    await onboarding.save({ program: program.value, cohort: cohort.value, ...goalAnswers(goal), finished: onboarding.finished });
-    toast.show(m.value.saved);
-  } catch (e) {
-    if (statusOf(e) === 400 && e instanceof HttpError) apiErrors.value = errorsByField(e.details);
-    else if (statusOf(e) !== 401) {
-      console.error('Saving the onboarding answers failed:', e);
-      saveFailed.value = true;
-    }
-  } finally {
-    saving.value = false;
-  }
+  if (await saveAnswers(onboarding.finished)) toast.show(m.value.saved);
 }
 </script>
 
