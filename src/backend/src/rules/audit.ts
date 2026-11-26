@@ -1,8 +1,7 @@
 // The degree audit (F3, ADR 0013): the student's transcript against their curriculum. One pure
 // function; RulesService loads the inputs.
 import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import { compareTerms } from '../terms/current-term.js';
-import type { Term } from '../terms/term.js';
+import { compareTerms, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { attemptPasses, courseRecords, isCompleted, recordAsOf, type CourseRecord } from './attempts.js';
 import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermSummary, UnmatchedCourse } from './audit-types.js';

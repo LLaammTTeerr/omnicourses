@@ -1,9 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
+import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { courseCodesOf } from '../plans/plan-board.js';
 import { PLAN_ISSUES_PROVIDER, type PlanIssuesProvider } from '../plans/plan-issues.js';
-import { PlansService } from '../plans/plans.service.js';
+import { planNotFound, PlansService } from '../plans/plans.service.js';
 import { PlanShare } from './plan-share.entity.js';
 import { isShareToken, newShareToken } from './share-token.js';
 import { sharedPlan } from './shared-plan.js';
@@ -11,10 +12,6 @@ import { NOT_SHARED_MESSAGE, PlanShareDto, SharedPlanDto } from './sharing.dto.j
 
 /** The one answer to every link that opens no plan (UC-09 A2, A6, A7, A8), so a link reveals nothing about what existed. */
 const notShared = () => new NotFoundException(NOT_SHARED_MESSAGE);
-/** As PlansService answers for a plan that is missing or someone else's. */
-const noPlan = () => new NotFoundException('No plan with this id');
-
-const FOREIGN_KEY_VIOLATION = '23503';
 
 interface ShareRow {
   share_token: string;
@@ -82,10 +79,10 @@ export class SharingService {
       });
     } catch (error) {
       // The plan was deleted between the check and the insert: the composite key to plans refuses the row.
-      if (error instanceof QueryFailedError && (error.driverError as { code?: string } | undefined)?.code === FOREIGN_KEY_VIOLATION) throw noPlan();
+      if (isRefusal(error, [SQLSTATE.foreignKeyViolation])) throw planNotFound();
       throw error;
     }
-    if (!rows[0]) throw noPlan();
+    if (!rows[0]) throw planNotFound();
     return toDto(rows[0]);
   }
 

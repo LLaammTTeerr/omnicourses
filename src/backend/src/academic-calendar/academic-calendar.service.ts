@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
+import { notFound, validationFailed } from '../common/api-errors.js';
+import { nullIfBlank, yearOf } from '../common/field-validators.js';
 import { Program } from '../curriculum/program.entity.js';
-import { notFound, validationFailed } from '../curriculum-admin/admin-errors.js';
 import { AdminWriteService } from '../curriculum-admin/admin-write.service.js';
 import { AcademicCalendarEvent, type CalendarEventKind } from './academic-calendar-event.entity.js';
 import {
@@ -12,7 +13,6 @@ import {
   CreateCalendarEventDto,
   UpdateCalendarEventDto,
 } from './academic-calendar.dto.js';
-import { yearOf } from './calendar-date.js';
 
 /** The stored fields a range and year check needs. */
 export interface EventDates {
@@ -48,8 +48,6 @@ export interface CalendarEventStart {
   title: string;
   titleEn: string | null;
 }
-
-const blankToNull = (value: string | null | undefined): string | null => (value === undefined || value === null || value.trim() === '' ? null : value);
 
 export function eventDto(e: AcademicCalendarEvent): AcademicCalendarEventDto {
   return {
@@ -145,9 +143,9 @@ export class AcademicCalendarService {
           term: dto.term ?? null,
           kind: dto.kind,
           title: dto.title,
-          titleEn: blankToNull(dto.titleEn),
-          sourceUrl: blankToNull(dto.sourceUrl),
-          notes: blankToNull(dto.notes),
+          titleEn: nullIfBlank(dto.titleEn),
+          sourceUrl: nullIfBlank(dto.sourceUrl),
+          notes: nullIfBlank(dto.notes),
           createdBy: callerId,
           updatedBy: callerId,
         }),
@@ -169,9 +167,9 @@ export class AcademicCalendarService {
       if (dto.startsOn !== undefined) patch.startsOn = dto.startsOn;
       if (dto.endsOn !== undefined) patch.endsOn = dto.endsOn;
       if (dto.title !== undefined) patch.title = dto.title;
-      if (dto.titleEn !== undefined) patch.titleEn = blankToNull(dto.titleEn);
-      if (dto.sourceUrl !== undefined) patch.sourceUrl = blankToNull(dto.sourceUrl);
-      if (dto.notes !== undefined) patch.notes = blankToNull(dto.notes);
+      if (dto.titleEn !== undefined) patch.titleEn = nullIfBlank(dto.titleEn);
+      if (dto.sourceUrl !== undefined) patch.sourceUrl = nullIfBlank(dto.sourceUrl);
+      if (dto.notes !== undefined) patch.notes = nullIfBlank(dto.notes);
       const repo = em.getRepository(AcademicCalendarEvent);
       // update() also sets updated_at.
       if (Object.keys(patch).length) await repo.update({ id: eventId }, { ...patch, updatedBy: callerId });

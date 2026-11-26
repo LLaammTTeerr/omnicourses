@@ -8,8 +8,6 @@ export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 export const ADMIN_CODE_MAX_LENGTH = 50;
 export const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
 
-export const isAdminCode = (code: string): boolean => code.length <= ADMIN_CODE_MAX_LENGTH && ADMIN_CODE_PATTERN.test(code);
-
 /**
  * For a code an administrator types: trims and upper-cases, as a course code is (UC-11 step 5).
  * It decides nothing: the validators that follow accept or refuse the result. Two spellings of

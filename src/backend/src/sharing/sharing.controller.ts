@@ -1,7 +1,8 @@
 import { BadRequestException, Body, Controller, Delete, Get, Header, HttpCode, Param, type PipeTransform, Put } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiNoContentResponse, ApiNotFoundResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser, Public } from '../auth/auth.decorators.js';
-import { PlanIdPipe } from '../plans/plans.controller.js';
+import { UuidOr404Pipe } from '../common/api-requests.js';
+import { planNotFound } from '../plans/plans.service.js';
 import { User } from '../users/user.entity.js';
 import { NotSharedDto, PlanShareDto, PlanShareStateDto, SharedPlanDto, SharePlanDto } from './sharing.dto.js';
 import { SharingService } from './sharing.service.js';
@@ -19,7 +20,7 @@ export class ShareBodyPipe implements PipeTransform<unknown, SharePlanDto> {
 }
 
 const NOT_FOUND = 'No plan with this id among the signed-in student’s plans (another student’s plan included).';
-const PlanId = () => Param('id', new PlanIdPipe());
+const PlanId = () => Param('id', new UuidOr404Pipe(planNotFound));
 
 // The owner's side of a shared plan (UC-09 steps 1–4, A2–A4): the signed-in student's own plans only.
 // The answers hold the link's token, so they are never stored by a cache.

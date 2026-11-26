@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
+import { conflict, notFound, validationFailed } from '../common/api-errors.js';
 import { canonicalCourseCode } from '../common/course-code.js';
+import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
+import { trimmedOrNull } from '../common/field-validators.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
 import { userGrants } from './access-admin.service.js';
-import { conflict, notFound, prerequisiteCycle, referencedItem, validationFailed } from './admin-errors.js';
+import { prerequisiteCycle, referencedItem } from './admin-errors.js';
 import { AdminWriteService } from './admin-write.service.js';
 import {
   AdminProgramDto,
@@ -84,7 +87,7 @@ export class CurriculumAdminService {
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await curriculumIn(em, programId, curriculumId);
       await assertGroupNameFree(em, curriculumId, dto.name);
-      const saved = await em.getRepository(RequirementGroup).save({ curriculumId, name: dto.name, kind: dto.kind, officialNotes: blankToNull(dto.officialNotes) });
+      const saved = await em.getRepository(RequirementGroup).save({ curriculumId, name: dto.name, kind: dto.kind, officialNotes: trimmedOrNull(dto.officialNotes) });
       return groupDto(await em.getRepository(RequirementGroup).findOneByOrFail({ id: saved.id }));
     });
   }
@@ -100,7 +103,7 @@ export class CurriculumAdminService {
       const patch: Partial<RequirementGroup> = {};
       if (dto.name !== undefined) patch.name = dto.name;
       if (dto.kind !== undefined) patch.kind = dto.kind;
-      if (dto.officialNotes !== undefined) patch.officialNotes = blankToNull(dto.officialNotes);
+      if (dto.officialNotes !== undefined) patch.officialNotes = trimmedOrNull(dto.officialNotes);
       // update() sets updated_at with the change (ADR 0011).
       if (Object.keys(patch).length) await em.getRepository(RequirementGroup).update({ id: groupId }, patch);
       return groupDto(await em.getRepository(RequirementGroup).findOneByOrFail({ id: groupId }));
@@ -306,7 +309,7 @@ async function rulesNaming(em: EntityManager, curriculumId: string, code: string
   ];
 }
 
-const blankToNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);
+const PLAN_SLOT_GROUP_KEY = 'plan_placements_requirement_group_id_fkey';
 
 const plansUseGroup = (references: string[]) => referencedItem('Saved plans use the group; it stays while they name it', references);
 
@@ -315,9 +318,7 @@ const plansUseGroup = (references: string[]) => referencedItem('Saved plans use 
  * key, 23503 had it been NO ACTION. Only that key: any other refusal stays a 500.
  */
 export function isPlanSlotRefusal(error: unknown): boolean {
-  if (!(error instanceof QueryFailedError)) return false;
-  const driver = error.driverError as { code?: string; constraint?: string } | undefined;
-  return (driver?.code === '23001' || driver?.code === '23503') && driver.constraint === 'plan_placements_requirement_group_id_fkey';
+  return isRefusal(error, [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation], PLAN_SLOT_GROUP_KEY);
 }
 
 function groupDto(g: RequirementGroup): RequirementGroupAdminDto {

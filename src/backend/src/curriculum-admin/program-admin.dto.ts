@@ -1,11 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsString, Matches, Max, Min } from 'class-validator';
-import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
-import { trimString } from '../common/transforms.js';
+import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { ADMIN_CODE_MAX_LENGTH, ADMIN_CODE_MESSAGE, ADMIN_CODE_PATTERN, canonicalAdminCode } from './admin-code.js';
-import { ifPresent, ifSet } from './curriculum-admin.dto.js';
 
 // Request and response shapes of the F12 program and cohort routes (ADR 0011, "Programs and
 // cohorts as built"). Requests go through StrictBody, so a field that is not declared here is a

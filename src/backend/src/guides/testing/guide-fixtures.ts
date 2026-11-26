@@ -6,8 +6,6 @@ import { addMonths, isOutOfDate, OUT_OF_DATE_MONTHS } from '../out-of-date.js';
 // Loaded by the tests and by `npm run db:seed -w src/backend -- --guide-fixtures`, on test
 // databases only. Never put them in ../content/. Each title holds its ID, so a search finds it.
 
-export { addDays };
-
 /** The oldest last-checked date still fresh on `today`: 6 months back, or a little later when that month is shorter. */
 export function oldestFreshDate(today: string): string {
   let date = addMonths(today, -OUT_OF_DATE_MONTHS);

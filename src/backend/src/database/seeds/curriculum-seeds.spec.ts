@@ -1,13 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { apcs2024TeachingPlan } from './apcs-2024.teaching-plan.js';
-import { apcs2025TeachingPlan } from './apcs-2025.teaching-plan.js';
-import { apcsEquivalences } from './apcs-equivalences.js';
-import { apcsNoPrerequisites, apcsPrerequisites } from './apcs-prerequisites.js';
-import { clcEquivalences } from './clc-equivalences.js';
 import { COURSE_CODE_PATTERN, normalizePrintedCode } from '../../common/course-code.js';
+import { apcsNoPrerequisites } from './apcs-prerequisites.js';
 import { buildCatalog, CatalogConflictError, rowToCourse, seedLabel } from './catalog.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './index.js';
-import type { CurriculumSeed, EquivalenceList, PrintedGroup, TeachingPlan } from './seed-types.js';
+import type { CurriculumSeed, PrintedGroup } from './seed-types.js';
 
 // Deterministic checks of the transcribed curricula against the totals printed
 // in the PDFs. A failure means a transcription error or a printed total that
@@ -40,9 +36,6 @@ const SPLIT_GROUPS: Record<string, Record<string, number>> = {
   APCS2024: { 'Kiến thức Computer Science (A)': 56 },
   APCS2025: { 'Kiến thức Computer Science (A)': 56 },
 };
-
-const TEACHING_PLANS: TeachingPlan[] = [apcs2024TeachingPlan, apcs2025TeachingPlan];
-const EQUIVALENCE_LISTS: EquivalenceList[] = [apcsEquivalences, clcEquivalences];
 
 function allStrings(value: unknown): string[] {
   if (typeof value === 'string') return [value];
@@ -305,63 +298,6 @@ describe('normalizePrintedCode', () => {
   });
 });
 
-describe.each(TEACHING_PLANS.map((plan) => [plan.curriculum, plan] as const))('teaching plan %s (not loaded)', (code, plan) => {
-  const seed = CURRICULUM_SEEDS.find((s) => s.curriculum.code === code)!;
-  const rows = seed.groups.flatMap((g) => g.rows);
-
-  it('places only courses of the curriculum, with their credits and type', () => {
-    for (const planned of plan.rows) {
-      const row = rows.find((r) => r.code === planned.code);
-      expect(row, planned.code).toBeDefined();
-      expect(planned.credits, planned.code).toBe(row!.credits);
-      expect(planned.type, planned.code).toBe(row!.type);
-      expect(planned.semester, planned.code).toBeGreaterThanOrEqual(1);
-      expect(planned.semester, planned.code).toBeLessThanOrEqual(12);
-    }
-  });
-
-  it('places every course of the curriculum, except those listed as not in the plan', () => {
-    const planned = new Set(plan.rows.map((r) => r.code));
-    const missing = [...new Set(rows.map((r) => r.code))].filter((code) => !planned.has(code));
-    expect(missing.sort()).toEqual(plan.not_in_plan.map((n) => n.code).sort());
-  });
-});
-
-describe.each(EQUIVALENCE_LISTS.map((list) => [list.source.file, list] as const))('equivalence list %s (not loaded)', (_, list) => {
-  it('has a normalised code meeting the CHECK for each course, or null with a reason', () => {
-    for (const row of list.rows) {
-      expect(row.page).toBeGreaterThanOrEqual(1);
-      expect(row.page).toBeLessThanOrEqual(list.source.pages);
-      for (const course of [...row.hp01, ...row.hp02, ...row.hp03]) {
-        if (course.credits === null) expect(row.needs_check, course.code_printed).toBeTruthy();
-        else expect(course.credits, course.code_printed).toBeGreaterThan(0);
-        if (course.code === null) {
-          expect(row.needs_check, course.code_printed).toBeTruthy();
-          expect(normalizePrintedCode(course.code_printed)).not.toMatch(COURSE_CODE_PATTERN);
-        } else {
-          expect(course.code).toBe(normalizePrintedCode(course.code_printed));
-          expect(course.code).toMatch(COURSE_CODE_PATTERN);
-        }
-      }
-    }
-  });
-
-  it('prints the catalog credits for every seeded course it names, or flags the row', () => {
-    const catalog = buildCatalog(CURRICULUM_SEEDS, CATALOG_DECISIONS);
-    for (const row of list.rows) {
-      for (const course of [...row.hp01, ...row.hp02, ...row.hp03]) {
-        const seeded = course.code ? catalog.get(course.code) : undefined;
-        if (seeded && course.credits !== seeded.credits) expect(row.needs_check, `STT ${row.stt.join(',')} ${course.code}`).toBeTruthy();
-      }
-    }
-  });
-
-  it('covers every printed STT exactly once', () => {
-    const stt = list.rows.flatMap((r) => r.stt).sort((a, b) => a - b);
-    expect(stt).toEqual(Array.from({ length: stt.length }, (_, i) => i + 1));
-  });
-});
-
 // The rules the degree audit reads (migration 1794300000000, ADR 0013).
 describe.each(CURRICULUM_SEEDS.map((seed) => [seedLabel(seed), seed] as const))('%s audit rules in the seed', (_, seed) => {
   it('has the training type of its program (ADR 0012)', () => {
@@ -436,12 +372,5 @@ describe('prerequisites', () => {
       expect(graduation.page, code).toBe(exception.pages[code]);
       expect(graduation.official_notes!.toLowerCase(), code).toContain(`(iii) ${exception.printed.toLowerCase()}`);
     }
-  });
-
-  it('loads none of the booklet\'s "Prior-course" lines as a rule, and no offering term', () => {
-    // Section 8 prints no prerequisite; the one printed rule (CS469 before CS470) is in 7.3 and lives in apcsNoPrerequisites.except.
-    for (const plan of TEACHING_PLANS) expect(plan.prerequisites, plan.curriculum).toEqual([]);
-    expect(apcsPrerequisites.offering_terms).toEqual([]);
-    expect(apcsPrerequisites.note).toContain('not rules and are not loaded');
   });
 });

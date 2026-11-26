@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareTerms, currentTerm, termLabel } from './current-term.js';
+import { compareTerms, currentTerm, termLabel } from './term.js';
 
 describe('currentTerm', () => {
   it.each([

@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionStreamParams, ChatCompletionTool } from 'openai/resources/chat/completions';
+import { failureKind } from '../common/failure-kind.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
-import { logErrorName } from './log-error-name.js';
 import { ModelClient, ModelMessage, ModelStreamEvent, ModelTool, ModelUsage, StreamRequest } from './model-client.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1';
@@ -59,7 +59,7 @@ export function toAiUnavailable(error: unknown): AiUnavailableError {
     if (error.status === 429) return new AiUnavailableError(AI_REASONS.busy, { billed: false });
     return new AiUnavailableError(AI_REASONS.providerFailed);
   }
-  logErrorName(logger, 'OpenRouter error', error);
+  logger.warn(`OpenRouter error: ${failureKind(error)}`);
   return new AiUnavailableError(AI_REASONS.providerFailed);
 }
 

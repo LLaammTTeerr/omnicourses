@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { flattenErrors, validateStrict } from '../common/api-requests.js';
 import { CreateCourseDto, MAX_INTEGER, UpdateCourseDto } from './curriculum-admin.dto.js';
-import { flattenErrors, validateStrict } from './strict-body.js';
 
 const messages = async (dto: typeof CreateCourseDto | typeof UpdateCourseDto, body: object) => flattenErrors((await validateStrict<object>(dto, body)).errors ?? []);
 const course = { code: 'ZZ101', nameVi: 'Học phần thử', credits: 3 };

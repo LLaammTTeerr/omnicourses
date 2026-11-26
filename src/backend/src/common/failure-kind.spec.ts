@@ -1,6 +1,7 @@
+import { Logger } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
-import { describe, expect, it } from 'vitest';
-import { failureKind, failureStack } from './failure-kind.js';
+import { describe, expect, it, vi } from 'vitest';
+import { failureKind, failureStack, isRefusal, logFailure, SQLSTATE } from './failure-kind.js';
 
 describe('failureKind', () => {
   it('names the class of an error and nothing of its message', () => {
@@ -45,5 +46,38 @@ describe('failureStack', () => {
   it('gives nothing for a thrown value that is not an error, or an error without frames', () => {
     expect(failureStack('synthetic')).toBeUndefined();
     expect(failureStack(Object.assign(new Error('synthetic'), { stack: 'Error: synthetic' }))).toBeUndefined();
+  });
+});
+
+const refused = (code: string, constraint?: string) => new QueryFailedError('DELETE FROM "synthetic"', [], Object.assign(new Error('synthetic'), { code, constraint }));
+
+describe('isRefusal', () => {
+  it('matches a refused statement by its SQLSTATE and, when given, its constraint', () => {
+    expect(isRefusal(refused('23505'), [SQLSTATE.uniqueViolation])).toBe(true);
+    expect(isRefusal(refused('23001', 'synthetic_fkey'), [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation], 'synthetic_fkey')).toBe(true);
+    expect(isRefusal(refused('23001', 'other_fkey'), [SQLSTATE.restrictViolation], 'synthetic_fkey')).toBe(false);
+    expect(isRefusal(refused('23514'), [SQLSTATE.uniqueViolation])).toBe(false);
+  });
+
+  it('is false for an error that is not a refused statement', () => {
+    expect(isRefusal(Object.assign(new Error('synthetic'), { driverError: { code: '23505' } }), [SQLSTATE.uniqueViolation])).toBe(false);
+    expect(isRefusal(null, [SQLSTATE.uniqueViolation])).toBe(false);
+  });
+});
+
+describe('logFailure', () => {
+  it('logs the kind of a refused statement, with no stack and none of its values', () => {
+    const error = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    logFailure(new Logger('synthetic'), 'Could not save', refused('23503'));
+    expect(error).toHaveBeenCalledWith('Could not save: QueryFailedError, SQLSTATE 23503');
+    error.mockRestore();
+  });
+
+  it('logs the frames of another error as the stack, never its message', () => {
+    const error = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    logFailure(new Logger('synthetic'), 'Could not save', new TypeError('synthetic-id'));
+    expect(error).toHaveBeenCalledWith('Could not save: TypeError', expect.stringContaining('failure-kind.spec.ts'));
+    expect(JSON.stringify(error.mock.calls)).not.toContain('synthetic-id');
+    error.mockRestore();
   });
 });

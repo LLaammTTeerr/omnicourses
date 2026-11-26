@@ -1,12 +1,12 @@
 import { applyDecorators, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { AdminErrorDto } from '../common/api-errors.js';
+import { StrictBody, uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
-import { AdminErrorDto } from './admin-errors.js';
-import { AdminErrors, uuidParam } from './admin-params.js';
+import { AdminErrors } from './admin-write.service.js';
 import { CohortDetailsDto, CohortListDto, CreateCohortDto, CreateProgramDto, ProgramDetailsDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 import { ProgramAdminService } from './program-admin.service.js';
-import { StrictBody } from './strict-body.js';
 
 const PROGRAM = 'admin/programs/:programId';
 const COHORT = `${PROGRAM}/cohorts/:curriculumId`;

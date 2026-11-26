@@ -2,9 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsDefined, IsIn, IsInt, IsNumber, IsString, Matches, Max, Min, MinLength, ValidateBy, ValidateIf, ValidateNested } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
-import { MaxCodePoints, NoNullCharacter } from '../common/text-validators.js';
-import { trimString } from '../common/transforms.js';
-import { TermDto } from '../terms/term.dto.js';
+import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
+import { TermDto } from '../terms/term.js';
 import { TRANSCRIPT_RESULTS, TranscriptEntry, TranscriptResult } from './transcript-entry.js';
 
 export const MAX_TRANSCRIPT_ROWS = 300;

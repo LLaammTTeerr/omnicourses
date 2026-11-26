@@ -1,8 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { applyDecorators, ForbiddenException, Injectable } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiProperty } from '@nestjs/swagger';
 import { DataSource, EntityManager } from 'typeorm';
-import { accountDeletionPending, permissionRequired } from './admin-errors.js';
+import { AdminErrorDto } from '../common/api-errors.js';
 import type { GlobalPermission } from './admin-grant.entities.js';
-import { type Grants, missingPermission, type Need } from './grant-scope.js';
+import { type Grants, missingPermission, type Need, type PermissionKind } from './grant-scope.js';
+
+export class PermissionRequiredDto extends AdminErrorDto {
+  @ApiProperty({ enum: ['program_admin', 'catalog_maintainer', 'access_manager'], description: 'The grant the caller lacks' })
+  permission!: PermissionKind;
+}
+
+const permissionRequired = (permission: PermissionKind) =>
+  new ForbiddenException({ statusCode: 403, code: 'permission_required', permission, message: `This needs the ${permission} permission` });
+
+const accountDeletionPending = () =>
+  new ForbiddenException({ statusCode: 403, code: 'account_deletion_pending', message: 'An account waiting for deletion cannot administer curricula' });
+
+/**
+ * The errors every F12 route can answer, on top of the 401 of @Authenticated(). `notFound: false`
+ * leaves out the 404, for a route with no ID or code to look up.
+ */
+export const AdminErrors = ({ notFound = true }: { notFound?: boolean } = {}) =>
+  applyDecorators(
+    ApiBadRequestResponse({ type: AdminErrorDto, description: '`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved' }),
+    ApiForbiddenResponse({ type: PermissionRequiredDto, description: '`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`' }),
+    ...(notFound ? [ApiNotFoundResponse({ type: AdminErrorDto, description: '`not_found`: nothing with this ID or code within the authorised scope' })] : []),
+  );
 
 /**
  * The one F12 write lock (ADR 0011, "Transaction and concurrency contract"): every curriculum,
