@@ -1,4 +1,5 @@
-import { request } from '../api.js';
+import { segment } from '../api.js';
+import { requestAsUser } from '../auth/store.js';
 import type { RequirementGroupKind, TrainingType } from '../curriculum/api.js';
 import type { Term } from '../terms.js';
 
@@ -47,9 +48,23 @@ export interface Plan extends PlanSummary {
   terms: PlanTerm[];
 }
 
+/** What the plans list shows of a plan without opening it. */
+export interface PlanPreview {
+  termCount: number;
+  courseCount: number;
+  /** Elective slots: credits held for a group before a course is chosen. */
+  slotCount: number;
+  firstTerm: Term | null;
+  lastTerm: Term | null;
+}
+
+export interface PlanListItem extends PlanSummary {
+  preview: PlanPreview;
+}
+
 export interface PlanList {
   /** Oldest first. */
-  plans: PlanSummary[];
+  plans: PlanListItem[];
 }
 
 export interface CreatePlanBody {
@@ -156,24 +171,47 @@ export interface PlanIssues {
   coverage: PlanCoverage;
 }
 
-const path = (id: string) => `/plans/${encodeURIComponent(id)}`;
+const path = (id: string) => `/plans/${segment(id)}`;
 
-export const fetchPlans = (token: string) => request<PlanList>('GET', '/plans', { token });
+export const fetchPlans = () => requestAsUser<PlanList>('GET', '/plans');
 
 /** 400: no curriculum for this program and cohort. */
-export const createPlan = (token: string, body: CreatePlanBody) => request<Plan>('POST', '/plans', { token, body });
+export const createPlan = (body: CreatePlanBody) => requestAsUser<Plan>('POST', '/plans', { body });
 
 /** 404: no such plan among the student's own. */
-export const fetchPlan = (token: string, id: string) => request<Plan>('GET', path(id), { token });
+export const fetchPlan = (id: string) => requestAsUser<Plan>('GET', path(id));
 
-export const renamePlan = (token: string, id: string, name: string) => request<Plan>('PATCH', path(id), { token, body: { name } });
+export const renamePlan = (id: string, name: string) => requestAsUser<Plan>('PATCH', path(id), { body: { name } });
 
 /** The new copy, named `name`; the original is unchanged. */
-export const duplicatePlan = (token: string, id: string, name: string) => request<Plan>('POST', `${path(id)}/duplicate`, { token, body: { name } });
+export const duplicatePlan = (id: string, name: string) => requestAsUser<Plan>('POST', `${path(id)}/duplicate`, { body: { name } });
 
-export const deletePlan = (token: string, id: string) => request<void>('DELETE', path(id), { token });
+export const deletePlan = (id: string) => requestAsUser<void>('DELETE', path(id));
 
 /** Replaces every placement; terms with nothing placed must be left out. */
-export const savePlacements = (token: string, id: string, terms: PlanTerm[]) => request<Plan>('PUT', `${path(id)}/placements`, { token, body: { terms } });
+export const savePlacements = (id: string, terms: PlanTerm[]) => requestAsUser<Plan>('PUT', `${path(id)}/placements`, { body: { terms } });
 
-export const fetchPlanIssues = (token: string, id: string) => request<PlanIssues>('GET', `${path(id)}/issues`, { token });
+export const fetchPlanIssues = (id: string) => requestAsUser<PlanIssues>('GET', `${path(id)}/issues`);
+
+/** One placement tried on several terms: `terms` is the board without it (a moved tile taken out first). */
+export interface PlanDropPreview {
+  terms: PlanTerm[];
+  placement: Placement;
+  targets: Term[];
+}
+export interface PlanDropReport {
+  term: Term;
+  issues: PlanIssues;
+}
+export interface PlanDropReports {
+  /** One per target, in the order sent. */
+  reports: PlanDropReport[];
+}
+
+/** The drag preview in one request: the engine's report on the board with the placement at the end of each target. */
+export const previewPlanDrops = (id: string, body: PlanDropPreview, signal?: AbortSignal) =>
+  requestAsUser<PlanDropReports>('POST', `${path(id)}/issues/drops`, { body, signal });
+
+/** The rule engine's report on `terms` in place of the saved board; nothing is saved (the drag preview). */
+export const previewPlanIssues = (id: string, terms: PlanTerm[], signal?: AbortSignal) =>
+  requestAsUser<PlanIssues>('POST', `${path(id)}/issues`, { body: { terms }, signal });

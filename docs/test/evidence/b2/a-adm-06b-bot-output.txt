@@ -1,0 +1,7 @@
+ADM-06b, posted by Lâm's bot (SWE Bot) in the #136 Discord thread, 22 November 2026, copied by hand.
+"I ran the bootstrap on staging at 02:39:15Z on 22 Nov. I ran the built form of `npm run admin:bootstrap`:
+`node dist/curriculum-admin/bootstrap-cli.js`, in the staging backend folder, as the service user."
+
+$ node dist/curriculum-admin/bootstrap-cli.js --user-id 1e18e2fe-224c-4f02-8d83-7e41bbb1339a
+An active access manager already exists; they grant further permissions through the API
+exit code: 1

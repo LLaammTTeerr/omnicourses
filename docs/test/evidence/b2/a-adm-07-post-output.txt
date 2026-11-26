@@ -1,0 +1,24 @@
+ADM post run at 2026-11-25T06:34:42.844Z
+POST /auth/sign-in (b2-a4@example.com) → 200
+GET /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/grants → 200
+GET /admin/access/users/46054d9c-2960-42c7-a80c-53a520e0cb65/grants → 200
+GET /admin/access/users/b41c5d8d-83f7-42b2-ab4b-a83810bd520e/grants → 200
+GET /admin/access/users/925cb9c8-86de-4427-a8c8-72cf442dd074/grants → 200
+GET /admin/access/users/8ca00334-e8f3-4cfc-b285-944db1a971a4/grants → 200
+  OK  A1 APCS only; A2 CNTT-TCTA-KHMT only; A3 catalog_maintainer only; A4 access_manager only; S1 none
+GET /programs/APCS/curricula/2024 → 200
+  OK  CS420 offeringTerms null
+  OK  no test group or ZZ course linked in APCS 2024
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  OK  no ZZ course linked in CNTT-TCTA-KHMT 2025
+GET /courses/ZZADM07A → 404
+  OK  GET /courses/ZZADM07A 404
+GET /courses/ZZADM07B → 404
+  OK  GET /courses/ZZADM07B 404
+GET /courses/ZZADM05S → 404
+  OK  GET /courses/ZZADM05S 404
+GET /courses/ZZL0001 → 404
+  OK  GET /courses/ZZL0001 404
+GET /courses/BAA00104 → 200
+  OK  BAA00104: N0, 2 credits, 11 memberships
+All checks OK

@@ -39,7 +39,7 @@ usePageTitle(() => m.value.dashboardTitle);
         <section class="card db-top" :aria-label="m.graduation">
           <div class="db-stat" data-test="graduation">
             <span class="label">{{ m.graduation }}</span>
-            <span :class="['chip', a.graduation.status === 'done' ? 'ok' : 'warn']">
+            <span :class="['chip', a.graduation.status === 'done' ? 'ok' : 'warn']" data-test="graduation-status">
               <Icon :name="a.graduation.status === 'done' ? 'check' : 'alert'" size="sm" />
               {{ a.graduation.status === 'done' ? m.graduationDone : m.graduationNotYet }}
             </span>
@@ -49,7 +49,7 @@ usePageTitle(() => m.value.dashboardTitle);
           </div>
           <div class="db-stat" data-test="credits">
             <span class="label">{{ m.creditsTitle }}</span>
-            <b class="big">{{ m.creditsOf(a.credits.towardTotal, a.credits.totalRequired) }}</b>
+            <b class="big" data-test="credits-toward-total">{{ m.creditsOf(a.credits.towardTotal, a.credits.totalRequired) }}</b>
             <div
               v-if="a.credits.totalRequired !== null"
               class="meter split"
@@ -60,17 +60,17 @@ usePageTitle(() => m.value.dashboardTitle);
               <i class="current" :style="{ width: `${share(a.credits.inProgressTowardTotal, a.credits.totalRequired)}%` }"></i>
             </div>
             <p class="small t2">
-              <template v-if="a.credits.remaining !== null">{{ m.remaining(a.credits.remaining) }} · </template>
+              <template v-if="a.credits.remaining !== null"><span data-test="credits-remaining">{{ m.remaining(a.credits.remaining) }}</span> · </template>
               <template v-else>{{ m.totalNotRecorded }} </template>
-              {{ m.inProgress(a.credits.inProgressTowardTotal) }} · <span :title="m.accumulatedHint">{{ m.accumulated(a.credits.accumulated) }}</span>
+              <span data-test="credits-in-progress">{{ m.inProgress(a.credits.inProgressTowardTotal) }}</span> · <span :title="m.accumulatedHint" data-test="credits-accumulated">{{ m.accumulated(a.credits.accumulated) }}</span>
             </p>
           </div>
           <div class="db-stat" data-test="gpa">
             <span class="label">{{ m.accumulatedAverage }}</span>
-            <b class="big">{{ score(a.gpa.accumulatedAverage) }}</b>
+            <b class="big" data-test="gpa-accumulated-average">{{ score(a.gpa.accumulatedAverage) }}</b>
             <p class="small t2">
-              <template v-if="a.gpa.classification">{{ m.classification }}: {{ m.classifications[a.gpa.classification] }} · </template>
-              {{ m.average }}: {{ score(a.gpa.average) }}
+              <template v-if="a.gpa.classification">{{ m.classification }}: <span data-test="gpa-classification">{{ m.classifications[a.gpa.classification] }}</span> · </template>
+              {{ m.average }}: <span data-test="gpa-average">{{ score(a.gpa.average) }}</span>
             </p>
           </div>
         </section>
@@ -86,13 +86,13 @@ usePageTitle(() => m.value.dashboardTitle);
               </ul>
             </div>
             <ul class="db-groups">
-              <li v-for="{ group, colour, glyph } in shownGroups(a)" :key="group.id" :class="groupClass(colour)" data-test="group">
+              <li v-for="{ group, colour, glyph } in shownGroups(a)" :key="group.id" :class="groupClass(colour)" data-test="group" :data-group="group.id">
                 <RouterLink class="db-g" :to="{ name: 'audit', hash: `#group-${group.id}` }">
                   <span class="glyph sm" aria-hidden="true">{{ glyph }}</span>
                   <span class="db-g-body">
                     <span class="db-g-top">
                       <b class="nm">{{ group.name }}</b>
-                      <span class="fig">
+                      <span class="fig" data-test="group-credits">
                         <template v-if="group.requiredCredits !== null">{{ m.groupCredits(group.passedCredits, group.requiredCredits) }}</template>
                         <template v-else>{{ m.creditsShort(group.passedCredits) }}</template>
                       </span>

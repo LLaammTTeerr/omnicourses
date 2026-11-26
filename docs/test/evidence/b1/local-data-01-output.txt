@@ -1,0 +1,238 @@
+# DATA-01a, b, c, e and AI-01f, local disposable PostgreSQL 18.6 (podman), tree 7f66b7a (app code = B1 1decf4a)
+2026-11-15T03:03:11Z
+=== DATA-01a: seed run 1
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @omnicourse/backend@0.3.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":8}
+Inserted: {"programs":10,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2}
+Already present, left untouched: {"programs":1,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0}
+exit 0
+--- shared-data counts after run 1
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+=== DATA-01a: seed run 2
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @omnicourse/backend@0.3.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":8}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2}
+exit 0
+--- shared-data counts after run 2
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+=== DATA-01e
+   code   | cohort_year | total_credits_min 
+----------+-------------+-------------------
+ APCS2024 |        2024 |               163
+ APCS2025 |        2025 |               163
+(2 rows)
+
+ courses | codes_breaking_format 
+---------+-----------------------
+     249 |                     0
+(1 row)
+
+ERROR:  column g.credits_min does not exist
+LINE 1: SELECT c.code AS curriculum, g.name, g.kind, g.credits_min, ...
+                                                     ^
+--- tables that could hold prerequisites / offering terms, and their row counts
+                      List of tables
+ Schema |            Name             | Type  |   Owner    
+--------+-----------------------------+-------+------------
+ public | ai_usage                    | table | omnicourse
+ public | combined_minimum_groups     | table | omnicourse
+ public | combined_minimums           | table | omnicourse
+ public | course_offering_terms       | table | omnicourse
+ public | course_prerequisite_lists   | table | omnicourse
+ public | course_prerequisites        | table | omnicourse
+ public | courses                     | table | omnicourse
+ public | curriculums                 | table | omnicourse
+ public | global_admin_grants         | table | omnicourse
+ public | guide_texts                 | table | omnicourse
+ public | guides                      | table | omnicourse
+ public | migrations                  | table | omnicourse
+ public | onboarding_answers          | table | omnicourse
+ public | plan_placements             | table | omnicourse
+ public | plans                       | table | omnicourse
+ public | program_admin_grants        | table | omnicourse
+ public | programs                    | table | omnicourse
+ public | requirement_group_courses   | table | omnicourse
+ public | requirement_group_overflows | table | omnicourse
+ public | requirement_groups          | table | omnicourse
+ public | sessions                    | table | omnicourse
+ public | transcript_rows             | table | omnicourse
+ public | users                       | table | omnicourse
+(23 rows)
+
+           table           | count 
+---------------------------+-------
+ course_prerequisite_lists |     0
+(1 row)
+
+        table         | count 
+----------------------+-------
+ course_prerequisites |     0
+(1 row)
+
+         table         | count 
+-----------------------+-------
+ course_offering_terms |     0
+(1 row)
+
+=== DATA-01b
+   code   | official_notes 
+----------+----------------
+ APCS2024 | 4 học phần
+ APCS2025 | 4 học phần
+(2 rows)
+
+UPDATE 1
+--- seed after the edit
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @omnicourse/backend@0.3.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":8}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2}
+exit 0
+   code   | official_notes 
+----------+----------------
+ APCS2024 | admin note
+ APCS2025 | 4 học phần
+(2 rows)
+
+--- restore
+UPDATE 1
+   code   | official_notes 
+----------+----------------
+ APCS2024 | 4 học phần
+ APCS2025 | 4 học phần
+(2 rows)
+
+=== DATA-01c (by hand)
+--- shared counts before
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+UPDATE 1
+--- seed with the conflict
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @omnicourse/backend@0.3.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":8}
+Course catalog conflict: 1 value(s) differ for the same course code. Resolve each in the seed data or with an explicit catalog decision; the seed never lets the last write win.
+  CS160.name_vi: "Renamed" (database) vs "Nhập môn Tin học" (seed)
+npm error Lifecycle script `db:seed` failed with error:
+npm error code 1
+npm error path /home/lamter/omnicourses/.claude/worktrees/agent-afe32e8fe43ed2451/src/backend
+npm error workspace @omnicourse/backend@0.3.0
+npm error location /home/lamter/omnicourses/.claude/worktrees/agent-afe32e8fe43ed2451/src/backend
+npm error command failed
+npm error command sh -c node dist/database/seed.js
+exit 1
+ code  | name_vi 
+-------+---------
+ CS160 | Renamed
+(1 row)
+
+--- shared counts after the aborted seed
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+UPDATE 1
+--- seed after the restore
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @omnicourse/backend@0.3.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":8}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2}
+exit 0
+ code  |     name_vi      
+-------+------------------
+ CS160 | Nhập môn Tin học
+(1 row)
+
+=== AI-01f: \d ai_usage
+                               Table "public.ai_usage"
+    Column     |           Type           | Collation | Nullable |      Default      
+---------------+--------------------------+-----------+----------+-------------------
+ id            | uuid                     |           | not null | gen_random_uuid()
+ user_id       | uuid                     |           | not null | 
+ feature       | character varying(50)    |           | not null | 
+ model         | character varying(100)   |           | not null | 
+ input_tokens  | integer                  |           | not null | 0
+ output_tokens | integer                  |           | not null | 0
+ latency_ms    | integer                  |           | not null | 0
+ succeeded     | boolean                  |           | not null | false
+ created_at    | timestamp with time zone |           | not null | now()
+Indexes:
+    "ai_usage_pkey" PRIMARY KEY, btree (id)
+    "ix_ai_usage_user_id_created_at" btree (user_id, created_at)
+Foreign-key constraints:
+    "ai_usage_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+
+
+=== DATA-01e, groups (rerun: the first query above named a column that does not exist, credits_min; the columns are credits_total and credits_total_min)
+2026-11-15T03:03:43Z
+ curriculum |                   name                   |    kind    | credits_total | credits_total_min | courses | listed_credits 
+------------+------------------------------------------+------------+---------------+-------------------+---------+----------------
+ APCS2024   | Kiến thức Computer Science (A): bắt buộc | compulsory |            40 |                   |      10 |             40
+ APCS2024   | Kiến thức Computer Science (A): tự chọn  | elective   |               |                16 |       6 |             24
+ APCS2024   | Kiến thức Math                           | compulsory |            16 |                   |       4 |             16
+ APCS2024   | Kiến thức Non Computer Science           | compulsory |            26 |                   |      12 |             34
+ APCS2024   | Kiến thức Physics                        | compulsory |            12 |                   |       3 |             12
+ APCS2024   | Kiến thức tốt nghiệp                     | elective   |               |                10 |       3 |             20
+ APCS2024   | Tự chọn Computer Science (C)             | elective   |               |                   |      27 |            108
+ APCS2024   | Tự chọn Math (B)                         | elective   |               |                 8 |       4 |             16
+ APCS2025   | Kiến thức Computer Science (A): bắt buộc | compulsory |            40 |                   |      10 |             40
+ APCS2025   | Kiến thức Computer Science (A): tự chọn  | elective   |               |                16 |       6 |             24
+ APCS2025   | Kiến thức Math                           | compulsory |            16 |                   |       4 |             16
+ APCS2025   | Kiến thức Non Computer Science           | compulsory |            26 |                   |      12 |             34
+ APCS2025   | Kiến thức Physics                        | compulsory |            12 |                   |       3 |             12
+ APCS2025   | Kiến thức tốt nghiệp                     | elective   |               |                10 |       3 |             20
+ APCS2025   | Tự chọn Computer Science (C)             | elective   |               |                   |      29 |            116
+ APCS2025   | Tự chọn Math (B)                         | elective   |               |                 8 |       4 |             16
+(16 rows)
+
+                   name                   |                                 codes                                 
+------------------------------------------+-----------------------------------------------------------------------
+ Kiến thức Computer Science (A): bắt buộc | CS160, CS163, CS201, CS202, CS250, CS300, CS323, CS333, CS486, ECE341
+ Kiến thức Computer Science (A): tự chọn  | CS251, CS252, CS311, CS320, CS350, CS420
+(2 rows)
+
+ prerequisite_lists | prerequisites | offering_terms 
+--------------------+---------------+----------------
+                  0 |             0 |              0
+(1 row)
+
+ERROR:  column "status" does not exist
+LINE 1: SELECT status, count(*) FROM guides GROUP BY status;
+               ^

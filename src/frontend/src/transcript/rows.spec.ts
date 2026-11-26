@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { TranscriptRow } from './api.js';
 import { blankRow, fromRow, parseCredits, parseGrade, problems, toRow, yearChoices, type DraftRow } from './rows.js';
 
@@ -50,6 +50,10 @@ describe('problems (UC-02 A2)', () => {
     expect(problems(draft())).toEqual([]);
   });
 
+  it('takes a name of 255 characters, counted as the API counts them, even when each takes two UTF-16 units (#179)', () => {
+    expect(problems(draft({ courseName: '😀'.repeat(255) }))).toEqual([]);
+  });
+
   it('takes a code the API will trim and upper-case', () => {
     expect(problems(draft({ courseCode: ' zz101 ' }))).toEqual([]);
   });
@@ -60,7 +64,8 @@ describe('problems (UC-02 A2)', () => {
     [{ courseCode: 'Z' }, ['courseCode']],
     [{ courseName: '   ' }, ['courseName']],
     [{ courseName: 'x'.repeat(256) }, ['courseName']],
-    [{ credits: '31' }, ['credits']],
+    // Counted in characters, as the API counts them (#179): 256 emoji are too many, 255 are not.
+    [{ courseName: '😀'.repeat(256) }, ['courseName']],    [{ credits: '31' }, ['credits']],
     [{ result: '' as const }, ['result']],
     [{ grade: '' }, ['grade']],
     [{ grade: '10.5' }, ['grade']],
@@ -112,6 +117,33 @@ describe('blankRow', () => {
   it('starts in the current academic year when the table is empty', () => {
     expect(blankRow(0, [], new Date(2026, 10, 9)).year).toBe(2026);
     expect(blankRow(0, [], new Date(2026, 2, 1)).year).toBe(2025);
+  });
+});
+
+// A browser outside Vietnam: the year still follows Vietnam time, as the API's term calendar does.
+describe('blankRow and yearChoices in a browser outside Vietnam', () => {
+  const zone = process.env.TZ;
+  beforeAll(() => {
+    process.env.TZ = 'America/Los_Angeles';
+  });
+  afterAll(() => {
+    if (zone === undefined) delete process.env.TZ;
+    else process.env.TZ = zone;
+  });
+
+  it('starts the new academic year when September has begun in Vietnam, even if not yet where the browser is', () => {
+    // 1 September 2026, 00:30 in Vietnam; still 31 August in Los Angeles.
+    const today = new Date('2026-08-31T17:30:00Z');
+    expect(today.getTimezoneOffset()).not.toBe(-420);
+    expect(today.getMonth()).toBe(7);
+    expect(blankRow(0, [], today).year).toBe(2026);
+  });
+
+  it('offers next year when the new year has begun in Vietnam, even if not yet where the browser is', () => {
+    // 1 January 2027, 00:30 in Vietnam; still 31 December 2026 in Los Angeles.
+    const today = new Date('2026-12-31T17:30:00Z');
+    expect(today.getFullYear()).toBe(2026);
+    expect(yearChoices([], today).at(-1)).toBe(2028);
   });
 });
 

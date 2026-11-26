@@ -1,6 +1,5 @@
 import { computed } from 'vue';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
 import { groupColour, orderGroups } from '../curriculum/present.js';
 import { GROUPS, type GroupId } from '../groups.js';
 import { LANGUAGES, type Lang } from '../locale.js';
@@ -18,8 +17,7 @@ export const readyAudit = (outcome: AuditOutcome | null): DegreeAudit | null => 
 
 /** Loads the signed-in student's audit; the API works it out afresh on every call (ADR 0013). */
 export function useAudit() {
-  const auth = useAuth();
-  const load = useAsyncLoad('the degree audit', () => auth.authed(fetchAudit));
+  const load = useAsyncLoad('the degree audit', () => fetchAudit());
   return { ...load, audit: computed(() => readyAudit(load.data.value)) };
 }
 

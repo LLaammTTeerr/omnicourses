@@ -10,18 +10,26 @@ import {
   type RouterScrollBehavior,
 } from 'vue-router';
 import SettingsView from './account/SettingsView.vue';
+import AccessAdmin from './admin/AccessAdmin.vue';
+import AdminView from './admin/AdminView.vue';
+import CatalogAdmin from './admin/CatalogAdmin.vue';
+import CurriculumAdmin from './admin/CurriculumAdmin.vue';
+import ImportAdmin from './admin/ImportAdmin.vue';
 import AuditView from './audit/AuditView.vue';
 import DashboardView from './audit/DashboardView.vue';
 import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
 import SignInView from './auth/SignInView.vue';
 import SignUpView from './auth/SignUpView.vue';
 import { useAuth } from './auth/store.js';
+import CalendarView from './calendar/CalendarView.vue';
 import ExplorerView from './explorer/ExplorerView.vue';
 import GuideView from './guides/GuideView.vue';
 import GuidesView from './guides/GuidesView.vue';
 import OnboardingView from './onboarding/OnboardingView.vue';
 import PlanEditorView from './plans/PlanEditorView.vue';
+import PlannerEntry from './plans/PlannerEntry.vue';
 import PlansView from './plans/PlansView.vue';
+import PrivacyView from './privacy/PrivacyView.vue';
 import { useOnboarding } from './onboarding/store.js';
 import TranscriptView from './transcript/TranscriptView.vue';
 import HomeView from './views/HomeView.vue';
@@ -53,8 +61,11 @@ const routes: RouteRecordRaw[] = [
   // The guide list stays alive while a guide is open, so Back finds the same search and scroll position.
   { path: '/guides', name: 'guides', component: GuidesView, meta: { layout: 'auto', keepAlive: true } },
   { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
+  // Readable signed out: sign-up links it beside the consent box (UC-01 step 2).
+  { path: '/privacy', name: 'privacy', component: PrivacyView, meta: { layout: 'auto' } },
   { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { layout: 'app', auth: 'required' } },
+  { path: '/calendar', name: 'calendar', component: CalendarView, meta: { layout: 'app', auth: 'required' } },
   { path: '/audit', name: 'audit', component: AuditView, meta: { layout: 'app', auth: 'required' } },
   { path: '/explorer', name: 'explorer', component: ExplorerView, meta: { layout: 'app', auth: 'required' } },
   // Nested, so the sidebar's Plans link stays marked while a plan is open.
@@ -62,12 +73,31 @@ const routes: RouteRecordRaw[] = [
     path: '/plans',
     meta: { layout: 'app', auth: 'required' },
     children: [
-      { path: '', name: 'plans', component: PlansView },
+      // The front door opens a plan (the last one open, or a new default plan); the list is one level below.
+      { path: '', name: 'plans', component: PlannerEntry },
+      { path: 'all', name: 'plan-list', component: PlansView },
       { path: ':id', name: 'plan', component: PlanEditorView, props: true },
     ],
   },
   { path: '/transcript', name: 'transcript', component: TranscriptView, meta: { layout: 'app', auth: 'required' } },
   { path: '/settings', name: 'settings', component: SettingsView, meta: { layout: 'app', auth: 'required', onboarding: 'optional' } },
+  // F12 administration (ADR 0011). Open to every signed-in user: the page asks the API for their grants and says so
+  // when they hold none, and the API checks every request. Onboarding is optional, since an administrator need not
+  // be a student of an offered program. The sections are children, so the navigation's link stays marked in each;
+  // /admin itself has none, and AdminView then opens the first section the user holds.
+  {
+    path: '/admin',
+    name: 'admin',
+    component: AdminView,
+    meta: { layout: 'app', auth: 'required', onboarding: 'optional' },
+    // One child per entry of admin/sections.ts.
+    children: [
+      { path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin },
+      { path: 'catalog', name: 'admin-catalog', component: CatalogAdmin },
+      { path: 'import', name: 'admin-import', component: ImportAdmin },
+      { path: 'access', name: 'admin-access', component: AccessAdmin },
+    ],
+  },
   { path: '/:unknown(.*)*', redirect: '/' },
 ];
 

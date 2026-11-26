@@ -1,0 +1,92 @@
+# UI-01q: npm run test:browser, tree 7f66b7a (frontend code = B1 1decf4a), Playwright 1.64.1, chromium-headless-shell revision 1248 (Chromium 156.0.8078.4)
+2026-11-15T03:04:23Z
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> test:browser
+> npm run test:browser -w src/frontend --reporter=verbose
+
+npm warn Unknown cli config "--reporter". This will stop working in the next major version of npm.
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @omnicourse/frontend@0.3.0 test:browser
+> vitest run --config vitest.browser.config.ts
+
+
+ RUN  v5.0.4 /home/lamter/omnicourses/.claude/worktrees/agent-afe32e8fe43ed2451/src/frontend
+
+
+ Test Files  8 passed (8)
+      Tests  36 passed (36)
+   Start at  10:04:28
+   Duration  10.08s (worker 44%, tests 32%, import 23%)
+
+exit 0
+
+# The same suite again with the verbose reporter, to name each test: npm run test:browser -w src/frontend -- --reporter=verbose
+2026-11-15T03:04:46Z
+npm warn Unknown env config "metrics-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown env config "globalignorefile". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> @omnicourse/frontend@0.3.0 test:browser
+> vitest run --config vitest.browser.config.ts --reporter=verbose
+
+
+ RUN  v5.0.4 /home/lamter/omnicourses/.claude/worktrees/agent-afe32e8fe43ed2451/src/frontend
+
+stderr | src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows an unsuccessful HTTP response
+Loading the API status failed: [HttpError: GET /health failed: 503]
+stderr | src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows a network failure
+Loading the API status failed: [TypeError: Failed to fetch]
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows the home page while loading, then the API and database status 124ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows a degraded database response 19ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows an unsuccessful HTTP response 17ms
+ ✓ |chromium| src/views/HomeView.browser.spec.ts > HomeView in a real browser > shows a network failure 22ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 360 px in the light theme 435ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 360 px in the dark theme 23ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 768 px in the light theme 30ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 1280 px in the dark theme 41ms
+ ✓ |chromium| src/privacy/Privacy.browser.spec.ts > privacy notice in a real browser (A11Y-01c) > never scrolls sideways at 1920 px in the light theme 35ms
+ ✓ |chromium| src/App.browser.spec.ts > boots the app entry and renders the home route inside the app shell 1147ms
+ ✓ |chromium| src/guides/Guides.browser.spec.ts > guide pages in a real browser > never scroll sideways at 360 px 461ms
+ ✓ |chromium| src/guides/Guides.browser.spec.ts > guide pages in a real browser > never scroll sideways at 768 px 161ms
+ ✓ |chromium| src/guides/Guides.browser.spec.ts > guide pages in a real browser > never scroll sideways at 1280 px 130ms
+ ✓ |chromium| src/auth/SignIn.browser.spec.ts > signing in (UC-01) > signs in with a valid email and password, keeps the session and opens the dashboard 789ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > refuses Escape while busy, without closing, telling the parent or reopening, and says it is working 1228ms
+stderr | src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back
+Loading the transcript failed: [HttpError: GET /users/me/transcript failed: 401]
+ ✓ |chromium| src/auth/SignIn.browser.spec.ts > signing in (UC-01) > says a wrong password is wrong on a 401, without saying which field, and stays signed out 134ms
+ ✓ |chromium| src/router.browser.spec.ts > goes back to the same place in the guide list after reading a guide 774ms
+ ✓ |chromium| src/router.browser.spec.ts > scrolls to the element a #main address names, as the skip link uses 55ms
+ ✓ |chromium| src/auth/SignIn.browser.spec.ts > signing in (UC-01) > on a 401 from a private page, says the session ended, and signing in again goes back 154ms
+ ✓ |chromium| src/router.browser.spec.ts > names the tab after the home page when the reader goes home from a guide 103ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > emits close once for an Escape the page cannot prevent, and stays closed when the parent accepts it 340ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > shows itself again, without telling the parent, when the browser closes it while busy 157ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > ignores a close event queued before the parent opened it again 56ms
+ ✓ |chromium| src/components/ModalDialog.browser.spec.ts > ModalDialog in a real browser > reports a dialog it cannot show again, and lets the parent close it 55ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 400 px, in either theme 1342ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > never scroll sideways at 1280 px, in either theme 661ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > shows the sidebar on a desktop and the tab bar on a phone 45ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > fits every tab label in its tab at 400 px in vi 28ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > fits every tab label in its tab at 400 px in en 18ms
+stderr | src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > scrolls a linked group below the phone top bar, not under it
+[VUE_ROUTER_R0042] Couldn't find element using selector "#group-00000000-0000-4000-8000-000000000a03" returned by scrollBehavior.
+├▶ fix: Return a selector that matches an existing element, or guard against missing elements.
+╰▶ see: https://router.vuejs.org/guide/advanced/scroll-behavior.html
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > keeps the More sheet open on a tap in its margin, beside the links 167ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > scrolls a linked group below the phone top bar, not under it 67ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > opens More as a modal sheet that traps focus, closes on Escape and gives focus back 203ms
+ ✓ |chromium| src/Shell.browser.spec.ts > the new screens at a phone width and on a desktop > keeps every sidebar label for screen readers when the rail is narrow 158ms
+stderr | src/Shell.browser.spec.ts > dialogs in a real browser > opens a course drawer from the explorer and closes it on Escape, giving focus back
+Loading the course failed: [Error: Unexpected API call: GET /courses/ZZ414]
+ ✓ |chromium| src/Shell.browser.spec.ts > dialogs in a real browser > opens a course drawer from the explorer and closes it on Escape, giving focus back 196ms
+ ✓ |chromium| src/Shell.browser.spec.ts > dialogs in a real browser > moves focus into the deletion dialog, closes on Escape and gives focus back 144ms
+ ✓ |chromium| src/Shell.browser.spec.ts > signing in and out (issue #13) > sends a visitor from a private page to sign-in and back, then signs out 213ms
+
+ Test Files  8 passed (8)
+      Tests  36 passed (36)
+   Start at  10:04:50
+   Duration  9.28s (tests 44%, import 39%, worker 17%)
+
+exit 0

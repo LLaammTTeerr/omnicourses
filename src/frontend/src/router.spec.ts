@@ -22,7 +22,7 @@ describe('router guard (issue #13)', () => {
     expect(router.currentRoute.value.query.redirect).toBe(`${path}?x=1`);
   });
 
-  it.each(['/', '/guides', '/guides/zz-fresh', '/sign-in', '/sign-up'])('lets a signed-out visitor open %s', async (path) => {
+  it.each(['/', '/guides', '/guides/zz-fresh', '/privacy', '/sign-in', '/sign-up'])('lets a signed-out visitor open %s', async (path) => {
     const { router } = await setup(path, { signedIn: false });
     expect(router.currentRoute.value.fullPath).toBe(path);
   });

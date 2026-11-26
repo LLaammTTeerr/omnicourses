@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classify, fourPointTenths, isPassingGrade, letterGrade, toTenths, yearLevel } from './grades.js';
+import { classify, fourPointTenths, isPassingGrade, toTenths, yearLevel } from './grades.js';
 
 describe('grades (QĐ 1175/QĐ-KHTN)', () => {
   it('handles grades in exact tenths', () => {
@@ -15,22 +15,21 @@ describe('grades (QĐ 1175/QĐ-KHTN)', () => {
   });
 
   it.each([
-    [10, 40, 'A+'],
-    [9, 40, 'A+'],
-    [8.9, 35, 'A'],
-    [8, 35, 'A'],
-    [7.9, 30, 'B+'],
-    [7, 30, 'B+'],
-    [6, 25, 'B'],
-    [5, 20, 'C'],
-    [4.9, 15, 'D+'],
-    [4, 15, 'D+'],
-    [3, 10, 'D'],
-    [2.9, 0, 'F'],
-    [0, 0, 'F'],
-  ] as const)('converts %s to %s tenths on the 4-point scale and %s (Điều 11.1)', (grade, four, letter) => {
+    [10, 40],
+    [9, 40],
+    [8.9, 35],
+    [8, 35],
+    [7.9, 30],
+    [7, 30],
+    [6, 25],
+    [5, 20],
+    [4.9, 15],
+    [4, 15],
+    [3, 10],
+    [2.9, 0],
+    [0, 0],
+  ] as const)('converts %s to %s tenths on the 4-point scale (Điều 11.1)', (grade, four) => {
     expect(fourPointTenths(grade)).toBe(four);
-    expect(letterGrade(grade)).toBe(letter);
   });
 
   it('does not pass D+ or D even though they have a 4-point value', () => {

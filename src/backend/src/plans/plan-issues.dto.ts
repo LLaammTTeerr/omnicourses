@@ -3,7 +3,7 @@ import { CreditCapsDto } from '../audit/audit.dto.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { TERM_KINDS, type TermKind } from '../rules/credit-caps.js';
-import { TermDto } from '../terms/term.dto.js';
+import { TermDto } from '../common/field-validators.js';
 import {
   PLAN_ISSUE_CODES,
   PLAN_ISSUE_KINDS,
@@ -15,7 +15,9 @@ import {
   type PlanIssueKind,
   type PlanIssuesReport,
   type PlanTermLoad,
-} from './plan-issues.js';
+  GRADUATION_STATUSES,
+  type GraduationVerdict,
+} from '../rules/types.js';
 
 // GET /api/plans/{id}/issues (ADR 0014). Each class implements the rule engine's result type, so
 // this contract cannot drift from what the engine returns.
@@ -138,8 +140,8 @@ export class PlanCoverageDto implements PlanCoverage {
   @ApiProperty({ type: Number, nullable: true })
   totalRemaining!: number | null;
 
-  @ApiProperty({ enum: ['done', 'not_yet'], description: 'done: every requirement the data can check would be met; the school still checks the rest (Điều 17.3).' })
-  graduation!: 'done' | 'not_yet';
+  @ApiProperty({ enum: GRADUATION_STATUSES, description: 'done: every requirement the data can check would be met; the school still checks the rest (Điều 17.3).' })
+  graduation!: GraduationVerdict;
 }
 
 export class PlanIssuesDto implements PlanIssuesReport {
@@ -157,4 +159,18 @@ export class PlanIssuesDto implements PlanIssuesReport {
 
   @ApiProperty({ type: PlanCoverageDto, description: 'The curriculum as it would stand with every placement and every course in progress passed.' })
   coverage!: PlanCoverageDto;
+}
+
+/** The engine's report on the board with the placement dropped on one target term. */
+export class PlanDropReportDto {
+  @ApiProperty({ type: TermDto })
+  term!: TermDto;
+
+  @ApiProperty({ type: PlanIssuesDto })
+  issues!: PlanIssuesDto;
+}
+
+export class PlanDropReportsDto {
+  @ApiProperty({ type: [PlanDropReportDto], description: 'One per target, in the order sent.' })
+  reports!: PlanDropReportDto[];
 }

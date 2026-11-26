@@ -1,0 +1,18 @@
+2026-11-25T06:15:41.760Z a-screens 05f
+2026-11-25T06:15:42.038Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-a3@example.com → 200
+ok   ADM-05f: ZZADM05S has 3 credits
+ok   ADM-05f: (1) the PATCH is blocked, the screen reads the course again (GET 200), no second PATCH, no toast | observed: PATCH /api/admin/catalog/courses/ZZADM05S failed: net::ERR_BLOCKED_BY_CLIENT.Inspector; GET /api/courses/ZZADM05S 200
+ok   ADM-05f: (1) dialog open, yellow note "Máy chủ không trả lời yêu cầu lưu, … Dữ liệu đã lưu chưa có thay đổi này. Kiểm tra lại, rồi lưu lần nữa nếu cần." | observed: Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu chưa có thay đổi này. Kiểm tra lại, rồi lưu lần nữa nếu cần.
+ok   ADM-05f: (1) second Lưu 200, toast "Đã lưu học phần ZZADM05S.", card 4 | observed: {"w":"PATCH /api/admin/catalog/courses/ZZADM05S 200","toast":"Đã lưu học phần ZZADM05S."}
+ok   ADM-05f: (2) "Máy chủ không trả lời, và OmniCourse cũng chưa tải lại được dữ liệu đã lưu. Chưa rõ thay đổi đã được lưu hay chưa. Hãy tải lại dữ liệu trước khi thử lại." | observed: Máy chủ không trả lời, và OmniCourse cũng chưa tải lại được dữ liệu đã lưu. Chưa rõ thay đổi đã được lưu hay chưa. Hãy tải lại dữ liệu trước khi thử lại.
+
+Tải lại dữ liệu
+ok   ADM-05f: (2) Lưu disabled, Tải lại dữ liệu offered
+ok   ADM-05f: (2) after Hủy: "Chưa tải lại được dữ liệu đã lưu. Những gì đang hiện có thể đã cũ. Tải lại trước khi sửa tiếp.", focus on Tải lại dữ liệu, edit buttons disabled | observed: {"stale":"Chưa tải lại được dữ liệu đã lưu. Những gì đang hiện có thể đã cũ. Tải lại trước khi sửa tiếp. Tải lại dữ liệu","focus":"button #catalog-reload [data-test=catalog-reload] Tải lại dữ liệu"}
+ok   ADM-05f: (2) after the reload: card 4 (the saved value), warning gone, buttons work | observed: 4
+ok   ADM-05f: (1)–(2) the screen never sent a write by itself (PATCHes: one per Lưu) | observed: PATCH /api/admin/catalog/courses/ZZADM05S failed: net::ERR_BLOCKED_BY_CLIENT.Inspector
+ok   ADM-05f: (3) one PATCH, answered 200, then a GET of the course | observed: PATCH /api/admin/catalog/courses/ZZADM05S 200; GET /api/courses/ZZADM05S 200
+ok   ADM-05f: (3) dialog closes, no toast, green line "… Dữ liệu đã lưu có thay đổi này.", card 5 | observed: {"green":["Máy chủ không trả lời yêu cầu lưu, nên OmniCourse đã tải lại dữ liệu đã lưu. Dữ liệu đã lưu có thay đổi này."],"toasts":[]}
+ok   ADM-05f: (3) no write sent again | observed: PATCH /api/admin/catalog/courses/ZZADM05S 200
+2026-11-25T06:15:55.052Z All checks ok

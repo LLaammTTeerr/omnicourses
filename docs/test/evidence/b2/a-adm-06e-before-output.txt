@@ -1,0 +1,13 @@
+ADM 06e-before run at 2026-11-22T02:41:13.293Z
+POST /auth/sign-in (b2-a4@example.com) → 200
+POST /auth/sign-in (b2-a5@example.com) → 200
+GET /admin/access/users/e641029b-391c-45f8-9737-c6ba13bc9970/grants → 200 {"userId":"e641029b-391c-45f8-9737-c6ba13bc9970","programs":[],"permissions":[{"permission":"catalog_maintainer","grantedAt":"2026-11-22T02:39:52.442Z","grantedBy":"1e18e2fe-224c-4f02-8d83-7e41bbb1339a"}]}
+  OK  A6: catalog_maintainer, grantedBy A5
+DELETE /users/me → 202 {"purgeAfter":"2026-12-22T02:41:10.388Z"}
+  OK  A5 deletion 202
+GET /admin/access/users/e641029b-391c-45f8-9737-c6ba13bc9970/grants → 200 {"userId":"e641029b-391c-45f8-9737-c6ba13bc9970","programs":[],"permissions":[{"permission":"catalog_maintainer","grantedAt":"2026-11-22T02:39:52.442Z","grantedBy":"1e18e2fe-224c-4f02-8d83-7e41bbb1339a"}]}
+  OK  A6 grant unchanged, grantedBy A5
+PUT /admin/access/users/1e18e2fe-224c-4f02-8d83-7e41bbb1339a/global/catalog_maintainer → 409 {"statusCode":409,"code":"recipient_deletion_pending","message":"That account is waiting for deletion"}
+  OK  A4 grant to A5 409 recipient_deletion_pending
+  now write "ADM-06e ready" (A5 1e18e2fe-224c-4f02-8d83-7e41bbb1339a)
+all OK

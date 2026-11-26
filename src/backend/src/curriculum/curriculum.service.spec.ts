@@ -2,13 +2,12 @@ import { NotFoundException } from '@nestjs/common';
 import type { ObjectLiteral, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import type { Course } from './course.entity.js';
-import type { CourseRules, CourseRulesService } from './course-rules.service.js';
+import type { CourseRules, CurriculumRulesReader } from './curriculum-rules.reader.js';
 import { CurriculumController } from './curriculum.controller.js';
 import type { Curriculum } from './curriculum.entity.js';
 import { CurriculumService } from './curriculum.service.js';
 import type { Program } from './program.entity.js';
-import type { RequirementGroupCourse } from './requirement-group-course.entity.js';
-import type { RequirementGroup } from './requirement-group.entity.js';
+import type { RequirementGroup, RequirementGroupCourse } from './requirement-group.entity.js';
 
 // Synthetic catalog: no real curriculum is needed to check the shapes and the order.
 const course = (code: string, credits = 4): Course =>
@@ -50,12 +49,12 @@ function service(overrides: { curriculum?: Curriculum | null; course?: Course | 
     ]),
   });
   const links = repo<RequirementGroupCourse>({ find: vi.fn().mockResolvedValue(overrides.links ?? []) });
-  const rulesFor = vi.fn().mockResolvedValue(overrides.rules ?? { prerequisites: new Map(), offeringTerms: new Map() });
+  const courseRules = vi.fn().mockResolvedValue(overrides.rules ?? { prerequisites: new Map(), offeringTerms: new Map() });
   return {
     findOne,
     findOneBy,
-    rulesFor,
-    svc: new CurriculumService(programs, repo<Curriculum>({ findOne }), repo<Course>({ findOneBy }), links, { rulesFor } as unknown as CourseRulesService),
+    courseRules,
+    svc: new CurriculumService(programs, repo<Curriculum>({ findOne }), repo<Course>({ findOneBy }), links, { courseRules } as unknown as CurriculumRulesReader),
   };
 }
 
@@ -101,10 +100,10 @@ describe('CurriculumService', () => {
   });
 
   it('serves the rules recorded for this curriculum, in every group the course sits in', async () => {
-    const rules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3]]]) };
-    const { svc, rulesFor } = service({ rules });
+    const rules: CourseRules = { prerequisites: new Map([['ZZ001', []], ['ZZ002', ['ZZ001']]]), offeringTerms: new Map([['ZZ002', [1, 3]]]) };
+    const { svc, courseRules } = service({ rules });
     const result = await svc.getCurriculum('ZZ', 2030);
-    expect(rulesFor).toHaveBeenCalledWith('c1');
+    expect(courseRules).toHaveBeenCalledWith('c1');
     const rows = result.requirementGroups.flatMap((g) => g.courses.map((c) => [g.name, c.code, c.prerequisites, c.offeringTerms]));
     expect(rows).toEqual([
       ['Bắt buộc', 'ZZ001', [], null],
@@ -162,7 +161,7 @@ describe('CurriculumService bulk reads for plans', () => {
   function bulk(found: { curriculum?: Partial<Curriculum> | null; courses?: Course[] } = {}) {
     const findOne = vi.fn().mockResolvedValue(found.curriculum === undefined ? { id: 'c1', requirementGroups: [{ id: 'g1' }, { id: 'g2' }] } : found.curriculum);
     const find = vi.fn().mockResolvedValue(found.courses ?? []);
-    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}), {} as CourseRulesService);
+    const svc = new CurriculumService(repo<Program>({}), repo<Curriculum>({ findOne }), repo<Course>({ find }), repo<RequirementGroupCourse>({}), {} as CurriculumRulesReader);
     return { svc, findOne, find };
   }
 
@@ -174,14 +173,27 @@ describe('CurriculumService bulk reads for plans', () => {
     expect(findOne).not.toHaveBeenCalled();
   });
 
-  it('answers which codes the catalog has in one query, never asking about a malformed or repeated code', async () => {
-    const { svc, find } = bulk({ courses: [course('ZZ001')] });
-    expect(await svc.knownCourseCodes(['ZZ001', 'ZZ002', 'ZZ001', 'zz003'])).toEqual(new Set(['ZZ001']));
+  it('gives the catalog name and credits of the codes it has, in one query, never asking about a malformed or repeated code', async () => {
+    const { svc, find } = bulk({ courses: [{ ...course('ZZ001', 3), nameEn: 'Test course' }] });
+    expect(await svc.catalogCourses(['ZZ001', 'ZZ002', 'ZZ001', 'zz003'])).toEqual(new Map([['ZZ001', { nameVi: 'Học phần ZZ001', nameEn: 'Test course', credits: 3 }]]));
     expect(find).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(find.mock.calls[0][0].where.code)).toContain('["ZZ001","ZZ002"]');
     const none = bulk();
-    expect(await none.svc.knownCourseCodes(['bad code'])).toEqual(new Set());
+    expect(await none.svc.catalogCourses(['bad code'])).toEqual(new Map());
     expect(none.find).not.toHaveBeenCalled();
+  });
+
+  it('names a curriculum, its program and its requirement groups, or answers null', async () => {
+    const labels = await bulk({ curriculum }).svc.curriculumLabels('c1');
+    expect(labels).toEqual({
+      code: 'ZZ2030',
+      cohortYear: 2030,
+      nameVi: 'Chương trình đào tạo thử',
+      nameEn: null,
+      program: { code: 'ZZ', nameVi: 'Chương trình thử', nameEn: 'Test program' },
+      groupNames: new Map([['g2', 'Tự chọn'], ['g1', 'Bắt buộc']]),
+    });
+    await expect(bulk({ curriculum: null }).svc.curriculumLabels('c9')).resolves.toBeNull();
   });
 
   it('lists the requirement group ids of a curriculum, none for an unknown one', async () => {

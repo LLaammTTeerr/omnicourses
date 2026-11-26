@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { bootApp } from './support/app.js';
+import { offerAlso } from './support/offer.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
 // Synthetic catalog and plans only (AGENTS.md hard rule 3), unique per run so reruns never collide.
@@ -47,6 +48,8 @@ describe('Plans API against PostgreSQL (e2e)', () => {
   beforeAll(async () => {
     app = await bootApp();
     db = app.get(DataSource);
+    // Cohort 2030 is offered like APCS 2024 and 2025; cohort 2031 has a curriculum and is not.
+    offerAlso(app, program, [2030]);
     const [{ id: programId }] = await db.query(`INSERT INTO programs (code, name_vi) VALUES ($1, 'Chương trình thử') RETURNING id`, [program]);
     const curriculum = async (year: number) =>
       (await db.query(`INSERT INTO curriculums (program_id, cohort_year, code, name_vi) VALUES ($1, $2, $3, 'CTĐT thử') RETURNING id`, [programId, year, `${program}${year}`]))[0].id;
@@ -84,7 +87,8 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     expect((await http().get(`/api/plans/${created.id}`).set(auth).expect(200)).body).toEqual(renamed.body);
     const { body } = await http().get('/api/plans').set(auth).expect(200);
     const { terms: _terms, ...summary } = renamed.body;
-    expect(body).toEqual({ plans: [summary] });
+    const preview = { termCount: 2, courseCount: 3, slotCount: 1, firstTerm: { year: 2030, number: 1 }, lastTerm: { year: 2030, number: 3 } };
+    expect(body).toEqual({ plans: [{ ...summary, preview }] });
   });
 
   it('creates a plan with its placements in one request (a generated plan, UC-07 step 10)', async () => {
@@ -99,6 +103,36 @@ describe('Plans API against PostgreSQL (e2e)', () => {
     await http().post('/api/plans').set(auth).send({ name: '   ', programCode: program, cohortYear: 2030 }).expect(400);
     await http().post('/api/plans').set(auth).send({ name: 'x'.repeat(101), programCode: program, cohortYear: 2030 }).expect(400);
     expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toEqual([]);
+  });
+
+  // Project Lead, 25 November 2026 (option A): a new plan only for a cohort onboarding offers.
+  it('refuses a new plan for a cohort onboarding does not offer, even one with a curriculum, and saves nothing', async () => {
+    const { auth } = await student();
+    for (const [programCode, cohortYear] of [[program, 2031], ['APCS', 2023]] as const) {
+      const res = await http().post('/api/plans').set(auth).send({ name: 'x', programCode, cohortYear }).expect(400);
+      expect(res.body.message).toBe(`Onboarding does not offer ${programCode} ${cohortYear} to students`);
+    }
+    expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toEqual([]);
+  });
+
+  // No migration and no data change: a plan saved before the refusal stays the student's.
+  it('keeps serving and editing a plan saved earlier on a cohort onboarding does not offer, and refuses only a copy of it', async () => {
+    const { auth, userId } = await student();
+    const [{ id: curriculumId }] = await db.query('SELECT c.id FROM curriculums c JOIN programs p ON p.id = c.program_id WHERE p.code = $1 AND c.cohort_year = 2031', [program]);
+    const [{ id }] = await db.query(`INSERT INTO plans (user_id, curriculum_id, name) VALUES ($1, $2, 'Older plan') RETURNING id`, [userId, curriculumId]);
+
+    expect((await http().get(`/api/plans/${id}`).set(auth).expect(200)).body).toMatchObject({ id, curriculum: { programCode: program, cohortYear: 2031 }, terms: [] });
+    expect((await http().get('/api/plans').set(auth).expect(200)).body.plans.map((p: { id: string }) => p.id)).toEqual([id]);
+    await http().get(`/api/plans/${id}/issues`).set(auth).expect(200);
+    expect((await http().patch(`/api/plans/${id}`).set(auth).send({ name: 'Renamed' }).expect(200)).body.name).toBe('Renamed');
+    const terms = [{ term: { year: 2031, number: 1 }, placements: [course(code(1)), slot(catalog.group2031, 3)] }];
+    expect((await http().put(`/api/plans/${id}/placements`).set(auth).send({ terms }).expect(200)).body.terms).toEqual(terms);
+
+    // A copy is a new plan on that cohort.
+    const copy = await http().post(`/api/plans/${id}/duplicate`).set(auth).send({}).expect(400);
+    expect(copy.body.message).toBe(`Onboarding does not offer ${program} 2031 to students`);
+    expect((await http().get('/api/plans').set(auth).expect(200)).body.plans).toHaveLength(1);
+    await http().delete(`/api/plans/${id}`).set(auth).expect(204);
   });
 
   it('replaces every placement at once, and a refused board changes nothing', async () => {

@@ -1,0 +1,6 @@
+ADM 06f-before run at 2026-11-22T03:54:45.437Z
+POST /auth/sign-in (b2-a6@example.com) → 200
+DELETE /users/me → 202 {"purgeAfter":"2026-12-22T03:54:42.099Z"}
+  OK  A6 deletion 202
+  now write "ADM-06f ready" (A6 e641029b-391c-45f8-9737-c6ba13bc9970)
+all OK

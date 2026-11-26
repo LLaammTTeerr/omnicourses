@@ -88,26 +88,26 @@ usePageTitle(() => m.value.auditTitle);
           <div class="au-sum-row">
             <div class="au-fig" data-test="graduation">
               <span class="label">{{ m.graduation }}</span>
-              <span :class="['chip', a.graduation.status === 'done' ? 'ok' : 'warn']">
+              <span :class="['chip', a.graduation.status === 'done' ? 'ok' : 'warn']" data-test="graduation-status">
                 <Icon :name="a.graduation.status === 'done' ? 'check' : 'alert'" size="sm" />
                 {{ a.graduation.status === 'done' ? m.graduationDone : m.graduationNotYet }}
               </span>
             </div>
             <div class="au-fig" data-test="credits">
               <span class="label">{{ m.creditsTitle }}</span>
-              <b>{{ m.creditsOf(a.credits.towardTotal, a.credits.totalRequired) }}</b>
+              <b data-test="credits-toward-total">{{ m.creditsOf(a.credits.towardTotal, a.credits.totalRequired) }}</b>
               <span class="small t2">
-                <template v-if="a.credits.remaining !== null">{{ m.remaining(a.credits.remaining) }} · </template>
-                {{ m.inProgress(a.credits.inProgressTowardTotal) }} · {{ m.accumulated(a.credits.accumulated) }}
+                <template v-if="a.credits.remaining !== null"><span data-test="credits-remaining">{{ m.remaining(a.credits.remaining) }}</span> · </template>
+                <span data-test="credits-in-progress">{{ m.inProgress(a.credits.inProgressTowardTotal) }}</span> · <span data-test="credits-accumulated">{{ m.accumulated(a.credits.accumulated) }}</span>
               </span>
             </div>
             <div class="au-fig" data-test="gpa">
               <span class="label">{{ m.gpaTitle }}</span>
               <dl class="au-dl small">
-                <dt>{{ m.average }}</dt><dd>{{ score(a.gpa.average) }}</dd>
-                <dt>{{ m.accumulatedAverage }}</dt><dd>{{ score(a.gpa.accumulatedAverage) }}</dd>
-                <dt>{{ m.fourPoint }}</dt><dd>{{ score(a.gpa.accumulatedAverageFourPoint) }}</dd>
-                <dt>{{ m.classification }}</dt><dd>{{ a.gpa.classification ? m.classifications[a.gpa.classification] : '–' }}</dd>
+                <dt>{{ m.average }}</dt><dd data-test="gpa-average">{{ score(a.gpa.average) }}</dd>
+                <dt>{{ m.accumulatedAverage }}</dt><dd data-test="gpa-accumulated-average">{{ score(a.gpa.accumulatedAverage) }}</dd>
+                <dt>{{ m.fourPoint }}</dt><dd data-test="gpa-four-point">{{ score(a.gpa.accumulatedAverageFourPoint) }}</dd>
+                <dt>{{ m.classification }}</dt><dd data-test="gpa-classification">{{ a.gpa.classification ? m.classifications[a.gpa.classification] : '–' }}</dd>
               </dl>
             </div>
           </div>
@@ -142,6 +142,7 @@ usePageTitle(() => m.value.auditTitle);
           :class="['card', 'au-group', groupClass(colour)]"
           :aria-labelledby="`au-group-${group.id}`"
           data-test="group"
+          :data-group="group.id"
         >
           <div class="au-group-head">
             <span class="glyph" aria-hidden="true">{{ glyph }}</span>
@@ -236,15 +237,15 @@ usePageTitle(() => m.value.auditTitle);
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="t in a.terms" :key="`${t.term.year}-${t.term.number}`">
+                <tr v-for="t in a.terms" :key="`${t.term.year}-${t.term.number}`" :data-test="`term-${t.term.year}-${t.term.number}`">
                   <td>
                     <b>{{ termName(t.term, locale.lang) }}</b>
                     <span v-if="t.kind" class="small t3"><br />{{ m.termKinds[t.kind] }}<template v-if="t.caps"> · {{ m.caps(t.caps.min, t.caps.max) }}</template></span>
                   </td>
-                  <td class="r">{{ t.credits }}</td>
-                  <td class="r">{{ t.passedCredits }}</td>
-                  <td class="r">{{ score(t.average) }}</td>
-                  <td class="r">{{ score(t.cumulativeAccumulatedAverage) }}</td>
+                  <td class="r" data-test="term-credits">{{ t.credits }}</td>
+                  <td class="r" data-test="term-passed">{{ t.passedCredits }}</td>
+                  <td class="r" data-test="term-average">{{ score(t.average) }}</td>
+                  <td class="r" data-test="term-cumulative">{{ score(t.cumulativeAccumulatedAverage) }}</td>
                   <td>
                     <span v-if="t.capViolations.length === 0 && t.caps" class="small t3">{{ m.noViolation }}</span>
                     <div v-for="v in t.capViolations" :key="v.rule" class="au-violation" data-test="cap-violation">

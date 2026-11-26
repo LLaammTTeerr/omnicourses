@@ -1,0 +1,8 @@
+TRN-02f after run at 2026-11-22T01:44:42.474Z
+POST /auth/sign-in (b2-s2@example.com) → 401
+  OK  S2 can no longer sign in
+POST /auth/sign-in (b2-s1@example.com) → 200
+GET /users/me/transcript → 200 {"rows":[{"courseCode":"BAA00030","courseName":"Giáo dục quốc phòng - An ninh","credits":4,"result":"pass","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8.5,"term":{"year":2024,"number":1}},{"courseCode":"MTH252","courseName":"Vi tích phân II","credits":4,"result":"exempt","grade":null,"term":{"year":2024,"number":2}},{"courseCode":"PH212","courseName":"Vật lý đại cương II","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":2}},{"courseCode":"CS202","courseName":"Các hệ thống lập trình","credits":4,"result":"graded","grade":9,"term":{"year":2024,"number":3}},{"courseCode":"CS201","courseName":"Lập trình hệ thống","credits":4,"result":"in_progress","grade":null,"term":{"year":2025,"number":1}}]}
+  OK  S1's transcript is unchanged
+
+Done: 0 mismatch(es).

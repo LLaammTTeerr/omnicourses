@@ -1,0 +1,18 @@
+[2026-11-15T03:06:31.671Z] signed up b1-run-07ef42-p02@example.com
+OK   setup | onboarded to APCS 2024 (API, 200) | observed: 200
+[2026-11-15T03:06:31.917Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+OK   USER-01j | with no plan, Lộ trình creates "Kế hoạch mặc định" and opens it | observed: h1 "Kế hoạch mặc định", tabs ["Kế hoạch mặc định"]
+OK   USER-01j | the planner has no Save button | observed: 0 such buttons
+OK   USER-01j | CS160 added with +; chip says Đã lưu | observed: Đã lưu; HK1 2026–2027: CS160
+NOTE USER-01j | curriculum line before the change (note) | observed: CTĐT APCS2024
+[2026-11-15T03:06:39.739Z] Settings before: program "Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến", cohort "Khóa 2024"
+OK   USER-01j | Settings saves the cohort 2025 (PUT 200; the API then reads APCS 2025) | observed: PUT 200; GET program APCS, cohort 2025
+OK   USER-01j | the same plan opens | observed: same address: true; h1 "Kế hoạch mặc định"
+OK   USER-01j | the line under the status strip still says "CTĐT APCS2024" | observed: CTĐT APCS2024
+OK   USER-01j | CS160 is still placed | observed: HK1 2026–2027: CS160
+const codes = (c) => new Set(c.groups.flatMap((g) => g.courses.map((x) => x.code)));
+                                      ^
+
+TypeError in the test script itself (wrong field name for the curriculum groups); the run was repeated with a new account.
+
+Node.js v22.22.1

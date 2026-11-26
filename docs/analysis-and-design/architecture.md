@@ -1,15 +1,15 @@
 # Software Architecture Document
 
-- Status: draft for review, due 15 Nov 2026 (SDP v2 §2.3)
+- Status: living document. It describes the modules on `main`. What each feature has built is in the [README feature table](../../README.md#what-is-built), not here.
 - Owner: Triết (Backend Lead; the SDP gives him the architecture document). This version was written at Lâm's request.
 - Reviewers: Triết (backend, rule engine), Hoà (frontend), Lâm (authentication, AI gateway, deployment)
-- Code described: `main` at `a7dd2c5` (9 November 2026), after the untangle refactor #56, #57 and #58 (see [Revisions in this version](#revisions-in-this-version))
+- First written for `main` at `a7dd2c5` (9 November 2026); the module table in §4 was matched to `src/backend/src/features.ts` on 26 November 2026
 
 ## 1. Purpose and scope
 
 This document describes how OmniCourse is built: the people and systems around it, the deployable parts, the components inside each part, and the rules that cut across all of them. It is the architecture view the RUP process asks for. The requirements behind it are in the Vision (F1–F12 and the NFRs, `report/assignments/PA2/Vision.tex`), the use cases in [`docs/requirements/`](../requirements/), and the decisions in the [ADRs](adr/). Words such as *degree audit*, *rule engine*, *plan*, *term* and *guide* have the meanings in [GLOSSARY.md](../../GLOSSARY.md).
 
-Scope: everything in `src/` today, and the modules the Vision, the ADRs and the SDP plan for the coming sprints. Planned parts are drawn in amber and labelled **planned**, with their owner; grey boxes are external systems. A planned part is a commitment to a boundary, not to a design: its own ADR or PR decides the details.
+Scope: the modules in `src/`. Grey boxes are external systems. This document does not track build status, owners or due dates: the build status is in the [README feature table](../../README.md#what-is-built), and the delivery plan is in the Software Development Plan.
 
 ### How to read this
 
@@ -21,7 +21,7 @@ The diagrams follow the [C4 model](https://c4model.com). Each level zooms into o
 | L2 Containers | Which separately running parts make up OmniCourse, and how do they talk? | [§3](#3-l2-containers) |
 | L3 Components | Which modules sit inside the API and the single-page app? | [§4](#4-l3-components-of-the-api), [§5](#5-l3-components-of-the-single-page-app) |
 
-Code is the fourth C4 level; it lives in `src/` and is not drawn here. Cross-cutting rules ([§6](#6-cross-cutting-concerns)), deployment ([§7](#7-deployment-view)), the map from ADRs to components ([§8](#8-architecture-decisions)) and open questions ([§9](#9-open-questions-and-risks)) follow. The diagrams are Mermaid C4 blocks, which GitHub renders; a box's second line names its technology or, for planned parts, `planned · <owner>`.
+Code is the fourth C4 level; it lives in `src/` and is not drawn here. Cross-cutting rules ([§6](#6-cross-cutting-concerns)), deployment ([§7](#7-deployment-view)), the map from ADRs to components ([§8](#8-architecture-decisions)) and open questions ([§9](#9-open-questions-and-risks)) follow. The diagrams are Mermaid C4 blocks, which GitHub renders; a box's second line names its technology.
 
 ## 2. L1 System context
 
@@ -30,11 +30,11 @@ C4Context
   title OmniCourse: system context
   UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 
-  Person(reader, "Signed-out reader", "A student before signing up, or an advisor opening a shared plan link (F9, planned)")
-  Person(staff, "Program administrator, catalog maintainer or access manager", "Maintains curriculum data and grants (F12, planned)")
+  Person(reader, "Signed-out reader", "A student before signing up, or an advisor opening a shared plan link (F9)")
+  Person(staff, "Program administrator, catalog maintainer or access manager", "Maintains curriculum data and grants (F12)")
   Person(student, "Student", "Signed in. Owns their transcript and plans")
-  System_Ext(openrouter, "OpenRouter", "LLM provider. Used only by the F6 goal box and the F8 advisor (ADR 0003)")
-  System(omni, "OmniCourse", "Degree audit, curriculum explorer, plans, guides, AI goal box and advisor")
+  System_Ext(openrouter, "OpenRouter", "LLM provider. Used only by the F6 goal box and the F8 advisor chat (ADR 0003)")
+  System(omni, "OmniCourse", "Degree audit, curriculum explorer, plans, guides, AI goal box and advisor chat")
   System_Ext(portals, "HCMUS portals", "Registration, grades, tuition. Linked only: never automated, no portal password stored")
 
   Rel(reader, omni, "Reads guides, shared plans", "HTTPS")
@@ -42,26 +42,25 @@ C4Context
   Rel(student, portals, "Does the school task", "HTTPS")
   Rel(staff, omni, "Maintains curriculum", "HTTPS")
   Rel(omni, portals, "Links only", "hyperlink")
-  Rel(omni, openrouter, "Goal box, advisor", "HTTPS")
+  Rel(omni, openrouter, "Goal box, advisor chat", "HTTPS")
 
   UpdateRelStyle(reader, omni, $offsetX="-150")
   UpdateRelStyle(student, omni, $offsetX="30")
   UpdateRelStyle(omni, openrouter, $offsetX="-50", $offsetY="-30")
   UpdateRelStyle(omni, portals, $offsetX="-28", $offsetY="-30")
 
-  UpdateElementStyle(staff, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
 
 **People.** One person plays several roles over time ([GLOSSARY: User](../../GLOSSARY.md)).
 
-- A **signed-out reader** can read guides ([ADR 0010](adr/0010-public-pages-and-guide-content.md)) and, once F9 ships, open a shared plan. An advisor needs no account.
-- A **student** signs in for everything that uses their own data: transcript, degree audit, plans, the goal box and the advisor.
-- A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), proposed). Until F12 ships, curriculum data enters only through reviewed seed files.
+- A **signed-out reader** can read guides and open a shared plan ([ADR 0010](adr/0010-public-pages-and-guide-content.md)). An advisor needs no account.
+- A **student** signs in for everything that uses their own data: transcript, degree audit, plans, the goal box and the advisor chat.
+- A **program administrator**, **catalog maintainer** or **access manager** maintains curriculum data and grants through F12. These are separate grants, denied by default ([ADR 0011](adr/0011-curriculum-administration.md), accepted).
 
 **External systems.**
 
 - **HCMUS portals.** OmniCourse only links to them. It never stores a portal password and never automates a registration (AGENTS.md hard rule 2). A [guide](../requirements/guides-plan.md) gives the link, the steps and the account the portal needs; the student does the task on the portal.
-- **OpenRouter** is the language-model provider, reached only through the AI gateway and only by F6's goal box and F8's advisor ([ADR 0003](adr/0003-language-model-scope.md)). Training opt-out and a monthly credit limit are set on the OpenRouter account. The model receives no name, email or student ID.
+- **OpenRouter** is the language-model provider, reached only through the AI gateway and only by F6's goal box and F8's advisor chat ([ADR 0003](adr/0003-language-model-scope.md)). Training opt-out and a monthly credit limit are set on the OpenRouter account. The model receives no name, email or student ID.
 - **GitHub Actions** runs CI on every pull request (typecheck, unit and e2e tests against PostgreSQL 18.6, browser tests, build, the OpenAPI export, and the signed-commit, Conventional Commits and changeset checks). The deploy workflow deploys `main` to production once CI passes and the `staging` branch to staging, and can tag builds B0–B3. It is not drawn in the context diagram because it builds and deploys OmniCourse rather than running with it ([§7](#7-deployment-view)).
 
 ## 3. L2 Containers
@@ -71,15 +70,15 @@ C4Container
   title OmniCourse: containers
   UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")
 
-  Person(staff, "Program administrator, catalog maintainer or access manager", "planned")
+  Person(staff, "Program administrator, catalog maintainer or access manager")
   Person(reader, "Signed-out reader")
   System_Ext(openrouter, "OpenRouter", "LLM provider")
   Person(student, "Student")
   System_Ext(portals, "HCMUS portals", "Linked only")
 
   System_Boundary(omni, "OmniCourse") {
-    Container(cli, "CLI jobs", "Node scripts in the API build", "db:migrate, db:seed; admin:bootstrap planned")
-    ContainerDb(db, "Database", "PostgreSQL 18.6", "Users, sessions, transcripts, guides, curriculum, AI usage")
+    Container(cli, "CLI jobs", "Node scripts in the API build", "db:migrate, db:seed, admin:bootstrap")
+    ContainerDb(db, "Database", "PostgreSQL 18.6", "Users, sessions, transcripts, plans, guides, curriculum, calendar, notifications, AI usage")
     Container(api, "REST API", "NestJS 12, Node 22, TypeORM 1.1", "Business logic, rule engine, AI gateway. OpenAPI 3.2.0 at /api/docs")
     Container(spa, "Single-page app", "Vue 3.5, Vite 8, Pinia, vue-router", "Every screen, in Vietnamese and English")
   }
@@ -100,7 +99,6 @@ C4Container
   UpdateRelStyle(api, db, $offsetX="-36", $offsetY="-25")
   UpdateRelStyle(cli, db, $offsetX="-50", $offsetY="80")
 
-  UpdateElementStyle(staff, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
 
 | Container | Code | Talks to | Notes |
@@ -108,164 +106,67 @@ C4Container
 | Single-page app | `src/frontend` | REST API | Built by Vite into static files. Reads the API address from `VITE_API_URL` at build time. |
 | REST API | `src/backend` | Database, OpenRouter | Every route is under `/api`. Swagger UI is at `/api/docs`, the document at `/api/docs-json`; both are off when `NODE_ENV=production` unless `API_DOCS=true` (staging sets it, production does not). |
 | Database | `compose.yaml` locally; Docker on the host in production and staging (§7) | | One schema. Changed only by migrations; `synchronize` is off ([ADR 0001](adr/0001-technology-stack.md)). |
-| CLI jobs | `src/backend/src/database/{migrate,seed}.ts` | Database | Run by an operator or CI, never by a request. Seeding is insert-only and idempotent. |
+| CLI jobs | `src/backend/src/database/{migrate,seed}.ts`, `src/backend/src/curriculum-admin/bootstrap-cli.ts` | Database | Run by an operator or CI, never by a request. Seeding is insert-only and idempotent. |
 
 **Protocols.**
 
 - **SPA → API:** JSON over HTTPS. A signed-in request carries `Authorization: Bearer <token>`, where the token is 32 random bytes the server stores only as a SHA-256 hash ([ADR 0002](adr/0002-authentication-and-sessions.md)). Bearer, not cookies, so no CSRF defence is needed while the SPA and API sit on different origins; CORS allows only `CORS_ORIGIN`.
-- **F8 advisor stream:** `POST` answered with `text/event-stream`. The SPA reads it with `fetch`, because `EventSource` cannot send the bearer header ([ADR 0003](adr/0003-language-model-scope.md)). The helper `streamChat` in `ai/sse.ts` already exists.
+- **F8 advisor chat stream:** `POST` answered with `text/event-stream`. The SPA reads it with `fetch`, because `EventSource` cannot send the bearer header ([ADR 0003](adr/0003-language-model-scope.md)). The helper is `streamChat` in `ai/sse.ts`.
 - **API → OpenRouter:** HTTPS through the `openai` SDK with OpenRouter's `baseURL`.
 - **API, CLI → Database:** SQL through `pg`; the API uses TypeORM repositories and transactions.
 
 ## 4. L3 Components of the API
 
-One Nest module per feature folder (`src/backend/src/<feature>/`). The API is drawn twice: the components that exist, and the planned ones with their calls into the rule engine.
+One Nest module per feature folder (`src/backend/src/<feature>/`). The table has one row per module in `FEATURE_MODULES` (`src/backend/src/features.ts`), in that order. The app and the OpenAPI contract both load that list, so a module that is not in it has no routes. The routes and their fields are in the contract, [`src/backend/openapi.json`](../../src/backend/openapi.json); this table names only the route prefixes.
 
-### 4.1 Built components
+Every request from the single-page app passes two global guards before it reaches a controller:
 
-```mermaid
-C4Component
-  title REST API: built components
-  UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")
+- **Throttler guard** (`auth/rate-limits.ts`, registered first): 120 requests a minute per address, 10 on sign-up, sign-in and account deletion.
+- **Auth guard** (`auth/auth.guard.ts`, registered second as `APP_GUARD`): reads the bearer token, looks up the session and sets the request's user. Every route needs a signed-in user unless it is marked `@Public()`.
 
-  System_Ext(openrouter, "OpenRouter", "LLM provider")
-  ContainerDb(pg, "Database", "PostgreSQL 18.6")
+Every module reaches the database through its own TypeORM repositories and registers its own entities with `TypeOrmModule.forFeature`.
 
-  Container_Boundary(api, "REST API") {
-    Component(ai, "ai", "module, no routes", "LlmService gateway, AI_CONFIG, cost guard, SSE helper")
-    Component(database, "database", "TypeORM data source", "Connection, migration list, curriculum seeds")
-    Component(throttle, "ThrottlerGuard", "global guard, runs first", "Every request: 120 a minute per address; 10 on password routes")
-    Component(authguard, "AuthGuard", "global guard, runs second", "Default-deny bearer check; @Public() opts a route out")
-    Component(transcript, "transcript", "module", "Saves and reads the transcript; rowsFor()")
-    Component(curriculum, "curriculum", "module", "Read-only programs, curricula and courses")
-    Component(guides, "guides", "module", "Public guide reads; guide seed")
-    Component(users, "users", "module", "User identity and state; GET /users/me")
-    Component(auth, "auth", "module", "Sign-up, sign-in, refresh, sign-out, sessions")
-    Component(health, "health", "module", "GET /health. Public")
-    Component(wiring, "App wiring", "features.ts, config/env.ts, bootstrap.ts", "Feature list, env, global pipes, OpenAPI")
-    Component(account, "account", "module", "Export, deletion request, hourly purge")
-  }
+| Module | Folder | Feature | Routes and responsibility | Used by other modules |
+| --- | --- | --- | --- | --- |
+| health | `health/` |  | `GET /api/health`: API up and database reachable, never the PostgreSQL version (#63). Public. |  |
+| users | `users/` | F1 | The `users` table: identity only (email, `password_hash`, `google_sub`, consent, deletion state). `create`, find, `cancelDeletion`, "is deletion pending", and `markDeletionRequestedWithin(manager, …)`. `GET /api/users/me`. | `UsersService` |
+| auth | `auth/` | F1 | F1 sign-up, sign-in, refresh with rotation, sign-out, list and revoke sessions; argon2id passwords; the `sessions` table ([ADR 0002](adr/0002-authentication-and-sessions.md)). Sign-in before the purge deadline cancels a pending deletion. | `AuthService` (incl. `revokeAllWithin(manager, userId)`), `AuthGuard`, `@Public()`, `@CurrentUser()`, `@CurrentSession()`, `Authenticated()`, `PASSWORD_LIMIT` |
+| ai | `ai/` | F6 goal box, F8 | The AI gateway ([ADR 0003](adr/0003-language-model-scope.md)). No routes. `LlmService.structured()` and `chat()` with a tool loop; `AI_CONFIG`, a provider read once at boot from `config/env.ts`; one `preflight()` (model and key) before the cost guard reserves a call; the OpenRouter client built once; `streamChat` for SSE. Every failure is `AiUnavailableError` → 503 `ai_unavailable`. | `LlmService`, `streamChat`, `FakeLlmService` for tests |
+| transcript | `transcript/` | F2 | F2 storage: `GET` and `PUT /api/users/me/transcript`, whole-set replace under a row lock ([ADR 0007](adr/0007-transcript.md)). The rows are entered by the student; nothing reads a file. | `TranscriptService.rowsFor(userId)` returning `TranscriptEntry[]` |
+| guides | `guides/` | F11 | F11: `GET /api/guides` and `GET /api/guides/:id`, public and read-only ([ADR 0010](adr/0010-public-pages-and-guide-content.md)). Owns its records: `guide-file.ts` holds the ID rule and the mapping between content files and rows, and the guides seed loads them. The out-of-date warning is computed in `guides/out-of-date.ts`. | `seed(dataSource, options)` for the CLI |
+| curriculum | `curriculum/` | F4, and the data under F3, F5, F12 | The read side of the curriculum data: `GET /api/programs`, `GET /api/programs/:program/curricula/:cohort` and `GET /api/courses/:code`, signed-in and read-only. Owns the curriculum entities, prerequisites and offering terms, stored per curriculum ([ADR 0005](adr/0005-curriculum-cohort-and-course-catalog.md), [ADR 0011](adr/0011-curriculum-administration.md)). An e2e test diffs the entities against the migrated schema. | `CurriculumService`, `CourseRulesService`, `CurriculumRulesReader` |
+| onboarding | `onboarding/` | F1 | `GET` and `PUT /api/users/me/onboarding`: the program, cohort and planning goal. `onboarding-options.ts` lists the cohorts students may choose. | `OnboardingService` (incl. `offers`) |
+| audit | `audit/` | F3 | `GET /api/users/me/audit`: the degree audit, computed by the rule engine from the transcript and the curriculum ([ADR 0013](adr/0013-rule-engine-and-degree-audit.md)). |  |
+| plans | `plans/` | F5 | `/api/plans`: list, create, read, rename, copy, delete, save placements, and the rule engine's issues for a plan and for a drag preview ([ADR 0014](adr/0014-plan-model.md)). | `PlansService` (one read-only method for `sharing`) |
+| curriculum-admin | `curriculum-admin/` | F12 | `/api/admin/...`: programs, cohorts, requirement groups, course links, prerequisites, offering terms, catalog courses, CSV import and access grants, all behind grants that are denied by default and one write lock ([ADR 0011](adr/0011-curriculum-administration.md)). Also the `admin:bootstrap` CLI. | `AdminWriteService` |
+| academic-calendar | `academic-calendar/` | F10 school dates | `GET /api/academic-calendar` for students; `POST`, `PATCH` and `DELETE` on `/api/admin/programs/:programId/calendar-events` under the F12 program grant ([ADR 0017](adr/0017-academic-calendar.md)). | `AcademicCalendarService` |
+| sharing | `sharing/` | F9 | The owner's routes `GET`, `PUT` and `DELETE /api/plans/:id/share`, and the public read `GET /api/shared-plans/:token` ([ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026). | `SharingService` (the account deletion stops every link) |
+| notifications | `notifications/` | F10 inbox | `/api/notifications`: list, unread count, mark one read, mark all read. Creates the notifications that school dates and transcript changes cause ([ADR 0018](adr/0018-notification-inbox.md)). |  |
+| account | `account/` | F1, privacy NFR | `GET /api/users/me/export` and `DELETE /api/users/me`. Owns the deletion flows: request, find accounts past their deadline, purge one account at a time, hourly ([ADR 0004](adr/0004-account-export-and-deletion.md)). Scheduling a deletion and revoking every session commit in one transaction, through the `…Within(manager)` methods of `users` and `auth`; `account` never writes the `sessions` table itself. |  |
 
-  Rel(ai, openrouter, "Model calls", "HTTPS")
-  Rel(database, pg, "Connects, migrates", "SQL")
-  Rel(throttle, authguard, "then")
-  Rel(authguard, auth, "authenticate()")
-  Rel(auth, users, "find, create")
-  Rel(account, users, "mark deletion")
-  Rel(account, auth, "revoke all sessions")
+Other folders under `src/backend/src/` are not feature modules:
 
-  UpdateRelStyle(ai, openrouter, $offsetY="-50")
-  UpdateRelStyle(database, pg, $offsetY="-50")
-  UpdateRelStyle(throttle, authguard, $offsetY="-12")
-  UpdateRelStyle(auth, users, $offsetX="-32", $offsetY="-12")
-```
+- `rules/`: the rule engine. `RulesModule` has no routes, so it is not in `FEATURE_MODULES`; `audit`, `plans` and `sharing` import it.
+- `terms/`: the shared `Term` interface and `TermDto` ([ADR 0009](adr/0009-term-encoding.md)).
+- `common/`: validators and helpers that several modules share.
+- `advisor/`: the regulation files and course descriptions for F8. It has no module yet.
+- `config/`, `database/`, `bootstrap.ts`, `app.module.ts`, `features.ts`: the app wiring. `app.module.ts` and `openapi-document.ts` (the document `npm run openapi` writes and the drift test compares) both load `FEATURE_MODULES`, so the contract always lists every route. `config/env.ts` holds `loadEnvFiles()` and typed getters; `configureApp()` sets the `/api` prefix, the validation pipe, CORS and Swagger for the server and the e2e tests alike. `database/` holds the data source, `migrations/index.ts` (the ordered list of migrations) and the curriculum seeds.
 
-Every request from the single-page app passes the throttler guard, then the auth guard, then reaches the controller of the matching module. Every module reaches the database through its own TypeORM repositories; those arrows are left out.
-
-| Component | Folder | Responsibility | Exposes to other modules |
-| --- | --- | --- | --- |
-| Throttler guard | `auth/rate-limits.ts` | `@nestjs/throttler` 6.7.1. Defines the throttler config and `PASSWORD_LIMIT` from one constant: 120 requests a minute per address everywhere, 10 on sign-up, sign-in and account deletion. Registered first. | `PASSWORD_LIMIT` |
-| Auth guard | `auth/auth.guard.ts` | Registered second, as `APP_GUARD`. Reads the bearer token, looks up the session, sets the request's user. Every route needs a signed-in user unless marked `@Public()`. | `@Public()`, `@CurrentUser()`, `@CurrentSession()`, `Authenticated()` |
-| health | `health/` | `GET /api/health`: API up and database reachable, never the PostgreSQL version (#63). Public. | |
-| users | `users/` | The `users` table: identity only (email, `password_hash`, `google_sub`, consent, deletion state). `create`, find, `cancelDeletion`, "is deletion pending", and `markDeletionRequestedWithin(manager, …)`. `GET /api/users/me`. | `UsersService` |
-| auth | `auth/` | F1 sign-up, sign-in, refresh with rotation, sign-out, list and revoke sessions; argon2id passwords; the `sessions` table ([ADR 0002](adr/0002-authentication-and-sessions.md)). Sign-in before the purge deadline cancels a pending deletion. | `AuthService` (incl. `revokeAllWithin(manager, userId)`), `AuthGuard` |
-| account | `account/` | `GET /api/users/me/export` and `DELETE /api/users/me`. Owns the deletion flows: request, find accounts past their deadline, purge one account at a time, hourly ([ADR 0004](adr/0004-account-export-and-deletion.md)). Scheduling a deletion and revoking every session commit in one transaction, through the `…Within(manager)` methods of `users` and `auth`; `account` never writes the `sessions` table itself. | |
-| transcript | `transcript/` | F2 storage: `GET` and `PUT /api/users/me/transcript`, whole-set replace under a row lock ([ADR 0007](adr/0007-transcript.md)). The F2 PDF parser is planned (Lâm, 22 Nov). | `TranscriptService.rowsFor(userId)` returning `TranscriptEntry[]` |
-| curriculum | `curriculum/` | The read side of the curriculum data (#65): `GET /api/programs`, `GET /api/programs/:program/curricula/:cohort` and `GET /api/courses/:code`, signed-in and read-only. Its entities mirror migration `1792912952302`, and an e2e test diffs them against the migrated schema. Prerequisites, offering terms and the program's training type have no storage yet. | `CurriculumService` for the rule engine, onboarding and the planner |
-| guides | `guides/` | F11: `GET /api/guides` and `GET /api/guides/:id`, public and read-only ([ADR 0010](adr/0010-public-pages-and-guide-content.md)). Owns its records: `guide-file.ts` holds the ID rule and the mapping between content files and rows, and the guides seed loads them. | `seed(dataSource, options)` for the CLI |
-| ai | `ai/` | The AI gateway ([ADR 0003](adr/0003-language-model-scope.md)). No routes. `LlmService.structured()` and `chat()` with a tool loop; `AI_CONFIG`, a provider read once at boot from `config/env.ts`; one `preflight()` (model and key) before the cost guard reserves a call; the OpenRouter client built once; `streamChat` for SSE. Every failure is `AiUnavailableError` → 503 `ai_unavailable`. | `LlmService`, `streamChat`, `FakeLlmService` for tests |
-| App wiring | `features.ts`, `config/`, `bootstrap.ts`, `app.module.ts` | `FEATURE_MODULES` is the one list of feature modules; `app.module.ts` and `openapi-document.ts` (the document `npm run openapi` writes and the drift test compares) both spread it, so the contract always lists every route. Each module registers its own entities (`autoLoadEntities`). `config/env.ts` holds `loadEnvFiles()` and typed getters (port, CORS origin, database URL, session lifetime, deletion grace period, AI settings); `main.ts` and the CLI jobs call it. `configureApp()` sets the `/api` prefix, the validation pipe, CORS and Swagger for the server and the e2e tests alike. | |
-| database | `database/` | `data-source.ts` (connection options and migrations only), `migrations/index.ts` (the ordered list of migration classes), the curriculum schema (programs, curricula, requirement groups, courses; [ADR 0005](adr/0005-curriculum-cohort-and-course-catalog.md)) and the APCS and CLC curriculum seeds. | `seed()` for the curriculum data |
-
-`terms/` is not a module: it holds the shared `Term` interface and `TermDto` that every module uses for a term ([ADR 0009](adr/0009-term-encoding.md)).
-
-**CLI jobs.** Both load the environment through `config/env.ts`.
+**CLI jobs.** All three load the environment through `config/env.ts`.
 
 - `npm run db:migrate -w src/backend` applies pending migrations from `migrations/index.ts`, each in its own transaction.
 - `npm run db:seed -w src/backend` calls each feature's `seed(dataSource, options)` in order: curriculum data first, then guides. It inserts only what is missing. `--guide-fixtures` adds the synthetic test guides and is refused when `NODE_ENV=production`.
-- `npm run admin:bootstrap` (planned, [ADR 0011](adr/0011-curriculum-administration.md)) grants the first access manager from a trusted shell; it is never an HTTP route.
+- `npm run admin:bootstrap -w src/backend` grants the first access manager from a trusted shell ([ADR 0011](adr/0011-curriculum-administration.md)); it is never an HTTP route.
 
-### 4.2 Planned components and the rule engine
+### The rule engine
 
-```mermaid
-C4Component
-  title REST API: planned components and who calls the rule engine
-  UpdateLayoutConfig($c4ShapeInRow="1", $c4BoundaryInRow="2")
+**The rule engine is the only authority on academic rules** (AGENTS.md hard rule 1). Prerequisites, offering terms, credit caps (by the program's training type, [ADR 0012](adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only in `src/rules/`. The folder name matters: `vitest.config.mts` holds `src/rules/**` to 80 % statement coverage (Vision NFR), so engine code placed anywhere else escapes the gate. The engine is deterministic, has no side effects and imports neither `ai` nor any feature that calls it.
 
-  Boundary(callers, "Feature modules", "REST API") {
-    Component(explorer, "curriculum explorer", "planned · Triết", "F4 prerequisites and unlocks, on the built read API")
-    Component(plans, "plans", "planned · Hoà", "F5 plans, live validation; F7 what-if")
-    Component(plangen, "plan-generator", "planned · Lâm", "F6 planner; goal box on top")
-    Component(advisor, "advisor", "planned · Dũng", "F8 chat, tools, regulation files")
-    Component(audit, "audit", "planned · Triết", "F3 degree audit")
-    Component(admin, "curriculum-admin", "planned · Thắng", "F12 writes and grants")
-    Component(guides, "guides", "built", "F11; rule values from B3")
-  }
-  Boundary(core, "Shared services and other planned modules", "REST API") {
-    Component(sharing, "sharing", "planned · Dũng", "F9 shared-plan read, through plans")
-    Component(notifications, "notifications", "planned · Dũng", "F10 reminders, warnings")
-    Component(ai, "ai gateway", "built", "LlmService: structured(), chat()")
-    Component(rules, "rules: RulesService", "planned · Triết", "Deterministic rule engine in src/rules/, 80% statement gate")
-    Component(transcript, "transcript", "built", "rowsFor()")
-  }
+A module that needs an academic answer calls `RulesService` and only reads its answer. Today `audit`, `plans` and `sharing` do. F6's planner and F8's tool handlers must do the same ([ADR 0006](adr/0006-plan-generator.md), [ADR 0003](adr/0003-language-model-scope.md)).
 
-  Rel(explorer, rules, "")
-  Rel(guides, rules, "")
-  Rel(plans, rules, "")
-  Rel(plangen, rules, "")
-  Rel(advisor, rules, "")
-  Rel(audit, rules, "")
-  Rel(admin, rules, "")
-  Rel(plangen, ai, "")
-  Rel(advisor, ai, "")
-  Rel(audit, transcript, "")
-  Rel(advisor, transcript, "")
+**The AI gateway never decides a rule.** In the goal box, the model only turns a sentence into the planning-goal form; the student reviews it, and the planner then works over the engine. In the advisor chat, the gateway runs the tool loop: a tool handler calls the engine and returns its answer for the model to explain. Nothing the model returns is written back as a rule, a placement or a status.
 
-  UpdateRelStyle(plangen, ai, $lineColor="#7b61a8")
-  UpdateRelStyle(advisor, ai, $lineColor="#7b61a8")
-  UpdateRelStyle(audit, transcript, $lineColor="#2e7d32")
-  UpdateRelStyle(advisor, transcript, $lineColor="#2e7d32")
-
-  UpdateElementStyle(audit, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(explorer, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(plans, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(plangen, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(rules, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(advisor, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(admin, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(sharing, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(notifications, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-```
-
-Black lines are calls into the rule engine, purple lines calls to the AI gateway, green lines reads of the transcript through `rowsFor()`. `sharing` reads plans through one read-only method of `plans`, and `notifications` warns when a saved transcript changes; those two links are left out of the drawing.
-
-| Planned component | Feature | Owner | Due (SDP v2) | Source |
-| --- | --- | --- | --- | --- |
-| `rules` (`RulesService`) | rule engine | Triết | validation endpoint 16 Nov; planner functions 29 Nov | Vision objective 2; [ADR 0006](adr/0006-plan-generator.md) |
-| `audit` | F3 degree audit | Triết | B1, 15 Nov | Vision F3, UC-03 |
-| `curriculum` (explorer) | F4 curriculum explorer: prerequisites and unlocks, on top of the read API already built (#65) | Triết | B1, 15 Nov | Vision F4, UC-04 |
-| `plans` | F5 planner, F7 what-if | Hoà | API 8 Nov; planner B2; what-if B3 | Vision F5, F7; UC-05, UC-06 |
-| `plan-generator` | F6 plan generator and goal box | Lâm | B3 | [ADR 0003](adr/0003-language-model-scope.md); [ADR 0006](adr/0006-plan-generator.md) |
-| `advisor` | F8 advisor chat | Dũng | B3 | [ADR 0003](adr/0003-language-model-scope.md), UC-08 |
-| `sharing` | F9 export and sharing | Dũng | B2 | [ADR 0010](adr/0010-public-pages-and-guide-content.md), UC-09 |
-| `notifications` | F10 notifications | Dũng | B2 | Vision F10, UC-12; delivery contract open |
-| `curriculum-admin` | F12 curriculum administration | Thắng | B2 | [ADR 0011](adr/0011-curriculum-administration.md) (proposed) |
-
-**The rule engine is the only authority on academic rules** (AGENTS.md hard rule 1). Prerequisites, offering terms, credit caps (by the program's training type, [ADR 0012](adr/0012-credit-caps-by-training-type.md): 10–22 in every term for APCS and CLC, 14–25 in a main term and at most 12 in summer for đại trà; a load outside them is flagged, not blocked), requirement coverage and graduation status are computed only in `src/rules/`. The folder name matters: `vitest.config.mts` already holds `src/rules/**` to 80 % statement coverage (Vision NFR), so engine code placed anywhere else escapes the gate. The engine is deterministic, has no side effects and imports neither `ai` nor any feature that calls it.
-
-Seven components call the engine, all as readers of its answers:
-
-- `audit` computes graduation status from `TranscriptService.rowsFor()` and the curriculum.
-- `curriculum` shows prerequisites and what each course unlocks.
-- `plans` validates every change to a plan live (performance NFR: under 300 ms).
-- `plan-generator` places courses term by term and asks the engine whether each placement is allowed ([ADR 0006](adr/0006-plan-generator.md)). It holds no rule of its own.
-- `advisor`'s tool handlers ask the engine to check a rule for the student.
-- `curriculum-admin` asks for final-state validation before a write commits ([ADR 0011](adr/0011-curriculum-administration.md)).
-- `guides` fills rule values, such as the student's credit cap, into a guide from B3 (UC-10 A3).
-
-**The AI gateway never decides a rule.** In the goal box, the model only turns a sentence into the planning-goal form; the student reviews it, and the planner then works over the engine. In the advisor, the gateway runs the tool loop: a tool handler, written by the `advisor` owner, calls the engine and returns its answer for the model to explain. Nothing the model returns is written back as a rule, a placement or a status.
-
-**Transcript and curriculum data are never read by a model.** F2 uses a deterministic parser; F12 data is entered by people or by CSV through the same validated services ([ADR 0003](adr/0003-language-model-scope.md), [ADR 0011](adr/0011-curriculum-administration.md)).
+**Transcript and curriculum data are never read by a model.** F2 rows are typed or pasted by the student and parsed deterministically ([ADR 0007, amendment of 15 November 2026](adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); F12 data is entered by people or by CSV through the same validated services ([ADR 0003](adr/0003-language-model-scope.md), [ADR 0011](adr/0011-curriculum-administration.md)).
 
 ## 5. L3 Components of the single-page app
 
@@ -274,65 +175,51 @@ C4Component
   title Single-page app: components
   UpdateLayoutConfig($c4ShapeInRow="4", $c4BoundaryInRow="1")
 
-  Person(student, "Student or signed-out reader")
+  Person(student, "Student, staff or signed-out reader")
   Container(api, "REST API", "NestJS")
 
   Container_Boundary(spa, "Single-page app") {
-    Component(shell, "App shell", "App.vue, createOmniCourseApp", "Header, navigation, language switch, skip link, global styles")
-    Component(apiclient, "API client", "api.ts", "API base URL, getJson(), health")
+    Component(shell, "App shell", "App.vue, app.ts, shell/", "Header, sidebar, language and theme, toasts, global styles")
+    Component(router, "Router", "vue-router, router.ts", "Routes, sign-in and onboarding guards, scroll position")
+    Component(features, "Feature folders", "auth/, onboarding/, transcript/, audit/, explorer/, plans/, calendar/, guides/, account/, admin/", "One folder per feature: views, api.ts, messages")
+    Component(session, "Session store", "auth/store.ts, Pinia", "Bearer token, refresh, sign-out")
+    Component(apiclient, "API client", "api.ts", "API base URL, request helpers")
     Component(types, "API types", "TypeScript", "Hand-written, checked against src/backend/openapi.json")
-    Component(home, "Home", "HomeView, ApiStatus", "Landing page, API status")
-    Component(router, "Router", "vue-router 5, createAppRouter", "Routes, scroll position, KeepAlive by route name")
-    Component(guides, "guides feature", "src/frontend/src/guides/", "List, search and guide views; api.ts")
     Component(locale, "Locale", "Pinia store, locale.ts", "Vietnamese and English language table")
-    Component(blocks, "Shared view blocks", "composables, components", "useAsyncLoad, usePageTitle, ExternalLink")
-    Component(session, "Session store", "planned · Hoà, Lâm", "Bearer token in memory or sessionStorage; refresh on start-up")
-    Component(screens, "Student screens", "planned · Hoà, Lâm, Triết", "Sign-in, onboarding, transcript, audit, explorer, planner, goal box")
-    Component(chat, "Advisor and sharing screens", "planned · Dũng", "F8 chat read with fetch; F9 shared plan")
-    Component(adminui, "Administration screens", "planned · Thắng", "F12 curriculum, catalog, grants")
   }
 
   Rel(student, shell, "Opens", "HTTPS")
   Rel(shell, router, "Renders")
-  Rel(router, guides, "/guides")
-  Rel(guides, apiclient, "Fetches")
+  Rel(router, features, "Route")
+  Rel(features, session, "Token")
+  Rel(features, apiclient, "Fetches")
   Rel(apiclient, types, "Typed by")
   Rel(apiclient, api, "JSON", "HTTPS")
-  Rel(screens, session, "Token")
-
-  UpdateRelStyle(student, shell, $offsetY="-60")
-  UpdateRelStyle(apiclient, api, $offsetX="25")
-  UpdateRelStyle(router, guides, $offsetX="-21", $offsetY="-12")
-  UpdateRelStyle(apiclient, types, $offsetX="-24", $offsetY="-12")
-  UpdateRelStyle(screens, session, $offsetX="-17", $offsetY="-12")
-
-  UpdateElementStyle(session, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(screens, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(chat, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
-  UpdateElementStyle(adminui, $bgColor="#fff3cd", $fontColor="#5c4400", $borderColor="#c9a227")
 ```
+
+The routes are in `src/frontend/src/router.ts`; that file is the list of screens. Each feature folder holds its views, its `api.ts` and its `messages.ts` in Vietnamese and English.
 
 | Component | Code | Responsibility |
 | --- | --- | --- |
-| App shell | `App.vue`, `main.ts`, `styles.css` | `createOmniCourseApp()` builds the app with Pinia and the router; `main.ts` mounts it, and the tests use the same factory. The shell holds the header, navigation, language switch and skip link, and the global stylesheet (screen-reader class, card and button rules, colour token). |
-| Router | `router.ts` | `createAppRouter()`: `/` (home), `/guides`, `/guides/:id`. Back restores the scroll position; the guide list is kept alive by route name so Back finds the same search. |
+| App shell | `App.vue`, `app.ts`, `main.ts`, `shell/`, `styles.css` | `createOmniCourseApp()` builds the app with Pinia and the router; `main.ts` mounts it, and the tests use the same factory. The shell holds the public header, the app sidebar, the mobile bars, the language and theme buttons, toasts and the global stylesheet. |
+| Router | `router.ts` | `createAppRouter()`. Each route names its layout (`public`, `bare`, `app`, or `auto` for pages both signed-in and signed-out readers open) and whether it needs a signed-in user. A signed-in student whose onboarding is unfinished goes to `/onboarding` first. Back restores the scroll position. |
+| Session store | `auth/store.ts` | Holds the bearer token, refreshes it and signs out ([ADR 0002](adr/0002-authentication-and-sessions.md)). Feature modules call the API through it. |
 | Locale | `locale.ts` | Pinia store for the screen language. One table maps each language to its `Intl` tag, date format, own name and the other language. Defaults to Vietnamese; remembered in `localStorage`. The UI language type is separate from a guide's content language. |
-| Shared view blocks | composables and components | `useAsyncLoad` (loading, failure, retry, ignoring a stale response), `usePageTitle` (tab title, aware of KeepAlive), `ExternalLink.vue` (new tab with safe `rel`), used by every view. |
-| API client | `api.ts` | `API_URL` from `VITE_API_URL`; one `getJson(path)`; `fetchHealth()`. Feature modules build their calls on it. Components never call `fetch` directly (AGENTS.md). |
-| API types | `guides/api.ts`, `testing/contract.ts` | Request and response types are written by hand beside each API module. Specs check them against the committed contract `src/backend/openapi.json` through `testing/contract.ts`, so a renamed or missing field fails a test. `openapi-typescript` is not used: it requires TypeScript 5 and the repo pins 6.0.3 (decided 9 November 2026; revisit when it supports TypeScript 6). A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift. |
-| guides feature | `src/frontend/src/guides/` | F11 screens: `api.ts` (`fetchGuides`, `fetchGuide` with its not-found error), the list and guide views, diacritic-insensitive search, language fallback (`pick-text`), content links. `GUIDE_GROUPS` stays a frontend array for display order, checked at compile time against the contract's group enum. |
+| Shared view blocks | `async-load.ts`, `page-title.ts`, `components/` | `useAsyncLoad` (loading, failure, retry, ignoring a stale response), `usePageTitle` (tab title, aware of KeepAlive), `ExternalLink.vue` (new tab with safe `rel`), `ModalDialog.vue`, `SelectMenu.vue`. |
+| API client | `api.ts` | `API_URL` from `VITE_API_URL` and the request helpers. Each feature's `api.ts` builds its calls on it. Components never call `fetch` directly (AGENTS.md). |
+| API types | each feature's `api.ts`, `testing/contract.ts` | Request and response types are written by hand beside each API module. Specs check them against the committed contract `src/backend/openapi.json` through `testing/contract.ts`, so a renamed or missing field fails a test. `openapi-typescript` is not used: it requires TypeScript 5 and the repo pins 6.0.3 (decided 9 November 2026; revisit when it supports TypeScript 6). A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift. |
+| Feature folders | `auth/`, `onboarding/`, `transcript/`, `audit/`, `explorer/`, `curriculum/`, `plans/`, `calendar/`, `guides/`, `account/`, `privacy/`, `admin/` | One folder per feature. Which feature has a screen is in the [README feature table](../../README.md#what-is-built). |
 | Home | `views/HomeView.vue`, `components/ApiStatus.vue` | Landing page and API health. |
-| Planned screens | | Sign-in and sign-up (Hoà), onboarding and transcript import with its review table (Lâm), degree audit and explorer (Triết), planner and what-if (Hoà), goal box (Lâm), advisor chat and shared-plan page (Dũng), administration (Thắng). Each feature gets its own folder like `guides/`. |
 
 ## 6. Cross-cutting concerns
 
 | Concern | Rule | Where it lives | Decided in |
 | --- | --- | --- | --- |
 | Authentication and sessions | Opaque 32-byte bearer token stored as SHA-256; 7-day expiry (`SESSION_TTL_DAYS`); rotation on refresh; revocation per device; argon2id passwords; same answer and timing for an unknown email and a wrong password. Every route needs a signed-in user by default. Feature modules use `@CurrentUser()` and never add their own guard. | `auth/`, global `AuthGuard` | [ADR 0002](adr/0002-authentication-and-sessions.md) |
-| Account export and deletion | Every table holding a student's data has `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Export reads every such table from the PostgreSQL catalog in one `REPEATABLE READ` snapshot, only the rows the student owns, and never selects columns named `*_hash`, `*_token`, `*_secret`, `*_key`, `*_password` or `*_sub`. Deletion asks for the password, revokes every session at once, and purges after 30 days (`ACCOUNT_DELETION_GRACE_DAYS`) unless the student signs in again. A key to `users` in another column is `ON DELETE SET NULL` (preferred) or `CASCADE`. An e2e test reads the catalog and fails on any table that breaks these rules. | `account/`, `test/user-table-rules.ts` | [ADR 0004](adr/0004-account-export-and-deletion.md) |
+| Account export and deletion | Every table holding a student's data has `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`. Export reads every such table from the PostgreSQL catalog in one `REPEATABLE READ` snapshot, only the rows the student owns, and never selects columns named `*_hash`, `*_token`, `*_secret`, `*_key`, `*_password`, `*_sub`, `*_salt` or `*_seed` (snake_case or camelCase). Deletion asks for the password, revokes every session and deletes every shared plan's link at once ([ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026), and purges after 30 days (`ACCOUNT_DELETION_GRACE_DAYS`) unless the student signs in again. A key to `users` in another column is `ON DELETE SET NULL` (preferred) or `CASCADE`. An e2e test reads the catalog and fails on any table that breaks these rules. | `account/`, `test/user-table-rules.ts` | [ADR 0004](adr/0004-account-export-and-deletion.md) |
 | AI gateway limits | Only F6's goal box and F8. Per-user daily cap (`AI_DAILY_CALLS_PER_USER`, default 20); a call counts once it reaches the model. Monthly credit limit and training opt-out on the OpenRouter account. One failure type, 503 `ai_unavailable`, and every AI screen keeps a manual path. Usage rows hold no content. CI uses `FakeLlmService` and never calls OpenRouter. | `ai/` | [ADR 0003](adr/0003-language-model-scope.md) |
-| Public routes allow-list | Public today: health, sign-up, sign-in, the two guide reads, and the API docs pages where they are served (not in production). Planned: the shared-plan read. Only sign-up and sign-in write. `public-routes.e2e-spec.ts` calls every route in the OpenAPI document without a token and fails on any unexpected non-401, on a public write, and on a served route the document lacks. A new public route needs an ADR 0010 change. | `@Public()`, `test/public-routes.e2e-spec.ts` | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
-| Term encoding | A term is `{ year, number }`: `year` is the first calendar year of the academic year, `number` is 1, 2 or 3 in the order of the academic year: 3 is a third main term in a Tiên tiến, Liên kết or Chất lượng cao program such as APCS, and the summer term only in a đại trà program. SQL: `term_year smallint`, `term_number smallint CHECK (1, 2, 3)`. `terms/` still calls 3 the summer term; it changes with the rule engine. | `terms/term.ts`, `terms/term.dto.ts` | [ADR 0009](adr/0009-term-encoding.md), amended by [ADR 0012](adr/0012-credit-caps-by-training-type.md) |
+| Public routes allow-list | Public today: health, sign-up, sign-in, the two guide reads, the shared-plan read (`GET /api/shared-plans/{token}`), and the API docs pages where they are served (not in production). Only sign-up and sign-in write. `public-routes.e2e-spec.ts` calls every route in the OpenAPI document without a token and fails on any unexpected non-401, on a public write, and on a served route the document lacks. A new public route needs an ADR 0010 change. | `@Public()`, `test/public-routes.e2e-spec.ts` | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
+| Term encoding | A term is `{ year, number }`: `year` is the first calendar year of the academic year, `number` is 1, 2 or 3 in the order of the academic year: 3 is a third main term in a Tiên tiến, Liên kết or Chất lượng cao program such as APCS, and the summer term only in a đại trà program. SQL: `term_year smallint`, `term_number smallint CHECK (1, 2, 3)`. | `terms/term.ts`, `terms/term.dto.ts` | [ADR 0009](adr/0009-term-encoding.md), amended by [ADR 0012](adr/0012-credit-caps-by-training-type.md) |
 | Logging | Never log a prompt, a reply, tool arguments, a provider error message, a transcript row or any identity field (hard rule 3). AI errors are logged by name or status code only, through one helper. The purge logs counts, not accounts. Test data and seeds are synthetic. | `ai/` logging helper, `account/` | [ADR 0003](adr/0003-language-model-scope.md), AGENTS.md hard rule 3 |
 | Rate limits | `@nestjs/throttler`, per client address: 120 requests a minute by default, 10 a minute on sign-up, sign-in and account deletion. Runs before authentication, so unauthenticated floods are cut first. Behind a proxy, Express `trust proxy` must be set (`TRUST_PROXY`, `loopback` on the host) or every visitor shares one address. | `auth/rate-limits.ts`, `app.module.ts` | [ADR 0002](adr/0002-authentication-and-sessions.md), [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | OpenAPI contract | The API publishes OpenAPI 3.2.0. DTOs carry `@ApiProperty`, so the document is complete. The generated document is committed as `src/backend/openapi.json`; a backend test (`openapi-document.spec.ts`) fails when it drifts. The SPA's API types are written by hand, and frontend tests (`api.spec.ts`, `guides/api.spec.ts`, through `testing/contract.ts`) check them against the same file. CI also uploads it on every run. | `bootstrap.ts`, `openapi.ts`, `src/backend/openapi.json`, `src/frontend/src/testing/contract.ts` | [ADR 0001](adr/0001-technology-stack.md) |
@@ -362,21 +249,27 @@ Two environments run on one self-hosted Linux server behind Cloudflare. [`deploy
 
 ## 8. Architecture decisions
 
-| ADR | Status | Shapes |
-| --- | --- | --- |
-| [0001 Technology stack](adr/0001-technology-stack.md) | accepted | All containers; exact version pins; Vitest with SWC; TypeORM migrations; OpenAPI 3.2.0; npm workspaces; CI's PostgreSQL service |
-| [0002 Authentication and sessions](adr/0002-authentication-and-sessions.md) | accepted | `auth`, `users`, `AuthGuard`, throttler; SPA → API bearer protocol; SPA session store (planned) |
-| [0003 Where a language model is used](adr/0003-language-model-scope.md) | accepted | `ai` gateway, OpenRouter; goal box in `plan-generator`, `advisor`; SSE protocol; F2 and F12 stay deterministic |
-| [0004 Account export and deletion](adr/0004-account-export-and-deletion.md) | accepted | `account`, `users`; the `user_id` rule for every table of every module; the purge |
-| [0005 Curriculum cohorting and course catalog](adr/0005-curriculum-cohort-and-course-catalog.md) | proposed | `database` curriculum schema and seeds; `curriculum`, `curriculum-admin`, `rules` read it |
-| [0006 How the plan generator builds a plan](adr/0006-plan-generator.md) | accepted; amended by 0012 | `plan-generator`; the planner's interface to `RulesService` |
-| [0007 Storing the transcript](adr/0007-transcript.md) | proposed | `transcript`; its `rowsFor()` contract to `audit` and `advisor` |
-| [0008 Real-browser test provider](adr/0008-browser-testing.md) | proposed | SPA browser tests (Vitest browser mode, Playwright Chromium); CI frontend job |
-| [0009 Term encoding](adr/0009-term-encoding.md) | proposed | `terms/`; `transcript`, `plans`, offering terms, `plan-generator` |
-| [0010 Public pages and guide content](adr/0010-public-pages-and-guide-content.md) | accepted | `guides`, `sharing`; the public routes allow-list and its e2e test; guides as content files plus seed |
-| [0011 Curriculum administration](adr/0011-curriculum-administration.md) | proposed; not authorization to implement | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
-| [0012 Credit caps by training type](adr/0012-credit-caps-by-training-type.md) | accepted; amends 0009 | `rules` (caps per training type, a training-type column on `programs`), `terms/`, `plans`, `plan-generator` |
+Each ADR file states its own status; this table does not copy it. Number 0016 is not used: it was kept for the advisor harness in PR #77, which is still open.
 
+| ADR | Shapes |
+| --- | --- |
+| [0001 Technology stack](adr/0001-technology-stack.md) | All containers; exact version pins; Vitest with SWC; TypeORM migrations; OpenAPI 3.2.0; npm workspaces; CI's PostgreSQL service |
+| [0002 Authentication and sessions](adr/0002-authentication-and-sessions.md) | `auth`, `users`, `AuthGuard`, throttler; SPA → API bearer protocol; SPA session store |
+| [0003 Where a language model is used](adr/0003-language-model-scope.md) | `ai` gateway, OpenRouter; goal box in `plan-generator`, `advisor`; SSE protocol; F2 and F12 stay deterministic |
+| [0004 Account export and deletion](adr/0004-account-export-and-deletion.md) | `account`, `users`; the `user_id` rule for every table of every module; the purge |
+| [0005 Curriculum cohorting and course catalog](adr/0005-curriculum-cohort-and-course-catalog.md) | `database` curriculum schema and seeds; `curriculum`, `curriculum-admin`, `rules` read it |
+| [0006 How the plan generator builds a plan](adr/0006-plan-generator.md) | `plan-generator`; the planner's interface to `RulesService` |
+| [0007 Storing the transcript](adr/0007-transcript.md) | `transcript`; its `rowsFor()` contract to `audit` and `advisor` |
+| [0008 Real-browser test provider](adr/0008-browser-testing.md) | SPA browser tests (Vitest browser mode, Playwright Chromium); CI frontend job |
+| [0009 Term encoding](adr/0009-term-encoding.md) | `terms/`; `transcript`, `plans`, offering terms, `plan-generator` |
+| [0010 Public pages and guide content](adr/0010-public-pages-and-guide-content.md) | `guides`, `sharing`; the public routes allow-list and its e2e test; guides as content files plus seed |
+| [0011 Curriculum administration and program-scoped permissions](adr/0011-curriculum-administration.md) | `curriculum-admin`; grant tables; `admin:bootstrap` CLI; administration screens |
+| [0012 Credit caps by training type](adr/0012-credit-caps-by-training-type.md) | `rules` (caps per training type, a training-type column on `programs`), `terms/`, `plans`, `plan-generator` |
+| [0013 Rule engine and degree audit](adr/0013-rule-engine-and-degree-audit.md) | `rules`, `audit`; how the degree audit reads the transcript and the curriculum |
+| [0014 The plan model](adr/0014-plan-model.md) | `plans`; placements, slots, the plan copy a what-if starts from |
+| [0015 The rule engine in the browser for the drag preview](adr/0015-rule-engine-in-the-browser.md) | Where the plan check runs (the browser or the API) |
+| [0017 Academic calendar](adr/0017-academic-calendar.md) | `academic-calendar`; the calendar page |
+| [0018 Notification inbox](adr/0018-notification-inbox.md) | `notifications`; the inbox and what creates a notification |
 
 ### Revisions in this version
 
@@ -394,14 +287,14 @@ This is the first version of the document. It describes the backend and frontend
 
 | # | Question or risk | Owner | Source |
 | --- | --- | --- | --- |
-| 1 | ADR 0011 is proposed and gated. Its narrowing of "administrator rights per school and per program" to per-program grants needs Lâm's and Hoà's acceptance. | Lâm, Hoà | ADR 0011; Vision §6 Security |
-| 2 | Audit trail for curriculum and catalog changes: decide before those writes are built whether B2 needs a change log or defers it. | Lâm, Triết | ADR 0011 |
+| 1 | Resolved 12 Nov 2026: Lâm accepted ADR 0011. Its per-program grants replace "administrator rights per school and per program" as a deliberate exception to the Vision. | Lâm, Hoà | ADR 0011; Vision §6 Security |
+| 2 | Resolved 12 Nov 2026 (Lâm): the curriculum and catalog change log is deferred to B3. B2 has no change-history log. Whether B3 builds one is not decided; Lâm decides when B3 is planned. Nothing may claim an audit trail until a log ships. | Lâm, Triết | ADR 0011 |
 | 3 | Production and staging run on one shared host (§7): one machine, no failover. The nightly backup and the restore rehearsal are not set up yet. | Lâm | `deploy/README.md`; Vision NFR Recovery |
-| 4 | The `RulesService` interface is not merged, and seven planned components depend on it. A late change ripples to every caller (risk R9). | Triết | SDP R1, R9; ADR 0006 |
-| 5 | ADRs 0005, 0007, 0008 and 0009 are still proposed; the components they shape are built on unaccepted decisions. | ADR owners | §8 |
+| 4 | Resolved: `RulesService` is on `main` (`src/backend/src/rules/`). A change to its interface still reaches every caller (risk R9). | Triết | SDP R1, R9; ADR 0006 |
+| 5 | Some ADRs that built code depends on are still proposed. Each ADR file states its status; accepting one is the Project Lead's decision. | Lâm | §8 |
 | 6 | The curriculum seeds live in `database/`. Moving them into the `curriculum` module (#65) is a new module boundary and belongs with ADR 0011's work. | Thắng, Triết | ADR 0011 |
-| 7 | F10's delivery channel, schedule and trigger contract are undefined, so the notifications component has no interface yet. | Dũng | Test plan §8 |
-| 8 | Whether the portal transcript PDF has a text layer and a fixed layout, and numbers the third term of the year 3. Manual entry works either way. | Lâm | ADR 0003, 0007, 0009, 0012; SDP R7 |
-| 9 | The SPA keeps a bearer token, so XSS exposure must be limited with a strict Content Security Policy when sign-in screens ship. | Hoà, Lâm | ADR 0002 |
+| 7 | Resolved 25 Nov 2026: F10 delivers through the in-app inbox only (Lâm, 12 Nov 2026), and Dũng decided the schedule, the time zone and the repeat rules. The inbox API is built on them. Its trigger mechanism is proposed in ADR 0018 and waits for Lâm's decision. | Dũng, Lâm | [ADR 0018](adr/0018-notification-inbox.md); Test plan §8 |
+| 8 | Resolved 15 November 2026: F2 reads no file, so the portal PDF does not matter ([ADR 0007, amendment of 15 November 2026](adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)). The paste format is not decided. | Lâm | ADR 0007; SDP R7 |
+| 9 | The SPA keeps a bearer token, so XSS exposure must be limited with a strict Content Security Policy. | Hoà, Lâm | ADR 0002 |
 | 10 | Google sign-in and email verification are deferred; Google-only accounts cannot confirm deletion until then. | Lâm | ADR 0002, ADR 0004 |
 | 11 | Personal data reaching an AI tool, a log or a fixture (risk R8). Mitigated by the logging rule above and synthetic test data. | Lâm | SDP R8; hard rule 3 |

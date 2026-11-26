@@ -1,20 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import { GUIDE_FILES } from '../content/index.js';
 import { isOutOfDate } from '../out-of-date.js';
 import { validateGuideSet } from '../validate-guide.js';
-import { addDays, guideFixtures } from './guide-fixtures.js';
+import { guideFixtures } from './guide-fixtures.js';
 
 const checkedOn = (today: string, id: string) => guideFixtures(today).find((f) => f.id === id)!.lastChecked!.on;
-
-describe('addDays', () => {
-  it('adds days across months', () => {
-    expect(addDays('2026-05-13', -1)).toBe('2026-05-12');
-    expect(addDays('2026-02-28', 1)).toBe('2026-03-01');
-  });
-});
 
 describe('guideFixtures (TC-B1-GUIDE-01)', () => {
   it('are valid content files', () => {
     expect(validateGuideSet(guideFixtures('2026-11-13'))).toEqual([]);
+  });
+
+  it('load next to the content files, as db:seed --guide-fixtures does', () => {
+    expect(validateGuideSet([...GUIDE_FILES, ...guideFixtures('2026-11-13')])).toEqual([]);
   });
 
   it('date the six-month pair as GUIDE-01j does for a run on 13 November 2026', () => {

@@ -4,6 +4,9 @@ import type { CourseDetail, Curriculum, CurriculumCourse, Program, RequirementGr
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import ExplorerView from './ExplorerView.vue';
+import { EXPLORER_MESSAGES } from './messages.js';
+import { useLocale } from '../locale.js';
+import { chooseOption } from '../testing/select.js';
 
 // A synthetic curriculum: made-up codes and names, the group headings of the real APCS tables.
 const course = (code: string, nameVi: string, credits = 4, nameEn: string | null = null): CurriculumCourse => ({
@@ -43,7 +46,8 @@ const CURRICULUM: Curriculum = {
     group('0a02', 'Kiến thức Math', 'compulsory', [course('ZZ101', 'Giải tích thử'), course('ZZ102', 'Đại số thử', 3)], {
       officialNotes: 'Ghi chú thử của nhóm.',
     }),
-    group('0a03', 'Kiến thức Computer Science (A): bắt buộc', 'compulsory', [course('ZZ201', 'Lập trình thử')]),
+    // ZZ201 is recorded as having no prerequisite, as the seed records every APCS course but CS470.
+    group('0a03', 'Kiến thức Computer Science (A): bắt buộc', 'compulsory', [{ ...course('ZZ201', 'Lập trình thử'), prerequisites: [] }]),
   ],
 };
 const PROGRAMS: Program[] = [{ code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced', cohortYears: [2024, 2025] }];
@@ -63,7 +67,7 @@ const DETAIL: CourseDetail = {
 
 let wrapper: VueWrapper | undefined;
 
-async function render(routes: Record<string, unknown> = {}) {
+async function render(routes: Record<string, unknown> = {}, path = '/explorer') {
   const fetch = mockApi({
     'GET /programs': { programs: PROGRAMS },
     'GET /programs/APCS/curricula/2024': CURRICULUM,
@@ -73,7 +77,7 @@ async function render(routes: Record<string, unknown> = {}) {
     'GET /courses/ZZ414': DETAIL,
     ...routes,
   });
-  const app = await setup('/explorer');
+  const app = await setup(path);
   wrapper = mount(ExplorerView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
   return { w: wrapper, fetch };
@@ -106,6 +110,21 @@ describe('ExplorerView (F4)', () => {
     expect(elective!.classes()).toContain('g-elec');
     expect(elective!.text()).toContain('Tự chọn · tối thiểu 12 TC');
     expect(w.get('[data-test="course-ZZ102"]').text()).toContain('3 TC');
+  });
+
+  it('brings the course named by ?course= into view, focused and glowing (the planner’s Taken tags link here)', async () => {
+    const { w } = await render({}, '/explorer?course=ZZ102');
+    const tile = w.get('[data-test="course-ZZ102"]');
+    expect(document.activeElement).toBe(tile.element);
+    expect(tile.classes()).toContain('flash');
+  });
+
+  it('shows the linked course once: a later cohort switch keeps the student’s own search', async () => {
+    const { w } = await render({ 'GET /programs/APCS/curricula/2025': { ...CURRICULUM, cohortYear: 2025 } }, '/explorer?course=ZZ102');
+    await w.get('input[type="search"]').setValue('zz101');
+    await chooseOption(w.findAll('.head-actions [role="combobox"]')[1]!, 'Khóa 2025');
+    await flushPromises();
+    expect((w.get('input[type="search"]').element as HTMLInputElement).value).toBe('zz101');
   });
 
   it('finds courses typed without diacritics, by name, English name or code', async () => {
@@ -146,6 +165,48 @@ describe('ExplorerView (F4)', () => {
     expect(w.find('[role="alert"]').exists()).toBe(false);
   });
 
+  it('says a course recorded as having no prerequisite has none, in both languages, and still that its offering terms are not recorded', async () => {
+    const { w } = await render();
+    await w.get('[data-test="course-ZZ201"]').trigger('click');
+    await flushPromises();
+    expect(w.get('dialog[open] [data-test="no-prerequisites"]').text()).toBe('Không có môn tiên quyết. Chưa ghi nhận học kỳ mở môn.');
+    expect(`${EXPLORER_MESSAGES.en.prerequisitesNone} ${EXPLORER_MESSAGES.en.termsUnknown}`).toBe('No prerequisite. Offering terms are not recorded yet.');
+  });
+
+  it.each([
+    [null, 'Chưa ghi nhận môn tiên quyết. Học kỳ mở môn: HK1, HK3.', 'Prerequisites are not recorded yet. Offering terms: term 1, term 3.'],
+    [[], 'Không có môn tiên quyết. Học kỳ mở môn: HK1, HK3.', 'No prerequisite. Offering terms: term 1, term 3.'],
+    [['ZZ201'], 'Môn tiên quyết: ZZ201. Học kỳ mở môn: HK1, HK3.', 'Prerequisites: ZZ201. Offering terms: term 1, term 3.'],
+  ])('lists the recorded offering terms of a course whose prerequisites are %j, in both languages', async (prerequisites, vi, en) => {
+    const withTerms: Curriculum = {
+      ...CURRICULUM,
+      requirementGroups: CURRICULUM.requirementGroups.map((g) =>
+        g.name === 'Kiến thức Computer Science (A): bắt buộc' ? { ...g, courses: [...g.courses, { ...course('ZZ203', 'Môn có kỳ mở thử'), prerequisites, offeringTerms: [1, 3] }] } : g,
+      ),
+    };
+    const { w } = await render({ 'GET /programs/APCS/curricula/2024': withTerms, 'GET /courses/ZZ203': { ...DETAIL, code: 'ZZ203' } });
+    await w.get('[data-test="course-ZZ203"]').trigger('click');
+    await flushPromises();
+    expect(w.get('dialog[open] [data-test="no-prerequisites"]').text()).toBe(vi);
+    useLocale().set('en');
+    await flushPromises();
+    expect(w.get('dialog[open] [data-test="no-prerequisites"]').text()).toBe(en);
+  });
+
+  it('lists the recorded prerequisites of a course, as the seed records CS469 for CS470, in both languages', async () => {
+    const withPrerequisite: Curriculum = {
+      ...CURRICULUM,
+      requirementGroups: CURRICULUM.requirementGroups.map((g) =>
+        g.name === 'Kiến thức Computer Science (A): bắt buộc' ? { ...g, courses: [...g.courses, { ...course('ZZ202', 'Đồ án thử'), prerequisites: ['ZZ201'] }] } : g,
+      ),
+    };
+    const { w } = await render({ 'GET /programs/APCS/curricula/2024': withPrerequisite });
+    await w.get('[data-test="course-ZZ202"]').trigger('click');
+    await flushPromises();
+    expect(w.get('dialog[open] [data-test="no-prerequisites"]').text()).toBe('Môn tiên quyết: ZZ201. Chưa ghi nhận học kỳ mở môn.');
+    expect(`${EXPLORER_MESSAGES.en.prerequisitesListed(['ZZ201'])} ${EXPLORER_MESSAGES.en.termsUnknown}`).toBe('Prerequisites: ZZ201. Offering terms are not recorded yet.');
+  });
+
   it('opens a course in a drawer, with its groups and a plain note that prerequisites are not recorded', async () => {
     const { w } = await render();
     await w.get('[data-test="course-ZZ414"]').trigger('click');
@@ -155,7 +216,7 @@ describe('ExplorerView (F4)', () => {
     expect(drawer.text()).toContain('Machine learning (test)');
     expect(drawer.text()).toContain('LT 45 · TH 30');
     expect(drawer.get('[data-test="memberships"]').text()).toContain('APCS2024 Tự chọn Computer Science (C)');
-    expect(drawer.get('[data-test="no-prerequisites"]').text()).toBe('Chưa ghi nhận môn tiên quyết và học kỳ mở môn.');
+    expect(drawer.get('[data-test="no-prerequisites"]').text()).toBe('Chưa ghi nhận môn tiên quyết. Chưa ghi nhận học kỳ mở môn.');
     expect(drawer.find('[data-test="transcript-note"]').exists()).toBe(false);
     await drawer.get('button[aria-label="Đóng"]').trigger('click');
     await flushPromises();
@@ -164,7 +225,7 @@ describe('ExplorerView (F4)', () => {
 
   it('switches to another cohort of the program', async () => {
     const { w, fetch } = await render({ 'GET /programs/APCS/curricula/2025': { ...CURRICULUM, cohortYear: 2025, nameVi: 'CTĐT thử khóa 2025' } });
-    await w.findAll('.head-actions select')[1]!.setValue('2025');
+    await chooseOption(w.findAll('.head-actions [role="combobox"]')[1]!, 'Khóa 2025');
     await flushPromises();
     expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(expect.stringContaining('/programs/APCS/curricula/2025'));
     expect(w.get('[data-test="summary"]').text()).toContain('CTĐT thử khóa 2025');

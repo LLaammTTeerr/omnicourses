@@ -46,7 +46,6 @@ interface PlannerMessages {
   renameTitle: string;
   save: string;
   cancel: string;
-  deleteTitle: (name: string) => string;
   deleteBody: string;
   keep: string;
   deleting: string;
@@ -73,14 +72,33 @@ interface PlannerMessages {
   allPlaced: string;
   noMatch: string;
   inTranscript: string;
+  passedMark: string;
   dropToRemove: string;
+  /** The bin shown while a placed course is dragged: dropped there, it goes back to the course list. */
+  binLabel: string;
+  binHint: string;
+  /** The jump from an issue to its course on the board. */
+  goTo: string;
+  /** A citation that links to the regulation, as a short label and its tooltip. */
+  sourceTitle: (citation: string) => string;
+  noIssuesTitle: string;
+  noTermViolations: string;
+  groupsStillShort: (n: number) => string;
+  unknownsLeft: (n: number) => string;
+  newTag: string;
+  goneTag: string;
+  /** A passed course in the "Taken" strip opens the curriculum explorer at it. */
+  showInExplorer: (code: string) => string;
   dropHere: string;
   addTerm: (term: string) => string;
   termsLabel: string;
   credits: (n: number) => string;
-  load: (credits: number) => string;
-  /** A term with a course of unknown credits (load_not_checked): its load is a lower bound. */
-  loadAtLeast: (credits: number) => string;
+  /** After the load figure: "/ 22 TC", or the unit alone when the term has no cap on record. */
+  ofCap: (max: number | null) => string;
+  /** Before the load of a term with a course of unknown credits (load_not_checked): its load is a lower bound. */
+  atLeast: string;
+  /** The months a term runs, from the calendar the API uses (term 1 from September, 2 from January, 3 from June). */
+  termMonths: (term: { year: number; number: 1 | 2 | 3 }) => string;
   caps: (min: number | null, max: number) => string;
   capsUnknown: string;
   summer: string;
@@ -96,6 +114,58 @@ interface PlannerMessages {
   added: (code: string, term: string) => string;
   removed: (code: string) => string;
   liftCancelled: (code: string) => string;
+  // Toolbar, tabs, status strip
+  undo: string;
+  undone: (what: string) => string;
+  nothingToUndo: string;
+  whatIf: string;
+  whatIfName: (name: string) => string;
+  whatIfHint: string;
+  plansLabel: string;
+  /** The plan made for a student who has none, the first time the planner opens. */
+  defaultPlanName: string;
+  opening: string;
+  backToList: string;
+  lock: string;
+  unlock: string;
+  lockHint: string;
+  lockedNote: string;
+  deletePlan: (name: string) => string;
+  deletePlanTitle: string;
+  previewSpan: (first: string, last: string) => string;
+  previewCounts: (terms: number, courses: number, slots: number) => string;
+  previewEmpty: string;
+  openPlan: (name: string) => string;
+  statusLabel: string;
+  invalid: (n: number) => string;
+  /** No violation, and every rule checked. */
+  noViolation: string;
+  /** No violation, but `n` rules the engine could not check: not a pass (#80). */
+  noViolationUnknown: (n: number) => string;
+  coverageTitle: (group: string, credits: number, required: number | null) => string;
+  // Tray, past terms, current term, tiles
+  allGroups: string;
+  groupFilter: string;
+  slotNotChosen: string;
+  addSlot: (group: string, term: string) => string;
+  slotsTitle: string;
+  pastTitle: string;
+  pastTerms: (n: number, first: string, last: string) => string;
+  accumulated: string;
+  inProgress: string;
+  locked: string;
+  takenBefore: (grade: string) => string;
+  // Drag preview and the issues panel
+  dropChecking: string;
+  dropFailed: string;
+  /** A drop the engine could not fully check: never worded as a pass (#80). */
+  dropUnknown: (what: string) => string;
+  previewOf: (code: string, term: string) => string;
+  previewDelta: (delta: number) => string;
+  collapse: string;
+  expand: string;
+  groupsShort: (n: number) => string;
+  issueTitle: Record<PlanIssueCode, string>;
   // Issues
   issuesTitle: string;
   issuesLead: string;
@@ -158,13 +228,12 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     renameTitle: 'Đổi tên kế hoạch',
     save: 'Lưu',
     cancel: 'Hủy',
-    deleteTitle: (name) => `Xóa ${name}?`,
     deleteBody: 'Kế hoạch và mọi môn đã xếp trong đó sẽ bị xóa. Không thể hoàn tác.',
     keep: 'Giữ lại',
     deleting: 'Đang xóa…',
     allPlans: 'Mọi kế hoạch',
     editorLead: 'Thêm môn từ chương trình, chuyển môn giữa các học kỳ. Mỗi thay đổi được lưu ngay và rule engine kiểm tra lại kế hoạch.',
-    keyboardHint: 'Bàn phím: chọn một môn, Space để nhấc, mũi tên lên xuống để chọn học kỳ, Enter để thả, Esc để hủy, Delete để bỏ.',
+    keyboardHint: 'Bàn phím: Space nhấc · ↑↓ chọn học kỳ · Enter thả · Esc hủy · Delete bỏ · Ctrl+Z hoàn tác',
     notFound: 'Không có kế hoạch này trong các kế hoạch của bạn.',
     saved: 'Đã lưu',
     saving: 'Đang lưu…',
@@ -184,13 +253,26 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     allPlaced: 'Mọi môn của chương trình đã được xếp.',
     noMatch: 'Không có môn nào khớp.',
     inTranscript: 'Trong bảng điểm',
+    passedMark: 'Đã đạt',
     dropToRemove: 'Thả một môn vào đây để bỏ khỏi kế hoạch.',
+    binLabel: 'Bỏ khỏi lộ trình',
+    binHint: 'Thả vào đây, môn quay về danh sách học phần',
+    goTo: 'Đến môn',
+    sourceTitle: (c) => `Mở quy chế: ${c}`,
+    noIssuesTitle: 'Không có vi phạm',
+    noTermViolations: 'Không có vi phạm trong các học kỳ',
+    groupsStillShort: (n) => `Nhưng còn ${n} nhóm thiếu tín chỉ, xem bên dưới.`,
+    unknownsLeft: (n) => `Còn ${n} mục chưa kiểm tra được, xem bên dưới.`,
+    newTag: 'Mới',
+    goneTag: 'Sẽ hết',
+    showInExplorer: (c) => `Xem ${c} trong chương trình đào tạo`,
     dropHere: 'Thả môn vào đây',
     addTerm: (term) => `Thêm ${term}`,
     termsLabel: 'Các học kỳ',
     credits: (n) => `${n} TC`,
-    load: (credits) => `${credits} TC`,
-    loadAtLeast: (credits) => `Ít nhất ${credits} TC`,
+    ofCap: (max) => (max === null ? ' TC' : ` / ${max} TC`),
+    atLeast: 'Ít nhất',
+    termMonths: ({ year, number }) => (number === 1 ? `Tháng 9 – 12/${year}` : number === 2 ? `Tháng 1 – 5/${year + 1}` : `Tháng 6 – 8/${year + 1}`),
     caps: (min, max) => (min === null ? `tối đa ${max} TC` : `${min}–${max} TC`),
     capsUnknown: 'chưa ghi nhận giới hạn TC',
     summer: 'Học kỳ hè',
@@ -206,6 +288,69 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     added: (c, term) => `Đã thêm ${c} vào ${term}.`,
     removed: (c) => `Đã bỏ ${c} khỏi kế hoạch.`,
     liftCancelled: (c) => `Đã hủy chuyển ${c}.`,
+    undo: 'Hoàn tác',
+    undone: (what) => `Đã hoàn tác: ${what}`,
+    nothingToUndo: 'Không còn gì để hoàn tác.',
+    whatIf: 'What-if',
+    whatIfName: (name) => `What-if: ${name}`,
+    whatIfHint: 'Thử thay đổi trên một bản sao. Kế hoạch này giữ nguyên.',
+    plansLabel: 'Các kế hoạch',
+    defaultPlanName: 'Kế hoạch mặc định',
+    opening: 'Đang mở kế hoạch…',
+    backToList: 'Danh sách kế hoạch',
+    lock: 'Khóa',
+    unlock: 'Mở khóa',
+    lockHint: 'Khóa kế hoạch để không lỡ tay thay đổi',
+    lockedNote: 'Kế hoạch đang khóa: không kéo, thêm hay bỏ môn được. Bấm Mở khóa để sửa.',
+    deletePlan: (name) => `Xóa ${name}`,
+    deletePlanTitle: 'Xóa kế hoạch này?',
+    previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
+    previewCounts: (terms, courses, slots) => [`${terms} học kỳ`, `${courses} môn`, ...(slots ? [`${slots} chỗ tự chọn`] : [])].join(' · '),
+    previewEmpty: 'Chưa xếp môn nào',
+    openPlan: (name) => `Mở ${name}`,
+    statusLabel: 'Tình trạng kế hoạch',
+    invalid: (n) => `Chưa hợp lệ · ${n} vi phạm`,
+    noViolation: 'Không thấy vi phạm',
+    noViolationUnknown: (n) => `Không thấy vi phạm · ${n} mục chưa kiểm tra được`,
+    coverageTitle: (g, c, r) => (r === null ? `${g}: ${c} tín chỉ` : `${g}: ${c}/${r} tín chỉ`),
+    allGroups: 'Tất cả',
+    groupFilter: 'Lọc theo nhóm',
+    slotNotChosen: 'Chưa chọn môn',
+    addSlot: (g, term) => `Giữ chỗ cho ${g} ở ${term}`,
+    slotsTitle: 'Giữ chỗ tự chọn',
+    pastTitle: 'Đã học',
+    pastTerms: (n, first, last) => `${n} học kỳ · ${first} → ${last}`,
+    accumulated: 'tín chỉ tích lũy',
+    inProgress: 'Đang học',
+    locked: 'Đang học, không đổi được',
+    takenBefore: (g) => `Đã học trước · điểm ${g}`,
+    dropChecking: 'Đang kiểm tra…',
+    dropFailed: 'Không xem trước được. Trỏ vào hàng này để thử lại.',
+    dropUnknown: (what) => `Chưa kiểm tra được: ${what}`,
+    previewOf: (c, term) => `Xem trước: ${c} → ${term}`,
+    previewDelta: (d) => {
+      if (d === 0) return 'số vi phạm không đổi';
+      return d > 0 ? `thêm ${d} vi phạm` : `bớt ${-d} vi phạm`;
+    },
+    collapse: 'Thu gọn bảng kiểm tra',
+    expand: 'Mở bảng kiểm tra',
+    groupsShort: (n) => `${n} nhóm còn thiếu`,
+    issueTitle: {
+      prerequisite_not_met: 'Thiếu môn tiên quyết',
+      prerequisites_not_recorded: 'Chưa có môn tiên quyết',
+      not_offered: 'Không mở ở học kỳ này',
+      offering_terms_not_recorded: 'Chưa có học kỳ mở môn',
+      load_below_minimum: 'Dưới mức tín chỉ tối thiểu',
+      load_above_maximum: 'Vượt mức tín chỉ tối đa',
+      caps_not_checked: 'Chưa kiểm tra giới hạn tín chỉ',
+      load_not_checked: 'Chưa rõ số tín chỉ của học kỳ',
+      placed_twice: 'Xếp hai lần',
+      already_passed: 'Đã đạt trước đó',
+      already_in_progress: 'Đang học ở học kỳ trước',
+      not_in_curriculum: 'Ngoài chương trình',
+      credits_not_recorded: 'Không còn trong danh mục',
+      requirement_not_covered: 'Nhóm còn thiếu',
+    },
     issuesTitle: 'Kiểm tra kế hoạch',
     issuesLead: 'Do rule engine tính theo quy chế đào tạo, không do AI.',
     noIssues: 'Rule engine không thấy vấn đề nào.',
@@ -279,13 +424,12 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     renameTitle: 'Rename the plan',
     save: 'Save',
     cancel: 'Cancel',
-    deleteTitle: (name) => `Delete ${name}?`,
     deleteBody: 'The plan and every course placed in it are deleted. This cannot be undone.',
     keep: 'Keep it',
     deleting: 'Deleting…',
     allPlans: 'All plans',
     editorLead: 'Add courses from your curriculum and move them between terms. Each change is saved at once and the rule engine checks the plan again.',
-    keyboardHint: 'Keyboard: focus a course, Space to lift it, Up and Down arrows to pick a term, Enter to drop, Escape to cancel, Delete to remove.',
+    keyboardHint: 'Keyboard: Space lifts · ↑↓ picks a term · Enter drops · Esc cancels · Delete removes · Ctrl+Z undoes',
     notFound: 'This plan is not among your plans.',
     saved: 'Saved',
     saving: 'Saving…',
@@ -305,13 +449,26 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     allPlaced: 'Every course of the curriculum is placed.',
     noMatch: 'No course matches.',
     inTranscript: 'In your transcript',
+    passedMark: 'Passed',
     dropToRemove: 'Drop a course here to remove it from the plan.',
+    binLabel: 'Remove from the plan',
+    binHint: 'Drop here and the course goes back to the course list',
+    goTo: 'Go to course',
+    sourceTitle: (c) => `Open the regulation: ${c}`,
+    noIssuesTitle: 'No violations',
+    noTermViolations: 'No violation in the terms',
+    groupsStillShort: (n) => `But ${n} ${n === 1 ? 'group is' : 'groups are'} still short of credits, see below.`,
+    unknownsLeft: (n) => `${n} ${n === 1 ? 'rule' : 'rules'} could not be checked, see below.`,
+    newTag: 'New',
+    goneTag: 'Goes away',
+    showInExplorer: (c) => `Show ${c} in the curriculum`,
     dropHere: 'Drop a course here',
     addTerm: (term) => `Add ${term}`,
     termsLabel: 'Terms',
     credits: (n) => `${n} cr`,
-    load: (credits) => `${credits} credits`,
-    loadAtLeast: (credits) => `At least ${credits} credits`,
+    ofCap: (max) => (max === null ? ' credits' : ` / ${max} credits`),
+    atLeast: 'At least',
+    termMonths: ({ year, number }) => (number === 1 ? `Sep – Dec ${year}` : number === 2 ? `Jan – May ${year + 1}` : `Jun – Aug ${year + 1}`),
     caps: (min, max) => (min === null ? `at most ${max}` : `${min}–${max}`),
     capsUnknown: 'credit caps not recorded',
     summer: 'Summer term',
@@ -327,6 +484,71 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     added: (c, term) => `Added ${c} to ${term}.`,
     removed: (c) => `Removed ${c} from the plan.`,
     liftCancelled: (c) => `Cancelled moving ${c}.`,
+    undo: 'Undo',
+    undone: (what) => `Undone: ${what}`,
+    nothingToUndo: 'Nothing left to undo.',
+    whatIf: 'What-if',
+    whatIfName: (name) => `What-if: ${name}`,
+    whatIfHint: 'Try a change on a copy. This plan stays as it is.',
+    plansLabel: 'Plans',
+    defaultPlanName: 'Default plan',
+    opening: 'Opening your plan…',
+    backToList: 'Plan list',
+    lock: 'Lock',
+    unlock: 'Unlock',
+    lockHint: 'Lock the plan so nothing changes by accident',
+    lockedNote: 'This plan is locked: no dragging, adding or removing. Unlock it to edit.',
+    deletePlan: (name) => `Delete ${name}`,
+    deletePlanTitle: 'Delete this plan?',
+    previewSpan: (first, last) => (first === last ? first : `${first} → ${last}`),
+    previewCounts: (terms, courses, slots) => [`${terms} ${terms === 1 ? 'term' : 'terms'}`, `${courses} ${courses === 1 ? 'course' : 'courses'}`, ...(slots ? [`${slots} elective ${slots === 1 ? 'slot' : 'slots'}`] : [])].join(' · '),
+    previewEmpty: 'No courses placed yet',
+    openPlan: (name) => `Open ${name}`,
+    statusLabel: 'Plan status',
+    invalid: (n) => `Not valid yet · ${n} ${n === 1 ? 'violation' : 'violations'}`,
+    noViolation: 'No violation found',
+    noViolationUnknown: (n) => `No violation found · ${n} not checked`,
+    coverageTitle: (g, c, r) => (r === null ? `${g}: ${c} credits` : `${g}: ${c}/${r} credits`),
+    allGroups: 'All',
+    groupFilter: 'Filter by group',
+    slotNotChosen: 'No course chosen',
+    addSlot: (g, term) => `Hold a slot for ${g} in ${term}`,
+    slotsTitle: 'Elective slots',
+    pastTitle: 'Taken',
+    pastTerms: (n, first, last) => `${n} ${n === 1 ? 'term' : 'terms'} · ${first} → ${last}`,
+    accumulated: 'credits accumulated',
+    inProgress: 'In progress',
+    locked: 'In progress, cannot be moved',
+    takenBefore: (g) => `Taken before · grade ${g}`,
+    dropChecking: 'Checking…',
+    dropFailed: 'No preview. Point at this row to try again.',
+    dropUnknown: (what) => `Not checked: ${what}`,
+    previewOf: (c, term) => `Preview: ${c} → ${term}`,
+    previewDelta: (d) => {
+      if (d === 0) return 'same number of violations';
+      const n = Math.abs(d);
+      const noun = n === 1 ? 'violation' : 'violations';
+      return d > 0 ? `${n} more ${noun}` : `${n} fewer ${noun}`;
+    },
+    collapse: 'Collapse the plan check',
+    expand: 'Open the plan check',
+    groupsShort: (n) => `${n} ${n === 1 ? 'group' : 'groups'} still short`,
+    issueTitle: {
+      prerequisite_not_met: 'Prerequisite missing',
+      prerequisites_not_recorded: 'Prerequisites not recorded',
+      not_offered: 'Not taught this term',
+      offering_terms_not_recorded: 'Offering terms not recorded',
+      load_below_minimum: 'Below the minimum load',
+      load_above_maximum: 'Above the maximum load',
+      caps_not_checked: 'Credit caps not checked',
+      load_not_checked: 'Term load unknown',
+      placed_twice: 'Placed twice',
+      already_passed: 'Already passed',
+      already_in_progress: 'In progress earlier',
+      not_in_curriculum: 'Outside the curriculum',
+      credits_not_recorded: 'No longer in the catalog',
+      requirement_not_covered: 'Requirement short',
+    },
     issuesTitle: 'Plan check',
     issuesLead: 'Computed by the rule engine from the training regulation, not by AI.',
     noIssues: 'The rule engine found nothing.',

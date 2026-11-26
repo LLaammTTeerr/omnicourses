@@ -1,5 +1,6 @@
+import { GROUP_IDS } from '../groups.js';
 import type { Lang } from '../locale.js';
-import { PASSWORD_MIN_LENGTH } from './api.js';
+import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from './api.js';
 import type { Strength } from './password-strength.js';
 
 interface AuthMessages {
@@ -37,6 +38,7 @@ interface AuthMessages {
   consent: string;
   consentDetail: string;
   consentRequired: string;
+  privacyLink: string;
   signUp: string;
   signingUp: string;
   emailTaken: string;
@@ -72,23 +74,24 @@ export const AUTH_MESSAGES: Record<Lang, AuthMessages> = {
     displayName: 'Tên hiển thị',
     displayNameHint: 'Không cần tên thật. Không bao giờ gửi cho AI.',
     displayNameRequired: 'Nhập tên hiển thị.',
-    displayNameTooLong: 'Tên hiển thị tối đa 100 ký tự.',
+    displayNameTooLong: `Tên hiển thị tối đa ${DISPLAY_NAME_MAX_LENGTH} ký tự.`,
     passwordPlaceholder: `Ít nhất ${PASSWORD_MIN_LENGTH} ký tự`,
     passwordHint: 'Dùng một mật khẩu riêng, khác mật khẩu cổng trường.',
     passwordShort: (missing) => `Còn thiếu ${missing} ký tự.`,
-    passwordTooLong: 'Mật khẩu tối đa 128 ký tự.',
+    passwordTooLong: `Mật khẩu tối đa ${PASSWORD_MAX_LENGTH} ký tự.`,
     strength: { weak: 'Yếu', fair: 'Tạm được', strong: 'Mạnh', 'very-strong': 'Rất mạnh' },
     strengthLabel: 'Độ mạnh mật khẩu',
     consent: 'Tôi đồng ý cho OmniCourse xử lý dữ liệu học tập của tôi',
     consentDetail: 'Bảng điểm và những gì bạn nhập. Lưu đến khi bạn xóa tài khoản. Xuất hoặc xóa bất cứ lúc nào. Căn cứ Luật 91/2025/QH15.',
     consentRequired: 'Cần đồng ý xử lý dữ liệu để tạo tài khoản.',
+    privacyLink: 'Đọc thông báo quyền riêng tư',
     signUp: 'Tạo tài khoản',
     signingUp: 'Đang tạo tài khoản…',
     emailTaken: 'Email này đã có tài khoản.',
     signInInstead: 'Đăng nhập',
     checkFields: 'Có ô chưa hợp lệ. Kiểm tra lại rồi gửi lần nữa.',
     haveAccount: 'Đã có tài khoản?',
-    signUpArtChip: '8 nhóm tín chỉ',
+    signUpArtChip: `${GROUP_IDS.length} nhóm tín chỉ`,
     signUpArt: 'Mỗi nhóm tín chỉ một màu và một ký hiệu.',
     signUpArtText: 'Màu giúp nhìn nhanh, ký hiệu giữ nghĩa khi không phân biệt được màu.',
   },
@@ -115,23 +118,24 @@ export const AUTH_MESSAGES: Record<Lang, AuthMessages> = {
     displayName: 'Display name',
     displayNameHint: 'It need not be your real name. Never sent to an AI.',
     displayNameRequired: 'Enter a display name.',
-    displayNameTooLong: 'A display name has at most 100 characters.',
+    displayNameTooLong: `A display name has at most ${DISPLAY_NAME_MAX_LENGTH} characters.`,
     passwordPlaceholder: `At least ${PASSWORD_MIN_LENGTH} characters`,
     passwordHint: 'Use a password of its own, not your school portal password.',
     passwordShort: (missing) => `${missing} more character${missing === 1 ? '' : 's'} needed.`,
-    passwordTooLong: 'A password has at most 128 characters.',
+    passwordTooLong: `A password has at most ${PASSWORD_MAX_LENGTH} characters.`,
     strength: { weak: 'Weak', fair: 'Fair', strong: 'Strong', 'very-strong': 'Very strong' },
     strengthLabel: 'Password strength',
     consent: 'I agree that OmniCourse processes my study data',
     consentDetail: 'Your transcript and what you enter. Kept until you delete your account. Export or delete it at any time. Under Law 91/2025/QH15.',
     consentRequired: 'You need to agree to the processing of your data to create an account.',
+    privacyLink: 'Read the privacy notice',
     signUp: 'Create account',
     signingUp: 'Creating your account…',
     emailTaken: 'This email already has an account.',
     signInInstead: 'Sign in',
     checkFields: 'Some fields are not valid. Check them and send again.',
     haveAccount: 'Already have an account?',
-    signUpArtChip: '8 credit groups',
+    signUpArtChip: `${GROUP_IDS.length} credit groups`,
     signUpArt: 'Each credit group has its own colour and glyph.',
     signUpArtText: 'The colour is quick to read; the glyph keeps the meaning when colours look alike.',
   },

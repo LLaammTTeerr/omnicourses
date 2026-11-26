@@ -1,32 +1,15 @@
-import { Term } from '../terms/term.js';
+import type { BoardTerm, Placement } from '../rules/types.js';
+import { type Term, termKey, toTerm } from '../terms/term.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
 // The board of a plan (ADR 0014): one row per term, placements in order. Pure functions, so the
 // shape checks are unit-tested without a database. None of them is an academic rule (AGENTS.md
 // hard rule 1): prerequisites, offering terms, credit caps and coverage are the rule engine's.
 
-export const PLACEMENT_KINDS = ['course', 'slot'] as const;
-export type PlacementKind = (typeof PLACEMENT_KINDS)[number];
-
-/** A course, or a slot holding credits for a requirement group until a course is chosen. */
-export interface Placement {
-  kind: PlacementKind;
-  courseCode: string | null;
-  requirementGroupId: string | null;
-  credits: number | null;
-}
-
-export interface BoardTerm {
-  term: Term;
-  placements: Placement[];
-}
-
 /** Upper bounds against oversized requests, far above any real plan (12 terms of about 8 courses for APCS). */
 export const MAX_BOARD_TERMS = 30;
 export const MAX_TERM_PLACEMENTS = 30;
 export const MAX_BOARD_PLACEMENTS = 300;
-
-const termKey = (t: Term) => `${t.year}-${t.number}`;
 
 /** Why a board cannot be stored as sent, or [] when its shape is sound. */
 export function boardProblems(terms: readonly BoardTerm[]): string[] {
@@ -49,8 +32,15 @@ export function boardProblems(terms: readonly BoardTerm[]): string[] {
   return problems;
 }
 
-export const courseCodesOf = (terms: readonly BoardTerm[]): string[] =>
-  terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'course' && p.courseCode !== null ? [p.courseCode] : [])));
+/**
+ * The board with `placement` added at the end of `to`, the term made if it holds nothing yet. The planner draws a
+ * drop the same way, so the positions in each report match its tiles. Board shape only: no rule is judged here.
+ */
+export function withPlacement(terms: readonly BoardTerm[], placement: Placement, to: Term): BoardTerm[] {
+  const key = termKey(to);
+  if (!terms.some((t) => termKey(t.term) === key)) return [...terms, { term: to, placements: [placement] }];
+  return terms.map((t) => (termKey(t.term) === key ? { term: t.term, placements: [...t.placements, placement] } : t));
+}
 
 export const groupIdsOf = (terms: readonly BoardTerm[]): string[] =>
   terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'slot' && p.requirementGroupId !== null ? [p.requirementGroupId] : [])));
@@ -78,7 +68,7 @@ export function toBoard(rows: readonly PlanPlacement[]): BoardTerm[] {
   for (const row of sorted) {
     let last = terms.at(-1);
     if (!last || last.term.year !== row.termYear || last.term.number !== row.termNumber) {
-      last = { term: { year: row.termYear, number: row.termNumber as Term['number'] }, placements: [] };
+      last = { term: toTerm(row.termYear, row.termNumber), placements: [] };
       terms.push(last);
     }
     last.placements.push(

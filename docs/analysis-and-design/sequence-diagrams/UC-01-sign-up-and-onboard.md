@@ -3,9 +3,9 @@
 - Use case: UC-01 (`docs/requirements/use-cases/`, PR #16)
 - Owner: Lâm
 - Drawn from the code on `main`: `src/backend/src/auth/`, `src/backend/src/users/` ([ADR 0002](../adr/0002-authentication-and-sessions.md))
-- Not drawn yet: onboarding, whose API (`GET` and `PUT /api/users/me/onboarding`, [B1 test cases §6](../../test/test-cases-b1.md#6-inputs-still-needed)) is decided but not on `main`, and sign-in with Google (deferred, ADR 0002)
+- Not drawn yet: onboarding (`GET` and `PUT /api/users/me/onboarding`, built since this file was drawn), and sign-in with Google (deferred, ADR 0002)
 
-Participants are the Nest classes that take part. `ThrottlerGuard` and `AuthGuard` are global guards, registered in that order, so they run before every controller method, and the `ValidationPipe` runs after them. The Vue app's side (where the token is kept, what a 401 does) is the plan in issue #13 and is not built yet.
+Participants are the Nest classes that take part. `ThrottlerGuard` and `AuthGuard` are global guards, registered in that order, so they run before every controller method, and the `ValidationPipe` runs after them. The Vue app's side (where the token is kept, what a 401 does) is `src/frontend/src/auth/store.ts`, built since; the later files draw it as the `useAuth` store.
 
 ## Basic flow, steps 1–5: sign up
 

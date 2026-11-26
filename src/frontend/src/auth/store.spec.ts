@@ -1,8 +1,10 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, HttpError } from '../api.js';
-import { SESSION_STORAGE_KEY, useAuth } from './store.js';
-import { authResult } from './testing/fixtures.js';
+import { requestAsUser, sendAsUser, SESSION_STORAGE_KEY, useAccountCache, useAuth } from './store.js';
+import { authResult, user } from './testing/fixtures.js';
+import { rememberLastPlan } from '../plans/last-plan.js';
+import { setLocked } from '../plans/lock.js';
 
 const fetchMock = () => vi.spyOn(globalThis, 'fetch');
 
@@ -85,6 +87,39 @@ describe('auth store (ADR 0002)', () => {
     expect(useAuth().signedIn).toBe(false);
   });
 
+  // The plan the student had open last and their plan locks are this account's: the next account on this browser
+  // must not find them.
+  const leaveAccountData = () => {
+    rememberLastPlan('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+    setLocked('dddddddd-dddd-4ddd-8ddd-dddddddddddd', true);
+  };
+  const accountData = () => [localStorage.getItem('oc-last-plan'), localStorage.getItem('oc-plan-locks')];
+
+  it('forgets the student’s last plan and plan locks on this browser when they sign out', async () => {
+    fetchMock().mockResolvedValueOnce(Response.json(authResult({ token: 'zz-live' }))).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await useAuth().signIn({ email: 'zz@example.com', password: 'zz-password-1' });
+    leaveAccountData();
+    expect(accountData()).not.toEqual([null, null]);
+    await useAuth().signOut();
+    expect(accountData()).toEqual([null, null]);
+  });
+
+  it('forgets them too when the session ends on a 401, during a call or at page load', async () => {
+    fetchMock().mockResolvedValue(Response.json(authResult({ token: 'zz-live' })));
+    const auth = useAuth();
+    await auth.signIn({ email: 'zz@example.com', password: 'zz-password-1' });
+    leaveAccountData();
+    await expect(auth.authed(async () => Promise.reject(new HttpError('/x', 401)))).rejects.toThrow('401');
+    expect(accountData()).toEqual([null, null]);
+
+    setActivePinia(createPinia());
+    sessionStorage.setItem(SESSION_STORAGE_KEY, 'zz-old');
+    leaveAccountData();
+    fetchMock().mockResolvedValue(new Response(null, { status: 401 }));
+    await useAuth().start();
+    expect(accountData()).toEqual([null, null]);
+  });
+
   it('signs the student out here when a call answers 401, and passes other errors on', async () => {
     fetchMock().mockResolvedValue(Response.json(authResult({ token: 'zz-live' })));
     const auth = useAuth();
@@ -98,5 +133,99 @@ describe('auth store (ADR 0002)', () => {
     expect(seen).toEqual(['zz-live']);
     expect(auth.signedIn).toBe(false);
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
+  });
+
+  it('sends a call as the signed-in student with their token, and signs them out on a 401', async () => {
+    const fetch = fetchMock().mockResolvedValueOnce(Response.json(authResult({ token: 'zz-live' }))).mockResolvedValueOnce(Response.json({ ok: true }));
+    const auth = useAuth();
+    await auth.signIn({ email: 'zz@example.com', password: 'zz-password-1' });
+
+    await expect(requestAsUser('GET', '/x')).resolves.toEqual({ ok: true });
+    expect(fetch).toHaveBeenLastCalledWith(`${API_URL}/x`, expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer zz-live' } }));
+
+    fetch.mockResolvedValueOnce(new Response(null, { status: 401 }));
+    await expect(sendAsUser('GET', '/x')).rejects.toThrow('401');
+    expect(auth.signedIn).toBe(false);
+  });
+});
+
+describe('useAccountCache', () => {
+  const OTHER_ID = '00000000-0000-4000-8000-000000000002';
+
+  function signIn(id = user().id) {
+    const auth = useAuth();
+    auth.token = 'zz-token';
+    auth.user = user({ id });
+  }
+
+  function deferred() {
+    let resolve!: (value: string) => void;
+    const promise = new Promise<string>((done) => { resolve = done; });
+    return { promise, resolve };
+  }
+
+  beforeEach(() => setActivePinia(createPinia()));
+
+  it('loads once per account, and joins a load that is still out', async () => {
+    const fetchValue = vi.fn().mockResolvedValue('zz-answers');
+    signIn();
+    const cache = useAccountCache(fetchValue);
+    const [a, b] = await Promise.all([cache.load(), cache.load()]);
+    expect([a, b]).toEqual(['zz-answers', 'zz-answers']);
+    await cache.load();
+    expect(fetchValue).toHaveBeenCalledTimes(1);
+    expect(cache.value.value).toBe('zz-answers');
+  });
+
+  it('loads again for another account, and never shows one account the value of another', async () => {
+    const fetchValue = vi.fn().mockResolvedValueOnce('zz-first').mockResolvedValueOnce('zz-second');
+    signIn();
+    const cache = useAccountCache(fetchValue);
+    await cache.load();
+    signIn(OTHER_ID);
+    expect(cache.value.value).toBeNull();
+    expect(await cache.load()).toBe('zz-second');
+    expect(fetchValue).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps only the newest answer when a fresh load overtakes an older one', async () => {
+    const older = deferred();
+    const newer = deferred();
+    signIn();
+    const cache = useAccountCache(vi.fn().mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise));
+    const first = cache.load();
+    const second = cache.load({ fresh: true });
+    expect(cache.isLatest(first)).toBe(false);
+    expect(cache.isLatest(second)).toBe(true);
+    newer.resolve('zz-newer');
+    older.resolve('zz-older');
+    await Promise.all([first, second]);
+    expect(cache.value.value).toBe('zz-newer');
+  });
+
+  it('does not let a late answer for one account replace the value of the account now signed in', async () => {
+    signIn();
+    const cache = useAccountCache(vi.fn());
+    signIn(OTHER_ID);
+    cache.seed(OTHER_ID, 'zz-other');
+    cache.keep(user().id, 'zz-late');
+    expect(cache.value.value).toBe('zz-other');
+  });
+
+  it('forgets the value and any load that is out', async () => {
+    const out = deferred();
+    const fetchValue = vi.fn().mockReturnValueOnce(out.promise).mockResolvedValueOnce('zz-again');
+    signIn();
+    const cache = useAccountCache(fetchValue);
+    const first = cache.load();
+    cache.forget();
+    out.resolve('zz-dropped');
+    await first;
+    expect(cache.value.value).toBeNull();
+    expect(await cache.load()).toBe('zz-again');
+  });
+
+  it('refuses to load while signed out', async () => {
+    await expect(useAccountCache(vi.fn()).load()).rejects.toThrow('Not signed in');
   });
 });

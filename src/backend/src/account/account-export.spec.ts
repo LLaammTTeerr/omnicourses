@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSecretColumn } from './account-export.js';
+import { isSecretColumn, selectList } from './account-export.js';
 
 describe('secret columns', () => {
   // TypeORM names a column after its property unless `name` is set, so camelCase counts too.
@@ -17,4 +17,10 @@ describe('secret columns', () => {
       expect(isSecretColumn(column)).toBe(false);
     },
   );
+});
+
+describe('selectList', () => {
+  it('selects every column but the secret ones, quoted, and never *', () => {
+    expect(selectList(['id', 'email', 'password_hash', 'google_sub', 'odd"name'])).toBe('"id", "email", "odd""name"');
+  });
 });

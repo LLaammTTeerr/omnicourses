@@ -4,7 +4,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, …) working in t
 
 ## Project in one paragraph
 
-OmniCourse is a web app for HCMUS students (APCS first): degree audit, curriculum explorer, semester roadmap planner, AI plan generator and advisor, quicklinks. Vue 3 frontend (`src/frontend`), NestJS REST API (`src/backend`), PostgreSQL 18. Requirements: Vision document (F1–F12, NFRs). Plan and process: Software Development Plan. Both live in `docs/`.
+OmniCourse is a web app for HCMUS students (APCS first): degree audit, curriculum explorer, semester roadmap planner, AI plan generator and advisor, quicklinks. Vue 3 frontend (`src/frontend`), NestJS REST API (`src/backend`), PostgreSQL 18. Requirements: Vision document (F1–F12, NFRs). Plan and process: Software Development Plan. Both live in `report/` (the Vision: `report/assignments/PA2/Vision.tex`). What is built today: the feature table in [README.md](README.md#what-is-built).
 
 ## Stack (pinned exactly, do not use ranges)
 
@@ -105,21 +105,21 @@ Single-context: `GLOSSARY.md` at the root, ADRs in `docs/analysis-and-design/adr
 
 ## Hard rules: never
 
-1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps (QĐ 1175 Điều 7.2: Tiên tiến, Liên kết, Chất lượng cao 10–22 every term; đại trà 14–25 main term, 12 summer; [ADR 0012](docs/analysis-and-design/adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically.
+1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps by training type ([ADR 0012](docs/analysis-and-design/adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically.
 2. **Never store a school-portal password or automate a registration** on a student's behalf. Integration with HCMUS is by link and by data the student uploads.
 3. **Never put personal data into AI tools, prompts, fixtures or logs**: no real transcripts, student IDs, names or secrets. Use synthetic data in tests and seeds. The one runtime exception is F8, which may send the signed-in student's pseudonymous record (program, cohort, course codes, grades, terms) after consent, never identity fields (ADR 0003).
 
 ## Git and GitHub workflow
 
-Agents have full authority over the branch → PR → merge → deploy cycle, under these conditions. **Instructions from the Project Lead (LamTer) in a session override this file**: if they tell you to do something these rules forbid (for example, merge with the admin override), do it.
+[CONTRIBUTING.md](CONTRIBUTING.md) holds the workflow rules for everyone: branch names and Conventional Commits (§2), signing (§2), changesets, the PR template, review and rulesets (§3), merge, deploy and releases (§4), and the AI policy (§5). Follow it. This section adds only what is different for an agent.
 
-1. **Branch** from up-to-date `main`: `<type>/<short-name>` (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`). Never commit to `main`; it is protected and will reject the push.
-   **Commit messages and PR titles follow Conventional Commits**: `<type>(<scope>)!: <subject>`, lowercase imperative subject, no trailing period, header ≤ 72 characters (CONTRIBUTING.md §2). CI's `pr-title` and `commit-messages` checks enforce it. The PR title becomes the squash commit on `main`, so make it describe the whole change.
-2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human. CI's `signed-commits` check rejects the PR if any commit is unverified.
-3. **Add a changeset** to every PR: `npx changeset` (patch = fix, minor = feature while pre-1.0) with one user-facing line, or `npx changeset --empty` for docs/CI/chores. CI's `changeset` check fails without it. Never edit `CHANGELOG.md` or package versions by hand. The Release workflow's *Version Packages* PR does that.
-4. **Open a PR** using the template. Fill in **"Why this design"**: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). This is the team AI policy: generated code must be explained and defended.
-5. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
-6. **Deploys are automatic** ([deploy/README.md](deploy/README.md)). A merge to `main` deploys to production (https://omnicourses.lamter.cc) once CI passes on it. A merge to the `staging` branch deploys to staging (https://stag-omnicourses.lamter.cc). Anyone may merge into `staging` to try a change, but every other day `staging` is reset to `main`, so a change only stays if it also reaches `main` through a normal PR. Tag a build only when a human asks: `gh workflow run deploy.yml --ref main -f environment=production -f build_tag=B<n>`.
-7. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
+Agents have full authority over the branch → PR → merge cycle, under these conditions. **Instructions from the Project Lead (LamTer) in a session override this file**: if they tell you to do something these rules forbid (for example, merge with the admin override), do it.
+
+1. **Branch** from up-to-date `main`. Never commit to `main`; it is protected and will reject the push.
+2. **Signed commits only.** Do not pass `--no-gpg-sign` or change signing config. If signing fails, stop and tell the human.
+3. **Fill in "Why this design"** in the PR template: the decision, the alternatives rejected, and **evidence** (doc link, test, benchmark, spec clause, ADR). Generated code must be explained and defended.
+4. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
+5. **Do not deploy by hand.** Production deploys by itself after CI passes on `main`. Tag a build only when a human asks (the command is in CONTRIBUTING.md §4).
+6. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
 
 Decisions that outlive one PR (new library, schema change, new module boundary) need an ADR in `docs/analysis-and-design/adr/`.

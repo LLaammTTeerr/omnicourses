@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef } from 'vue';
+import { computed, nextTick, ref, shallowRef, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
-import { useAuth } from '../auth/store.js';
-import { fetchCurriculum, fetchPrograms, type Course, type RequirementGroup } from '../curriculum/api.js';
+import SelectMenu from '../components/SelectMenu.vue';
+import { fetchCurriculum, fetchPrograms, type Course, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -16,18 +17,17 @@ import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
 // The curriculum explorer (F4, UI prototypes: explorer.html without the prerequisite graph): the requirement groups
-// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API has
-// no prerequisites or offering terms yet, so nothing here says a course is open, locked or available; and whether a
-// course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's own transcript only adds a
-// neutral "in your transcript" mark.
-const auth = useAuth();
+// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API
+// records no offering term yet, and no course that needs another, so nothing here says a course is open, locked or
+// available; and whether a course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's
+// own transcript only adds a neutral "in your transcript" mark.
 const onboarding = useOnboarding();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
 
 // The student's program and cohort by default (UC-01), then whatever they pick. Only offered ones are listed: the
 // other curricula are seeded but not verified (B1 §6 item 1).
-const programs = useAsyncLoad('the programs', () => auth.authed(fetchPrograms));
+const programs = useAsyncLoad('the programs', () => fetchPrograms());
 const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
 const picked = ref<{ program: string; cohort: number } | null>(null);
 const selection = computed(() => {
@@ -50,7 +50,7 @@ function pickCohort(cohort: number): void {
 
 const curriculum = useAsyncLoad(
   'the curriculum',
-  async () => (selection.value ? auth.authed((token) => fetchCurriculum(token, selection.value!.program, selection.value!.cohort)) : null),
+  async () => (selection.value ? fetchCurriculum(selection.value!.program, selection.value!.cohort) : null),
   () => (selection.value ? `${selection.value.program}-${selection.value.cohort}` : null),
 );
 
@@ -71,10 +71,37 @@ const shown = computed(() =>
 const courseCount = computed(() => new Set(groups.value.flatMap(({ group }) => group.courses.map((course) => course.code))).size);
 const glyph = (id: GroupId) => GROUPS.find((g) => g.id === id)!.glyph;
 
-const open = shallowRef<{ course: Course; group: { id: GroupId; name: string } } | null>(null);
-function openCourse(course: Course, group: RequirementGroup, colour: GroupId): void {
+const open = shallowRef<{ course: CurriculumCourse; group: { id: GroupId; name: string } } | null>(null);
+function openCourse(course: CurriculumCourse, group: RequirementGroup, colour: GroupId): void {
   open.value = { course, group: { id: colour, name: group.name } };
 }
+
+// `?course=CODE` (the planner's "Taken" tags): the course is brought into view, focused, and glows once. A search or
+// a group filter that hides it is cleared first.
+// Once per link: a later program or cohort switch must not clear the student's own search again.
+const route = useRoute();
+let shownCourse: string | null = null;
+watch(
+  () => [route.query.course, curriculum.status.value] as const,
+  async ([code, status]) => {
+    if (typeof code !== 'string' || code === shownCourse || status !== 'loaded') return;
+    if (!groups.value.some(({ group }) => group.courses.some((course) => course.code === code))) return;
+    shownCourse = code;
+    query.value = '';
+    only.value = null;
+    await nextTick();
+    const el = document.querySelector<HTMLElement>(`[data-test="course-${CSS.escape(code)}"]`);
+    if (!el) return;
+    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView?.({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+    el.focus({ preventScroll: true });
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    el.addEventListener('animationend', () => el.classList.remove('flash'), { once: true });
+  },
+  { immediate: true },
+);
 
 usePageTitle(() => m.value.title);
 </script>
@@ -92,15 +119,11 @@ usePageTitle(() => m.value.title);
       <div class="head-actions">
         <label class="field">
           <span>{{ m.program }}</span>
-          <select class="select" :value="selection?.program" @change="pickProgram(($event.target as HTMLSelectElement).value)">
-            <option v-for="choice in choices" :key="choice.code" :value="choice.code">{{ programName(choice) }}</option>
-          </select>
+          <SelectMenu :model-value="selection?.program" :options="choices.map((choice) => ({ value: choice.code, label: programName(choice) }))" @update:model-value="pickProgram" />
         </label>
         <label class="field">
           <span>{{ m.cohort }}</span>
-          <select class="select" :value="selection?.cohort" @change="pickCohort(Number(($event.target as HTMLSelectElement).value))">
-            <option v-for="year in cohorts" :key="year" :value="year">{{ m.cohortOption(year) }}</option>
-          </select>
+          <SelectMenu :model-value="selection?.cohort" :options="cohorts.map((year) => ({ value: year, label: m.cohortOption(year) }))" @update:model-value="pickCohort" />
         </label>
       </div>
     </header>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { codePoints, failureKind } from '../api.js';
+import ExternalLink from '../components/ExternalLink.vue';
 import { useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -36,7 +37,7 @@ const strengthColour = computed(() => ({ short: 'var(--bad)', weak: 'var(--bad)'
 function check(): Partial<Record<Field, string>> {
   const name = form.displayName.trim();
   return {
-    displayName: !name ? m.value.displayNameRequired : name.length > DISPLAY_NAME_MAX_LENGTH ? m.value.displayNameTooLong : undefined,
+    displayName: !name ? m.value.displayNameRequired : codePoints(name) > DISPLAY_NAME_MAX_LENGTH ? m.value.displayNameTooLong : undefined,
     email: looksLikeEmail(form.email) ? undefined : m.value.emailInvalid,
     password:
       form.password.length < PASSWORD_MIN_LENGTH
@@ -64,10 +65,10 @@ async function submit(): Promise<void> {
     await auth.signUp({ displayName: form.displayName.trim(), email: form.email.trim(), password: form.password, acceptedTerms: true });
     await router.replace(afterSignIn(route.query.redirect));
   } catch (e) {
-    const status = statusOf(e);
-    if (status === 409) failure.value = 'taken';
-    else if (status === 429) failure.value = m.value.rateLimited;
-    else if (status === 400) failure.value = m.value.checkFields;
+    const kind = failureKind(e);
+    if (kind === 'conflict') failure.value = 'taken';
+    else if (kind === 'rate_limited') failure.value = m.value.rateLimited;
+    else if (kind === 'invalid') failure.value = m.value.checkFields;
     else {
       console.error('Signing up failed:', e);
       failure.value = m.value.unreachable;
@@ -94,7 +95,6 @@ usePageTitle(() => m.value.signUp);
           v-model="form.displayName"
           class="input"
           autocomplete="nickname"
-          :maxlength="DISPLAY_NAME_MAX_LENGTH"
           required
           :aria-invalid="errors.displayName ? 'true' : undefined"
           :aria-describedby="describedBy('displayName', 'sign-up-displayName-hint')"
@@ -146,6 +146,10 @@ usePageTitle(() => m.value.signUp);
           />
           <span><b>{{ m.consent }}</b><br /><span id="sign-up-consent-detail" class="small t2">{{ m.consentDetail }}</span></span>
         </label>
+        <!-- Outside the label, so a click opens the notice instead of ticking the box; a new tab keeps what was typed. -->
+        <p class="small privacy-link">
+          <ExternalLink class="link" :href="router.resolve({ name: 'privacy' }).href" data-test="privacy-link">{{ m.privacyLink }}</ExternalLink>
+        </p>
         <small v-if="errors.consent" id="sign-up-consent-error" class="field-error">{{ errors.consent }}</small>
       </div>
       <p v-if="failure" class="callout bad small" role="alert" data-test="failure">
@@ -171,3 +175,10 @@ usePageTitle(() => m.value.signUp);
     </template>
   </AuthFrame>
 </template>
+
+<style scoped>
+/* Lined up with the consent text: the checkbox's 20 px plus the label's 10 px gap. */
+.privacy-link {
+  margin: 6px 0 0 30px;
+}
+</style>

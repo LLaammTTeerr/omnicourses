@@ -1,12 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { apcs2024TeachingPlan } from './apcs-2024.teaching-plan.js';
-import { apcs2025TeachingPlan } from './apcs-2025.teaching-plan.js';
-import { apcsEquivalences } from './apcs-equivalences.js';
-import { clcEquivalences } from './clc-equivalences.js';
 import { COURSE_CODE_PATTERN, normalizePrintedCode } from '../../common/course-code.js';
+import { apcsNoPrerequisites } from './apcs-prerequisites.js';
 import { buildCatalog, CatalogConflictError, rowToCourse, seedLabel } from './catalog.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './index.js';
-import type { CurriculumSeed, EquivalenceList, PrintedGroup, TeachingPlan } from './seed-types.js';
+import type { CurriculumSeed, PrintedGroup } from './seed-types.js';
 
 // Deterministic checks of the transcribed curricula against the totals printed
 // in the PDFs. A failure means a transcription error or a printed total that
@@ -39,9 +36,6 @@ const SPLIT_GROUPS: Record<string, Record<string, number>> = {
   APCS2024: { 'Kiến thức Computer Science (A)': 56 },
   APCS2025: { 'Kiến thức Computer Science (A)': 56 },
 };
-
-const TEACHING_PLANS: TeachingPlan[] = [apcs2024TeachingPlan, apcs2025TeachingPlan];
-const EQUIVALENCE_LISTS: EquivalenceList[] = [apcsEquivalences, clcEquivalences];
 
 function allStrings(value: unknown): string[] {
   if (typeof value === 'string') return [value];
@@ -304,63 +298,6 @@ describe('normalizePrintedCode', () => {
   });
 });
 
-describe.each(TEACHING_PLANS.map((plan) => [plan.curriculum, plan] as const))('teaching plan %s (not loaded)', (code, plan) => {
-  const seed = CURRICULUM_SEEDS.find((s) => s.curriculum.code === code)!;
-  const rows = seed.groups.flatMap((g) => g.rows);
-
-  it('places only courses of the curriculum, with their credits and type', () => {
-    for (const planned of plan.rows) {
-      const row = rows.find((r) => r.code === planned.code);
-      expect(row, planned.code).toBeDefined();
-      expect(planned.credits, planned.code).toBe(row!.credits);
-      expect(planned.type, planned.code).toBe(row!.type);
-      expect(planned.semester, planned.code).toBeGreaterThanOrEqual(1);
-      expect(planned.semester, planned.code).toBeLessThanOrEqual(12);
-    }
-  });
-
-  it('places every course of the curriculum, except those listed as not in the plan', () => {
-    const planned = new Set(plan.rows.map((r) => r.code));
-    const missing = [...new Set(rows.map((r) => r.code))].filter((code) => !planned.has(code));
-    expect(missing.sort()).toEqual(plan.not_in_plan.map((n) => n.code).sort());
-  });
-});
-
-describe.each(EQUIVALENCE_LISTS.map((list) => [list.source.file, list] as const))('equivalence list %s (not loaded)', (_, list) => {
-  it('has a normalised code meeting the CHECK for each course, or null with a reason', () => {
-    for (const row of list.rows) {
-      expect(row.page).toBeGreaterThanOrEqual(1);
-      expect(row.page).toBeLessThanOrEqual(list.source.pages);
-      for (const course of [...row.hp01, ...row.hp02, ...row.hp03]) {
-        if (course.credits === null) expect(row.needs_check, course.code_printed).toBeTruthy();
-        else expect(course.credits, course.code_printed).toBeGreaterThan(0);
-        if (course.code === null) {
-          expect(row.needs_check, course.code_printed).toBeTruthy();
-          expect(normalizePrintedCode(course.code_printed)).not.toMatch(COURSE_CODE_PATTERN);
-        } else {
-          expect(course.code).toBe(normalizePrintedCode(course.code_printed));
-          expect(course.code).toMatch(COURSE_CODE_PATTERN);
-        }
-      }
-    }
-  });
-
-  it('prints the catalog credits for every seeded course it names, or flags the row', () => {
-    const catalog = buildCatalog(CURRICULUM_SEEDS, CATALOG_DECISIONS);
-    for (const row of list.rows) {
-      for (const course of [...row.hp01, ...row.hp02, ...row.hp03]) {
-        const seeded = course.code ? catalog.get(course.code) : undefined;
-        if (seeded && course.credits !== seeded.credits) expect(row.needs_check, `STT ${row.stt.join(',')} ${course.code}`).toBeTruthy();
-      }
-    }
-  });
-
-  it('covers every printed STT exactly once', () => {
-    const stt = list.rows.flatMap((r) => r.stt).sort((a, b) => a - b);
-    expect(stt).toEqual(Array.from({ length: stt.length }, (_, i) => i + 1));
-  });
-});
-
 // The rules the degree audit reads (migration 1794300000000, ADR 0013).
 describe.each(CURRICULUM_SEEDS.map((seed) => [seedLabel(seed), seed] as const))('%s audit rules in the seed', (_, seed) => {
   it('has the training type of its program (ADR 0012)', () => {
@@ -400,4 +337,40 @@ describe('APCS audit rules', () => {
       expect(notCounted).toEqual(['BAA00021', 'BAA00022', 'BAA00030']);
     },
   );
+});
+
+describe('prerequisites', () => {
+  it('records "no prerequisite" for APCS 2024 and 2025 only, as the Project Lead decided on 15 November 2026', () => {
+    expect(CURRICULUM_SEEDS.filter((s) => s.no_prerequisites).map((s) => s.curriculum.code)).toEqual(['APCS2024', 'APCS2025']);
+    for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) expect(seed.no_prerequisites).toBe(apcsNoPrerequisites);
+    expect(apcsNoPrerequisites).toMatchObject({ decided_by: 'Project Lead (Lâm)', date: '2026-11-15' });
+    // The source names the one printed exception, the day the seed began to record it, and who decided it and when.
+    expect(apcsNoPrerequisites.source).toContain('none, except CS469 before CS470');
+    expect(apcsNoPrerequisites.source).toContain('The seed has recorded it since 21 November 2026');
+    expect(apcsNoPrerequisites.source).toContain('the Project Lead decided it on the team Discord: "trust Thang"');
+    expect(apcsNoPrerequisites.source).toContain('On 24 November 2026');
+    // 21 November was not a ruling by the Project Lead: he left the choice open that day.
+    expect(apcsNoPrerequisites.source).not.toContain('Corrected by the Project Lead');
+  });
+
+  it('keeps one printed exception: CS470 needs CS469 in APCS 2024 and 2025 (p. 8 and p. 9), every other course has none', () => {
+    expect(apcsNoPrerequisites.except.map((e) => [e.code, e.requires, e.pages, e.decided_by, e.date])).toEqual([
+      ['CS470', ['CS469'], { APCS2024: 8, APCS2025: 9 }, 'Project Lead (Lâm)', '2026-11-24'],
+    ]);
+    for (const seed of CURRICULUM_SEEDS.filter((s) => s.no_prerequisites)) {
+      const code = seed.curriculum.code;
+      // What db:seed writes for each course of the curriculum: its printed prerequisites, or none.
+      const written = new Map(seed.no_prerequisites!.except.map((e) => [e.code, e.requires]));
+      const courses = [...new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))];
+      const withPrerequisites = courses.filter((c) => (written.get(c) ?? []).length > 0);
+      expect(withPrerequisites, code).toEqual(['CS470']);
+      expect(written.get('CS470'), code).toEqual(['CS469']);
+      expect(courses, code).toContain('CS469');
+      // The printed sentence is rule (iii) of the note under 7.3, on the page given, in the seed's transcription.
+      const graduation = seed.groups.find((g) => g.name === 'Kiến thức tốt nghiệp')!;
+      const [exception] = seed.no_prerequisites!.except;
+      expect(graduation.page, code).toBe(exception.pages[code]);
+      expect(graduation.official_notes!.toLowerCase(), code).toContain(`(iii) ${exception.printed.toLowerCase()}`);
+    }
+  });
 });

@@ -115,6 +115,24 @@ describe('Account export and deletion against PostgreSQL (e2e)', () => {
     for (const key of ['password_hash', 'google_sub', 'token_hash']) expect(allKeys(res.body)).not.toContain(key);
   });
 
+  // Issue #174: node-postgres read a date column as a Date at local midnight, so a server at
+  // UTC+7 exported 2026-11-25 as "2026-11-24T17:00:00.000Z". A date is exported as written.
+  it('exports a date column as the date it holds, whatever the time zone of the server', async () => {
+    const event = randomUUID();
+    await db.query(
+      `INSERT INTO notifications (user_id, kind, calendar_event_id, program_code, academic_year, starts_on, ends_on, title)
+       VALUES ($1, 'term_start', $2, 'SYNTH', 2026, '2026-11-25', '2026-12-31', 'Synthetic term start')`,
+      [userId, event],
+    );
+    try {
+      const res = await http().get('/api/users/me/export').set('Authorization', `Bearer ${token}`).expect(200);
+      const row = (res.body.tables.notifications as { calendar_event_id: string }[]).find((n) => n.calendar_event_id === event);
+      expect(row).toMatchObject({ starts_on: '2026-11-25', ends_on: '2026-12-31' });
+    } finally {
+      await db.query('DELETE FROM notifications WHERE calendar_event_id = $1', [event]);
+    }
+  });
+
   // Lâm's decision: a row that references the student but belongs to someone else is theirs, not exported.
   it('exports only the rows the student owns (user_id), not rows that merely reference them', async () => {
     const other = { id: await storedUser(app) };

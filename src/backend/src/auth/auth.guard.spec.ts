@@ -15,7 +15,7 @@ function contextFor(request: AuthenticatedRequest): ExecutionContext {
 
 function guard(isPublic: boolean, found: unknown = null): AuthGuard {
   const reflector = { getAllAndOverride: vi.fn(() => isPublic) } as unknown as Reflector;
-  const auth = { authenticate: vi.fn(async () => found) } as unknown as AuthService;
+  const auth = Object.assign(Object.create(AuthService.prototype), { authenticate: vi.fn(async () => found) }) as AuthService;
   return new AuthGuard(reflector, auth);
 }
 

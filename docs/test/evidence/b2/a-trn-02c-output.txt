@@ -1,0 +1,8 @@
+TRN-02c run at 2026-11-21T17:17:44.370Z
+POST /auth/sign-in (b2-s1@example.com) → 200
+PUT /users/me/transcript → 200 {"rows":[{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":3,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8,"term":{"year":2024,"number":2}}]}
+  OK  T-R save 200
+GET /users/me/transcript → 200 {"rows":[{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":3,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8,"term":{"year":2024,"number":2}}]}
+  OK  GET: 2 CS160 rows, 2024/1 grade 3.0 first, then 2024/2 grade 8.0
+
+Done: 0 mismatch(es).

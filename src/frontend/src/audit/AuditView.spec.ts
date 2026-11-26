@@ -229,6 +229,32 @@ describe('AuditView (F3, ADR 0013)', () => {
     expect(w.find('[data-test="unmatched"]').exists()).toBe(false);
   });
 
+  it('gives each figure PERF-01 times its own selector, and marks the load as busy', async () => {
+    mockApi({ 'GET /users/me/audit': degreeAudit() });
+    const app = await setup('/audit');
+    wrapper = mount(AuditView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
+    expect(wrapper.get('[data-test="loading"]').attributes('aria-busy')).toBe('true');
+    await flushPromises();
+    const w = wrapper;
+    const text = (test: string) => w.get(`[data-test="${test}"]`).text();
+    expect(w.find('[aria-busy="true"]').exists()).toBe(false);
+    expect(text('graduation-status')).toBe('Chưa đủ điều kiện tốt nghiệp');
+    expect(text('credits-toward-total')).toBe('8 / 20 TC');
+    expect(text('credits-remaining')).toBe('còn 12 TC');
+    expect(text('credits-in-progress')).toBe('4 TC đang học');
+    expect(text('credits-accumulated')).toBe('9 TC tích lũy');
+    expect(text('gpa-average')).toBe('7,75');
+    expect(text('gpa-accumulated-average')).toBe('8');
+    expect(text('gpa-four-point')).toBe('3,5');
+    expect(text('gpa-classification')).toBe('Giỏi');
+    const term = w.get('[data-test="term-2024-1"]');
+    expect(term.get('[data-test="term-credits"]').text()).toBe('9');
+    expect(term.get('[data-test="term-passed"]').text()).toBe('9');
+    expect(term.get('[data-test="term-average"]').text()).toBe('7,75');
+    expect(term.get('[data-test="term-cumulative"]').text()).toBe('8');
+    expect(w.find(`[data-test="group"][data-group="${GROUP_A}"]`).exists()).toBe(true);
+  });
+
   it('switches to English, with course names in English where the API has them', async () => {
     const { w } = await render();
     useLocale().set('en');

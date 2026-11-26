@@ -2,11 +2,11 @@ import { INestApplication } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { AI_CONFIG, type AiConfig } from '../src/ai/ai-config.js';
 import { AI_REASONS, AiUnavailableError } from '../src/ai/ai-unavailable.error.js';
 import { AiUsage } from '../src/ai/ai-usage.entity.js';
 import { LlmService } from '../src/ai/llm.service.js';
 import { ModelClient, type ModelStreamEvent } from '../src/ai/model-client.js';
+import { AI_CONFIG, type AiConfig } from '../src/config/env.js';
 import { bootApp } from './support/app.js';
 import { storedUser } from './support/users.js';
 

@@ -1,0 +1,18 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CurriculumAdminModule } from '../curriculum-admin/curriculum-admin.module.js';
+import { OnboardingModule } from '../onboarding/onboarding.module.js';
+import { AcademicCalendarEvent } from './academic-calendar-event.entity.js';
+import { AcademicCalendarController } from './academic-calendar.controller.js';
+import { AcademicCalendarService } from './academic-calendar.service.js';
+
+// F10 school dates (ADR 0017). Writes reuse F12's AdminWriteService: the same program grant,
+// the same write lock and the same error codes (ADR 0011).
+@Module({
+  imports: [CurriculumAdminModule, OnboardingModule, TypeOrmModule.forFeature([AcademicCalendarEvent])],
+  controllers: [AcademicCalendarController],
+  providers: [AcademicCalendarService],
+  // The notification inbox reads which dates start on a day through startingOn() (ADR 0018).
+  exports: [AcademicCalendarService],
+})
+export class AcademicCalendarModule {}

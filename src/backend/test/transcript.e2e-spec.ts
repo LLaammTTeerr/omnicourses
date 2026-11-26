@@ -165,6 +165,57 @@ describe('Transcript against PostgreSQL (e2e)', () => {
     await saving;
   });
 
+  it('tells a listener, inside the transaction, whether the save changed the stored rows and whether any were stored before (ADR 0018)', async () => {
+    const userId = await storedUser(app);
+    const transcript = app.get(TranscriptService);
+    const told: object[] = [];
+    const remove = transcript.onSaved(async (tx, save) => {
+      if (save.userId !== userId) return;
+      // The transaction's own view: the new rows are there, not yet committed.
+      const [{ n }] = await tx.query('SELECT count(*)::int AS n FROM transcript_rows WHERE user_id = $1', [userId]);
+      told.push({ wasEmpty: save.wasEmpty, changed: save.changed, rows: n, keys: Object.keys(save).sort() });
+    });
+    try {
+      await transcript.replace(userId, [first[0], first[1]]);
+      await transcript.replace(userId, [first[1], first[0]]);
+      // Compared as stored: 7.34 is stored as 7.3 (numeric(3,1)), the grade already saved.
+      await transcript.replace(userId, [first[0], { ...first[1], grade: 7.34 }]);
+      await transcript.replace(userId, [first[0], first[1], first[1]]);
+      await transcript.replace(userId, [first[0]]);
+      await transcript.replace(userId, []);
+      await transcript.replace(userId, []);
+    } finally {
+      remove();
+    }
+    // Removed: this save is not told.
+    await transcript.replace(userId, first);
+    const keys = ['changed', 'userId', 'wasEmpty'];
+    expect(told).toEqual([
+      { wasEmpty: true, changed: true, rows: 2, keys },
+      { wasEmpty: false, changed: false, rows: 2, keys },
+      { wasEmpty: false, changed: false, rows: 2, keys },
+      { wasEmpty: false, changed: true, rows: 3, keys },
+      { wasEmpty: false, changed: true, rows: 1, keys },
+      { wasEmpty: false, changed: true, rows: 0, keys },
+      { wasEmpty: true, changed: false, rows: 0, keys },
+    ]);
+  });
+
+  it('rolls the save back when a listener fails', async () => {
+    const userId = await storedUser(app);
+    const transcript = app.get(TranscriptService);
+    await transcript.replace(userId, [first[0]]);
+    const remove = transcript.onSaved(async (_tx, save) => {
+      if (save.userId === userId) throw new Error('synthetic listener failure');
+    });
+    try {
+      await expect(transcript.replace(userId, [first[1]])).rejects.toThrow('synthetic listener failure');
+    } finally {
+      remove();
+    }
+    expect(await transcript.rowsFor(userId)).toEqual([first[0]]);
+  });
+
   it("shows each student only their own transcript and serves it to other modules", async () => {
     const a = await signedInUser(app);
     const b = await signedInUser(app);

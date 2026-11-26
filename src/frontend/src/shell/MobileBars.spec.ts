@@ -1,6 +1,8 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Router } from 'vue-router';
+import { useAdminAccess } from '../admin/store.js';
+import { PROGRAM_ADMIN } from '../admin/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { setup } from '../testing/signed-in.js';
 import MobileBars from './MobileBars.vue';
@@ -55,8 +57,22 @@ describe('the phone tab bar', () => {
     expect(sheet(w).attributes('aria-labelledby')).toBe('more-title');
     expect(sheet(w).get('#more-title').text()).toBe('Thêm');
     const links = sheet(w).findAll('a');
-    expect(links.map((a) => a.text())).toEqual(['Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
-    expect(links.map((a) => a.attributes('href'))).toEqual(['/transcript', '/guides', '/settings']);
+    expect(links.map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
+    expect(links.map((a) => a.attributes('href'))).toEqual(['/calendar', '/transcript', '/guides', '/settings']);
+  });
+
+  it('adds Administration under More for a user who holds a grant, and marks More on that page (ADR 0011)', async () => {
+    const w = await render('/admin');
+    await more(w).trigger('click');
+    await flushPromises();
+    expect(sheet(w).findAll('a').map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
+    expect(more(w).attributes('aria-current')).toBeUndefined();
+    useAdminAccess().seed(PROGRAM_ADMIN.userId, PROGRAM_ADMIN);
+    await flushPromises();
+    const links = sheet(w).findAll('a');
+    expect(links.map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
+    expect(links.at(-1)!.attributes('href')).toBe('/admin');
+    expect(more(w).attributes('aria-current')).toBe('page');
   });
 
   it('closes on Escape, on the close button and on the backdrop', async () => {

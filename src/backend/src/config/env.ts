@@ -62,3 +62,7 @@ export function aiConfig() {
     dailyCallsPerUser: positiveInt(env.AI_DAILY_CALLS_PER_USER, 20),
   };
 }
+
+/** The AI settings, read once at boot. Tests override the provider. */
+export const AI_CONFIG = Symbol('AI_CONFIG');
+export type AiConfig = ReturnType<typeof aiConfig>;

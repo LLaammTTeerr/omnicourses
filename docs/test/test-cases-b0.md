@@ -2,7 +2,7 @@
 
 - Owner: Dũng
 - Build: B0, 1 November 2026
-- Version: 0.1, 30 October 2026
+- Version: 0.2, 21 November 2026. 0.2 rewords five cases that the B1 run of 15 November ([B1 report](report-b1.md)) found describing an older screen (issue #116); each still protects what it did. UI-01a, UI-01k and UI-01l: the app's address `/` is now a public home page, so they expect it signed out, and only a private page (`/dashboard`, `/settings`) goes to sign-in. UI-01c gives the password error as the app words it, "Còn thiếu 1 ký tự.", with the 10-character rule in the placeholder. DEP-01f says how to handle a commit after the tag that changes only documents. The new wording was checked against the code on `main` at `c7cf753` and has not been run as written. 0.1 (30 October) was the first version.
 - Parent checks: [Test plan §5, B0 checks](test-plan.md#b0-checks). Each case below has its parent's ID plus a letter, such as `TC-B0-AUTH-01a`.
 
 Each case lists what to click or type and the result to expect. This file is not a test report: no case here has been run yet.
@@ -88,9 +88,9 @@ All **Screen**, through the real API. If #13 is not merged by 1 November: **not 
 
 | ID | Do this | Expect |
 | --- | --- | --- |
-| UI-01a | In a new private window, open the app's address, then type the address of any page other than sign-in or sign-up. | Both show the sign-in screen. No signed-in content appears, even briefly. |
+| UI-01a | In a new private window, open the app's address. Then type `/dashboard`, and then `/settings`. | The app's address shows the public home page, signed out ("Mở tổng quan", "Đọc hướng dẫn thủ tục"). `/dashboard` and `/settings` each go to `/sign-in?redirect=…`. No signed-in content appears, even briefly. |
 | UI-01b | Press **Sign up**, fill in a new email, the test password and name, tick consent, press **Sign up**. | Signed in. The app shows the signed-in page with "Test Student". |
-| UI-01c | On **Sign up**, press the button with every field empty. Then type a 9-character password. | Each required field says, in words, what is wrong, next to the field. The password field says it needs at least 10 characters. Nothing is created. |
+| UI-01c | On **Sign up**, press the button with every field empty. Then type a 9-character password. | Each required field says, in words, what is wrong, next to the field. With 9 characters the password field says "Còn thiếu 1 ký tự." ("1 more character needed."), and its placeholder gives the rule, "Ít nhất 10 ký tự" ("At least 10 characters"). Nothing is created. |
 | UI-01d | Fill in everything correctly but leave consent unticked, and submit. | A message at the consent box says it is required. No account is created. |
 | UI-01e | Sign up with an email that is already registered. | A message says the email is already registered, with a way to go to **Sign in**. |
 | UI-01f | On **Sign in**, enter a registered email and a wrong password. | "Invalid email or password" (or its Vietnamese text), shown in words, not only by a red colour. The form stays usable. |
@@ -98,8 +98,8 @@ All **Screen**, through the real API. If #13 is not merged by 1 November: **not 
 | UI-01h | Signed in, open DevTools **Network**, and reload the page. | Still signed in. The network list shows one `POST /api/auth/refresh` answered **200**. |
 | UI-01i | Signed in, open DevTools **Application**: **Local Storage** and **Session Storage** for the app's address. | Local Storage holds no token; the token is in memory or Session Storage, as #13 decides (ADR 0002). Make this exact when #13 lands. |
 | UI-01j | Signed in, open DevTools **Network**, open the latest `sign-in` or `refresh` request and copy `token` from its **Response** (a request's `Authorization` header may hold a token that refresh has already replaced). On the API docs page, authorize with it and call `POST /api/auth/sign-out`. Reload the tab. | The tab lands on the sign-in screen, with no error loop and no blank page. |
-| UI-01k | Sign in again and copy the new token as in UI-01j. Press **Sign out**, then the browser's **Back** button. Look at **Local Storage** and **Session Storage**. Then call `GET /api/users/me` on the API docs page with the copied token. | Sign-in screen. **Back** shows no signed-in content. Neither storage holds a token. The copied token gives **401**. |
-| UI-01l | Signed in, close the tab. Open a new tab and type the app's address. | Sign-in screen: a closed tab does not stay signed in. |
+| UI-01k | Sign in again and copy the new token as in UI-01j. Press **Sign out** (in **Settings**), then the browser's **Back** button. Look at **Local Storage** and **Session Storage**. Then call `GET /api/users/me` on the API docs page with the copied token. | The public home page `/`, signed out. **Back** shows no signed-in content. Neither storage holds a token. The copied token gives **401**. |
+| UI-01l | Signed in, close the tab. Open a new tab and type the app's address. Then type `/dashboard`. | The app's address shows the public home page, signed out, and `/dashboard` goes to `/sign-in?redirect=…`: a closed tab does not stay signed in. |
 | UI-01m | Without the mouse, sign up: Tab through every field, tick consent with Space, submit with Enter. Then sign in the same way. | Every control can be reached in a sensible order, the focused control is always visibly marked, and both forms work by keyboard alone. |
 | UI-01n | Switch the language to English, then to Vietnamese, on both forms. Trigger one error each time. | Every label, button and error message changes language. No text stays in the other language. |
 | UI-01o | In DevTools, turn on the device toolbar and set the width to 360, 768, 1280 and 1920 px. Look at both forms. | No sideways scrolling. Every field and button is visible and can be used. |
@@ -130,7 +130,7 @@ No staging server exists yet: no host is chosen (issue #24), and `deploy.yml` on
 | DEP-01c | With DevTools **Console** open, load the site and sign in. | No CORS errors and no other red errors. |
 | DEP-01d | Run AUTH-01a and AUTH-01k on staging, and UI-01b once #13 is deployed, with a new `example.com` email. | Sign-up and sign-in work end to end on staging. |
 | DEP-01e | Tester X runs AUTH-01o on staging. Within the same minute, tester Y, on another network, signs in. | Y is signed in. If Y gets **429**, the rate limit counts the host's proxy instead of each person (ADR 0002, "trust proxy"): file a defect. |
-| DEP-01f | On GitHub, open **Tags** and note the commit of `B0`. Open **Actions → Deploy** and note the commit of the run that created the tag. Note the commit this report tested. | All three commits are the same. |
+| DEP-01f | On GitHub, open **Tags** and note the commit of `B0`. Open **Actions → Deploy** and note the commit of the run that created the tag. Note the commit this report tested. | The tag and its deploy run have the same commit. The tested commit is that one too, or a later one whose app code is the same: when only documents merged after the tag, `git diff --stat <tag commit> <tested commit>` lists only files under `docs/` and `.changeset/`. Record that output. Any other file in it fails the case. |
 
 ## 7. Not in B0
 

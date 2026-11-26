@@ -68,6 +68,20 @@ describe('SignUpView (F1, issue #13)', () => {
     expect(document.activeElement?.id).toBe('sign-up-displayName');
   });
 
+  it('counts the display name in characters as the API does, so 100 emoji pass and 101 do not (#179)', async () => {
+    const fetch = mockApi({ 'POST /auth/sign-up': () => Response.json(authResult(), { status: 201 }) });
+    const { w } = await render();
+    // No maxlength: the browser counts UTF-16 units and would stop the typing at 50 emoji.
+    expect(w.get('#sign-up-displayName').attributes('maxlength')).toBeUndefined();
+    await fill(w, { name: '😀'.repeat(101) });
+    await submit(w);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(w.get('#sign-up-displayName-error').text()).toBe('Tên hiển thị tối đa 100 ký tự.');
+    await fill(w, { name: '😀'.repeat(100) });
+    await submit(w);
+    expect(sentBody(fetch.mock.calls[0]![1])).toMatchObject({ displayName: '😀'.repeat(100) });
+  });
+
   it('rates the password as the student types, in words as well as colour', async () => {
     const { w } = await render();
     const strength = () => w.get('[data-test="strength"]').text();
@@ -82,6 +96,22 @@ describe('SignUpView (F1, issue #13)', () => {
     await nextTick();
     expect(strength()).toBe('Password strength: Very strong');
     expect(w.get('#sign-up-password').attributes('aria-describedby')).toBe('sign-up-password-strength');
+  });
+
+  it('links the privacy notice beside the consent box, in a new tab so the form keeps what was typed (TC-B1-USER-01p)', async () => {
+    mockApi({});
+    const { w } = await render();
+    await fill(w, { consent: false });
+    const link = w.get('.box [data-test="privacy-link"]');
+    expect(link.attributes('href')).toBe('/privacy');
+    expect(link.attributes('target')).toBe('_blank');
+    // Outside the label: following the link must not tick the consent box.
+    expect(link.element.closest('label')).toBeNull();
+    expect(link.text()).toBe('Đọc thông báo quyền riêng tư (mở ở tab mới)');
+    useLocale().set('en');
+    await nextTick();
+    expect(link.text()).toBe('Read the privacy notice (opens in a new tab)');
+    expect((w.get('#sign-up-consent').element as HTMLInputElement).checked).toBe(false);
   });
 
   it('says when the email already has an account, with a way to sign in that keeps the redirect (409)', async () => {

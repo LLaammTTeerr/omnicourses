@@ -2,9 +2,9 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { Clock } from '../src/config/clock.js';
 import { vietnamDate } from '../src/config/time.js';
 import { GUIDE_FILES } from '../src/guides/content/index.js';
-import { GUIDES_CLOCK } from '../src/guides/guides.service.js';
 import { seedGuides } from '../src/guides/seed-guides.js';
 import { guideFixtures } from '../src/guides/testing/guide-fixtures.js';
 import { bootApp } from './support/app.js';
@@ -34,7 +34,7 @@ describe('Guides API (e2e)', () => {
   };
 
   beforeAll(async () => {
-    app = await bootApp((builder) => builder.overrideProvider(GUIDES_CLOCK).useValue(() => NOW));
+    app = await bootApp((builder) => builder.overrideProvider(Clock).useValue({ now: () => NOW }));
     db = app.get(DataSource);
     await seedGuides(db, [...GUIDE_FILES, ...FIXTURES]);
   });
@@ -72,7 +72,7 @@ describe('Guides API (e2e)', () => {
     const { body } = await http().get('/api/guides/zz-fresh').expect(200);
     expect(Object.keys(body.texts).sort()).toEqual(['en', 'vi']);
     const fresh = fixture('zz-fresh', 'en');
-    // The fixture leaves citations, related and portals out: the API sends them as [].
+    // The fixture leaves citations and related out: the API sends them as [].
     expect(body.texts.en).toEqual({
       title: fresh.title,
       keywords: fresh.keywords,
@@ -91,7 +91,7 @@ describe('Guides API (e2e)', () => {
       citations: [],
       ifPortalDown: fresh.ifPortalDown,
       related: [],
-      portals: [],
+      portals: fresh.portals,
     });
   });
 

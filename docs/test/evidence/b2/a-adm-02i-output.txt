@@ -1,0 +1,17 @@
+2026-11-25T06:10:10.857Z a-screens 02i
+2026-11-25T06:10:11.128Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s1@example.com → 200
+ok   ADM-02i: (1) S1's sidebar has no Quản trị
+ok   ADM-02i: (1) /admin opens with no redirect and the card "Bạn không có quyền quản trị", the sentence and Mở Cài đặt | observed: {"url":"/admin","none":"Bạn không có quyền quản trị\n\nTrang này dành cho người quản trị chương trình, người quản lý danh mục học phần và người quản lý phân quyền. Tài khoản của bạn chưa được cấp quyền nào trong số đó.\n\nNếu bạn cần quyền, hãy gửi mã người dùng của bạn (ở trang Cài đặt) cho người quản lý phân quyền.\n\nMở Cài đặt"}
+ok   ADM-02i: (1) Mở Cài đặt opens /settings#profile | observed: /settings#profile
+  UI sign-in b2-a3@example.com → 200
+ok   ADM-02i: (2) Danh mục học phần is A3's only tab | observed: ["Danh mục học phần"]
+ok   ADM-02i: (2) alerts with “Quản trị chương trình”, then “Quản lý phân quyền” | observed: {"a1":"Mục này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó.","a2":"Mục này cần quyền “Quản lý phân quyền”. Tài khoản của bạn không có quyền đó."}
+ok   ADM-02i: (2) the refused sections load nothing of their own | observed: POST /api/auth/refresh 200; GET /api/admin/grants 200; POST /api/auth/refresh 200; GET /api/admin/grants 200
+  UI sign-in b2-a4@example.com → 200
+ok   ADM-02i: (3) /admin opens /admin/access, "Phân quyền quản trị", Phân quyền the only tab | observed: {"url":"/admin/access","head":"Phân quyền quản trị","tabs4":["Phân quyền"]}
+ok   ADM-02i: (3) alerts with “Quản lý danh mục học phần” and “Quản trị chương trình” | observed: {"b1":"Mục này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó.","b2":"Mục này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó."}
+ok   ADM-02i: (3) the refused sections load nothing of their own | observed: POST /api/auth/refresh 200; GET /api/admin/grants 200; POST /api/auth/refresh 200; GET /api/admin/grants 200
+  UI sign-in b2-a2@example.com → 200
+ok   ADM-02i: (4) the Chương trình picker lists CNTT-TCTA-KHMT only, never APCS | observed: ["CNTT-TCTA-KHMT · Cử nhân Công nghệ thông tin - Chương trình tăng cường tiếng Anh - Chuyên ngành Khoa học máy tính"]
+2026-11-25T06:10:36.752Z All checks ok

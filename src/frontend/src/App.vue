@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
+import { useAdminAccess } from './admin/store.js';
 import { useAuth } from './auth/store.js';
 import { useMessages } from './locale.js';
 import AppSidebar from './shell/AppSidebar.vue';
@@ -12,8 +13,10 @@ import { useSidebar } from './shell/sidebar.js';
 import { useTheme } from './shell/theme.js';
 import { useToast } from './shell/toast.js';
 import ToastHost from './shell/ToastHost.vue';
+import TooltipHost from './shell/TooltipHost.vue';
 
 const auth = useAuth();
+const access = useAdminAccess();
 const route = useRoute();
 const router = useRouter();
 const sidebar = useSidebar();
@@ -35,6 +38,23 @@ watch(
     if (signedIn || route.meta.auth !== 'required') return;
     toast.show(m.value.sessionEnded);
     void router.replace({ name: 'sign-in', query: { redirect: route.fullPath } });
+  },
+);
+
+// ADR 0011: the navigation lists Administration only for a user who holds a grant, so ask the API once per sign-in.
+// A failed load leaves the entry out for now: it is asked again on the next page the user opens, up to three failures
+// in a row (MAX_FAILED_LOADS), and by the administration page itself.
+watch(
+  () => auth.user?.id,
+  (userId) => {
+    if (userId) void access.load();
+  },
+  { immediate: true },
+);
+watch(
+  () => route.fullPath,
+  () => {
+    if (auth.signedIn && access.retryable) void access.load();
   },
 );
 
@@ -67,6 +87,7 @@ watch(
   <PublicFooter v-if="layout === 'public'" />
   <MobileBars v-if="layout === 'app'" part="tabs" />
   <ToastHost />
+  <TooltipHost />
 </template>
 
 <style>

@@ -1,12 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
+import { failureKind } from '../common/failure-kind.js';
+import { Clock } from '../config/clock.js';
+import { AI_CONFIG, type AiConfig } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
-import { AI_CONFIG, type AiConfig } from './ai-config.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { AiUsage } from './ai-usage.entity.js';
 import type { AiCallContext } from './llm.service.js';
-import { logErrorName } from './log-error-name.js';
 
 export type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
 
@@ -27,6 +28,7 @@ export class AiCostGuard {
   constructor(
     @InjectRepository(AiUsage) private readonly usage: Repository<AiUsage>,
     @Inject(AI_CONFIG) private readonly config: Pick<AiConfig, 'dailyCallsPerUser'>,
+    private readonly clock: Clock,
   ) {}
 
   /**
@@ -38,7 +40,7 @@ export class AiCostGuard {
     const cap = this.config.dailyCallsPerUser;
     return this.usage.manager.transaction(async (em) => {
       await em.query('SELECT pg_advisory_xact_lock(hashtext($1))', [context.userId]);
-      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(Date.now() - DAY_MS)) } });
+      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(this.clock.now().getTime() - DAY_MS)) } });
       if (used >= cap) throw new AiUnavailableError(AI_REASONS.dailyLimit);
       const { identifiers } = await em.insert(AiUsage, { userId: context.userId, feature: context.feature, model });
       return identifiers[0].id as string;
@@ -54,7 +56,7 @@ export class AiCostGuard {
     try {
       await this.usage.update(id, result);
     } catch (error) {
-      logErrorName(this.logger, 'Could not record AI usage', error);
+      this.logger.warn(`Could not record AI usage: ${failureKind(error)}`);
     }
   }
 
@@ -68,7 +70,7 @@ export class AiCostGuard {
     try {
       await this.usage.delete(id);
     } catch (error) {
-      logErrorName(this.logger, 'Could not release AI usage', error);
+      this.logger.warn(`Could not release AI usage: ${failureKind(error)}`);
     }
   }
 }

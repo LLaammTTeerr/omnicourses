@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BoardTerm, boardProblems, courseCodesOf, groupIdsOf, MAX_BOARD_PLACEMENTS, Placement, toBoard, toRows } from './plan-board.js';
+import { courseCodesOf } from '../rules/plan-issues.js';
+import type { BoardTerm, Placement } from '../rules/types.js';
+import { boardProblems, groupIdsOf, MAX_BOARD_PLACEMENTS, toBoard, toRows, withPlacement } from './plan-board.js';
 import type { PlanPlacement } from './plan-placement.entity.js';
 
 // Synthetic codes only (AGENTS.md hard rule 3).
@@ -34,6 +36,14 @@ describe('boardProblems', () => {
       placements: Array.from({ length: 28 }, () => slot('g1', 1)),
     }));
     expect(boardProblems(terms)).toEqual([`a plan holds at most ${MAX_BOARD_PLACEMENTS} placements`]);
+  });
+});
+
+describe('withPlacement (the drag preview boards)', () => {
+  it('adds the placement at the end of a term that holds something, or makes the term, leaving the input alone', () => {
+    expect(withPlacement(board, course('ZZ009'), { year: 2030, number: 1 })[0]).toEqual({ term: { year: 2030, number: 1 }, placements: [course('ZZ002'), course('ZZ001'), course('ZZ009')] });
+    expect(withPlacement(board, course('ZZ009'), { year: 2031, number: 2 }).at(-1)).toEqual({ term: { year: 2031, number: 2 }, placements: [course('ZZ009')] });
+    expect(board[0]!.placements).toHaveLength(2);
   });
 });
 

@@ -1,0 +1,49 @@
+ADM 05a run at 2026-11-22T02:32:11.399Z
+POST /auth/sign-in (b2-a1@example.com) → 200
+POST /auth/sign-in (b2-a3@example.com) → 200
+POST /admin/catalog/courses → 400 {"statusCode":400,"code":"validation_failed","message":"code: \"cs-1\" is not a course code (letters A-Z and digits, 2 to 20)"}
+  OK  (cs-1) 400 validation_failed, "code: "cs-1" is not a course code (letters A-Z and digits, 2 to 20)"
+POST /admin/catalog/courses → 400 {"statusCode":400,"code":"validation_failed","message":"code: \"Z\" is not a course code (letters A-Z and digits, 2 to 20)"}
+  OK  (Z) 400 validation_failed, "code: "Z" is not a course code (letters A-Z and digits, 2 to 20)"
+POST /admin/catalog/courses → 400 {"statusCode":400,"code":"validation_failed","message":"code: \"ZZADM05ZZADM05ZZADM05\" is not a course code (letters A-Z and digits, 2 to 20)"}
+  OK  (ZZADM05ZZADM05ZZADM05) 400 validation_failed, "code: "ZZADM05ZZADM05ZZADM05" is not a course code (letters A-Z and digits, 2 to 20)"
+POST /admin/catalog/courses → 400 {"statusCode":400,"code":"validation_failed","message":["credits must not be less than 1"]}
+  OK  credits 0: 400, "credits must not be less than 1"
+POST /admin/catalog/courses → 400 {"statusCode":400,"code":"validation_failed","message":["credits must not be less than 1"]}
+  OK  credits -1: 400, "credits must not be less than 1"
+POST /admin/catalog/courses → 400 {"statusCode":400,"code":"validation_failed","message":["credits must be an integer number"]}
+  OK  credits 2.5: 400, "credits must be an integer number"
+GET /courses/ZZADM05 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  OK  GET ZZADM05 404: nothing saved
+POST /admin/catalog/courses → 201 {"code":"ZZADM05","nameVi":"Học phần thử ADM-05","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+  OK  (7) " zzadm05 " 201 with code ZZADM05
+GET /courses/ZZADM05 → 200 {"code":"ZZADM05","nameVi":"Học phần thử ADM-05","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[]}
+  OK  GET ZZADM05 200
+PATCH /admin/catalog/courses/ZZADM05 → 400 {"statusCode":400,"code":"validation_failed","message":["credits must not be less than 1"]}
+  OK  PATCH credits 0: 400, "credits must not be less than 1"
+PATCH /admin/catalog/courses/ZZADM05 → 400 {"statusCode":400,"code":"validation_failed","message":["credits must not be less than 1"]}
+  OK  PATCH credits -1: 400, "credits must not be less than 1"
+PATCH /admin/catalog/courses/cs-1 → 400 {"statusCode":400,"code":"validation_failed","message":"courseCode: \"cs-1\" is not a course code (letters A-Z and digits, 2 to 20)"}
+  OK  (10) 400, "courseCode: "cs-1" is not a course code (letters A-Z and digits, 2 to 20)"
+PATCH /admin/catalog/courses/BAA00104 → 400 {"statusCode":400,"code":"validation_failed","message":["credits must not be less than 1"]}
+  OK  (11) BAA00104 credits 0: 400 validation_failed, not 409
+GET /courses/ZZADM05 → 200 {"code":"ZZADM05","nameVi":"Học phần thử ADM-05","nameEn":null,"credits":3,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[]}
+  OK  ZZADM05 still 3 credits
+GET /courses/BAA00104 → 200 {"code":"BAA00104","nameVi":"Lịch sử Đảng Cộng sản Việt Nam","nameEn":"History of Vietnamese Communist Party","credits":2,"theoryPeriods":30,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[{"programCode":"APCS","cohortYear":2024,"curriculumCode":"APCS2024","requirementGroupId":"ece49594-909d-4033-b530-46cb2f20d466","requirementGroupName":"Kiến thức Non Computer Science","kind":"compulsory"},{"programCode":"APCS","cohortYear":2025,"curriculumCode":"APCS2025","requirementGroupId":"80c5812b-005a-455e-81af-24a0554ebc5a","requirementGroupName":"Kiến thức Non Computer Science","kind":"compulsory"},{"programCode":"CNTT-TCTA-ATTT","cohortYear":2025,"curriculumCode":"CNTT-TCTA-ATTT-2025","requirementGroupId":"90690821-35d5-427f-93dd-3bf6d4e72189","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-CNTTHUC","cohortYear":2025,"curriculumCode":"CNTT-TCTA-CNTTHUC-2025","requirementGroupId":"f529edba-1915-426f-84ad-726f44e684c5","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-CNTTIN","cohortYear":2025,"curriculumCode":"CNTT-TCTA-CNTTIN-2025","requirementGroupId":"26f3509a-d619-4ff3-9655-788aa0fc186f","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-HTTT","cohortYear":2025,"curriculumCode":"CNTT-TCTA-HTTT-2025","requirementGroupId":"a44c81ef-c79c-4815-be83-6b62122f1253","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-KHDL","cohortYear":2025,"curriculumCode":"CNTT-TCTA-KHDL-2025","requirementGroupId":"ec7935b0-94b1-4cd3-b6c7-18860994b338","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-KHMT","cohortYear":2025,"curriculumCode":"CNTT-TCTA-KHMT-2025","requirementGroupId":"b81cf131-61de-43f8-8d7b-596f19f175dd","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-KTPM","cohortYear":2025,"curriculumCode":"CNTT-TCTA-KTPM-2025","requirementGroupId":"e8ad0877-bebd-41d7-a787-4e2df784a2d3","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-MMT","cohortYear":2025,"curriculumCode":"CNTT-TCTA-MMT-2025","requirementGroupId":"9f96df93-a214-4aec-ad33-65bf0cbc6136","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"},{"programCode":"CNTT-TCTA-TGMT","cohortYear":2025,"curriculumCode":"CNTT-TCTA-TGMT-2025","requirementGroupId":"fa99381c-9cd6-4ea2-98a2-3048c7f19c30","requirementGroupName":"Lý luận chính trị - Pháp luật","kind":"compulsory"}]}
+  OK  BAA00104 still 2 credits
+POST /admin/catalog/courses → 409 {"statusCode":409,"code":"duplicate_code","message":"The catalog already has ZZADM05"}
+  OK  (12) 409 duplicate_code, "The catalog already has ZZADM05"
+POST /auth/sign-in (b2-a2@example.com) → 200
+GET /admin/programs → 200
+GET /admin/programs → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT":"74ce84b9-c698-43ea-8470-1988a50656a8","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324","KG":"307a0d8d-a333-418c-8399-ad4bd8fd74b3"}
+GET /programs/APCS/curricula/2024 → 200
+PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM99 → 404 {"statusCode":404,"code":"not_found","message":"No catalog course has the code ZZADM99; a catalog maintainer adds it first"}
+  OK  (13) 404 not_found, "No catalog course has the code ZZADM99; a catalog maintainer adds it first"
+PUT /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/cs-1 → 400 {"statusCode":400,"code":"validation_failed","message":"courseCode: \"cs-1\" is not a course code (letters A-Z and digits, 2 to 20)"}
+  OK  (14) 400 validation_failed, "courseCode: "cs-1" is not a course code (letters A-Z and digits, 2 to 20)"
+GET /programs/APCS/curricula/2024 → 200
+  OK  {AC} has the same 27 courses, without ZZADM99
+all OK

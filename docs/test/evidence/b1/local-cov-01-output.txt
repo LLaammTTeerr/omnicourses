@@ -1,0 +1,101 @@
+# TC-B1-COV-01, tree 7f66b7a (src/backend identical to B1 1decf4a), Node v22.22.1, npm 11.21.1
+
+=== COV-01a: production files in src/backend/src/rules (find, without *.spec.ts and testing/)
+src/rules/attempts.ts
+src/rules/audit.ts
+src/rules/audit-types.ts
+src/rules/coverage.ts
+src/rules/credit-caps.ts
+src/rules/gpa.ts
+src/rules/grades.ts
+src/rules/graduation.ts
+src/rules/plan-issues.ts
+src/rules/prerequisites.ts
+src/rules/rules.module.ts
+src/rules/rules.service.ts
+--- test files and helpers, excluded from the threshold
+src/rules/attempts.spec.ts
+src/rules/audit.spec.ts
+src/rules/credit-caps.spec.ts
+src/rules/gpa.spec.ts
+src/rules/grades.spec.ts
+src/rules/plan-issues.spec.ts
+src/rules/prerequisites.spec.ts
+src/rules/rules.service.spec.ts
+src/rules/testing/fixtures.ts
+
+=== COV-01b: npm test -w src/backend (vitest run --coverage), started 2026-11-15T03:03:56Z
+ Test Files  43 passed (43)
+      Tests  849 passed (849)
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+ src/rules         |     100 |    97.68 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
+--- the src/rules rows of the text report (this run lists only the files that are not 100% in every column)
+ src/rules         |     100 |    97.68 |     100 |     100 |                   
+  attempts.ts      |     100 |    97.14 |     100 |     100 | 65                
+  coverage.ts      |     100 |    94.59 |     100 |     100 | 8-24,38,50        
+  grades.ts        |     100 |    95.45 |     100 |     100 | 38                
+  plan-issues.ts   |     100 |    98.16 |     100 |     100 | 104,263           
+ src/transcript    |   29.41 |        0 |      20 |   31.25 |                   
+  ...controller.ts |   33.33 |      100 |   33.33 |   33.33 | 17-24             
+  ...pt.service.ts |   16.66 |        0 |   14.28 |   18.18 | 21-51             
+ src/users         |      25 |        0 |   14.28 |      25 |                   
+  user.dto.ts      |     100 |      100 |       0 |     100 |                   
+  ...controller.ts |       0 |      100 |       0 |       0 | 14                
+  users.service.ts |   16.66 |        0 |      20 |   16.66 | 11-33             
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 73.31% ( 1780/2428 )
+Branches     : 75.45% ( 990/1312 )
+Functions    : 66.33% ( 473/713 )
+Lines        : 74.04% ( 1475/1992 )
+================================================================================
+exit 0
+exit 0
+
+--- statement counts per rules file: a second run with the json-summary reporter
+    (cd src/backend && npx vitest run --coverage --coverage.reporter=json-summary --coverage.reportsDirectory=<scratch>)
+exit 0
+ Test Files  43 passed (43)
+      Tests  849 passed (849)
+src/rules/attempts.ts            statements   36 /   36   100%
+src/rules/audit-types.ts         statements    3 /    3   100%
+src/rules/audit.ts               statements   82 /   82   100%
+src/rules/coverage.ts            statements   70 /   70   100%
+src/rules/credit-caps.ts         statements   27 /   27   100%
+src/rules/gpa.ts                 statements   11 /   11   100%
+src/rules/grades.ts              statements   33 /   33   100%
+src/rules/graduation.ts          statements   16 /   16   100%
+src/rules/plan-issues.ts         statements  142 /  142   100%
+src/rules/prerequisites.ts       statements   13 /   13   100%
+src/rules/rules.module.ts        statements    0 /    0   100%
+src/rules/rules.service.ts       statements   26 /   26   100%
+src/rules/** total               statements  459 /  459   100.00%
+
+=== COV-01c: a throwaway copy of src/backend (rsync without node_modules, dist and .git) under the scratchpad, never the worktree
+--- added to the copy's src/rules/gpa.ts: an exported function of 402 statements that no test calls
+exit 1
+[Nest] 1243554  - 11/15/2026, 10:06:09 AM   ERROR [AccountPurgeService] Could not purge an account: violates foreign key
+[Nest] 1243554  - 11/15/2026, 10:06:09 AM   ERROR [AccountPurgeService] 1 account(s) are past their deletion deadline and could not be purged; retrying next hour
+[Nest] 1243554  - 11/15/2026, 10:06:09 AM   ERROR [AccountPurgeService] Account purge failed: db down
+ Test Files  1 failed | 42 passed (43)
+      Tests  1 failed | 848 passed (849)
+    ^ That first attempt does not count: exit 1 came from src/repo-config.spec.ts, which reads compose.yaml two
+      folders above src/backend, and the copy did not have it (ENOENT). No threshold result was printed.
+
+=== COV-01c, second attempt: the copy laid out as <copy>/src/backend with compose.yaml beside it; same added function
+2026-11-15T03:06:33Z
+exit 1
+ Test Files  43 passed (43)
+      Tests  849 passed (849)
+ src/rules         |   53.31 |    97.68 |    99.2 |   47.24 |                   
+  gpa.ts           |    2.66 |      100 |   85.71 |    1.95 | 47-448            
+ERROR: Coverage for statements (53.31%) does not meet "src/rules/**" threshold (80%)
+--- the worktree's own file is untouched: lines of src/backend/src/rules/gpa.ts in the worktree vs the copy
+   43 /home/lamter/omnicourses/.claude/worktrees/agent-afe32e8fe43ed2451/src/backend/src/rules/gpa.ts
+  449 /tmp/claude-1000/-home-lamter-omnicourses/a93d8b57-1aa4-4264-b121-0d176ef39b2f/scratchpad/local/cov-copy/root/src/backend/src/rules/gpa.ts
+  492 total

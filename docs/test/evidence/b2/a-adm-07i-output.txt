@@ -1,0 +1,39 @@
+ADM 07i run at 2026-11-25T06:06:52.422Z
+POST /auth/sign-in (b2-a1@example.com) → 200
+POST /auth/sign-in (b2-a2@example.com) → 200
+POST /auth/sign-in (b2-a4@example.com) → 200
+GET /admin/programs → 200
+GET /admin/programs → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  values {"APCS":"d3f524f8-e51b-42dd-91ac-013b15d5e033","APCS24":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","KHMT":"74ce84b9-c698-43ea-8470-1988a50656a8","KHMT25":"f7622c13-3e5b-4d6c-95b0-17308c767846","AC":"c052bbaf-ceda-4f6d-aad6-16be64e37324","AE":"f7ca386e-f8db-41c2-9350-1bec627aafa0","KG":"307a0d8d-a333-418c-8399-ad4bd8fd74b3"}
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/preview → 200 {"fileType":"group_links","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","rows":[{"record":2,"action":"insert","requirementGroupName":"Kiến thức Computer Science (A): tự chọn","requirementGroupId":"f7ca386e-f8db-41c2-9350-1bec627aafa0","courseCode":"ZZADM07B"}],"errors":[],"summary":{"inserts":1,"updates":0,"noOps":0},"reviewVersion":"iRfyKDNFr6Osdw8-rNGjp2VbmDW3oB9t99N70hFdRoU"}
+  OK  preview: one insert
+DELETE /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[],"permissions":[]}
+  OK  revocation 200
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/confirm → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  OK  confirm 403 permission_required program_admin
+GET /programs/APCS/curricula/2024 → 200
+  OK  group has no ZZADM07B
+PUT /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-25T06:07:07.405Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+  OK  grant 200
+POST /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/imports/confirm → 200 {"fileType":"group_links","summary":{"inserts":1,"updates":0,"noOps":0}}
+  OK  second confirm 200 inserts 1
+GET /programs/APCS/curricula/2024 → 200
+  OK  group now holds ZZADM07B
+--- clean-up
+POST /auth/sign-in (b2-a3@example.com) → 200
+DELETE /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM07A → 204 ""
+DELETE /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/c052bbaf-ceda-4f6d-aad6-16be64e37324/courses/ZZADM07B → 204 ""
+DELETE /admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/requirement-groups/f7ca386e-f8db-41c2-9350-1bec627aafa0/courses/ZZADM07B → 204 ""
+DELETE /admin/programs/74ce84b9-c698-43ea-8470-1988a50656a8/cohorts/f7622c13-3e5b-4d6c-95b0-17308c767846/requirement-groups/307a0d8d-a333-418c-8399-ad4bd8fd74b3/courses/ZZADM07A → 204 ""
+  OK  each unlink 204
+DELETE /admin/catalog/courses/ZZADM07A → 204 ""
+DELETE /admin/catalog/courses/ZZADM07B → 204 ""
+  OK  each course DELETE 204
+GET /courses/ZZADM07A → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+GET /courses/ZZADM07B → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  OK  each GET 404
+GET /admin/access/users/32addfef-209b-4eba-b728-dfacb9856ead/grants → 200 {"userId":"32addfef-209b-4eba-b728-dfacb9856ead","programs":[{"programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","programCode":"APCS","grantedAt":"2026-11-25T06:07:07.405Z","grantedBy":"925cb9c8-86de-4427-a8c8-72cf442dd074"}],"permissions":[]}
+  OK  A1 holds APCS again
+All checks OK

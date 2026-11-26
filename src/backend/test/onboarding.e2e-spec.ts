@@ -5,7 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findUserTables } from '../src/account/account-export.js';
 import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { vietnamDate } from '../src/config/time.js';
-import { currentTerm } from '../src/terms/current-term.js';
+import { OnboardingService } from '../src/onboarding/onboarding.service.js';
+import { currentTerm } from '../src/terms/term.js';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password, signedInUser } from './support/users.js';
 
@@ -198,6 +199,31 @@ describe('Onboarding against PostgreSQL (e2e)', () => {
     await db.query(`UPDATE users SET purge_after = now() - interval '1 minute' WHERE id = $1`, [userId]);
     await app.get(AccountPurgeService, { strict: false }).purge();
     expect(await db.query('SELECT 1 FROM onboarding_answers WHERE user_id = $1', [userId])).toEqual([]);
+  });
+
+  it('serves the students of a program to other modules, finished or not, and one student alone when asked (ADR 0018)', async () => {
+    const [a, b, c, unanswered] = [await student(), await student(), await student(), await student()];
+    // Synthetic program codes, unique per run: program_code is not a key to programs.
+    const run = a.userId.replace(/-/g, '').slice(0, 8).toUpperCase();
+    const [codeA, codeB] = [`ZZONB${run}A`, `ZZONB${run}B`];
+    await db.query(
+      `INSERT INTO onboarding_answers (user_id, program_code, cohort_year, finished_at) VALUES ($1, $4, 2026, now()), ($2, $4, 2026, NULL), ($3, $5, 2026, now())`,
+      [a.userId, b.userId, c.userId, codeA, codeB],
+    );
+    const onboarding = app.get(OnboardingService);
+    try {
+      const all = await onboarding.userIdsByProgram([codeA, codeB, `ZZONB${run}C`]);
+      expect([...all.keys()].sort()).toEqual([codeA, codeB]);
+      expect([...all.get(codeA)!].sort()).toEqual([a.userId, b.userId].sort());
+      expect(all.get(codeB)).toEqual([c.userId]);
+
+      expect(await onboarding.userIdsByProgram([codeA, codeB], a.userId)).toEqual(new Map([[codeA, [a.userId]]]));
+      expect(await onboarding.userIdsByProgram([codeB], a.userId)).toEqual(new Map());
+      expect(await onboarding.userIdsByProgram([codeA, codeB], unanswered.userId)).toEqual(new Map());
+      expect(await onboarding.userIdsByProgram([])).toEqual(new Map());
+    } finally {
+      await db.query('DELETE FROM onboarding_answers WHERE user_id = ANY($1)', [[a.userId, b.userId, c.userId]]);
+    }
   });
 
   it('the table refuses half a term, a cohort without a program and 0 credits, whatever the caller', async () => {

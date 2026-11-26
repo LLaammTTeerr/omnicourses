@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { aiConfig } from '../config/env.js';
-import { AI_CONFIG, type AiConfig } from './ai-config.js';
+import { AI_CONFIG, aiConfig, type AiConfig } from '../config/env.js';
 import { AiCostGuard } from './ai-cost-guard.service.js';
 import { AiUsage } from './ai-usage.entity.js';
 import { GatewayLlmService } from './gateway-llm.service.js';

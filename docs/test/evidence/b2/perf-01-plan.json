@@ -1,0 +1,276 @@
+{
+  "terms": [
+    {
+      "term": {
+        "year": 2026,
+        "number": 1
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS160"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CM102"
+        },
+        {
+          "kind": "course",
+          "courseCode": "MTH251"
+        },
+        {
+          "kind": "course",
+          "courseCode": "PH211"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00030"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2026,
+        "number": 2
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS163"
+        },
+        {
+          "kind": "course",
+          "courseCode": "MTH252"
+        },
+        {
+          "kind": "course",
+          "courseCode": "PH212"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00004"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2026,
+        "number": 3
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS202"
+        },
+        {
+          "kind": "course",
+          "courseCode": "MTH261"
+        },
+        {
+          "kind": "course",
+          "courseCode": "PH213"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00101"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2027,
+        "number": 1
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS201"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS252"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS250"
+        },
+        {
+          "kind": "course",
+          "courseCode": "SC203"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00021"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2027,
+        "number": 2
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS251"
+        },
+        {
+          "kind": "course",
+          "courseCode": "ECE341"
+        },
+        {
+          "kind": "course",
+          "courseCode": "WR227"
+        },
+        {
+          "kind": "course",
+          "courseCode": "STAT451"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00022"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2027,
+        "number": 3
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS323"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS486"
+        },
+        {
+          "kind": "course",
+          "courseCode": "MTH253"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS426"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2028,
+        "number": 1
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS300"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS311"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS420"
+        },
+        {
+          "kind": "course",
+          "courseCode": "MTH346"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00102"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2028,
+        "number": 2
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS333"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS411"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00103"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2028,
+        "number": 3
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS414"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS416"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS427"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2029,
+        "number": 1
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS412"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS423"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00003"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS469"
+        }
+      ]
+    },
+    {
+      "term": {
+        "year": 2029,
+        "number": 2
+      },
+      "placements": [
+        {
+          "kind": "course",
+          "courseCode": "CS421"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS407"
+        },
+        {
+          "kind": "course",
+          "courseCode": "BAA00104"
+        },
+        {
+          "kind": "course",
+          "courseCode": "CS470"
+        }
+      ]
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 # Guide content files
 
-One file per guide and language (`<id>.<lang>.ts`), typed by hand against `GuideFile` in `../guide-file.ts`. `npm run db:seed` loads them; nothing else writes guides (ADR 0010). What each field holds and the rules for writing: [guides plan](../../../../../docs/requirements/guides-plan.md) §2 and §3.
+One file per guide and language (`<id>.<lang>.ts`), written against `GuideFile` in `../guide-file.ts`. `npm run db:seed` loads them; nothing else writes guides (ADR 0010). What each field holds and the rules for writing: [guides plan](../../../../../docs/requirements/guides-plan.md) §2 and §3.
 
 ## Write or change a guide
 
-1. Type the text in both languages (guides plan §6 step 1: by hand, no AI drafting). Quote the portal's labels in “quotation marks”. Plain text only: no Markdown or HTML.
+1. Write the text in both languages (guides plan §6 step 1). An AI tool may draft and translate it, but every portal address, label and step comes from the school's pages or the portal itself, never from the tool, and no personal data goes into the tool. Mark anything not yet confirmed `[CHECK: …]`; the check in step 2 removes every mark. Quote the portal's labels in “quotation marks”. Plain text only: no Markdown or HTML.
 2. A team member follows every step on the real portal and records `lastChecked: { on: 'YYYY-MM-DD', by: '<name>' }`.
 3. Set `status: 'published'`. For a change to a published guide, raise `version` by one and write `changeNote`. A re-check that finds nothing changed only updates `lastChecked`.
 4. Run `npm run test -w src/backend -- content`. It refuses a missing field, a link that is not https, a typed credit number (hard rule 1), a typed date (§3 rule 4) and a portal missing from G01's board.

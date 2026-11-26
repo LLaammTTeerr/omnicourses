@@ -30,7 +30,6 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           HEAD_REF: ${{ github.head_ref || github.ref_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           # The Version Packages PR consumes changesets instead of adding one.
           if [ "$HEAD_REF" = "changeset-release/main" ]; then
@@ -39,7 +38,13 @@ jobs:
           if [ "$EVENT" != "pull_request" ]; then
             echo "Not a pull request: nothing to check."; exit 0
           fi
-          added=$(git diff --name-only --diff-filter=A "$BASE_SHA"...HEAD -- '.changeset/*.md' ':!.changeset/README.md')
+          # HEAD is GitHub's merge of this PR into main, so its first parent is
+          # main as it is now: the diff holds only what this PR adds. The event's
+          # base.sha can be an older main, and a diff from there also holds main's
+          # own changes (a release deleting changesets, another PR adding one).
+          # --no-renames: every empty changeset has the same content, so git would
+          # report a new one as a rename of a deleted one and the filter would drop it.
+          added=$(git diff --name-only --no-renames --diff-filter=A HEAD^1 HEAD -- '.changeset/*.md' ':!.changeset/README.md')
           if [ -z "$added" ]; then
             echo "::error::This PR has no changeset. Run 'npx changeset' (or 'npx changeset --empty' for changes that need no release) and commit the file."
             exit 1

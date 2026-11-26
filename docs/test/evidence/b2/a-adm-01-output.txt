@@ -1,0 +1,58 @@
+ADM 01 run at 2026-11-22T02:32:02.428Z
+POST /auth/sign-in (b2-a1@example.com) → 200
+POST /auth/sign-in (b2-a3@example.com) → 200
+--- ADM-01a
+GET /courses/BAA00104 → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","credits":2,"memberships":["APCS2024","APCS2025","CNTT-TCTA-ATTT-2025","CNTT-TCTA-CNTTHUC-2025","CNTT-TCTA-CNTTIN-2025","CNTT-TCTA-HTTT-2025","CNTT-TCTA-KHDL-2025","CNTT-TCTA-KHMT-2025","CNTT-TCTA-KTPM-2025","CNTT-TCTA-MMT-2025","CNTT-TCTA-TGMT-2025"]}
+  OK  R1 reads N0 in all three places, 11 memberships
+PATCH /admin/catalog/courses/BAA00104 → 409 {"statusCode":409,"code":"impact_confirmation_required","message":"BAA00104 is shared: the change reaches every curriculum listed; confirm with confirmImpact","affectedCurricula":[{"curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","curriculumCode":"APCS2024","programCode":"APCS","cohortYear":2024},{"curriculumId":"872ae05e-3e7d-405a-ac3c-58ef4748e475","curriculumCode":"APCS2025","programCode":"APCS","cohortYear":2025},{"curriculumId":"eab1b5ba-098d-4497-a122-92acc700e8b7","curriculumCode":"CNTT-TCTA-ATTT-2025","programCode":"CNTT-TCTA-ATTT","cohortYear":2025},{"curriculumId":"8cd89970-15c4-4567-a4f4-69ef2158093c","curriculumCode":"CNTT-TCTA-CNTTHUC-2025","programCode":"CNTT-TCTA-CNTTHUC","cohortYear":2025},{"curriculumId":"2906dd22-7bf5-4643-84ed-1b517c13e219","curriculumCode":"CNTT-TCTA-CNTTIN-2025","programCode":"CNTT-TCTA-CNTTIN","cohortYear":2025},{"curriculumId":"fecee852-6af6-48e2-a712-78f02f83663e","curriculumCode":"CNTT-TCTA-HTTT-2025","programCode":"CNTT-TCTA-HTTT","cohortYear":2025},{"curriculumId":"625b194b-569f-44ce-8f02-c191dfa3c830","curriculumCode":"CNTT-TCTA-KHDL-2025","programCode":"CNTT-TCTA-KHDL","cohortYear":2025},{"curriculumId":"f7622c13-3e5b-4d6c-95b0-17308c767846","curriculumCode":"CNTT-TCTA-KHMT-2025","programCode":"CNTT-TCTA-KHMT","cohortYear":2025},{"curriculumId":"d5ac05b5-b6db-4578-a818-05ed648b1c2d","curriculumCode":"CNTT-TCTA-KTPM-2025","programCode":"CNTT-TCTA-KTPM","cohortYear":2025},{"curriculumId":"3761e7ce-cfb5-470b-ac79-c6fbe5e77972","curriculumCode":"CNTT-TCTA-MMT-2025","programCode":"CNTT-TCTA-MMT","cohortYear":2025},{"curriculumId":"f48ad9cf-ecfe-422d-a079-37f518ec0314","curriculumCode":"CNTT-TCTA-TGMT-2025","programCode":"CNTT-TCTA-TGMT","cohortYear":2025}],"reviewVersion":"ZsyN6W4wSBur7q0gxhVcMAXWU6GNgiXZOuVilBvOXFo"}
+  OK  first PATCH 409 impact_confirmation_required with a reviewVersion
+  OK  11 affected curricula, each with curriculumId, curriculumCode, programCode, cohortYear
+  OK  APCS2024, APCS2025 first, then nine CNTT-TCTA-…-2025, CNTT-TCTA-KHMT-2025 among them
+  OK  ordered by program code then cohort
+  OK  the curricula are those of R1's memberships
+GET /courses/BAA00104 → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","credits":2,"memberships":["APCS2024","APCS2025","CNTT-TCTA-ATTT-2025","CNTT-TCTA-CNTTHUC-2025","CNTT-TCTA-CNTTIN-2025","CNTT-TCTA-HTTT-2025","CNTT-TCTA-KHDL-2025","CNTT-TCTA-KHMT-2025","CNTT-TCTA-KTPM-2025","CNTT-TCTA-MMT-2025","CNTT-TCTA-TGMT-2025"]}
+  OK  nothing saved yet: R1 still N0
+PATCH /admin/catalog/courses/BAA00104 → 200 {"code":"BAA00104","nameVi":"Lịch sử Đảng Cộng sản Việt Nam","nameEn":"History of the Communist Party of Vietnam","credits":2,"theoryPeriods":30,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+  OK  confirmed PATCH 200, code BAA00104, nameEn N1, 2 credits
+GET /courses/BAA00104 → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of the Communist Party of Vietnam","apcs2024":"History of the Communist Party of Vietnam","khmt2025":"History of the Communist Party of Vietnam","credits":2,"memberships":["APCS2024","APCS2025","CNTT-TCTA-ATTT-2025","CNTT-TCTA-CNTTHUC-2025","CNTT-TCTA-CNTTIN-2025","CNTT-TCTA-HTTT-2025","CNTT-TCTA-KHDL-2025","CNTT-TCTA-KHMT-2025","CNTT-TCTA-KTPM-2025","CNTT-TCTA-MMT-2025","CNTT-TCTA-TGMT-2025"]}
+  OK  R1 reads N1 in the course, APCS 2024 and CNTT-TCTA-KHMT 2025
+PATCH /admin/catalog/courses/BAA00104 → 409 {"statusCode":409,"code":"impact_confirmation_required","message":"BAA00104 is shared: the change reaches every curriculum listed; confirm with confirmImpact","affectedCurricula":[{"curriculumId":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","curriculumCode":"APCS2024","programCode":"APCS","cohortYear":2024},{"curriculumId":"872ae05e-3e7d-405a-ac3c-58ef4748e475","curriculumCode":"APCS2025","programCode":"APCS","cohortYear":2025},{"curriculumId":"eab1b5ba-098d-4497-a122-92acc700e8b7","curriculumCode":"CNTT-TCTA-ATTT-2025","programCode":"CNTT-TCTA-ATTT","cohortYear":2025},{"curriculumId":"8cd89970-15c4-4567-a4f4-69ef2158093c","curriculumCode":"CNTT-TCTA-CNTTHUC-2025","programCode":"CNTT-TCTA-CNTTHUC","cohortYear":2025},{"curriculumId":"2906dd22-7bf5-4643-84ed-1b517c13e219","curriculumCode":"CNTT-TCTA-CNTTIN-2025","programCode":"CNTT-TCTA-CNTTIN","cohortYear":2025},{"curriculumId":"fecee852-6af6-48e2-a712-78f02f83663e","curriculumCode":"CNTT-TCTA-HTTT-2025","programCode":"CNTT-TCTA-HTTT","cohortYear":2025},{"curriculumId":"625b194b-569f-44ce-8f02-c191dfa3c830","curriculumCode":"CNTT-TCTA-KHDL-2025","programCode":"CNTT-TCTA-KHDL","cohortYear":2025},{"curriculumId":"f7622c13-3e5b-4d6c-95b0-17308c767846","curriculumCode":"CNTT-TCTA-KHMT-2025","programCode":"CNTT-TCTA-KHMT","cohortYear":2025},{"curriculumId":"d5ac05b5-b6db-4578-a818-05ed648b1c2d","curriculumCode":"CNTT-TCTA-KTPM-2025","programCode":"CNTT-TCTA-KTPM","cohortYear":2025},{"curriculumId":"3761e7ce-cfb5-470b-ac79-c6fbe5e77972","curriculumCode":"CNTT-TCTA-MMT-2025","programCode":"CNTT-TCTA-MMT","cohortYear":2025},{"curriculumId":"f48ad9cf-ecfe-422d-a079-37f518ec0314","curriculumCode":"CNTT-TCTA-TGMT-2025","programCode":"CNTT-TCTA-TGMT","cohortYear":2025}],"reviewVersion":"LXe3pJ_L0p16dMODnVzXrqwrmJI4kdCnfgb_lphgT8k"}
+  OK  restore: 409 with another reviewVersion
+PATCH /admin/catalog/courses/BAA00104 → 200 {"code":"BAA00104","nameVi":"Lịch sử Đảng Cộng sản Việt Nam","nameEn":"History of Vietnamese Communist Party","credits":2,"theoryPeriods":30,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+  OK  restore confirmed 200
+GET /courses/BAA00104 → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","credits":2,"memberships":["APCS2024","APCS2025","CNTT-TCTA-ATTT-2025","CNTT-TCTA-CNTTHUC-2025","CNTT-TCTA-CNTTIN-2025","CNTT-TCTA-HTTT-2025","CNTT-TCTA-KHDL-2025","CNTT-TCTA-KHMT-2025","CNTT-TCTA-KTPM-2025","CNTT-TCTA-MMT-2025","CNTT-TCTA-TGMT-2025"]}
+  OK  R1 reads N0 again
+--- ADM-01b
+PATCH /admin/catalog/courses/BAA00104 → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+  OK  A1 PATCH 403 permission_required catalog_maintainer, no list or version
+PATCH /admin/catalog/courses/BAA00104 → 403 {"statusCode":403,"code":"permission_required","permission":"catalog_maintainer","message":"This needs the catalog_maintainer permission"}
+  OK  A1 PATCH with confirmImpact 403 catalog_maintainer, no list or version
+GET /courses/BAA00104 → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","credits":2,"memberships":["APCS2024","APCS2025","CNTT-TCTA-ATTT-2025","CNTT-TCTA-CNTTHUC-2025","CNTT-TCTA-CNTTIN-2025","CNTT-TCTA-HTTT-2025","CNTT-TCTA-KHDL-2025","CNTT-TCTA-KHMT-2025","CNTT-TCTA-KTPM-2025","CNTT-TCTA-MMT-2025","CNTT-TCTA-TGMT-2025"]}
+  OK  R1 still N0
+--- ADM-01c
+GET /admin/programs → 200
+PATCH /admin/catalog/courses/BAA00104 → 400 {"statusCode":400,"code":"validation_failed","message":["curriculumId: property curriculumId should not exist"]}
+  OK  curriculumId: 400 validation_failed, contains "property curriculumId should not exist"
+PATCH /admin/catalog/courses/BAA00104 → 400 {"statusCode":400,"code":"validation_failed","message":["cohortYear: property cohortYear should not exist"]}
+  OK  cohortYear: 400 validation_failed, contains "property cohortYear should not exist"
+GET /courses/BAA00104 → 200
+GET /programs/APCS/curricula/2024 → 200
+GET /programs/CNTT-TCTA-KHMT/curricula/2025 → 200
+  R1 {"course":"History of Vietnamese Communist Party","apcs2024":"History of Vietnamese Communist Party","khmt2025":"History of Vietnamese Communist Party","credits":2,"memberships":["APCS2024","APCS2025","CNTT-TCTA-ATTT-2025","CNTT-TCTA-CNTTHUC-2025","CNTT-TCTA-CNTTIN-2025","CNTT-TCTA-HTTT-2025","CNTT-TCTA-KHDL-2025","CNTT-TCTA-KHMT-2025","CNTT-TCTA-KTPM-2025","CNTT-TCTA-MMT-2025","CNTT-TCTA-TGMT-2025"]}
+  OK  R1 still N0
+all OK

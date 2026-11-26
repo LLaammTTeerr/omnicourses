@@ -1,0 +1,25 @@
+ADM 05d run at 2026-11-22T02:34:26.292Z
+POST /auth/sign-in (b2-a3@example.com) → 200
+POST /auth/sign-in (b2-s6@example.com) → 200
+POST /plans → 201 {"id":"81524606-3f89-4098-9748-b0a607ccb559","name":"ADM-05 plan","curriculum":{"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","programCode":"APCS","cohortYear":2024},"createdAt":"2026-11-22T02:34:23.096Z","updatedAt":"2026-11-22T02:34:23.096Z","terms":[{"term":{"year":2026,"number":1},"placements":[{"kind":"course","courseCode":"ZZADM05","requirementGroupId":null,"credits":null}]}]}
+  OK  plan 201
+GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":7.5,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8.5,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"graded","grade":7,"term":{"year":2024,"number":1}},{"courseCode":"ZZADM05","courseName":"Học phần thử ADM-05","credits":4,"result":"graded","grade":8,"term":{"year":2025,"number":1}}]}
+GET /plans/81524606-3f89-4098-9748-b0a607ccb559 → 200 {"id":"81524606-3f89-4098-9748-b0a607ccb559","name":"ADM-05 plan","curriculum":{"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","programCode":"APCS","cohortYear":2024},"createdAt":"2026-11-22T02:34:23.096Z","updatedAt":"2026-11-22T02:34:23.096Z","terms":[{"term":{"year":2026,"number":1},"placements":[{"kind":"course","courseCode":"ZZADM05","requirementGroupId":null,"credits":null}]}]}
+PATCH /admin/catalog/courses/ZZADM05 → 200 {"code":"ZZADM05","nameVi":"Học phần thử ADM-05 (sửa)","nameEn":null,"credits":5,"theoryPeriods":0,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0}
+  OK  PATCH 200 at once, 5 credits, new name
+GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":7.5,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8.5,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"graded","grade":7,"term":{"year":2024,"number":1}},{"courseCode":"ZZADM05","courseName":"Học phần thử ADM-05","credits":4,"result":"graded","grade":8,"term":{"year":2025,"number":1}}]}
+GET /plans/81524606-3f89-4098-9748-b0a607ccb559 → 200 {"id":"81524606-3f89-4098-9748-b0a607ccb559","name":"ADM-05 plan","curriculum":{"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","programCode":"APCS","cohortYear":2024},"createdAt":"2026-11-22T02:34:23.096Z","updatedAt":"2026-11-22T02:34:23.096Z","terms":[{"term":{"year":2026,"number":1},"placements":[{"kind":"course","courseCode":"ZZADM05","requirementGroupId":null,"credits":null}]}]}
+  OK  transcript unchanged: ZZADM05 row still "Học phần thử ADM-05", 4 credits
+  OK  plan terms unchanged: ZZADM05 alone in 2026 term 1, credits null; updatedAt unchanged
+DELETE /admin/catalog/courses/ZZADM05 → 409 {"statusCode":409,"code":"referenced_item","message":"ZZADM05 is still referenced","references":["1 transcript rows name it","1 saved plans place it"]}
+  OK  DELETE 409 referenced_item, ["1 transcript rows name it", "1 saved plans place it"]
+--- clean-up
+PUT /users/me/transcript → 200
+  OK  S6 saves T-A 200
+DELETE /plans/81524606-3f89-4098-9748-b0a607ccb559 → 204 ""
+  OK  plan DELETE 204
+DELETE /admin/catalog/courses/ZZADM05 → 204 ""
+  OK  ZZADM05 DELETE 204
+GET /courses/ZZADM05 → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  OK  GET ZZADM05 404
+all OK

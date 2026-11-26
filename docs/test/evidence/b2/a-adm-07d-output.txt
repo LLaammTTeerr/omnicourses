@@ -1,0 +1,29 @@
+ADM 07d run at 2026-11-25T06:05:34.644Z
+POST /auth/sign-in (b2-a3@example.com) → 200
+POST /admin/catalog/imports/preview → 200 {"fileType":"catalog_courses","rows":[{"record":2,"action":"insert","code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]},{"record":3,"action":"insert","code":"ZZADM07B","nameVi":"Học phần thử ADM-07 B, có dấu phẩy","nameEn":"Test course ADM-07 B","credits":4,"theoryPeriods":0,"labPeriods":30,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]}],"errors":[],"summary":{"inserts":2,"updates":0,"noOps":0},"affectedCurricula":[],"reviewVersion":"hLlRLbsIOIv3JKZi1v-uPRghptqKZDxHBCkyhdGqdZ0"}
+POST /admin/catalog/imports/preview → 200 {"fileType":"catalog_courses","rows":[{"record":2,"action":"insert","code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]},{"record":3,"action":"insert","code":"ZZADM07B","nameVi":"Học phần thử ADM-07 B, có dấu phẩy","nameEn":"Test course ADM-07 B","credits":4,"theoryPeriods":0,"labPeriods":30,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]}],"errors":[],"summary":{"inserts":2,"updates":0,"noOps":0},"affectedCurricula":[],"reviewVersion":"hLlRLbsIOIv3JKZi1v-uPRghptqKZDxHBCkyhdGqdZ0"}
+POST /admin/catalog/imports/preview → 200 {"fileType":"catalog_courses","rows":[{"record":2,"action":"insert","code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]},{"record":3,"action":"insert","code":"ZZADM07B","nameVi":"Học phần thử ADM-07 B, có dấu phẩy","nameEn":"Test course ADM-07 B","credits":4,"theoryPeriods":0,"labPeriods":30,"exercisePeriods":0,"projectPeriods":0,"changedFields":[],"current":null,"affectedCurricula":[]}],"errors":[],"summary":{"inserts":2,"updates":0,"noOps":0},"affectedCurricula":[],"reviewVersion":"hLlRLbsIOIv3JKZi1v-uPRghptqKZDxHBCkyhdGqdZ0"}
+  OK  F2 first: 200, no errors, summary {2,0,0}, affectedCurricula []
+  OK  F2 first: record 2 ZZADM07A, nameEn null, 3 credits, theory 45, other periods 0
+  OK  F2 first: record 3 ZZADM07B, nameVi with comma, nameEn, 4 credits, lab 30
+  OK  F2 first: two rows only (the blank line is no record)
+  OK  F2 again: 200, no errors, summary {2,0,0}, affectedCurricula []
+  OK  F2 again: record 2 ZZADM07A, nameEn null, 3 credits, theory 45, other periods 0
+  OK  F2 again: record 3 ZZADM07B, nameVi with comma, nameEn, 4 credits, lab 30
+  OK  F2 again: two rows only (the blank line is no record)
+  OK  F2b: 200, no errors, summary {2,0,0}, affectedCurricula []
+  OK  F2b: record 2 ZZADM07A, nameEn null, 3 credits, theory 45, other periods 0
+  OK  F2b: record 3 ZZADM07B, nameVi with comma, nameEn, 4 credits, lab 30
+  OK  F2b: two rows only (the blank line is no record)
+  OK  same reviewVersion for F2, F2 again and F2b
+GET /courses/ZZADM07A → 404 {"message":"No course has this code","error":"Not Found","statusCode":404}
+  OK  GET ZZADM07A before the confirmation 404
+POST /admin/catalog/imports/confirm → 200 {"fileType":"catalog_courses","summary":{"inserts":2,"updates":0,"noOps":0}}
+  OK  confirm F2b with V1: 200 {fileType catalog_courses, summary {2,0,0}}
+GET /courses/ZZADM07A → 200 {"code":"ZZADM07A","nameVi":"Học phần thử ADM-07 A","nameEn":null,"credits":3,"theoryPeriods":45,"labPeriods":0,"exercisePeriods":0,"projectPeriods":0,"memberships":[]}
+GET /courses/ZZADM07B → 200 {"code":"ZZADM07B","nameVi":"Học phần thử ADM-07 B, có dấu phẩy","nameEn":"Test course ADM-07 B","credits":4,"theoryPeriods":0,"labPeriods":30,"exercisePeriods":0,"projectPeriods":0,"memberships":[]}
+  OK  ZZADM07A reads as previewed, no memberships
+  OK  ZZADM07B reads as previewed, no memberships
+POST /admin/catalog/imports/confirm → 409 {"statusCode":409,"code":"impact_changed","message":"The file, or the saved data it touches, changed since the preview; preview it again"}
+  OK  second confirmation 409 impact_changed "The file, or the saved data it touches, changed since the preview; preview it again"
+All checks OK
