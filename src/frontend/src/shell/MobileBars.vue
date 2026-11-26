@@ -7,6 +7,9 @@ import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import { NOTIFICATION_MESSAGES } from '../notifications/messages.js';
+import { useUnread } from '../notifications/store.js';
+import UnreadBadge from '../notifications/UnreadBadge.vue';
 import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
@@ -20,6 +23,8 @@ const access = useAdminAccess();
 const locale = useLocale();
 const route = useRoute();
 const m = useMessages(SHELL_MESSAGES);
+const notes = useMessages(NOTIFICATION_MESSAGES);
+const unread = useUnread();
 const initial = computed(() => auth.user?.displayName.trim()[0]?.toUpperCase() ?? '');
 
 const moreOpen = ref(false);
@@ -43,6 +48,9 @@ function backdrop(event: MouseEvent): void {
     <span class="end">
       <ThemeButton icon-only class="btn sm ghost icon-only" />
       <LangButton short class="btn sm ghost" />
+      <RouterLink class="btn sm ghost icon-only bell" :to="{ name: 'notifications' }" :aria-label="notes.bell(unread.count)" data-test="bell">
+        <Icon name="bell" /><UnreadBadge aria-hidden="true" />
+      </RouterLink>
       <RouterLink class="avatar" :to="{ name: 'settings' }" :aria-label="m.account">{{ initial }}</RouterLink>
     </span>
   </header>
@@ -73,7 +81,7 @@ function backdrop(event: MouseEvent): void {
         <ul class="more-list">
           <li v-for="item in more" :key="item.route">
             <RouterLink :class="groupClass(item.group)" :to="{ name: item.route }" :data-test="`more-${item.route}`" @click="moreOpen = false">
-              <Icon :name="item.icon" /><span>{{ item.label[locale.lang] }}</span>
+              <Icon :name="item.icon" /><span>{{ item.label[locale.lang] }}</span><UnreadBadge v-if="item.unreadBadge" />
             </RouterLink>
           </li>
         </ul>
@@ -90,6 +98,8 @@ function backdrop(event: MouseEvent): void {
     background: var(--surface); border-bottom: 1px solid var(--edge); position: sticky; top: 0; z-index: 30;
   }
   .mobile-top .end { display: flex; align-items: center; gap: 6px; }
+  .mobile-top .bell { position: relative; }
+  .mobile-top .bell .badge { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10.5px; }
   .tabbar {
     display: grid; grid-template-columns: repeat(var(--tabs), minmax(0, 1fr)); position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 50;
     background: var(--surface); border: 1px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 6px;
@@ -107,6 +117,7 @@ dialog.modal.more-sheet h2 { font-size: 18px; }
 .more-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .more-list a { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; text-decoration: none; color: var(--ink); font-weight: 600; }
 .more-list a .icon { color: var(--c); }
+.more-list a .badge { margin-left: auto; }
 .more-list a.router-link-active { background: var(--c); color: var(--on); }
 .more-list a.router-link-active .icon { color: inherit; }
 </style>

@@ -25,6 +25,7 @@ import CalendarView from './calendar/CalendarView.vue';
 import ExplorerView from './explorer/ExplorerView.vue';
 import GuideView from './guides/GuideView.vue';
 import GuidesView from './guides/GuidesView.vue';
+import NotificationsView from './notifications/NotificationsView.vue';
 import OnboardingView from './onboarding/OnboardingView.vue';
 import PlanEditorView from './plans/PlanEditorView.vue';
 import PlannerEntry from './plans/PlannerEntry.vue';
@@ -63,6 +64,15 @@ export const routes: RouteRecordRaw[] = [
     name: 'calendar',
     component: CalendarView,
     meta: { ...APP, menu: { icon: 'calendar', label: { vi: 'Lịch', en: 'Calendar' }, group: 'pol', section: 'main' } },
+  },
+  {
+    path: '/notifications',
+    name: 'notifications',
+    component: NotificationsView,
+    meta: {
+      ...APP,
+      menu: { icon: 'bell', label: { vi: 'Thông báo', en: 'Notifications' }, group: 'pol', section: 'main', unreadBadge: true },
+    },
   },
   {
     path: '/audit',

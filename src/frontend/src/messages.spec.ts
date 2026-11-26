@@ -5,6 +5,7 @@ import { AUDIT_MESSAGES } from './audit/messages.js';
 import { AUTH_MESSAGES } from './auth/messages.js';
 import { EXPLORER_MESSAGES } from './explorer/messages.js';
 import { GUIDE_MESSAGES } from './guides/messages.js';
+import { NOTIFICATION_MESSAGES } from './notifications/messages.js';
 import { GOAL_MESSAGES, ONBOARDING_MESSAGES, STUDY_MESSAGES } from './onboarding/messages.js';
 import { PRIVACY_MESSAGES } from './privacy/messages.js';
 import { TRANSCRIPT_MESSAGES } from './transcript/messages.js';
@@ -18,6 +19,7 @@ const CATALOGUES: Record<string, Record<Lang, unknown>> = {
   EXPLORER_MESSAGES,
   GOAL_MESSAGES,
   GUIDE_MESSAGES,
+  NOTIFICATION_MESSAGES,
   ONBOARDING_MESSAGES,
   PRIVACY_MESSAGES,
   SETTINGS_MESSAGES,

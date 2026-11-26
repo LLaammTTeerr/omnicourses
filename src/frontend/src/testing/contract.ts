@@ -1,7 +1,7 @@
 import contract from '../../../backend/openapi.json';
 
 interface Schema {
-  properties: Record<string, { enum?: (string | number)[] }>;
+  properties: Record<string, { enum?: (string | number)[]; items?: { enum?: (string | number)[] } }>;
   required?: string[];
 }
 const schemas = contract.components.schemas as Record<string, Schema>;
@@ -16,5 +16,6 @@ export function contractShape(schema: string): Record<string, Presence> {
 }
 
 export function contractEnum(schema: string, property: string): (string | number)[] {
-  return [...(schemas[schema].properties[property].enum ?? [])].sort();
+  const { enum: values, items } = schemas[schema].properties[property];
+  return [...(values ?? items?.enum ?? [])].sort();
 }

@@ -56,6 +56,9 @@ export function formatDateTime(iso: string, lang: Lang): string {
   return new Intl.DateTimeFormat(LANGUAGES[lang].tag, { ...LANGUAGES[lang].date, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
 }
 
+export const formatSpan = (startsOn: string, endsOn: string, format: (iso: string) => string): string =>
+  startsOn === endsOn ? format(startsOn) : `${format(startsOn)} – ${format(endsOn)}`;
+
 export function formatDate(isoDate: string, lang: Lang): string {
   return new Intl.DateTimeFormat(LANGUAGES[lang].tag, { ...LANGUAGES[lang].date, timeZone: 'UTC' }).format(new Date(`${isoDate}T00:00:00Z`));
 }

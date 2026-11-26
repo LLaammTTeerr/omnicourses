@@ -5,15 +5,16 @@ import { useAdminAccess } from '../admin/store.js';
 import { PROGRAM_ADMIN } from '../admin/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { setup } from '../testing/signed-in.js';
+import { useUnread } from '../notifications/store.js';
 import MobileBars from './MobileBars.vue';
 
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
-async function render(path: string) {
+async function render(path: string, part: 'top' | 'tabs' = 'tabs') {
   const app = await setup(path);
   router = app.router;
-  wrapper = mount(MobileBars, { props: { part: 'tabs' }, global: { plugins: [app.pinia, router] }, attachTo: document.body });
+  wrapper = mount(MobileBars, { props: { part }, global: { plugins: [app.pinia, router] }, attachTo: document.body });
   await flushPromises();
   return wrapper;
 }
@@ -56,20 +57,20 @@ describe('the phone tab bar', () => {
     expect(sheet(w).attributes('aria-labelledby')).toBe('more-title');
     expect(sheet(w).get('#more-title').text()).toBe('Thêm');
     const links = sheet(w).findAll('a');
-    expect(links.map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
-    expect(links.map((a) => a.attributes('href'))).toEqual(['/calendar', '/transcript', '/guides', '/settings']);
+    expect(links.map((a) => a.text())).toEqual(['Lịch', 'Thông báo', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
+    expect(links.map((a) => a.attributes('href'))).toEqual(['/calendar', '/notifications', '/transcript', '/guides', '/settings']);
   });
 
   it('adds Administration under More for a user who holds a grant, and marks More on that page (ADR 0011)', async () => {
     const w = await render('/admin');
     await more(w).trigger('click');
     await flushPromises();
-    expect(sheet(w).findAll('a').map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
+    expect(sheet(w).findAll('a').map((a) => a.text())).toEqual(['Lịch', 'Thông báo', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
     expect(more(w).attributes('aria-current')).toBeUndefined();
     useAdminAccess().seed(PROGRAM_ADMIN.userId, PROGRAM_ADMIN);
     await flushPromises();
     const links = sheet(w).findAll('a');
-    expect(links.map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
+    expect(links.map((a) => a.text())).toEqual(['Lịch', 'Thông báo', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
     expect(links.at(-1)!.attributes('href')).toBe('/admin');
     expect(more(w).attributes('aria-current')).toBe('page');
   });
@@ -149,5 +150,38 @@ describe('the phone tab bar', () => {
     expect(more(w).classes()).not.toContain('router-link-active');
     expect(more(w).attributes('aria-current')).toBeUndefined();
     expect(w.findAll('.tabbar a.router-link-active')).toHaveLength(1);
+  });
+});
+
+describe('the phone top bar', () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = undefined;
+  });
+
+  it('has a bell that opens the inbox and says how many are unread', async () => {
+    const w = await render('/dashboard', 'top');
+    const bell = w.get('[data-test="bell"]');
+    expect(bell.attributes('href')).toBe('/notifications');
+    expect(bell.attributes('aria-label')).toBe('Thông báo');
+    expect(bell.find('[data-test="unread-badge"]').exists()).toBe(false);
+    useUnread().set(3);
+    await flushPromises();
+    expect(bell.attributes('aria-label')).toBe('Thông báo, 3 chưa đọc');
+    useUnread().set(2);
+    useLocale().set('en');
+    await flushPromises();
+    expect(bell.attributes('aria-label')).toBe('Notifications, 2 unread');
+    expect(bell.get('[data-test="unread-badge"]').attributes('aria-hidden')).toBe('true');
+    expect(bell.get('[data-test="unread-badge"]').text()).toBe('22 unread');
+  });
+
+  it('shows the count on Notifications under More', async () => {
+    const w = await render('/dashboard');
+    useUnread().set(4);
+    await more(w).trigger('click');
+    await flushPromises();
+    expect(sheet(w).get('[data-test="more-notifications"] [data-test="unread-badge"]').text()).toBe('44 chưa đọc');
   });
 });

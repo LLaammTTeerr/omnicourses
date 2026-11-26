@@ -6,6 +6,7 @@ import { useAdminAccess } from '../admin/store.js';
 import { useAuth } from '../auth/store.js';
 import { groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
+import UnreadBadge from '../notifications/UnreadBadge.vue';
 import BrandLink from './BrandLink.vue';
 import Icon from './Icon.vue';
 import LangButton from './LangButton.vue';
@@ -45,7 +46,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
     <BrandLink :to="HOME_SIGNED_IN" />
     <nav class="nav" :aria-label="m.nav">
       <RouterLink v-for="item in main" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }" :title="tip(item.label[locale.lang])" :data-test="`nav-${item.route}`">
-        <span class="ico"><Icon :name="item.icon" /></span><span class="tx">{{ item.label[locale.lang] }}</span>
+        <span class="ico"><Icon :name="item.icon" /></span><span class="tx">{{ item.label[locale.lang] }}</span><UnreadBadge v-if="item.unreadBadge" />
       </RouterLink>
       <span class="nav-label" aria-hidden="true"><span class="tx">{{ m.account }}</span></span>
       <RouterLink v-for="item in account" :key="item.route" :class="groupClass(item.group)" :to="{ name: item.route }" :title="tip(item.label[locale.lang])" :data-test="`nav-${item.route}`">
@@ -102,6 +103,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey));
 .side-mini .side .brand .name, .side-mini .side .tx { opacity: 0; transition-delay: 0s; }
 .side-mini .nav-label { height: 0; padding: 6px 0 0; margin: 6px 10px; border-top: 1px solid var(--edge); }
 .side-mini .me { background: none; padding: 3px; }
+.nav a .badge { margin-left: auto; }
+.side-mini .nav a .badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10.5px; }
 .side-mini .nav a, .side-mini .side-toggle { width: 40px; height: 36px; padding: 0; justify-content: center; justify-self: center; gap: 0; }
 .side-mini .nav a .tx, .side-mini .side-toggle .tx { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 </style>
