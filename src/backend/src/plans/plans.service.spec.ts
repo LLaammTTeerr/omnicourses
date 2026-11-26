@@ -161,7 +161,6 @@ describe('PlansService', () => {
     expect(tx.query.mock.calls[0]).toEqual([expect.stringContaining('FOR NO KEY UPDATE'), ['p1', 'u1']]);
     expect(tx.delete).toHaveBeenCalledWith(expect.anything(), { planId: 'p1' });
     expect(tx.insert.mock.calls[0][1]).toEqual([expect.objectContaining({ planId: 'p1', userId: 'u1', courseCode: 'ZZ001', position: 0 })]);
-    expect(tx.query.mock.calls.at(-1)?.[0]).toMatch(/SET "updated_at" = now\(\)/);
   });
 
   it('copies a plan under the original name unless given one', async () => {

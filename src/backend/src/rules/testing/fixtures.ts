@@ -71,3 +71,36 @@ export function zzGraduatingTranscript(): TranscriptEntry[] {
     graded('ZZT1', 10, 9, term(2025, 1)),
   ];
 }
+
+export const EXPECTED_NOT_CHECKED_CONDITIONS = [
+  {
+    id: 'no_prosecution_or_suspension',
+    description: 'Not being prosecuted, and not serving a suspension, at the time of graduation review',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.a',
+    status: 'not_checked',
+  },
+  {
+    id: 'defence_education_certificate',
+    description: 'The Giáo dục quốc phòng - An ninh certificate (passing the courses is checked with their group)',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.c',
+    status: 'not_checked',
+  },
+  {
+    id: 'foreign_language_standard',
+    description: "The school's foreign-language standard",
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.d',
+    status: 'not_checked',
+  },
+  {
+    id: 'it_standard',
+    description: 'The IT standard set by the curriculum',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.e',
+    status: 'not_checked',
+  },
+  {
+    id: 'study_time_limit',
+    description: 'Finishing within the maximum study time',
+    citation: 'QĐ 1175/QĐ-KHTN Điều 2.7',
+    status: 'not_checked',
+  },
+];

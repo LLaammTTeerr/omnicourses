@@ -7,7 +7,7 @@ import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
-import { NOT_CHECKED_CONDITIONS } from '../src/rules/graduation.js';
+import { EXPECTED_NOT_CHECKED_CONDITIONS } from '../src/rules/testing/fixtures.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
@@ -198,7 +198,7 @@ describe('Degree audit API (e2e)', () => {
         '"Kiến thức tự chọn": at least 43 credits across its groups',
         'At least 163 credits toward the cohort total',
       ]);
-      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
+      expect(audit.graduation.notChecked).toEqual(EXPECTED_NOT_CHECKED_CONDITIONS);
     });
   });
 
@@ -263,7 +263,7 @@ describe('Degree audit API (e2e)', () => {
     it('is done, with the conditions it cannot check still listed, and no warning', () => {
       expect(audit.graduation.status).toBe('done');
       expect(audit.graduation.unmet).toEqual([]);
-      expect(audit.graduation.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
+      expect(audit.graduation.notChecked).toEqual(EXPECTED_NOT_CHECKED_CONDITIONS);
       expect(audit.unmatchedCourses).toEqual([]);
       expect(audit.warnings).toEqual([]);
     });
