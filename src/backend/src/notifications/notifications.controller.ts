@@ -6,11 +6,8 @@ import { User } from '../users/user.entity.js';
 import { NotificationDto, NotificationListDto, NotificationNotFoundDto, NotificationsQueryDto, UnreadCountDto } from './notifications.dto.js';
 import { notificationNotFound, NotificationsService } from './notifications.service.js';
 
-/** A malformed ID is a 404 like any unknown notification, as for plans: a 400 or a 500 would tell IDs apart. */
 const notificationIdPipe = new UuidOr404Pipe(notificationNotFound);
 
-// F10, the notification inbox (UC-12, ADR 0018): the signed-in student's own notifications only.
-// No route takes a user ID, and none is public (ADR 0002).
 @ApiTags('notifications')
 @Authenticated()
 @Controller('notifications')

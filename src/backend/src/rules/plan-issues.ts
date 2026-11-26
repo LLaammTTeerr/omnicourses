@@ -1,6 +1,3 @@
-// Live validation of a plan (F5, UC-05 step 6, ADR 0014): the plan's placements against its own
-// curriculum, the student's transcript and the regulation. One pure function; RulesService loads
-// the inputs. It composes the engine's existing rules and decides nothing new about them.
 import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
 import { groupBy } from '../common/collections.js';
 import { compareTerms, copyTerm, type Term, termKey, termLabel } from '../terms/term.js';
@@ -29,7 +26,6 @@ interface PlanCheckInput {
   rules: CurriculumRules;
   transcript: readonly TranscriptEntry[];
   terms: readonly BoardTerm[];
-  /** Catalog credits of the placed courses. A code missing here is no longer in the catalog. */
   catalogCredits: ReadonlyMap<string, number>;
 }
 
@@ -62,25 +58,18 @@ const issue = (fields: Pick<PlanIssue, 'code' | 'kind' | 'citation' | 'message'>
 export const courseCodesOf = (terms: readonly BoardTerm[]): string[] =>
   terms.flatMap((t) => t.placements.flatMap((p) => (p.kind === 'course' && p.courseCode !== null ? [p.courseCode] : [])));
 
-/**
- * Whether a slot of the group counts toward the cohort total (and so toward the đại trà minimum):
- * only when every course of the group does. A slot in a group that mixes both, such as APCS's
- * with the Thể dục rows, may hold either, so it is not claimed toward graduation (ADR 0013).
- */
 const slotCountsTowardTotal = (rules: CurriculumRules, groupId: string | null): boolean =>
   rules.groups.find((g) => g.id === groupId)?.courses.every((c) => c.countsTowardTotal) ?? true;
 
 const placedCredits = (plan: Pick<PlanContext, 'placed' | 'catalogCredits'>, code: string): number | undefined =>
   plan.placed.get(code)?.course.credits ?? plan.catalogCredits.get(code);
 
-/** Every issue of a plan, its terms' loads, and the coverage the plan would reach. */
 export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
   const terms = [...input.terms].sort((a, b) => compareTerms(a.term, b.term));
   const plan: PlanContext = { rules: input.rules, placed: placements(input.rules), records: courseRecords(input.transcript), catalogCredits: input.catalogCredits };
   const issues: PlanIssue[] = [];
   const loads: PlanTermLoad[] = [];
   const firstPlacedIn = new Map<string, Term>();
-  /** Courses the plan places in the terms checked so far, with their term: the plan assumes each is passed. */
   const plannedEarlier = new Map<string, Term>();
 
   for (const board of terms) {
@@ -128,14 +117,11 @@ const slotLoad = (rules: CurriculumRules, slot: Placement): LoadCourse => ({
   excludedFromMinimum: !slotCountsTowardTotal(rules, slot.requirementGroupId),
 });
 
-/** The course as the transcript stands before `term` (Điều 14: the last completed attempt counts). */
 function standingBefore(record: CourseRecord | undefined, term: Term): CourseRecord | null {
   const earlier = (record?.attempts ?? []).filter((a) => compareTerms(a.term, term) < 0);
   return record && earlier.length ? resolve(record.code, earlier) : null;
 }
 
-// Passed before this term: in the transcript (or in progress there, assumed passed as the plan is), or placed earlier in the
-// plan. Once the transcript has a completed attempt in or after the placement's term, it decides, as it does in coverage.
 function passedBefore(records: ReadonlyMap<string, CourseRecord>, plannedEarlier: ReadonlyMap<string, Term>, term: Term): Set<string> {
   const passed = new Set<string>();
   for (const [code, placedIn] of plannedEarlier) {
@@ -258,8 +244,6 @@ function offeringIssue(rules: CurriculumRules, tile: CourseTile): PlanIssue | nu
 }
 
 function loadIssues(rules: CurriculumRules, term: Term, checked: TermLoadCheck, unknownCredits: readonly string[]): PlanIssue[] {
-  // A course of unknown credits may add any number: only a load already above the maximum is certain (ADR 0011: unknown, never a pass or a fail).
-  // A known load below the minimum may yet reach it; one not above the maximum may yet cross it.
   const violations = unknownCredits.length ? checked.violations.filter((v) => v.rule === 'above_maximum') : checked.violations;
   return [
     checked.caps === null ? capsNotChecked(rules, term, checked) : null,
@@ -312,19 +296,11 @@ const sitting = (courseCode: string, term: Term): string => `${courseCode}@${ter
 
 interface ProjectedTranscript {
   entries: TranscriptEntry[];
-  /** The slots of each requirement group, as unnamed courses of it. */
   slotsByGroup: Map<string, CurriculumRuleGroup['courses']>;
 }
 
 const passOf = (courseCode: string, credits: number, term: Term): TranscriptEntry => ({ courseCode, courseName: courseCode, credits, result: 'pass', grade: null, term });
 
-/**
- * The transcript as it would stand with the plan completed: every course in progress passed, every
- * placed course a pass in its term, and every slot a pass of an unnamed course of its group. A course
- * the plan places in a term the transcript already has it in adds nothing: the tile shows that
- * sitting (ADR 0013), so the transcript's attempt stands alone, as it is, and no tie between two
- * attempts of one term is left for the audit to break.
- */
 export function projectedTranscript(input: PlanCheckInput, placed: ReadonlyMap<string, CountedLink>, terms: readonly BoardTerm[]): ProjectedTranscript {
   const { rules } = input;
   const entries: TranscriptEntry[] = input.transcript.map((e) => (e.result === 'in_progress' ? { ...e, result: 'pass' as const } : e));
@@ -338,7 +314,6 @@ export function projectedTranscript(input: PlanCheckInput, placed: ReadonlyMap<s
         const credits = placedCredits({ placed, catalogCredits: input.catalogCredits }, p.courseCode);
         if (credits !== undefined) entries.push(passOf(p.courseCode, credits, term));
       } else if (p.requirementGroupId !== null && p.credits !== null) {
-        // Lower case: never a catalog code (COURSE_CODE_PATTERN is capitals and digits).
         const code = `slot:${termKey(term)}-${position}`;
         slots.push({ groupId: p.requirementGroupId, slot: { code, nameVi: code, nameEn: null, credits: p.credits, countsTowardTotal: slotCountsTowardTotal(rules, p.requirementGroupId), countsTowardGpa: false } });
         entries.push(passOf(code, p.credits, term));
@@ -349,12 +324,6 @@ export function projectedTranscript(input: PlanCheckInput, placed: ReadonlyMap<s
   return { entries, slotsByGroup };
 }
 
-/**
- * The degree audit as it would stand with the plan completed: every placed course and every course
- * in progress passed in its term. A slot is an unnamed course of its group with the slot's credits,
- * so it counts, and overflows, as the course chosen for it would; it counts toward the total only
- * when every course of its group does.
- */
 function projectedAudit(input: PlanCheckInput, placed: ReadonlyMap<string, CountedLink>, terms: readonly BoardTerm[]): DegreeAudit {
   const { rules } = input;
   const { entries, slotsByGroup } = projectedTranscript(input, placed, terms);

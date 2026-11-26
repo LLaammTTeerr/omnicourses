@@ -15,7 +15,6 @@ export class Session {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  // SHA-256 of the bearer token, hex. The token itself is never stored.
   @Column({ name: 'token_hash', type: 'char', length: 64 })
   tokenHash!: string;
 

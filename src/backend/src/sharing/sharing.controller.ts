@@ -6,10 +6,6 @@ import { User } from '../users/user.entity.js';
 import { NotSharedDto, PlanShareDto, PlanShareStateDto, SharedPlanDto, SharePlanDto } from './sharing.dto.js';
 import { SharingService } from './sharing.service.js';
 
-/**
- * The body of PUT …/share is an object or nothing at all. An array passes the global validation
- * untouched (it has no field to check), so it is refused here instead of being read as "no choice".
- */
 export class ShareBodyPipe implements PipeTransform<unknown, SharePlanDto> {
   transform(value: unknown): SharePlanDto {
     if (value === undefined) return {};
@@ -18,8 +14,6 @@ export class ShareBodyPipe implements PipeTransform<unknown, SharePlanDto> {
   }
 }
 
-// The owner's side of a shared plan (UC-09 steps 1–4, A2–A4): the signed-in student's own plans only.
-// The answers hold the link's token, so they are never stored by a cache.
 @ApiTags('sharing')
 @Authenticated()
 @Controller('plans/:id/share')
@@ -60,8 +54,6 @@ export class PlanShareController {
   }
 }
 
-// The reader's side (UC-09 steps 6–7, ADR 0010): the one public route of this module. It only reads.
-// @Public() is on the route, not the controller, so a route added here later stays behind sign-in.
 @ApiTags('sharing')
 @Controller('shared-plans')
 export class SharedPlansController {
@@ -80,7 +72,6 @@ export class SharedPlansController {
     description: 'No live link has this token. One answer, with the same body, for a link that was stopped, whose plan or account was deleted, that was mistyped or that never existed.',
   })
   read(@Param('token') token: string): Promise<SharedPlanDto> {
-    // The noindex and no-store headers are set for the whole path prefix by sharedPlanHeaders (sharing.module.ts).
     return this.sharing.read(token);
   }
 }

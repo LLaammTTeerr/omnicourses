@@ -1,6 +1,5 @@
 import { migrate, withDatabase } from './data-source.js';
 
-// `npm run db:migrate -w src/backend`: applies pending migrations, then exits.
 async function main(): Promise<void> {
   await withDatabase(async (dataSource) => {
     const applied = await migrate(dataSource);

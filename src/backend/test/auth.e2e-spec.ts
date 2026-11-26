@@ -5,7 +5,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bootApp } from './support/app.js';
 import { PASSWORD as password } from './support/users.js';
 
-// Synthetic, unique per run, so reruns against the same database never collide.
 const email = `student-${randomUUID()}@example.com`;
 
 describe('Auth against PostgreSQL (e2e)', () => {
@@ -57,7 +56,6 @@ describe('Auth against PostgreSQL (e2e)', () => {
     await http().get('/api/users/me').set('Authorization', `Bearer ${second}`).expect(401);
   });
 
-  // Issue #28: both pass the lookup before either inserts; the unique email must answer 409, not 500.
   it('answers 201 and 409 to two concurrent sign-ups with one email', async () => {
     const body = { email: `student-${randomUUID()}@example.com`, password, displayName: 'Test Student', acceptedTerms: true };
     const statuses = (await Promise.all([1, 2].map(() => http().post('/api/auth/sign-up').send(body)))).map((r) => r.status);

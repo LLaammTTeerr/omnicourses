@@ -6,9 +6,6 @@ import { sameEntries, type TranscriptSaveListener } from './transcript-change.js
 import { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
 
-// The student's transcript (GLOSSARY): what the degree audit and the advisor read.
-// It records what the student saved and decides nothing: which attempt counts and
-// whether a grade passes belong to the rule engine (AGENTS.md hard rule 1).
 @Injectable()
 export class TranscriptService {
   private readonly saveListeners = new Set<TranscriptSaveListener>();
@@ -18,38 +15,24 @@ export class TranscriptService {
     @InjectRepository(TranscriptRow) private readonly rows: Repository<TranscriptRow>,
   ) {}
 
-  /** The saved transcript, oldest term first; empty when nothing is saved. The read contract for other modules (ADR 0007). */
   async rowsFor(userId: string): Promise<TranscriptEntry[]> {
-    // id breaks ties (the same course twice in one term): arbitrary but the same on every read.
     const rows = await this.rows.find({ where: { userId }, order: { termYear: 'ASC', termNumber: 'ASC', courseCode: 'ASC', id: 'ASC' } });
     return rows.map(toEntry);
   }
 
-  /**
-   * Registers a listener for every save, called inside the save's transaction (ADR 0018); returns
-   * the function that removes it. The notification inbox uses it, so this module does not know
-   * the inbox. The listener is told that the transcript changed, never what it holds.
-   */
   onSaved(listener: TranscriptSaveListener): () => void {
     this.saveListeners.add(listener);
     return () => void this.saveListeners.delete(listener);
   }
 
-  /** Replaces the whole transcript with the reviewed rows (UC-02 step 7, A5), all or nothing. */
   async replace(userId: string, rows: TranscriptEntry[]): Promise<TranscriptEntry[]> {
     await this.db.transaction(async (tx) => {
-      // Locks the user so two saves at once run one after the other instead of merging.
-      // NO KEY UPDATE conflicts with itself but not with the KEY SHARE lock of a foreign-key
-      // check, so inserts that reference the user (a sign-in's session) don't wait.
       await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
-      // With no listener nothing compares the rows, so neither read runs.
       const listened = this.saveListeners.size > 0;
-      // Read under the lock: what this save replaces is what the previous save committed.
       const before = listened ? (await tx.findBy(TranscriptRow, { userId })).map(toEntry) : [];
       await tx.delete(TranscriptRow, { userId });
       await tx.insert(TranscriptRow, rows.map((r) => toEntity(userId, r)));
       if (!listened) return;
-      // Compared as stored (a grade is numeric(3,1)), not as sent.
       const after = (await tx.findBy(TranscriptRow, { userId })).map(toEntry);
       const save = { userId, wasEmpty: before.length === 0, changed: !sameEntries(before, after) };
       for (const listener of this.saveListeners) await listener(tx, save);

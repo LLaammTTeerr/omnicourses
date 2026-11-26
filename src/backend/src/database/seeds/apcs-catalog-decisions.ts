@@ -1,10 +1,5 @@
 import type { CatalogDecision } from './seed-types.js';
 
-// Courses whose printed values differ between the APCS 2024 and 2025 PDFs.
-// The shared catalog holds one row per code, so each difference needs a
-// decision a human signs off in review. Rule used: the newer curriculum's
-// wording, because it is how the course is named today. Any difference not
-// listed here aborts the seed and fails the spec.
 export const apcsCatalogDecisions: CatalogDecision[] = [
   {
     code: 'CM102',

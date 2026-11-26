@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { User } from './user.entity.js';
 
-// The public shape of a user. Never includes password_hash or google_sub.
 export class UserDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;

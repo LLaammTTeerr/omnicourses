@@ -5,8 +5,6 @@ import { CreateCourseDto, MAX_INTEGER, UpdateCourseDto } from './curriculum-admi
 const messages = async (dto: typeof CreateCourseDto | typeof UpdateCourseDto, body: object) => flattenErrors((await validateStrict<object>(dto, body)).errors ?? []);
 const course = { code: 'ZZ101', nameVi: 'Học phần thử', credits: 3 };
 
-// The bound on credit and period counts exists so that a number PostgreSQL cannot store is a
-// 400. It must add nothing to the answer for a value that is not a whole number.
 describe('credit and period counts', () => {
   it('answers a value that is not a whole number with the messages it had before the bound existed', async () => {
     for (const credits of ['abc', '3', null, undefined, {}]) {

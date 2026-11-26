@@ -10,7 +10,6 @@ import { AI_CONFIG, type AiConfig } from '../src/config/env.js';
 import { bootApp } from './support/app.js';
 import { storedUser } from './support/users.js';
 
-/** Answers every call at once, so the test sees only the gateway and PostgreSQL. */
 class InstantModel extends ModelClient {
   async complete() {
     return { content: '{}', usage: { inputTokens: 1, outputTokens: 1 } };
@@ -22,9 +21,6 @@ class InstantModel extends ModelClient {
   }
 }
 
-// The gateway against PostgreSQL: the usage table, the daily cap under
-// concurrency, its 24-hour window and the "AI is not configured" path. No
-// real model is ever called.
 describe('AI gateway against PostgreSQL (e2e)', () => {
   let app: INestApplication;
   let llm: LlmService;
@@ -57,7 +53,6 @@ describe('AI gateway against PostgreSQL (e2e)', () => {
   it('counts a call the student stopped, and refuses once the daily cap is reached', async () => {
     const userId = await storedUser(app);
     await structured(userId);
-    // The student closes the tab after the first text event.
     for await (const _event of llm.chat({ context: { userId, feature: 'e2e' }, instructions: '', messages: [] })) break;
     await expect(structured(userId)).rejects.toThrow(new AiUnavailableError(AI_REASONS.dailyLimit));
     const rows = await usage.find({ where: { userId }, order: { createdAt: 'ASC' } });

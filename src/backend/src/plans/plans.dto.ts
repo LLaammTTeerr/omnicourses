@@ -38,8 +38,6 @@ const PlanName = () =>
     MaxCodePoints(PLAN_NAME_MAX_LENGTH),
   );
 
-// A field of one kind of placement: checked when that kind is sent or the field is set, and
-// refused when set on the other kind. An unknown kind is the kind's error alone.
 const ONLY_FOR = (kind: PlacementKind) =>
   ValidateBy({
     name: `onlyFor${kind}`,
@@ -81,7 +79,6 @@ export class PlanPlacementDto implements Placement {
 }
 
 export class PlanTermDto implements BoardTerm {
-  // @ValidateNested() alone lets a missing term through.
   @ApiProperty({ type: TermDto })
   @IsDefined()
   @ValidateNested()
@@ -107,7 +104,6 @@ export class PlanBoardDto {
   terms!: PlanTermDto[];
 }
 
-/** One placement dropped on each of several terms of a board: the planner's drag preview, in one request. */
 export class PlanDropPreviewDto {
   @ApiProperty({ type: [PlanTermDto], description: `The board without the placement (a moved course is taken out of its term first). ${BOARD_DESCRIPTION}` })
   @BoardTerms()
@@ -144,7 +140,6 @@ export class CreatePlanDto {
   @Max(MAX_ACADEMIC_YEAR)
   cohortYear!: number;
 
-  // A generated plan (UC-07 step 10) is saved with its placements in one request.
   @ApiProperty({ type: [PlanTermDto], required: false, description: `${BOARD_DESCRIPTION} Left out: an empty plan.` })
   @IsOptional()
   @BoardTerms()
@@ -203,7 +198,6 @@ export class PlanDto extends PlanSummaryDto {
   terms!: PlanTermDto[];
 }
 
-/** What the plans list shows of each plan without opening it. */
 export class PlanPreviewDto {
   @ApiProperty({ description: 'Terms with at least one placement.' })
   termCount!: number;

@@ -26,8 +26,6 @@ interface ReadGroup {
   courses: ReadCourse[];
 }
 
-// Synthetic courses and groups only (AGENTS.md hard rule 3), unique per run and removed in
-// afterAll, because e2e files share one database with the seeded curricula.
 describe('Curriculum administration API (e2e)', () => {
   let app: INestApplication;
   let db: DataSource;
@@ -72,7 +70,6 @@ describe('Curriculum administration API (e2e)', () => {
     [{ id: clc, code: clcCode }] = await db.query(`SELECT id, code FROM programs WHERE code LIKE 'CNTT-TCTA-%' ORDER BY code LIMIT 1`);
     clcCurriculum = await id('SELECT id FROM curriculums WHERE program_id = $1', [clc]);
 
-    // The fixture's access manager; the bootstrap command is tested on its own schema below.
     await grantGlobal(db, manager.userId, 'access_manager');
     await as(manager.token).put(`/api/admin/access/users/${admin.userId}/programs/${apcs}`).expect(200);
     await as(manager.token).put(`/api/admin/access/users/${maintainer.userId}/global/catalog_maintainer`).expect(200);
@@ -126,7 +123,6 @@ describe('Curriculum administration API (e2e)', () => {
 
   it("tells any signed-in user their own grants, and never another user's", async () => {
     await http().get('/api/admin/grants').expect(401);
-    // No grant: empty lists, not a 403, so the screens can hide the administration entry.
     expect((await as(stranger.token).get('/api/admin/grants').expect(200)).body).toEqual({ userId: stranger.userId, programs: [], permissions: [] });
     expect((await as(admin.token).get('/api/admin/grants').expect(200)).body).toEqual({
       userId: admin.userId,
@@ -143,10 +139,8 @@ describe('Curriculum administration API (e2e)', () => {
       programs: [],
       permissions: [{ permission: 'access_manager', grantedAt: expect.any(String), grantedBy: null }],
     });
-    // The route reads no ID from the request: naming another user changes nothing.
     const asked = await as(stranger.token).get(`/api/admin/grants?userId=${admin.userId}`).expect(200);
     expect(asked.body).toEqual({ userId: stranger.userId, programs: [], permissions: [] });
-    // The answer carries grants only: no email, name or credential.
     expect(Object.keys(asked.body).sort()).toEqual(['permissions', 'programs', 'userId']);
   });
 
@@ -166,11 +160,9 @@ describe('Curriculum administration API (e2e)', () => {
     const before = await db.query('SELECT count(*)::int AS n FROM requirement_groups WHERE curriculum_id = $1', [clcCurriculum]);
     const direct = await as(admin.token).post(`${cohort(clc, clcCurriculum)}/requirement-groups`, { name: groupName, kind: 'elective' });
     expect([direct.status, direct.body.code]).toEqual([403, 'permission_required']);
-    // APCS in the path, a CLC cohort in the ID: not found, never written.
     await as(admin.token).post(`${cohort(apcs, clcCurriculum)}/requirement-groups`, { name: groupName, kind: 'elective' }).expect(404);
     await as(admin.token).put(`${cohort(apcs, clcCurriculum)}/courses/${A}/offering-terms`, { terms: [1] }).expect(404);
     expect(await db.query('SELECT count(*)::int AS n FROM requirement_groups WHERE curriculum_id = $1', [clcCurriculum])).toEqual(before);
-    // A program grant gives no catalog right.
     expect((await as(admin.token).post('/api/admin/catalog/courses', { code: `${A}X`, nameVi: 'x', credits: 1 })).body.permission).toBe('catalog_maintainer');
   });
 
@@ -198,7 +190,6 @@ describe('Curriculum administration API (e2e)', () => {
     expect(cycle.body).toMatchObject({ code: 'prerequisite_cycle', cycle: [A, C, B, A] });
     const self = await as(admin.token).put(prereqs(A), { prerequisites: [A] }).expect(400);
     expect(self.body).toMatchObject({ code: 'prerequisite_cycle', cycle: [A, A] });
-    // E is in the catalog but not in this curriculum.
     expect((await as(admin.token).put(prereqs(A), { prerequisites: [E] }).expect(400)).body.code).toBe('validation_failed');
     await as(admin.token).put(prereqs(E), { prerequisites: [] }).expect(404);
     await as(admin.token).put(prereqs(A), { prerequisites: [D, D] }).expect(400);
@@ -213,8 +204,6 @@ describe('Curriculum administration API (e2e)', () => {
     const { body } = await as(admin.token).get('/api/programs/APCS/curricula/2024').expect(200);
     const seeded = (body.requirementGroups as ReadGroup[]).filter((g) => g.name !== groupName).flatMap((g) => g.courses);
     expect(seeded.length).toBeGreaterThan(0);
-    // The seed records every APCS course as having no prerequisite (Project Lead, 15 November 2026) except CS470, which needs
-    // CS469 (printed in the curriculum PDF; Project Lead, 24 November 2026), and no offering term.
     for (const c of seeded) expect([c.code, c.prerequisites, c.offeringTerms]).toEqual([c.code, c.code === 'CS470' ? ['CS469'] : [], null]);
   });
 
@@ -233,8 +222,6 @@ describe('Curriculum administration API (e2e)', () => {
   });
 
   it('keeps an untouched curriculum at not recorded, and another cohort of the same program as the seed left it', async () => {
-    // CLC: nothing recorded. APCS 2025: the seed's "no prerequisite" for every course but CS470 (CS469), which the writes to
-    // APCS 2024 did not change.
     for (const [program, year, prerequisites] of [[clcCode, 2025, null], ['APCS', 2025, []]] as const) {
       const { body } = await as(stranger.token).get(`/api/programs/${program}/curricula/${year}`).expect(200);
       const courses = (body.requirementGroups as ReadGroup[]).flatMap((g) => g.courses);
@@ -255,10 +242,8 @@ describe('Curriculum administration API (e2e)', () => {
       { curriculumId: apcs2025, curriculumCode: 'APCS2025', programCode: 'APCS', cohortYear: 2025 },
     ]);
     expect((await m.patch(`/api/admin/catalog/courses/${A}`, { credits: 3, confirmImpact: 'stale' }).expect(409)).body.code).toBe('impact_changed');
-    // A confirmation for different values does not apply either.
     expect((await m.patch(`/api/admin/catalog/courses/${A}`, { credits: 2, confirmImpact: warn.body.reviewVersion }).expect(409)).body.code).toBe('impact_changed');
 
-    // The links change during the review: the old confirmation no longer applies.
     await as(admin.token).delete(`${cohort(apcs, apcs2025)}/requirement-groups/${group2025}/courses/${A}`).expect(204);
     const changed = await m.patch(`/api/admin/catalog/courses/${A}`, { credits: 3, confirmImpact: warn.body.reviewVersion }).expect(409);
     expect(changed.body.code).toBe('impact_changed');
@@ -268,7 +253,6 @@ describe('Curriculum administration API (e2e)', () => {
     const saved = await m.patch(`/api/admin/catalog/courses/${A}`, { credits: 3, confirmImpact: changed.body.reviewVersion }).expect(200);
     expect(saved.body).toMatchObject({ code: A, credits: 3 });
     expect((await readGroup('APCS', 2024, groupName)).courses.find((c) => c.code === A)!.credits).toBe(3);
-    // A course no curriculum links needs no confirmation; the code itself never changes.
     expect((await m.patch(`/api/admin/catalog/courses/${E}`, { nameEn: 'Course E' }).expect(200)).body).toMatchObject({ code: E, nameEn: 'Course E' });
     expect((await m.post('/api/admin/catalog/courses', { code: E, nameVi: 'x', credits: 1 }).expect(409)).body.code).toBe('duplicate_code');
   });
@@ -278,14 +262,12 @@ describe('Curriculum administration API (e2e)', () => {
     expect(unlink.body).toMatchObject({ code: 'referenced_item', references: expect.arrayContaining([`${B} requires ${A}`, `offering terms of ${A} are recorded`]) });
     expect((await as(admin.token).delete(groupPath()).expect(409)).body.code).toBe('referenced_item');
     expect((await as(maintainer.token).delete(`/api/admin/catalog/courses/${A}`).expect(409)).body.code).toBe('referenced_item');
-    // D has no rule left: it can leave the group, then the unreferenced E can leave the catalog.
     await as(admin.token).delete(`${groupPath()}/courses/${D}`).expect(204);
     await as(maintainer.token).delete(`/api/admin/catalog/courses/${E}`).expect(204);
     await as(maintainer.token).delete(`/api/admin/catalog/courses/${E}`).expect(404);
   });
 
   it('refuses to delete a catalog course that a saved plan places, which names it by plain code', async () => {
-    // F is in no curriculum, rule or transcript: only the plan refers to it (ADR 0011, TC-B2-ADM-04).
     await as(maintainer.token).post('/api/admin/catalog/courses', { code: F, nameVi: `Học phần ${F}`, credits: 4 }).expect(201);
     const student = await signedInUser(app);
     try {
@@ -301,7 +283,6 @@ describe('Curriculum administration API (e2e)', () => {
   });
 
   it('refuses to delete an empty group that a saved plan names, and says only that plans use it', async () => {
-    // A slot placement names the group by foreign key (ON DELETE RESTRICT): the delete was a 500 (#171).
     const empty = (await as(admin.token).post(`${cohort(apcs, apcs2024)}/requirement-groups`, { name: `${groupName} slot`, kind: 'elective' }).expect(201)).body.id;
     const path = `${cohort(apcs, apcs2024)}/requirement-groups/${empty}`;
     const student = await signedInUser(app);
@@ -314,7 +295,6 @@ describe('Curriculum administration API (e2e)', () => {
         );
       }
       const refused = await as(admin.token).delete(path).expect(409);
-      // Two slots in one plan are one plan; nothing names the plan or its owner.
       expect(refused.body).toEqual({ statusCode: 409, code: 'referenced_item', message: 'Saved plans use the group; it stays while they name it', references: ['1 saved plans use it'] });
       expect(JSON.stringify(refused.body)).not.toContain(planId);
       expect(JSON.stringify(refused.body)).not.toContain(student.userId);
@@ -361,8 +341,6 @@ describe('Curriculum administration API (e2e)', () => {
   });
 });
 
-// The bootstrap and the grant lifecycle on a schema of their own: the shared database may hold
-// access managers from other runs, and these cases depend on there being none.
 describe('Access-manager bootstrap and grant lifecycle (e2e)', () => {
   let schema: Awaited<ReturnType<typeof privateSchema>>;
   let access: AccessAdminService;
@@ -412,7 +390,6 @@ describe('Access-manager bootstrap and grant lifecycle (e2e)', () => {
 
     await access.grantGlobal(lead, deputy, 'access_manager');
     await access.grantGlobal(lead, deputy, 'catalog_maintainer');
-    // Repeating a grant keeps its original attribution.
     await access.grantGlobal(deputy, deputy, 'catalog_maintainer');
     expect(await globalGrants(deputy)).toEqual([
       { permission: 'access_manager', granted_by: lead },
@@ -422,7 +399,6 @@ describe('Access-manager bootstrap and grant lifecycle (e2e)', () => {
     await expect(access.revokeGlobal(deputy, deputy, 'access_manager')).rejects.toMatchObject({ response: { code: 'last_access_manager' } });
     await expect(access.grantGlobal(lead, lead, 'access_manager')).rejects.toMatchObject({ response: { code: 'permission_required' } });
 
-    // The last manager asks for deletion: no active one is left, so the bootstrap may recover.
     await requestDeletion(deputy);
     await expect(access.grantGlobal(deputy, lead, 'access_manager')).rejects.toMatchObject({ response: { code: 'account_deletion_pending' } });
     await bootstrapAccessManager(schema.dataSource, lead);

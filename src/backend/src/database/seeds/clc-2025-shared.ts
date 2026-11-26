@@ -1,61 +1,30 @@
 import type { CurriculumSeed, KnownDiscrepancy, Page, PrintedGroup, PrintedRow } from './seed-types.js';
 
-// The 2025 curriculum of ngành Công nghệ thông tin (7480201), "Chương trình
-// tăng cường tiếng Anh" (the team calls it CLC). One booklet,
-// TCTA_CTDT_2025_Khoa-2025-all.pdf (73 printed pages, "Trang n/73"), states the
-// structure, totals and rules; one table PDF per specialisation
-// (TCTA_CTDT_2025_<KEY>.pdf) lists every course with its group. Row pages
-// refer to the table PDF; group, block and curriculum pages refer to the booklet.
-//
-// #23's schema allows one curriculum per program and cohort, so each of the
-// nine specialisations ("chuyên ngành") is seeded as its own program with one
-// 2025 curriculum. The general-education and cơ sở ngành groups repeat in each;
-// their courses are shared through the catalog.
-
 const CLC_2025_BOOKLET = { file: 'TCTA_CTDT_2025_Khoa-2025-all.pdf', pages: 73 };
 
-/** The rows of one specialisation's table PDF, bucketed by requirement group. */
 export interface ClcRows {
-  /** 7.1.1 Lý luận chính trị - Pháp luật. */
   llct: PrintedRow[];
-  /** 7.1.2 Khoa học xã hội - Kinh tế - Kỹ năng. */
   khxh: PrintedRow[];
-  /** 7.1.3 rows 1-6, the BB courses. */
   toan_bb: PrintedRow[];
-  /** 7.1.3 row 7, "Chọn 01 học phần (04 tín chỉ) từ các học phần toán học sau". */
   toan_math: PrintedRow[];
-  /** 7.1.3 row 8, "Chọn học 08 tín chỉ từ các học phần sau". */
   toan_science: PrintedRow[];
-  /** 7.1.4 Tin học. */
   tin: PrintedRow[];
-  /** 7.1.5 Giáo dục thể chất. */
   gdtc: PrintedRow[];
-  /** 7.1.6 Giáo dục quốc phòng - An ninh. */
   gdqp: PrintedRow[];
-  /** 7.2.1 Kiến thức cơ sở ngành. */
   csn: PrintedRow[];
-  /** 7.2.2.x.1 Kiến thức bắt buộc chuyên ngành. */
   bbcn: PrintedRow[];
-  /** 7.2.2.x.2 Kiến thức tự chọn chuyên ngành. */
   tccn: PrintedRow[];
-  /** 7.2.3.x Kiến thức tốt nghiệp. */
   tn: PrintedRow[];
-  /** 7.2.2.x.3 Kiến thức tự chọn tự do. */
   free: PrintedRow[];
 }
 
 interface ClcSpecialisation {
-  /** Short key, as in the table PDF's file name. */
   key: string;
-  /** The specialisation's name as printed, without "Chuyên ngành". */
   name_vi: string;
-  /** The table PDF and its page count. */
   file: string;
   pages: number;
-  /** Booklet section of the specialisation (7.2.2.x) and of its graduation table (7.2.3.x). */
   section: string;
   graduation_section: string;
-  /** Booklet pages: heading and printed total of each group. */
   bbcn: { page: Page; credits_pages: Page[] };
   tccn: { page: Page; credits_pages: Page[]; overflow_note: string };
   free: { page: Page; note: string };
@@ -91,7 +60,6 @@ function group(
 
 const notCounted = (rows: PrintedRow[]) => rows.map((r) => ({ ...r, counts_toward_total: false, counts_toward_gpa: false }));
 
-/** Builds the seed of one specialisation from its rows and its booklet references. */
 export function clc2025Seed(spec: ClcSpecialisation): CurriculumSeed {
   const r = spec.rows;
   const toan = 'Toán - Khoa học tự nhiên - Công nghệ - Môi trường';
@@ -188,7 +156,6 @@ export function clc2025Seed(spec: ClcSpecialisation): CurriculumSeed {
   };
 }
 
-/** "Kiến thức tự chọn tự do" text: identical in every specialisation except the list of others. */
 export function freeElectiveNote(section: string, specialisations: string[]): string {
   return (
     `Nếu số tín chỉ tích luỹ từ các học phần ở mục ${section}.1 và ${section}.2 chưa đạt 34 tín chỉ, sinh viên chọn thêm ` +
@@ -217,7 +184,6 @@ export function overflowNote(section: string, extra = ''): string {
   );
 }
 
-/** "Chọn 01 trong 03 phương án": thesis, internship, or CSC10204 plus one 4-credit course. */
 export function graduationNote(fourCreditCodes: string[]): string {
   return (
     'Sinh viên tích lũy tối thiểu 10 tín chỉ, chọn 01 trong 03 phương án sau đây: (1) CSC10251 Khóa luận tốt nghiệp; ' +

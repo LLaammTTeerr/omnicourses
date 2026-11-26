@@ -10,7 +10,6 @@ import { AuthService, hashToken } from './auth.service.js';
 import { Session } from './session.entity.js';
 
 
-// Only the fields AuthService reads, so a new column doesn't break this spec.
 function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: '00000000-0000-4000-8000-000000000001',
@@ -83,7 +82,6 @@ describe('AuthService', () => {
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
-    // Issue #28: two sign-ups racing past the check; the database's unique email decides.
     it('answers 409, not 500, when a concurrent sign-up took the email first', async () => {
       const duplicate = Object.assign(new Error('duplicate key'), { code: '23505', constraint: 'uq_users_email' });
       users.create.mockRejectedValueOnce(new QueryFailedError('INSERT INTO "users"', [], duplicate));
@@ -118,7 +116,6 @@ describe('AuthService', () => {
       expect(await issuedFor('3')).toBe(3 * DAY_MS);
     });
 
-    // Issue #37: a blank value read as 0, so every token expired as it was issued.
     it.each(['', ' ', 'abc', '0'])('lasts 7 days when SESSION_TTL_DAYS is %j', async (value) => {
       expect(await issuedFor(value)).toBe(7 * DAY_MS);
     });
@@ -146,8 +143,6 @@ describe('AuthService', () => {
       expect(users.cancelDeletion).toHaveBeenCalledWith(makeUser().id, expect.any(Date));
     });
 
-    // cancelDeletion matches nothing once the stored deadline has passed, or when the
-    // purge deleted the row after findByEmail: the account is gone, so no session.
     it('refuses, without issuing a session, when the deletion can no longer be cancelled', async () => {
       const passwordHash = await hash('correct horse battery');
       users.findByEmail.mockResolvedValueOnce(makeUser({ passwordHash, deletionRequestedAt: new Date(Date.now() - 31 * DAY_MS), purgeAfter: new Date(Date.now() - DAY_MS) }));
@@ -196,7 +191,6 @@ describe('AuthService', () => {
   describe('refresh', () => {
     it('retires the old token at once and gives a new one a full lifetime', async () => {
       const session = makeSession({ expiresAt: new Date(Date.now() + 1000) });
-      // One stored session: looked up by token hash, changed in place.
       sessions.findOne.mockImplementation(async ({ where }: { where: { tokenHash: string } }) => (where.tokenHash === session.tokenHash ? session : null));
       sessions.update.mockImplementation(async (_id: string, changes: Partial<Session>) => Object.assign(session, changes));
 

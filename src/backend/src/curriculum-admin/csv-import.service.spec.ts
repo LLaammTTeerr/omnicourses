@@ -17,7 +17,6 @@ describe('wholeNumberOrText', () => {
   });
 });
 
-// A CSV row is checked by the DTO of the manual POST /admin/catalog/courses (ADR 0011).
 describe('checkCatalogRow', () => {
   it('normalizes a valid row: canonical code, null for a blank English name, 0 for a blank period count', async () => {
     expect(await checkCatalogRow(row({ code: 'zz101', theory_periods: '30' }))).toEqual({
@@ -29,13 +28,11 @@ describe('checkCatalogRow', () => {
   });
 
   it('refuses a number that is not a whole number, in the words of manual entry', async () => {
-    // Text reaches the DTO as text: the two messages a string in a JSON body gets, and no third.
     for (const credits of ['3.0', '1e2', '+3', '0x10', 'four', '-2']) {
       expect(await errorsOf({ credits })).toEqual([['credits', 'must not be less than 1; must be an integer number']]);
     }
     expect(await errorsOf({ credits: '0' })).toEqual([['credits', 'must not be less than 1']]);
     expect(await errorsOf({ lab_periods: '1.5' })).toEqual([['lab_periods', 'must not be less than 0; must be an integer number']]);
-    // Only a real whole number above the bound gets the bound's message.
     expect(await errorsOf({ project_periods: String(MAX_INTEGER + 1) })).toEqual([['project_periods', `must not be greater than ${MAX_INTEGER}`]]);
     expect(await errorsOf({ credits: '9'.repeat(30) })).toEqual([['credits', `must not be greater than ${MAX_INTEGER}`]]);
     expect(await errorsOf({ credits: '9'.repeat(400) })).toEqual([['credits', 'must be an integer number']]);

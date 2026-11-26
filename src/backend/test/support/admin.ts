@@ -17,7 +17,6 @@ export function authed(app: () => INestApplication) {
     const auth = (test: request.Test) => test.set('Authorization', `Bearer ${token}`);
     return {
       get: (path: string) => auth(http().get(path)),
-      // A string is sent as it is, so a test controls the exact JSON bytes.
       post: (path: string, body: object | string = {}) => auth(http().post(path)).set('Content-Type', 'application/json').send(body),
       put: (path: string, body: object = {}) => auth(http().put(path)).send(body),
       patch: (path: string, body: object = {}) => auth(http().patch(path)).send(body),

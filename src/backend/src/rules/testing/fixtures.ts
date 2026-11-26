@@ -1,5 +1,3 @@
-// Synthetic curricula and transcripts for the rule engine's unit tests (AGENTS.md hard rule 3).
-// Course codes start with ZZ; nothing here is a real student record.
 import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../../curriculum/curriculum-rules.reader.js';
 import type { Term } from '../../terms/term.js';
 import type { TranscriptEntry, TranscriptResult } from '../../transcript/transcript-entry.js';
@@ -26,12 +24,6 @@ export function group(
   };
 }
 
-/**
- * An APCS-shaped curriculum, small: a compulsory group, an elective group whose excess overflows
- * into C, a compulsory group with a course outside the total and the GPA (like Thể dục), elective
- * B with a minimum, elective C without one, B + C ≥ 12 together, and a 10-credit graduation group.
- * Total: 8 + 4 + 4 + 12 + 10 = 38.
- */
 export function zzCurriculum(overrides: Partial<CurriculumRules> = {}): CurriculumRules {
   return {
     programCode: 'ZZPROG',
@@ -58,17 +50,14 @@ export function term(year: number, number: Term['number']): Term {
   return { year, number };
 }
 
-/** A graded attempt. */
 export function graded(code: string, credits: number, grade: number, at: Term = term(2024, 1)): TranscriptEntry {
   return { courseCode: code, courseName: `Course ${code}`, credits, result: 'graded', grade, term: at };
 }
 
-/** An attempt without a grade: in progress, exempt, pass or fail. */
 export function ungraded(code: string, credits: number, result: Exclude<TranscriptResult, 'graded'>, at: Term = term(2024, 1)): TranscriptEntry {
   return { courseCode: code, courseName: `Course ${code}`, credits, result, grade: null, term: at };
 }
 
-/** Every requirement of zzCurriculum met: 38 credits toward the total, B + C = 12. */
 export function zzGraduatingTranscript(): TranscriptEntry[] {
   return [
     graded('ZZA1', 4, 8, term(2024, 1)),

@@ -21,11 +21,9 @@ export class TranscriptRow {
   @Column({ name: 'course_name', type: 'varchar', length: 255 })
   courseName!: string;
 
-  // As the transcript states it; the curriculum may say otherwise (ADR 0007).
   @Column({ type: 'smallint' })
   credits!: number;
 
-  // A CHECK keeps grade set exactly when the result is graded (ADR 0007).
   @Column({ type: 'varchar', length: 20 })
   result!: TranscriptResult;
 
@@ -34,7 +32,6 @@ export class TranscriptRow {
     precision: 3,
     scale: 1,
     nullable: true,
-    // pg returns numeric as a string.
     transformer: { to: (v: number | null) => v, from: (v: string | null) => (v === null ? null : Number(v)) },
   })
   grade!: number | null;

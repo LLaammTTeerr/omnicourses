@@ -1,11 +1,5 @@
-// Graduation status (QĐ 1175/QĐ-KHTN Điều 17.3, ADR 0013). Pure functions. A condition the data
-// cannot check is listed as not checked, never assumed met.
 import { CITATIONS, type CombinedMinimumCoverage, type CreditSummary, type GraduationCondition, type GraduationStatus, type GroupCoverage } from './types.js';
 
-/**
- * Conditions of Điều 17.3 (and the time limit of Điều 2.7) that nothing OmniCourse stores can
- * check. The degree audit lists them every time; the school checks them.
- */
 export const NOT_CHECKED_CONDITIONS: readonly GraduationCondition[] = [
   {
     id: 'no_prosecution_or_suspension',
@@ -41,10 +35,6 @@ export const NOT_CHECKED_CONDITIONS: readonly GraduationCondition[] = [
 
 const status = (met: boolean): GraduationCondition['status'] => (met ? 'met' : 'not_met');
 
-/**
- * Every condition: each group, each combined minimum, the cohort total, then the unchecked ones. An elective group
- * with no minimum of its own is no condition: its rule is the combined minimum it adds to (ADR 0013).
- */
 export function graduationStatus(groups: readonly GroupCoverage[], combined: readonly CombinedMinimumCoverage[], credits: CreditSummary): GraduationStatus {
   const ruled = groups.filter((g) => g.kind === 'compulsory' || g.requiredCredits !== null);
   const conditions: GraduationCondition[] = [

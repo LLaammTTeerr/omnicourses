@@ -11,9 +11,6 @@ export interface StudentCohort {
   cohortYear: number;
 }
 
-// The student's onboarding answers (UC-01 steps 6–10, A8, A9): their program, cohort and default
-// planning goal. Stored as given: the credit cap and every other academic rule belong to the rule
-// engine when it builds a plan (AGENTS.md hard rule 1, UC-01 §7).
 @Injectable()
 export class OnboardingService {
   constructor(
@@ -21,16 +18,10 @@ export class OnboardingService {
     @InjectRepository(OnboardingAnswers) private readonly answers: Repository<OnboardingAnswers>,
   ) {}
 
-  /**
-   * True when onboarding offers this program and cohort to students (OFFERED_COHORTS). The one
-   * place other modules ask it: the plans API refuses a new plan for any other cohort (Project
-   * Lead, 25 November 2026), so a plan and an onboarding answer are offered the same cohorts.
-   */
   offers(programCode: string, cohortYear: number): boolean {
     return isOfferedCohort(programCode, cohortYear);
   }
 
-  /** The saved answers; every answer null and finished false before the first save. */
   async answersFor(userId: string): Promise<OnboardingDto> {
     return toOnboarding(await this.answers.findOneBy({ userId }));
   }
@@ -41,12 +32,6 @@ export class OnboardingService {
     return { programCode: answers.program, cohortYear: answers.cohort };
   }
 
-  /**
-   * The IDs of the students whose saved program is one of `programCodes`, by program code. With
-   * `onlyUserId`, that student alone, or nobody. Read-only: the notification inbox addresses the
-   * students of a program with it (ADR 0018). A program counts as soon as it is saved, finished
-   * or not, the same rule as the calendar's default program (ADR 0017).
-   */
   async userIdsByProgram(programCodes: readonly string[], onlyUserId?: string): Promise<Map<string, string[]>> {
     const byProgram = new Map<string, string[]>();
     if (!programCodes.length) return byProgram;
@@ -61,10 +46,8 @@ export class OnboardingService {
     return byProgram;
   }
 
-  /** Replaces every answer. finished_at keeps the first Finish; finished false clears it. */
   async save(userId: string, dto: OnboardingDto): Promise<OnboardingDto> {
     const columns = toColumns(dto);
-    // One statement: two saves at once never interleave or fail on the primary key.
     await this.db.query(
       `INSERT INTO "onboarding_answers" AS a (
          "user_id", "program_code", "cohort_year", "target_graduation_term_year", "target_graduation_term_number",

@@ -1,37 +1,15 @@
-/**
- * Regulation clauses: from a regulation PDF's `pdftotext -layout` output to clause data (F8, step 1).
- *
- * Every function here is deterministic. A model may only have written entries in a document's
- * overrides file, and the verification spec proves the clause texts hold every source word in order,
- * except for the residue those overrides declare (ADR 0003, AGENTS.md hard rule 1).
- */
-
-/** Hand-written facts about the source PDF: `sources/<id>.source.json`. */
 export interface RegulationSource {
-  /** Lower-case words joined by hyphens, e.g. `qd-1175-2021`; the prefix of every clause id. */
   id: string;
-  /** The title as printed, in sentence case. */
   title: string;
-  /** How a student names the document in a citation, e.g. `QĐ 1175/QĐ-KHTN`. */
   shortName: string;
-  /** The issuing decision, as printed. */
   decision: { number: string; date: string; text: string };
   issuer: string;
   sourceUrl: string;
   pdf: { sha256: string; pages: number };
-  /** The committed `sources/<id>.pdftotext.txt`: the tool that wrote it and its sha256. */
   textLayer: { command: string; tool: string; sha256: string };
-  /** Facts a reader needs that are not clauses, e.g. an appendix the PDF leaves out. */
   notes: string[];
 }
 
-/**
- * One hand correction: `sources/<id>.overrides.json`. It replaces a run of source lines (blank lines
- * skipped) on `page` with `replacement`, kept verbatim as one block.
- * - `layout`: the words stay identical in order, only their layout changes (tables). The spec enforces it.
- * - `text`: the words change (an unreadable formula, a header repeated by a page break). The spec reports
- *   exactly these as the residue.
- */
 export interface RegulationOverride {
   kind: 'layout' | 'text';
   page: number;
@@ -41,28 +19,21 @@ export interface RegulationOverride {
 }
 
 export interface Clause {
-  /** `<document>/d<article>[/k<khoan>[/<diem>]]`, with `-2` on the second use of a number the source repeats. */
   id: string;
-  /** The citation as a student writes it: `Điều 7, khoản 2, điểm b`. */
   label: string;
   level: 'article' | 'khoan' | 'diem';
   chapter: { number: string; title: string };
   article: { number: number; title: string };
   khoan: number | null;
   diem: string | null;
-  /** Printed page numbers, which equal the PDF page numbers in the documents so far. */
   pages: number[];
-  /** The exact wording, marker included; paragraphs separated by `\n`, tables as Markdown. */
   text: string;
-  /** Present when the source numbering needs explaining (a repeated khoản or điểm). */
   note?: string;
 }
 
 export interface RegulationDocument extends RegulationSource {
-  /** The heading block before Chương I, one paragraph per line. */
   preamble: string;
   clauses: Clause[];
-  /** The `Nơi nhận` block after the last Điều, line by line. */
   closing: string;
 }
 
@@ -72,19 +43,13 @@ interface Line {
 }
 
 interface Unit {
-  /** `paragraph` is reflowed body text; `block` is an override's replacement, kept line by line. */
   kind: 'paragraph' | 'block';
   text: string;
   pages: number[];
 }
 
-/** Whitespace runs collapse to one space; text is NFC. */
 const collapse = (text: string): string => text.normalize('NFC').replace(/\s+/gu, ' ').trim();
 
-/**
- * Splits the pdftotext output into lines with their page, dropping only the page number each page
- * prints as its first line. Throws when a page does not start with its own number.
- */
 export function pageLines(pdftotext: string): Line[] {
   const pages = pdftotext.replace(/\f$/u, '').split('\f');
   const lines: Line[] = [];
@@ -106,12 +71,10 @@ const indent = (line: string): number => line.length - line.trimStart().length;
 
 const PARAGRAPH_INDENT = 3;
 
-/** Joins two wrapped lines: a hyphen glued to a letter keeps the hyphen and drops the space; else one space. */
 export function joinWrapped(left: string, right: string): string {
   return /\p{L}-$/u.test(left) && /^\p{L}/u.test(right) ? `${left}${right}` : `${left} ${right}`;
 }
 
-/** Applies the overrides in order, turning each matched run of lines into a block. */
 function applyOverrides(lines: Line[], overrides: RegulationOverride[]): (Line | Unit)[] {
   let items: (Line | Unit)[] = lines;
   for (const override of overrides) {
@@ -157,10 +120,6 @@ function matchEnd(items: (Line | Unit)[], start: number, want: string[]): number
   return matched === want.length ? at : null;
 }
 
-/**
- * Reflows lines into paragraphs. A line starts a paragraph when it is indented at least three columns
- * deeper than the least indented line of its page; otherwise it continues the paragraph before it.
- */
 function paragraphs(items: (Line | Unit)[]): Unit[] {
   const baseline = new Map<number, number>();
   for (const item of items) {
@@ -198,7 +157,6 @@ const ORDINALS = ['', '', 'thứ hai', 'thứ ba', 'thứ tư'];
 const ENGLISH_ORDINALS = ['', 'first', 'second', 'third', 'fourth'];
 const LETTERS = 'abcdđefghijklmnopqrstuvwxyz';
 
-/** The letter after `previous` in a list of điểm: `đ` may follow `d` or be skipped. */
 const nextLetters = (previous: string | null): string[] => {
   if (previous === null) return ['a'];
   if (previous === 'd') return ['đ', 'e'];
@@ -344,7 +302,6 @@ class ClauseBuilder {
   private append(unit: Unit): void {
     if (!this.current) {
       if (!this.chapter || !this.article) throw new Error(`"${unit.text.slice(0, 40)}" comes before any Điều`);
-      // Text right under a Điều heading, before its first khoản.
       const id = `${this.documentId}/d${this.article.number}`;
       this.current = { id, label: `Điều ${this.article.number}`, level: 'article', chapter: this.chapter, article: this.article, khoan: null, diem: null, pages: [], text: '' };
       this.clauses.push(this.current);
@@ -355,7 +312,6 @@ class ClauseBuilder {
   }
 }
 
-/** Builds the clause list. Throws on any numbering it cannot explain, so a new document fails loudly. */
 export function extractRegulation(source: RegulationSource, pdftotext: string, overrides: RegulationOverride[]): RegulationDocument {
   const lines = pageLines(pdftotext);
   if (lines.at(-1)?.page !== source.pdf.pages) {
@@ -386,7 +342,6 @@ export interface ParsedLabel {
   diemOccurrence: number;
 }
 
-/** Parses a clause label, or returns null when it is not one. */
 export function parseLabel(label: string): ParsedLabel | null {
   const match = LABEL.exec(label);
   if (!match) return null;
@@ -399,7 +354,6 @@ export function parseLabel(label: string): ParsedLabel | null {
   };
 }
 
-/** The clause id a label names inside `documentId`. */
 export function idFromLabel(documentId: string, label: ParsedLabel): string {
   let id = `${documentId}/d${label.article}`;
   if (label.khoan !== null) id += `/k${label.khoan}${repeat(label.khoanOccurrence)}`;
@@ -407,7 +361,6 @@ export function idFromLabel(documentId: string, label: ParsedLabel): string {
   return id;
 }
 
-/** The document's text in source order: preamble, headings, clause texts, closing. */
 export function renderPlainText(document: RegulationDocument): string {
   const out = [
     document.preamble,
@@ -448,7 +401,6 @@ function walkClauses(clauses: Clause[], render: ClauseRendering): string[] {
 const isTableRow = (line: string): boolean => line.startsWith('|');
 const isTableRule = (line: string): boolean => /^\|(?:\s*:?-+:?\s*\|)+$/u.test(line);
 
-/** Words in order: Markdown table pipes and rule rows are layout, not words. */
 export function words(text: string): string[] {
   return text
     .split('\n')
@@ -460,12 +412,10 @@ export function words(text: string): string[] {
     .filter(Boolean);
 }
 
-/** The words of the source body: every line except the page numbers. */
 export const sourceWords = (pdftotext: string): string[] =>
   words(pageLines(pdftotext).map((line) => line.raw).join('\n'));
 
 export interface Hunk {
-  /** Index of the first changed word in the left sequence. */
   at: number;
   removed: string[];
   added: string[];
@@ -479,10 +429,6 @@ interface Edit {
   y: number;
 }
 
-/**
- * Myers' O(ND) diff of two word sequences, as hunks of removed and added words.
- * Throws when more than `maxEdits` words differ: the trace would not fit in memory, and no real residue is that big.
- */
 export function diffWords(left: string[], right: string[], maxEdits = MAX_DIFF_EDITS): Hunk[] {
   return hunksOf(editsOf(left, right, myersTrace(left, right, maxEdits)), left, right);
 }
@@ -509,7 +455,6 @@ function myersTrace(left: string[], right: string[], maxEdits: number): { trace:
 }
 
 function editsOf(left: string[], right: string[], { trace, offset }: { trace: Int32Array[]; offset: number }): Edit[] {
-  // Walk back through the trace to list the edits.
   const edits: Edit[] = [];
   let x = left.length;
   let y = right.length;
@@ -556,7 +501,6 @@ const escapeMarkdown = (line: string): string =>
     .replace(/^(\d+)\. /u, '$1\\. ')
     .replace(/^([#>+])/u, '\\$1');
 
-/** Paragraphs separated by blank lines; table rows kept together; `$$` formulas left alone. */
 function markdownText(text: string): string {
   const out: string[] = [];
   let inTable = false;
@@ -569,7 +513,6 @@ function markdownText(text: string): string {
   return out.join('\n\n');
 }
 
-/** The human-readable version of a document; generated, so it never drifts from the JSON. */
 export function renderMarkdown(document: RegulationDocument): string {
   const out: string[] = [
     `# ${document.title} (${document.shortName})`,

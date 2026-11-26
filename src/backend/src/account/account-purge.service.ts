@@ -4,11 +4,6 @@ import { Clock } from '../config/clock.js';
 import { HOUR_MS } from '../config/time.js';
 import { UsersService } from '../users/users.service.js';
 
-// Purges accounts whose grace period has ended, at start-up and every hour.
-// A plain interval instead of a scheduler library: each account is one
-// idempotent DELETE, so two instances running it at once is harmless. One
-// DELETE per account, so an account whose rows can't be deleted doesn't keep
-// every other account past its deadline.
 @Injectable()
 export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(AccountPurgeService.name);
@@ -34,8 +29,6 @@ export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDest
     try {
       due = await this.users.findDueForPurge(now);
     } catch (error) {
-      // The error's class and its SQLSTATE only: a database message can quote row values (AGENTS.md
-      // hard rule 3). The frames of an error that is not a database error, to find the code that threw it.
       logFailure(this.logger, 'Account purge failed', error);
       return 0;
     }
@@ -43,7 +36,6 @@ export class AccountPurgeService implements OnApplicationBootstrap, OnModuleDest
     let failed = 0;
     for (const id of due) {
       try {
-        // Still due: a sign-in since the find cancels the deletion. Every user table cascades.
         if (await this.users.purgeIfDue(id, now)) purged++;
       } catch (error) {
         failed++;

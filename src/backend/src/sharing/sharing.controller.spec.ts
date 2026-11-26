@@ -14,7 +14,6 @@ describe('ShareBodyPipe', () => {
     expect(pipe.transform(body)).toBe(body);
   });
 
-  // An array has no field for the validation to refuse, so it would pass as "no choice".
   it('refuses a body that is not an object', () => {
     for (const body of [[], [{ showName: true }], null, 'showName', 1, true]) {
       expect(() => pipe.transform(body), JSON.stringify(body)).toThrow(new BadRequestException('The body must be a JSON object'));

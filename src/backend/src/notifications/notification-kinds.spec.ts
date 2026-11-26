@@ -4,7 +4,6 @@ import { CALENDAR_EVENT_KINDS } from '../academic-calendar/academic-calendar-eve
 import { Notification } from './notification.entity.js';
 import { LINKS_OF, NOTIFICATION_KINDS, NOTIFICATION_LINKS, notificationsDue, NOTIFYING_EVENT_KINDS, startDaysDueOn } from './notification-kinds.js';
 
-// Dũng's rules 1, 2 and 6 (ADR 0018), on synthetic dates.
 describe('notificationsDue', () => {
   const registration = { kind: 'registration', startsOn: '2026-12-09' } as const;
   const termStart = { kind: 'term_start', startsOn: '2027-01-04' } as const;

@@ -8,7 +8,6 @@ import { GuideText } from './guide-text.entity.js';
 import { GuideDto, GuideListItemDto, GuideListTextDto, GuideTextDto } from './guides.dto.js';
 import { isOutOfDate } from './out-of-date.js';
 
-// Reads the published guides. Nothing here writes: only the seed does (ADR 0010).
 @Injectable()
 export class GuidesService {
   constructor(
@@ -16,7 +15,6 @@ export class GuidesService {
     private readonly clock: Clock,
   ) {}
 
-  /** Every published guide, by ID, with its list entry in each language it is published in. */
   async list(): Promise<GuideListItemDto[]> {
     const today = vietnamDate(this.clock.now());
     const rows = await this.texts.find({ where: { status: 'published' }, relations: { guide: true }, order: { guideId: 'ASC', lang: 'ASC' } });
@@ -29,7 +27,6 @@ export class GuidesService {
     return [...guides.values()];
   }
 
-  /** One published guide in each language it is published in. An unknown, draft or withdrawn guide is the same 404. */
   async get(id: string): Promise<GuideDto> {
     const rows =
       id.length <= GUIDE_ID_MAX && GUIDE_ID.test(id)

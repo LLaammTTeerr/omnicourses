@@ -29,7 +29,6 @@ export class TranscriptRowDto implements TranscriptEntry {
   @Max(MAX_ROW_CREDITS)
   credits!: number;
 
-  // Must be sent: a row without a result is incomplete and cannot be saved (UC-02 A2).
   @ApiProperty({
     enum: TRANSCRIPT_RESULTS,
     example: 'graded',
@@ -38,9 +37,6 @@ export class TranscriptRowDto implements TranscriptEntry {
   @IsIn(TRANSCRIPT_RESULTS)
   result!: TranscriptResult;
 
-  // Required when graded; otherwise null or left out. ValidateIf gates every rule below,
-  // so a grade sent with another result is still checked, and refused by nullUnlessGraded.
-  // A missing or unknown result is the result's error alone: nullUnlessGraded lets it pass.
   @ApiProperty({ type: Number, nullable: true, required: false, example: 8.5, description: '10-point scale, one decimal. Required when result is graded; null otherwise.' })
   @ValidateIf((row: TranscriptRowDto) => row.result === 'graded' || (row.grade !== null && row.grade !== undefined))
   @IsNumber({ maxDecimalPlaces: 1 })
@@ -58,7 +54,6 @@ export class TranscriptRowDto implements TranscriptEntry {
   })
   grade!: number | null;
 
-  // @ValidateNested() alone lets a missing term through.
   @ApiProperty({ type: TermDto })
   @IsDefined()
   @ValidateNested()

@@ -3,7 +3,6 @@ import { Program } from '../curriculum/program.entity.js';
 import type { TermNumber } from '../terms/term.js';
 import { User } from '../users/user.entity.js';
 
-/** What a school date is (ADR 0017). `other` covers anything the list does not name. */
 export const CALENDAR_EVENT_KINDS = ['term_start', 'term_end', 'registration', 'add_drop', 'exam_period', 'holiday', 'other'] as const;
 export type CalendarEventKind = (typeof CALENDAR_EVENT_KINDS)[number];
 export const CALENDAR_EVENT_KIND_DOC =
@@ -12,9 +11,6 @@ export const CALENDAR_EVENT_KIND_DOC =
 export const TITLE_MAX_LENGTH = 255;
 export const SOURCE_URL_MAX_LENGTH = 2048;
 
-// Table of migration 1794500000000 (ADR 0017). Shared data of a program, not a student's
-// record: no user_id. created_by and updated_by name the administrator and are nulled when
-// that account is purged (AGENTS.md, ADR 0004), so the dates stay for everyone else.
 @Entity({ name: 'academic_calendar' })
 @Index('ix_academic_calendar_program_starts_on', ['programId', 'startsOn'])
 @Check('ck_academic_calendar_kind', `"kind" IN ('term_start', 'term_end', 'registration', 'add_drop', 'exam_period', 'holiday', 'other')`)
@@ -33,18 +29,15 @@ export class AcademicCalendarEvent {
   @JoinColumn({ name: 'program_id', foreignKeyConstraintName: 'academic_calendar_program_id_fkey' })
   program!: Program;
 
-  /** ADR 0009: 2026 is the academic year 2026–2027. */
   @Column({ name: 'academic_year', type: 'smallint' })
   academicYear!: number;
 
-  /** 1, 2 or 3 (ADR 0009, ADR 0012); null for a date of the whole academic year. */
   @Column({ type: 'smallint', nullable: true })
   term!: TermNumber | null;
 
   @Column({ type: 'varchar', length: 32 })
   kind!: CalendarEventKind;
 
-  // `date` columns: TypeORM reads them as 'YYYY-MM-DD' strings, never a Date at midnight UTC.
   @Column({ name: 'starts_on', type: 'date' })
   startsOn!: string;
 

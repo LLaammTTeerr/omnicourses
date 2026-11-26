@@ -19,7 +19,6 @@ import {
 } from './regulation.js';
 import { jsonOf, readInputs, REGULATIONS_DIR, regulationIds } from './regulation-files.js';
 
-/** One line per hunk, so a failure prints a readable diff report. */
 const report = (hunks: Hunk[]): string[] =>
   hunks.map((hunk) => `- ${hunk.removed.join(' ') || '(nothing)'}\n+ ${hunk.added.join(' ') || '(nothing)'}`);
 
@@ -39,7 +38,6 @@ describe.each(regulationIds())('regulation %s', (id) => {
   });
 
   it('keeps every source word in order, except the residue its overrides declare', () => {
-    // Layout overrides (tables) must not change a word; text overrides are the only allowed residue.
     const declared: Hunk[] = [];
     for (const override of overrides) {
       const hunks = diffWords(words(override.source.join('\n')), words(override.replacement.join('\n')));
@@ -87,7 +85,6 @@ describe.each(regulationIds())('regulation %s', (id) => {
     for (const clause of document.clauses) {
       expect(clause.text, clause.id).toBe(clause.text.trim());
       expect(clause.text, clause.id).not.toMatch(/ {2}|\n\n/u);
-      // Private-use characters are symbol-font glyphs that only an override can read.
       expect(clause.text, clause.id).not.toMatch(/[-]/u);
       expect(clause.pages.length, clause.id).toBeGreaterThan(0);
       expect(clause.pages, clause.id).toEqual([...clause.pages].sort((a, b) => a - b));
@@ -119,7 +116,6 @@ describe('qd-1175-2021', () => {
   });
 });
 
-// A two-page synthetic regulation in pdftotext -layout shape: page number first, paragraphs indented.
 const SOURCE: RegulationSource = {
   id: 'test-doc',
   title: 'Test',

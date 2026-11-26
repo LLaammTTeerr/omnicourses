@@ -1,22 +1,13 @@
-// Requirement coverage (F3, ADR 0013): for each requirement group of the curriculum, what the
-// transcript has passed, has in progress and still needs. Pure functions.
 import { byText } from '../common/collections.js';
 import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
 import type { CourseRecord } from './attempts.js';
 import type { CombinedMinimumCoverage, CourseCoverage, CourseStatus, GroupCoverage } from './types.js';
 
-/** Where a curriculum course counts, and the link it counts through. */
 export interface CountedLink {
   group: CurriculumRuleGroup;
   course: CurriculumRuleCourse;
 }
 
-/**
- * A course linked to several groups of one curriculum counts in exactly one of them, never twice
- * (ADR 0013): a compulsory group before an elective one, then the group name in code-point order,
- * then the group id. No seeded curriculum links a course twice; the rule keeps the result
- * deterministic and never counts credits twice.
- */
 export function placements(rules: CurriculumRules): Map<string, CountedLink> {
   const order = [...rules.groups].sort(
     (a, b) => Number(a.kind !== 'compulsory') - Number(b.kind !== 'compulsory') || byText(a.name, b.name) || byText(a.id, b.id),
@@ -28,15 +19,10 @@ export function placements(rules: CurriculumRules): Map<string, CountedLink> {
   return result;
 }
 
-/**
- * The credits a curriculum course is worth to the audit: the catalog's, or the transcript's when
- * it says fewer. Two sources that disagree never add credits (ADR 0013); the audit warns.
- */
 export function creditsOf(course: CurriculumRuleCourse, transcriptCredits: number | null): number {
   return transcriptCredits === null ? course.credits : Math.min(course.credits, transcriptCredits);
 }
 
-/** The transcript credits of a course: those of its official attempt, else of its latest one. */
 export function recordCredits(record: CourseRecord): number {
   return (record.official ?? record.attempts.at(-1)!).credits;
 }
@@ -70,8 +56,6 @@ function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRe
       if (own === 'passed') passed += credits;
       else if (own === 'in_progress') inProgress += credits;
     }
-    // Its credits count once, in its placement. Only a passed course shows as counted elsewhere: a failed or
-    // in-progress one keeps its own status, since a compulsory group that lists it still needs it passed (ADR 0013).
     return {
       code: course.code,
       nameVi: course.nameVi,
@@ -102,11 +86,6 @@ function overflows(tallies: readonly Tally[]): { overflowIn: Map<string, number>
   return { overflowIn, overflowOut };
 }
 
-/**
- * Coverage of every group. Overflow (ADR 0013): a group's passed credits beyond its own minimum
- * count toward its overflow target in the same curriculum. Only passed credits overflow, one hop
- * only, and overflow never makes the source group met.
- */
 export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>): GroupCoverage[] {
   const tallies = rules.groups.map((g) => tally(g, records, placed));
   const { overflowIn, overflowOut } = overflows(tallies);
@@ -126,8 +105,6 @@ export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<strin
       overflowInCredits: into,
       overflowOutCredits: overflowOut.get(t.group.id) ?? 0,
       overflowToGroupId: t.group.overflowToGroupId,
-      // A met group needs nothing more, even when its credits fall short of its total (fewer transcript credits, or a
-      // passed course counted in another group): a compulsory group is met by its courses, not its credits.
       remainingCredits: t.required === null ? null : met ? 0 : Math.max(0, t.required - t.passed - into - t.inProgress),
       met,
       courses: t.courses,
@@ -135,10 +112,6 @@ export function groupCoverage(rules: CurriculumRules, records: ReadonlyMap<strin
   });
 }
 
-/**
- * A combined minimum: the groups' passed credits together. Overflow between two of its own groups is
- * counted once; overflow from a group outside counts; overflow to a group outside does not.
- */
 export function combinedMinimumCoverage(rules: CurriculumRules, groups: readonly GroupCoverage[]): CombinedMinimumCoverage[] {
   const byId = new Map(groups.map((g) => [g.id, g]));
   return rules.combinedMinimums.map((m) => {

@@ -13,33 +13,13 @@ export interface SeedReport {
   skipped: Record<SeededTable, number>;
 }
 
-/**
- * The catalog fields a re-seed checks against the database; a difference
- * aborts the run. The other fields (name_en, the periods) may have been
- * corrected by an admin since, and insert-only keeps that edit.
- */
 const FIELDS_CHECKED_AGAINST_DATABASE = ['name_vi', 'credits'] as const;
 
-/** The curricula step of `npm run db:seed` (insert-only). */
 export async function seed(dataSource: DataSource): Promise<string[]> {
   const report = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
   return [`Inserted: ${JSON.stringify(report.inserted)}`, `Already present, left untouched: ${JSON.stringify(report.skipped)}`];
 }
 
-/**
- * Loads curriculum seeds in one transaction. Insert-only: a row that already
- * exists (same program code; same program and cohort; same curriculum and group
- * name; same course code; same group and course) is left untouched, so later
- * admin edits survive a re-run. A catalog course that already exists with a
- * different Vietnamese name or credit count aborts the whole run.
- *
- * A seed with `no_prerequisites` also records each of its courses as having no prerequisite: one
- * `course_prerequisite_lists` row and no `course_prerequisites` (ADR 0011). A course in its `except`
- * list gets its printed prerequisites as `course_prerequisites` rows in the same list (APCS: CS469
- * before CS470). A course whose list already exists, with or without prerequisites a program
- * administrator entered, is left as it is: its prerequisites are written only with a new list. A list an administrator deleted is written again by the next run, as a deleted link is.
- * Offering terms are never seeded.
- */
 export async function seedCurricula(
   dataSource: DataSource,
   seeds: CurriculumSeed[],
@@ -168,7 +148,6 @@ async function insertGroupCourses(writer: SeedWriter, groupId: string, group: Gr
 }
 
 async function insertCombinedMinimums(writer: SeedWriter, curriculumId: string, blocks: CurriculumSeed['blocks'], groupId: (name: string) => string): Promise<void> {
-  // A block printed as a minimum ("≥ 43") is a rule over several groups (ADR 0013).
   for (const block of blocks.filter((b) => b.at_least)) {
     const minimumId = await writer.insertOrFind(
       'combined_minimums',

@@ -9,7 +9,6 @@ import { ModelClient, ModelMessage, ModelStreamEvent, ModelTool, ModelToolCall }
 const context = { userId: '00000000-0000-4000-8000-000000000001', feature: 'test' };
 const usage = { inputTokens: 10, outputTokens: 5 };
 
-/** Scripted model: each complete()/stream() call takes the next reply. */
 class ScriptedModel extends ModelClient {
   completions: Array<string | Error> = [];
   turns: Array<{ text?: string; toolCalls?: ModelToolCall[] } | Error> = [];
@@ -24,7 +23,6 @@ class ScriptedModel extends ModelClient {
   }
 
   async *stream(request: Parameters<ModelClient['stream']>[0]): AsyncIterable<ModelStreamEvent> {
-    // Snapshot: the gateway keeps appending to the same array.
     this.streamCalls.push({ messages: [...request.messages], tools: request.tools, toolChoice: request.toolChoice });
     const turn = this.turns.shift() ?? { text: '' };
     if (turn instanceof Error) {

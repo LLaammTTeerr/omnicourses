@@ -10,7 +10,6 @@ const CATALOG_FIELDS = [
   'project_periods',
 ] as const satisfies readonly (keyof Omit<CatalogCourse, 'code'>)[];
 
-/** The catalog course one section 7 row describes, with name_en from the appendix. */
 export function rowToCourse(seed: CurriculumSeed, row: PrintedRow): CatalogCourse {
   const appendix = seed.appendix.find((a) => a.code === row.code);
   return {
@@ -30,7 +29,6 @@ interface Sighting {
   label: string;
 }
 
-/** Two sightings of one code that disagree on one field. */
 export interface CatalogConflict {
   code: string;
   field: string;
@@ -56,12 +54,6 @@ export function seedLabel(seed: CurriculumSeed): string {
   return `${seed.program.code} ${seed.curriculum.cohort_year}`;
 }
 
-/**
- * Builds the shared course catalog from several curriculum seeds. A code that
- * appears more than once must carry the same values everywhere, unless a
- * CatalogDecision names the field and every printed value; then the catalog
- * takes the decision's value. Any other difference throws CatalogConflictError.
- */
 export function buildCatalog(seeds: CurriculumSeed[], decisions: CatalogDecision[]): Map<string, CatalogCourse> {
   const sightings = new Map<string, Sighting[]>();
   for (const seed of seeds) {
@@ -79,8 +71,6 @@ export function buildCatalog(seeds: CurriculumSeed[], decisions: CatalogDecision
   for (const [code, list] of sightings) {
     const course: CatalogCourse = { ...list[0].course };
     for (const field of CATALOG_FIELDS) {
-      // null means "not printed" (a blank cell, a PDF without English names):
-      // it never conflicts, and the catalog takes the printed value.
       const distinct = [...new Set(list.map((s) => s.course[field]).filter((v) => v !== null))];
       (course as unknown as Record<string, unknown>)[field] = distinct.length ? distinct[0] : null;
       if (distinct.length <= 1) continue;

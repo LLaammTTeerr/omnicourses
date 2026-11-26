@@ -5,8 +5,6 @@ import { RulesService } from '../rules/rules.service.js';
 import { User } from '../users/user.entity.js';
 import { AuditUnavailableDto, DegreeAuditDto } from './audit.dto.js';
 
-// F3, the degree audit (ADR 0013). Only the signed-in student's own audit: no route takes a user id.
-// Every number comes from the rule engine (AGENTS.md hard rule 1).
 @ApiTags('users')
 @Authenticated()
 @Controller('users/me/audit')

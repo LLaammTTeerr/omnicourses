@@ -4,7 +4,6 @@ import { CurriculumAdminController } from './curriculum-admin.controller.js';
 import type { UserGrantsDto } from './curriculum-admin.dto.js';
 import type { CurriculumAdminService } from './curriculum-admin.service.js';
 
-// Synthetic IDs only (AGENTS.md hard rule 3).
 const CALLER = '00000000-0000-4000-8000-000000000001';
 
 describe('GET /admin/grants', () => {

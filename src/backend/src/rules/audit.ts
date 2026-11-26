@@ -1,5 +1,3 @@
-// The degree audit (F3, ADR 0013): the student's transcript against their curriculum. One pure
-// function; RulesService loads the inputs.
 import { byText } from '../common/collections.js';
 import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
 import { compareTerms, type Term } from '../terms/term.js';
@@ -37,7 +35,6 @@ export function degreeAudit(rules: CurriculumRules, transcript: readonly Transcr
   };
 }
 
-/** Each curriculum course once, with the credits it is worth to the audit. */
 function matched(records: ReadonlyMap<string, CourseRecord>, placed: ReadonlyMap<string, CountedLink>) {
   return [...records.values()]
     .filter((r) => placed.has(r.code))
@@ -70,11 +67,6 @@ function creditSummary(rules: CurriculumRules, records: ReadonlyMap<string, Cour
   };
 }
 
-/**
- * The official graded courses that enter a GPA (Điều 15.1): courses of the curriculum only
- * ("nằm trong yêu cầu của chương trình đào tạo"), not the ones it leaves out (Điều 15.1.c), and only
- * graded results: exempt (Điều 13.3) and pass/fail courses have no grade to average.
- */
 function gpaCourses(records: Iterable<CourseRecord>, placed: ReadonlyMap<string, CountedLink>, passedOnly: boolean): WeightedGrade[] {
   const items: WeightedGrade[] = [];
   for (const record of records) {
@@ -123,7 +115,6 @@ function termSummary(
   records: ReadonlyMap<string, CourseRecord>,
   placed: ReadonlyMap<string, CountedLink>,
 ): TermSummary {
-  // Every sitting of the term, retakes included (Điều 15.1.a; the audit prototype: "ĐTB học kỳ tính mọi lần học").
   const graded = rows.flatMap((e): (WeightedGrade & { passes: boolean })[] => {
     const place = placed.get(e.courseCode);
     if (!place || !place.course.countsTowardGpa || e.result !== 'graded' || e.grade === null) return [];

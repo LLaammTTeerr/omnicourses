@@ -10,9 +10,6 @@ import { CurriculumService } from './curriculum.service.js';
 import { Program } from './program.entity.js';
 import { RequirementGroup, RequirementGroupCourse, RequirementGroupOverflow } from './requirement-group.entity.js';
 
-// Curriculum reads (F4, ADR 0005). Other modules (rule engine, onboarding, planner)
-// import this module and inject CurriculumService. The rule engine reads the rules it
-// applies through CurriculumRulesReader (ADR 0013).
 @Module({
   imports: [
     TypeOrmModule.forFeature([

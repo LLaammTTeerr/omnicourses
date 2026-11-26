@@ -2,13 +2,8 @@ import { Check, Column, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn } fr
 import { Program } from '../curriculum/program.entity.js';
 import { User } from '../users/user.entity.js';
 
-/** ADR 0011: the two permissions that cover the whole deployment. */
 export const GLOBAL_PERMISSIONS = ['catalog_maintainer', 'access_manager'] as const;
 export type GlobalPermission = (typeof GLOBAL_PERMISSIONS)[number];
-
-// Tables of migration 1794230000000 (ADR 0011). A row belongs to its recipient (user_id,
-// CASCADE), so account export and purge cover it (ADR 0004); granted_by is another user's
-// ID and is nulled when they are purged.
 
 @Entity({ name: 'program_admin_grants' })
 @Index('ix_program_admin_grants_program_id', ['programId'])

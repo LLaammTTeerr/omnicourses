@@ -37,7 +37,6 @@ describe('Curriculum API (e2e)', () => {
 
   beforeAll(async () => {
     app = await bootApp();
-    // Insert-only: a database another test or a previous run already seeded is left as it is.
     await seedCurricula(app.get(DataSource), CURRICULUM_SEEDS, CATALOG_DECISIONS);
     ({ token } = await signedInUser(app));
   });
@@ -86,13 +85,11 @@ describe('Curriculum API (e2e)', () => {
     const credits = Object.fromEntries(groups.flatMap((g) => g.courses.map((c) => [c.code, c.credits])));
     const printed = apcs2024.groups.flatMap((g) => g.rows);
     expect(Object.keys(credits).length).toBe(new Set(printed.map((r) => r.code)).size);
-    // The catalog is shared: only decided values may differ from this PDF (apcs-catalog-decisions).
     const decided = new Set(CATALOG_DECISIONS.filter((d) => d.field === 'credits').map((d) => d.code));
     for (const row of printed) if (!decided.has(row.code)) expect(credits[row.code]).toBe(row.credits);
   });
 
   it('reads prerequisites and offering terms as not recorded (null), never as none, while F12 has stored none', async () => {
-    // A CLC curriculum: no e2e file records rules for it, and no seed does (ADR 0011, amended 9 November 2026).
     const seed = CURRICULUM_SEEDS.find((s) => s.program.code !== 'APCS')!;
     const { body } = await get(`/api/programs/${seed.program.code}/curricula/${seed.curriculum.cohort_year}`).expect(200);
     const courses = (body.requirementGroups as Group[]).flatMap((g) => g.courses as unknown as { prerequisites: unknown; offeringTerms: unknown }[]);
@@ -102,17 +99,14 @@ describe('Curriculum API (e2e)', () => {
 
   it.each([2024, 2025])('reads every seeded APCS %i course as having no prerequisite ([]) except CS470 (CS469), offering terms still not recorded', async (cohort) => {
     const seed = CURRICULUM_SEEDS.find((s) => s.program.code === 'APCS' && s.curriculum.cohort_year === cohort)!;
-    // Project Lead, 15 November 2026: APCS courses have no prerequisite (ADR 0011 amendment of that day).
     expect(seed.no_prerequisites).toMatchObject({ date: '2026-11-15' });
     const { body } = await get(`/api/programs/APCS/curricula/${cohort}`).expect(200);
     const read = new Map(
       (body.requirementGroups as Group[]).flatMap((g) => g.courses as unknown as { code: string; prerequisites: unknown; offeringTerms: unknown }[]).map((c) => [c.code, c]),
     );
-    // The seeded courses only: curriculum-admin.e2e-spec.ts adds its own to APCS in the same database.
     const codes = [...new Set(seed.groups.flatMap((g) => g.rows.map((r) => r.code)))];
     expect(codes.length).toBeGreaterThan(0);
     expect(codes).toContain('CS470');
-    // CS469 before CS470: printed under 7.3 of both curriculum PDFs (Project Lead, 24 November 2026).
     for (const code of codes) {
       expect([code, read.get(code)?.prerequisites, read.get(code)?.offeringTerms]).toEqual([code, code === 'CS470' ? ['CS469'] : [], null]);
     }
@@ -147,7 +141,6 @@ describe('Curriculum API (e2e)', () => {
     const brief = (issues: { code: string; kind: string; courseCode: string | null }[]) => issues.filter((i) => i.kind === 'unknown').map((i) => `${i.code} ${i.courseCode}`);
 
     const { body } = await http().get(`/api/plans/${plan.id}/issues`).set(auth).expect(200);
-    // One unknown per placed course, where there were two before the decision was recorded.
     expect(brief(body.issues)).toEqual(['offering_terms_not_recorded CS163', 'offering_terms_not_recorded CS201']);
     expect(body.issues.some((i: { code: string }) => i.code === 'prerequisite_not_met')).toBe(false);
 
@@ -158,7 +151,6 @@ describe('Curriculum API (e2e)', () => {
       'offering_terms_not_recorded CS201',
       'offering_terms_not_recorded CS160',
     ]);
-    // The coverage does not move with the decision: three 4-credit courses of (A): bắt buộc, 12 of its 40 credits.
     const groupA = drop.body.reports[0].issues.coverage.groups.find((g: { name: string }) => g.name === 'Kiến thức Computer Science (A): bắt buộc');
     expect([groupA.credits, groupA.requiredCredits]).toEqual([12, 40]);
   });

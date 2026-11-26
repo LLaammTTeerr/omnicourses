@@ -17,7 +17,6 @@ export class HealthDto {
 export class HealthController {
   constructor(private readonly dataSource: DataSource) {}
 
-  // Public route: it says whether the database answers, never which version it runs (issue #28).
   @Get()
   @ApiOkResponse({ type: HealthDto })
   async check(): Promise<HealthDto> {

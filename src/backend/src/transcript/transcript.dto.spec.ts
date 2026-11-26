@@ -3,7 +3,6 @@ import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import { MAX_TRANSCRIPT_ROWS, TranscriptDto } from './transcript.dto.js';
 
-// Synthetic rows only (AGENTS.md hard rule 3).
 const row = (overrides: Record<string, unknown> = {}) => ({
   courseCode: 'CSC10001',
   courseName: 'Introduction to Programming',
@@ -58,7 +57,6 @@ describe('TranscriptDto validation', () => {
     expect((await errorsFor([row(overrides)])).some((e) => e.endsWith(`:${constraint}`))).toBe(true);
   });
 
-  // The grade rule only applies once the result is valid, so the client sees one error.
   it.each([
     ['a missing result', { result: undefined }],
     ['an unknown result', { result: 'audited' }],

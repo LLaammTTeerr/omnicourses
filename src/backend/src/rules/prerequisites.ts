@@ -1,21 +1,11 @@
-// Prerequisites and offering terms (ADR 0011). The checks take the data as input, null meaning
-// "not recorded", and never invent it. APCS 2024 and 2025 courses are recorded as having no
-// prerequisite (Project Lead, 15 November 2026), except CS470, which needs CS469 (printed in the curriculum
-// PDFs; Project Lead, 24 November 2026). No offering term is recorded yet. Pure functions.
 import type { Term } from '../terms/term.js';
 
 export type PrerequisiteCheck =
-  /** No prerequisite data for the course: the check cannot be made. Not the same as "none". */
   | { status: 'not_recorded' }
-  /** The course is recorded as having no prerequisite. */
   | { status: 'none' }
   | { status: 'met' }
   | { status: 'not_met'; missing: string[] };
 
-/**
- * QĐ 1175/QĐ-KHTN Điều 3.1.c: a prerequisite (học phần tiên quyết) of A must be passed before A
- * may be taken. `prerequisites` is the course's prerequisite codes, or null when not recorded.
- */
 export function checkPrerequisites(prerequisites: readonly string[] | null, passedCodes: ReadonlySet<string>): PrerequisiteCheck {
   if (prerequisites === null) return { status: 'not_recorded' };
   if (prerequisites.length === 0) return { status: 'none' };
@@ -25,7 +15,6 @@ export function checkPrerequisites(prerequisites: readonly string[] | null, pass
 
 export type OfferingTermCheck = { status: 'not_recorded' } | { status: 'offered' } | { status: 'not_offered'; offeredTermNumbers: Term['number'][] };
 
-/** Whether a course is taught in a term of this number. `offeredTermNumbers` null: not recorded. */
 export function checkOfferingTerm(offeredTermNumbers: readonly Term['number'][] | null, term: Term): OfferingTermCheck {
   if (offeredTermNumbers === null) return { status: 'not_recorded' };
   if (offeredTermNumbers.includes(term.number)) return { status: 'offered' };

@@ -19,9 +19,6 @@ import {
   type GraduationVerdict,
 } from '../rules/types.js';
 
-// GET /api/plans/{id}/issues (ADR 0014). Each class implements the rule engine's result type, so
-// this contract cannot drift from what the engine returns.
-
 export class PlanIssueDto implements PlanIssue {
   @ApiProperty({
     enum: PLAN_ISSUE_CODES,
@@ -161,7 +158,6 @@ export class PlanIssuesDto implements PlanIssuesReport {
   coverage!: PlanCoverageDto;
 }
 
-/** The engine's report on the board with the placement dropped on one target term. */
 export class PlanDropReportDto {
   @ApiProperty({ type: TermDto })
   term!: TermDto;

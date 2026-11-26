@@ -5,9 +5,6 @@ import { AffectedCurriculumDto, ImportRowErrorDto } from './admin-errors.js';
 import { CSV_MAX_BYTES, CSV_MAX_RECORDS, inMiB } from './csv-file.js';
 import { COURSE_FIELDS, type CourseField } from './curriculum-admin.dto.js';
 
-// Request and response shapes of the F12 CSV import (ADR 0011, "CSV contract and UC-11
-// handoff"). The file travels as JSON text, never as an upload the server keeps.
-
 export const CATALOG_FILE = 'catalog_courses';
 export const GROUP_LINKS_FILE = 'group_links';
 

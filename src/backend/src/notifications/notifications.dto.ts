@@ -4,17 +4,11 @@ import { ArrayMaxSize, ArrayUnique, IsArray, IsBoolean, IsIn, IsInt, IsOptional,
 import { TERM_NUMBERS, type TermNumber } from '../terms/term.js';
 import { NOTIFICATION_KIND_DOC, NOTIFICATION_KINDS, NOTIFICATION_LINKS, type NotificationKind, type NotificationLink } from './notification-kinds.js';
 
-// Request and response shapes of the notification inbox (ADR 0018). A notification is a kind
-// and data: it holds no sentence, no URL, no grade, no course and no rule value.
-
 export const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
 
-/** A query string is text: only the words true and false are booleans, anything else fails validation. */
 const queryBoolean = ({ value }: TransformFnParams): unknown => (value === 'true' ? true : value === 'false' ? false : value);
-/** Plain decimal digits only become a number: Number() would also read 1e2, 0x10, ' 5 ' and ''. Anything else fails validation. */
 const queryInteger = ({ value }: TransformFnParams): unknown => (typeof value === 'string' && /^[0-9]{1,9}$/.test(value) ? Number(value) : value);
-/** `?kind=a` arrives as a string and `?kind=a&kind=b` as an array. */
 const queryList = ({ value }: TransformFnParams): unknown => (value === undefined || Array.isArray(value) ? value : [value]);
 
 export class NotificationsQueryDto {

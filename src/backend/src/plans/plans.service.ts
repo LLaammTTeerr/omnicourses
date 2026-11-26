@@ -13,17 +13,8 @@ import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
 import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
 
-/**
- * The answer for a new plan on a cohort onboarding does not offer (Project Lead, 25 November 2026,
- * option A). A cohort entered through F12 has a curriculum before it has its requirements, and a
- * plan on it would be checked against an empty curriculum (ADR 0011, "Visibility to students").
- */
 const notOffered = (programCode: string, cohortYear: number) => new BadRequestException(`Onboarding does not offer ${programCode} ${cohortYear} to students`);
 
-// A student's plans (F5, ADR 0014): the placements they saved, nothing more. It decides no
-// academic rule (AGENTS.md hard rule 1): a plan that breaks one is saved as it is, and the rule
-// engine reports the violation (ADR 0012) through RulesService.
-// Every read and write is scoped to the owner: another student's plan is a 404, never a 403.
 @Injectable()
 export class PlansService {
   constructor(
@@ -34,7 +25,6 @@ export class PlansService {
     private readonly onboarding: OnboardingService,
   ) {}
 
-  /** The student's plans, oldest first, each with a preview of its placements. */
   async list(userId: string): Promise<PlanListItemDto[]> {
     const rows = await this.plans.find({ where: { userId }, relations: { curriculum: { program: true } }, order: { createdAt: 'ASC', id: 'ASC' } });
     const placements = await this.placements.find({ where: { userId }, select: { planId: true, termYear: true, termNumber: true, courseCode: true } });
@@ -42,10 +32,6 @@ export class PlansService {
     return rows.map((plan) => ({ ...summary(plan), preview: preview(byPlan.get(plan.id) ?? []) }));
   }
 
-  /**
-   * One of the student's plans with its placements, or null. It writes nothing: this is the one
-   * method the sharing module reads a plan through (ADR 0010), for the owner a share row names.
-   */
   async find(userId: string, planId: string): Promise<PlanDto | null> {
     const plan = await this.plans.findOne({ where: { id: planId, userId }, relations: { curriculum: { program: true } } });
     if (!plan) return null;
@@ -53,17 +39,12 @@ export class PlansService {
     return { ...summary(plan), terms: toBoard(rows) };
   }
 
-  /** One of the student's plans with its placements, or a 404. */
   async get(userId: string, planId: string): Promise<PlanDto> {
     const plan = await this.find(userId, planId);
     if (!plan) throw planNotFound();
     return plan;
   }
 
-  /**
-   * A new plan against the curriculum of one cohort, empty or with a whole board (UC-07 step 10).
-   * Only for a cohort onboarding offers; a plan saved earlier on another cohort stays readable.
-   */
   async create(userId: string, input: { name: string; programCode: string; cohortYear: number; terms?: BoardTerm[] }): Promise<PlanDto> {
     if (!this.onboarding.offers(input.programCode, input.cohortYear)) throw notOffered(input.programCode, input.cohortYear);
     const curriculumId = await this.curriculum.findCurriculumId(input.programCode, input.cohortYear);
@@ -85,13 +66,8 @@ export class PlansService {
     return this.get(userId, planId);
   }
 
-  /**
-   * A copy with the same curriculum and placements, for trying a change (UC-05 A6, a what-if copy
-   * for UC-06). The copy is a new plan, so it too needs a cohort onboarding offers.
-   */
   async duplicate(userId: string, planId: string, name?: string): Promise<PlanDto> {
     const id = await this.db.transaction(async (tx) => {
-      // FOR SHARE: a save of the original in progress finishes first, so the copy is never half of it.
       const [source] = await tx.query(
         `SELECT p."curriculum_id", p."name", pr."code" AS "program_code", c."cohort_year"
          FROM "plans" p JOIN "curriculums" c ON c."id" = p."curriculum_id" JOIN "programs" pr ON pr."id" = c."program_id"
@@ -113,37 +89,24 @@ export class PlansService {
     return this.get(userId, id);
   }
 
-  /** Replaces every placement of the plan with the board the planner sends, all or nothing. */
   async replacePlacements(userId: string, planId: string, terms: BoardTerm[]): Promise<PlanDto> {
     await this.db.transaction(async (tx) => {
-      // Ownership and the lock in one statement. NO KEY UPDATE serializes two saves of one plan
-      // without blocking the key-share lock of an insert that references it (a duplicate, a share).
       const [plan] = await tx.query('SELECT "curriculum_id" FROM "plans" WHERE "id" = $1 AND "user_id" = $2 FOR NO KEY UPDATE', [planId, userId]);
       if (!plan) throw planNotFound();
       await this.checkBoard(plan.curriculum_id, terms);
       await tx.delete(PlanPlacement, { planId });
       await insertBoard(tx, planId, userId, terms);
-      // Only the child rows changed, so @UpdateDateColumn would not fire.
       await tx.query('UPDATE "plans" SET "updated_at" = now() WHERE "id" = $1', [planId]);
     });
     return this.get(userId, planId);
   }
 
-  /**
-   * One of the student's plans with another board in place of its saved one, for the rule engine to
-   * check before anything is saved (the planner's drag preview). The board is validated as a save
-   * would be; nothing is written.
-   */
   async withBoard(userId: string, planId: string, terms: BoardTerm[]): Promise<PlanDto> {
     const plan = await this.get(userId, planId);
     await this.checkBoard(plan.curriculum.id, terms);
     return { ...plan, terms };
   }
 
-  /**
-   * The boards of a drag preview: `placement` dropped on each target in turn, each board checked as a save would
-   * check it. The references are checked once, on the board with the placement in the first target.
-   */
   async dropBoards(userId: string, planId: string, terms: BoardTerm[], placement: Placement, targets: Term[]): Promise<{ plan: PlanDto; boards: BoardTerm[][] }> {
     const seen = new Set(targets.map(termKey));
     if (seen.size !== targets.length) throw new BadRequestException('A target term is listed twice');
@@ -155,15 +118,11 @@ export class PlansService {
     return { plan, boards };
   }
 
-  /** Deletes the plan and its placements. */
   async delete(userId: string, planId: string): Promise<void> {
     const { affected } = await this.plans.delete({ id: planId, userId });
     if (!affected) throw planNotFound();
   }
 
-  // Shape and references only: every course is in the catalog, every slot's group is in the
-  // plan's curriculum. A course outside the curriculum is allowed; whether it counts is the
-  // rule engine's answer, like every other academic rule.
   private async checkBoard(curriculumId: string, terms: readonly BoardTerm[]): Promise<void> {
     const problems = boardProblems(terms);
     if (problems.length) throw new BadRequestException(problems);

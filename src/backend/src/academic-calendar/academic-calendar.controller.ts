@@ -10,8 +10,6 @@ import { AcademicCalendarService } from './academic-calendar.service.js';
 
 const EVENTS = 'admin/programs/:programId/calendar-events';
 
-// F10 school dates (ADR 0017). Every signed-in user reads; only an administrator of the
-// program writes, checked by the service inside the F12 write transaction (ADR 0011).
 @ApiTags('academic-calendar')
 @Authenticated()
 @Controller()

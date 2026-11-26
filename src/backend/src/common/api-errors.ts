@@ -1,9 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 
-// Every F12 error carries a stable `code` (ADR 0011, "Validation, errors and removal"), the
-// same body shape as `ai_unavailable`, so a client branches on the code, not the message.
-
 export class AdminErrorDto {
   @ApiProperty({ example: 409 })
   statusCode!: number;

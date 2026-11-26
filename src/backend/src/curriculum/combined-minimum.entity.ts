@@ -15,8 +15,6 @@ import {
 import { Curriculum } from './curriculum.entity.js';
 import { RequirementGroup } from './requirement-group.entity.js';
 
-// Table `combined_minimums` of migration 1794300000000 (ADR 0013): a number of credits several
-// requirement groups of one curriculum must reach together, such as APCS's (B) + (C) ≥ 43 (p.5).
 @Entity({ name: 'combined_minimums' })
 @Unique('uq_combined_minimums_curriculum_name', ['curriculumId', 'name'])
 @Check('ck_combined_minimums_credits_min', `"credits_min" > 0`)
@@ -50,7 +48,6 @@ export class CombinedMinimum {
   updatedAt!: Date;
 }
 
-// Table `combined_minimum_groups`: the groups a combined minimum adds up.
 @Entity({ name: 'combined_minimum_groups' })
 @Index('ix_combined_minimum_groups_requirement_group_id', ['requirementGroupId'])
 export class CombinedMinimumGroup {

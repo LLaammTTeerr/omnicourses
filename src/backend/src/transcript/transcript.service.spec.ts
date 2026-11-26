@@ -4,7 +4,6 @@ import type { TranscriptEntry } from './transcript-entry.js';
 import { TranscriptRow } from './transcript-row.entity.js';
 import { TranscriptService } from './transcript.service.js';
 
-// Synthetic rows only (AGENTS.md hard rule 3).
 const USER = '00000000-0000-4000-8000-000000000001';
 const entry: TranscriptEntry = { courseCode: 'ZZ101', courseName: 'Synthetic One', credits: 4, result: 'graded', grade: 8, term: { year: 2025, number: 1 } };
 const stored = { userId: USER, courseCode: 'ZZ101', courseName: 'Synthetic One', credits: 4, result: 'graded', grade: 8, termYear: 2025, termNumber: 1 } as TranscriptRow;

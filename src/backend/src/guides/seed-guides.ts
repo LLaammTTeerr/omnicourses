@@ -8,16 +8,11 @@ import type { GuideText } from './guide-text.entity.js';
 import { type LoadableGuideFile, parseGuideSet } from './validate-guide.js';
 
 export interface GuideSeedReport {
-  /** Texts loaded for the first time. */
   inserted: number;
-  /** Texts replaced by a higher version. */
   updated: number;
-  /** Same version and content, with a new last-checked date or shown again after a withdrawal. */
   rechecked: number;
   unchanged: number;
-  /** Texts hidden because their file was removed or marked withdrawn. */
   withdrawn: number;
-  /** Draft files, which are never loaded. */
   drafts: number;
 }
 
@@ -28,11 +23,6 @@ export class GuideSeedError extends Error {
   }
 }
 
-/**
- * The guides step of `npm run db:seed`: the content files, plus the zz-* test
- * guides of TC-B1-GUIDE-01 with `--guide-fixtures`, which a production server
- * refuses before anything is written.
- */
 export async function seed(dataSource: DataSource, options: { guideFixtures: boolean }): Promise<string[]> {
   let files = GUIDE_FILES;
   if (options.guideFixtures) {
@@ -44,10 +34,6 @@ export async function seed(dataSource: DataSource, options: { guideFixtures: boo
   return [`Guides${options.guideFixtures ? ', with the test-only zz-* guides' : ''}: ${JSON.stringify(report)}`];
 }
 
-/**
- * A hash of everything a reader sees except the last-checked date, in any key order.
- * A re-check that finds the portal unchanged needs no new version (guides plan §6 step 5).
- */
 export function contentHash(file: GuideFile): string {
   const { lastChecked, status, ...shown } = file;
   return createHash('sha256').update(stableJson(shown)).digest('hex');
@@ -74,13 +60,6 @@ interface LoadedText {
 
 type PublishedGuideFile = Extract<LoadableGuideFile, { status: 'published' }>;
 
-/**
- * Loads the guide content files (ADR 0010) in one transaction, all or nothing.
- * - A draft is never loaded, and a published text may not turn back into one.
- * - A published file is inserted, or replaces a lower version.
- * - The same version must have the same content, except its last-checked date (guides plan §3 rule 7).
- * - A text whose file is gone, or marked withdrawn, is withdrawn: kept, never deleted.
- */
 export async function seedGuides(dataSource: DataSource, files: GuideFile[]): Promise<GuideSeedReport> {
   const parsed = parseGuideSet(files);
   if ('problems' in parsed) throw new GuideSeedError(parsed.problems);
@@ -88,7 +67,6 @@ export async function seedGuides(dataSource: DataSource, files: GuideFile[]): Pr
   return dataSource.transaction(async (em) => {
     const report: GuideSeedReport = { inserted: 0, updated: 0, rechecked: 0, unchanged: 0, withdrawn: 0, drafts: 0 };
     const problems: string[] = [];
-    // A second seed at the same time waits here instead of mixing its checks with ours.
     await em.query(`LOCK TABLE "guide_texts" IN SHARE ROW EXCLUSIVE MODE`);
     const loaded: LoadedText[] = await em.query(`SELECT "guide_id" AS "id", "lang", "status", "version", "content_hash" FROM "guide_texts"`);
     const rows = new Map(loaded.map((row) => [textKey(row), row]));
@@ -138,7 +116,6 @@ async function loadPublished(em: EntityManager, file: PublishedGuideFile, row: L
   return { counted: (await recheck(em, file)) ? 'rechecked' : 'unchanged' };
 }
 
-// A text whose file is gone is withdrawn, not deleted: problem reports point at it (ADR 0010).
 async function withdrawMissing(em: EntityManager, loaded: LoadedText[], inFiles: ReadonlySet<string>): Promise<number> {
   const missing = loaded.filter((row) => row.status === 'published' && !inFiles.has(textKey(row)));
   for (const row of missing) await withdraw(em, row);
@@ -174,9 +151,7 @@ async function write(em: EntityManager, file: PublishedGuideFile): Promise<void>
   );
 }
 
-/** Same version and content: takes a new last-checked date, and shows the text again if it was withdrawn. True if anything changed. */
 async function recheck(em: EntityManager, file: PublishedGuideFile): Promise<boolean> {
-  // A CTE, so the query is a SELECT and returns its rows (TypeORM returns [rows, count] for an UPDATE).
   const [{ n: changed }]: { n: number }[] = await em.query(
     `WITH changed AS (
        UPDATE "guide_texts" SET "last_checked_on" = $3, "last_checked_by" = $4, "status" = 'published', "updated_at" = now()
