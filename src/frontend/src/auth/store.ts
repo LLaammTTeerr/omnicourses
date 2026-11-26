@@ -139,17 +139,9 @@ interface AccountCache<T> {
   forget(): void;
 }
 
-export function useAccountCache<T>(fetchValue: () => Promise<T>): AccountCache<T> {
-  const auth = useAuth();
-  const owned = shallowRef<Owned<T> | null>(null);
+function sharedLoad<T>(fetchValue: () => Promise<T>, keep: (userId: string, value: T) => T) {
   let pending: { userId: string; load: Promise<T> } | null = null;
   let latest: Promise<T> | null = null;
-  const value = computed(() => (owned.value && owned.value.userId === auth.user?.id ? owned.value.value : null));
-
-  function keep(userId: string, next: T): T {
-    if (auth.user?.id === userId) owned.value = { userId, value: next };
-    return next;
-  }
 
   function start(userId: string): Promise<T> {
     const load: Promise<T> = fetchValue().then((loaded) => (latest === load ? keep(userId, loaded) : loaded));
@@ -162,24 +154,42 @@ export function useAccountCache<T>(fetchValue: () => Promise<T>): AccountCache<T
     return load;
   }
 
+  return {
+    start,
+    pendingFor: (userId: string) => (pending?.userId === userId ? pending.load : null),
+    isLatest: (load: Promise<T>) => load === latest,
+    drop: () => void ((pending = null), (latest = null)),
+  };
+}
+
+export function useAccountCache<T>(fetchValue: () => Promise<T>): AccountCache<T> {
+  const auth = useAuth();
+  const owned = shallowRef<Owned<T> | null>(null);
+  const value = computed(() => (owned.value && owned.value.userId === auth.user?.id ? owned.value.value : null));
+
+  function keep(userId: string, next: T): T {
+    if (auth.user?.id === userId) owned.value = { userId, value: next };
+    return next;
+  }
+
+  const loads = sharedLoad(fetchValue, keep);
+
   function load({ fresh = false }: { fresh?: boolean } = {}): Promise<T> {
     const userId = auth.user?.id;
     if (!userId) return Promise.reject(new Error('Not signed in'));
     if (!fresh && value.value !== null) return Promise.resolve(value.value);
-    if (fresh || pending?.userId !== userId) return start(userId);
-    return pending.load;
+    return (fresh ? null : loads.pendingFor(userId)) ?? loads.start(userId);
   }
 
   function forget(): void {
     owned.value = null;
-    pending = null;
-    latest = null;
+    loads.drop();
   }
 
   return {
     value,
     load,
-    isLatest: (load) => load === latest,
+    isLatest: loads.isLatest,
     keep,
     seed: (userId, next) => void (owned.value = { userId, value: next }),
     forget,

@@ -1,5 +1,5 @@
 import type { Lang } from '../locale.js';
-import { DELETION_GRACE_DAYS } from '../privacy/messages.js';
+import { DELETION_GRACE_DAYS } from './api.js';
 
 interface SettingsMessages {
   title: string;

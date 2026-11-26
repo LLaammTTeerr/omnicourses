@@ -141,6 +141,23 @@ interface FinishOptions {
   fallback?: string;
 }
 
+function useFocusReturn(stale: AdminDialogOptions['stale']) {
+  let opener: HTMLElement | null = null;
+
+  function rememberOpener(from: Event): void {
+    opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
+  }
+
+  function focusBack(fallback: string): void {
+    const usable = opener?.isConnected && !(opener as HTMLButtonElement).disabled;
+    const id = stale?.is() ? stale.reloadId : fallback;
+    (usable ? opener : document.getElementById(id))?.focus();
+    opener = null;
+  }
+
+  return { rememberOpener, focusBack };
+}
+
 export function useAdminDialog<D>(options: AdminDialogOptions) {
   const toast = useToast();
   const m = useMessages(ADMIN_MESSAGES);
@@ -148,24 +165,13 @@ export function useAdminDialog<D>(options: AdminDialogOptions) {
   const dialog = shallowRef<D | null>(null);
   const settling = ref(false);
   const busy = computed(() => writes.busy.value || settling.value);
-  let opener: HTMLElement | null = null;
+  const { rememberOpener, focusBack } = useFocusReturn(options.stale);
   stayWhileBusy(() => busy.value);
-
-  function rememberOpener(from: Event): void {
-    opener = from.currentTarget instanceof HTMLElement ? from.currentTarget : null;
-  }
 
   function open(next: D, from?: Event): void {
     if (from) rememberOpener(from);
     writes.clear();
     dialog.value = next;
-  }
-
-  function focusBack(fallback: string): void {
-    const usable = opener?.isConnected && !(opener as HTMLButtonElement).disabled;
-    const id = options.stale?.is() ? options.stale.reloadId : fallback;
-    (usable ? opener : document.getElementById(id))?.focus();
-    opener = null;
   }
 
   async function close(fallback = options.fallback): Promise<void> {

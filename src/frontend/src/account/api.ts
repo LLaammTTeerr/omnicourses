@@ -14,6 +14,9 @@ export interface DeletionScheduled {
   purgeAfter: string;
 }
 
+/** The account deletion grace period (ACCOUNT_DELETION_GRACE_DAYS, default 30 in the API and .env.example). */
+export const DELETION_GRACE_DAYS = 30;
+
 export const listSessions = () => requestAsUser<Session[]>('GET', '/auth/sessions');
 export const revokeSession = (id: string) => requestAsUser<void>('DELETE', `/auth/sessions/${segment(id)}`);
 

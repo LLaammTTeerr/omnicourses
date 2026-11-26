@@ -54,6 +54,21 @@ describe('useOnboarding', () => {
     expect(store.finished).toBe(false);
   });
 
+  it('keeps the answers of the account now signed in when an earlier account’s save answers late', async () => {
+    let answerSave!: (response: Response) => void;
+    vi.spyOn(globalThis, 'fetch').mockImplementation((_url, init) =>
+      init?.method === 'PUT' ? new Promise((resolve) => { answerSave = resolve; }) : Promise.resolve(Response.json(NOT_STARTED)));
+    signIn();
+    const store = useOnboarding();
+    const saving = store.save(onboarding());
+    signIn('00000000-0000-4000-8000-000000000002');
+    await store.load();
+    answerSave(Response.json(onboarding()));
+    await saving;
+    expect(store.answers).toEqual(NOT_STARTED);
+    expect(store.finished).toBe(false);
+  });
+
   it('signs the student out when the API says the session is over', async () => {
     mockApi({ 'GET /users/me/onboarding': status(401) });
     signIn();

@@ -1,3 +1,4 @@
+import { DELETION_GRACE_DAYS } from '../account/api.js';
 import type { Lang } from '../locale.js';
 
 // The privacy notice (UC-01 step 2, Luật 91/2025/QH15). Every sentence states what the code on main does; the PR that
@@ -7,9 +8,6 @@ import type { Lang } from '../locale.js';
 
 /** The day the text below last changed. */
 export const PRIVACY_UPDATED_ON = '2026-11-26';
-
-/** The account deletion grace period (ACCOUNT_DELETION_GRACE_DAYS, default 30 in the API and .env.example). */
-export const DELETION_GRACE_DAYS = 30;
 
 /** The pre-deploy database copies kept on the server (deploy/server/omnicourse-root: `tail -n +15`). */
 const DEPLOY_COPIES_KEPT = 14;

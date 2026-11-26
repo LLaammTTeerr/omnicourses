@@ -1,4 +1,4 @@
-import { computed, reactive, ref, shallowRef } from 'vue';
+import { computed, reactive, ref, shallowRef, type Ref } from 'vue';
 import { byField, failureKind, type HttpError } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { fetchPrograms, type Program } from '../curriculum/api.js';
@@ -96,9 +96,18 @@ function useAnswerErrors() {
   return { apiErrors, goalErrors, otherErrors };
 }
 
+function useProgramChoices(program: Ref<string | null>) {
+  const locale = useLocale();
+  // The names of the programs. Without them the offered codes still show, so onboarding never waits on this list.
+  const programs = useAsyncLoad('the programs', fetchPrograms);
+  const choices = computed(() => programChoices(programs.data.value?.programs ?? []));
+  const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
+  const programName = (choice: ProgramChoice) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
+  return { choices, cohorts, programName };
+}
+
 export function useAnswerForm(onLoaded: (answers: Onboarding) => void = () => {}) {
   const onboarding = useOnboarding();
-  const locale = useLocale();
   const program = ref<string | null>(null);
   const cohort = ref<number | null>(null);
   const goal = reactive<GoalDraft>({ graduation: '', credits: '', internship: '' });
@@ -109,11 +118,7 @@ export function useAnswerForm(onLoaded: (answers: Onboarding) => void = () => {}
     Object.assign(goal, goalDraft(answers));
     onLoaded(answers);
   });
-  // The names of the programs. Without them the offered codes still show, so onboarding never waits on this list.
-  const programs = useAsyncLoad('the programs', fetchPrograms);
-  const choices = computed(() => programChoices(programs.data.value?.programs ?? []));
-  const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
-  const programName = (choice: ProgramChoice) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
+  const { choices, cohorts, programName } = useProgramChoices(program);
   const saving = ref(false);
   const saveFailed = ref(false);
   const errors = useAnswerErrors();
