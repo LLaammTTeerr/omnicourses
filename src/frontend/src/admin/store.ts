@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, watch } from 'vue';
 import { statusOf } from '../api.js';
-import { useAuth } from '../auth/store.js';
+import { useAccountCache, useAuth } from '../auth/store.js';
 import { fetchOwnGrants, GLOBAL_PERMISSIONS, type PermissionKind, type UserGrants } from './api.js';
 
 // The signed-in user's own administration grants (ADR 0011), from GET /admin/grants. They only decide what the
@@ -13,24 +13,15 @@ import { fetchOwnGrants, GLOBAL_PERMISSIONS, type PermissionKind, type UserGrant
 /** After this many failed loads in a row, only the administration page's own Try again asks once more. */
 export const MAX_FAILED_LOADS = 3;
 
-interface Owned {
-  userId: string;
-  grants: UserGrants;
-}
-
 export const useAdminAccess = defineStore('admin-access', () => {
   const auth = useAuth();
   /** The last grants loaded, with the account they belong to. Tests seed it. */
-  const cache = shallowRef<Owned | null>(null);
+  const cache = useAccountCache(fetchOwnGrants);
   /** The account whose last load failed. */
   const failedFor = ref<string | null>(null);
-  let pending: { userId: string; load: Promise<UserGrants | null> } | null = null;
-  /** Counts the loads started: only the answer to the newest one is kept, so an older answer never wins. */
-  let started = 0;
   /** Loads that failed in a row for this account: the shell stops asking on its own after MAX_FAILED_LOADS. */
   const failures = ref(0);
-  /** Counts the sign-ins and sign-outs: an answer asked for in one is not kept in the next. */
-  let signIn = 0;
+  let settling: { run: Promise<UserGrants>; settled: Promise<UserGrants | null> } | null = null;
   /**
    * A write the API refused for lack of a permission (403 permission_required), until the user has read it. The
    * grants are asked again at once, so the navigation follows; the administration page keeps the screen the write
@@ -41,10 +32,8 @@ export const useAdminAccess = defineStore('admin-access', () => {
   watch(
     () => auth.user?.id,
     () => {
-      signIn++;
-      pending = null;
+      cache.forget();
       failures.value = 0;
-      cache.value = null;
       failedFor.value = null;
       refusal.value = null;
     },
@@ -52,7 +41,7 @@ export const useAdminAccess = defineStore('admin-access', () => {
     { flush: 'sync' },
   );
 
-  const grants = computed(() => (cache.value && cache.value.userId === auth.user?.id ? cache.value.grants : null));
+  const grants = cache.value;
   /** The last load for this account failed: the grants shown, if any, may be out of date. */
   const failed = computed(() => failedFor.value !== null && failedFor.value === auth.user?.id);
   /** The kinds of permission the user holds, in the order the screens list them. */
@@ -75,37 +64,30 @@ export const useAdminAccess = defineStore('admin-access', () => {
   function load({ fresh = false }: { fresh?: boolean } = {}): Promise<UserGrants | null> {
     const userId = auth.user?.id;
     if (!userId) return Promise.resolve(null);
-    if (!fresh && grants.value) return Promise.resolve(grants.value);
-    if (fresh || pending?.userId !== userId) {
-      const during = signIn;
-      const mine = ++started;
-      const current = () => during === signIn && auth.user?.id === userId && mine === started;
-      const run: Promise<UserGrants | null> = fetchOwnGrants().then(
-        (loaded) => {
-          if (current()) {
-            cache.value = { userId, grants: loaded };
-            failedFor.value = null;
-            failures.value = 0;
-          }
-          return loaded;
-        },
-        (e: unknown) => {
-          // A 401 has signed the user out (App.vue takes them to sign in); anything else is worth a line.
-          if (statusOf(e) !== 401) console.error('Loading the administration grants failed:', e);
-          if (current()) {
-            failedFor.value = userId;
-            failures.value++;
-          }
-          return null;
-        },
-      );
-      pending = { userId, load: run };
-      void run.then(() => {
-        if (pending?.load === run) pending = null;
-      });
-    }
-    return pending!.load;
+    const run = cache.load({ fresh });
+    if (settling?.run === run) return settling.settled;
+    const current = () => cache.isLatest(run) && auth.user?.id === userId;
+    const settled = run.then(
+      (loaded) => {
+        if (current()) {
+          failedFor.value = null;
+          failures.value = 0;
+        }
+        return loaded;
+      },
+      (e: unknown) => {
+        // A 401 has signed the user out (App.vue takes them to sign in); anything else is worth a line.
+        if (statusOf(e) !== 401) console.error('Loading the administration grants failed:', e);
+        if (current()) {
+          failedFor.value = userId;
+          failures.value++;
+        }
+        return null;
+      },
+    );
+    settling = { run, settled };
+    return settled;
   }
 
-  return { cache, grants, failed, retryable, held, any, holds, load, refusal };
+  return { seed: cache.seed, grants, failed, retryable, held, any, holds, load, refusal };
 });

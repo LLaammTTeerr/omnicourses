@@ -31,7 +31,7 @@ export async function setup(path: string, { signedIn = true, onboarded = onboard
   const pinia = signedIn ? signedInPinia() : createPinia();
   if (!signedIn) setActivePinia(pinia);
   // Seeded for the fixture's account even when signed out, so a sign-in in the spec finds it.
-  if (onboarded) useOnboarding().cache = { userId: user().id, answers: onboarded };
+  if (onboarded) useOnboarding().seed(user().id, onboarded);
   const router = createAppRouter(createMemoryHistory());
   await router.push(path);
   await router.isReady();

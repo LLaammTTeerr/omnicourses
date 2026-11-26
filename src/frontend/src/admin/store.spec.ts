@@ -35,7 +35,7 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     await access.load();
     expect(access.held).toEqual(['program_admin', 'catalog_maintainer', 'access_manager']);
     expect(access.any).toBe(true);
-    access.cache = { userId: user().id, grants: ACCESS_MANAGER };
+    access.seed(user().id, ACCESS_MANAGER);
     expect(access.held).toEqual(['access_manager']);
     expect([access.holds('access_manager'), access.holds('program_admin'), access.holds('catalog_maintainer')]).toEqual([true, false, false]);
   });
@@ -105,7 +105,7 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     expect(access.any).toBe(true);
     useAuth().clear();
     await nextTick();
-    expect(access.cache).toBeNull();
+    expect(access.grants).toBeNull();
     // Signed out, the grants were revoked. The same account signs in again in this tab.
     answer = NO_GRANTS;
     signIn();
@@ -125,7 +125,7 @@ describe('the signed-in user\'s own grants (ADR 0011)', () => {
     signIn();
     answer(Response.json(EVERY_GRANT));
     await loading;
-    expect([access.any, access.cache]).toEqual([false, null]);
+    expect([access.any, access.grants]).toEqual([false, null]);
   });
 
   it('keeps a refused save to show until it is read, and forgets it at sign-out', async () => {

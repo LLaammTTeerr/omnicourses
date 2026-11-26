@@ -109,7 +109,7 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
   it('closes a section when its permission is revoked while it is open', async () => {
     const { w, pinia } = await render('/admin/curriculum', { 'GET /admin/grants': PROGRAM_ADMIN, 'GET /admin/programs': { programs: [] } });
     expect(has(w, 'no-programs')).toBe(true);
-    useAdminAccess(pinia).cache = { userId: NO_GRANTS.userId, grants: NO_GRANTS };
+    useAdminAccess(pinia).seed(NO_GRANTS.userId, NO_GRANTS);
     await flushPromises();
     expect(has(w, 'no-programs')).toBe(false);
     expect(has(w, 'admin-no-permission')).toBe(true);
@@ -129,7 +129,7 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     const fetch = mockApi({ 'GET /admin/grants': () => new Promise<Response>((resolve) => (answer = resolve)) });
     const app = await setup('/admin');
     // An answer from an earlier visit: the grant has been revoked since.
-    useAdminAccess().cache = { userId: PROGRAM_ADMIN.userId, grants: PROGRAM_ADMIN };
+    useAdminAccess().seed(PROGRAM_ADMIN.userId, PROGRAM_ADMIN);
     wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
     await flushPromises();
     expect(wrapper.get('[data-test="admin-loading"]').text()).toBe('Đang tải…');

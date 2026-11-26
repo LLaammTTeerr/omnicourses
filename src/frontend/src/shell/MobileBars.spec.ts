@@ -67,7 +67,7 @@ describe('the phone tab bar', () => {
     await flushPromises();
     expect(sheet(w).findAll('a').map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt']);
     expect(more(w).attributes('aria-current')).toBeUndefined();
-    useAdminAccess().cache = { userId: PROGRAM_ADMIN.userId, grants: PROGRAM_ADMIN };
+    useAdminAccess().seed(PROGRAM_ADMIN.userId, PROGRAM_ADMIN);
     await flushPromises();
     const links = sheet(w).findAll('a');
     expect(links.map((a) => a.text())).toEqual(['Lịch', 'Bảng điểm', 'Hướng dẫn', 'Cài đặt', 'Quản trị']);
