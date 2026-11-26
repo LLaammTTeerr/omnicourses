@@ -1,7 +1,7 @@
 import { getMetadataArgsStorage } from 'typeorm';
 import { describe, expect, it } from 'vitest';
-import { TERM_NUMBERS } from '../terms/term.js';
-import { ACADEMIC_YEAR_MAX, ACADEMIC_YEAR_MIN, AcademicCalendarEvent, CALENDAR_EVENT_KINDS } from './academic-calendar-event.entity.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, TERM_NUMBERS } from '../terms/term.js';
+import { AcademicCalendarEvent, CALENDAR_EVENT_KINDS } from './academic-calendar-event.entity.js';
 import { datesProblem } from './academic-calendar.service.js';
 
 describe('datesProblem', () => {
@@ -26,6 +26,6 @@ describe('the CHECK constraints of academic_calendar', () => {
   it('allow exactly the kinds, terms and years the API accepts', () => {
     expect(checkOf('ck_academic_calendar_kind')).toBe(`"kind" IN (${CALENDAR_EVENT_KINDS.map((kind) => `'${kind}'`).join(', ')})`);
     expect(checkOf('ck_academic_calendar_term')).toBe(`"term" IN (${TERM_NUMBERS.join(', ')})`);
-    expect(checkOf('ck_academic_calendar_academic_year')).toBe(`"academic_year" BETWEEN ${ACADEMIC_YEAR_MIN} AND ${ACADEMIC_YEAR_MAX}`);
+    expect(checkOf('ck_academic_calendar_academic_year')).toBe(`"academic_year" BETWEEN ${MIN_ACADEMIC_YEAR} AND ${MAX_ACADEMIC_YEAR}`);
   });
 });

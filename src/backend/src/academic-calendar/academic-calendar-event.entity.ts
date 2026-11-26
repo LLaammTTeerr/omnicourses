@@ -9,8 +9,6 @@ export type CalendarEventKind = (typeof CALENDAR_EVENT_KINDS)[number];
 export const CALENDAR_EVENT_KIND_DOC =
   'term_start, term_end: first and last day of a term; registration: course registration window; add_drop: add/drop window; exam_period: final exams; holiday: no classes; other: anything else';
 
-export const ACADEMIC_YEAR_MIN = 2000;
-export const ACADEMIC_YEAR_MAX = 2100;
 export const TITLE_MAX_LENGTH = 255;
 export const SOURCE_URL_MAX_LENGTH = 2048;
 

@@ -24,6 +24,7 @@ import { findPrerequisiteCycle } from './prerequisite-cycle.js';
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 const GROUP_FIELDS = ['name', 'kind', 'officialNotes'] as const;
+
 // Program-administrator writes (ADR 0011): requirement groups, their course links, and the
 // prerequisites and offering terms of a curriculum's courses. Every write runs under the F12
 // lock with the caller's current grant for the path's program, and resolves the curriculum

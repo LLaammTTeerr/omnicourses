@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsString, Matches, Max, Min } from 'class-validator';
 import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
 import { NAME_MAX_LENGTH } from './curriculum-admin.dto.js';
 
 // Request and response shapes of the F12 program and cohort routes (ADR 0011, "Programs and
@@ -32,10 +33,6 @@ export const canonicalAdminCode = (input: unknown): unknown => (typeof input ===
 
 const FACULTY_MAX_LENGTH = 100;
 const LANGUAGE_MAX_LENGTH = 10;
-
-/** The bounds of ck_curriculums_cohort_year_range (migration 1792912952302). */
-const COHORT_YEAR_MIN = 2000;
-const COHORT_YEAR_MAX = 2100;
 
 const canonicalCode = Transform(({ value }) => canonicalAdminCode(value));
 const CODE_PATTERN = ADMIN_CODE_PATTERN.source;
@@ -136,10 +133,11 @@ export class ProgramDetailsDto {
 // ---- Cohorts (curriculums rows) ------------------------------------------------------------
 
 export class CreateCohortDto {
-  @ApiProperty({ type: 'integer', example: 2026, minimum: COHORT_YEAR_MIN, maximum: COHORT_YEAR_MAX, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
+  /** The bounds of ck_curriculums_cohort_year_range (migration 1792912952302). */
+  @ApiProperty({ type: 'integer', example: 2026, minimum: MIN_ACADEMIC_YEAR, maximum: MAX_ACADEMIC_YEAR, description: 'The year the cohort entered the program. One cohort per program and year. Cannot change later.' })
   @IsInt()
-  @Min(COHORT_YEAR_MIN)
-  @Max(COHORT_YEAR_MAX)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   cohortYear!: number;
 
   @ApiProperty({

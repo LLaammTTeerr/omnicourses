@@ -3,10 +3,8 @@ import { Transform, Type } from 'class-transformer';
 import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUrl, Matches, Max, Min } from 'class-validator';
 import { ifFilled, ifPresent, ifSet, IsCalendarDate, MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
 import { ADMIN_CODE_MAX_LENGTH } from '../curriculum-admin/program-admin.dto.js';
-import { TERM_NUMBERS, type TermNumber } from '../terms/term.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, TERM_NUMBERS, type TermNumber } from '../terms/term.js';
 import {
-  ACADEMIC_YEAR_MAX,
-  ACADEMIC_YEAR_MIN,
   CALENDAR_EVENT_KIND_DOC,
   CALENDAR_EVENT_KINDS,
   type CalendarEventKind,
@@ -37,8 +35,8 @@ export class AcademicCalendarQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(ACADEMIC_YEAR_MIN)
-  @Max(ACADEMIC_YEAR_MAX)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   academicYear?: number;
 
   @ApiProperty({ required: false, example: '2026-09-01', description: 'Only dates that end on or after this day (YYYY-MM-DD)' })
@@ -114,8 +112,8 @@ export class AcademicCalendarDto {
 export class CreateCalendarEventDto {
   @ApiProperty({ example: 2026, description: 'ADR 0009: 2026 is 2026–2027. startsOn must fall in 2026 or 2027' })
   @IsInt()
-  @Min(ACADEMIC_YEAR_MIN)
-  @Max(ACADEMIC_YEAR_MAX)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   academicYear!: number;
 
   @ApiProperty({ type: Number, enum: TERM_NUMBERS, nullable: true, required: false, description: 'Absent or null: the whole academic year' })
@@ -173,8 +171,8 @@ export class UpdateCalendarEventDto {
   @ApiProperty({ required: false, example: 2026 })
   @ifPresent
   @IsInt()
-  @Min(ACADEMIC_YEAR_MIN)
-  @Max(ACADEMIC_YEAR_MAX)
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
   academicYear?: number;
 
   @ApiProperty({ type: Number, enum: TERM_NUMBERS, nullable: true, required: false, description: 'null: the whole academic year' })

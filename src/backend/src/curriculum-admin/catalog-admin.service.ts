@@ -137,7 +137,7 @@ export async function affectedCurricula(em: EntityManager, code: string): Promis
 async function countedReferences(em: EntityManager, code: string): Promise<string[]> {
   const references: string[] = [];
   for (const { table, column, what } of COURSE_REFERENCE_COUNTS) {
-    const [{ count }]: { count: number }[] = await em.query(`SELECT count(*)::int AS "count" FROM "${table}" WHERE "${column}" = $1`, [code]);
+    const [{ n: count }]: { n: number }[] = await em.query(`SELECT count(*)::int AS "n" FROM "${table}" WHERE "${column}" = $1`, [code]);
     if (count) references.push(REFERENCES.counted(count, what));
   }
   return references;

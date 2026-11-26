@@ -34,8 +34,8 @@ export async function bootstrapAccessManager(db: DataSource, userId: string): Pr
 
 /** Active: the account is not waiting for deletion (ADR 0011). */
 async function activeAccessManagers(em: EntityManager, except?: string): Promise<number> {
-  const [{ count }] = await em.query(
-    `SELECT count(*)::int AS "count" FROM "global_admin_grants" g JOIN "users" u ON u."id" = g."user_id"
+  const [{ n: count }] = await em.query(
+    `SELECT count(*)::int AS "n" FROM "global_admin_grants" g JOIN "users" u ON u."id" = g."user_id"
      WHERE g."permission" = 'access_manager' AND u."deletion_requested_at" IS NULL AND ($1::uuid IS NULL OR g."user_id" <> $1::uuid)`,
     [except ?? null],
   );
