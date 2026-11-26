@@ -86,8 +86,8 @@ Two GitHub rulesets on `main` enforce these rules. `protect-main` (pull request,
 ## 4. Merge and deploy
 
 1. After approval, **the author** clicks *Squash and merge*.
-2. **Production deploys by itself.** When CI passes on the merge commit, the Deploy workflow deploys `main` to production ([deploy/README.md](deploy/README.md)). Nobody runs it by hand. A push to the `staging` branch deploys staging in the same way.
-3. To tag a build (`B0`…`B3`), only when the Project Lead asks: `gh workflow run deploy.yml --ref main -f environment=production -f build_tag=B<n>`. A manual run must name `environment=production` on `main`: the default, `staging`, fails on `main`.
+2. **Production deploys by itself.** When CI passes on the merge commit, the Deploy workflow deploys `main` to production ([deploy/README.md](deploy/README.md)). Nobody runs it by hand, except in the two cases of item 3. A push to the `staging` branch deploys staging in the same way.
+3. A manual run is only for two cases. To tag a build (`B0`…`B3`), only when the Project Lead asks: `gh workflow run deploy.yml --ref main -f environment=production -f build_tag=B<n>`. To redeploy `main` when the automatic run was dropped: the same command without `build_tag`. A manual run must name `environment=production` on `main`: the default, `staging`, fails on `main`.
 4. Move the Discord task to **Done** when the deploy has finished.
 
 ### Releases

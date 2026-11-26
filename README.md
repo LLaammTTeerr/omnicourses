@@ -23,7 +23,7 @@ This table is the one place that says what is built. It describes `main` at comm
 | F2 Transcript import | `users/me/transcript` (`GET`, `PUT`) | Transcript page: the student types each row | Paste of the grades table. F2 is "paste or type, no file" ([ADR 0007, amendment of 15 November 2026](docs/analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); the paste format is not decided |
 | F3 Degree audit dashboard | `users/me/audit` | Dashboard, degree audit | Estimated graduation term, past-term view |
 | F4 Curriculum explorer | `programs`, `programs/:program/curricula/:cohort`, `courses/:code` | Explorer, with each course's recorded prerequisites | Course states from the rule engine, prerequisite graph |
-| F5 Semester roadmap planner | `plans`, `plans/:id`, `plans/:id/issues`, `plans/:id/placements`, `plans/:id/duplicate` | Plan list, plan editor with the rule engine's checks | Fix suggestions |
+| F5 Semester roadmap planner | `plans`, `plans/:id`, `plans/:id/issues`, `plans/:id/issues/drops`, `plans/:id/placements`, `plans/:id/duplicate` | Plan list, plan editor with the rule engine's checks | Fix suggestions |
 | F6 AI plan generator | none | none | All of F6 |
 | F7 What-if simulator | none (a plan can be copied with `plans/:id/duplicate`) | none | All of F7 |
 | F8 AI academic advisor chat | none (the AI gateway in `src/backend/src/ai/` has no route; [#77](https://github.com/LLaammTTeerr/omnicourses/pull/77) is open) | none | All of F8 |
