@@ -10,7 +10,6 @@ import { AUTH_MESSAGES, looksLikeEmail } from './messages.js';
 import { afterSignIn } from './redirect.js';
 import { useAuth } from './store.js';
 
-// F1 sign-in (issue #13). Then the page the guard came from, or the dashboard.
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();
@@ -37,7 +36,6 @@ async function submit(): Promise<void> {
     await router.replace(afterSignIn(route.query.redirect));
   } catch (e) {
     const kind = failureKind(e);
-    // ADR 0002: one answer for an unknown email and a wrong password.
     if (kind === 'unauthorized') failure.value = m.value.wrongCredentials;
     else if (kind === 'rate_limited') failure.value = m.value.rateLimited;
     else if (kind === 'invalid') failure.value = m.value.checkFields;

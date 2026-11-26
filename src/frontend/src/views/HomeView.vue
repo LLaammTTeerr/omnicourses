@@ -8,8 +8,6 @@ import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 
-// The landing page (UI prototypes: index.html). It says what works today and marks the rest as coming,
-// so a visitor is never promised a screen that does not exist yet.
 const auth = useAuth();
 const locale = useLocale();
 

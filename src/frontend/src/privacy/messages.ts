@@ -1,18 +1,10 @@
 import { DELETION_GRACE_DAYS } from '../account/api.js';
 import type { Lang } from '../locale.js';
 
-// The privacy notice (UC-01 step 2, Luật 91/2025/QH15). Every sentence states what the code on main does; the PR that
-// changes the behaviour changes the sentence. Sources: the user tables' migrations (what is stored), ADR 0004 and
-// ACCOUNT_DELETION_GRACE_DAYS (deletion), deploy/server/omnicourse-root and architecture.md "Backups" (backups),
-// ADR 0003 (AI).
-
-/** The day the text below last changed. */
 export const PRIVACY_UPDATED_ON = '2026-11-26';
 
-/** The pre-deploy database copies kept on the server (deploy/server/omnicourse-root: `tail -n +15`). */
 const DEPLOY_COPIES_KEPT = 14;
 
-/** Settings' own labels, so the steps name exactly what the student sees there. */
 interface SettingsPath {
   settings: string;
   section: string;

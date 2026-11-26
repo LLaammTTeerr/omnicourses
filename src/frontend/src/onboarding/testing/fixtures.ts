@@ -1,6 +1,5 @@
 import type { Onboarding } from '../api.js';
 
-/** A finished onboarding for the synthetic student, unless overridden. */
 export function onboarding(overrides: Partial<Onboarding> = {}): Onboarding {
   return {
     program: 'APCS',

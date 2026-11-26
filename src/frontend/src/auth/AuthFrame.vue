@@ -3,8 +3,6 @@ import BrandLink from '../shell/BrandLink.vue';
 import LangButton from '../shell/LangButton.vue';
 import ThemeButton from '../shell/ThemeButton.vue';
 
-// Sign-in and sign-up (UI prototypes): the form on the left, a coloured panel on the right that hides on phones.
-// `tone` picks the panel's group colour; the panel is decoration and hidden from screen readers.
 defineProps<{ tone: 'ink' | 'phys' }>();
 </script>
 

@@ -1,6 +1,3 @@
-// A short name for the device of a session ("Chrome · Windows"), from its User-Agent header. A guess for the
-// student's eyes only: nothing depends on it, and an agent it does not recognise gives null.
-
 const BROWSERS: [RegExp, string][] = [
   [/\bEdg(?:e|A|iOS)?\//, 'Edge'],
   [/\bOPR\/|\bOpera\b/, 'Opera'],

@@ -9,10 +9,6 @@ import { ADMIN_MESSAGES } from './messages.js';
 import { fieldDescription, fieldInvalid, type ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
-// A program's details, to create one (an access manager, UC-11 A2) or to edit one (its program administrator). The
-// form checks nothing: the API validates the code and the names, and its refusals show under the fields they name.
-// There is no box for the training type: the API accepts none (ADR 0011, "Programs and cohorts as built"). Cancel
-// discards the draft and sends nothing (UC-11 A6).
 const props = defineProps<{ open: boolean; program: SavedProgram | null; busy: boolean; problem: ProblemView<ProgramField> | null }>();
 const emit = defineEmits<{ close: []; save: [values: ProgramValues]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);

@@ -13,8 +13,6 @@ import { fetchTranscript, saveTranscript, TERM_NUMBERS, TRANSCRIPT_RESULTS } fro
 import { TRANSCRIPT_MESSAGES } from './messages.js';
 import { blankRow, fromRow, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
 
-// F2 (UC-02): review every row, then save the whole set; a later save replaces it (ADR 0007). There is no PDF
-// reader yet, so the student enters rows by hand (UC-02 A4). An incomplete row blocks the save (A2).
 const auth = useAuth();
 const toast = useToast();
 const m = useMessages(TRANSCRIPT_MESSAGES);
@@ -43,7 +41,6 @@ function setTerm(row: DraftRow, value: string): void {
   row.year = year!;
   row.number = number as DraftRow['number'];
 }
-/** The line under an invalid row that says what to fix, for the fields it names. */
 const describedBy = (row: DraftRow, rowProblems: Problem[], field: Problem) => (rowProblems.includes(field) ? `problems-${row.key}` : undefined);
 const label = (index: number) => m.value.rowLabel(index + 1, normalizeCode(rows.value[index]!.courseCode));
 
@@ -75,7 +72,7 @@ async function save(): Promise<void> {
     toast.show(m.value.saved(saved.length));
   } catch (e) {
     const code = statusOf(e);
-    if (code === 401) return; // App.vue takes the student to sign in.
+    if (code === 401) return;
     if (code === 400) saveError.value = m.value.saveRefused;
     else {
       console.error('Saving the transcript failed:', e);
@@ -86,7 +83,6 @@ async function save(): Promise<void> {
   }
 }
 
-// Leaving with unsaved rows asks first, unless the session ended (then nothing could be saved anyway).
 onBeforeRouteLeave(() => !dirty.value || !auth.signedIn || window.confirm(m.value.leave));
 
 usePageTitle(() => m.value.title);
@@ -211,7 +207,6 @@ usePageTitle(() => m.value.title);
                     </button>
                   </td>
                 </tr>
-                <!-- What to fix, in words: colour is never the only cue. Each invalid field points here. -->
                 <tr v-if="rowProblems.length" class="problems">
                   <td :id="`problems-${row.key}`" colspan="8" :data-test="`problems-${i}`">
                     {{ m.needsFix }} {{ rowProblems.map((p) => m.problems[p]).join(', ') }}
@@ -260,7 +255,6 @@ usePageTitle(() => m.value.title);
 @media (max-width: 900px) {
   .transcript-page .notes { grid-template-columns: 1fr; }
 }
-/* A narrow card turns each row into a small form, every field with its visible name. */
 @container (max-width: 860px) {
   .review thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .review, .review tbody { display: block; }

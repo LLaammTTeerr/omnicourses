@@ -17,7 +17,6 @@ describe('HomeView in a real browser', () => {
     document.body.append(host);
   });
 
-  // The landing page links to sign-up and the guides, and reads the language and the session from Pinia.
   const plugins = () => [createPinia(), createAppRouter(createMemoryHistory())];
 
   afterEach(() => {

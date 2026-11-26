@@ -29,7 +29,6 @@ describe('what a form sends: the values typed, never a judgement of them', () =>
   it('reads a number box as a number, an empty one as null, and anything else as the text typed', () => {
     expect([enteredNumber('4'), enteredNumber(' 45 '), enteredNumber('0'), enteredNumber('-1'), enteredNumber('1.5')]).toEqual([4, 45, 0, -1, 1.5]);
     expect([enteredNumber(''), enteredNumber('   ')]).toEqual([null, null]);
-    // A typing mistake is never null, which would clear a period count: the API refuses the text by name.
     expect([enteredNumber('4o'), enteredNumber('ba'), enteredNumber('1e3'), enteredNumber('0x10'), enteredNumber('1,5')]).toEqual(['4o', 'ba', '1e3', '0x10', '1,5']);
   });
 
@@ -70,7 +69,6 @@ describe('what a form sends: the values typed, never a judgement of them', () =>
       labPeriods: null,
       exercisePeriods: 15,
     });
-    // The code is not a field of a correction, whatever the form holds.
     expect(courseChanges(saved, { ...form, code: 'ZZ201' })).toEqual({});
   });
 
@@ -112,7 +110,6 @@ describe('finding a change again in reloaded data (UC-11 A7)', () => {
     expect(storedPrerequisites({ state: 'none' })).toEqual([]);
     expect(storedPrerequisites({ state: 'list', codes: [' zz102', 'ZZ101 '] })).toEqual(['ZZ101', 'ZZ102']);
     expect([sameList(null, null), sameList([], []), sameList(['ZZ101'], ['ZZ101']), sameList([1, 3], [1, 3])]).toEqual([true, true, true, true]);
-    // An empty recorded list is not "not recorded", in either direction.
     expect([sameList(null, []), sameList([], null), sameList(undefined, []), sameList(['ZZ101'], ['ZZ102']), sameList(['ZZ101'], ['ZZ101', 'ZZ102'])]).toEqual([false, false, false, false, false]);
   });
 
@@ -121,9 +118,7 @@ describe('finding a change again in reloaded data (UC-11 A7)', () => {
     expect(courseHas(saved, { credits: 3, nameVi: ' Tên mới ', labPeriods: null })).toBe(true);
     expect(courseHas(saved, { credits: 4 })).toBe(false);
     expect(courseHas(saved, { labPeriods: 0 })).toBe(false);
-    // A value the API would have refused is never found saved.
     expect(courseHas(saved, { credits: 'ba' })).toBe(false);
-    // A create that left a period box out says nothing about that field.
     expect(courseHas(saved, { code: 'zz200', nameVi: 'Tên mới', nameEn: null, credits: 3 })).toBe(true);
   });
 });
@@ -157,7 +152,6 @@ describe('the program and cohort forms (UC-11 A1, A2): what is typed, and nothin
 
   it('builds a new cohort with the year as a number when it reads as one, and no credit total', () => {
     expect(newCohortBody({ cohortYear: ' 2026 ', code: 'zz-new-2026', nameVi: 'Khóa thử', nameEn: '', language: ' ' })).toEqual({ cohortYear: 2026, code: 'zz-new-2026', nameVi: 'Khóa thử', nameEn: null, language: null });
-    // A typing mistake goes as typed: the API refuses it and names the field.
     expect(newCohortBody({ ...cohortValues(null), cohortYear: '2O26' }).cohortYear).toBe('2O26');
   });
 

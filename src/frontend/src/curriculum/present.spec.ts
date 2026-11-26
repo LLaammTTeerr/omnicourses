@@ -12,7 +12,6 @@ const group = (name: string, kind: RequirementGroupKind = 'compulsory'): Require
   courses: [],
 });
 
-// The headings of the APCS 2024 and 2025 curricula, as src/backend/src/database/seeds prints them.
 const APCS: [string, RequirementGroupKind, string][] = [
   ['Kiến thức Computer Science (A): bắt buộc', 'compulsory', 'core'],
   ['Kiến thức Computer Science (A): tự chọn', 'elective', 'elec'],

@@ -9,18 +9,14 @@ import AuditGate from './AuditGate.vue';
 import { AUDIT_MESSAGES } from './messages.js';
 import { combinedNamesOf, conditionAnchor, conditionLabel, formatScore, share, shownGroups, useAudit, withoutOwnCondition } from './present.js';
 
-// The dashboard (F3, UC-03; UI prototypes: dashboard.html), where a signed-in student lands: graduation status,
-// credits, each requirement group's progress, the conditions not met yet, and the way on. Every figure is the
-// degree audit API's (ADR 0013); the page draws and words them, and decides none (AGENTS.md hard rule 1).
 const locale = useLocale();
 const m = useMessages(AUDIT_MESSAGES);
 const { status, data, error, reload, audit } = useAudit();
 
-/** How many unmet conditions the dashboard lists before sending the student to the audit page. */
-const TOP_UNMET = 5;
+const UNMET_LISTED_BEFORE_AUDIT_LINK = 5;
 
 const score = (value: number | null) => formatScore(value, locale.lang) ?? m.value.noGrade;
-const unmet = (a: DegreeAudit) => a.graduation.unmet.slice(0, TOP_UNMET);
+const unmet = (a: DegreeAudit) => a.graduation.unmet.slice(0, UNMET_LISTED_BEFORE_AUDIT_LINK);
 
 usePageTitle(() => m.value.dashboardTitle);
 </script>
@@ -103,7 +99,6 @@ usePageTitle(() => m.value.dashboardTitle);
                       <i class="current" :style="{ width: `${share(group.inProgressCredits, group.requiredCredits)}%` }"></i>
                     </span>
                     <span class="small t3 db-g-note">
-                      <!-- A group with no condition of its own (no minimum of its own) gets no ✓: its rule is the combined minimum. -->
                       <span v-if="!withoutOwnCondition(a, group)" :class="['state', group.met ? 'ok' : 'todo']">{{ group.met ? `✓ ${m.met}` : `○ ${m.notMet}` }}</span>
                       <template v-if="group.requiredCredits === null">
                         <template v-if="!withoutOwnCondition(a, group)">· </template>{{ combinedNamesOf(a, group.id).length ? m.noMinimumIn(combinedNamesOf(a, group.id).join(', ')) : m.noMinimum }}
@@ -153,7 +148,7 @@ usePageTitle(() => m.value.dashboardTitle);
                   </RouterLink>
                 </li>
               </ul>
-              <p v-if="a.graduation.unmet.length > TOP_UNMET" class="small t3">{{ m.attentionMore(a.graduation.unmet.length - TOP_UNMET) }}</p>
+              <p v-if="a.graduation.unmet.length > UNMET_LISTED_BEFORE_AUDIT_LINK" class="small t3">{{ m.attentionMore(a.graduation.unmet.length - UNMET_LISTED_BEFORE_AUDIT_LINK) }}</p>
             </section>
 
             <nav class="card db-next" aria-labelledby="db-next-title">

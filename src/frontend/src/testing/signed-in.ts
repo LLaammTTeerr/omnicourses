@@ -8,12 +8,7 @@ import { onboarding } from '../onboarding/testing/fixtures.js';
 import { createAppRouter } from '../router.js';
 
 interface Options {
-  /** The synthetic student is signed in. Default true. */
   signedIn?: boolean;
-  /**
-   * The synthetic student's onboarding answers, as if already loaded; finished by default, so a page opens without
-   * a detour to onboarding. `null` leaves them to the API, for specs of the onboarding detour itself.
-   */
   onboarded?: Onboarding | null;
 }
 
@@ -26,11 +21,9 @@ export function signedInPinia(): Pinia {
   return pinia;
 }
 
-/** A fresh Pinia and an in-memory router at `path`, with the synthetic student signed in unless `signedIn` is false. */
 export async function setup(path: string, { signedIn = true, onboarded = onboarding() }: Options = {}): Promise<{ pinia: Pinia; router: Router }> {
   const pinia = signedIn ? signedInPinia() : createPinia();
   if (!signedIn) setActivePinia(pinia);
-  // Seeded for the fixture's account even when signed out, so a sign-in in the spec finds it.
   if (onboarded) useOnboarding().seed(user().id, onboarded);
   const router = createAppRouter(createMemoryHistory());
   await router.push(path);

@@ -1,9 +1,5 @@
 import { ref, shallowRef, watch, type WatchSource } from 'vue';
 
-/**
- * Loads data for a view: loading, then loaded or failed, with a reload for the retry button. A failure's details go
- * to the console. With a `key`, it loads again whenever the key changes, and an answer for an older key is dropped.
- */
 export function newestOnly() {
   let latest = 0;
   return {

@@ -7,10 +7,6 @@ import { ADMIN_MESSAGES } from './messages.js';
 import type { ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
-// Asks before a removal (UC-11 A5): what will be removed, then Cancel or the removal. A refusal, such as what
-// still uses the item, is said here, and the dialog stays open. Busy: Cancel is disabled and Escape refused, as
-// the request still goes through. While the outcome of a removal is not known, it cannot be sent again: the
-// saved data is read first.
 defineProps<{ open: boolean; title: string; body: string; confirm: string; busy: boolean; problem: ProblemView | null }>();
 const emit = defineEmits<{ close: []; confirm: []; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);

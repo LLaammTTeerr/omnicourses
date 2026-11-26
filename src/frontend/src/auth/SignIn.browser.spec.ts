@@ -12,9 +12,6 @@ import { HOME_SIGNED_IN } from './redirect.js';
 import { SESSION_STORAGE_KEY } from './store.js';
 import { authResult } from './testing/fixtures.js';
 
-// F1 sign-in (UC-01, ADR 0002) in Chromium: the real screen, router, store and App.vue, with the API mocked
-// with synthetic accounts. The real API is checked on the server in the B1 acceptance run (docs/test/browser-tests.md).
-
 const EMAIL = 'zz-student@example.com';
 const PASSWORD = 'zz-password-1';
 const UNAUTHORIZED = status(401, { statusCode: 401, message: 'Unauthorized' });
@@ -59,7 +56,6 @@ describe('signing in (UC-01)', () => {
   it('signs in with a valid email and password, keeps the session and opens the dashboard', async () => {
     let sent: unknown;
     const router = await open('/sign-in', {
-      // Captured, not asserted here: a throw inside fetch would surface as a network error, not as the body diff.
       'POST /auth/sign-in': (init: RequestInit) => {
         sent = sentBody(init);
         return Response.json(authResult());
@@ -79,12 +75,10 @@ describe('signing in (UC-01)', () => {
     const router = await open('/sign-in', { 'POST /auth/sign-in': UNAUTHORIZED });
     await signIn(EMAIL, 'zz-wrong-password');
 
-    // ADR 0002: one answer for an unknown email and a wrong password.
     const alert = page.getByRole('alert');
     await expect.element(alert).toHaveTextContent('Email hoặc mật khẩu không đúng.');
     expect(router.currentRoute.value.name).toBe('sign-in');
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
-    // The student fixes the password without typing the email again.
     await expect.element(page.getByLabelText('Email')).toHaveValue(EMAIL);
     await expect.element(page.getByRole('button', { name: 'Đăng nhập' })).toBeEnabled();
   });
@@ -94,7 +88,6 @@ describe('signing in (UC-01)', () => {
     let transcriptCalls = 0;
     const router = await open('/transcript', {
       'POST /auth/refresh': () => Response.json(authResult({ token: 'zz-saved' })),
-      // Revoked on another device once the session was refreshed: the page's first call gets a 401.
       'GET /users/me/transcript': () => (transcriptCalls++ === 0 ? UNAUTHORIZED() : Response.json({ rows: [] })),
       'POST /auth/sign-in': () => Response.json(authResult()),
     });

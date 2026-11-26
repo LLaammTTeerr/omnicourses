@@ -11,7 +11,6 @@ import { GUIDE_MESSAGES } from './messages.js';
 import { pickText } from './pick-text.js';
 import { matches } from './search.js';
 
-// UC-10 steps 1–3, A1 and A2: browse and search the guides, signed in or not.
 const locale = useLocale();
 const m = useMessages(GUIDE_MESSAGES);
 
@@ -36,7 +35,6 @@ const groupsWithGuides = computed(() => GUIDE_GROUPS.filter((group) => guides.va
 
 const groupId = (group: GuideGroup) => `group-${group}`;
 
-// UC-10 A2.
 async function browse(group: GuideGroup): Promise<void> {
   query.value = '';
   await nextTick();
@@ -106,7 +104,6 @@ usePageTitle(() => m.value.listTitle);
 </template>
 
 <style scoped>
-/* The guide list of the UI prototypes (guides.html): a large search box, then each task group's guides as cards. */
 .guides {
   max-width: 1080px;
   margin: 0 auto;

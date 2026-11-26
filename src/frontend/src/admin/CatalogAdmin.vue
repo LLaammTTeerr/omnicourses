@@ -16,25 +16,17 @@ import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import { useAdminDialog, type WriteOutcome } from './write.js';
 
-// The shared course catalog of a catalog maintainer (ADR 0011, UC-11 A8; UI prototypes: admin.html, "Danh mục học
-// phần"). The API has no route that lists or searches the catalog (ADR 0011, review finding 1), so a course is
-// opened by its exact code; the prototype's table of every course is not here. A correction to a course that
-// curricula link goes through the API's shared-impact review before it is saved. Every check is the API's.
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.catalog);
 
-// ---------- The course on screen, by its code ----------
 const typed = ref('');
 const course = shallowRef<CourseDetail | null>(null);
-/** The code last looked up, as the catalog stores codes. */
 const code = ref('');
 const status = ref<'idle' | 'loading' | 'found' | 'missing' | 'failed'>('idle');
-/** A missing course can be created with its code only when the API accepts that code: `..` is never a course. */
 const creatable = computed(() => status.value === 'missing' && isCourseCode(code.value));
 const newest = newestOnly();
 
-/** The saved course, or null when the catalog has none with this code. Rejects when the API cannot say. */
 async function read(of: string): Promise<CourseDetail | null> {
   try {
     return await fetchCourse(of);
@@ -44,7 +36,6 @@ async function read(of: string): Promise<CourseDetail | null> {
   }
 }
 
-/** Reads `of` again and shows it, keeping the page as it is meanwhile. */
 async function refresh(of = code.value): Promise<CourseDetail | null> {
   const isNewest = newest.start();
   const fresh = await read(of);
@@ -57,7 +48,6 @@ async function refresh(of = code.value): Promise<CourseDetail | null> {
 }
 
 async function find(): Promise<void> {
-  // The read route matches the stored code exactly, and the catalog stores codes trimmed and in capitals.
   const wanted = storedCode(typed.value);
   if (!wanted) return;
   notice.value = null;
@@ -74,30 +64,16 @@ async function find(): Promise<void> {
   }
 }
 
-// ---------- Writes ----------
 type Dialog = { type: 'create' } | { type: 'edit' } | { type: 'delete' };
 const review = shallowRef<ImpactReview | null>(null);
-/**
- * The course an edit dialog was opened for, as it was then. A reload while the dialog is open can find the course
- * gone; the dialog stays about this course, and Save still sends the correction, so the API says what became of it.
- */
 const editing = shallowRef<CourseDetail | null>(null);
 const notice = ref<string | null>(null);
-/** The code of the course the last write was about. */
 let written = '';
-/**
- * A write about this course was left with its outcome unknown: what is on screen may be older than what is saved.
- * No other write starts until that course has been read again.
- */
 const stale = ref<string | null>(null);
 
-// A busy dialog refuses Escape, which leaves the Android back gesture to the browser: history back. Stay until
-// the request answers, so its result is said. A 401 has signed the user out, who may leave.
-// Cancel (UC-11 A6): the draft, and a review not yet confirmed, are dropped and nothing is sent.
 const { dialog, writes, busy, close, cancel, finish: finishDialog, ...dialogs } = useAdminDialog<Dialog>({
   fallback: 'catalog-code',
   notice,
-  // Left with its outcome unknown: the page may not show what is saved, and says so until that course is read again.
   stale: { reloadId: 'catalog-reload', is: () => stale.value !== null, mark: () => (stale.value = written) },
   onClose: () => {
     review.value = null;
@@ -113,7 +89,6 @@ function open(next: Dialog, from: Event): void {
   dialogs.open(next, from);
 }
 
-/** Reads the course of the write whose outcome was left unknown, and shows it: the page is up to date again. */
 async function reloadStale(): Promise<void> {
   const of = stale.value;
   if (!of) return;
@@ -126,10 +101,6 @@ async function reloadStale(): Promise<void> {
   }
 }
 
-/**
- * Shows the saved course after a write the API confirmed. When the reload fails, `answered` (the course as the
- * API answered the write) is shown instead, with the curricula already known for it.
- */
 async function showSaved(of: string, answered?: Course): Promise<void> {
   try {
     await refresh(of);
@@ -161,7 +132,6 @@ async function create(values: CourseValues): Promise<void> {
   if (await finish(result, created, text.value.created(created))) typed.value = created;
 }
 
-/** Sends a correction, with the review it confirms if any. A 409 that asks for a review opens it; nothing is saved then. */
 async function correct(body: ImpactReview['body'], confirming: ImpactReview | null): Promise<void> {
   const of = (course.value ?? editing.value)?.code;
   if (!of) return;
@@ -176,7 +146,6 @@ async function correct(body: ImpactReview['body'], confirming: ImpactReview | nu
   if (result.outcome === 'refused' && result.failure.kind === 'impact') {
     const { affected, reviewVersion, changed } = result.failure;
     writes.clear();
-    // The review compares the values now with the values proposed: after a stale one, read the values again.
     if (changed) await showSaved(of);
     review.value = { body, affected, reviewVersion, changed };
     return;
@@ -186,7 +155,6 @@ async function correct(body: ImpactReview['body'], confirming: ImpactReview | nu
 
 async function save(values: CourseValues): Promise<void> {
   if (dialog.value?.type === 'create') return create(values);
-  // The course as now saved; the one the dialog opened for when a reload found it gone.
   const base = course.value && course.value.code === editing.value?.code ? course.value : editing.value;
   if (!base) return;
   const body = courseChanges(base, values);
@@ -198,7 +166,6 @@ async function save(values: CourseValues): Promise<void> {
   await correct(body, null);
 }
 
-/** Confirms the review on screen: the same change, with the reviewVersion the API gave for it. */
 async function confirmImpact(): Promise<void> {
   if (review.value) await correct(review.value.body, review.value);
 }
@@ -212,7 +179,6 @@ async function remove(): Promise<void> {
     async () => (await refresh(of)) === null,
   );
   if (result.outcome !== 'saved' && result.outcome !== 'confirmed') return;
-  // The course and its buttons leave the page first, so the focus goes to the code box.
   course.value = null;
   status.value = 'idle';
   typed.value = '';
@@ -221,10 +187,6 @@ async function remove(): Promise<void> {
   else notice.value = m.value.problem.confirmed;
 }
 
-/**
- * "Reload the data" after an unknown outcome (UC-11 A7): reads the course of the same write again, which is not
- * sent again, and says what the catalog shows. Saved: the dialog closes with the notice. Not saved: it says so.
- */
 async function recheck(): Promise<void> {
   if ((await writes.recheck())?.outcome !== 'confirmed') return;
   if (dialog.value?.type === 'delete') {

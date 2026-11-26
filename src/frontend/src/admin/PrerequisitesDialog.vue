@@ -10,9 +10,6 @@ import { ADMIN_MESSAGES } from './messages.js';
 import type { ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
-// The prerequisites of one course in one cohort (ADR 0011, amended 9 November 2026). Three states, each chosen in
-// words, because "not recorded" (unknown, null) and "no prerequisite" (recorded, []) are different facts: an empty
-// box never records "none" by itself. The API checks the codes and refuses a cycle; this form checks neither.
 const STATES = ['not_recorded', 'none', 'list'] as const;
 
 const props = defineProps<{ open: boolean; course: CurriculumCourse | null; busy: boolean; problem: ProblemView<'prerequisites'> | null }>();
@@ -40,7 +37,6 @@ const label = (value: (typeof STATES)[number]) => ({ not_recorded: m.value.curri
 function save(): void {
   if (state.value !== 'list') return emit('save', { state: state.value });
   const codes = text.value.split(/[\s,;]+/).filter(Boolean);
-  // "Has prerequisites" with none typed says nothing to record: ask, instead of recording "none" in its place.
   needCodes.value = codes.length === 0;
   if (!needCodes.value) emit('save', { state: 'list', codes });
 }

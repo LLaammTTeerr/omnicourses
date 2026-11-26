@@ -3,21 +3,13 @@ import { readReference, type Failure } from './errors.js';
 import type { AdminText } from './messages.js';
 import type { Problem } from './write.js';
 
-// A write that is not known to be saved, in the words of the language on screen (UC-11 A3, A4, A7).
-
 export interface ProblemView<F extends string = string> {
-  /** A stable name for test scripts: the API's reason, or how a lost answer ended. */
   code: string;
-  /** `warn`: the outcome is not a refusal, the administrator has to look at the saved data. */
   tone: 'bad' | 'warn';
   text: string;
-  /** Below the text: what still uses a referenced item, or the API's messages that name no field of the form. */
   items: string[];
-  /** `items` are the API's own English messages, shown as it wrote them. */
   serverText: boolean;
-  /** The API's messages by the field they name, to show under each field. */
   fields: Partial<Record<F, string[]>>;
-  /** The saved data could not be reloaded: offer to reload it. */
   reload: boolean;
 }
 
@@ -61,7 +53,6 @@ export function fieldDescription<F extends string>(problem: ProblemView<F> | nul
   return [hint, problem?.fields[field] && `${prefix}-${field}-error`].filter(Boolean).join(' ') || undefined;
 }
 
-/** `fields`: the fields of the form the write came from; the API's validation messages are sorted by them. */
 export function describeProblem<F extends string = never>(problem: Problem, m: AdminText, fields: readonly F[] = []): ProblemView<F> {
   if (problem.outcome === 'refused') return { serverText: false, ...refusal(problem.failure, m, fields), tone: 'bad', reload: false };
   if (problem.outcome === 'not_applied') return { code: 'not_applied', tone: 'warn', text: m.problem.notApplied, items: [], serverText: false, fields: {}, reload: false };

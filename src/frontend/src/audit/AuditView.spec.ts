@@ -9,7 +9,6 @@ import AuditView from './AuditView.vue';
 import { COMBINED, course, degreeAudit, emptyAudit, group, GROUP_A, GROUP_C, GROUP_MATH } from './testing/fixtures.js';
 
 let wrapper: VueWrapper | undefined;
-/** scrollIntoView as jsdom has it (none, so far): the scroll tests put one in and must take it out again. */
 const ORIGINAL_SCROLL = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView');
 
 async function render(answer: unknown = degreeAudit(), path = '/audit', errorHandler?: (error: unknown) => void) {
@@ -96,7 +95,6 @@ describe('AuditView (F3, ADR 0013)', () => {
   });
 
   it('names a course that still blocks the group though it counts in another one', async () => {
-    // The API keeps a failed or in-progress course's own status in every group that lists it (ADR 0013).
     const groups = [
       group(GROUP_A, 'Kiến thức Computer Science (A): bắt buộc', {
         passedCredits: 4,
@@ -115,7 +113,6 @@ describe('AuditView (F3, ADR 0013)', () => {
     const elective = section(w, GROUP_C);
     expect(elective.text()).toContain('Tự chọn · Không có tối thiểu riêng · tính trong Kiến thức tự chọn · 4 TC đang học');
     expect(elective.text()).not.toMatch(/\/ 0/);
-    // The API calls it met and lists no condition for it: the screen shows no ✓ and points to the combined minimum.
     expect(elective.get('[data-test="group-state"]').text()).toBe('Xét theo tối thiểu chung');
     expect(elective.get('[data-test="missing"]').text()).toBe('Còn thiếu: xem Kiến thức tự chọn');
     expect(elective.text()).not.toContain('✓');
@@ -222,7 +219,6 @@ describe('AuditView (F3, ADR 0013)', () => {
     expect(w.findAll('[data-test="group"]')).toHaveLength(3);
     expect(section(w, GROUP_A).text()).toContain('0 / 8 TC');
     expect(rowsOf(w, GROUP_A).map((cells) => cells[3])).toEqual(['Chưa học', 'Chưa học']);
-    // (C) has nothing passed: no ✓ on it, while the combined minimum it feeds is 0 / 12 and not met.
     expect(section(w, GROUP_C).text()).not.toContain('✓');
     expect(w.find('[data-test="conditions-met"]').exists()).toBe(false);
     expect(w.find('[data-test="terms"]').exists()).toBe(false);
@@ -296,7 +292,6 @@ describe('AuditView (F3, ADR 0013)', () => {
 
     it('takes the hash as the router decoded it, so a stray % neither throws nor scrolls', async () => {
       const errors = vi.fn();
-      // The router's own scroll behaviour warns that "#group-%" is no valid selector; that is not this page's.
       vi.spyOn(console, 'warn').mockImplementation(() => {});
       const { w } = await render(degreeAudit(), '/audit#group-%25', errors);
       expect(errors).not.toHaveBeenCalled();

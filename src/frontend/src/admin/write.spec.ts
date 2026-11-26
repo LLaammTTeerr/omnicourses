@@ -118,14 +118,11 @@ describe('useWrites', () => {
     await writes.send(write, check);
     expect(writes.problem.value).toEqual({ outcome: 'unknown' });
 
-    // Still offline: still unknown.
     expect(await writes.recheck()).toEqual({ outcome: 'unknown' });
     expect(writes.problem.value).toEqual({ outcome: 'unknown' });
-    // Back online, and the saved data does not have the change: say so.
     landed = false;
     expect(await writes.recheck()).toEqual({ outcome: 'not_applied' });
     expect(writes.problem.value).toEqual({ outcome: 'not_applied' });
-    // Nothing is unknown any more, so there is nothing to check again.
     expect(await writes.recheck()).toBeNull();
     expect(check).toHaveBeenCalledTimes(3);
     expect(write).toHaveBeenCalledTimes(1);
@@ -140,7 +137,6 @@ describe('useWrites', () => {
     expect(await writes.send(again, async () => true)).toEqual({ outcome: 'unknown' });
     expect(again).not.toHaveBeenCalled();
     expect(writes.problem.value).toEqual({ outcome: 'unknown' });
-    // Once the screen has dropped the problem (and says the page may be out of date), a write goes out again.
     writes.clear();
     expect(await writes.send(again, async () => true)).toEqual({ outcome: 'saved', value: 'saved' });
   });
@@ -181,7 +177,6 @@ describe('useWrites', () => {
     await vi.waitFor(() => expect(useAdminAccess().grants).toEqual(PROGRAM_ADMIN));
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(writes.problem.value).toEqual({ outcome: 'refused', failure: { kind: 'permission', permission: 'catalog_maintainer' } });
-    // The page keeps the refusal to show, whatever the grants turn out to be.
     expect(useAdminAccess().refusal).toEqual({ permission: 'catalog_maintainer' });
   });
 

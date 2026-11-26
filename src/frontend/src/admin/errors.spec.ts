@@ -119,7 +119,6 @@ describe('readReference', () => {
     ['3 offering-term rows name it', { kind: 'count', what: 'offering_terms', count: 3 }],
     ['4 transcript rows name it', { kind: 'count', what: 'transcript_rows', count: 4 }],
     ['1 saved plans place it', { kind: 'count', what: 'plans', count: 1 }],
-    // A requirement group's delete (curriculum-admin.service.ts): a count of distinct saved plans, or no number.
     ['2 saved plans use it', { kind: 'group_plans', count: 2 }],
     ['saved plans use it', { kind: 'group_plans', count: null }],
   ])('reads "%s"', (text, reference) => {

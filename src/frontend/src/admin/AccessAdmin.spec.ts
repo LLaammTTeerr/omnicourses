@@ -11,7 +11,6 @@ import { setup } from '../testing/signed-in.js';
 import type { UserGrants } from './api.js';
 import { ACCESS_MANAGER, accessPrograms, globalGrant, grants, MANAGER_ID, OTHER_PROGRAM_ID, OTHER_USER_ID, PROGRAM_ID, programGrant } from './testing/fixtures.js';
 
-// Synthetic accounts only (AGENTS.md hard rule 3): IDs, never a name or an email.
 const OWN_ID = user().id;
 const USER = `/admin/access/users/${OTHER_USER_ID}`;
 const lost = () => {
@@ -19,7 +18,6 @@ const lost = () => {
 };
 
 let wrapper: VueWrapper | undefined;
-/** What the API has saved for the looked-up user, and for the access manager themselves. */
 let saved: UserGrants;
 let own: UserGrants;
 const reply = () => Response.json(saved);
@@ -87,7 +85,6 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(state(w, 'catalog_maintainer')).toEqual(['held', expect.stringMatching(/^Đang có · cấp lúc \d\d:\d\d 20\/11\/2026$/)]);
     expect(state(w, 'access_manager')).toEqual(['not-held', 'Chưa có']);
     expect(optionsOf(get(w, 'access-program'))).toEqual(['ZZEMPTY · Chương trình thử chưa có khóa', 'ZZPROG · Chương trình thử']);
-    // Each permission says what it allows, and that it gives no other right.
     expect(globalRow(w, 'access_manager').text()).toContain('Không tự có quyền sửa chương trình hay danh mục.');
   });
 
@@ -125,7 +122,6 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(calls(fetch, 'PUT')[0]![1]!.body).toBeUndefined();
     expect(w.findAll('[data-test="access-program-grant"]').map((row) => row.attributes('data-program'))).toEqual(['ZZEMPTY', 'ZZPROG']);
     expect(useToast().message).toBe('Đã cấp quyền “Quản trị chương trình ZZEMPTY”.');
-    // The choice is cleared, so the same program is not granted twice by accident.
     expect(get(w, 'access-program').text()).toBe('Chọn chương trình');
   });
 
@@ -151,7 +147,6 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(calls(fetch, 'DELETE').map(pathOf)).toEqual([`${USER}/programs/${PROGRAM_ID}`]);
     expect(get(w, 'access-no-programs').text()).toBe('Người dùng này chưa quản trị chương trình nào.');
     expect(useToast().message).toBe('Đã thu hồi quyền “Quản trị chương trình ZZPROG”.');
-    // The row is gone: the focus goes to the control that can grant a program again.
     expect(document.activeElement).toBe(get(w, 'access-program').element);
   });
 
@@ -173,7 +168,6 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(calls(fetch, 'PUT').map(pathOf)).toEqual([`${USER}/global/${permission}`]);
     expect(state(w, permission)[0]).toBe('held');
     expect(useToast().message).toMatch(/^Đã cấp quyền “Quản l/);
-    // Grant became Revoke: the focus stays on the control of this permission.
     expect(document.activeElement).toBe(get(w, `access-revoke-${permission}`).element);
 
     await click(w, `access-revoke-${permission}`);
@@ -279,7 +273,6 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     });
     await find(w, OTHER_USER_ID);
     await click(w, 'access-grant-catalog_maintainer');
-    // The grant for the first user is out. Another ID is typed and sent from the keyboard.
     expect(get(w, 'access-find').attributes('disabled')).toBeDefined();
     await find(w, third);
     expect(calls(fetch, 'GET').map(pathOf)).not.toContain(`/admin/access/users/${third}/grants`);
@@ -289,7 +282,6 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     await flushPromises();
     expect(get(w, 'access-shown-id').text()).toBe(OTHER_USER_ID);
     expect(state(w, 'catalog_maintainer')[0]).toBe('held');
-    // Now the other user can be looked up, and their panel is their own.
     expect(get(w, 'access-find').attributes('disabled')).toBeUndefined();
     await find(w, third);
     expect(get(w, 'access-shown-id').text()).toBe(third);
@@ -316,12 +308,10 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
     await flushPromises();
     await find(wrapper, capitals);
-    // The API answers the ID as it was typed; it is the same account.
     expect(get(wrapper, 'access-own').text()).toBe('Tài khoản của bạn');
     await click(wrapper, 'access-revoke-access_manager');
     expect(wrapper.get('dialog[open]').text()).toContain('Đây là tài khoản của bạn: bạn sẽ mất quyền này ngay.');
     await click(wrapper.get('dialog[open]'), 'confirm-no');
-    // A grant to themselves shows in the sections at once.
     await click(wrapper, 'access-grant-catalog_maintainer');
     expect(wrapper.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Danh mục học phần', 'Nhập CSV', 'Phân quyền']);
     expect(fetch).toHaveBeenCalled();
@@ -415,7 +405,6 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
       expect(note.text()).toContain('Chưa rõ thay đổi đã được lưu hay chưa.');
       expect(state(w, 'catalog_maintainer')[0]).toBe('not-held');
       expect(useToast().message).toBe('');
-      // Reload reads the grants again and settles the same grant from them; it is not sent again.
       offline = false;
       await click(note, 'admin-reload');
       expect(state(w, 'catalog_maintainer')[0]).toBe('held');
@@ -506,7 +495,6 @@ describe('AccessAdmin (UC-11 A2): an access manager adds a program', () => {
     await click(w, 'program-add');
     const dialog = w.get('dialog[open]');
     expect(dialog.get('h2').text()).toBe('Chương trình mới');
-    // No box for the training type: the API takes none.
     expect(dialog.findAll('input').map((field) => field.attributes('id'))).toEqual(['program-code', 'program-nameVi', 'program-nameEn', 'program-faculty']);
     await get(dialog, 'dialog-cancel').trigger('click');
     await flushPromises();

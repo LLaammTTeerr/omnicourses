@@ -64,7 +64,6 @@ describe('problems (UC-02 A2)', () => {
     [{ courseCode: 'Z' }, ['courseCode']],
     [{ courseName: '   ' }, ['courseName']],
     [{ courseName: 'x'.repeat(256) }, ['courseName']],
-    // Counted in characters, as the API counts them (#179): 256 emoji are too many, 255 are not.
     [{ courseName: '😀'.repeat(256) }, ['courseName']],    [{ credits: '31' }, ['credits']],
     [{ result: '' as const }, ['result']],
     [{ grade: '' }, ['grade']],
@@ -120,7 +119,6 @@ describe('blankRow', () => {
   });
 });
 
-// A browser outside Vietnam: the year still follows Vietnam time, as the API's term calendar does.
 describe('blankRow and yearChoices in a browser outside Vietnam', () => {
   const zone = process.env.TZ;
   beforeAll(() => {
@@ -132,16 +130,14 @@ describe('blankRow and yearChoices in a browser outside Vietnam', () => {
   });
 
   it('starts the new academic year when September has begun in Vietnam, even if not yet where the browser is', () => {
-    // 1 September 2026, 00:30 in Vietnam; still 31 August in Los Angeles.
-    const today = new Date('2026-08-31T17:30:00Z');
+    const today = new Date('2026-09-01T00:30:00+07:00');
     expect(today.getTimezoneOffset()).not.toBe(-420);
     expect(today.getMonth()).toBe(7);
     expect(blankRow(0, [], today).year).toBe(2026);
   });
 
   it('offers next year when the new year has begun in Vietnam, even if not yet where the browser is', () => {
-    // 1 January 2027, 00:30 in Vietnam; still 31 December 2026 in Los Angeles.
-    const today = new Date('2026-12-31T17:30:00Z');
+    const today = new Date('2027-01-01T00:30:00+07:00');
     expect(today.getFullYear()).toBe(2026);
     expect(yearChoices([], today).at(-1)).toBe(2028);
   });

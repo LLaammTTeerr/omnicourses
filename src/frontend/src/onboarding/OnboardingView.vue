@@ -14,10 +14,6 @@ import { creditsProblem, resumeStep, useAnswerForm, type AnswerField } from './a
 import GoalFields from './GoalFields.vue';
 import { ONBOARDING_MESSAGES } from './messages.js';
 
-// Onboarding (UC-01 steps 6–9, UI prototypes: onboarding.html): program, cohort, then the default planning goal.
-// Every step saves the whole object with finished false, so a student who leaves resumes at the first unanswered
-// step (A8); Finish saves it with finished true. The program list comes from the curriculum API, and only the
-// programs and cohorts the release offers can be picked (A7).
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
@@ -33,7 +29,6 @@ const notOffered = computed(() => choices.value.filter((choice) => !choice.offer
 
 function pickProgram(code: string): void {
   program.value = code;
-  // A cohort belongs to its program.
   if (cohort.value !== null && !cohorts.value.includes(cohort.value)) cohort.value = null;
   missing.value = null;
 }
@@ -52,7 +47,6 @@ async function onNext(): Promise<void> {
   if (step.value === 1 && cohort.value === null) return void (missing.value = 'cohort');
   missing.value = null;
   if (step.value === 0) return show(1);
-  // The API takes a program only together with its cohort, so saving starts after the cohort.
   if (step.value === 3 && creditsProblem(goal.credits)) return;
   const last = step.value === STEPS - 1;
   if (!(await save(last))) return showRejected();
@@ -61,7 +55,6 @@ async function onNext(): Promise<void> {
   await router.replace(afterSignIn(route.query.redirect));
 }
 
-// The step that asks each answer: a refused answer is shown where the student can change it.
 const STEP_OF: Record<AnswerField, number> = { program: 0, cohort: 1, finished: 0, targetGraduationTerm: 2, creditsPerTerm: 3, internshipTerm: 3 };
 function showRejected(): Promise<void> | void {
   const steps = (Object.keys(apiErrors.value) as AnswerField[]).map((field) => STEP_OF[field]);
@@ -76,7 +69,6 @@ usePageTitle(() => m.value.title);
 
 <template>
   <div class="wizard">
-    <!-- A div, not a main: the main of App.vue holds every page, and a page has one main landmark. -->
     <div class="wizard-top">
       <BrandLink :to="{ name: 'home' }" />
       <ol class="dots" :aria-label="m.steps">
@@ -122,7 +114,6 @@ usePageTitle(() => m.value.title);
             <small>{{ choice.code }}</small>
           </button>
         </div>
-        <!-- A7: the other programs are named, so a student who does not see theirs knows why. -->
         <details v-if="notOffered.length" class="not-offered" data-test="not-offered">
           <summary>{{ m.otherPrograms(notOffered.length) }}</summary>
           <ul>
@@ -200,7 +191,6 @@ usePageTitle(() => m.value.title);
 }
 .opt:hover:not([disabled]) { border-color: var(--edge-strong); }
 .opt[aria-pressed='true'] { background: var(--hi); border-color: var(--info); box-shadow: 0 0 0 1px var(--info); }
-/* The tick says "chosen" as well as the colour. */
 .opt[aria-pressed='true']::after {
   content: '✓'; position: absolute; top: 12px; right: 14px; width: 22px; height: 22px; border-radius: 50%;
   background: var(--info); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px;

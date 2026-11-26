@@ -10,9 +10,6 @@ import { ADMIN_MESSAGES } from './messages.js';
 import type { ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
-// The offering terms of one course in one cohort (ADR 0011, amended 9 November 2026): term numbers 1 to 3. The
-// form opens on what is recorded, so a course with nothing recorded opens with nothing ticked, and saving it
-// unticked records nothing. An offering list is never empty: no term ticked means "not recorded" again.
 const props = defineProps<{ open: boolean; course: CurriculumCourse | null; busy: boolean; problem: ProblemView<'terms'> | null }>();
 const emit = defineEmits<{ close: []; save: [terms: number[]]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);

@@ -79,14 +79,12 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     expect(all.w.get('[data-test="admin-tab-access"]').attributes('aria-current')).toBe('page');
     all.w.unmount();
 
-    // An access manager gets no curriculum or catalog section with it (ADR 0011).
     const manager = await render('/admin', { 'GET /admin/grants': ACCESS_MANAGER, 'GET /admin/access/programs': { programs: [] } });
     expect(manager.w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Phân quyền']);
     expect(router.currentRoute.value.name).toBe('admin-access');
     await router.push('/admin/catalog');
     await flushPromises();
     expect(manager.w.get('[data-test="admin-section-denied"]').text()).toBe('Mục này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó.');
-    // The import opens with either of the two permissions whose files it takes, and names both when neither is held.
     await router.push('/admin/import');
     await flushPromises();
     expect(manager.w.get('[data-test="admin-section-denied"]').attributes('data-permission')).toBe('catalog_maintainer program_admin');
@@ -128,7 +126,6 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     let answer!: (response: Response) => void;
     const fetch = mockApi({ 'GET /admin/grants': () => new Promise<Response>((resolve) => (answer = resolve)) });
     const app = await setup('/admin');
-    // An answer from an earlier visit: the grant has been revoked since.
     useAdminAccess().seed(PROGRAM_ADMIN.userId, PROGRAM_ADMIN);
     wrapper = mount(RouterView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
     await flushPromises();

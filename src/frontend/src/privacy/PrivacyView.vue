@@ -5,7 +5,6 @@ import { formatDate, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import { PRIVACY_MESSAGES, PRIVACY_UPDATED_ON } from './messages.js';
 
-// The privacy notice (UC-01 step 2, TC-B1-USER-01p): public, linked beside the consent box on sign-up.
 const locale = useLocale();
 const m = useMessages(PRIVACY_MESSAGES);
 const s = useMessages(SETTINGS_MESSAGES);
@@ -63,7 +62,6 @@ usePageTitle(() => m.value.title);
 </template>
 
 <style scoped>
-/* One readable column, like a guide's text: short lines, plain sections. */
 .privacy {
   max-width: 72ch;
   margin: 0 auto;

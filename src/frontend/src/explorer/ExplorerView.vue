@@ -16,17 +16,10 @@ import { useTranscriptCodes } from '../transcript/codes.js';
 import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
 
-// The curriculum explorer (F4, UI prototypes: explorer.html without the prerequisite graph): the requirement groups
-// of one program and cohort, their courses, a search that ignores diacritics, and a drawer per course. The API
-// records no offering term yet, and no course that needs another, so nothing here says a course is open, locked or
-// available; and whether a course is passed is the degree audit's call (AGENTS.md hard rule 1), so the student's
-// own transcript only adds a neutral "in your transcript" mark.
 const onboarding = useOnboarding();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
 
-// The student's program and cohort by default (UC-01), then whatever they pick. Only offered ones are listed: the
-// other curricula are seeded but not verified (B1 §6 item 1).
 const programs = useAsyncLoad('the programs', () => fetchPrograms());
 const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
 const picked = ref<{ program: string; cohort: number } | null>(null);
@@ -54,7 +47,6 @@ const curriculum = useAsyncLoad(
   () => (selection.value ? `${selection.value.program}-${selection.value.cohort}` : null),
 );
 
-// The codes in the student's saved transcript. Only a mark: no transcript, or none loaded, shows no marks.
 const transcriptCodes = useTranscriptCodes('the explorer');
 
 const query = ref('');
@@ -76,9 +68,6 @@ function openCourse(course: CurriculumCourse, group: RequirementGroup, colour: G
   open.value = { course, group: { id: colour, name: group.name } };
 }
 
-// `?course=CODE` (the planner's "Taken" tags): the course is brought into view, focused, and glows once. A search or
-// a group filter that hides it is cleared first.
-// Once per link: a later program or cohort switch must not clear the student's own search again.
 const route = useRoute();
 let shownCourse: string | null = null;
 watch(

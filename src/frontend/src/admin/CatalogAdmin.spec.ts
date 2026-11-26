@@ -10,7 +10,6 @@ import type { UserGrants } from './api.js';
 import { useAdminAccess } from './store.js';
 import { AFFECTED_2024, AFFECTED_2025, CATALOG_MAINTAINER, catalogCourse, NO_GRANTS, SHARED_COURSE } from './testing/fixtures.js';
 
-// Synthetic courses only (AGENTS.md hard rule 3).
 const NOT_FOUND = status(404, { statusCode: 404, message: 'No course has this code', error: 'Not Found' });
 const lost = () => {
   throw new TypeError('Failed to fetch');
@@ -19,9 +18,7 @@ const impact = (code: 'impact_confirmation_required' | 'impact_changed', affecte
   Response.json({ statusCode: 409, code, message: 'x', affectedCurricula, reviewVersion }, { status: 409 });
 
 let wrapper: VueWrapper | undefined;
-/** What the catalog has saved, by code: the read route answers from it. */
 let saved: Record<string, CourseDetail>;
-/** The grants the API answers for the signed-in maintainer; a test changes them as a revocation would. */
 let own: UserGrants;
 const read = (code: string) => [`GET /courses/${code}`, () => (saved[code] ? Response.json(saved[code]) : NOT_FOUND())] as const;
 
@@ -82,7 +79,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(w.get('#catalog-admin-title').text()).toBe('Danh mục học phần dùng chung');
     expect(get(w, 'catalog-find').attributes('disabled')).toBeDefined();
     await find(w, ' zz101 ');
-    // The API has no route that lists the catalog: one read, by code.
     expect(fetch.mock.calls.map(pathOf)).toEqual(['/admin/grants', '/courses/ZZ101']);
     const course = get(w, 'catalog-course');
     expect(course.attributes('data-course')).toBe('ZZ101');
@@ -121,7 +117,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     await get(dialog, 'course-credits').setValue('3');
     await get(dialog, 'course-theoryPeriods').setValue('30');
     await submit(w);
-    // Text as typed (the API trims it and writes the code in capitals), numbers as numbers, an empty period box left out.
     expect(sentBody(calls(fetch, 'POST')[0]![1])).toEqual({ code: ' zz300 ', nameVi: ' Môn thử mới ', nameEn: null, credits: 3, theoryPeriods: 30 });
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(useToast().message).toBe('Đã thêm học phần ZZ300 vào danh mục.');
@@ -155,7 +150,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(get(dialog, 'course-credits').attributes('aria-invalid')).toBe('true');
     expect(get(dialog, 'course-credits').attributes('aria-describedby')).toBe('course-credits-error');
     expect(get(dialog, 'course-labPeriods').attributes('aria-describedby')).toBe('course-periods-hint course-labPeriods-error');
-    // What was typed is still there to correct.
     expect(value(dialog, 'course-credits')).toBe('ba');
   });
 
@@ -184,7 +178,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     const dialog = await open(w, 'catalog-edit');
     expect(dialog.get('h2').text()).toBe('Sửa học phần ZZ200');
     expect(has(w, 'shared-warning')).toBe(false);
-    // The code is shown and cannot be changed (ADR 0011).
     expect(get(dialog, 'course-code').attributes('readonly')).toBeDefined();
     expect([value(dialog, 'course-nameVi'), value(dialog, 'course-credits'), value(dialog, 'course-exercisePeriods'), value(dialog, 'course-projectPeriods')]).toEqual(['Học phần thử ZZ200', '4', '', '0']);
     await get(dialog, 'course-credits').setValue('3');
@@ -220,7 +213,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(writes(fetch)).toEqual([]);
     expect(get(w, 'catalog-credits').text()).toBe('Tín chỉ4');
-    // The draft is gone.
     expect(value(await open(w, 'catalog-edit'), 'course-credits')).toBe('4');
   });
 
@@ -251,7 +243,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       await press(w, 'dialog-cancel');
 
       dialog = await startEdit(w);
-      // The first request carries no confirmation; the API answers with the review and saves nothing.
       expect(sentBody(calls(fetch, 'PATCH')[0]![1])).toEqual({ nameVi: 'Học phần thử ZZ101 (sửa)', credits: 3 });
       const review = get(dialog, 'impact-review');
       expect(dialog.get('h2').text()).toBe('Xem lại ảnh hưởng trước khi lưu');
@@ -267,7 +258,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       expect(useToast().message).toBe('');
 
       await press(w, 'impact-confirm');
-      // The same change again, with the version of exactly this review.
       expect(sentBody(calls(fetch, 'PATCH')[1]![1])).toEqual({ nameVi: 'Học phần thử ZZ101 (sửa)', credits: 3, confirmImpact: 'zz-review-1' });
       expect(w.find('dialog[open]').exists()).toBe(false);
       expect(useToast().message).toBe('Đã lưu học phần ZZ101.');
@@ -275,13 +265,12 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       expect(get(w, 'catalog-name').text()).toBe('Học phần thử ZZ101 (sửa)');
     });
 
-    it('shows the new list and asks again when the impact changed during the review (409 impact_changed)', async () => {
+    it('shows the new list and asks again when, during the review, the 2025 cohort unlinked the course and someone corrected its English name (409 impact_changed)', async () => {
       const { w, fetch } = await render({
         [PATCH]: (init: RequestInit) => {
           const body = sentBody(init) as Record<string, unknown>;
           if (body.confirmImpact === undefined) return impact('impact_confirmation_required', [AFFECTED_2024, AFFECTED_2025], 'zz-review-1');
           if (body.confirmImpact === 'zz-review-1') {
-            // Meanwhile the 2025 cohort unlinked the course, and someone corrected its English name.
             saved.ZZ101 = { ...SHARED_COURSE, nameEn: 'Test course ZZ101 (new)', memberships: [SHARED_COURSE.memberships[0]!] };
             return impact('impact_changed', [AFFECTED_2024], 'zz-review-2');
           }
@@ -299,7 +288,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       expect(get(dialog, 'impact-changed').attributes('role')).toBe('alert');
       expect(get(dialog, 'impact-count').text()).toBe('1 chương trình đào tạo bị ảnh hưởng');
       expect(dialog.findAll('[data-test="impact-curriculum"]').map((li) => li.attributes('data-curriculum'))).toEqual(['ZZPROG2024']);
-      // The current values were read again for the comparison, and nothing is saved.
       expect(calls(fetch, 'GET').length).toBe(reads + 1);
       expect(get(w, 'catalog-name-en').text()).toBe('Test course ZZ101 (new)');
       expect(get(w, 'catalog-credits').text()).toBe('Tín chỉ4');
@@ -307,7 +295,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
 
       await press(w, 'impact-confirm');
       expect(calls(fetch, 'PATCH').map(([, init]) => (sentBody(init) as Record<string, unknown>).confirmImpact)).toEqual([undefined, 'zz-review-1', 'zz-review-2']);
-      // Each request proposes the same values.
       expect(calls(fetch, 'PATCH').map(([, init]) => ({ ...(sentBody(init) as object), confirmImpact: undefined }))).toEqual(Array(3).fill({ nameVi: 'Học phần thử ZZ101 (sửa)', credits: 3 }));
       expect(w.find('dialog[open]').exists()).toBe(false);
       expect(get(w, 'catalog-credits').text()).toBe('Tín chỉ3');
@@ -316,7 +303,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     it('moves the focus to the review when it opens, and back into the form on "Back", so it is announced', async () => {
       const { w } = await render({ [PATCH]: () => impact('impact_confirmation_required', [AFFECTED_2024, AFFECTED_2025], 'zz-review-1') });
       const dialog = await startEdit(w);
-      // The form, with the Save button that had the focus, was replaced by the review: its title takes the focus.
       expect(document.activeElement).toBe(dialog.get('#course-dialog-title').element);
       expect(dialog.get('#course-dialog-title').attributes('tabindex')).toBe('-1');
       expect(document.activeElement?.textContent).toBe('Xem lại ảnh hưởng trước khi lưu');
@@ -330,7 +316,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
           const body = sentBody(init) as Record<string, unknown>;
           if (body.confirmImpact === undefined) return impact('impact_confirmation_required', [AFFECTED_2024, AFFECTED_2025], 'zz-review-' + calls(fetch, 'PATCH').length);
           if (body.confirmImpact === 'zz-review-1') {
-            // Another maintainer corrected the English name and the lab periods meanwhile.
             saved.ZZ101 = { ...SHARED_COURSE, nameEn: 'Test course ZZ101 (new)', labPeriods: 15 };
             return impact('impact_changed', [AFFECTED_2024, AFFECTED_2025], 'zz-review-changed');
           }
@@ -342,12 +327,10 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       await press(w, 'impact-confirm');
       expect(dialog.find('[data-test="impact-changed"]').exists()).toBe(true);
       await press(w, 'impact-back');
-      // The boxes the maintainer did not touch show the course as it is now; the ones they changed keep their text.
       expect([value(dialog, 'course-nameEn'), value(dialog, 'course-labPeriods')]).toEqual(['Test course ZZ101 (new)', '15']);
       expect([value(dialog, 'course-nameVi'), value(dialog, 'course-credits')]).toEqual(['Học phần thử ZZ101 (sửa)', '3']);
       expect(get(dialog, 'course-rebased').text()).toBe('Học phần này đã được sửa ở nơi khác trong lúc bạn xem lại. Các ô bạn chưa sửa đã được cập nhật theo giá trị hiện tại.');
       await submit(w);
-      // The new proposal holds only this maintainer's change: it does not put the old English name back.
       expect(sentBody(calls(fetch, 'PATCH').at(-1)![1])).toEqual({ nameVi: 'Học phần thử ZZ101 (sửa)', credits: 3 });
     });
 
@@ -444,7 +427,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
         return lost();
       },
     });
-    // Another course is on screen when the maintainer starts the new one.
     await find(w, 'ZZ200');
     const dialog = await open(w, 'catalog-add');
     await get(dialog, 'course-code').setValue('ZZ300');
@@ -460,14 +442,12 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(problem(w).text()).toContain('Chưa rõ thay đổi đã được lưu hay chưa.');
     expect(useToast().message).toBe('');
 
-    // Reload reads the course of this write again, not the course looked up before, and sends no second write.
     offline = false;
     await press(w, 'admin-reload');
     expect(calls(fetch, 'GET').map(pathOf).at(-1)).toBe('/courses/ZZ300');
     expect(problem(w).attributes('data-code')).toBe('not_applied');
     expect(calls(fetch, 'POST')).toHaveLength(2);
 
-    // The same, when the catalog turns out to have the course: the dialog closes on the course that was created.
     offline = true;
     await submit(w);
     expect(problem(w).attributes('data-code')).toBe('unknown');
@@ -481,7 +461,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     expect(calls(fetch, 'POST')).toHaveLength(3);
     expect(useToast().message).toBe('');
 
-    // A deletion that went through, though its answer was lost: the catalog, read again, no longer has the course.
     await find(w, 'ZZ200');
     await open(w, 'catalog-delete');
     await press(w, 'confirm-yes');
@@ -597,7 +576,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       'PATCH /admin/catalog/courses/ZZ200': () => {
         patches++;
         if (patches === 1) {
-          // Deleted elsewhere while the answer was lost: the reload finds no course.
           delete saved.ZZ200;
           throw new TypeError('Failed to fetch');
         }
@@ -610,7 +588,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
     await get(dialog, 'course-nameVi').setValue('Tên thử mới');
     await submit(w);
     expect(problem(w).attributes('data-code')).toBe('not_applied');
-    // The dialog is still about ZZ200, and Save still does something.
     expect(w.get('dialog[open] h2').text()).toBe('Sửa học phần ZZ200');
     await submit(w);
     expect(calls(fetch, 'PATCH')).toHaveLength(2);
@@ -628,7 +605,6 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       expect(value(dialog, 'course-code')).toBe('');
       await press(w, 'dialog-cancel');
     }
-    // A code in the format still gets the offer.
     await find(w, 'zz999');
     expect(get(w, 'catalog-not-found').text()).toContain('Bấm “Thêm học phần”');
   });

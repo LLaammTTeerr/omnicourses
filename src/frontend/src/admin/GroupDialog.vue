@@ -9,9 +9,6 @@ import { ADMIN_MESSAGES } from './messages.js';
 import { fieldDescription, fieldInvalid, type ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
-// A requirement group's name, kind and notes, to create one or edit one (ADR 0011). The form checks nothing: it
-// hands over what was typed, and the API's refusals show under the fields they name. Credit totals are shown only,
-// since the API does not take them yet. Cancel discards the draft and sends nothing (UC-11 A6).
 const props = defineProps<{ open: boolean; group: RequirementGroup | null; busy: boolean; problem: ProblemView<(typeof GROUP_FIELDS)[number]> | null }>();
 const emit = defineEmits<{ close: []; save: [values: GroupValues]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);

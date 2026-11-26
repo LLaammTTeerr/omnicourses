@@ -9,7 +9,6 @@ import { setup } from '../testing/signed-in.js';
 import type { CatalogImportPreview, GroupLinkImportPreview, UserGrants } from './api.js';
 import { AFFECTED_2024, AFFECTED_2025, adminPrograms, CATALOG_MAINTAINER, CURRICULUM_2025_ID, CURRICULUM_ID, EVERY_GRANT, GROUP_BASE_ID, PROGRAM_ADMIN, PROGRAM_ID } from './testing/fixtures.js';
 
-// Synthetic files only (AGENTS.md hard rule 3): made-up codes and names.
 const CATALOG = '/admin/catalog/imports';
 const LINKS = (curriculumId: string) => `/admin/programs/${PROGRAM_ID}/cohorts/${curriculumId}/imports`;
 const CATALOG_CSV = 'code,name_vi,name_en,credits,theory_periods,lab_periods,exercise_periods,project_periods\r\nZZ300,Học phần thử ZZ300,,4,45,30,,\r\nzz101,Học phần thử ZZ101,Test course ZZ101,3,45,30,,0\r\n';
@@ -39,7 +38,6 @@ const catalogPreview = (overrides: Partial<CatalogImportPreview> = {}): CatalogI
   affectedCurricula: [AFFECTED_2024, AFFECTED_2025],
   ...overrides,
 });
-/** The same file once it is saved: every row is a no-op. */
 const appliedPreview = () =>
   catalogPreview({ summary: { inserts: 0, updates: 0, noOps: 2 }, reviewVersion: 'zz-review-9', rows: catalogPreview().rows.map((row) => ({ ...row, action: 'no_op', changedFields: [], current: null, affectedCurricula: [] })), affectedCurricula: [] });
 const linkPreview = (): GroupLinkImportPreview => ({
@@ -133,7 +131,6 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
       ['2', 'insert'],
       ['3', 'update'],
     ]);
-    // In words, not by colour.
     expect(rows.map((row) => row.findAll('td')[0]!.text())).toEqual(['Thêm mới', 'Cập nhật']);
     expect(rows[1]!.findAll('.import-changes li').map((li) => li.text())).toEqual(['Tín chỉ: 4 → 3', 'Tiết bài tập (BT): Để trống → 0']);
     expect(w.findAll('[data-test="import-affected-curriculum"]').map((li) => li.text())).toEqual(['ZZPROG · Khóa 2024 (ZZPROG2024)', 'ZZPROG · Khóa 2025 (ZZPROG2025)']);
@@ -343,7 +340,6 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
     await chooseOption(get(w, 'import-cohort'), 'Khóa 2025');
     await flushPromises();
     expect(has(w, 'import-result')).toBe(false);
-    // The file read stays: it can be previewed for the cohort chosen now.
     expect(has(w, 'import-file-read')).toBe(true);
     await get(w, 'import-type-catalog_courses').setValue(true);
     await flushPromises();

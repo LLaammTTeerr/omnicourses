@@ -3,11 +3,6 @@ import { COURSE_CODE_PATTERN } from '../course-code.js';
 import { currentTerm, vietnamDate } from '../terms.js';
 import { TERM_NUMBERS, TRANSCRIPT_RESULTS, type Term, type TranscriptResult, type TranscriptRow } from './api.js';
 
-// A row of the review table (UC-02 step 5) as the student edits it, and the checks TranscriptRowDto makes, so the
-// table can block the save before the API refuses it (UC-02 A2). These are bounds on input, not academic rules:
-// what a result is worth is the rule engine's call (ADR 0007, AGENTS.md hard rule 1).
-
-// TranscriptDto and TermDto; api.spec.ts checks each against the contract.
 export const MAX_ROWS = 300;
 export const MAX_CREDITS = 30;
 export const MAX_NAME_LENGTH = 255;
@@ -15,26 +10,20 @@ export const MIN_YEAR = 2000;
 export const MAX_YEAR = 2100;
 
 export interface DraftRow {
-  /** Stable across edits, for the table's keys and labels. */
   key: number;
   year: number;
   number: Term['number'];
   courseCode: string;
   courseName: string;
-  /** As typed. */
   credits: string;
-  /** Empty until the student picks one. */
   result: TranscriptResult | '';
-  /** As typed, with a dot or a comma. Ignored unless the result is `graded`. */
   grade: string;
 }
 
 export type Problem = 'term' | 'courseCode' | 'courseName' | 'credits' | 'result' | 'grade';
 
-/** How the API stores a code: trimmed and upper-cased. */
 export const normalizeCode = (code: string): string => code.trim().toUpperCase();
 
-/** The credits as a whole number from 0 to 30, or null. */
 export function parseCredits(text: string): number | null {
   const trimmed = text.trim();
   if (!/^\d{1,2}$/.test(trimmed)) return null;
@@ -42,7 +31,6 @@ export function parseCredits(text: string): number | null {
   return credits <= MAX_CREDITS ? credits : null;
 }
 
-/** A grade from 0 to 10 with at most one decimal, written 8.5 or 8,5; otherwise null. */
 export function parseGrade(text: string): number | null {
   const trimmed = text.trim();
   if (!/^\d{1,2}(?:[.,]\d)?$/.test(trimmed)) return null;
@@ -50,7 +38,6 @@ export function parseGrade(text: string): number | null {
   return grade <= 10 ? grade : null;
 }
 
-/** What keeps the row from being saved, in table order. Empty: the row can be saved. */
 export function problems(row: DraftRow): Problem[] {
   const found: Problem[] = [];
   if (!Number.isInteger(row.year) || row.year < MIN_YEAR || row.year > MAX_YEAR || !TERM_NUMBERS.includes(row.number)) found.push('term');
@@ -63,7 +50,6 @@ export function problems(row: DraftRow): Problem[] {
   return found;
 }
 
-/** The row as the API takes it. Call only on a row with no problems. */
 export function toRow(row: DraftRow): TranscriptRow {
   const result = row.result as TranscriptResult;
   return {
@@ -89,16 +75,13 @@ export function fromRow(row: TranscriptRow, key: number): DraftRow {
   };
 }
 
-/** A new row in the term of the last row, or else the academic year `today` falls in, in Vietnam time (it starts in September). */
 export function blankRow(key: number, rows: readonly DraftRow[], today = new Date()): DraftRow {
   const last = rows.at(-1);
   const year = last?.year ?? currentTerm(vietnamDate(today)).year;
   return { key, year, number: last?.number ?? 1, courseCode: '', courseName: '', credits: '', result: '', grade: '' };
 }
 
-/** The academic years the term picker offers: ten years back to next year, plus any year a row already has. */
 export function yearChoices(rows: readonly DraftRow[], today = new Date()): number[] {
-  // The year in Vietnam, as the API's term calendar counts it, not in the browser's time zone.
   const now = Number(vietnamDate(today).slice(0, 4));
   const years = new Set<number>();
   for (let year = now - 10; year <= now + 1; year++) years.add(year);

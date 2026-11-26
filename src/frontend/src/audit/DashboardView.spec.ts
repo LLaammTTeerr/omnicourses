@@ -60,7 +60,6 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(math!.text()).toContain('✓ Đã đạt');
     expect(elective!.text()).toContain('Không có tối thiểu riêng · tính trong Kiến thức tự chọn');
     expect(elective!.text()).not.toMatch(/\/ 0/);
-    // The API calls it met but lists no condition for it: no ✓, its rule is the combined minimum.
     expect(elective!.text()).not.toContain('✓');
     expect(elective!.text()).not.toContain('Chưa đạt');
     expect(elective!.find('.meter').exists()).toBe(false);
@@ -95,7 +94,6 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(w.get('[data-test="link-audit"]').attributes('href')).toBe('/audit');
     expect(w.get('[data-test="link-transcript"]').attributes('href')).toBe('/transcript');
     expect(w.get('[data-test="link-explorer"]').attributes('href')).toBe('/explorer');
-    // The app's own router: the plans route of #80, not one the test adds.
     expect(w.get('[data-test="link-planner"]').attributes('href')).toBe('/plans');
   });
 

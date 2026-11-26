@@ -27,7 +27,6 @@ describe('privacy notice in a real browser (A11Y-01c)', () => {
   ])('never scrolls sideways at %i px in the %s theme', async (width, theme) => {
     await page.viewport(width, 800);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
-    // The public header checks the API's health; the notice itself calls nothing.
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json(HEALTHY));
     const router = createAppRouter(createMemoryHistory());
     await router.push('/privacy');

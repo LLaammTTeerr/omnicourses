@@ -10,9 +10,6 @@ import { ADMIN_MESSAGES } from './messages.js';
 import { fieldDescription, fieldInvalid, type ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 
-// A cohort of one program (UC-11 A1, "Thêm khóa" in admin.html), to add one or to edit one. A new cohort is a new,
-// empty curriculum: no group is copied, and no other cohort changes. The year and the code cannot change once
-// created, and there is no box for the credit total: the API accepts none (ADR 0011). The form checks nothing.
 const props = defineProps<{ open: boolean; programCode: string; cohort: CohortDetails | null; busy: boolean; problem: ProblemView<CohortField> | null }>();
 const emit = defineEmits<{ close: []; save: [values: CohortValues]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);

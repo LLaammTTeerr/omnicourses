@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { IMPORT_MAX_BYTES } from './api.js';
 import { countDataRecords, headerLine, overLimit, readCsvFile, templateHref, templateName, utf8Bytes } from './csv-file.js';
 
-// Synthetic files only (AGENTS.md hard rule 3).
+const MON_IN_WINDOWS_1258 = new Uint8Array([0x4d, 0xf4, 0x6e]);
 
 describe('reading an import file in the browser (UC-11 A9)', () => {
   it('decodes UTF-8 and drops a BOM, as the API does', async () => {
@@ -11,15 +11,13 @@ describe('reading an import file in the browser (UC-11 A9)', () => {
   });
 
   it('refuses bytes that are not UTF-8, instead of turning them into replacement characters', async () => {
-    // "Môn" in Windows-1258: 0xF4 alone is not UTF-8.
-    expect(await readCsvFile(new Blob([new Uint8Array([0x4d, 0xf4, 0x6e])]))).toEqual({ ok: false, reason: 'not_utf8' });
+    expect(await readCsvFile(new Blob([MON_IN_WINDOWS_1258]))).toEqual({ ok: false, reason: 'not_utf8' });
   });
 
   it('counts the data records, not the lines: a quoted field may hold a line break, and an empty record is not one', () => {
     expect(countDataRecords('code,name\n')).toBe(0);
     expect(countDataRecords('code,name\nZZ101,a\nZZ102,b')).toBe(2);
     expect(countDataRecords('code,name\r\nZZ101,"two\r\nlines"\r\n,\r\n\r\nZZ102,"say ""hi"""\r\n')).toBe(2);
-    // Only quotes, but a field with something in it.
     expect(countDataRecords('a,b\n"",""\n" ",x\n')).toBe(1);
   });
 
@@ -31,7 +29,6 @@ describe('reading an import file in the browser (UC-11 A9)', () => {
     const header = 'requirement_group_name,course_code\n';
     expect(overLimit(header + 'Nhóm thử,ZZ101\n'.repeat(1000))).toBeNull();
     expect(overLimit(header + 'Nhóm thử,ZZ101\n'.repeat(1001))).toEqual({ limit: 'records', records: 1001 });
-    // 1,000 records of multi-line fields: more than 1,000 lines, and still allowed.
     expect(overLimit(header + '"Nhóm\nthử",ZZ101\n'.repeat(1000))).toBeNull();
     const big = 'a'.repeat(IMPORT_MAX_BYTES);
     expect(overLimit(big)).toBeNull();
