@@ -9168,6 +9168,33 @@
             "type": "number",
             "description": "CreditSummary.towardTotal as it stood at the end of this term"
           },
+          "cumulativeYearLevel": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "description": "CreditSummary.yearLevel as it stood at the end of this term (Điều 15.3)"
+          },
+          "cumulativeClassification": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "excellent",
+              "very_good",
+              "good",
+              "fairly_good",
+              "average",
+              "weak",
+              "poor",
+              null
+            ],
+            "description": "Điều 15.2.b, from cumulativeAccumulatedAverage: the classification as it stood at the end of this term. A term is never classified by its own average (Project Lead, 27 November 2026)"
+          },
           "failedCourseCodes": {
             "type": "array",
             "items": {
@@ -9215,6 +9242,8 @@
           "cumulativeAccumulatedAverageChange",
           "cumulativeAccumulatedCredits",
           "cumulativeTowardTotal",
+          "cumulativeYearLevel",
+          "cumulativeClassification",
           "failedCourseCodes",
           "inProgressCourseCodes",
           "caps",
