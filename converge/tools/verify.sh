@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # usage: verify.sh <worktree> <dbname> [steps...]
 # steps: typecheck lint unit-be unit-fe build e2e openapi contract browser   (default: all)
-# One full run at a time on this machine (flock), so timing-sensitive tests are not starved.
+# One full run at a time on this machine (flock), at low priority and with a capped number of test workers,
+# so timing-sensitive tests are not starved and other jobs on the machine are not disturbed.
 set -u
 WT="$(cd "$1" && pwd)"; DB="$2"; shift 2
 STEPS=("$@"); [ ${#STEPS[@]} -eq 0 ] && STEPS=(typecheck lint unit-be unit-fe build e2e openapi contract browser)
 ROOT="${CV_OUT:-$HOME/.cache/cv-verify}"; OUT="$ROOT/$(basename "$WT")"; mkdir -p "$OUT"
 exec 9>"$ROOT/lock"; flock 9
+renice -n 10 $ > /dev/null 2>&1
+W="${CV_WORKERS:-4}"
 NPM="npx --yes npm@11.21.1"
 export DATABASE_URL="postgres://omnicourse:omnicourse@localhost:5432/$DB"
 CID="$(docker ps --filter publish=5432 --format '{{.Names}}' | head -1)"
@@ -26,8 +29,8 @@ rm -f "$OUT/failed"
 pids=()
 has typecheck && { run typecheck-be "$NPM run typecheck -w src/backend" & pids+=($!); run typecheck-fe "$NPM run typecheck -w src/frontend" & pids+=($!); }
 has lint && { run lint "$NPM run lint" & pids+=($!); }
-has unit-be && { run unit-be "$NPM run test -w src/backend" & pids+=($!); }
-has unit-fe && { run unit-fe "$NPM run test -w src/frontend" & pids+=($!); }
+has unit-be && { run unit-be "$NPM run test -w src/backend -- --maxWorkers=$W" & pids+=($!); }
+has unit-fe && { run unit-fe "$NPM run test -w src/frontend -- --maxWorkers=$W" & pids+=($!); }
 wait "${pids[@]}" 2>/dev/null
 pids=()
 has build && { run build-be "$NPM run build -w src/backend" & pids+=($!); run build-fe "$NPM run build -w src/frontend" & pids+=($!); }
@@ -36,7 +39,7 @@ pids=()
 has e2e && { run e2e "$NPM run test:e2e -w src/backend" & pids+=($!); }
 has openapi && { run openapi "$NPM run openapi -w src/backend && git diff --exit-code --stat $BASE -- src/backend/openapi.json" & pids+=($!); }
 has contract && { run contract "git diff --exit-code --stat $BASE -- src/backend/src/database/migrations ':!src/backend/src/database/migrations/index.ts' package-lock.json" & pids+=($!); }
-has browser && { run browser "$NPM run test:browser" & pids+=($!); }
+has browser && { run browser "$NPM run test:browser -- --maxWorkers=$W" & pids+=($!); }
 wait "${pids[@]}" 2>/dev/null
 count() { [ -f "$OUT/$1.log" ] && sed 's/\x1b\[[0-9;]*m//g' "$OUT/$1.log" | grep -E '^ +Tests ' | tail -1 | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' || echo '-'; }
 echo "COUNTS unit-be=$(count unit-be) unit-fe=$(count unit-fe) e2e=$(count e2e) browser=$(count browser)   (baseline 3c4da22: 1132 1246 364 68)"
