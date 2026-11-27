@@ -64,7 +64,7 @@ import { describeProblem, type ProblemView } from './problem.js';
 import ProgramDialog from './ProgramDialog.vue';
 import ProblemNote from './ProblemNote.vue';
 import { useSavedDocument } from './saved-document.js';
-import { useProgramPicker } from './store.js';
+import { reloadProgramsOnGrantChange, useProgramPicker } from './store.js';
 import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
 const locale = useLocale();
@@ -72,7 +72,9 @@ const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.curriculum);
 
-const { programList, programsStatus, loadPrograms, picked, program, cohort } = useProgramPicker('the programs to administer');
+const picker = useProgramPicker('the programs to administer');
+const { programList, programsStatus, loadPrograms, picked, program, cohort } = picker;
+reloadProgramsOnGrantChange(picker);
 void loadPrograms();
 
 interface Scope {

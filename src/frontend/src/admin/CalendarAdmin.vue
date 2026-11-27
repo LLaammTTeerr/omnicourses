@@ -25,7 +25,7 @@ import {
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import { useSavedDocument } from './saved-document.js';
-import { useProgramPicker } from './store.js';
+import { reloadProgramsOnGrantChange, useProgramPicker } from './store.js';
 import { useAdminDialog, type WriteOutcome } from './write.js';
 
 const locale = useLocale();
@@ -33,7 +33,9 @@ const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.calendar);
 
-const { programList, programsStatus, loadPrograms, picked, program } = useProgramPicker('the programs to administer');
+const picker = useProgramPicker('the programs to administer');
+const { programList, programsStatus, loadPrograms, picked, program } = picker;
+reloadProgramsOnGrantChange(picker);
 void loadPrograms();
 
 interface Scope {

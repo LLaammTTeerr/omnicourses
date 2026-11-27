@@ -33,17 +33,19 @@ export function useProgramPicker(what: string, initial: ProgramPick | null = nul
   }
 
   const picked = ref<ProgramPick | null>(initial);
-  const access = useAdminAccess();
-  const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
-  const listedIds = computed(() => (programList.value ?? []).map((item) => item.id).sort().join());
-  watch([grantedIds, () => access.refusal], () => {
-    if (!access.refusal && access.grants && programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void loadPrograms(true);
-  });
-
   const program = computed(() => {
     const list = programList.value ?? [];
     return list.find((item) => item.id === picked.value?.programId) ?? list[0] ?? null;
   });
   const cohort = computed(() => program.value?.curricula.find((item) => item.id === picked.value?.curriculumId) ?? program.value?.curricula[0] ?? null);
   return { programList, programsStatus, loadPrograms, picked, program, cohort };
+}
+
+export function reloadProgramsOnGrantChange(picker: Pick<ReturnType<typeof useProgramPicker>, 'programList' | 'programsStatus' | 'loadPrograms'>) {
+  const access = useAdminAccess();
+  const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
+  const listedIds = computed(() => (picker.programList.value ?? []).map((item) => item.id).sort().join());
+  watch([grantedIds, () => access.refusal], () => {
+    if (!access.refusal && access.grants && picker.programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void picker.loadPrograms(true);
+  });
 }
