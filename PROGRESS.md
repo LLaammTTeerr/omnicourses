@@ -28,21 +28,32 @@ Import graph (production files): backend folder cycles `auth <-> users` and `cur
 
 Evidence for every item: the seven survey files (`converge/survey/*.md`, findings with `path:line`). IDs: T tooling, BP backend platform, BD backend domain, BA backend admin/content, FK frontend kernel/platform, FP frontend planning, FA frontend admin/content. Status: todo, building, review, pushed (#PR), merged, deferred, rejected.
 
-### The stack (bottom first)
+### The stack as built (bottom first)
 
-| PR | Branch | Items | What changes | Risk | Status |
+| Stack | Branch | Batch | PR | State |
+| --- | --- | --- | --- | --- |
+| 01 | refactor/cv-01-verify-and-lint-rules | 01 | #220 | CI green, auto-merge on, waits for one approval |
+| 02 | refactor/cv-02-plan-view | 10 | #221 (draft) | CI green |
+| 03 | refactor/cv-03-locks-and-seeds | 02 | #222 (draft) | CI green |
+| 04 | refactor/cv-04-engine-vocabulary | 03 | to open | integrated, full verify green |
+
+Stack order follows readiness, so stack numbers differ from the batch numbers of the plan below. Each batch is built on `cvb/<batch slug>` in `.claude/worktrees/cv-build-{be,fa,fb}` and cherry-picked onto the stack tip in `.claude/worktrees/cv-stack`.
+
+### The plan (batches)
+
+| Batch | Build branch | Items | What changes | Risk | Status |
 | --- | --- | --- | --- | --- | --- |
-| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | pushed (#220), auto-merge on, waits for one approval |
-| 02 | cv-02-locks-and-seeds | BP-2, BA-3 | `common/advisory-locks.ts` owns every lock key (uniqueness spec). Curriculum seed data and loader move to `curriculum/seeds/`; `database/seed.ts` runs a list of seeders with one signature. Ends `curriculum <-> curriculum-admin <-> database`. | low | todo |
-| 03 | cv-03-engine-vocabulary | BD-1, BP-6, BD-6 (CreditCapsDto only) | Rule-engine input types and the training-type / group-kind lists move to a pure `curriculum/curriculum-rules.ts`; the purity spec also walks type imports. `TermDto` moves to `terms/`; `common` and `config` become enforced leaves. | low | todo |
-| 04 | cv-04-rules-one-derivation | BD-2 | One `courseStatus`, one `recordBefore`, two named prerequisite policies inside `rules/`. No result changes; existing specs pin it. | low | todo |
+| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | stack 01, #220 |
+| 02 | cv-02-locks-and-seeds | BP-2, BA-3 | `common/advisory-locks.ts` owns every lock key (uniqueness spec). Curriculum seed data and loader move to `curriculum/seeds/`; `database/seed.ts` runs a list of seeders with one signature. Ends `curriculum <-> curriculum-admin <-> database`. | low | stack 03, #222 |
+| 03 | cv-03-engine-vocabulary | BD-1, BP-6, BD-6 (CreditCapsDto only) | Rule-engine input types and the training-type / group-kind lists move to a pure `curriculum/curriculum-rules.ts`; the purity spec also walks type imports. `TermDto` moves to `terms/`; `common` and `config` become enforced leaves. | low | stack 04 |
+| 04 | cv-04-rules-one-derivation | BD-2 | One `courseStatus`, one `recordBefore`, two named prerequisite policies inside `rules/`. No result changes; existing specs pin it. | low | building (Opus) |
 | 05 | cv-05-account-state | BP-1, BD-7 | `users/` owns "account pending deletion" (predicate, SQL fragment) and the student row lock; nine raw-SQL copies in five modules call it. | med | todo |
 | 06 | cv-06-errors-and-limiter | BP-3, BP-4 | Coded API errors only through `common/api-errors.ts` (lint rule); the sign-in attempt limiter leaves `AuthService` and shares its numbers with `PASSWORD_LIMIT`. | low | todo |
 | 07 | cv-07-admin-access | BA-1 step 2, BP-5 | The write gate, grants and 403 helpers become `admin-access/`; calendar and account stop importing `curriculum-admin`. Registries one entry per line; one `platformImports` for app and contract. | low | todo |
 | 08 | cv-08-clc-seeds | BA-2 | Each CLC 2025 course written once; a specialisation lists only group membership and PDF pages. Proof: built seed arrays deep-equal before and after. Group membership stays explicit (no derived "free" group: that would be an academic assumption). | med | todo |
-| 09 | cv-09-fe-kernel | FK-2/FP-3, FA-4, FK-7, FK-3 | `account-storage.ts` owns account-scoped browser keys (auth stops importing plans); grants store split so the shell does not import the admin stack; `ModalDialog` owns its busy text; the test-only route warm-up leaves `router.ts`. | low-med | todo |
-| 10 | cv-10-plan-view | FP-2, FP-1 step 1, FP-7 | `plans/issue-view.ts` pure leaf; `sharing/view.ts` holds the shared page's view model (tested), the `toEngineIssue` adapter goes; dead sharing aliases go. | low | todo |
-| 11 | cv-11-plan-components | FP-1 steps 2-3 | Shared presentational components (term load, issue card, coverage list) own their styles; 46 duplicated style rules leave `SharedPlanView.vue`. | med | todo |
+| 09 | cv-09-fe-kernel | FK-2/FP-3, FA-4, FK-7, FK-3 | `account-storage.ts` owns account-scoped browser keys (auth stops importing plans); grants store split so the shell does not import the admin stack; `ModalDialog` owns its busy text; the test-only route warm-up leaves `router.ts`. | low-med | approved after one fix round; polishing |
+| 10 | cv-10-plan-view | FP-2, FP-1 step 1, FP-7 | `plans/issue-view.ts` pure leaf; `sharing/view.ts` holds the shared page's view model (tested), the `toEngineIssue` adapter goes; dead sharing aliases go. | low | stack 02, #221 |
+| 11 | cv-11-plan-components | FP-1 steps 2-3 | Shared presentational components (term load, issue card, coverage list) own their styles; 46 duplicated style rules leave `SharedPlanView.vue`. | med | building (Opus) |
 | 12 | cv-12-routes-and-effects | FK-4, FA-3, T-4 | Each feature owns its route records and app-wide effects; `router.ts`, `App.vue`, `App.spec.ts` become short lists; admin and bell tests move to their features. | low-med | todo |
 | 13 | cv-13-admin-screens | FA-2, FA-5, FA-1 | One saved-document composable for the two scoped admin screens; one calendar-event presentation module; the client's parsing of server reference sentences pinned to the server's list (the three kinds it cannot parse today are listed as known gaps; wording them is a separate fix PR with Hoà's sign-off, because it changes what an admin sees). | med | todo |
 | 14 | cv-14-actions-and-drafts | FP-6, FP-5 | One attempt helper for "run, ignore 401, report"; explorer reuses the program-choice composable; `groupGlyph`; transcript draft logic in a tested module. | low-med | todo |
@@ -88,6 +99,8 @@ PR #77 is two weeks stale and already conflicts with main, so only `src/backend/
 
 ## Known limitations
 
+- The machine is shared: on 28 Nov a clock-sensitive job of the Project Lead (`~/wrong_way`, 6 workers) ran beside the builds and the load average passed 80, which made 5 s test timeouts fire. Since then the verify script runs at `nice 10` with 4 test workers, briefs tell agents to do the same, and at most three build tracks run. Read a "Test timed out in 5000ms" as load first: re-run the file.
+- Batch 03 left `CreditCapsDto` in `plans/plan-issues.dto.ts` (one new backend edge `audit -> plans`). `rules/` would be the better home, but the purity check exempts only a fixed list of loader files and would need a special case.
 - `src/backend/src/curriculum-admin/import-body-limit.spec.ts` can hit its 5 s test timeout when the machine is loaded (seen once with four builds running, load average 22; green on the re-run). Pre-existing; re-run before reading a failure there as real.
 - `gh pr edit` fails on this machine (GitHub's Projects-classic GraphQL error). Set a PR body with `gh api repos/<owner>/<repo>/pulls/<n> -X PATCH -F body=@file` and reviewers with `.../requested_reviewers`.
 - Workflow subagents cannot write files outside their worktree with the Write tool; their reports come back in the structured result (journal in the session's `subagents/workflows/<run>/journal.jsonl`).
@@ -108,4 +121,4 @@ None.
 
 ## Next
 
-Batches 02 (backend), 09 and 10 (frontend) are building in `.claude/worktrees/cv-build-{be,fb,fa}` on local branches `cvb/<slug>`, based on the 01 branch. As each returns approved: cherry-pick onto the stack tip as `refactor/cv-NN-<slug>`, run the full verify, push, open a draft PR on the branch below, create its thread. Then start the next batch of that track (briefs in `converge/briefs/`).
+Open the PR for stack 04. Stack batch 09 when its polish returns, then start batch 13 on the fb track. Batches 04 (be) and 11 (fa) are building; 05 to 08 follow on be, 14 on fa. Briefs for 02 to 13 are in `converge/briefs/` or prepared in the session; 12, 14, 15, 16, 17 still need a brief.

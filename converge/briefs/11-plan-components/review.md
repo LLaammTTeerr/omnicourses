@@ -1,0 +1,40 @@
+You are the independent reviewer of one refactor batch in the OmniCourse repo. You did not write it. Find what is wrong with it before a human reads it. Default to doubt: "behaviour unchanged" is true only where you checked it.
+
+## Where
+- Worktree /home/lamter/omnicourses/.claude/worktrees/cv-build-fa, branch cvb/11-plan-components. The batch is `git diff 3139043d55819a8e71724ec31985842fb9a4e735..HEAD` (commits: `git log --oneline 3139043d55819a8e71724ec31985842fb9a4e735..HEAD`).
+- READ-ONLY: do not edit, stage, commit, push or post anything. You may run targeted tests, typecheck and lint, and `node /home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/depgraph.mjs <src dir>`. Do not open /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/11-plan-components/report.md until you have written down your own findings; then read it only to check the implementer's stated omissions.
+
+## What the batch was asked to do: the shared plan page and the editor render term load, issue cards and coverage through the same components
+Sources: FRO-1 (steps 2 and 3) in /home/lamter/omnicourses/.claude/worktrees/converge/converge/survey/frontend-planning.md. Read it first. The batch before this one moved the shared page's logic into sharing/view.ts and the pure presentation helpers into plans/issue-view.ts; read both.
+
+Why: sharing/SharedPlanView.vue repeats the editor's markup and styles for a term's load meter, an issue card and the coverage list. Of its 105 style rules, 46 use a selector that plans/PlanEditorView.vue or plans/IssuesPanel.vue also styles: 16 are identical and 30 have drifted. A change to how a term row or an issue card looks must be made twice, and the public page is the one nobody opens.
+
+A. Proof first. Before you change anything, write a temporary browser spec (vitest browser mode with Playwright is set up: see src/frontend/vitest.browser.config.ts and the existing *.browser.spec.ts files, which mount views against a mocked API) that mounts the shared page and the plan editor with rich fixtures (issues of every kind shown, a term over its cap, a term under its minimum, withheld courses, coverage) and saves screenshots in the light and the dark theme at a desktop and a phone width. Run it on the untouched tree and keep the images outside the repo. Run it again on your final commit. The images must be identical; for any that differ, find the cause and fix it, or undo that part. Do not commit the temporary spec or any image. Put the comparison result (a list of image names, identical or not) in your report.
+
+B. Extract presentational components that both views use, each owning its scoped styles. The survey suggests a term-load meter, an issue card (with the citation link) and a coverage list; choose the cuts the markup supports. The editor's drag, preview, lift and undo behaviour stays in the editor: pass what differs through props or slots, and do not give a shared component a prop only one caller understands when a slot would do. data-test ids, text and DOM order stay as they are in both views.
+
+C. Remove the copies: the rules and markup a shared component now owns leave SharedPlanView.vue, PlanEditorView.vue and IssuesPanel.vue. Where two copies of a rule differ today, the difference must survive (screenshots identical) until a person decides: keep it as a variant of the component, and list every such difference in your report as a question for the frontend owner. Do not unify drifted styles on your own judgment.
+
+D. The existing specs of both views (unit and browser) pass with their assertions untouched. New components get a spec only for logic they hold; pure markup needs none.
+
+If a cut cannot be shared without changing pixels or adding caller-specific flags, leave that part duplicated and say so: a smaller honest extraction beats a forced one.
+
+## Boundaries it had to keep
+- Fixed contract: routes, DTO fields and class names, status and error codes, response bodies, database columns, existing migration files, and src/backend/openapi.json byte for byte. What the rule engine decides does not change (AGENTS.md hard rule 1).
+- Tests are the safety net: never delete, skip or weaken a test or an assertion. A test may move with the code it tests; its assertions stay. New logic gets a spec that would fail if the logic were wrong; a pure move needs none.
+- Repo rules that bite: no code comments at all, no new dependency, no lockfile change, relative imports with a .js suffix in the backend, no magic numbers, English, Conventional Commits.
+- Off limits (owned by open pull requests): src/frontend/src/audit/{DashboardView.vue,DashboardView.spec.ts,api.ts,dashboard.ts,dashboard.spec.ts,dashboard-messages.ts}, src/frontend/src/shell/icons.ts, src/frontend/src/testing/fetch.ts (PR #214); src/backend/src/curriculum-admin/csv-import.service.ts and its spec, src/backend/test/curriculum-admin-import.e2e-spec.ts, docs/analysis-and-design/adr/0011-curriculum-administration.md, docs/test/test-cases-b2.md (PR #166); everything under src/backend/src/advisor/ and src/backend/src/ai/ (PR #77). If the objective needs a one-line import-path change in one of these files because a module moved, make exactly that line and list it in your result.
+
+## Check, in this order, and record what you checked
+1. Behaviour: for every function, query, constant, type or template that moved, merged or was rewritten, compare old and new line by line. Name any difference in results, order, error text, SQL, lock mode, timing or rendered output.
+2. Contract: `git diff 3139043d55819a8e71724ec31985842fb9a4e735..HEAD -- src/backend/openapi.json src/backend/src/database/migrations package-lock.json` shows nothing it should not; no route, DTO field or class name, status or error code changed.
+3. Tests: `git diff 3139043d55819a8e71724ec31985842fb9a4e735..HEAD --stat -- '*.spec.ts' '*.e2e-spec.ts' '*.test.mjs'`. For each changed or deleted test file, confirm no `it(`, `test(` or `expect(` was lost or loosened; a moved test must be the same test. New logic has a test that fails when the logic is wrong (try to think of the mutation that would slip through).
+4. Completeness: search src/, test/, scripts/, deploy/, .github/, docs/analysis-and-design, AGENTS.md, README.md for every name, path and import the batch retired. Nothing still points at them; the old and the new implementation do not coexist.
+5. Structure: is the system simpler, or was the complexity only moved? Any new cross-folder import or cycle (compare the import graph with the base)? A wrapper, flag or parameter that only one caller understands? A smaller change that gets the same result?
+6. Repo rules: no comments, no new dependency, .js import suffixes in the backend, names that say what things are, no magic numbers; `git log --format='%h %G? %s' 3139043d55819a8e71724ec31985842fb9a4e735..HEAD` shows G for every commit and Conventional subjects; exactly one new file under .changeset/.
+7. Scope: nothing outside the objective, nothing in the off-limits files beyond a listed one-line import change.
+8. Compare the scoped styles: for every rule deleted from a view, find the rule in a shared component that replaces it and confirm the declarations are the same for that view (scoped-style specificity and :deep() included). Check print rules (@media print) were not lost. Read the implementer's screenshot comparison result in the report after your own review, and say whether its fixtures cover what changed.
+
+Blocking: wrong or changed behaviour, a broken boundary, a lost or weakened test, an incomplete migration, a repo-rule violation, or a clearly simpler design that removes real complexity. Non-blocking: naming, wording, optional polish. Each finding: file, line, the problem, the concrete fix.
+
+Write the review to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/11-plan-components/review-ROUND.md (ROUND is the round number you are told, 1 if none) and return the structured verdict.
