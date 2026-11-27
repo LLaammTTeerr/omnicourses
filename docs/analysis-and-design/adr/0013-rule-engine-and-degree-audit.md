@@ -105,7 +105,7 @@ Not stored, with the reason:
 - `RulesService` has two plan methods, `issuesFor(plan, userId)` and `issuesForBoards(plan, boards, userId)`. A null `userId` replaces `issuesWithoutTranscript`: the transcript is then not read (ADR 0010).
 - `RulesService` no longer exposes the pure functions (`termKind`, `creditCaps`, `checkTermLoad`, `checkPrerequisites`, `checkOfferingTerm`, `degreeAudit`). No module used them. The advisor (F8) imports them from `rules/` when it is built. This changes the module-boundary row above, which said that `RulesService` exposes them.
 - `CurriculumRulesReader.rulesFor(curriculumId)` reads one curriculum by its id, with its prerequisites and offering terms; `CourseRulesService` is merged into it. The audit finds the id with `CurriculumService.findCurriculumId(program, cohort)`.
-- A spec fails when a pure file of `rules/` imports framework, database or HTTP code at run time (`rules.service.spec.ts`).
+- A spec fails when a pure file of `rules/` imports framework, database or HTTP code, even as a type (`rules.service.spec.ts`). The engine's input types live in `curriculum/curriculum-rules.ts`, a pure file.
 
 ## Amendment, 27 November 2026: curriculum standing and failed in-progress prerequisites
 
