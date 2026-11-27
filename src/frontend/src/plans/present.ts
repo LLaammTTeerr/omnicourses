@@ -11,7 +11,7 @@ import { currentTermNow, termKey, termName, type Term } from '../terms.js';
 import type { Plan, PlanIssue, PlanIssueCode, PlanIssueKind, PlanTermLoad } from './api.js';
 import { compareTerms, findTile, isHome, type AttachedIssues, type Board, type Moving, type Row, type Tile } from './board.js';
 import { BAR_CODES, capOf, meter, toneOf, type CapState, type Meter } from './issue-view.js';
-import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
+import { PLANNER_MESSAGES, type IssueContext, type WordedIssue } from './messages.js';
 import type { RowPreview } from './session.js';
 
 const GRADE_DECIMALS = 1;
@@ -167,7 +167,7 @@ export function usePlanView({ board, issues, courses, moving, previews, lifted, 
   }
 
   const ctx = computed<IssueContext>(() => ({
-    requirementName: (issue: PlanIssue) => {
+    requirementName: (issue: WordedIssue) => {
       const coverage = issues.value?.report.coverage;
       if (issue.requirementGroupId) return coverage?.groups.find((g) => g.id === issue.requirementGroupId)?.name ?? null;
       if (issue.combinedMinimumId) return coverage?.combinedMinimums.find((c) => c.id === issue.combinedMinimumId)?.name ?? null;

@@ -3,18 +3,19 @@ import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
-import { courseName, groupColour, orderGroups } from '../curriculum/present.js';
+import { groupColour } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
-import type { PlanIssue, PlanIssueKind } from '../plans/api.js';
+import type { PlanIssueKind } from '../plans/api.js';
 import { PLANNER_MESSAGES } from '../plans/messages.js';
-import { BAR_CODES, capOf, clause, ISSUE_KINDS_SHOWN, KIND_STYLE, meter, toneOf } from '../plans/issue-view.js';
+import { BAR_CODES, clause, ISSUE_KINDS_SHOWN, KIND_STYLE } from '../plans/issue-view.js';
 import Icon from '../shell/Icon.vue';
 import { REGULATION_URL } from '../shell/messages.js';
-import { termKey, termName } from '../terms.js';
-import { fetchSharedPlan, type SharedPlacement, type SharedPlanIssue, type SharedPlanTerm } from './api.js';
+import { termName } from '../terms.js';
+import { fetchSharedPlan, type SharedPlanIssue } from './api.js';
 import { SHARING_MESSAGES } from './messages.js';
+import { buildRowViews, curriculumMeta as curriculumMetaOf, issueLists, orderedGroups, shortCount, withheldTitles as withheldTitlesOf, wordIssue } from './view.js';
 
 const props = defineProps<{ token: string }>();
 
@@ -60,157 +61,20 @@ const notShared = computed(() => status.value === 'loaded' && shared.value === n
 usePageTitle(() => shared.value?.name ?? (notShared.value ? m.value.notSharedTitle : m.value.sharedPlanTitle));
 
 const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
+const wordSharedIssue = (issue: SharedPlanIssue) => wordIssue(planner.value, issue);
 
-function toEngineIssue(issue: SharedPlanIssue): PlanIssue {
-  return {
-    code: issue.code,
-    kind: issue.kind,
-    term: issue.term,
-    position: issue.position,
-    courseCode: issue.courseCode,
-    requirementGroupId: issue.requirementGroupName ?? issue.combinedMinimumName ?? null,
-    combinedMinimumId: null,
-    missingCourseCodes: issue.missingCourseCodes ?? [],
-    offeredTermNumbers: issue.offeredTermNumbers,
-    credits: issue.credits,
-    limit: issue.limit,
-    citation: issue.citation,
-    message: issue.message,
-  };
-}
+const curriculumMeta = computed(() => (shared.value ? curriculumMetaOf(shared.value.curriculum, locale.lang, m.value) : ''));
+const withheldTitles = computed(() => (shared.value ? withheldTitlesOf(shared.value, planner.value) : []));
+const termRows = computed(() => (shared.value ? buildRowViews(shared.value, locale.lang, planner.value) : []));
 
-function wordIssue(issue: SharedPlanIssue): string {
-  const adapted = toEngineIssue(issue);
-  return planner.value.issue[issue.code](adapted, { requirementName: (i) => i.requirementGroupId });
-}
+const lists = computed(() => issueLists(shared.value?.issues ?? []));
+const issuesOfKind = (kind: PlanIssueKind) => lists.value.byKind[kind];
+const listedIssues = computed(() => lists.value.listed);
+const unknownIssues = computed(() => lists.value.byKind.unknown);
+const violationCount = computed(() => lists.value.violationCount);
 
-const curriculumMeta = computed(() => {
-  const cur = shared.value?.curriculum;
-  if (!cur) return '';
-  const programLabel = `${courseName(cur.program, locale.lang)} (${cur.program.code})`;
-  const curName = courseName(cur, locale.lang).trim();
-  const parts = [programLabel, m.value.cohort(cur.cohortYear), m.value.curriculumCode(cur.code)];
-  const lower = curName.toLowerCase();
-  const repeatsProgram = [cur.program.nameVi, cur.program.nameEn, cur.code]
-    .filter((s): s is string => Boolean(s?.trim()))
-    .some((s) => lower.includes(s.trim().toLowerCase()));
-  if (curName && !repeatsProgram) {
-    parts.push(curName);
-  }
-  return parts.join(' · ');
-});
-
-const withheldTitles = computed(() => (shared.value?.issueCodesNotShown ?? []).map((code) => planner.value.issueTitle[code]));
-
-interface SharedTileView {
-  placement: SharedPlacement;
-  title: string;
-  name: string | null;
-  credits: number | null;
-  slot: boolean;
-  colour: GroupId | null;
-  tone: string;
-  bad: boolean;
-  issues: SharedPlanIssue[];
-  unknowns: SharedPlanIssue[];
-}
-
-interface SharedRowView {
-  key: string;
-  name: string;
-  when: string;
-  summer: boolean;
-  credits: number;
-  atLeast: boolean;
-  maxCap: number | null;
-  capsLabel: string;
-  meter: ReturnType<typeof meter>;
-  cap: ReturnType<typeof capOf>;
-  tone: string;
-  rowIssues: SharedPlanIssue[];
-  tiles: SharedTileView[];
-}
-
-function buildTileView(placement: SharedPlacement, posIssues: SharedPlanIssue[]): SharedTileView {
-  const adapted = posIssues.map(toEngineIssue);
-  const tone = toneOf(adapted);
-  const slot = placement.kind === 'slot';
-  const colour = slot && placement.requirementGroupName ? groupColour({ name: placement.requirementGroupName, kind: 'elective' }) : null;
-  const title = slot
-    ? planner.value.slot(placement.requirementGroupName ?? planner.value.slotGroupUnknown)
-    : (placement.courseCode ?? '?');
-  const name = !slot && placement.nameVi !== null ? courseName({ nameVi: placement.nameVi, nameEn: placement.nameEn }, locale.lang) : null;
-  return {
-    placement,
-    title,
-    name,
-    credits: placement.credits,
-    slot,
-    colour,
-    tone,
-    bad: tone === 'has-violation',
-    issues: [
-      ...posIssues.filter((i) => i.kind === 'violation'),
-      ...posIssues.filter((i) => i.kind === 'flag'),
-    ],
-    unknowns: posIssues.filter((i) => i.kind === 'unknown'),
-  };
-}
-
-function buildRowView(termEntry: SharedPlanTerm, allIssues: readonly SharedPlanIssue[]): SharedRowView {
-  const key = termKey(termEntry.term);
-  const inTerm = allIssues.filter((i) => i.term !== null && termKey(i.term) === key);
-  const wholeTerm = inTerm.filter((i) => i.position === null);
-  const adaptedInTerm = inTerm.map(toEngineIssue);
-  const load = {
-    term: termEntry.term,
-    kind: termEntry.kind,
-    credits: termEntry.credits,
-    caps: termEntry.caps,
-  };
-  return {
-    key,
-    name: termName(termEntry.term, locale.lang),
-    when: planner.value.termMonths(termEntry.term),
-    summer: termEntry.kind === 'summer',
-    credits: termEntry.credits,
-    atLeast: wholeTerm.some((i) => i.code === 'load_not_checked'),
-    maxCap: termEntry.caps?.max ?? null,
-    capsLabel: termEntry.caps ? planner.value.caps(termEntry.caps.min, termEntry.caps.max) : planner.value.capsUnknown,
-    meter: meter(load, termEntry.credits),
-    cap: capOf(adaptedInTerm, termEntry.credits),
-    tone: toneOf(adaptedInTerm),
-    rowIssues: wholeTerm,
-    tiles: termEntry.placements.map((placement, index) =>
-      buildTileView(
-        placement,
-        inTerm.filter((i) => i.position === index),
-      ),
-    ),
-  };
-}
-
-const termRows = computed(() => {
-  const plan = shared.value;
-  if (!plan) return [];
-  return plan.terms.map((t) => buildRowView(t, plan.issues));
-});
-
-const placedIssues = computed(() => (shared.value?.issues ?? []).filter((i) => i.term !== null));
-const issuesOfKind = (kind: PlanIssueKind) => placedIssues.value.filter((i) => i.kind === kind);
-const listedIssues = computed(() => [
-  ...issuesOfKind('violation'),
-  ...issuesOfKind('flag'),
-]);
-const unknownIssues = computed(() => issuesOfKind('unknown'));
-const violationCount = computed(() => issuesOfKind('violation').length);
-
-const orderedCoverageGroups = computed(() => (shared.value?.coverage ? orderGroups(shared.value.coverage.groups) : []));
-const shortGroupsCount = computed(() => {
-  const cov = shared.value?.coverage;
-  if (!cov) return 0;
-  return [...cov.groups, ...cov.combinedMinimums].filter((g) => !g.met).length;
-});
+const orderedCoverageGroups = computed(() => (shared.value?.coverage ? orderedGroups(shared.value.coverage) : []));
+const shortGroupsCount = computed(() => (shared.value?.coverage ? shortCount(shared.value.coverage) : 0));
 
 function printPlan(): void {
   window.print();
@@ -417,7 +281,7 @@ function printPlan(): void {
               <span class="ic" aria-hidden="true"><Icon :name="KIND_STYLE[issue.kind].icon" size="sm" /></span>
               <div>
                 <b><span class="sr-only">{{ planner.kinds[issue.kind] }}: </span>{{ planner.issueTitle[issue.code] }}</b>
-                <p data-test="issue-text">{{ wordIssue(issue) }}</p>
+                <p data-test="issue-text">{{ wordSharedIssue(issue) }}</p>
                 <div class="vfoot">
                   <span class="chip line">{{ issue.term ? termName(issue.term, locale.lang) : planner.wholePlan }}</span>
                   <a
@@ -462,7 +326,7 @@ function printPlan(): void {
               <li v-for="(issue, idx) in unknownIssues" :key="idx" data-test="issue-unknown">
                 <Icon name="info" size="sm" />
                 <span>
-                  {{ wordIssue(issue) }}
+                  {{ wordSharedIssue(issue) }}
                   <span class="t3"> · {{ issue.term ? termName(issue.term, locale.lang) : planner.wholePlan }}</span>
                 </span>
               </li>
