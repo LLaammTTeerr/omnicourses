@@ -6,7 +6,7 @@ import { sentFields, trimmedOrNull } from '../common/field-validators.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
 import { prerequisiteCycle, REFERENCES, referencedItem } from './admin-errors.js';
 import { catalogHas, cohortIn, courseCodeOr400, groupIn, noCatalogCourse } from './admin-lookups.js';
-import { AdminWriteService } from './admin-write.service.js';
+import { AdminWriteService } from '../admin-access/admin-write.service.js';
 import {
   AdminProgramDto,
   CreateRequirementGroupDto,
@@ -18,7 +18,7 @@ import {
   UpdateRequirementGroupDto,
   UserGrantsDto,
 } from './curriculum-admin.dto.js';
-import { userGrants } from './grants.js';
+import { userGrants } from './user-grants.js';
 import { findPrerequisiteCycle } from './prerequisite-cycle.js';
 
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);

@@ -2,7 +2,7 @@ import { ConflictException } from '@nestjs/common';
 import type { DataSource, EntityManager } from 'typeorm';
 import { QueryFailedError } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
-import type { AdminWriteService } from './admin-write.service.js';
+import type { AdminWriteService } from '../admin-access/admin-write.service.js';
 import { CurriculumAdminService, isPlanSlotRefusal } from './curriculum-admin.service.js';
 
 const SLOT_KEY = 'plan_placements_requirement_group_id_fkey';

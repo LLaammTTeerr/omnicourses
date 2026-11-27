@@ -4,7 +4,7 @@ import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
 import { AdminErrorDto } from '../common/api-errors.js';
 import { StrictBody, uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
-import { AdminErrors } from './admin-write.service.js';
+import { AdminErrors } from '../admin-access/admin-error-responses.js';
 import { CohortDetailsDto, CohortListDto, CreateCohortDto, CreateProgramDto, ProgramDetailsDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 import { ProgramAdminService } from './program-admin.service.js';
 

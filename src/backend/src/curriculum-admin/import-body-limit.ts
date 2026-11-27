@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm';
 import { AuthService } from '../auth/auth.service.js';
 import { compressedBody, payloadTooLarge } from './admin-errors.js';
 import { inMiB, MIB } from './csv-file.js';
-import { grantsOf, missingPermission, type Need } from './grants.js';
+import { grantsOf, missingPermission, type Need } from '../admin-access/grants.js';
 
 export const CATALOG_IMPORTS = 'admin/catalog/imports';
 export const COHORT_IMPORTS = 'admin/programs/:programId/cohorts/:curriculumId/imports';
