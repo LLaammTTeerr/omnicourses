@@ -1,22 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEvent } from '../calendar/api.js';
+import type { DegreeAudit, TermSummary } from './api.js';
 import { calendarEnd, Dashboard, segments, termShort } from './dashboard.js';
-import { degreeAudit, GROUP_A } from './testing/fixtures.js';
+import { course, degreeAudit, group, GROUP_A, GROUP_MATH } from './testing/fixtures.js';
 
 const t = (year: number, number: 1 | 2 | 3) => ({ year, number });
 
-function dashboard() {
+const failedZZ202 = { code: 'ZZ202', name: 'Học phần thử ZZ202', credits: 4, result: 'graded' as const, grade: 4.5, passed: false, inProgress: false, requirementGroupId: GROUP_A };
+
+function terms(): TermSummary[] {
+  const first = degreeAudit().terms[0]!;
+  return [
+    { ...first, failedCourseCodes: ['ZZ202'], attempts: [...first.attempts, failedZZ202] },
+    { ...first, term: t(2024, 2), average: null, cumulativeAccumulatedAverageChange: 0, attempts: [] },
+    { ...first, term: t(2024, 3), average: 9, cumulativeAccumulatedAverageChange: 0.12, attempts: [] },
+  ];
+}
+
+function pastAudit(): DegreeAudit {
   const base = degreeAudit();
-  const audit = degreeAudit({ terms: [{ ...base.terms[0]!, failedCourseCodes: ['ZZ202'] }] });
-  return new Dashboard({
-    audit,
-    transcript: [
-      { courseCode: 'ZZ201', courseName: 'ZZ201', credits: 4, result: 'graded', grade: 8, term: t(2024, 1) },
-      { courseCode: 'ZZ202', courseName: 'ZZ202', credits: 4, result: 'graded', grade: 4.5, term: t(2024, 1) },
+  return degreeAudit({
+    asOfTerm: t(2024, 1),
+    credits: { ...base.credits, towardTotal: 4 },
+    groups: [
+      base.groups[0]!,
+      group(GROUP_A, base.groups[1]!.name, {
+        passedCredits: 4,
+        remainingCredits: 4,
+        courses: [course('ZZ201', { status: 'passed', result: 'graded', grade: 8 }), course('ZZ202', { status: 'failed', result: 'graded', grade: 4.5 })],
+      }),
+      base.groups[2]!,
     ],
-    plan: null,
-    today: t(2025, 1),
   });
+}
+
+function dashboard(past: ReadonlyMap<string, DegreeAudit> = new Map([['2024-1', pastAudit()]])) {
+  return new Dashboard({ audit: degreeAudit({ terms: terms() }), past, plan: null, today: t(2025, 1) });
 }
 
 describe('dashboard model', () => {
@@ -36,22 +55,45 @@ describe('dashboard model', () => {
   it('takes the term after the last summary as the live term when nothing is in progress', () => {
     const d = dashboard();
     expect(d.liveTerm).toEqual(t(2025, 1));
-    expect(d.nowIndex).toBe(1);
+    expect(d.nowIndex).toBe(3);
     expect(d.termAt(0)).toEqual(t(2024, 1));
   });
 
-  it('rebuilds a past term from the transcript, counting a failed sitting as failed', () => {
-    const past = dashboard().snapshot(0, 'vi');
+  it('reads a past term from the audit as of that term, with the engine deciding what failed', () => {
+    const past = dashboard().snapshot(0, 'vi')!;
     const core = past.rows.find((r) => r.row.key === GROUP_A)!;
     expect(past.live).toBe(false);
+    expect(past.passed).toBe(4);
     expect(core.d).toBe(4);
-    expect(core.fail.map((c) => [c.code, c.grade])).toEqual([['ZZ202', 4.5]]);
-    expect(past.courses.map((c) => [c.code, c.failed])).toEqual([['ZZ201', false], ['ZZ202', true]]);
+    expect(core.fail.map((c) => [c.code, c.grade, c.retaken])).toEqual([['ZZ202', 4.5, true]]);
+    expect(past.courses.map((c) => [c.code, c.failed])).toEqual([['ZZ090', false], ['ZZ101', false], ['ZZ201', false], ['ZZ202', true]]);
+  });
+
+  it('has no snapshot for a past term whose audit has not loaded, and the live audit for now', () => {
+    const d = dashboard(new Map());
+    expect(d.snapshot(0, 'vi')).toBeNull();
+    expect(d.auditAt(0)).toBeNull();
+    expect(d.auditAt(d.nowIndex)!.credits.towardTotal).toBe(8);
+    expect(d.snapshot(d.nowIndex, 'vi')!.passed).toBe(8);
+  });
+
+  it('reads the GPA change in points from the last term with grades', () => {
+    const d = dashboard();
+    expect(d.gpaChange(d.nowIndex)).toEqual({ change: 0.12, since: t(2024, 2) });
+    expect(d.gpaChange(1)).toBeNull();
+    expect(d.gpaChange(0)).toBeNull();
+  });
+
+  it('fills the past strip from the attempts the engine reports, failed sittings marked', () => {
+    const strip = dashboard().strip('vi');
+    expect(strip.map((s) => s.term)).toEqual([t(2024, 1), t(2025, 1)]);
+    expect(strip[0]!.cells.map((c) => [c.code, c.state])).toEqual([['ZZ090', 'done'], ['ZZ101', 'done'], ['ZZ201', 'done'], ['ZZ202', 'fail']]);
+    expect(strip[0]!.cells.find((c) => c.code === 'ZZ101')!.colour).toBe(dashboard().rows.find((r) => r.key === GROUP_MATH)!.colour);
   });
 
   it('lays the donut out as all passed arcs, then in progress, then remaining, filling the whole turn', () => {
-    const live = dashboard().snapshot(1, 'vi');
-    const parts = segments(live.rows);
+    const d = dashboard();
+    const parts = segments(d.snapshot(d.nowIndex, 'vi')!.rows);
     const kinds = parts.map((p) => p.kind);
     expect(kinds.indexOf('c')).toBeGreaterThan(kinds.lastIndexOf('d'));
     expect(kinds.indexOf('left')).toBeGreaterThan(kinds.lastIndexOf('c'));

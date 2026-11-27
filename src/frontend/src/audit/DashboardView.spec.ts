@@ -5,8 +5,7 @@ import { useLocale } from '../locale.js';
 import type { Plan, PlanIssues } from '../plans/api.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import type { TranscriptRow } from '../transcript/api.js';
-import type { DegreeAudit } from './api.js';
+import type { DegreeAudit, TermAttempt } from './api.js';
 import DashboardView from './DashboardView.vue';
 import { COMBINED, degreeAudit, GROUP_A, GROUP_C, GROUP_MATH } from './testing/fixtures.js';
 import { AUDIT_MESSAGES } from './messages.js';
@@ -16,22 +15,51 @@ const INTRO_KEY = 'oc-dashboard-intro';
 
 let wrapper: VueWrapper | undefined;
 
+const PAST_TOWARD_TOTAL = 4;
+
+const attempt = (code: string, overrides: Partial<TermAttempt>): TermAttempt => ({
+  code,
+  name: `Học phần thử ${code}`,
+  credits: 4,
+  result: 'graded',
+  grade: null,
+  passed: true,
+  inProgress: false,
+  requirementGroupId: GROUP_A,
+  ...overrides,
+});
+
 function dashboardAudit(): DegreeAudit {
   const base = degreeAudit();
+  const first = base.terms[0]!;
   return degreeAudit({
     terms: [
-      { ...base.terms[0]!, failedCourseCodes: ['ZZ202'] },
-      { ...base.terms[0]!, term: { year: 2026, number: 1 }, average: null, accumulatedAverage: null, cumulativeAccumulatedAverage: null, failedCourseCodes: [], inProgressCourseCodes: ['ZZ414'], capViolations: [] },
+      { ...first, failedCourseCodes: ['ZZ202'], cumulativeTowardTotal: PAST_TOWARD_TOTAL, attempts: [...first.attempts, attempt('ZZ202', { grade: 4.5, passed: false })] },
+      {
+        ...first,
+        term: { year: 2026, number: 1 },
+        average: null,
+        accumulatedAverage: null,
+        cumulativeAccumulatedAverage: null,
+        cumulativeAccumulatedAverageChange: null,
+        failedCourseCodes: [],
+        inProgressCourseCodes: ['ZZ414'],
+        capViolations: [],
+        attempts: [attempt('ZZ414', { result: 'in_progress', passed: false, inProgress: true, requirementGroupId: GROUP_C })],
+      },
     ],
   });
 }
 
-const transcriptRows: TranscriptRow[] = [
-  { courseCode: 'ZZ201', courseName: 'Học phần thử ZZ201', credits: 4, result: 'graded', grade: 8, term: { year: 2024, number: 1 } },
-  { courseCode: 'ZZ202', courseName: 'Học phần thử ZZ202', credits: 4, result: 'graded', grade: 4.5, term: { year: 2024, number: 1 } },
-  { courseCode: 'ZZ101', courseName: 'Học phần thử ZZ101', credits: 4, result: 'exempt', grade: null, term: { year: 2024, number: 1 } },
-  { courseCode: 'ZZ414', courseName: 'Học phần thử ZZ414', credits: 4, result: 'in_progress', grade: null, term: { year: 2026, number: 1 } },
-];
+function auditAsOf2024(): DegreeAudit {
+  const base = degreeAudit();
+  return degreeAudit({ asOfTerm: { year: 2024, number: 1 }, credits: { ...base.credits, towardTotal: PAST_TOWARD_TOTAL, inProgressTowardTotal: 0, remaining: 16 } });
+}
+
+const answerAudit = (live: unknown) => (init: RequestInit | undefined, url: string) => {
+  if (url.includes('asOfYear')) return Response.json(auditAsOf2024());
+  return typeof live === 'function' ? live(init, url) : Response.json(live);
+};
 
 const plan: Plan = {
   id: PLAN_ID,
@@ -75,8 +103,7 @@ const unread = {
 
 function routes(audit: unknown, extra: Record<string, unknown> = {}) {
   return {
-    'GET /users/me/audit': audit,
-    'GET /users/me/transcript': { rows: transcriptRows },
+    'GET /users/me/audit': answerAudit(audit),
     'GET /plans': { plans: [{ ...plan, preview: { termCount: 1, courseCount: 1, slotCount: 1, firstTerm: null, lastTerm: null } }] },
     [`GET /plans/${PLAN_ID}`]: plan,
     [`GET /plans/${PLAN_ID}/issues`]: issues(2),
@@ -171,8 +198,8 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(w.get('.db-center').text()).toContain('/ 20 tín chỉ');
   });
 
-  it('steps back to a past term and shows that term, then returns with the arrow key', async () => {
-    const { w } = await render();
+  it('steps back to a past term and shows the audit as of that term, then returns with the arrow key', async () => {
+    const { w, fetch } = await render();
     expect(text(w, 'term-label')).toBe('HK1 26–27 · nay');
     expect(w.get('[data-test="next-term"]').attributes('disabled')).toBeDefined();
     await w.get('[data-test="previous-term"]').trigger('click');
@@ -182,7 +209,9 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'term-gpa')).toBe('7,75/10ĐTB học kỳ');
     expect(text(w, 'attention')).toContain('Tổng kết học kỳ');
     expect(text(w, 'term-card')).toContain('4,5');
-    expect(text(w, 'credits-toward-total')).toBe('8');
+    expect(text(w, 'credits-toward-total')).toBe(String(PAST_TOWARD_TOTAL));
+    expect(text(w, 'credits-remaining')).toBe('16');
+    expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(expect.stringContaining('/users/me/audit?asOfYear=2024&asOfNumber=1'));
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
     await flushPromises();
     expect(w.get('.dashboard-page').classes()).not.toContain('db-past');
@@ -196,7 +225,7 @@ describe('DashboardView (F3, UC-03)', () => {
     const options = w.findAll('[role="option"]');
     expect(options.map((o) => o.get('b').text())).toEqual(['HK1 26–27', 'HK1 24–25']);
     expect(options[0]!.attributes('aria-selected')).toBe('true');
-    expect(options[1]!.text()).toContain('8 TC');
+    expect(options[1]!.text()).toContain(`${PAST_TOWARD_TOTAL} TC`);
     expect(document.activeElement).toBe(options[0]!.element);
     await w.get('#db-tpick').trigger('keydown', { key: 'ArrowDown' });
     expect(text(w, 'term-label')).toContain('xem trước');
@@ -249,17 +278,25 @@ describe('DashboardView (F3, UC-03)', () => {
     const { w } = await render();
     const terms = w.findAll('[data-test="terms"] .db-term');
     expect(terms.map((t) => t.get('.lb').text())).toEqual(['HK1 24–25', 'HK1 26–27 · nay', 'HK1 27–28', 'Tốt nghiệp']);
-    expect(terms[0]!.findAll('.cells i')).toHaveLength(12);
+    expect(terms[0]!.findAll('.cells i')).toHaveLength(13);
     expect(terms[0]!.findAll('.cells i.fail')).toHaveLength(4);
     expect(terms[1]!.findAll('.cells i.cur')).toHaveLength(4);
     expect(terms[2]!.findAll('.cells i.todo')).toHaveLength(8);
     expect(terms[1]!.classes()).toContain('now');
   });
 
-  it('still shows the audit figures when the plan, transcript, notifications and calendar cannot load', async () => {
+  it('shows the GPA change in points since the term before the last term with grades', async () => {
+    const audit = dashboardAudit();
+    const first = audit.terms[0]!;
+    const graded = { ...first, term: { year: 2025, number: 1 }, average: 9, cumulativeAccumulatedAverageChange: -0.12, attempts: [] };
+    const { w } = await render({ ...audit, terms: [first, graded, audit.terms[1]!] });
+    expect(text(w, 'gpa-change')).toBe('▼ 0,12');
+    expect(w.get('[data-test="gpa-change"]').attributes('title')).toContain('HK1 24–25');
+  });
+
+  it('still shows the audit figures when the plan, notifications and calendar cannot load', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render(dashboardAudit(), {
-      'GET /users/me/transcript': status(500),
       'GET /plans': status(500),
       'GET /notifications': status(500),
       'GET /academic-calendar': status(500),

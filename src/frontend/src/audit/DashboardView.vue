@@ -12,11 +12,11 @@ import { reducedMotion } from '../plans/flip.js';
 import { readLastPlan } from '../plans/last-plan.js';
 import Icon from '../shell/Icon.vue';
 import type { IconName } from '../shell/icons.js';
-import { currentTermNow } from '../terms.js';
-import { fetchTranscript, type TranscriptRow } from '../transcript/api.js';
+import { currentTermNow, termKey } from '../terms.js';
 import { useAuth } from '../auth/store.js';
 import AuditGate from './AuditGate.vue';
-import { calendarEnd, Dashboard, DONUT, scaleOf, segments, SPARK, sparkPoints, termShort, type RowState } from './dashboard.js';
+import { fetchAuditAsOf, type DegreeAudit } from './api.js';
+import { calendarEnd, Dashboard, DONUT, scaleOf, segments, SPARK, sparkPoints, termShort, type RowState, type Snapshot } from './dashboard.js';
 import { DASHBOARD_MESSAGES } from './dashboard-messages.js';
 import { AUDIT_MESSAGES } from './messages.js';
 import { conditionAnchor, conditionLabel, useAudit } from './present.js';
@@ -44,7 +44,6 @@ const LANGUAGE_CONDITION = 'foreign_language_standard';
 const CHECKED_ELSEWHERE = /^(group|combined):|^total_credits$/;
 
 interface Extras {
-  transcript: TranscriptRow[];
   plan: Plan | null;
   issues: PlanIssues | null;
   notifications: Notification[];
@@ -72,23 +71,33 @@ async function loadPlan(): Promise<{ plan: Plan | null; issues: PlanIssues | nul
 }
 
 async function loadExtras(): Promise<void> {
-  const [transcript, planned, notifications, calendar] = await Promise.all([
-    settled(fetchTranscript()),
+  const [planned, notifications, calendar] = await Promise.all([
     loadPlan(),
     settled(fetchNotifications(NOTIFICATIONS_SHOWN)),
     settled(fetchAcademicCalendar()),
   ]);
   extras.value = {
-    transcript: transcript?.rows ?? [],
     ...planned,
     notifications: notifications?.notifications ?? [],
     calendar: calendar?.events ?? [],
   };
 }
 
+const past = shallowRef(new Map<string, DegreeAudit>());
+const asked = new Set<string>();
+
+async function loadPast(i: number): Promise<void> {
+  const term = dash.value?.history[i]?.term;
+  if (!term || asked.has(termKey(term))) return;
+  asked.add(termKey(term));
+  const answer = await settled(fetchAuditAsOf(term));
+  if (answer) past.value = new Map(past.value).set(termKey(term), answer);
+  else asked.delete(termKey(term));
+}
+
 const dash = computed(() =>
   audit.value
-    ? new Dashboard({ audit: audit.value, transcript: extras.value?.transcript ?? [], plan: extras.value?.plan ?? null, today: currentTermNow() })
+    ? new Dashboard({ audit: audit.value, past: past.value, plan: extras.value?.plan ?? null, today: currentTermNow() })
     : null,
 );
 
@@ -105,7 +114,13 @@ watch(
 );
 
 const lang = computed(() => locale.lang);
-const snap = computed(() => dash.value?.snapshot(Math.min(view.value, dash.value.nowIndex), lang.value) ?? null);
+const held = shallowRef<Snapshot | null>(null);
+const snap = computed(() => {
+  const next = dash.value?.snapshot(Math.min(view.value, dash.value.nowIndex), lang.value) ?? null;
+  return next ?? (dash.value ? held.value : null);
+});
+watch(snap, (s) => (held.value = s));
+watch(view, (i) => void loadPast(i));
 const segs = computed(() => (snap.value ? segments(snap.value.rows) : []));
 const strip = computed(() => dash.value?.strip(lang.value) ?? []);
 const colours = computed(() => [...new Set(dash.value?.rows.map((r) => r.colour) ?? [])]);
@@ -289,12 +304,7 @@ function onDocumentKey(e: KeyboardEvent): void {
 const hi = computed(() => (snap.value?.live ? nowIndex.value - 1 : view.value));
 const cumValues = computed(() => history.value.map((h) => h.cumulativeAccumulatedAverage));
 const gpaNow = computed(() => cumValues.value[hi.value] ?? audit.value?.gpa.accumulatedAverage ?? null);
-const delta = computed(() => {
-  const cur = cumValues.value[hi.value];
-  const prev = cumValues.value[hi.value - 1];
-  if (cur == null || prev == null || prev === 0) return null;
-  return { pct: ((cur - prev) / prev) * 100, term: history.value[hi.value - 1]!.term };
-});
+const delta = computed(() => dash.value?.gpaChange(hi.value) ?? null);
 const spark = computed(() => {
   const plotted = cumValues.value.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
   if (plotted.length === 0) return null;
@@ -308,7 +318,7 @@ const expectedEnd = computed(() => (expected.value && extras.value ? calendarEnd
 const remaining = computed(() => {
   const total = audit.value?.credits.totalRequired ?? null;
   if (!snap.value || total === null) return null;
-  return snap.value.live ? (audit.value!.credits.remaining ?? Math.max(0, total - snap.value.passed)) : Math.max(0, total - snap.value.passed);
+  return dash.value?.auditAt(snap.value.index)?.credits.remaining ?? Math.max(0, total - snap.value.passed);
 });
 
 const yearOfStudy = computed(() => (snap.value && audit.value ? snap.value.term.year - audit.value.cohortYear + 1 : 1));
@@ -367,7 +377,9 @@ function playIntro(): void {
 
 const ready = computed(() => dash.value !== null && extras.value !== null);
 watch(ready, (on) => {
-  if (on) void nextTick(playIntro);
+  if (!on) return;
+  void nextTick(playIntro);
+  history.value.forEach((_, i) => void loadPast(i));
 });
 
 onMounted(() => {
@@ -430,7 +442,7 @@ onBeforeUnmount(() => {
                   <b>{{ termShort(dash.termAt(i), locale.lang) }}</b>
                   <span>{{ h ? (h.average !== null ? m.gpaOf(score(h.average)) : '—') : m.inProgressShort }}</span>
                   <em v-if="!h">{{ m.current }}</em>
-                  <span v-else class="t3">{{ m.cr(dash.passedBy(h.term)) }}</span>
+                  <span v-else class="t3">{{ m.cr(h.cumulativeTowardTotal) }}</span>
                 </button>
               </template>
             </span>
@@ -482,8 +494,8 @@ onBeforeUnmount(() => {
                     <div class="k">{{ m.cumulativeGpa }}</div>
                   </div>
                   <div class="end">
-                    <span v-if="delta" :class="['delta', delta.pct >= 0 ? 'up' : 'down']" :title="m.comparedWith(termShort(delta.term, locale.lang))">
-                      {{ delta.pct >= 0 ? '▲ ' : '▼ ' }}{{ fixed(1).format(Math.abs(delta.pct)) }}%
+                    <span v-if="delta" :class="['delta', delta.change >= 0 ? 'up' : 'down']" :title="m.comparedWith(termShort(delta.since, locale.lang))" data-test="gpa-change">
+                      {{ delta.change >= 0 ? '▲ ' : '▼ ' }}{{ score(Math.abs(delta.change)) }}
                     </span>
                     <svg
                       v-if="spark"
