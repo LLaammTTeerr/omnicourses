@@ -1,6 +1,7 @@
-import { ConflictException, Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiConflictResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Authenticated, CurrentUser } from '../auth/auth.decorators.js';
+import { conflict } from '../common/api-errors.js';
 import { RulesService } from '../rules/rules.service.js';
 import { toTerm } from '../terms/term.js';
 import { User } from '../users/user.entity.js';
@@ -27,14 +28,10 @@ export class AuditController {
     const asOf = query.asOfYear === undefined || query.asOfNumber === undefined ? null : toTerm(query.asOfYear, query.asOfNumber);
     const outcome = await this.rules.auditFor(user.id, asOf);
     if (outcome.status === 'onboarding_required') {
-      throw new ConflictException({ statusCode: 409, code: 'onboarding_required', message: 'Finish onboarding to choose a program and cohort first' });
+      throw conflict('onboarding_required', 'Finish onboarding to choose a program and cohort first');
     }
     if (outcome.status === 'curriculum_not_found') {
-      throw new ConflictException({
-        statusCode: 409,
-        code: 'curriculum_not_found',
-        message: `No curriculum for ${outcome.programCode} cohort ${outcome.cohortYear}`,
-      });
+      throw conflict('curriculum_not_found', `No curriculum for ${outcome.programCode} cohort ${outcome.cohortYear}`);
     }
     return outcome.audit;
   }

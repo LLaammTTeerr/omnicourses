@@ -1,6 +1,6 @@
 import { BadRequestException, PayloadTooLargeException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { AdminErrorDto, conflict } from '../common/api-errors.js';
+import { AdminErrorDto, codedError, conflict } from '../common/api-errors.js';
 
 export class PrerequisiteCycleDto extends AdminErrorDto {
   @ApiProperty({ type: [String], example: ['ZZ101', 'ZZ201', 'ZZ101'], description: 'The cycle, from the edited course back to it: each code requires the next' })
@@ -51,14 +51,14 @@ export class ImportRejectedDto extends AdminErrorDto {
 }
 
 export const prerequisiteCycle = (cycle: string[]) =>
-  new BadRequestException({ statusCode: 400, code: 'prerequisite_cycle', cycle, message: `Prerequisite cycle: ${cycle.join(' → ')}` });
+  codedError(BadRequestException, 400, 'prerequisite_cycle', `Prerequisite cycle: ${cycle.join(' → ')}`, { before: { cycle } });
 
-export const importRejected = (message: string, errors: ImportRowErrorDto[]) => new BadRequestException({ statusCode: 400, code: 'validation_failed', message, errors });
+export const importRejected = (message: string, errors: ImportRowErrorDto[]) => codedError(BadRequestException, 400, 'validation_failed', message, { after: { errors } });
 
-export const payloadTooLarge = (message: string) => new PayloadTooLargeException({ statusCode: 413, code: 'payload_too_large', message });
+export const payloadTooLarge = (message: string) => codedError(PayloadTooLargeException, 413, 'payload_too_large', message);
 
 export const compressedBody = () =>
-  new UnsupportedMediaTypeException({ statusCode: 415, code: 'unsupported_content_encoding', message: 'The import routes do not accept a compressed request body' });
+  codedError(UnsupportedMediaTypeException, 415, 'unsupported_content_encoding', 'The import routes do not accept a compressed request body');
 
 export const referencedItem = (message: string, references: string[]) => conflict('referenced_item', message, { references });
 

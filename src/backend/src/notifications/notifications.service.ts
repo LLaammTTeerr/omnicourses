@@ -1,7 +1,8 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { AcademicCalendarService, type CalendarEventStart } from '../academic-calendar/academic-calendar.service.js';
+import { notFound } from '../common/api-errors.js';
 import { failureKind, failureStack } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { MINUTE_MS, vietnamDate } from '../config/time.js';
@@ -15,7 +16,7 @@ import { DEFAULT_PAGE_SIZE, NotificationDto, NotificationListDto, NotificationsQ
 
 export const READ_FAILURE_LOG_INTERVAL_MS = MINUTE_MS;
 
-export const notificationNotFound = () => new NotFoundException({ statusCode: 404, code: 'not_found', message: 'No notification with this ID' });
+export const notificationNotFound = () => notFound('No notification with this ID');
 
 const INSERT_FOR_EVENT = `
   INSERT INTO "notifications"

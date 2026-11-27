@@ -86,6 +86,7 @@ export const identifierHomes = [
     folders: ['src/backend/src/users/', 'src/backend/src/database/migrations/'],
   },
 ];
+export const codedErrorHomes = ['src/backend/src/common/api-errors.ts', 'src/backend/src/ai/'];
 export const frontendKernel = [
   'account-storage.ts',
   'api.ts',

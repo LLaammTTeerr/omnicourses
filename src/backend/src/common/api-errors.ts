@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, type HttpException, NotFoundException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AdminErrorDto {
@@ -12,9 +12,20 @@ export class AdminErrorDto {
   message!: string | string[];
 }
 
-export const notFound = (message: string) => new NotFoundException({ statusCode: 404, code: 'not_found', message });
+type Fields = Record<string, unknown>;
 
-export const validationFailed = (message: string | string[]) => new BadRequestException({ statusCode: 400, code: 'validation_failed', message });
+export const codedError = <T extends HttpException>(
+  Exception: new (body: object) => T,
+  statusCode: number,
+  code: string,
+  message: string | string[],
+  { before = {}, after = {} }: { before?: Fields; after?: Fields } = {},
+): T => new Exception({ statusCode, code, ...before, message, ...after });
 
-export const conflict = (code: string, message: string, extra: Record<string, unknown> = {}) =>
-  new ConflictException({ statusCode: 409, code, message, ...extra });
+export const notFound = (message: string) => codedError(NotFoundException, 404, 'not_found', message);
+
+export const validationFailed = (message: string | string[]) => codedError(BadRequestException, 400, 'validation_failed', message);
+
+export const conflict = (code: string, message: string, extra: Fields = {}) => codedError(ConflictException, 409, code, message, { after: extra });
+
+export const forbidden = (code: string, message: string, extra: Fields = {}) => codedError(ForbiddenException, 403, code, message, { before: extra });

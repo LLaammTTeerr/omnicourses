@@ -21,6 +21,8 @@ const EDGE_SEPARATOR = ' -> ';
 const MODULE_SUFFIX = '.module.ts';
 const TEST_FILE_PATTERN = /\.(?:spec|browser\.spec|e2e-spec)\.ts$/;
 const TESTING_FOLDER_PATTERN = /(?:^|\/)testing\//;
+const CODED_EXCEPTION_PATTERN = /\bnew\s+\w*Exception\s*\(/g;
+const CODE_PROPERTY_PATTERN = /\bcode\s*:\s*['"`]/;
 const MODULE_SECTION_PATTERN = /^## 4\. [\s\S]*?(?=^## 5\. )/m;
 
 const KERNEL = 'kernel';
@@ -519,6 +521,40 @@ function checkIdentifierHomes(rootDir, backendFiles, layers, addError) {
   }
 }
 
+function argumentsEnd(source, open) {
+  let depth = 0;
+  let i = open;
+  while (i < source.length) {
+    if (QUOTES.has(source[i])) {
+      i = stringEnd(source, i);
+      continue;
+    }
+    if (source[i] === '(') depth++;
+    if (source[i] === ')' && --depth === 0) return i;
+    i++;
+  }
+  return source.length;
+}
+
+function checkCodedErrorHomes(rootDir, backendFiles, layers, addError) {
+  for (const fullPath of backendFiles) {
+    const relPath = toPosix(path.relative(rootDir, fullPath));
+    if (!isProductionFile(relPath) || layers.codedErrorHomes.some((home) => relPath.startsWith(home))) continue;
+    const raw = fs.readFileSync(fullPath, 'utf8');
+    const code = maskComments(raw);
+    for (const match of code.matchAll(CODED_EXCEPTION_PATTERN)) {
+      const open = match.index + match[0].length - 1;
+      if (!CODE_PROPERTY_PATTERN.test(code.slice(open, argumentsEnd(code, open)))) continue;
+      addError(
+        relPath,
+        lineAt(raw, match.index),
+        'coded-error-home',
+        `A coded error body may be built only under ${layers.codedErrorHomes.join(' or ')}: use a helper from common/api-errors.ts, or change ${LAYERS_FILE} on purpose`,
+      );
+    }
+  }
+}
+
 function checkModulesRegistered(rootDir, backendFiles, addError) {
   const moduleFiles = backendFiles
     .map((fullPath) => toPosix(path.relative(rootDir, fullPath)))
@@ -585,6 +621,7 @@ export function lintWorkspace(rootDir = ROOT, layers = defaultLayers) {
   checkVueSfcRules(rootDir, frontendFiles, addError);
   checkBackendImportDirection(rootDir, backendFiles, layers, addError);
   checkIdentifierHomes(rootDir, backendFiles, layers, addError);
+  checkCodedErrorHomes(rootDir, backendFiles, layers, addError);
   const frontendGraph = frontendImports(rootDir, frontendFiles, layers);
   checkFrontendLayers(rootDir, frontendGraph, layers, addError);
   checkFrontendFeatureEdges(rootDir, frontendGraph, layers, addError);
