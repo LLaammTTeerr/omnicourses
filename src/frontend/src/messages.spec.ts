@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { readReference } from './admin/errors.js';
 import type { Lang } from './locale.js';
 import type { PlanIssue } from './plans/api.js';
+import { sourceFiles } from './testing/files.js';
 
 const CATALOGUE_EXPORT = /_MESSAGES$/;
 const LANGS: Lang[] = ['en', 'vi'];
 const CATALOGUES_WHEN_GLOBBED = 16;
 
-const MODULES = import.meta.glob<Record<string, unknown>>('./**/*messages.ts', { eager: true });
+const MODULES: Record<string, unknown>[] = await Promise.all(sourceFiles('messages.ts').map((path) => import(/* @vite-ignore */ path)));
 
-const CATALOGUE_LIST: [string, Record<Lang, unknown>][] = Object.values(MODULES).flatMap((module) =>
+const CATALOGUE_LIST: [string, Record<Lang, unknown>][] = MODULES.flatMap((module) =>
   Object.entries(module)
     .filter(([name]) => CATALOGUE_EXPORT.test(name))
     .map(([name, catalogue]) => [name, catalogue as Record<Lang, unknown>] as [string, Record<Lang, unknown>]),
