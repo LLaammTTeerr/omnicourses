@@ -64,11 +64,9 @@ import PrerequisitesDialog from './PrerequisitesDialog.vue';
 import { describeProblem, type ProblemView } from './problem.js';
 import ProgramDialog from './ProgramDialog.vue';
 import ProblemNote from './ProblemNote.vue';
-import { useAdminAccess } from './access.js';
 import { useProgramPicker } from './store.js';
 import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
-const access = useAdminAccess();
 const locale = useLocale();
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
@@ -86,12 +84,6 @@ const scope = computed<Scope | null>(() =>
   program.value && cohort.value ? { ref: { programId: program.value.id, curriculumId: cohort.value.id }, programCode: program.value.code, cohortYear: cohort.value.cohortYear } : null,
 );
 const onScreen = (of: Scope): boolean => scope.value?.ref.curriculumId === of.ref.curriculumId;
-
-const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
-const listedIds = computed(() => (programList.value ?? []).map((item) => item.id).sort().join());
-watch([grantedIds, () => access.refusal], () => {
-  if (!access.refusal && access.grants && programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void loadPrograms(true);
-});
 
 const curriculum = shallowRef<Curriculum | null>(null);
 const status = ref<'loading' | 'loaded' | 'failed' | 'missing'>('loading');

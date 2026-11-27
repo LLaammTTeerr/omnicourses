@@ -1,5 +1,6 @@
-import { computed, ref, shallowRef } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import { newestOnly } from '../async-load.js';
+import { useAdminAccess } from './access.js';
 import { fetchAdminPrograms, type AdminProgram } from './api.js';
 import { readFailure } from './errors.js';
 
@@ -32,6 +33,13 @@ export function useProgramPicker(what: string, initial: ProgramPick | null = nul
   }
 
   const picked = ref<ProgramPick | null>(initial);
+  const access = useAdminAccess();
+  const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
+  const listedIds = computed(() => (programList.value ?? []).map((item) => item.id).sort().join());
+  watch([grantedIds, () => access.refusal], () => {
+    if (!access.refusal && access.grants && programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void loadPrograms(true);
+  });
+
   const program = computed(() => {
     const list = programList.value ?? [];
     return list.find((item) => item.id === picked.value?.programId) ?? list[0] ?? null;
