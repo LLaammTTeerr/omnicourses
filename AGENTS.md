@@ -24,11 +24,13 @@ Run typecheck, tests and build before every push. Run e2e when you touch the bac
 
 ## Conventions
 
-- **English everywhere**: code, comments, commits, PR descriptions, docs.
+- **English everywhere**: code, commits, PR descriptions, docs.
+- **Code style**: one job per function, short functions, meaningful names, no magic numbers (name a constant), no repeated logic, and no needless splitting across files. **No comments**: the code is the source of truth. A fact the code cannot show goes into a name, a constant, an ADR or a doc.
 - Backend: one Nest module per feature folder (`src/backend/src/<feature>/`), listed in `src/features.ts` (the app and the OpenAPI contract both load that list). The module registers its own entities with `TypeOrmModule.forFeature`. DTOs with `@ApiProperty` so the OpenAPI contract stays complete, relative imports with `.js` suffix (NodeNext). Schema changes via TypeORM migrations, each added to `src/database/migrations/index.ts`; `synchronize` stays `false`. Read settings through the getters in `src/config/env.ts`, not `process.env`. Seed data: export `seed(dataSource, options)` from your feature and call it from `src/database/seed.ts`.
 - `src/backend/openapi.json` is committed: after an API change, run `npm run build && npm run openapi -w src/backend` and commit the result, or a unit test fails.
 - Frontend: `<script setup lang="ts">` SFCs, Pinia for shared state, API calls in `src/frontend/src/api.ts` (or a sibling module), not inside components.
 - Tests sit next to the code as `*.spec.ts`; backend e2e in `src/backend/test/*.e2e-spec.ts`, booting the app and users through `src/backend/test/support/`.
+- Guides (F11) may be drafted or translated with an AI tool. Every portal address, label and step still comes from the school's pages or the portal, checked by a person who records "Last checked".
 
 ## Authentication (how to use it in your module)
 
@@ -105,7 +107,7 @@ Single-context: `GLOSSARY.md` at the root, ADRs in `docs/analysis-and-design/adr
 
 ## Hard rules: never
 
-1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps by training type ([ADR 0012](docs/analysis-and-design/adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically.
+1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps by training type ([ADR 0012](docs/analysis-and-design/adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically. APCS 2024 and 2025 courses have no prerequisites except CS469 before CS470 (Project Lead, 24 November 2026); never load the 2019 summary table or the 2021 course-description booklet as rules. A new academic rule needs an explicit answer from a person.
 2. **Never store a school-portal password or automate a registration** on a student's behalf. Integration with HCMUS is by link and by data the student uploads.
 3. **Never put personal data into AI tools, prompts, fixtures or logs**: no real transcripts, student IDs, names or secrets. Use synthetic data in tests and seeds. The one runtime exception is F8, which may send the signed-in student's pseudonymous record (program, cohort, course codes, grades, terms) after consent, never identity fields (ADR 0003).
 
@@ -121,5 +123,11 @@ Agents have full authority over the branch → PR → merge cycle, under these c
 4. **Merge only when CI is green *and* a human has approved.** Squash merge. **Never use the admin override** (`gh pr merge --admin`, "merge without waiting for requirements"). That authority belongs to the Project Lead personally.
 5. **Production deploys by itself** after CI passes on `main`. Run `gh workflow run deploy.yml --ref main -f environment=production` by hand only in two cases: a human asks for a build tag (add `-f build_tag=B<n>`), or the automatic run was dropped. A manual run must name `environment=production`: the default, `staging`, fails on `main`.
 6. Mention the PR number so the human can update the Discord task (Sprint tab: Bucket → Doing → Done).
+
+GitHub behaviour that trips agents:
+- Any push to an approved PR dismisses the approval. Put a reviewer's optional nits in a follow-up PR.
+- Editing a PR description reruns the `pr-title` and `commit-messages` checks. Wait for them before you merge.
+- Any merge to `main` updates the Version Packages PR and dismisses its approvals. Merge nothing else while you collect them. That PR gets no CI from the bot's push: close and reopen it to run the checks.
+- Run npm as `npx --yes npm@11.21.1` when the machine's own npm is older.
 
 Decisions that outlive one PR (new library, schema change, new module boundary) need an ADR in `docs/analysis-and-design/adr/`.
