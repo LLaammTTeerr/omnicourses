@@ -2,6 +2,7 @@ import { byText, groupBy } from '../common/collections.js';
 import { compareTerms, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { isPassingGrade, toTenths } from './grades.js';
+import type { TranscriptCourseStatus } from './types.js';
 
 export function isCompleted(entry: TranscriptEntry): boolean {
   return entry.result !== 'in_progress';
@@ -70,6 +71,12 @@ export function resolve(code: string, attempts: TranscriptEntry[]): CourseRecord
     inProgress,
     sameTermAttempts,
   };
+}
+
+export function courseStatus(record: CourseRecord): TranscriptCourseStatus {
+  if (record.passed) return 'passed';
+  if (record.inProgress) return 'in_progress';
+  return 'failed';
 }
 
 export function recordAsOf(record: CourseRecord, term: Term): CourseRecord | null {

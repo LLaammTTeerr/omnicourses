@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attemptPasses, courseRecords, recordAsOf } from './attempts.js';
+import { attemptPasses, courseRecords, courseStatus, recordAsOf } from './attempts.js';
 import { graded, term, ungraded } from './testing/fixtures.js';
 
 const one = (...entries: Parameters<typeof courseRecords>[0]) => [...courseRecords(entries).values()][0];
@@ -74,6 +74,15 @@ describe('retakes (Điều 14)', () => {
     expect(recordAsOf(r, term(2024, 1))?.passed).toBe(false);
     expect(recordAsOf(r, term(2024, 2))?.passed).toBe(true);
     expect(recordAsOf(r, term(2023, 3))).toBeNull();
+  });
+
+  it('gives a course passed, in progress or failed status from its record', () => {
+    expect(courseStatus(one(graded('ZZ1', 4, 7)))).toBe('passed');
+    expect(courseStatus(one(graded('ZZ1', 4, 6, term(2024, 1)), ungraded('ZZ1', 4, 'in_progress', term(2025, 1))))).toBe('passed');
+    expect(courseStatus(one(graded('ZZ1', 4, 2, term(2024, 1)), ungraded('ZZ1', 4, 'in_progress', term(2024, 2))))).toBe('in_progress');
+    expect(courseStatus(one(ungraded('ZZ1', 4, 'in_progress')))).toBe('in_progress');
+    expect(courseStatus(one(graded('ZZ1', 4, 4)))).toBe('failed');
+    expect(courseStatus(one(ungraded('ZZ1', 4, 'fail')))).toBe('failed');
   });
 
   it('takes the name from the latest attempt and sorts courses by code', () => {
