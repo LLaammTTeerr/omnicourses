@@ -193,3 +193,6 @@ export async function fetchAudit(): Promise<AuditOutcome> {
     throw e;
   }
 }
+
+export const fetchAuditAsOf = (term: Term) =>
+  requestAsUser<DegreeAudit>('GET', `/users/me/audit?${new URLSearchParams({ asOfYear: String(term.year), asOfNumber: String(term.number) })}`);
