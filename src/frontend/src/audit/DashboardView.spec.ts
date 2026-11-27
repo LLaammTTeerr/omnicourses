@@ -2,17 +2,92 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/store.js';
 import { useLocale } from '../locale.js';
+import type { Plan, PlanIssues } from '../plans/api.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
+import type { TranscriptRow } from '../transcript/api.js';
 import type { DegreeAudit } from './api.js';
 import DashboardView from './DashboardView.vue';
-import { COMBINED, degreeAudit, emptyAudit, GROUP_A } from './testing/fixtures.js';
+import { COMBINED, degreeAudit, GROUP_A, GROUP_C, GROUP_MATH } from './testing/fixtures.js';
 import { AUDIT_MESSAGES } from './messages.js';
+
+const PLAN_ID = '00000000-0000-4000-8000-0000000000c1';
+const INTRO_KEY = 'oc-dashboard-intro';
 
 let wrapper: VueWrapper | undefined;
 
-async function render(answer: unknown = degreeAudit()) {
-  const fetch = mockApi({ 'GET /users/me/audit': answer });
+function dashboardAudit(): DegreeAudit {
+  const base = degreeAudit();
+  return degreeAudit({
+    terms: [
+      { ...base.terms[0]!, failedCourseCodes: ['ZZ202'] },
+      { ...base.terms[0]!, term: { year: 2026, number: 1 }, average: null, accumulatedAverage: null, cumulativeAccumulatedAverage: null, failedCourseCodes: [], inProgressCourseCodes: ['ZZ414'], capViolations: [] },
+    ],
+  });
+}
+
+const transcriptRows: TranscriptRow[] = [
+  { courseCode: 'ZZ201', courseName: 'Học phần thử ZZ201', credits: 4, result: 'graded', grade: 8, term: { year: 2024, number: 1 } },
+  { courseCode: 'ZZ202', courseName: 'Học phần thử ZZ202', credits: 4, result: 'graded', grade: 4.5, term: { year: 2024, number: 1 } },
+  { courseCode: 'ZZ101', courseName: 'Học phần thử ZZ101', credits: 4, result: 'exempt', grade: null, term: { year: 2024, number: 1 } },
+  { courseCode: 'ZZ414', courseName: 'Học phần thử ZZ414', credits: 4, result: 'in_progress', grade: null, term: { year: 2026, number: 1 } },
+];
+
+const plan: Plan = {
+  id: PLAN_ID,
+  name: 'Lộ trình thử',
+  curriculum: { id: '00000000-0000-4000-8000-0000000000d1', code: 'APCS2024', programCode: 'APCS', cohortYear: 2024 },
+  createdAt: '2026-09-01T00:00:00.000Z',
+  updatedAt: '2026-09-02T00:00:00.000Z',
+  terms: [{ term: { year: 2027, number: 1 }, placements: [{ kind: 'course', courseCode: 'ZZ202' }, { kind: 'slot', requirementGroupId: GROUP_C, credits: 4 }] }],
+};
+
+const issues = (violations: number): PlanIssues => ({
+  planId: PLAN_ID,
+  trainingType: 'advanced',
+  terms: [],
+  issues: Array.from({ length: violations }, () => ({
+    code: 'not_offered',
+    kind: 'violation',
+    term: { year: 2027, number: 1 },
+    position: 0,
+    courseCode: 'ZZ202',
+    requirementGroupId: null,
+    combinedMinimumId: null,
+    missingCourseCodes: [],
+    offeredTermNumbers: [2],
+    credits: null,
+    limit: null,
+    citation: 'QĐ 1175/QĐ-KHTN Điều 7.2',
+    message: 'Synthetic issue',
+  })) as PlanIssues['issues'],
+  coverage: {} as PlanIssues['coverage'],
+});
+
+const unread = {
+  id: '00000000-0000-4000-8000-0000000000e1',
+  kind: 'transcript_changed',
+  createdAt: '2026-11-01T00:00:00.000Z',
+  readAt: null,
+  event: null,
+  links: ['audit'],
+};
+
+function routes(audit: unknown, extra: Record<string, unknown> = {}) {
+  return {
+    'GET /users/me/audit': audit,
+    'GET /users/me/transcript': { rows: transcriptRows },
+    'GET /plans': { plans: [{ ...plan, preview: { termCount: 1, courseCount: 1, slotCount: 1, firstTerm: null, lastTerm: null } }] },
+    [`GET /plans/${PLAN_ID}`]: plan,
+    [`GET /plans/${PLAN_ID}/issues`]: issues(2),
+    'GET /notifications': { notifications: [unread], nextBefore: null },
+    'GET /academic-calendar': { events: [{ kind: 'term_end', academicYear: 2027, term: 1, endsOn: '2028-01-20' }] },
+    ...extra,
+  };
+}
+
+async function render(audit: unknown = dashboardAudit(), extra: Record<string, unknown> = {}) {
+  const fetch = mockApi(routes(audit, extra));
   const app = await setup('/dashboard');
   wrapper = mount(DashboardView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
   await flushPromises();
@@ -20,11 +95,13 @@ async function render(answer: unknown = degreeAudit()) {
 }
 
 const text = (w: VueWrapper, test: string) => w.get(`[data-test="${test}"]`).text();
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('DashboardView (F3, UC-03)', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    sessionStorage.setItem(INTRO_KEY, '1');
   });
   afterEach(() => {
     wrapper?.unmount();
@@ -32,107 +109,19 @@ describe('DashboardView (F3, UC-03)', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows graduation status, credits and averages exactly as the API gives them', async () => {
-    const { w, fetch } = await render();
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(text(w, 'who')).toBe('APCS2024 · sinh viên năm 1');
-    expect(text(w, 'graduation')).toContain(AUDIT_MESSAGES.vi.graduationNotYet);
-    expect(text(w, 'graduation')).toContain('Còn 3 điều kiện chưa đạt.');
-    expect(text(w, 'credits')).toContain('8 / 20 TC');
-    expect(text(w, 'credits')).toContain('còn 12 TC');
-    expect(text(w, 'credits')).toContain('4 TC đang học');
-    expect(text(w, 'credits')).toContain('9 TC tích lũy');
-    expect(text(w, 'gpa')).toContain('8');
-    expect(text(w, 'gpa')).toContain('Xếp loại: Giỏi');
-    expect(text(w, 'gpa')).toContain('7,75');
-    expect(w.find('[data-test="no-transcript"]').exists()).toBe(false);
-  });
-
-  it('lists each group in colour order with its progress, and never shows a group without a minimum as 0 / 0', async () => {
-    const { w } = await render();
-    const groups = w.findAll('[data-test="group"]');
-    expect(groups.map((g) => g.get('.nm').text())).toEqual(['Kiến thức Computer Science (A): bắt buộc', 'Kiến thức Math', 'Tự chọn Computer Science (C)']);
-    const [core, math, elective] = groups;
-    expect(core!.classes()).toContain('g-core');
-    expect(core!.text()).toContain('4 / 8 TC');
-    expect(core!.text()).toContain('○ Chưa đạt');
-    expect(core!.text()).toContain('còn 4 TC');
-    expect(core!.get('a').attributes('href')).toBe(`/audit#group-${GROUP_A}`);
-    expect(math!.text()).toContain('✓ Đã đạt');
-    expect(elective!.text()).toContain('Không có tối thiểu riêng · tính trong Kiến thức tự chọn');
-    expect(elective!.text()).not.toMatch(/\/ 0/);
-    expect(elective!.text()).not.toContain('✓');
-    expect(elective!.text()).not.toContain('Chưa đạt');
-    expect(elective!.find('.meter').exists()).toBe(false);
-    expect(text(w, 'combined')).toContain('0 / 12 TC');
-    expect(text(w, 'combined')).toContain('còn 8 TC');
-  });
-
-  it('lists the unmet conditions with their citations, linked to the audit', async () => {
-    const { w } = await render();
-    const items = w.findAll('[data-test="unmet"] li');
-    expect(items.map((li) => li.get('.nm').text())).toEqual([
-      'Kiến thức Computer Science (A): bắt buộc',
-      'Kiến thức tự chọn: tối thiểu 12 TC',
-      'Tích lũy tối thiểu 20 TC của khóa',
-    ]);
-    expect(items[0]!.get('.cite').text()).toBe('QĐ 1175/QĐ-KHTN Điều 17.3.b');
-    expect(items[1]!.get('a').attributes('href')).toBe(`/audit#combined-${COMBINED}`);
-    expect(items[2]!.get('a').attributes('href')).toBe('/audit#graduation');
-  });
-
-  it('shows only the first five unmet conditions, and says how many more there are', async () => {
-    const base = degreeAudit();
-    const unmet = Array.from({ length: 7 }, (_, i) => ({ id: `zz_condition_${i}`, description: `Synthetic condition ${i}`, citation: 'QĐ 1175/QĐ-KHTN Điều 17.3.b', status: 'not_met' as const }));
-    const { w } = await render(degreeAudit({ graduation: { ...base.graduation, unmet } }));
-    expect(w.findAll('[data-test="unmet"] li')).toHaveLength(5);
-    expect(text(w, 'unmet')).toContain('Synthetic condition 0');
-    expect(text(w, 'unmet')).toContain('và 2 điều kiện khác');
-  });
-
-  it('links to the audit, the transcript, the explorer and the plans', async () => {
-    const { w } = await render();
-    expect(w.get('[data-test="link-audit"]').attributes('href')).toBe('/audit');
-    expect(w.get('[data-test="link-transcript"]').attributes('href')).toBe('/transcript');
-    expect(w.get('[data-test="link-explorer"]').attributes('href')).toBe('/explorer');
-    expect(w.get('[data-test="link-planner"]').attributes('href')).toBe('/plans');
-  });
-
-  it('with no transcript, says the figures assume nothing is passed and points to the upload', async () => {
-    const { w } = await render(emptyAudit());
-    const note = w.get('[data-test="no-transcript"]');
-    expect(note.text()).toContain(AUDIT_MESSAGES.vi.noTranscriptTitle);
-    expect(note.get('a').attributes('href')).toBe('/transcript');
-    expect(text(w, 'credits')).toContain('0 / 20 TC');
-    expect(text(w, 'gpa')).toContain('Chưa có');
-    expect(w.findAll('[data-test="group"]')).toHaveLength(3);
-  });
-
-  it('says when the done status still leaves conditions for the school, never calling them met', async () => {
-    const base = degreeAudit();
-    const done: DegreeAudit = degreeAudit({ graduation: { ...base.graduation, status: 'done', unmet: [] } });
-    const { w } = await render(done);
-    expect(text(w, 'graduation')).toContain(AUDIT_MESSAGES.vi.graduationDone);
-    expect(text(w, 'graduation')).toContain('Còn 2 điều kiện OmniCourse không kiểm tra được');
-    expect(text(w, 'unmet')).toContain(AUDIT_MESSAGES.vi.attentionNone);
-  });
-
   it('gives each figure PERF-01 times its own selector, and marks the load as busy', async () => {
-    mockApi({ 'GET /users/me/audit': degreeAudit() });
+    mockApi(routes(dashboardAudit()));
     const app = await setup('/dashboard');
     wrapper = mount(DashboardView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
     expect(wrapper.get('[data-test="loading"]').attributes('aria-busy')).toBe('true');
     await flushPromises();
     const w = wrapper;
     expect(w.find('[aria-busy="true"]').exists()).toBe(false);
-    expect(text(w, 'graduation-status')).toBe(AUDIT_MESSAGES.vi.graduationNotYet);
-    expect(text(w, 'credits-toward-total')).toBe('8 / 20 TC');
-    expect(text(w, 'credits-remaining')).toBe('còn 12 TC');
+    expect(text(w, 'who')).toContain('APCS2024');
+    expect(text(w, 'credits-toward-total')).toBe('8');
+    expect(text(w, 'credits-remaining')).toBe('12');
     expect(text(w, 'credits-in-progress')).toBe('4 TC đang học');
-    expect(text(w, 'credits-accumulated')).toBe('9 TC tích lũy');
-    expect(text(w, 'gpa-accumulated-average')).toBe('8');
-    expect(text(w, 'gpa-classification')).toBe(AUDIT_MESSAGES.vi.classifications.very_good);
-    expect(text(w, 'gpa-average')).toBe('7,75');
+    expect(text(w, 'gpa-accumulated-average')).toBe('8,00/10');
     const groups = w.findAll('[data-test="group"]');
     expect(groups.length).toBeGreaterThan(0);
     for (const g of groups) {
@@ -141,30 +130,164 @@ describe('DashboardView (F3, UC-03)', () => {
     }
   });
 
+  it('shows one row per minimum, with a group that has no minimum of its own only inside its combined row', async () => {
+    const { w } = await render();
+    const rows = Object.fromEntries(w.findAll('[data-test="group"]').map((g) => [g.attributes('data-group'), g]));
+    expect(Object.keys(rows).sort()).toEqual([COMBINED, GROUP_A, GROUP_MATH].sort());
+    expect(rows[GROUP_A]!.get('[data-test="group-credits"]').text()).toBe('4/8');
+    expect(rows[GROUP_MATH]!.get('[data-test="group-credits"]').text()).toBe('4/4');
+    expect(rows[COMBINED]!.get('[data-test="group-credits"]').text()).toBe('0/12');
+    expect(rows[GROUP_A]!.text()).not.toContain('Chưa đạt');
+    expect(rows[GROUP_A]!.get('.db-sec:has(.chip.bad)').text()).toContain('Học kỳ 1, 2027–28');
+    expect(rows[GROUP_A]!.get('.chip.bad').text()).toBe('Học lại');
+    expect(rows[COMBINED]!.text()).toContain('Tự chọn chưa chọn môn');
+    expect(rows[COMBINED]!.text()).toContain('ZZ414');
+  });
+
+  it('opens a group spoiler and keeps it open', async () => {
+    const { w } = await render();
+    const g = w.get(`[data-group="${GROUP_A}"]`);
+    (g.element as HTMLDetailsElement).open = true;
+    await g.trigger('toggle');
+    expect((w.get(`[data-group="${GROUP_A}"]`).element as HTMLDetailsElement).open).toBe(true);
+  });
+
+  it('focuses a group in the donut, the key and the list when an arc is hovered, with a tooltip', async () => {
+    const { w } = await render();
+    const arc = w.get(`.arc[data-g="${GROUP_A}"] path`);
+    await arc.trigger('pointermove');
+    expect(w.get('[data-test="donut"]').classes()).toContain('focus');
+    expect(w.get(`.arc[data-g="${GROUP_A}"]`).classes()).toContain('on');
+    expect(w.get(`.db-key [data-g="${GROUP_A}"]`).classes()).toContain('on');
+    const tip = document.querySelector('.db-tip')!;
+    expect(tip.classList.contains('show')).toBe(true);
+    expect(tip.textContent).toContain('Kiến thức Computer Science (A): bắt buộc');
+    expect(tip.textContent).toContain('4 TC');
+    await wait(150);
+    expect(w.get('.db-center').text()).toContain('/ 8 tín chỉ');
+    await w.get('[data-test="donut"]').trigger('pointerleave');
+    await wait(250);
+    expect(w.get('[data-test="donut"]').classes()).not.toContain('focus');
+    expect(w.get('.db-center').text()).toContain('/ 20 tín chỉ');
+  });
+
+  it('steps back to a past term and shows that term, then returns with the arrow key', async () => {
+    const { w } = await render();
+    expect(text(w, 'term-label')).toBe('HK1 26–27 · nay');
+    expect(w.get('[data-test="next-term"]').attributes('disabled')).toBeDefined();
+    await w.get('[data-test="previous-term"]').trigger('click');
+    expect(w.get('.dashboard-page').classes()).toContain('db-past');
+    expect(text(w, 'term-label')).toBe('HK1 24–25');
+    expect(w.get('#db-term-title').text()).toBe('Học kỳ 1, năm 1 (2024–2025)');
+    expect(text(w, 'term-gpa')).toBe('7,75/10ĐTB học kỳ');
+    expect(text(w, 'attention')).toContain('Tổng kết học kỳ');
+    expect(text(w, 'term-card')).toContain('4,5');
+    expect(text(w, 'credits-toward-total')).toBe('8');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    await flushPromises();
+    expect(w.get('.dashboard-page').classes()).not.toContain('db-past');
+    expect(text(w, 'term-label')).toBe('HK1 26–27 · nay');
+  });
+
+  it('lets the term picker preview with the arrow keys and close with Escape', async () => {
+    const { w } = await render();
+    await w.get('[data-test="term-label"]').trigger('click');
+    await flushPromises();
+    const options = w.findAll('[role="option"]');
+    expect(options.map((o) => o.get('b').text())).toEqual(['HK1 26–27', 'HK1 24–25']);
+    expect(options[0]!.attributes('aria-selected')).toBe('true');
+    expect(options[1]!.text()).toContain('8 TC');
+    expect(document.activeElement).toBe(options[0]!.element);
+    await w.get('#db-tpick').trigger('keydown', { key: 'ArrowDown' });
+    expect(text(w, 'term-label')).toContain('xem trước');
+    expect(w.get('.dashboard-page').classes()).toContain('db-past');
+    await w.get('#db-tpick').trigger('keydown', { key: 'Escape' });
+    expect(w.find('[role="option"]').exists()).toBe(false);
+    expect(w.get('.dashboard-page').classes()).not.toContain('db-past');
+    await w.get('[data-test="term-label"]').trigger('click');
+    await flushPromises();
+    await w.findAll('[role="option"]')[1]!.trigger('click');
+    expect(text(w, 'term-label')).toBe('HK1 24–25');
+    expect(w.find('[data-test="back-to-now"]').exists()).toBe(true);
+  });
+
+  it('previews a past term while a point of the GPA line is hovered, and keeps it on click', async () => {
+    const { w } = await render();
+    const dot = w.get('.db-spark [data-hi="0"]');
+    await dot.trigger('mouseover');
+    expect(w.get('.dashboard-page').classes()).toContain('db-past');
+    await w.get('[data-test="row1"]').trigger('mouseleave');
+    await wait(150);
+    expect(w.get('.dashboard-page').classes()).not.toContain('db-past');
+    await dot.trigger('click');
+    await w.get('[data-test="row1"]').trigger('mouseleave');
+    await wait(150);
+    expect(w.get('.dashboard-page').classes()).toContain('db-past');
+  });
+
+  it('lists what needs attention: plan violations, the language standard, unchosen electives and unread notifications', async () => {
+    const { w } = await render();
+    const items = w.findAll('[data-test="attention"] a');
+    expect(items.map((a) => a.get('b').text())).toEqual([
+      '2 vi phạm trong lộ trình',
+      'Chưa kiểm tra chuẩn ngoại ngữ',
+      '4 TC tự chọn chưa chọn môn',
+      expect.any(String),
+    ]);
+    expect(items[0]!.attributes('href')).toBe(`/plans/${PLAN_ID}`);
+    expect(items[1]!.attributes('href')).toBe('/audit#graduation');
+    expect(items[3]!.attributes('href')).toBe('/audit');
+  });
+
+  it('shows the expected graduation term from the plan with the end month from the calendar', async () => {
+    const { w } = await render();
+    expect(text(w, 'expected-graduation')).toContain('HK1 2027–28');
+    expect(text(w, 'expected-graduation')).toContain('01/2028');
+  });
+
+  it('draws one cell per credit for each term, past, current and planned, then graduation', async () => {
+    const { w } = await render();
+    const terms = w.findAll('[data-test="terms"] .db-term');
+    expect(terms.map((t) => t.get('.lb').text())).toEqual(['HK1 24–25', 'HK1 26–27 · nay', 'HK1 27–28', 'Tốt nghiệp']);
+    expect(terms[0]!.findAll('.cells i')).toHaveLength(12);
+    expect(terms[0]!.findAll('.cells i.fail')).toHaveLength(4);
+    expect(terms[1]!.findAll('.cells i.cur')).toHaveLength(4);
+    expect(terms[2]!.findAll('.cells i.todo')).toHaveLength(8);
+    expect(terms[1]!.classes()).toContain('now');
+  });
+
+  it('still shows the audit figures when the plan, transcript, notifications and calendar cannot load', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render(dashboardAudit(), {
+      'GET /users/me/transcript': status(500),
+      'GET /plans': status(500),
+      'GET /notifications': status(500),
+      'GET /academic-calendar': status(500),
+    });
+    expect(text(w, 'credits-toward-total')).toBe('8');
+    expect(w.findAll('[data-test="group"]')).toHaveLength(3);
+    expect(text(w, 'expected-graduation')).toContain('—');
+  });
+
+  it('plays the intro once per browser session', async () => {
+    sessionStorage.clear();
+    const first = await render();
+    expect(first.w.get('.dashboard-page').classes()).toContain('db-intro');
+    first.w.unmount();
+    wrapper = undefined;
+    vi.restoreAllMocks();
+    const again = await render();
+    expect(again.w.get('.dashboard-page').classes()).not.toContain('db-intro');
+  });
+
   it('switches to English', async () => {
     const { w } = await render();
     useLocale().set('en');
     await flushPromises();
-    expect(text(w, 'credits')).toContain('8 / 20 credits');
-    expect(text(w, 'gpa')).toContain('7.75');
     expect(w.get('h1').text()).toBe('Dashboard');
-  });
-
-  it('writes one condition and one credit in the singular in English', async () => {
-    const base = degreeAudit();
-    const notYet = degreeAudit({ graduation: { ...base.graduation, unmet: base.graduation.unmet.slice(0, 1) }, credits: { ...base.credits, towardTotal: 1, totalRequired: null } });
-    const { w } = await render(notYet);
-    useLocale().set('en');
-    await flushPromises();
-    expect(text(w, 'graduation')).toContain('1 condition not met yet.');
-    expect(text(w, 'credits')).toContain('1 credit');
-    expect(text(w, 'credits')).not.toContain('1 credits');
-    const done = degreeAudit({ graduation: { ...base.graduation, status: 'done', unmet: [], notChecked: base.graduation.notChecked.slice(0, 1) } });
-    wrapper?.unmount();
-    const again = await render(done);
-    useLocale().set('en');
-    await flushPromises();
-    expect(text(again.w, 'graduation')).toContain('1 condition OmniCourse cannot check remains for the training office.');
+    expect(text(w, 'gpa-accumulated-average')).toBe('8.00/10');
+    expect(text(w, 'term-label')).toBe('T1 26–27 · now');
+    expect(w.get('.db-center').text()).toContain('/ 20 credits');
   });
 
   it('sends a student who has not finished onboarding there, with no error', async () => {
@@ -184,11 +307,11 @@ describe('DashboardView (F3, UC-03)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w, fetch } = await render(status(500));
     expect(w.get('[role="alert"]').text()).toContain(AUDIT_MESSAGES.vi.loadFailed);
-    fetch.mockImplementation(async () => Response.json(degreeAudit()));
+    fetch.mockImplementation(async (input) => Response.json(String(input).includes('/users/me/audit') ? dashboardAudit() : {}));
     await w.get('[role="alert"] button').trigger('click');
     await flushPromises();
     expect(w.find('[role="alert"]').exists()).toBe(false);
-    expect(text(w, 'credits')).toContain('8 / 20 TC');
+    expect(text(w, 'credits-toward-total')).toBe('8');
   });
 
   it('on a 401 signs the student out and shows no error of its own', async () => {
