@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
-import { newestOnly, useAsyncLoad } from '../async-load.js';
+import { newestOnly, reportFailure, useAsyncLoad } from '../async-load.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import {
   fetchCurriculum,
@@ -85,7 +85,7 @@ watch(
       standings.value = new Map(courses.map((item) => [item.code, item]));
     } catch (e) {
       if (!isNewest()) return;
-      if (statusOf(e) !== 401) console.error('Loading the curriculum standing for the explorer failed:', e);
+      reportFailure('Loading the curriculum standing for the explorer', e);
     }
   },
   { immediate: true },

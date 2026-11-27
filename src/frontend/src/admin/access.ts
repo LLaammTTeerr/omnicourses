@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, watch } from 'vue';
-import { statusOf } from '../api.js';
+import { reportFailure } from '../async-load.js';
 import { useAccountCache, useAuth } from '../auth/store.js';
 import { fetchOwnGrants, GLOBAL_PERMISSIONS, type PermissionKind, type UserGrants } from './grants.js';
 
@@ -51,7 +51,7 @@ export const useAdminAccess = defineStore('admin-access', () => {
         return loaded;
       },
       (e: unknown) => {
-        if (statusOf(e) !== 401) console.error('Loading the administration grants failed:', e);
+        reportFailure('Loading the administration grants', e);
         if (current()) {
           failedFor.value = userId;
           failures.value++;

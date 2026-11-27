@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
-import { statusOf } from '../api.js';
-import { newestOnly } from '../async-load.js';
+import { newestOnly, reportFailure } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import { fetchUnreadCount } from './api.js';
 
@@ -28,7 +27,7 @@ export const useUnread = defineStore('notifications-unread', () => {
       const { unread } = await fetchUnreadCount();
       if (isNewest()) count.value = unread;
     } catch (e) {
-      if (statusOf(e) !== 401) console.error('Loading the unread notification count failed:', e);
+      reportFailure('Loading the unread notification count', e);
     }
   }
 

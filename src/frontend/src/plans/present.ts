@@ -1,6 +1,5 @@
 import { computed, shallowRef, type Ref } from 'vue';
-import { statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
+import { reportFailure, useAsyncLoad } from '../async-load.js';
 import { fetchAudit, type DegreeAudit } from '../audit/api.js';
 import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour, orderGroups } from '../curriculum/present.js';
@@ -102,7 +101,7 @@ export function usePlanCourses(plan: Ref<Plan | null>) {
   const audit = shallowRef<DegreeAudit | null>(null);
   fetchAudit()
     .then((outcome) => (audit.value = outcome.status === 'ready' ? outcome.audit : null))
-    .catch((e) => statusOf(e) === 401 || console.error('Loading the audit for the planner failed:', e));
+    .catch((e) => reportFailure('Loading the audit for the planner', e));
   const auditCourses = computed(() => audit.value?.groups.flatMap((g) => g.courses) ?? []);
   const passed = computed(() => auditCourses.value.filter((c) => c.status === 'passed'));
   const passedCodes = computed(() => new Set(passed.value.map((c) => c.code)));

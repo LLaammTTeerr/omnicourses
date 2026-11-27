@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { reportFailure } from '../async-load.js';
 import { useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
@@ -33,9 +33,7 @@ async function open(): Promise<void> {
     const made = await createPlan({ name: m.value.defaultPlanName, programCode: answers.program!, cohortYear: answers.cohort! });
     await router.replace({ name: 'plan', params: { id: made.id } });
   } catch (e) {
-    if (statusOf(e) === 401) return;
-    console.error('Opening the planner failed:', e);
-    failed.value = true;
+    if (reportFailure('Opening the planner', e)) failed.value = true;
   }
 }
 onMounted(open);
