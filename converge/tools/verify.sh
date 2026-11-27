@@ -3,6 +3,8 @@
 # steps: typecheck lint unit-be unit-fe build e2e openapi contract browser   (default: all)
 # One full run at a time on this machine (flock), at low priority and with a capped number of test workers,
 # so timing-sensitive tests are not starved and other jobs on the machine are not disturbed.
+# Vitest 5 keeps transformed modules in node_modules/.vitest-cache keyed by file content, so a spec that finds
+# files by import.meta.glob can run with a stale file list; the cache is removed before every run.
 set -u
 WT="$(cd "$1" && pwd)"; DB="$2"; shift 2
 STEPS=("$@"); [ ${#STEPS[@]} -eq 0 ] && STEPS=(typecheck lint unit-be unit-fe build e2e openapi contract browser)
@@ -26,6 +28,7 @@ run() {
   if ( cd "$WT" && eval "$*" ) > "$OUT/$name.log" 2>&1; then echo "PASS $name ($(( $(date +%s) - t0 ))s)"; else echo "FAIL $name ($(( $(date +%s) - t0 ))s) -> $OUT/$name.log"; echo "$name" >> "$OUT/failed"; fi
 }
 rm -f "$OUT/failed"
+rm -rf "$WT/node_modules/.vitest-cache"
 pids=()
 has typecheck && { run typecheck-be "$NPM run typecheck -w src/backend" & pids+=($!); run typecheck-fe "$NPM run typecheck -w src/frontend" & pids+=($!); }
 has lint && { run lint "$NPM run lint" & pids+=($!); }
