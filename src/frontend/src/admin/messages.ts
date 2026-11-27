@@ -1,8 +1,9 @@
 import type { RequirementGroupKind } from '../curriculum/api.js';
 import { COURSE_CODE_LENGTH } from '../course-code.js';
 import { LANGUAGES, type Lang } from '../locale.js';
-import { BYTES_PER_MIB, IMPORT_MAX_BYTES, IMPORT_MAX_RECORDS, SIGNED_OUT_BODY_MAX_KIB, type CalendarEventKind, type PermissionKind } from './api.js';
+import { BYTES_PER_MIB, IMPORT_MAX_BYTES, IMPORT_MAX_RECORDS, SIGNED_OUT_BODY_MAX_KIB, type CalendarEventKind } from './api.js';
 import type { ConflictCode, Reference } from './errors.js';
+import type { PermissionKind } from './grants.js';
 import type { CalendarEventField, CohortField, CourseField, ProgramField } from './forms.js';
 import type { ImportFileType } from './api.js';
 import type { AdminSection } from './sections.js';

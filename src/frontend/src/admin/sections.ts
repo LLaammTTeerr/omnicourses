@@ -1,4 +1,4 @@
-import type { PermissionKind } from './api.js';
+import type { PermissionKind } from './grants.js';
 
 export interface AdminSection {
   id: 'curriculum' | 'calendar' | 'catalog' | 'import' | 'access';

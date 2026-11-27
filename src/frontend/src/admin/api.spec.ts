@@ -10,10 +10,8 @@ import { TRAINING_TYPES } from '../curriculum/api.js';
 import {
   BYTES_PER_MIB,
   CALENDAR_EVENT_KINDS,
-  GLOBAL_PERMISSIONS,
   IMPORT_MAX_BYTES,
   IMPORT_MAX_RECORDS,
-  PERMISSION_KINDS,
   IMPORT_HEADERS,
   type AcademicCalendar,
   type AccessProgram,
@@ -47,20 +45,18 @@ import {
   type AffectedCurriculum,
   type CreateCourseBody,
   type CreateGroupBody,
-  type GlobalGrant,
   type ImpactConfirmationBody,
   type OfferingTerms,
   type PermissionRequiredBody,
   type PrerequisiteCycleBody,
   type Prerequisites,
-  type ProgramGrant,
   type ReferencedItemBody,
   type SetOfferingTermsBody,
   type SetPrerequisitesBody,
   type UpdateCourseBody,
   type UpdateGroupBody,
-  type UserGrants,
 } from './api.js';
+import { fetchOwnGrants, GLOBAL_PERMISSIONS, PERMISSION_KINDS, type GlobalGrant, type ProgramGrant, type UserGrants } from './grants.js';
 
 const error = { statusCode: 'required', code: 'required', message: 'required' } as const;
 const periods = { theoryPeriods: 'optional', labPeriods: 'optional', exercisePeriods: 'optional', projectPeriods: 'optional' } as const;
@@ -258,7 +254,7 @@ const USER = '00000000-0000-4000-8000-000000000002';
 const EVENT = '00000000-0000-4000-8000-000000000e01';
 
 const CALLS: [name: string, call: () => Promise<unknown>, method: string, path: string][] = [
-  ['fetchOwnGrants', () => api.fetchOwnGrants(), 'get', '/api/admin/grants'],
+  ['fetchOwnGrants', () => fetchOwnGrants(), 'get', '/api/admin/grants'],
   ['fetchAdminPrograms', () => api.fetchAdminPrograms(), 'get', '/api/admin/programs'],
   ['createGroup', () => api.createGroup(COHORT, { name: 'Nhóm thử', kind: 'elective' }), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups'],
   ['updateGroup', () => api.updateGroup(COHORT, GROUP, { name: 'Nhóm thử' }), 'patch', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}'],

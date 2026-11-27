@@ -8,7 +8,7 @@ import { useToast } from '../shell/toast.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { chooseOption, optionsOf } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
-import type { UserGrants } from './api.js';
+import type { UserGrants } from './grants.js';
 import { ACCESS_MANAGER, accessPrograms, globalGrant, grants, MANAGER_ID, OTHER_PROGRAM_ID, OTHER_USER_ID, PROGRAM_ID, programGrant } from './testing/fixtures.js';
 import { ADMIN_MESSAGES } from './messages.js';
 

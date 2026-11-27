@@ -7,7 +7,7 @@ import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption, optionsOf } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
-import type { UserGrants } from './api.js';
+import type { UserGrants } from './grants.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { useAdminAccess } from './access.js';
 import {

@@ -2,12 +2,9 @@ import { segment } from '../api.js';
 import { requestAsUser } from '../auth/store.js';
 import { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarEventKind, type CalendarProgram } from '../calendar/api.js';
 import type { Course, RequirementGroupKind, TrainingType } from '../curriculum/api.js';
+import type { GlobalPermission, PermissionKind, UserGrants } from './grants.js';
 
 export { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarEventKind, type CalendarProgram };
-
-import { PERMISSION_KINDS, type GlobalGrant, type GlobalPermission, type PermissionKind, type ProgramGrant, type UserGrants } from './grants.js';
-
-export { fetchOwnGrants, GLOBAL_PERMISSIONS, PERMISSION_KINDS, type GlobalGrant, type GlobalPermission, type PermissionKind, type ProgramGrant, type UserGrants } from './grants.js';
 
 export interface AdminCurriculum {
   id: string;
@@ -302,7 +299,6 @@ const groupPath = (cohort: CohortRef, groupId: string) => `${cohortPath(cohort)}
 const rulePath = (cohort: CohortRef, courseCode: string) => `${cohortPath(cohort)}/courses/${segment(courseCode)}`;
 const userPath = (userId: string) => `/admin/access/users/${segment(userId)}`;
 const calendarEventsPath = (programId: string) => `/admin/programs/${segment(programId)}/calendar-events`;
-
 
 export const fetchAdminPrograms = () => requestAsUser<AdminProgramList>('GET', '/admin/programs');
 
