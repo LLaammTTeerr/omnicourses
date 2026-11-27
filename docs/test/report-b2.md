@@ -27,7 +27,7 @@ What matters so far:
   - **Sharing UI & PDF (`SHARE-01l`):** `SharePlanDialog.vue`, public `/shared/:token` (`SharedPlanView.vue` with `<meta name="robots" content="noindex, nofollow">`), and A4 `@media print` / `window.print()` PDF layout are shipped and covered by `SharePlanDialog.spec.ts` and `SharedPlanView.spec.ts`.
   - **Notifications UI (`NOTIF-01j`):** `/notifications` inbox (`NotificationsView.vue`) and unread badge (`UnreadBadge.vue`) merged in [#204](https://github.com/LLaammTTeerr/omnicourses/pull/204) and [#205](https://github.com/LLaammTTeerr/omnicourses/pull/205).
   - **Backups & deploy rollback (`TC-B2-OPS-01a–c`):** `omnicourse-backup.timer` (`20:00 UTC` / `03:00` ICT, 14 daily dumps), the isolated `omnicourse_rehearsal` restore procedure (`deploy/README.md`), and HTTP **503** `/api/health` (`HealthController`) paired with `omnicourse-deploy` automatic symlink rollback are shipped; host execution runs once `setup.sh` is applied.
-- **Staging candidate execution remains to close B2.** The newly written and newly unblocked cases (`PLAN-01a–f`, `PERF-01a–f`, `TRN-01f–g`, `SHARE-01l`, `NOTIF-01j`, `OPS-01a–c`) plus the retests of `#137`, `#138`, `#170` and `#119` must run on staging once the B2 candidate is deployed.
+- **Staging candidate execution remains to close B2.** `NOTIF-01j` (#204) is already on staging (`1bde552`) and can run now; the remaining newly written and newly unblocked cases (`PLAN-01a–f`, `PERF-01a–f`, `TRN-01f–g`, `SHARE-01l`, `OPS-01a–c`) plus the retests of `#137`, `#138`, `#170` (on `main`) and `#119` run on staging once the B2 candidate is deployed.
 
 By parent check. A parent passes only when all its required detailed outcomes pass ([test plan §5](test-plan.md#5-required-checks)).
 
@@ -71,7 +71,7 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. St
 | Test data | Synthetic `example.com` accounts `b2-s1` to `b2-s14` and `b2-a1` to `b2-a6`, password `correct horse battery` (cases §1); synthetic `ZZ` courses and test groups, removed after each run. No real name, student ID, transcript or secret. |
 | Model calls | None. |
 
-Rate limits: sign-in allows 10 requests a minute from one address (and per email on the current branch). The first attempts at ADM-05b–d (22 November) and ADM-07c–i (25 November) were refused with 429 because the test client sent sign-ins too fast; they were run again, and each results file explains what the refused attempt wrote. Two other first attempts stopped on a fault in the script (TRN-01b, SHARE-01a–j) and are recorded in the results files.
+Rate limits: sign-in allows 10 requests a minute from one address (and per `(IP, email)` pair on the current branch). The first attempts at ADM-05b–d (22 November) and ADM-07c–i (25 November) were refused with 429 because the test client sent sign-ins too fast; they were run again, and each results file explains what the refused attempt wrote. Two other first attempts stopped on a fault in the script (TRN-01b, SHARE-01a–j) and are recorded in the results files.
 
 ## 3. Automated checks
 
