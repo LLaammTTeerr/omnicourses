@@ -6,7 +6,6 @@ import { useAsyncLoad } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, type CurriculumCourse } from '../curriculum/api.js';
-import { courseName as nameIn } from '../curriculum/present.js';
 import { useLocale, useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
@@ -14,9 +13,10 @@ import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import { fetchTranscript, saveTranscript, TERM_NUMBERS, TRANSCRIPT_RESULTS } from './api.js';
 import { TRANSCRIPT_MESSAGES } from './messages.js';
+import { useTranscriptDraft } from './draft.js';
 import type { PastedRow } from './paste.js';
 import PasteTranscriptDialog from './PasteTranscriptDialog.vue';
-import { blankRow, diffRows, fromRow, MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
+import { MAX_ROWS, normalizeCode, problems, toRow, yearChoices, type DraftRow, type Problem } from './rows.js';
 
 const auth = useAuth();
 const onboarding = useOnboarding();
@@ -24,14 +24,8 @@ const locale = useLocale();
 const toast = useToast();
 const m = useMessages(TRANSCRIPT_MESSAGES);
 
-const rows = ref<DraftRow[]>([]);
-const baseline = shallowRef<readonly DraftRow[]>([]);
-let nextKey = 0;
-const savedState = ref('[]');
-const snapshot = (list: readonly DraftRow[]) => JSON.stringify(list.map(({ key: _key, ...fields }) => fields));
-
 const curriculumCourses = shallowRef<ReadonlyMap<string, CurriculumCourse> | null>(null);
-const autoFilled = new WeakMap<DraftRow, { name?: string; credits?: string }>();
+const { rows, dirty, diff, adoptSaved, addBlankRow, remove, cancel, appendPasted, replaceWithPasted, syncAutoFill } = useTranscriptDraft(curriculumCourses);
 
 async function loadCurriculumInBackground(): Promise<void> {
   try {
@@ -55,16 +49,11 @@ void loadCurriculumInBackground();
 
 const { status, reload } = useAsyncLoad('the transcript', async () => {
   const { rows: saved } = await fetchTranscript();
-  const loaded = saved.map((row) => fromRow(row, nextKey++));
-  baseline.value = loaded.map((row) => ({ ...row }));
-  rows.value = loaded;
-  savedState.value = snapshot(rows.value);
+  adoptSaved(saved);
 });
 
 const checked = computed(() => rows.value.map((row) => ({ row, problems: problems(row) })));
 const toFix = computed(() => checked.value.filter((entry) => entry.problems.length > 0).length);
-const dirty = computed(() => snapshot(rows.value) !== savedState.value);
-const diff = computed(() => (dirty.value && baseline.value.length > 0 ? diffRows(baseline.value, rows.value) : null));
 const years = computed(() => yearChoices(rows.value));
 const counts = computed(() => TRANSCRIPT_RESULTS.map((result) => ({ result, n: rows.value.filter((row) => row.result === result).length })));
 const termValue = (row: DraftRow) => `${row.year}-${row.number}`;
@@ -83,40 +72,9 @@ function notInCurriculum(row: DraftRow, rowProblems: readonly Problem[]): boolea
   return !curriculumCourses.value.has(normalizeCode(row.courseCode));
 }
 
-function syncCurriculumAutoFill(row: DraftRow): void {
-  const map = curriculumCourses.value;
-  if (!map) return;
-  const course = map.get(normalizeCode(row.courseCode));
-  const previous = autoFilled.get(row);
-  if (course) {
-    const nextName = nameIn(course, locale.lang);
-    const nextCredits = String(course.credits);
-    const record: { name?: string; credits?: string } = {};
-    if (row.courseName.trim() === '' || (previous?.name !== undefined && row.courseName === previous.name)) {
-      row.courseName = nextName;
-      record.name = nextName;
-    } else if (previous?.name !== undefined) {
-      record.name = previous.name;
-    }
-    if (row.credits.trim() === '' || (previous?.credits !== undefined && row.credits === previous.credits)) {
-      row.credits = nextCredits;
-      record.credits = nextCredits;
-    } else if (previous?.credits !== undefined) {
-      record.credits = previous.credits;
-    }
-    if (record.name !== undefined || record.credits !== undefined) autoFilled.set(row, record);
-    return;
-  }
-  if (previous) {
-    if (previous.name !== undefined && row.courseName === previous.name) row.courseName = '';
-    if (previous.credits !== undefined && row.credits === previous.credits) row.credits = '';
-    autoFilled.delete(row);
-  }
-}
-
 function onCodeBlur(row: DraftRow): void {
   row.courseCode = normalizeCode(row.courseCode);
-  syncCurriculumAutoFill(row);
+  syncAutoFill(row);
 }
 
 const pasteOpen = ref(false);
@@ -125,33 +83,31 @@ const saveError = ref<string | null>(null);
 watch(rows, () => (saveError.value = null), { deep: true });
 
 async function addRow(): Promise<void> {
-  rows.value.push(blankRow(nextKey++, rows.value));
+  const key = addBlankRow();
   await nextTick();
-  document.getElementById(`code-${rows.value.at(-1)!.key}`)?.focus();
+  document.getElementById(`code-${key}`)?.focus();
 }
 
 function appendPastedRows(pasted: readonly PastedRow[]): void {
-  if (rows.value.length + pasted.length > MAX_ROWS) return;
-  rows.value.push(...pasted.map((row) => ({ key: nextKey++, ...row })));
+  if (!appendPasted(pasted)) return;
   pasteOpen.value = false;
   toast.show(m.value.pastedAdded(pasted.length));
 }
 
 function replaceWithPastedRows(pasted: readonly PastedRow[]): void {
-  if (pasted.length > MAX_ROWS) return;
-  rows.value = pasted.map((row) => ({ key: nextKey++, ...row }));
+  if (!replaceWithPasted(pasted)) return;
   pasteOpen.value = false;
   toast.show(m.value.pastedReplaced(pasted.length));
 }
 
 function cancelEdits(): void {
-  rows.value = baseline.value.map((row) => ({ ...row }));
+  cancel();
   saveError.value = null;
 }
 
 async function removeRow(index: number): Promise<void> {
   const name = label(index);
-  rows.value.splice(index, 1);
+  remove(index);
   toast.show(m.value.removed(name));
   await nextTick();
   document.getElementById('add-row')?.focus();
@@ -162,10 +118,7 @@ async function save(): Promise<void> {
   saving.value = true;
   try {
     const { rows: saved } = await saveTranscript(rows.value.map(toRow));
-    const loaded = saved.map((row) => fromRow(row, nextKey++));
-    baseline.value = loaded.map((row) => ({ ...row }));
-    rows.value = loaded;
-    savedState.value = snapshot(rows.value);
+    adoptSaved(saved);
     toast.show(m.value.saved(saved.length));
   } catch (e) {
     const code = statusOf(e);
@@ -276,7 +229,7 @@ usePageTitle(() => m.value.title);
                       :aria-label="m.fieldLabel(m.columns.courseCode, label(i))"
                       :aria-invalid="rowProblems.includes('courseCode') || undefined"
                       :aria-describedby="describedBy(row, rowProblems, 'courseCode')"
-                      @input="syncCurriculumAutoFill(row)"
+                      @input="syncAutoFill(row)"
                       @blur="onCodeBlur(row)"
                     />
                     <span v-if="notInCurriculum(row, rowProblems)" class="chip warn outside-chip" data-test="not-in-curriculum">
