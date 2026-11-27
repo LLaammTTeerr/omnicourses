@@ -40,15 +40,24 @@ function validTermNumber(n: number): n is Term['number'] {
   return (TERM_NUMBERS as readonly number[]).includes(n);
 }
 
-function splitCells(line: string): string[] {
-  if (line.includes('\t')) return line.split('\t');
-  if (line.includes('|')) {
-    const trimmed = line.trim();
-    const inner = trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length >= 2 ? trimmed.slice(1, -1) : line;
-    return inner.split('|');
-  }
-  if (line.includes(';')) return line.split(';');
-  return [line];
+type CellDelimiter = '\t' | '|' | ';' | null;
+
+const occurrences = (line: string, character: string): number => line.split(character).length - 1;
+
+function detectDelimiter(line: string): CellDelimiter {
+  if (line.includes('\t')) return '\t';
+  const pipes = occurrences(line, '|');
+  const semicolons = occurrences(line, ';');
+  if (pipes === 0 && semicolons === 0) return null;
+  return pipes >= semicolons ? '|' : ';';
+}
+
+function splitCells(line: string, delimiter: CellDelimiter): string[] {
+  if (delimiter === null) return [line];
+  if (delimiter !== '|') return line.split(delimiter);
+  const trimmed = line.trim();
+  const inner = trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length >= 2 ? trimmed.slice(1, -1) : line;
+  return inner.split('|');
 }
 
 export function parseTermCell(raw: string): Term | null {
@@ -221,16 +230,14 @@ export function parseTranscriptPaste(raw: string): PasteParseResult {
   const rows: PastedRow[] = [];
   const errors: PasteLineError[] = [];
   const lines = raw.split(/\r?\n/);
-  let seenFirstNonEmpty = false;
+  const firstLine = lines.find((line) => line.trim() !== '');
+  const delimiter = firstLine === undefined ? null : detectDelimiter(firstLine);
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     if (line.trim() === '') continue;
-    const cells = splitCells(line);
-    if (!seenFirstNonEmpty) {
-      seenFirstNonEmpty = true;
-      if (isHeaderLine(line, cells)) continue;
-    }
+    const cells = splitCells(line, delimiter);
+    if (line === firstLine && isHeaderLine(line, cells)) continue;
     const parsed = parseCells(cells);
     if (parsed.ok) rows.push(parsed.row);
     else errors.push({ line: i + 1, text: line, reason: parsed.reason });

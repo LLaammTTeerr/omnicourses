@@ -12,6 +12,7 @@ import { CreateAcademicCalendar1794500000000 } from './1794500000000-create-acad
 import { CreatePlanShares1795564800000 } from './1795564800000-create-plan-shares.js';
 import { CreateNotifications1795575059760 } from './1795575059760-create-notifications.js';
 import { HardenConstraintsAndIndexes1795600000000 } from './1795600000000-harden-constraints-and-indexes.js';
+import { CreateSignInAttempts1795600000001 } from './1795600000001-create-sign-in-attempts.js';
 
 // Imported classes, not a glob: globs break between ts (tests) and compiled js
 // (dist) (ADR 0002). A migration left out of this list never runs.
@@ -30,4 +31,5 @@ export const MIGRATIONS = [
   CreatePlanShares1795564800000,
   CreateNotifications1795575059760,
   HardenConstraintsAndIndexes1795600000000,
+  CreateSignInAttempts1795600000001,
 ];

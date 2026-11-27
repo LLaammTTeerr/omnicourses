@@ -26,6 +26,7 @@ export const MAX_SESSION_LIFETIME_DAYS = 30;
 const MAX_FAILED_SIGN_INS = 10;
 const FAILED_SIGN_IN_WINDOW_MS = MINUTE_MS;
 const SIGN_IN_ATTEMPT_LOCK_NAMESPACE = 11_012_003;
+const SIGN_IN_ATTEMPT_PURGE_BATCH = 100;
 
 export const ARGON2_OPTIONS = {
   algorithm: Algorithm.Argon2id,
@@ -176,7 +177,7 @@ export class AuthService {
         SIGN_IN_ATTEMPT_LOCK_NAMESPACE,
         attemptKey,
       ]);
-      await manager.delete(SignInAttempt, { attemptedAt: LessThanOrEqual(cutoff) });
+      await manager.delete(SignInAttempt, { attemptKey, attemptedAt: LessThanOrEqual(cutoff) });
       const activeCount = await manager.count(SignInAttempt, {
         where: { attemptKey, attemptedAt: MoreThan(cutoff) },
       });
@@ -188,6 +189,17 @@ export class AuthService {
       }
       await manager.insert(SignInAttempt, { attemptKey, attemptedAt: now });
     });
+    await this.purgeExpiredSignInAttempts(cutoff);
+  }
+
+  private async purgeExpiredSignInAttempts(cutoff: Date): Promise<void> {
+    await this.signInAttempts.query(
+      `DELETE FROM "sign_in_attempts" WHERE "id" IN (
+        SELECT "id" FROM "sign_in_attempts" WHERE "attempted_at" <= $1
+        LIMIT $2 FOR UPDATE SKIP LOCKED
+      )`,
+      [cutoff, SIGN_IN_ATTEMPT_PURGE_BATCH],
+    );
   }
 }
 

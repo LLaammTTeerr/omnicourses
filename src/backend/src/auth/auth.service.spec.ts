@@ -18,6 +18,18 @@ function makeSignInAttemptRepo() {
   return {
     rows,
     queries,
+    query: vi.fn(async (sql: string, params: unknown[]) => {
+      queries.push([sql, params]);
+      const [cutoff, limit] = params as [Date, number];
+      let purged = 0;
+      for (let i = rows.length - 1; i >= 0 && purged < limit; i--) {
+        if (rows[i]!.attemptedAt.getTime() <= cutoff.getTime()) {
+          rows.splice(i, 1);
+          purged++;
+        }
+      }
+      return [];
+    }),
     delete: vi.fn(async ({ attemptKey }: { attemptKey?: string }) => {
       for (let i = rows.length - 1; i >= 0; i--) {
         if (rows[i]!.attemptKey === attemptKey) rows.splice(i, 1);
@@ -43,12 +55,11 @@ function makeSignInAttemptRepo() {
             }
             return [];
           }),
-          delete: vi.fn(async (_entity: unknown, criteria: { attemptedAt?: { _value: Date } }) => {
-            const cutoff = criteria.attemptedAt?._value;
-            if (cutoff) {
-              for (let i = rows.length - 1; i >= 0; i--) {
-                if (rows[i]!.attemptedAt.getTime() <= cutoff.getTime()) rows.splice(i, 1);
-              }
+          delete: vi.fn(async (_entity: unknown, criteria: { attemptKey: string; attemptedAt: { _value: Date } }) => {
+            const cutoff = criteria.attemptedAt._value;
+            for (let i = rows.length - 1; i >= 0; i--) {
+              const row = rows[i]!;
+              if (row.attemptKey === criteria.attemptKey && row.attemptedAt.getTime() <= cutoff.getTime()) rows.splice(i, 1);
             }
             return { affected: 1 };
           }),
@@ -369,6 +380,24 @@ describe('AuthService', () => {
         secondInstance.signIn({ email: 'student@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10'),
       ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
       expect(SignInAttempt.name).toBe('SignInAttempt');
+    });
+
+    it('prunes only its own key under the advisory lock and purges other expired keys in small SKIP LOCKED batches outside it', async () => {
+      const passwordHash = await hash('correct horse battery', ARGON2_OPTIONS);
+      users.findByEmailForAuth.mockResolvedValue(makeUser({ passwordHash }));
+      const expired = new Date(currentNow.getTime() - 2 * MINUTE_MS);
+      for (let i = 0; i < 150; i++) {
+        signInAttempts.rows.push({ attemptKey: signInAttemptKey('198.51.100.7', `old-${i}@example.com`), attemptedAt: expired });
+      }
+
+      await expect(
+        service.signIn({ email: 'student@example.com', password: 'wrong password!' }, 'vitest', '203.0.113.10'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      const purge = signInAttempts.queries.find(([sql]) => sql.includes('SKIP LOCKED'));
+      expect(purge?.[0]).toContain('LIMIT $2');
+      expect(purge?.[1]).toEqual([new Date(currentNow.getTime() - MINUTE_MS), 100]);
+      expect(signInAttempts.rows.filter((row) => row.attemptedAt.getTime() === expired.getTime())).toHaveLength(50);
     });
   });
 

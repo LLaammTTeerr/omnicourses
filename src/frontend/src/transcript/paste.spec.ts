@@ -133,6 +133,29 @@ describe('parseTranscriptPaste (F2 deterministic paste parser, ADR 0007)', () =>
     });
   });
 
+  it('splits every line on the delimiter of the first line, so a course name containing | or ; does not shift the columns', () => {
+    const semicolonWithPipeName = [
+      '2024;1;ZZ401;Seminar | Research Methods;3;8',
+      '2024;2;ZZ402;Software Testing;4;7',
+    ].join('\n');
+    expect(parseTranscriptPaste(semicolonWithPipeName)).toEqual({
+      rows: [
+        { year: 2024, number: 1, courseCode: 'ZZ401', courseName: 'Seminar | Research Methods', credits: '3', result: 'graded', grade: '8.0' },
+        { year: 2024, number: 2, courseCode: 'ZZ402', courseName: 'Software Testing', credits: '4', result: 'graded', grade: '7.0' },
+      ],
+      errors: [],
+    });
+
+    const pipeWithSemicolonName = [
+      '| 2024 | 1 | ZZ403 | Ethics; Law and Society | 2 | 9 |',
+      '| 2024 | 1 | ZZ404 | Databases | 4 | 6.5 |',
+    ].join('\n');
+    expect(parseTranscriptPaste(pipeWithSemicolonName).rows.map((row) => row.courseName)).toEqual([
+      'Ethics; Law and Society',
+      'Databases',
+    ]);
+  });
+
   it('never drops or guesses malformed lines, reporting 1-based line numbers and specific reasons', () => {
     const text = [
       'Term\tCourse Code\tCourse Name\tCredits\tResult',
