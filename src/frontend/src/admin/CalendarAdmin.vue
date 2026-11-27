@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue';
-import { newestOnly } from '../async-load.js';
+import { computed, ref, watch } from 'vue';
 import { EVENT_KIND_GROUP, eventTitle, otherEventTitle, spanIn } from '../calendar/present.js';
 import ExternalLink from '../components/ExternalLink.vue';
 import SelectMenu from '../components/SelectMenu.vue';
@@ -12,12 +11,10 @@ import {
   deleteCalendarEvent,
   fetchProgramCalendar,
   updateCalendarEvent,
-  type AcademicCalendar,
   type CalendarEvent,
 } from './api.js';
 import CalendarEventDialog from './CalendarEventDialog.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
-import { readFailure } from './errors.js';
 import {
   CALENDAR_EVENT_FIELDS,
   calendarEventChanges,
@@ -27,6 +24,7 @@ import {
 } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
+import { useSavedDocument } from './saved-document.js';
 import { useProgramPicker } from './store.js';
 import { useAdminDialog, type WriteOutcome } from './write.js';
 
@@ -43,52 +41,13 @@ interface Scope {
   programCode: string;
 }
 const scope = computed<Scope | null>(() => (program.value ? { programId: program.value.id, programCode: program.value.code } : null));
-const onScreen = (of: Scope): boolean => scope.value?.programId === of.programId;
-
-const calendar = shallowRef<AcademicCalendar | null>(null);
-const status = ref<'loading' | 'loaded' | 'failed'>('loading');
-const stale = ref(false);
-const newest = newestOnly();
-
-async function readSaved(of: Scope): Promise<AcademicCalendar> {
-  const isNewest = onScreen(of) ? newest.start() : null;
-  const fresh = await fetchProgramCalendar(of.programCode);
-  if (isNewest?.() && onScreen(of)) {
-    calendar.value = fresh;
-    status.value = 'loaded';
-    stale.value = false;
-  }
-  return fresh;
-}
-
-async function load(): Promise<void> {
-  calendar.value = null;
-  stale.value = false;
-  status.value = 'loading';
-  const of = scope.value;
-  if (!of) return;
-  const isNewest = newest.upcoming();
-  try {
-    await readSaved(of);
-  } catch (e) {
-    if (!isNewest()) return;
-    if (readFailure(e).kind === 'signed_out') return;
-    console.error('Loading the academic calendar to administer failed:', e);
-    status.value = 'failed';
-  }
-}
-
-async function showSaved(): Promise<void> {
-  const of = scope.value;
-  if (!of) return;
-  try {
-    await readSaved(of);
-  } catch (e) {
-    if (readFailure(e).kind === 'signed_out') return;
-    console.error('Reloading the academic calendar failed:', e);
-    stale.value = true;
-  }
-}
+const { document: calendar, status, stale, staleness, onScreen, readSaved, load, showSaved } = useSavedDocument({
+  scope,
+  scopeKey: (of: Scope) => of.programId,
+  read: (of: Scope) => fetchProgramCalendar(of.programCode),
+  what: 'the academic calendar',
+  reloadId: 'calendar-reload',
+});
 
 const events = computed(() => calendar.value?.events ?? []);
 const titleIn = (event: CalendarEvent) => eventTitle(event, locale.lang);
@@ -100,7 +59,7 @@ const notice = ref(false);
 const asking = useAdminDialog<Ask & { at: Scope }>({
   fallback: 'add-event',
   notice,
-  stale: { reloadId: 'calendar-reload', is: () => stale.value, mark: () => (stale.value = true) },
+  stale: staleness,
 });
 const { dialog, writes: dialogWrites, busy, cancel, close } = asking;
 
