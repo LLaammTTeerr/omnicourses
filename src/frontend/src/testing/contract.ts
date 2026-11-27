@@ -54,3 +54,17 @@ export function contractEnum(schema: string, property: string): (string | number
 export function contractMaxItems(schema: string, property: string): number | undefined {
   return schemas[schema].properties[property].maxItems;
 }
+
+export function contractMaxLength(schema: string, property: string): number | undefined {
+  return schemas[schema].properties[property].maxLength;
+}
+
+export function contractMinimum(schema: string, property: string): number | undefined {
+  return schemas[schema].properties[property].minimum;
+}
+
+export function contractMaximum(schema: string, property: string): number | undefined {
+  return schemas[schema].properties[property].maximum;
+}
+
+export const contractSchemaNames = (): string[] => Object.keys(schemas);
