@@ -53,6 +53,7 @@ Not stored, with the reason:
 | **Averages are exact**: Σ tenths × credits, divided once and rounded half up to two decimals. The 4-point average converts each course grade first, and is shown for reference only. Classification uses the cohort's table. Year of study uses the accumulated credits. | Điều 11.2 (4-point and letter "chỉ mang tính tham khảo"), 15.2.b, 15.3 |
 | **When the transcript and the catalog give different credits** for a course, the audit counts the smaller number and warns (`credits_differ`). *Judgment call*: two sources that disagree never add credits. | — |
 
+- 2026-11-28: Classification applies only to the cumulative accumulated average, never to a single term. The dashboard prototype's per-term classification is not built. Lâm confirmed this on the team Discord on 27 November 2026 (answer 3A; [ADR 0019](0019-student-id-and-class-name.md)).
 - 2026-11-26: The classification codes stand for the bands of Điều 15.2.b: `excellent` Xuất sắc, `very_good` Giỏi, `good` Khá, `fairly_good` Trung bình khá, `average` Trung bình, `weak` Yếu and `poor` Kém. Only cohorts up to 2020 have the Trung bình khá band.
 
 ### Coverage and graduation (amended 10 November 2026)

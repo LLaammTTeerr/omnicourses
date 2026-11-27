@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, IsNull, LessThanOrEqual, MoreThan, Or, Repository } from 'typeorm';
+import { nullIfBlank, sentFields, trimmedOrNull } from '../common/field-validators.js';
 import { User } from './user.entity.js';
+
+const PROFILE_FIELDS = ['studentId', 'className'] as const;
+
+export type ProfileFields = Partial<Pick<User, (typeof PROFILE_FIELDS)[number]>>;
 
 @Injectable()
 export class UsersService {
@@ -13,6 +18,12 @@ export class UsersService {
 
   create(fields: Pick<User, 'email' | 'passwordHash' | 'displayName' | 'consentAt'>): Promise<User> {
     return this.users.save(this.users.create({ ...fields, email: fields.email.toLowerCase() }));
+  }
+
+  async updateProfile(userId: string, body: ProfileFields): Promise<User> {
+    const patch = sentFields(PROFILE_FIELDS, body, { studentId: nullIfBlank, className: trimmedOrNull }) as ProfileFields;
+    if (Object.keys(patch).length) await this.users.update(userId, patch);
+    return this.users.findOneByOrFail({ id: userId });
   }
 
   async markDeletionRequestedWithin(manager: EntityManager, userId: string, at: Date, purgeAfter: Date): Promise<void> {

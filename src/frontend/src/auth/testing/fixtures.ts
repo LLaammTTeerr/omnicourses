@@ -5,6 +5,8 @@ export function user(overrides: Partial<User> = {}): User {
     id: '00000000-0000-4000-8000-000000000001',
     email: 'zz-student@example.com',
     displayName: 'Sinh viên thử',
+    studentId: null,
+    className: null,
     emailVerifiedAt: null,
     createdAt: '2026-10-01T08:00:00.000Z',
     ...overrides,

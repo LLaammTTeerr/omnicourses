@@ -22,6 +22,14 @@ export const NoNullCharacter = ValidateBy({
   },
 });
 
+export const NoControlCharacter = ValidateBy({
+  name: 'noControlCharacter',
+  validator: {
+    validate: (value: unknown) => typeof value === 'string' && !/\p{Cc}/u.test(value),
+    defaultMessage: buildMessage((each) => `${each}$property must not contain a control character`),
+  },
+});
+
 export const trimString = ({ value }: TransformFnParams): unknown => (typeof value === 'string' ? value.trim() : value);
 
 export const trimmedOrNull = (value: string | null | undefined): string | null => (value?.trim() ? value.trim() : null);

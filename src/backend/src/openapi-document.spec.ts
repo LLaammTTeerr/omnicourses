@@ -21,7 +21,7 @@ describe('openapi.json', () => {
     expect(Object.keys(document.paths)).toEqual(sorted(Object.keys(document.paths)));
     const schemas = Object.keys(document.components?.schemas ?? {});
     expect(schemas).toEqual(sorted(schemas));
-    expect(Object.keys(document.paths['/api/users/me'] ?? {})).toEqual(['get', 'delete']);
+    expect(Object.keys(document.paths['/api/users/me'] ?? {})).toEqual(['get', 'delete', 'patch']);
   });
 
   it('documents only 200 and 401 for the two administration reads every signed-in user may call (#160)', async () => {
