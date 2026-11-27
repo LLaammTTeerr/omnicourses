@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, type ComputedRef } from 'vue';
 import { request, send, statusOf, type RequestOptions } from '../api.js';
-import { forgetLastPlan } from '../plans/last-plan.js';
-import { forgetLocks } from '../plans/lock.js';
+import { forgetAccountStorage } from '../account-storage.js';
 import * as api from './api.js';
 import type { AuthResult, SignInBody, SignUpBody, User } from './api.js';
 
@@ -14,11 +13,6 @@ function readToken(): string | null {
   } catch {
     return null;
   }
-}
-
-function forgetAccountData(): void {
-  forgetLastPlan();
-  forgetLocks();
 }
 
 function writeToken(token: string | null): void {
@@ -45,7 +39,7 @@ export const useAuth = defineStore('auth', () => {
     token.value = null;
     user.value = null;
     writeToken(null);
-    forgetAccountData();
+    forgetAccountStorage();
   }
 
   function start(): Promise<void> {
@@ -58,7 +52,7 @@ export const useAuth = defineStore('auth', () => {
       } catch (e) {
         if (statusOf(e) === 401) {
           writeToken(null);
-          forgetAccountData();
+          forgetAccountStorage();
         } else {
           started = null;
           console.error('Restoring the session failed:', e);

@@ -1,4 +1,6 @@
-const KEY = 'oc-plan-locks';
+import { ACCOUNT_STORAGE_KEYS } from '../account-storage.js';
+
+const KEY = ACCOUNT_STORAGE_KEYS.planLocks;
 
 function read(): string[] {
   try {
@@ -10,12 +12,6 @@ function read(): string[] {
 }
 
 export const isLocked = (planId: string): boolean => read().includes(planId);
-
-export function forgetLocks(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {}
-}
 
 export function setLocked(planId: string, locked: boolean): void {
   const ids = read().filter((id) => id !== planId);
