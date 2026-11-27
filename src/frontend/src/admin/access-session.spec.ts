@@ -1,20 +1,19 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent } from 'vue';
+import { defineComponent, h } from 'vue';
 import { useAuth } from '../auth/store.js';
 import { mockApi } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import { useAdminAccess, useGrantsFollowSession } from './access.js';
+import AppSidebar from '../shell/AppSidebar.vue';
+import { MAX_FAILED_LOADS, useGrantsFollowSession } from './access.js';
 import { EVERY_GRANT, NO_GRANTS } from './testing/fixtures.js';
-
-const MAX_FAILED_LOADS = 3;
 
 let wrapper: VueWrapper | undefined;
 
 const Host = defineComponent({
   setup() {
     useGrantsFollowSession();
-    return () => null;
+    return () => h(AppSidebar);
   },
 });
 
@@ -39,12 +38,12 @@ describe('following the session for the administration grants', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     let down = true;
     const { router } = await render('/guides', true, { 'GET /admin/grants': () => (down ? new Response(null, { status: 503 }) : Response.json(EVERY_GRANT)) });
-    const access = useAdminAccess();
-    expect(access.any).toBe(false);
+    const entry = () => wrapper!.find('[data-test="nav-admin"]');
+    expect(entry().exists()).toBe(false);
     down = false;
     await router.push('/privacy');
     await flushPromises();
-    expect(access.any).toBe(true);
+    expect(entry().attributes('href')).toBe('/admin');
     const before = grantReads();
     await router.push('/guides');
     await flushPromises();

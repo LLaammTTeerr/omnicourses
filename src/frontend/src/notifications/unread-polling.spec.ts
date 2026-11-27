@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent } from 'vue';
-import { useAuth } from '../auth/store.js';
+import { defineComponent, h } from 'vue';
+import { RouterView } from 'vue-router';
 import { authResult } from '../auth/testing/fixtures.js';
 import { mockApi } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
@@ -12,7 +12,7 @@ let wrapper: VueWrapper | undefined;
 const Host = defineComponent({
   setup() {
     useUnreadPolling();
-    return () => null;
+    return () => h(RouterView);
   },
 });
 
@@ -61,8 +61,9 @@ describe('polling the unread count', () => {
 
   it('reads the count once when the student signs in and is sent on to the page they asked for', async () => {
     const { router } = await render('/sign-in?redirect=/guides', false, { 'POST /auth/sign-in': authResult() });
-    await useAuth().signIn({ email: 'zz-student@example.com', password: 'zz-password' });
-    await router.push('/guides');
+    await wrapper!.get('#sign-in-email').setValue('zz-student@example.com');
+    await wrapper!.get('#sign-in-password').setValue('zz-password');
+    await wrapper!.get('form').trigger('submit');
     await flushPromises();
     expect(router.currentRoute.value.path).toBe('/guides');
     expect(unreadReads()).toBe(1);
