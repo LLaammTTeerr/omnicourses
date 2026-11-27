@@ -41,6 +41,13 @@ describe('TranscriptService.replace', () => {
     expect(listener).toHaveBeenCalledWith(tx, { userId: USER, wasEmpty: false, changed: true });
   });
 
+  it('locks the student row FOR NO KEY UPDATE before it writes', async () => {
+    const { service, tx } = setup([]);
+    await service.replace(USER, [entry]);
+    expect(tx.query.mock.calls[0]).toEqual(['SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [USER]]);
+    expect(tx.query.mock.invocationCallOrder[0]).toBeLessThan(tx.delete.mock.invocationCallOrder[0]);
+  });
+
   it('reads no rows again once the last listener is removed', async () => {
     const { service, tx } = setup([]);
     service.onSaved(async () => {})();

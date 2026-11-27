@@ -405,6 +405,18 @@ describe('Access-manager bootstrap and grant lifecycle (e2e)', () => {
     expect(await globalGrants(lead)).toEqual([{ permission: 'access_manager', granted_by: null }]);
   });
 
+  it('refuses to grant anything to an account waiting for deletion or to no account', async () => {
+    await schema.dataSource.query(`DELETE FROM global_admin_grants`);
+    const lead = await newUser();
+    const leaving = await newUser();
+    await bootstrapAccessManager(schema.dataSource, lead);
+    await requestDeletion(leaving);
+    await expect(access.grantGlobal(lead, leaving, 'catalog_maintainer')).rejects.toMatchObject({ response: { code: 'recipient_deletion_pending' } });
+    await expect(access.grantProgram(lead, leaving, randomUUID())).rejects.toMatchObject({ response: { code: 'recipient_deletion_pending' } });
+    await expect(access.grantGlobal(lead, randomUUID(), 'catalog_maintainer')).rejects.toMatchObject({ response: { code: 'not_found' } });
+    expect(await globalGrants(leaving)).toEqual([]);
+  });
+
   it("keeps a grant when its granter is purged, and deletes it with its recipient's account", async () => {
     await schema.dataSource.query(`DELETE FROM global_admin_grants`);
     const granter = await newUser();
