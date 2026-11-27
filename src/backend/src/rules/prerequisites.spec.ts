@@ -49,6 +49,11 @@ describe('the courses that satisfy a prerequisite (ADR 0013, 27 November 2026)',
     expect(passedOrAssumedBefore(records, planned, term(2024, 2))).toEqual(new Set(['ZZ101', 'ZZ106', 'ZZ107']));
     expect(passedOrAssumedBefore(courseRecords([graded('ZZ102', 4, 3, term(2023, 3))]), planned, term(2024, 2))).toEqual(new Set(['ZZ102', 'ZZ106', 'ZZ107']));
   });
+
+  it('still assumes a course planned earlier when the transcript completes it in the checked term', () => {
+    const passedInCheckedTerm = courseRecords([graded('ZZ102', 4, 3, term(2024, 2))]);
+    expect(passedOrAssumedBefore(passedInCheckedTerm, new Map([['ZZ102', term(2024, 1)]]), term(2024, 2))).toEqual(new Set(['ZZ102']));
+  });
 });
 
 describe('offering terms', () => {

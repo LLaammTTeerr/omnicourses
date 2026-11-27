@@ -117,11 +117,6 @@ const slotLoad = (rules: CurriculumRules, slot: Placement): LoadCourse => ({
   excludedFromMinimum: !slotCountsTowardTotal(rules, slot.requirementGroupId),
 });
 
-function recordBeforeTile(plan: PlanContext, tile: CourseTile): CourseRecord | null {
-  const record = plan.records.get(tile.courseCode);
-  return record ? recordBefore(record, tile.term) : null;
-}
-
 interface CourseFacts {
   credits: number | undefined;
   first: Term | undefined;
@@ -133,7 +128,7 @@ function courseIssues(plan: PlanContext, tile: CourseTile, facts: CourseFacts): 
     facts.credits === undefined ? creditsNotRecorded(tile) : null,
     facts.first ? placedTwice(tile, facts.first) : null,
     plan.placed.has(tile.courseCode) ? null : notInCurriculum(plan.rules, tile),
-    repeatIssue(recordBeforeTile(plan, tile), tile),
+    repeatIssue(plan.records.has(tile.courseCode) ? recordBefore(plan.records.get(tile.courseCode)!, tile.term) : null, tile),
     prerequisiteIssue(plan.rules, tile, facts.passed),
     offeringIssue(plan.rules, tile),
   ].filter((i): i is PlanIssue => i !== null);

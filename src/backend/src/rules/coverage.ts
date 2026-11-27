@@ -1,7 +1,7 @@
 import { byText } from '../common/collections.js';
 import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.js';
 import { courseStatus, type CourseRecord } from './attempts.js';
-import type { CombinedMinimumCoverage, CourseCoverage, CourseStatus, GroupCoverage } from './types.js';
+import type { CombinedMinimumCoverage, CourseCoverage, GroupCoverage, TranscriptCourseStatus } from './types.js';
 
 export interface CountedLink {
   group: CurriculumRuleGroup;
@@ -41,7 +41,7 @@ function tally(group: CurriculumRuleGroup, records: ReadonlyMap<string, CourseRe
   let inProgress = 0;
   const courses = group.courses.map((course): CourseCoverage => {
     const record = records.get(course.code);
-    const own: CourseStatus = record ? courseStatus(record) : 'not_taken';
+    const own: TranscriptCourseStatus | 'not_taken' = record ? courseStatus(record) : 'not_taken';
     const countedIn = placed.get(course.code)!.group.id;
     const here = countedIn === group.id;
     if (here && course.countsTowardTotal && record) {
