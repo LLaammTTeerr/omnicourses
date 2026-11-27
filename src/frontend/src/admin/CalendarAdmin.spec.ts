@@ -149,7 +149,7 @@ describe('CalendarAdmin (F10): school calendar administration for a program admi
       kind: 'registration',
       startsOn: '2026-08-20',
       endsOn: '2026-08-25',
-      title: '  Đăng ký học phần HK1 ',
+      title: 'Đăng ký học phần HK1',
       titleEn: 'Term 1 registration',
       sourceUrl: 'https://example.edu.vn/hk1',
       notes: 'Theo thông báo phòng đào tạo',

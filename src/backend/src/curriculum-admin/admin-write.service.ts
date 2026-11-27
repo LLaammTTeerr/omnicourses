@@ -23,9 +23,17 @@ export const AdminErrors = ({ notFound = true }: { notFound?: boolean } = {}) =>
   );
 
 export const ADMIN_WRITE_LOCK = 11_012_001;
+export const ACCESS_MANAGER_LOCK = 11_012_002;
 
-export async function lockAdminWrite(em: EntityManager, userIds: string[]): Promise<{ id: string; deletionRequestedAt: Date | null }[]> {
+export async function lockAdminWrite(
+  em: EntityManager,
+  userIds: string[],
+  options: { lockAccessManagers?: boolean } = {},
+): Promise<{ id: string; deletionRequestedAt: Date | null }[]> {
   await em.query('SELECT pg_advisory_xact_lock($1)', [ADMIN_WRITE_LOCK]);
+  if (options.lockAccessManagers) {
+    await em.query('SELECT pg_advisory_xact_lock($1)', [ACCESS_MANAGER_LOCK]);
+  }
   const ids = [...new Set(userIds)].sort();
   return em.query(`SELECT "id", "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = ANY($1::uuid[]) ORDER BY "id" FOR NO KEY UPDATE`, [ids]);
 }
@@ -44,13 +52,24 @@ export class AdminWriteService {
     return this.runLocked(callerId, [], need, write);
   }
 
-  runForRecipient<T>(callerId: string, recipientId: string, write: (em: EntityManager) => Promise<T>): Promise<T> {
-    return this.runLocked(callerId, [recipientId], { permission: 'access_manager' }, write);
+  runForRecipient<T>(
+    callerId: string,
+    recipientId: string,
+    write: (em: EntityManager) => Promise<T>,
+    options: { lockAccessManagers?: boolean } = {},
+  ): Promise<T> {
+    return this.runLocked(callerId, [recipientId], { permission: 'access_manager' }, write, options);
   }
 
-  private async runLocked<T>(callerId: string, recipientIds: string[], need: Need, write: (em: EntityManager) => Promise<T>): Promise<T> {
+  private async runLocked<T>(
+    callerId: string,
+    recipientIds: string[],
+    need: Need,
+    write: (em: EntityManager) => Promise<T>,
+    options: { lockAccessManagers?: boolean } = {},
+  ): Promise<T> {
     return this.db.transaction(async (em) => {
-      const users = await lockAdminWrite(em, [callerId, ...recipientIds]);
+      const users = await lockAdminWrite(em, [callerId, ...recipientIds], options);
       await assertMay(em, users.find((u) => u.id === callerId), callerId, need);
       return write(em);
     });

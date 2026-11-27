@@ -19,12 +19,13 @@ import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { Session, USER_AGENT_MAX_LENGTH } from './session.entity.js';
+import { SignInAttempt } from './sign-in-attempt.entity.js';
 
 const SESSION_TOKEN_BYTES = 32;
 export const MAX_SESSION_LIFETIME_DAYS = 30;
 const MAX_FAILED_SIGN_INS = 10;
 const FAILED_SIGN_IN_WINDOW_MS = MINUTE_MS;
-const MAX_TRACKED_SIGN_IN_KEYS = 10_000;
+const SIGN_IN_ATTEMPT_LOCK_NAMESPACE = 11_012_003;
 
 export const ARGON2_OPTIONS = {
   algorithm: Algorithm.Argon2id,
@@ -37,13 +38,16 @@ const hashPassword = (password: string): Promise<string> => hash(password, ARGON
 
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
+export const signInAttemptKey = (clientIp: string | undefined, email: string): string =>
+  hashToken(`${clientIp?.trim() || 'unknown'}\u0000${email.trim().toLowerCase()}`);
+
 @Injectable()
 export class AuthService {
   private readonly dummyHash = hashPassword('omnicourse-timing-equalizer');
-  private readonly signInAttempts = new Map<string, number[]>();
 
   constructor(
     @InjectRepository(Session) private readonly sessions: Repository<Session>,
+    @InjectRepository(SignInAttempt) private readonly signInAttempts: Repository<SignInAttempt>,
     private readonly users: UsersService,
     private readonly clock: Clock,
   ) {}
@@ -68,9 +72,8 @@ export class AuthService {
 
   async signIn(dto: SignInDto, userAgent?: string, clientIp?: string): Promise<AuthResultDto> {
     const now = this.clock.now();
-    const nowMs = now.getTime();
-    const attemptKey = `${clientIp?.trim() || 'unknown'}\u0000${dto.email.trim().toLowerCase()}`;
-    this.reserveSignInAttempt(attemptKey, nowMs);
+    const attemptKey = signInAttemptKey(clientIp, dto.email);
+    await this.reserveSignInAttempt(attemptKey, now);
 
     const user = await this.users.findByEmailForAuth(dto.email);
     const valid = user?.passwordHash
@@ -83,7 +86,7 @@ export class AuthService {
     if (accountRestored && !(await this.users.cancelDeletion(user.id, now))) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    this.signInAttempts.delete(attemptKey);
+    await this.signInAttempts.delete({ attemptKey });
     return { ...(await this.issue(user, userAgent, now)), accountRestored };
   }
 
@@ -166,36 +169,25 @@ export class AuthService {
     return { token, expiresAt, user: UserDto.from(user) };
   }
 
-  private reserveSignInAttempt(attemptKey: string, nowMs: number): void {
-    this.pruneSignInAttempts(nowMs);
-    const cutoff = nowMs - FAILED_SIGN_IN_WINDOW_MS;
-    const active = (this.signInAttempts.get(attemptKey) ?? []).filter((t) => t > cutoff);
-    if (active.length >= MAX_FAILED_SIGN_INS) {
-      throw new HttpException(
-        'Too many sign-in attempts for this account; try again in a minute',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-    if (!this.signInAttempts.has(attemptKey) && this.signInAttempts.size >= MAX_TRACKED_SIGN_IN_KEYS) {
-      throw new HttpException(
-        'Too many sign-in attempts; try again in a minute',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-    active.push(nowMs);
-    this.signInAttempts.set(attemptKey, active);
-  }
-
-  private pruneSignInAttempts(nowMs: number): void {
-    const cutoff = nowMs - FAILED_SIGN_IN_WINDOW_MS;
-    for (const [key, timestamps] of this.signInAttempts) {
-      const active = timestamps.filter((t) => t > cutoff);
-      if (active.length === 0) {
-        this.signInAttempts.delete(key);
-      } else if (active.length !== timestamps.length) {
-        this.signInAttempts.set(key, active);
+  private async reserveSignInAttempt(attemptKey: string, now: Date): Promise<void> {
+    const cutoff = new Date(now.getTime() - FAILED_SIGN_IN_WINDOW_MS);
+    await this.signInAttempts.manager.transaction(async (manager) => {
+      await manager.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [
+        SIGN_IN_ATTEMPT_LOCK_NAMESPACE,
+        attemptKey,
+      ]);
+      await manager.delete(SignInAttempt, { attemptedAt: LessThanOrEqual(cutoff) });
+      const activeCount = await manager.count(SignInAttempt, {
+        where: { attemptKey, attemptedAt: MoreThan(cutoff) },
+      });
+      if (activeCount >= MAX_FAILED_SIGN_INS) {
+        throw new HttpException(
+          'Too many sign-in attempts for this account; try again in a minute',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
       }
-    }
+      await manager.insert(SignInAttempt, { attemptKey, attemptedAt: now });
+    });
   }
 }
 

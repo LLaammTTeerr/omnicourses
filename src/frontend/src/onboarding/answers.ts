@@ -108,7 +108,7 @@ export function useAnswerForm(onLoaded: (answers: Onboarding) => void = () => {}
   const { programs, choices, cohorts, programName } = useProgramChoices(program);
   const status = computed<'loading' | 'loaded' | 'failed'>(() => {
     if (answersLoad.status.value === 'loading' || programs.status.value === 'loading') return 'loading';
-    if (answersLoad.status.value === 'failed') return 'failed';
+    if (answersLoad.status.value === 'failed' || programs.status.value === 'failed') return 'failed';
     return 'loaded';
   });
   async function reload(): Promise<void> {

@@ -11,11 +11,11 @@ describe('OpenRouterModelClient', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it.each([
-    [apiError(400), 'The AI provider failed', false],
+    [apiError(400), 'The AI provider failed', true],
     [apiError(401), 'AI is not configured', false],
     [apiError(403), 'AI is not configured', false],
     [apiError(402), 'AI credit is used up', false],
-    [apiError(404), 'The AI provider failed', false],
+    [apiError(404), 'The AI provider failed', true],
     [apiError(429), 'The AI provider is busy, try again shortly', false],
     [apiError(500), 'The AI provider failed', true],
     [new OpenAI.APIConnectionTimeoutError(), 'The AI provider timed out', true],

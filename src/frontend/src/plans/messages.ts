@@ -51,6 +51,8 @@ interface PlannerMessages {
   saving: string;
   savingWait: string;
   notSaved: string;
+  signedOutNotSaved: string;
+  saveSessionEnded: string;
   saveFailed: string;
   saveRefused: (details: string) => string;
   checking: string;
@@ -219,6 +221,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     saving: 'Đang lưu…',
     savingWait: 'Đang lưu lộ trình, vui lòng đợi giây lát.',
     notSaved: 'Chưa lưu',
+    signedOutNotSaved: 'Hết phiên · chưa lưu',
+    saveSessionEnded: 'Phiên đăng nhập đã kết thúc — thay đổi vừa rồi chưa được lưu. Hãy đăng nhập lại.',
     saveFailed: 'Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất.',
     saveRefused: (details) => `Máy chủ không nhận thay đổi này (${details}). Kế hoạch đã trở về lần lưu gần nhất.`,
     checking: 'Đang kiểm tra…',
@@ -418,6 +422,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     saving: 'Saving…',
     savingWait: 'Saving your plan — please wait a moment.',
     notSaved: 'Not saved',
+    signedOutNotSaved: 'Session expired · not saved',
+    saveSessionEnded: 'Your session has ended — your last change was not saved. Please sign in again.',
     saveFailed: 'The change could not be saved. The plan is back to its last saved state.',
     saveRefused: (details) => `The server refused this change (${details}). The plan is back to its last saved state.`,
     checking: 'Checking…',

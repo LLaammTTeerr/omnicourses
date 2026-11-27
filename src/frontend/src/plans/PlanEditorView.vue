@@ -443,7 +443,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
     </header>
 
     <p v-if="loaded.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="loaded.status.value === 'failed'" class="callout bad" role="alert">
+    <div v-else-if="loaded.status.value === 'failed' && auth.signedIn && statusOf(loaded.error.value) !== 401" class="callout bad" role="alert">
       <Icon name="alert" />
       <div v-if="statusOf(loaded.error.value) === 404">
         <p>{{ m.notFound }}</p>
@@ -502,7 +502,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
               </div>
             </div>
             <p v-if="curriculum.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-            <div v-else-if="curriculum.status.value === 'failed'" class="callout warn small" role="alert">
+            <div v-else-if="curriculum.status.value === 'failed' && auth.signedIn && statusOf(curriculum.error.value) !== 401" class="callout warn small" role="alert">
               <Icon name="alert" size="sm" />
               <div>
                 <p>{{ statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.curriculumFailed }}</p>

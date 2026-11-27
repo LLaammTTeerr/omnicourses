@@ -75,9 +75,10 @@ describe('AccountService', () => {
     await expect(service.requestDeletion(user, 'correct horse battery')).rejects.toThrow('db down');
   });
 
-  it('acquires ADMIN_WRITE_LOCK inside the transaction before marking deletion so revokeGlobal cannot race to 0 active access managers', async () => {
+  it('acquires ACCESS_MANAGER_LOCK (not ADMIN_WRITE_LOCK) before marking deletion so curriculum imports never block account deletion', async () => {
     await service.requestDeletion(user, 'correct horse battery');
-    expect(tx.query).toHaveBeenCalledWith('SELECT pg_advisory_xact_lock($1)', [11_012_001]);
+    expect(tx.query).toHaveBeenCalledWith('SELECT pg_advisory_xact_lock($1)', [11_012_002]);
+    expect(tx.query).not.toHaveBeenCalledWith('SELECT pg_advisory_xact_lock($1)', [11_012_001]);
     expect(tx.query.mock.invocationCallOrder[0]).toBeLessThan(users.markDeletionRequestedWithin.mock.invocationCallOrder[0]!);
   });
 

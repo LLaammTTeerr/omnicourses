@@ -51,10 +51,14 @@ describe('HardenConstraintsAndIndexes1795600000000', () => {
       'idx_onboarding_answers_program_code',
       'idx_academic_calendar_starts_on_kind',
       'idx_notifications_unread',
+      'idx_sign_in_attempts_key_time',
+      'idx_sign_in_attempts_time',
     ]) {
       expect(joinedUp).toContain(`CREATE INDEX IF NOT EXISTS "${indexName}"`);
       expect(downSql.join('\n')).toContain(`DROP INDEX IF EXISTS "${indexName}"`);
     }
+    expect(joinedUp).toContain('CREATE TABLE IF NOT EXISTS "sign_in_attempts"');
+    expect(downSql.join('\n')).toContain('DROP TABLE IF EXISTS "sign_in_attempts"');
     expect(downSql.join('\n')).toContain('DROP TRIGGER IF EXISTS "trg_curriculums_delete_group_rules"');
     expect(downSql.join('\n')).toContain('ON DELETE CASCADE');
   });

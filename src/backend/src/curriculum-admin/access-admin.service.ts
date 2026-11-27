@@ -13,7 +13,7 @@ class BootstrapRefused extends Error {}
 
 export async function bootstrapAccessManager(db: DataSource, userId: string): Promise<void> {
   await db.transaction(async (em) => {
-    const [user] = await lockAdminWrite(em, [userId]);
+    const [user] = await lockAdminWrite(em, [userId], { lockAccessManagers: true });
     if (!user) throw new BootstrapRefused(`No account has the ID ${userId}`);
     if (user.deletionRequestedAt) throw new BootstrapRefused('That account is waiting for deletion');
     if ((await activeAccessManagers(em)) > 0) {
@@ -85,13 +85,18 @@ export class AccessAdminService {
   }
 
   revokeGlobal(callerId: string, userId: string, permission: GlobalPermission): Promise<UserGrantsDto> {
-    return this.writes.runForRecipient(callerId, userId, async (em) => {
-      await assertAccountExists(em, userId);
-      if (permission === 'access_manager' && (await activeAccessManagers(em, userId)) === 0) {
-        throw conflict('last_access_manager', 'This is the last active access manager; grant the role to someone else first');
-      }
-      await em.query('DELETE FROM "global_admin_grants" WHERE "user_id" = $1 AND "permission" = $2', [userId, permission]);
-      return userGrants(em, userId);
-    });
+    return this.writes.runForRecipient(
+      callerId,
+      userId,
+      async (em) => {
+        await assertAccountExists(em, userId);
+        if (permission === 'access_manager' && (await activeAccessManagers(em, userId)) === 0) {
+          throw conflict('last_access_manager', 'This is the last active access manager; grant the role to someone else first');
+        }
+        await em.query('DELETE FROM "global_admin_grants" WHERE "user_id" = $1 AND "permission" = $2', [userId, permission]);
+        return userGrants(em, userId);
+      },
+      { lockAccessManagers: permission === 'access_manager' },
+    );
   }
 }

@@ -16,7 +16,7 @@ export function curriculumStanding(rules: CurriculumRules, entries: readonly Tra
   const records = courseRecords(entries);
   const satisfied = new Set<string>();
   for (const record of records.values()) {
-    if (record.passed || record.inProgress) satisfied.add(record.code);
+    if (record.passed) satisfied.add(record.code);
   }
 
   const codes = [...new Set(rules.groups.flatMap((group) => group.courses.map((course) => course.code)))].sort(byText);

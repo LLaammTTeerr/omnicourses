@@ -196,12 +196,16 @@ describe('the program and cohort forms (UC-11 A1, A2): what is typed, and nothin
       kind: 'registration',
       startsOn: '2026-09-01',
       endsOn: '2026-09-05',
-      title: ' Đăng ký HK1 ',
+      title: 'Đăng ký HK1',
       titleEn: 'Term 1 registration',
       sourceUrl: 'https://example.edu.vn/reg',
       notes: null,
     });
     expect(calendarEventChanges(REGISTRATION, calendarEventValues(REGISTRATION))).toEqual({});
+    expect(calendarEventChanges(REGISTRATION, { ...calendarEventValues(REGISTRATION), title: `  ${REGISTRATION.title}  ` })).toEqual({});
+    expect(calendarEventChanges(REGISTRATION, { ...calendarEventValues(REGISTRATION), title: '  Đăng ký HK2 mới  ' })).toEqual({
+      title: 'Đăng ký HK2 mới',
+    });
     const shortened = { ...calendarEventValues(REGISTRATION), term: '' as const, endsOn: '', notes: ' ' };
     expect(calendarEventChanges(REGISTRATION, shortened)).toEqual({ term: null, endsOn: '2026-11-10', notes: null });
     expect(calendarEventMatches({ ...REGISTRATION, term: null, endsOn: '2026-11-10', notes: null }, shortened)).toBe(true);

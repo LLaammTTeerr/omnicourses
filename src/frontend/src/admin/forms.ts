@@ -238,7 +238,7 @@ export function newCalendarEventBody(values: CalendarEventValues): Entered<Creat
     kind: values.kind || null,
     startsOn: values.startsOn.trim(),
     ...(endsOn !== '' && { endsOn }),
-    title: values.title,
+    title: values.title.trim(),
     titleEn: blankToNull(values.titleEn),
     sourceUrl: blankToNull(values.sourceUrl),
     notes: blankToNull(values.notes),
@@ -257,7 +257,8 @@ export function calendarEventChanges(saved: CalendarEvent, values: CalendarEvent
   if (startsOn !== saved.startsOn) body.startsOn = startsOn;
   const endsOn = values.endsOn.trim() || startsOn;
   if (endsOn !== saved.endsOn) body.endsOn = endsOn;
-  if (values.title.trim() !== saved.title) body.title = values.title;
+  const title = values.title.trim();
+  if (title !== saved.title) body.title = title;
   if (blankToNull(values.titleEn) !== saved.titleEn) body.titleEn = blankToNull(values.titleEn);
   if (blankToNull(values.sourceUrl) !== saved.sourceUrl) body.sourceUrl = blankToNull(values.sourceUrl);
   if (blankToNull(values.notes) !== saved.notes) body.notes = blankToNull(values.notes);

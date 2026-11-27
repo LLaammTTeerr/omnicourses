@@ -43,9 +43,22 @@ export class HardenConstraintsAndIndexes1795600000000 implements MigrationInterf
     await q.query(`CREATE INDEX IF NOT EXISTS "idx_onboarding_answers_program_code" ON "onboarding_answers" ("program_code")`);
     await q.query(`CREATE INDEX IF NOT EXISTS "idx_academic_calendar_starts_on_kind" ON "academic_calendar" ("starts_on", "kind")`);
     await q.query(`CREATE INDEX IF NOT EXISTS "idx_notifications_unread" ON "notifications" ("user_id") WHERE "read_at" IS NULL`);
+    await q.query(`
+      CREATE TABLE IF NOT EXISTS "sign_in_attempts" (
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+        "attempt_key" character(64) NOT NULL,
+        "attempted_at" TIMESTAMPTZ NOT NULL,
+        CONSTRAINT "PK_sign_in_attempts" PRIMARY KEY ("id")
+      )
+    `);
+    await q.query(`CREATE INDEX IF NOT EXISTS "idx_sign_in_attempts_key_time" ON "sign_in_attempts" ("attempt_key", "attempted_at")`);
+    await q.query(`CREATE INDEX IF NOT EXISTS "idx_sign_in_attempts_time" ON "sign_in_attempts" ("attempted_at")`);
   }
 
   async down(q: QueryRunner): Promise<void> {
+    await q.query(`DROP INDEX IF EXISTS "idx_sign_in_attempts_time"`);
+    await q.query(`DROP INDEX IF EXISTS "idx_sign_in_attempts_key_time"`);
+    await q.query(`DROP TABLE IF EXISTS "sign_in_attempts"`);
     await q.query(`DROP INDEX IF EXISTS "idx_notifications_unread"`);
     await q.query(`DROP INDEX IF EXISTS "idx_academic_calendar_starts_on_kind"`);
     await q.query(`DROP INDEX IF EXISTS "idx_onboarding_answers_program_code"`);

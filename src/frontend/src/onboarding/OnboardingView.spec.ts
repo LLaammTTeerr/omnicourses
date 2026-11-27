@@ -143,10 +143,20 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     expect(w.get('[data-test="later"]').attributes('href')).toBe('/');
   });
 
-  it('still offers APCS when the program list cannot be loaded', async () => {
+  it('shows an error and retries when the program list fails to load even if saved answers loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { w } = await render(NOT_STARTED, { 'GET /programs': status(500) });
-    expect(w.get('[data-test="program-APCS"]').text()).toContain('APCS');
+    let failPrograms = true;
+    const { w, fetch } = await render(NOT_STARTED, {
+      'GET /programs': () => (failPrograms ? status(500)() : Response.json({ programs: PROGRAMS })),
+    });
+    expect(w.find('form').exists()).toBe(false);
+    expect(w.get('[role="alert"]').text()).toContain(ONBOARDING_MESSAGES.vi.loadFailed);
+
+    failPrograms = false;
+    await w.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+    expect(w.get('[data-test="program-APCS"]').text()).toContain('Chương trình Tiên tiến thử');
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/programs'))).toHaveLength(2);
   });
 
   it('waits for the program list before showing the wizard, and retries both loads after a failure', async () => {

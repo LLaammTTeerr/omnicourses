@@ -58,7 +58,6 @@ export function toAiUnavailable(error: unknown, signal?: AbortSignal): AiUnavail
     if (error.status === 401 || error.status === 403) return new AiUnavailableError(AI_REASONS.notConfigured, { billed: false });
     if (error.status === 402) return new AiUnavailableError(AI_REASONS.creditUsedUp, { billed: false });
     if (error.status === 429) return new AiUnavailableError(AI_REASONS.busy, { billed: false });
-    if (error.status === 400 || error.status === 404) return new AiUnavailableError(AI_REASONS.providerFailed, { billed: false });
     return new AiUnavailableError(AI_REASONS.providerFailed);
   }
   logger.warn(`OpenRouter error: ${failureKind(error)}`);

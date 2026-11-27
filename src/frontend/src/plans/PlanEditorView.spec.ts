@@ -2,6 +2,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RouterView } from 'vue-router';
 import { useAuth } from '../auth/store.js';
+import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
@@ -1095,14 +1096,35 @@ describe('PlanEditorView (F5, UC-05)', () => {
   });
 
   describe('save reconciliation, navigation guards, term cap and ARIA isolation', () => {
-    it('marks saveState as failed ("Chưa lưu"), never "Đã lưu", when saving fails with 401 (#137)', async () => {
+    it('marks saveState as session-expired ("Hết phiên · chưa lưu"), warns via toast, and shows neither save-error nor any dead Retry button on 401 (#137)', async () => {
       const { w } = await render({ routes: { [`PUT /plans/${PLAN_ID}/placements`]: status(401) } });
       await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
       await flushPromises();
       expect(useAuth().signedIn).toBe(false);
-      expect(w.get('[data-test="save-state"]').text()).toBe('Chưa lưu');
+      expect(w.get('[data-test="save-state"]').text()).toBe('Hết phiên · chưa lưu');
       expect(w.find('[data-test="save-error"]').exists()).toBe(false);
+      expect(w.find('[data-test="issues-failed"]').exists()).toBe(false);
+      expect(useToast().message).toBe('Phiên đăng nhập đã kết thúc — thay đổi vừa rồi chưa được lưu. Hãy đăng nhập lại.');
       expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ101 ZZ102', 'HK2 2026–2027:']);
+      wrapper!.unmount();
+
+      const afterPreview401 = await render({
+        routes: {
+          [`POST /plans/${PLAN_ID}/issues/drops`]: status(401),
+        },
+      });
+      await press(tile(afterPreview401.w, 'ZZ101'));
+      await hover(row(afterPreview401.w, '2026-2'));
+      await flushPromises();
+      expect(useAuth().signedIn).toBe(false);
+      expect(row(afterPreview401.w, '2026-2').find('[data-test="drop-reason"]').exists()).toBe(false);
+      await release();
+      await flushPromises();
+      expect(afterPreview401.w.get('[data-test="save-state"]').text()).toBe('Hết phiên · chưa lưu');
+      expect(afterPreview401.w.find('[data-test="save-error"]').exists()).toBe(false);
+      expect(afterPreview401.w.find('[data-test="issues-failed"]').exists()).toBe(false);
+      expect(useToast().message).toBe('Phiên đăng nhập đã kết thúc — thay đổi vừa rồi chưa được lưu. Hãy đăng nhập lại.');
+      expect(rowCodes(afterPreview401.w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ101 ZZ102', 'HK2 2026–2027:']);
     });
 
     it('reconciles a lost save response via fetchPlan when a network error or 5xx occurs after the server committed (#138)', async () => {

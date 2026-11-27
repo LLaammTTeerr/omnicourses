@@ -11,7 +11,7 @@ import { PLANNER_MESSAGES } from './messages.js';
 const props = defineProps<{
   attached: AttachedIssues | null;
   fresh: boolean;
-  saveState: 'saved' | 'saving' | 'failed';
+  saveState: 'saved' | 'saving' | 'failed' | 'signed_out';
 }>();
 const m = useMessages(PLANNER_MESSAGES);
 
@@ -47,9 +47,14 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
         <span aria-hidden="true"><b class="num">{{ g.credits }}</b><template v-if="g.requiredCredits !== null">/{{ g.requiredCredits }}</template></span>
       </li>
     </ul>
-    <span class="chip" :class="{ bad: saveState === 'failed', ok: saveState === 'saved' }" role="status" data-test="save-state">
-      <Icon :name="saveState === 'failed' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
-      {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : m.notSaved }}
+    <span
+      class="chip"
+      :class="{ bad: saveState === 'failed', warn: saveState === 'signed_out', ok: saveState === 'saved' }"
+      role="status"
+      data-test="save-state"
+    >
+      <Icon :name="saveState === 'failed' || saveState === 'signed_out' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
+      {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : saveState === 'signed_out' ? m.signedOutNotSaved : m.notSaved }}
     </span>
   </section>
 </template>

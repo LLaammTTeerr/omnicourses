@@ -6,8 +6,72 @@ import { Clock } from '../config/clock.js';
 import { DAY_MS, MINUTE_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
-import { ARGON2_OPTIONS, AuthService, hashToken, MAX_SESSION_LIFETIME_DAYS } from './auth.service.js';
+import { ARGON2_OPTIONS, AuthService, hashToken, MAX_SESSION_LIFETIME_DAYS, signInAttemptKey } from './auth.service.js';
 import { Session } from './session.entity.js';
+import { SignInAttempt } from './sign-in-attempt.entity.js';
+
+function makeSignInAttemptRepo() {
+  const rows: { attemptKey: string; attemptedAt: Date }[] = [];
+  const locks = new Map<string, Promise<void>>();
+  const queries: [string, unknown[]][] = [];
+
+  return {
+    rows,
+    queries,
+    delete: vi.fn(async ({ attemptKey }: { attemptKey?: string }) => {
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (rows[i]!.attemptKey === attemptKey) rows.splice(i, 1);
+      }
+      return { affected: 1 };
+    }),
+    manager: {
+      transaction: vi.fn(async <T>(work: (em: unknown) => Promise<T>): Promise<T> => {
+        let lockedKey: string | null = null;
+        let releaseLock = null as (() => void) | null;
+        const em = {
+          query: vi.fn(async (sql: string, params: unknown[]) => {
+            queries.push([sql, params]);
+            if (sql.includes('pg_advisory_xact_lock') && typeof params[1] === 'string' && !lockedKey) {
+              lockedKey = params[1];
+              const prev = locks.get(lockedKey) ?? Promise.resolve();
+              const gate = new Promise<void>((resolve) => {
+                releaseLock = resolve;
+              });
+              const tail = prev.then(() => gate);
+              locks.set(lockedKey, tail);
+              await prev;
+            }
+            return [];
+          }),
+          delete: vi.fn(async (_entity: unknown, criteria: { attemptedAt?: { _value: Date } }) => {
+            const cutoff = criteria.attemptedAt?._value;
+            if (cutoff) {
+              for (let i = rows.length - 1; i >= 0; i--) {
+                if (rows[i]!.attemptedAt.getTime() <= cutoff.getTime()) rows.splice(i, 1);
+              }
+            }
+            return { affected: 1 };
+          }),
+          count: vi.fn(async (_entity: unknown, options: { where: { attemptKey: string; attemptedAt: { _value: Date } } }) => {
+            const { attemptKey, attemptedAt } = options.where;
+            return rows.filter(
+              (r) => r.attemptKey === attemptKey && r.attemptedAt.getTime() > attemptedAt._value.getTime(),
+            ).length;
+          }),
+          insert: vi.fn(async (_entity: unknown, row: { attemptKey: string; attemptedAt: Date }) => {
+            rows.push({ attemptKey: row.attemptKey, attemptedAt: new Date(row.attemptedAt) });
+            return { identifiers: [{ id: '1' }] };
+          }),
+        };
+        try {
+          return await work(em);
+        } finally {
+          releaseLock?.();
+        }
+      }),
+    },
+  };
+}
 
 
 function makeUser(overrides: Partial<User> = {}): User {
@@ -46,6 +110,7 @@ describe('AuthService', () => {
     find: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
+  let signInAttempts: ReturnType<typeof makeSignInAttemptRepo>;
   let users: {
     findByEmail: ReturnType<typeof vi.fn>;
     findByEmailForAuth: ReturnType<typeof vi.fn>;
@@ -68,6 +133,7 @@ describe('AuthService', () => {
       find: vi.fn(async () => []),
       delete: vi.fn(async () => ({ affected: 0 })),
     };
+    signInAttempts = makeSignInAttemptRepo();
     users = {
       findByEmail: vi.fn(async () => null),
       findByEmailForAuth: vi.fn(async () => null),
@@ -75,7 +141,12 @@ describe('AuthService', () => {
       create: vi.fn(async (f: Partial<User>) => makeUser(f)),
       cancelDeletion: vi.fn(async () => true),
     };
-    service = new AuthService(sessions as never, users as unknown as UsersService, clock);
+    service = new AuthService(
+      sessions as never,
+      signInAttempts as unknown as never,
+      users as unknown as UsersService,
+      clock,
+    );
   });
 
   describe('signUp', () => {
@@ -138,9 +209,17 @@ describe('AuthService', () => {
     const issuedFor = async (ttlDays: string): Promise<number> => {
       vi.stubEnv('SESSION_TTL_DAYS', ttlDays);
       const issuedAt = new Date('2026-11-26T03:00:00Z');
-      const { expiresAt } = await new AuthService(sessions as never, users as unknown as UsersService, { now: () => new Date(issuedAt) } as Clock).signUp(
-        { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
-      );
+      const { expiresAt } = await new AuthService(
+        sessions as never,
+        signInAttempts as unknown as never,
+        users as unknown as UsersService,
+        { now: () => new Date(issuedAt) } as Clock,
+      ).signUp({
+        email: 'student@example.com',
+        password: 'correct horse battery',
+        displayName: 'Test Student',
+        acceptedTerms: true,
+      });
       return expiresAt.getTime() - issuedAt.getTime();
     };
 
@@ -251,6 +330,45 @@ describe('AuthService', () => {
           service.signIn({ email: 'student@example.com', password: 'wrong password!' }, 'vitest', '203.0.113.10'),
         ).rejects.toBeInstanceOf(UnauthorizedException);
       }
+    });
+
+    it('shares attempt counts across server instances via PostgreSQL without any 10,000-key global lockout', async () => {
+      const passwordHash = await hash('correct horse battery', ARGON2_OPTIONS);
+      users.findByEmailForAuth.mockResolvedValue(makeUser({ passwordHash }));
+      const secondInstance = new AuthService(
+        sessions as never,
+        signInAttempts as unknown as never,
+        users as unknown as UsersService,
+        clock,
+      );
+
+      for (let i = 0; i < 12_000; i++) {
+        signInAttempts.rows.push({
+          attemptKey: signInAttemptKey('198.51.100.99', `spray-${i}@example.com`),
+          attemptedAt: new Date(currentNow),
+        });
+      }
+      expect(signInAttempts.rows[0]!.attemptKey).not.toContain('@');
+      expect(signInAttempts.rows[0]!.attemptKey).toHaveLength(64);
+
+      await expect(
+        service.signIn({ email: 'student@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10'),
+      ).resolves.toMatchObject({ accountRestored: false });
+
+      for (let i = 0; i < 6; i++) {
+        await expect(
+          service.signIn({ email: 'student@example.com', password: 'wrong password!' }, 'vitest', '203.0.113.10'),
+        ).rejects.toBeInstanceOf(UnauthorizedException);
+      }
+      for (let i = 0; i < 4; i++) {
+        await expect(
+          secondInstance.signIn({ email: 'student@example.com', password: 'wrong password!' }, 'vitest', '203.0.113.10'),
+        ).rejects.toBeInstanceOf(UnauthorizedException);
+      }
+      await expect(
+        secondInstance.signIn({ email: 'student@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10'),
+      ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
+      expect(SignInAttempt.name).toBe('SignInAttempt');
     });
   });
 

@@ -1,8 +1,10 @@
-import { computed, ref, shallowRef } from 'vue';
+import { computed, nextTick, ref, shallowRef } from 'vue';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
+import { useAuth } from '../auth/store.js';
 import { useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
+import { useToast } from '../shell/toast.js';
 import { currentTermNow, termKey, type Term } from '../terms.js';
 import { fetchPlan, fetchPlanIssues, previewPlanDrops, savePlacements, type Plan } from './api.js';
 import {
@@ -43,8 +45,11 @@ interface Opened {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function usePlanSession(id: () => string, hooks: SessionHooks) {
+  const auth = useAuth();
   const onboarding = useOnboarding();
+  const toast = useToast();
   const m = useMessages(PLANNER_MESSAGES);
+  const isSignedOut = (e: unknown) => statusOf(e) === 401 || !auth.signedIn;
 
   const plan = shallowRef<Plan | null>(null);
   const board = shallowRef<Board>([]);
@@ -72,18 +77,22 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
       issuesStatus.value = 'idle';
     } catch (e) {
       if (call !== checkCall) return;
-      if (statusOf(e) !== 401) console.error('Checking the plan failed:', e);
+      if (isSignedOut(e)) {
+        issuesStatus.value = 'idle';
+        return;
+      }
+      console.error('Checking the plan failed:', e);
       issuesStatus.value = 'failed';
     }
   }
 
   function retryCheck(): void {
-    if (!opened.saving) void check(saved.value);
+    if (!opened.saving && auth.signedIn) void check(saved.value);
   }
 
   const fresh = computed(() => issues.value !== null && sameTiles(issues.value.board, board.value));
 
-  const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
+  const saveState = ref<'saved' | 'saving' | 'failed' | 'signed_out'>('saved');
   const saveError = ref<string | null>(null);
   const busy = computed(() => saveState.value === 'saving');
 
@@ -92,7 +101,7 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
       const found = await fetchPlan(mine.id);
       return mine === opened && sameTerms(boardBody(sending), found.terms) ? found : null;
     } catch (e) {
-      if (statusOf(e) === 401) throw e;
+      if (isSignedOut(e)) throw e;
       return null;
     }
   }
@@ -116,6 +125,7 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
           if (mine !== opened) return false;
           continue;
         }
+        if (isSignedOut(e)) throw e;
         const recovered = code === null || code >= 500 ? await recoverSaved(mine, sending) : null;
         if (mine !== opened) return false;
         if (!recovered) throw e;
@@ -130,9 +140,16 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
 
   function failSave(e: unknown): void {
     hooks.revert(() => (board.value = saved.value));
+    if (isSignedOut(e)) {
+      saveState.value = 'signed_out';
+      saveError.value = null;
+      const notice = m.value.saveSessionEnded;
+      toast.show(notice);
+      void nextTick(() => toast.show(notice));
+      return;
+    }
     const code = statusOf(e);
     saveState.value = 'failed';
-    if (code === 401) return;
     console.error('Saving the plan failed:', e);
     const details = e instanceof HttpError ? e.details.join('; ') : '';
     saveError.value = code === 400 && details ? m.value.saveRefused(details) : m.value.saveFailed;
@@ -216,6 +233,7 @@ const LOADING: RowPreview = { status: 'loading', attached: null, verdict: null }
 const FAILED: RowPreview = { status: 'failed', attached: null, verdict: null };
 
 export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | 'openedId'>) {
+  const auth = useAuth();
   const { board, issues } = session;
   const moving = shallowRef<Moving | null>(null);
   const previews = shallowRef<Map<string, RowPreview>>(new Map());
@@ -265,7 +283,11 @@ export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | '
       })
       .catch((e) => {
         if (signal.aborted) return;
-        if (statusOf(e) !== 401) console.error('Previewing a drop failed:', e);
+        if (statusOf(e) === 401 || !auth.signedIn) {
+          stopPreview();
+          return;
+        }
+        console.error('Previewing a drop failed:', e);
         setAll(() => FAILED);
       });
   }
