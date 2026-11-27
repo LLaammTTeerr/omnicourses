@@ -3,6 +3,7 @@ import { ApiBadRequestResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiPr
 import { DataSource, EntityManager } from 'typeorm';
 import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
 import { AdminErrorDto } from '../common/api-errors.js';
+import { type AccountState, type DeletionState, deletionStateOf, isWaitingForDeletion, lockAccountStates, ROW_LOCK } from '../users/account-state.js';
 import { grantsOf, missingPermission, type Need, type PermissionKind } from './grants.js';
 
 class PermissionRequiredDto extends AdminErrorDto {
@@ -27,17 +28,16 @@ export async function lockAdminWrite(
   em: EntityManager,
   userIds: string[],
   options: { lockAccessManagers?: boolean } = {},
-): Promise<{ id: string; deletionRequestedAt: Date | null }[]> {
+): Promise<AccountState[]> {
   await em.query('SELECT pg_advisory_xact_lock($1)', [SINGLE_KEY_LOCKS.adminWrite]);
   if (options.lockAccessManagers) {
     await em.query('SELECT pg_advisory_xact_lock($1)', [SINGLE_KEY_LOCKS.accessManager]);
   }
-  const ids = [...new Set(userIds)].sort();
-  return em.query(`SELECT "id", "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = ANY($1::uuid[]) ORDER BY "id" FOR NO KEY UPDATE`, [ids]);
+  return lockAccountStates(em, userIds, ROW_LOCK.noKeyUpdate);
 }
 
-async function assertMay(em: EntityManager, caller: { deletionRequestedAt: Date | null } | undefined, callerId: string, need: Need): Promise<void> {
-  if (!caller || caller.deletionRequestedAt) throw accountDeletionPending();
+async function assertMay(em: EntityManager, caller: DeletionState | undefined, callerId: string, need: Need): Promise<void> {
+  if (!caller || isWaitingForDeletion(caller)) throw accountDeletionPending();
   const missing = missingPermission(await grantsOf(em, callerId), need);
   if (missing) throw permissionRequired(missing);
 }
@@ -76,8 +76,7 @@ export class AdminWriteService {
   async read<T>(callerId: string, need: Need, read: (em: EntityManager) => Promise<T>): Promise<T> {
     return this.db.transaction('REPEATABLE READ', async (em) => {
       await em.query('SET TRANSACTION READ ONLY');
-      const [caller]: { deletionRequestedAt: Date | null }[] = await em.query('SELECT "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = $1', [callerId]);
-      await assertMay(em, caller, callerId, need);
+      await assertMay(em, await deletionStateOf(em, callerId), callerId, need);
       return read(em);
     });
   }

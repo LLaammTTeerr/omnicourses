@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { conflict } from '../common/api-errors.js';
+import { isWaitingForDeletion, noDeletionWaitingSql } from '../users/account-state.js';
 import type { GlobalPermission } from './admin-grant.entities.js';
 import { assertAccountExists, assertActiveRecipient, programIn } from './admin-lookups.js';
 import { AdminWriteService, lockAdminWrite } from './admin-write.service.js';
@@ -15,7 +16,7 @@ export async function bootstrapAccessManager(db: DataSource, userId: string): Pr
   await db.transaction(async (em) => {
     const [user] = await lockAdminWrite(em, [userId], { lockAccessManagers: true });
     if (!user) throw new BootstrapRefused(`No account has the ID ${userId}`);
-    if (user.deletionRequestedAt) throw new BootstrapRefused('That account is waiting for deletion');
+    if (isWaitingForDeletion(user)) throw new BootstrapRefused('That account is waiting for deletion');
     if ((await activeAccessManagers(em)) > 0) {
       throw new BootstrapRefused('An active access manager already exists; they grant further permissions through the API');
     }
@@ -29,7 +30,7 @@ export async function bootstrapAccessManager(db: DataSource, userId: string): Pr
 async function activeAccessManagers(em: EntityManager, except?: string): Promise<number> {
   const [{ n: count }] = await em.query(
     `SELECT count(*)::int AS "n" FROM "global_admin_grants" g JOIN "users" u ON u."id" = g."user_id"
-     WHERE g."permission" = 'access_manager' AND u."deletion_requested_at" IS NULL AND ($1::uuid IS NULL OR g."user_id" <> $1::uuid)`,
+     WHERE g."permission" = 'access_manager' AND ${noDeletionWaitingSql('u')} AND ($1::uuid IS NULL OR g."user_id" <> $1::uuid)`,
     [except ?? null],
   );
   return count;
