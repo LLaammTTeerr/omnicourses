@@ -1,8 +1,9 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { bootApp } from './support/app.js';
+import { signedInUser } from './support/users.js';
 
 describe('Rate limits (e2e)', () => {
   let app: INestApplication;
@@ -24,6 +25,15 @@ describe('Rate limits (e2e)', () => {
   it('refuses the 121st request within a minute on a route without a password', async () => {
     for (let i = 0; i < 120; i++) await http().get('/api/health').expect(200);
     await http().get('/api/health').expect(429);
+  });
+
+  it('counts each route on its own: the 121st save of a plan is refused while the plan list still answers (issue #117)', async () => {
+    const { token } = await signedInUser(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const save = () => http().put(`/api/plans/${randomUUID()}/placements`).set(auth).send({ terms: [] });
+    for (let i = 0; i < 120; i++) await save().expect(404);
+    await save().expect(429);
+    await http().get('/api/plans').set(auth).expect(200);
   });
 
   it('refuses the 121st guess of a shared-plan link within a minute', async () => {

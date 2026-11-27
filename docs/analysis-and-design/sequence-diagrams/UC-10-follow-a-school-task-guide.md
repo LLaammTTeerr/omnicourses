@@ -23,7 +23,7 @@ sequenceDiagram
     Reader->>View: opens /guides
     View->>Api: fetchGuides()
     Api->>Throttle: GET /api/guides, no Authorization header
-    Throttle->>Guard: allowed (120 a minute per address)
+    Throttle->>Guard: allowed (120 a minute per route and address)
     Guard->>Guard: route is @Public(), skip the token check
     Guard->>Ctrl: list()
     Ctrl->>Svc: list()
