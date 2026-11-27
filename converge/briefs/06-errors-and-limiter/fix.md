@@ -1,0 +1,47 @@
+You are finishing one refactor batch in the OmniCourse repo after an independent review. The batch and its rules:
+
+You are implementing one batch of a whole-codebase architectural convergence of the OmniCourse repo. The aim of the mission: one change to a business concept lands in one place, and people and agents can work in parallel without colliding. The batch must leave the system simpler, with behaviour unchanged.
+
+## Where
+- Worktree: /home/lamter/omnicourses/.claude/worktrees/cv-build-be (branch cvb/06-errors-and-limiter is checked out; base commit e22e303123cc13d08cfec933faf009b0e5bbf965). Work only there. Never touch another worktree or /home/lamter/omnicourses itself, never switch branches, never push, never open a pull request, never post to GitHub or Discord, never write a progress file. The orchestrator integrates your commits.
+- npm: the machine's npm is 9 and rewrites the lockfile. Use `npx --yes npm@11.21.1 <command>` for every npm command. node_modules is installed.
+
+## Objective: coded API errors through one helper, and the sign-in attempt limiter out of AuthService
+Sources: BAC-3 (the contract-neutral part only) and BAC-4 in /home/lamter/omnicourses/.claude/worktrees/converge/converge/survey/backend-platform.md; FRO-1 in /home/lamter/omnicourses/.claude/worktrees/converge/converge/survey/frontend-admin-content.md (only for step C). Read them first. Every response body, status and message text stays byte for byte what it is today, including the order of JSON keys.
+
+A. Coded errors. The envelope { statusCode, code, message } is built by helpers in common/api-errors.ts and also copied by hand: notifications/notifications.service.ts (a copy of notFound), audit/audit.controller.ts (two copies of conflict), curriculum-admin/admin-write.service.ts and curriculum-admin/admin-errors.ts (403 bodies; there is no 403 helper). Add what is missing to common/api-errors.ts (a forbidden helper; a general one only if two callers need it) and replace the copies. permission_required bodies have the key order statusCode, code, permission, message: keep it exactly. Do not give codes to errors that have none today, and do not rename AdminErrorDto: both change the contract and wait for a decision. ai/sse.ts is off limits.
+Then a lint rule (scripts/lint.mjs with a test case): an object literal with a `code: '...'` property inside `new <Something>Exception(` may appear only in common/api-errors.ts and ai/ (name the exceptions in scripts/layers.mjs).
+
+B. Sign-in attempt limiter. AuthService holds, besides sessions and passwords, a database-backed limiter for failed sign-ins with its own entity, lock and purge (added by #207), and its numbers (10 failures, one minute) repeat PASSWORD_LIMIT in auth/rate-limits.ts. Move the limiter into its own injectable in auth/ (reserve, clear, purge), registered in AuthModule; take its limit and window from one named constant shared with PASSWORD_LIMIT; move its test cases out of auth.service.spec.ts into the limiter's own spec with the same assertions. Do not touch the session-lifetime code, and leave the `createdAt` null guards as they are (both are open questions for the Project Lead).
+
+C. Reference sentences. curriculum-admin/admin-errors.ts builds the English "reference" sentences of 409 bodies (REFERENCES, COUNTED_REFERENCES) that the web client parses. Move those builders, unchanged, into a file with no imports from Nest or TypeORM (plain TypeScript) in curriculum-admin/, and have admin-errors.ts import them, so a later frontend spec can import the same list. Same sentences, same exports for existing callers.
+
+D. scripts/layers.mjs: only what lint asks for.
+
+## Boundaries
+- Fixed contract: routes, DTO fields and class names, status and error codes, response bodies, database columns, existing migration files, and src/backend/openapi.json byte for byte. What the rule engine decides does not change (AGENTS.md hard rule 1).
+- Tests are the safety net: never delete, skip or weaken a test or an assertion. A test may move with the code it tests; its assertions stay. New logic gets a spec that would fail if the logic were wrong; a pure move needs none.
+- Repo rules that bite: no code comments at all, no new dependency, no lockfile change, relative imports with a .js suffix in the backend, no magic numbers, English, Conventional Commits.
+- Off limits (owned by open pull requests): src/frontend/src/audit/{DashboardView.vue,DashboardView.spec.ts,api.ts,dashboard.ts,dashboard.spec.ts,dashboard-messages.ts}, src/frontend/src/shell/icons.ts, src/frontend/src/testing/fetch.ts (PR #214); src/backend/src/curriculum-admin/csv-import.service.ts and its spec, src/backend/test/curriculum-admin-import.e2e-spec.ts, docs/analysis-and-design/adr/0011-curriculum-administration.md, docs/test/test-cases-b2.md (PR #166); everything under src/backend/src/advisor/ and src/backend/src/ai/ (PR #77). If the objective needs a one-line import-path change in one of these files because a module moved, make exactly that line and list it in your result.
+- The survey findings named above are leads, not truth: confirm each claim in the code before acting on it. If a claim is wrong, or a step cannot be done without breaking a boundary, do not force it: leave that step out and say so in your result.
+- Keep the diff to the objective: no drive-by renames, reformatting or unrelated cleanup.
+- Docs: search docs/analysis-and-design, AGENTS.md, README.md, CONTRIBUTING.md and GLOSSARY.md for names or paths you moved or removed, and correct the lines that would now be wrong (not docs/test/**, not report/**: those are dated records).
+
+## Verify
+- The machine is shared with other jobs: run every test command at low priority and with few workers, like `cd src/backend && nice -n 10 npx vitest run --maxWorkers=4 <path>` or `cd src/frontend && nice -n 10 npx vitest run --maxWorkers=4 <path>`, never the whole suite in a loop. A test that fails with "Test timed out in 5000ms" while the machine is busy is load, not your change: run that file once more before you conclude anything.
+- While working, run targeted checks as above, and `npx --yes npm@11.21.1 run typecheck -w src/backend` (or `-w src/frontend`), `npx --yes npm@11.21.1 run lint`.
+- Before you finish: `/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-be omnicourse_cv_be typecheck lint unit-be build e2e openapi contract` must print `RESULT: ALL PASS`, and no number on its COUNTS line may be lower than the baseline it prints unless you can name the reason. It runs typecheck, lint, backend unit tests, build, e2e, and the openapi and migration diffs (a "-" on the COUNTS line is a suite it did not run; the orchestrator runs the rest); about 3 minutes, and it waits its turn if another run is active (allow up to 20 minutes). On failure, read the log path it prints and fix the cause; never the test.
+
+## Commits
+- Small commits, one coherent step each. Signing is configured: a plain `git commit` signs. Never pass --no-gpg-sign or change git config. If signing fails, stop and return status "blocked".
+- Message: a Conventional Commit subject in English (`refactor(backend): ...`), a body of one or two sentences that says why, and as the last line the Co-Authored-By trailer that your own session's attribution reminder gives for your model (if you have none: `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`).
+- In the last commit add `.changeset/06-errors-and-limiter.md`. Nothing here is visible to a user, so it is an empty changeset: the file holds exactly two lines, `---` and `---`.
+
+## Result
+- Write /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/06-errors-and-limiter/report.md (with a shell heredoc if the Write tool refuses a path outside the worktree; if that fails too, put the content in your result): what changed and why, commit by commit; every step of the objective you left out and why; what a reviewer should look at twice; the last lines of the verify output.
+- Return the structured result: status "done" only when verify printed RESULT: ALL PASS on your final commit and `git status --short` is empty.
+
+## Now
+The batch is already implemented on this branch (see `git log --oneline e22e303123cc13d08cfec933faf009b0e5bbf965..HEAD` and /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/06-errors-and-limiter/report.md). An independent reviewer found the problems listed below. For each blocking finding: check it against the code; if it is right, fix it in a new commit (do not amend or rebase); if it is wrong, say why in the report with evidence. Take a non-blocking finding only when it is cheap and clearly right. Then run the full verify again, append a "Review round" section to the report, and return the structured result (commits: only the new ones).
+
+Findings:

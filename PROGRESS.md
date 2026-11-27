@@ -34,13 +34,17 @@ Evidence for every item: the seven survey files (`converge/survey/*.md`, finding
 | --- | --- | --- | --- | --- |
 | 01 | refactor/cv-01-verify-and-lint-rules | 01 | #220 | CI green, auto-merge on, waits for one approval |
 | 02 | refactor/cv-02-plan-view | 10 | #221 (draft) | CI green |
-| 03 | refactor/cv-03-locks-and-seeds | 02 | #222 (draft) | CI green |
-| 04 | refactor/cv-04-engine-vocabulary | 03 | #223 (draft) | pushed |
-| 05 | refactor/cv-05-fe-kernel | 09 | #224 (draft) | pushed |
-| 06 | refactor/cv-06-rules-one-derivation | 04 | #225 (draft) | pushed; reviewer's differential fuzz (20,000 inputs per entry point) agrees with the old code |
-| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | pushed |
+| 03 | refactor/cv-03-locks-and-seeds | 02 | #222 (draft) | stack 04, #223 |
+| 04 | refactor/cv-04-engine-vocabulary | 03 | #223 (draft) | stack 06, #225 |
+| 05 | refactor/cv-05-fe-kernel | 09 | #224 (draft) | stack 05, #224 |
+| 06 | refactor/cv-06-rules-one-derivation | 04 | #225 (draft) | building |
+| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | stack 07, #226 |
+| 08 | refactor/cv-08-plan-components | 11 | #227 (draft) | stack 08, #227 |
+| 09 | refactor/cv-09-admin-messages | 16 | #228 (draft) | stack 09, #228 |
+| 10 | refactor/cv-10-account-state | 05 | #229 (draft) | pushed; SQL byte for byte; hand-merged `scripts/lint.mjs` at integration |
+| 11 | refactor/cv-11-actions-and-drafts | 14 | #230 (draft) | stack 11, #230 |
 
-Stack order follows readiness, so stack numbers differ from the batch numbers of the plan below. Each batch is built on `cvb/<batch slug>` in `.claude/worktrees/cv-build-{be,fa,fb}` and cherry-picked onto the stack tip in `.claude/worktrees/cv-stack`.
+Stack order follows readiness, so stack numbers differ from the batch numbers of the plan below. Each batch is built on `cvb/<batch slug>` in `.claude/worktrees/cv-build-{be,fa,fb}` and cherry-picked onto the stack tip in `.claude/worktrees/cv-stack`. Since batch 06, every new batch branches from the current stack tip, not from its track's previous build branch: two tracks that had each edited `scripts/lint.mjs` or a file an earlier layer had split needed hand merges.
 
 ### The plan (batches)
 
@@ -57,10 +61,10 @@ Stack order follows readiness, so stack numbers differ from the batch numbers of
 | 09 | cv-09-fe-kernel | FK-2/FP-3, FA-4, FK-7, FK-3 | `account-storage.ts` owns account-scoped browser keys (auth stops importing plans); grants store split so the shell does not import the admin stack; `ModalDialog` owns its busy text; the test-only route warm-up leaves `router.ts`. | low-med | approved after one fix round; polishing |
 | 10 | cv-10-plan-view | FP-2, FP-1 step 1, FP-7 | `plans/issue-view.ts` pure leaf; `sharing/view.ts` holds the shared page's view model (tested), the `toEngineIssue` adapter goes; dead sharing aliases go. | low | stack 02, #221 |
 | 11 | cv-11-plan-components | FP-1 steps 2-3 | Shared presentational components (term load, issue card, coverage list) own their styles; 46 duplicated style rules leave `SharedPlanView.vue`. | med | building (Opus) |
-| 12 | cv-12-routes-and-effects | FK-4, FA-3, T-4 | Each feature owns its route records and app-wide effects; `router.ts`, `App.vue`, `App.spec.ts` become short lists; admin and bell tests move to their features. | low-med | todo |
+| 12 | cv-12-routes-and-effects | FK-4, FA-3, T-4 | Each feature owns its route records and app-wide effects; `router.ts`, `App.vue`, `App.spec.ts` become short lists; admin and bell tests move to their features. | low-med | building |
 | 13 | cv-13-admin-screens | FA-2, FA-5, FA-1 | One saved-document composable for the two scoped admin screens; one calendar-event presentation module; the client's parsing of server reference sentences pinned to the server's list (the three kinds it cannot parse today are listed as known gaps; wording them is a separate fix PR with Hoà's sign-off, because it changes what an admin sees). | med | todo |
 | 14 | cv-14-actions-and-drafts | FP-6, FP-5 | One attempt helper for "run, ignore 401, report"; explorer reuses the program-choice composable; `groupGlyph`; transcript draft logic in a tested module. | low-med | todo |
-| 15 | cv-15-contract-checks | FK-5, FP-4, FP-8 (option A), FK-6 | Contract coverage spec (every schema checked or allow-listed), nullability, limits; group-colour rules pinned to the seeded group names; message catalogues collected by glob. | low | todo |
+| 15 | cv-15-contract-checks | FK-5, FP-4, FP-8 (option A), FK-6 | Contract coverage spec (every schema checked or allow-listed), nullability, limits; group-colour rules pinned to the seeded group names; message catalogues collected by glob. | low | building (part F moved to batch 17) |
 | 16 | cv-16-admin-messages | FA-6 | `admin/messages.ts` (1163 lines) split per screen, same keys. | low | todo |
 | 17 | cv-17-docs-and-extras | BD-4, T-5, T-7, architecture map | Stale ADR rows, `.rgignore` for dated evidence, architecture.md layer and lock tables; then the two extras: comments that restate code, tests that cannot fail. | low | todo |
 
@@ -90,6 +94,7 @@ Build: 01 first, alone, through the whole pipeline. Then three tracks in paralle
 6. BD-3: must `class-model.md` keep field-level copies of engine types (it has already drifted), or may it point at `rules/types.ts`?
 7. T-8: ADR 0019 still says "proposed" although #217 shipped it.
 8. Hoà: should the import admin screen reload its program list when the admin's grants change, as the curriculum and calendar screens do? One line (`reloadProgramsOnGrantChange`); today's behaviour kept.
+8a. Hoà: the plan editor and the shared plan page differ in nine small style details (listed in PR #227). Should the shared page look like the editor? If yes, `CapMeter` and `IssueCard` lose their variants.
 8b. T-1: the backend CI job exports and uploads `openapi.json` as an artifact that no workflow downloads. Remove the step? (CI gates are Lâm-only.)
 9. FA-1: Vietnamese and English wording for three reference kinds (owner: Hoà). FK-4: menu labels from the feature's messages or literal on the route (owner: Hoà).
 
@@ -125,4 +130,4 @@ None.
 
 ## Next
 
-Building: 05 (be, account state), 11 (fa, plan components), 16 (fb, admin messages). Then be: 06, 07, 08; fa: 14; then 12 and 15 (every feature), then 17. Briefs for all of them are prepared (`converge/briefs/` once a batch starts). When a batch returns approved: take the reviewer's cheap non-blocking findings with a small polish agent, cherry-pick onto the stack tip, full verify, draft PR on the branch below, thread in the sprite forum.
+Building: 06 (be), 12 (fa), 15 (fb), each from the stack tip. Then 07 and 08 on be, then 17 (docs, the two extras, and the reference-sentence pin moved from 15). After the last batch: one more read of the import graph and `scripts/layers.mjs` to see what is left, update the architecture map, final report. Merging then depends on approvals: #220 first.
