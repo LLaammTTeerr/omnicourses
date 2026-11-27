@@ -2,11 +2,11 @@ import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curricu
 import { groupBy } from '../common/collections.js';
 import { compareTerms, copyTerm, type Term, termKey, termLabel } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { courseRecords, type CourseRecord, isCompleted, recordBefore } from './attempts.js';
+import { courseRecords, type CourseRecord, recordBefore } from './attempts.js';
 import { degreeAudit } from './audit.js';
 import { type CapViolation, checkTermLoad, type LoadCourse, PETITION_NOTE, type TermLoadCheck } from './credit-caps.js';
 import { type CountedLink, placements } from './coverage.js';
-import { checkOfferingTerm, checkPrerequisites } from './prerequisites.js';
+import { checkOfferingTerm, checkPrerequisites, passedOrAssumedBefore } from './prerequisites.js';
 import {
   type BoardTerm,
   CITATIONS,
@@ -86,7 +86,7 @@ export function checkPlan(input: PlanCheckInput): PlanIssuesReport {
 
 function checkTerm(plan: PlanContext, { term, placements: tiles }: BoardTerm, firstPlacedIn: Map<string, Term>, plannedEarlier: ReadonlyMap<string, Term>) {
   const at = copyTerm(term);
-  const passed = passedBefore(plan.records, plannedEarlier, term);
+  const passed = passedOrAssumedBefore(plan.records, plannedEarlier, term);
   const placementIssues: PlanIssue[] = [];
   const load: LoadCourse[] = [];
   const unknownCredits: string[] = [];
@@ -116,19 +116,6 @@ const slotLoad = (rules: CurriculumRules, slot: Placement): LoadCourse => ({
   credits: slot.credits ?? 0,
   excludedFromMinimum: !slotCountsTowardTotal(rules, slot.requirementGroupId),
 });
-
-function passedBefore(records: ReadonlyMap<string, CourseRecord>, plannedEarlier: ReadonlyMap<string, Term>, term: Term): Set<string> {
-  const passed = new Set<string>();
-  for (const [code, placedIn] of plannedEarlier) {
-    const recorded = (records.get(code)?.attempts ?? []).some((a) => isCompleted(a) && compareTerms(a.term, placedIn) >= 0 && compareTerms(a.term, term) < 0);
-    if (!recorded) passed.add(code);
-  }
-  for (const record of records.values()) {
-    const standing = recordBefore(record, term);
-    if (standing && (standing.passed || standing.inProgress)) passed.add(record.code);
-  }
-  return passed;
-}
 
 function recordBeforeTile(plan: PlanContext, tile: CourseTile): CourseRecord | null {
   const record = plan.records.get(tile.courseCode);

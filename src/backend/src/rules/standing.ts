@@ -2,15 +2,12 @@ import { byText } from '../common/collections.js';
 import type { CurriculumRules } from '../curriculum/curriculum-rules.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { courseRecords, courseStatus } from './attempts.js';
-import { checkPrerequisites } from './prerequisites.js';
+import { checkPrerequisites, passedOnly } from './prerequisites.js';
 import type { CourseStandingItem } from './types.js';
 
 export function curriculumStanding(rules: CurriculumRules, entries: readonly TranscriptEntry[]): CourseStandingItem[] {
   const records = courseRecords(entries);
-  const satisfied = new Set<string>();
-  for (const record of records.values()) {
-    if (record.passed) satisfied.add(record.code);
-  }
+  const satisfied = passedOnly(records);
 
   const codes = [...new Set(rules.groups.flatMap((group) => group.courses.map((course) => course.code)))].sort(byText);
   return codes.map((code): CourseStandingItem => {
