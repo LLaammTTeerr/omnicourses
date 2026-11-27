@@ -29,7 +29,6 @@ interface DashboardMessages {
   expectedTerm: (term: Term) => string;
   termGpa: string;
   leftToGraduate: string;
-  conduct: string;
   noData: string;
   inProgressCredits: (n: number) => string;
   inTermCredits: (n: number) => string;
@@ -51,6 +50,7 @@ interface DashboardMessages {
   fixInPlan: string;
   noLanguageCertificate: string;
   languageNotChecked: string;
+  certificateUnknown: string;
   seeCondition: string;
   unchosenElectives: (n: number) => string;
   chooseCourse: string;
@@ -92,7 +92,6 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     expectedTerm: (term) => `HK${term.number} ${years(term)}`,
     termGpa: 'ĐTB học kỳ',
     leftToGraduate: 'Cần để tốt nghiệp',
-    conduct: 'Điểm rèn luyện',
     noData: 'Chưa có dữ liệu',
     inProgressCredits: (n) => `${n} TC đang học`,
     inTermCredits: (n) => `${n} TC trong kỳ`,
@@ -113,7 +112,8 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     violations: (n) => `${n} vi phạm trong lộ trình`,
     fixInPlan: 'Sửa trong lộ trình',
     noLanguageCertificate: 'Chưa có chứng chỉ ngoại ngữ',
-    languageNotChecked: 'Chưa kiểm tra chuẩn ngoại ngữ',
+    languageNotChecked: 'Ngoại ngữ: chưa kiểm tra',
+    certificateUnknown: 'App chưa biết chứng chỉ của bạn',
     seeCondition: 'Xem điều kiện',
     unchosenElectives: (n) => `${n} TC tự chọn chưa chọn môn`,
     chooseCourse: 'Chọn môn',
@@ -153,7 +153,6 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     expectedTerm: (term) => `T${term.number} ${years(term)}`,
     termGpa: 'Term GPA',
     leftToGraduate: 'Left to graduate',
-    conduct: 'Conduct score',
     noData: 'No data yet',
     inProgressCredits: (n) => `${n} cr in progress`,
     inTermCredits: (n) => `${n} cr in the term`,
@@ -174,7 +173,8 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     violations: (n) => `${plural(n, 'issue')} in the plan`,
     fixInPlan: 'Fix in the plan',
     noLanguageCertificate: 'No language certificate yet',
-    languageNotChecked: 'Language standard not checked yet',
+    languageNotChecked: 'Language: not checked',
+    certificateUnknown: "App doesn't know your certificate",
     seeCondition: 'See the condition',
     unchosenElectives: (n) => `${plural(n, 'elective credit')} not chosen yet`,
     chooseCourse: 'Choose a course',

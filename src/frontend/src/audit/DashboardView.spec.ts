@@ -259,13 +259,27 @@ describe('DashboardView (F3, UC-03)', () => {
     const items = w.findAll('[data-test="attention"] a');
     expect(items.map((a) => a.get('b').text())).toEqual([
       '2 vi phạm trong lộ trình',
-      'Chưa kiểm tra chuẩn ngoại ngữ',
+      'Ngoại ngữ: chưa kiểm tra',
       '4 TC tự chọn chưa chọn môn',
       expect.any(String),
     ]);
     expect(items[0]!.attributes('href')).toBe(`/plans/${PLAN_ID}`);
     expect(items[1]!.attributes('href')).toBe('/audit#graduation');
     expect(items[3]!.attributes('href')).toBe('/audit');
+  });
+
+  it('has no conduct score, which the school does not share (Lâm 1A), and says the app does not know the certificate', async () => {
+    const { w } = await render();
+    expect(w.find('[data-test="conduct"]').exists()).toBe(false);
+    expect(w.text()).not.toContain('Điểm rèn luyện');
+    await w.get('[data-test="previous-term"]').trigger('click');
+    await flushPromises();
+    expect(text(w, 'attention')).not.toContain('Điểm rèn luyện');
+    await w.get('[data-test="next-term"]').trigger('click');
+    useLocale().set('en');
+    await flushPromises();
+    expect(text(w, 'attention')).toContain('Language: not checked');
+    expect(text(w, 'attention')).toContain("App doesn't know your certificate");
   });
 
   it('shows the expected graduation term from the plan with the end month from the calendar', async () => {

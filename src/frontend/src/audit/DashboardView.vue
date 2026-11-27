@@ -341,7 +341,7 @@ const attention = computed<AttentionItem[]>(() => {
   const language = [...a.graduation.unmet, ...a.graduation.notChecked].find((c) => c.id === LANGUAGE_CONDITION);
   if (language) {
     const unmet = language.status === 'not_met';
-    items.push({ tone: 'warn', mark: { icon: 'flag' }, title: unmet ? m.value.noLanguageCertificate : m.value.languageNotChecked, cta: m.value.seeCondition, to: auditTo(conditionAnchor(language)) });
+    items.push({ tone: 'warn', mark: { icon: 'flag' }, title: unmet ? m.value.noLanguageCertificate : m.value.languageNotChecked, cta: unmet ? m.value.seeCondition : m.value.certificateUnknown, to: auditTo(conditionAnchor(language)) });
   }
   for (const c of a.graduation.unmet.filter((c) => c.id !== LANGUAGE_CONDITION && !CHECKED_ELSEWHERE.test(c.id))) {
     items.push({ tone: 'warn', mark: { icon: 'flag' }, title: conditionLabel(a, c, am.value), cta: m.value.seeCondition, to: auditTo(conditionAnchor(c)) });
@@ -537,12 +537,6 @@ onBeforeUnmount(() => {
                     <span class="small t3" data-test="credits-in-progress">{{ snap.live ? m.inProgressCredits(a.credits.inProgressTowardTotal) : m.inTermCredits(snap.summary?.credits ?? 0) }}</span>
                   </div>
                 </div>
-                <div class="db-stat wide" :title="m.noData" data-test="conduct">
-                  <div>
-                    <div class="v">—<small>/100</small></div>
-                    <div class="k">{{ m.conduct }}</div>
-                  </div>
-                </div>
               </div>
               <div class="db-key">
                 <RouterLink
@@ -657,7 +651,6 @@ onBeforeUnmount(() => {
                       <dt>{{ m.cumulativeAverage }}</dt><dd>{{ snap.summary?.cumulativeAccumulatedAverage == null ? '—' : score(snap.summary.cumulativeAccumulatedAverage) }}</dd>
                       <dt>{{ m.earned }}</dt><dd>{{ snap.passed }} / {{ a.credits.totalRequired ?? '—' }}</dd>
                       <dt>{{ m.yearLevel }}</dt><dd :title="m.noData">—</dd>
-                      <dt>{{ m.conduct }}</dt><dd :title="m.noData">—</dd>
                     </dl>
                     <button class="btn sm" type="button" @click="pick(nowIndex)"><Icon name="undo" size="sm" />{{ m.backToNow }}</button>
                   </template>
