@@ -9,6 +9,8 @@ How the engineering skills should consume this repo's domain documentation when 
 - **`docs/requirements/use-cases/`**: the use case behind the feature you work on. The Vision document's features (F1–F12) and NFRs are in `report/assignments/PA2/Vision.tex`.
 - **[README.md, What is built](../../README.md#what-is-built)**: which features have an API and a screen today.
 
+`docs/test/evidence/`, `report/`, `docs/management/weekly-reports/` and `docs/analysis-and-design/ui-prototypes/assets/` are dated records, so `.rgignore` hides them from code search; the living documents are the ones listed above, the code, and `docs/analysis-and-design/architecture.md`.
+
 ## ADRs in this repo
 
 This repo's ADRs live in **`docs/analysis-and-design/adr/`**, the folder the course's document structure requires. Wherever a skill says `docs/adr/`, read and write this folder instead, and number new ADRs after the highest one there.
