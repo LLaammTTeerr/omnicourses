@@ -1,0 +1,26 @@
+DIFF setup | fixture SHA-256 is d0a0493f…facde | observed: 508b3e1a870365ec61bf5efffa63c7027aff604be06e7d572569f41ab8462cf3
+[2026-11-27T09:29:17.301Z] signed up b1-run-r27b-p06@example.com
+OK   setup | onboarding APCS 2024 saved (200) | observed: 200
+OK   setup | fixture saved: PUT 200 and 45 rows read back | observed: 200, 45 rows
+OK   setup | audit: graduation done, accumulated 172, towardTotal 164 | observed: {"graduation":"done","credits":{"accumulated":172,"towardTotal":164,"inProgressTowardTotal":0,"totalRequired":163,"remaining":0,"yearLevel":4}}
+[2026-11-27T09:29:17.987Z] fixture: 27 rows in 2024-1..2025-3 with 102 credits; 18 rows from 2026-1 on (CS300 CS311 CS420 MTH346 BAA00102 CS333 CS411 BAA00103 CS414 CS416 CS427 CS412 CS423 BAA00003 CS421 CS407 BAA00104 CS468)
+[2026-11-27T09:29:18.428Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+OK   PLAN-01n | vi: span of the Taken strip | observed: 6 học kỳ · HK1 2024–2025 → HK3 2025–2026
+DIFF PLAN-01n | vi: credit figure is for the six listed terms (102) | observed: 172 tín chỉ tích lũy
+DIFF PLAN-01n | vi: no tag for a course of HK1 2026–2027 or later | observed: 45 tags; from later terms: CS300 CS333 CS311 CS420 BAA00003 BAA00102 BAA00103 BAA00104 CS468 CS407 CS411 CS412 CS414 CS416 CS421 CS423 CS427 MTH346
+DIFF PLAN-01n | vi: no tag for CS468 (2027-3) | observed: CS468 tag shown
+OK   PLAN-01h | vi: as the fixture account the large line says every checkable requirement is met | observed: Đủ các yêu cầu kiểm tra được
+OK   PLAN-01h | vi: icon is the green cap (not the red state) | observed: {"bad":false,"bg":"rgb(18, 146, 90)","icon":"<svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M2 9l10-5 10 5-10 5Z\"></path><path d=\"M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5\"></path><path d=\"M22 9v6\"></path></svg>"}
+NOTE PLAN-01h | vi: small line (note) | observed: Không thấy vi phạm
+OK   PLAN-01h | vi: the strip names no graduation term and never says "can graduate" | observed: Không thấy vi phạmĐủ các yêu cầu kiểm tra được</>Kiến thức Computer Science (A): bắt buộc: 40/40 tín chỉ40/40★Kiến thức Computer Science (A): tự chọn: 16/16 tín chỉ16/16∑Kiến thức Math: 16/16 tín chỉ16/16&Kiến thức Non Computer Science: 26/26 tín chỉ26/26ℏKiến thức Physics: 12/12 tín chỉ12/12∎Kiến thức tốt nghiệp: 10/10 tín chỉ10/10★Tự chọn Computer Science (C): 36 tín chỉ36∑Tự chọn Math (B): 8/8 tín chỉ8/8 Đã lưu
+OK   PLAN-01n | en: span of the Taken strip | observed: 6 terms · Term 1 2024–2025 → Term 3 2025–2026
+DIFF PLAN-01n | en: credit figure is for the six listed terms (102) | observed: 172 credits accumulated
+DIFF PLAN-01n | en: no tag for a course of HK1 2026–2027 or later | observed: 45 tags; from later terms: CS300 CS333 CS311 CS420 BAA00003 BAA00102 BAA00103 BAA00104 CS468 CS407 CS411 CS412 CS414 CS416 CS421 CS423 CS427 MTH346
+DIFF PLAN-01n | en: no tag for CS468 (2027-3) | observed: CS468 tag shown
+OK   PLAN-01h | en: as the fixture account the large line says every checkable requirement is met | observed: Every requirement that can be checked is met
+OK   PLAN-01h | en: icon is the green cap (not the red state) | observed: {"bad":false,"bg":"rgb(18, 146, 90)","icon":"<svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M2 9l10-5 10 5-10 5Z\"></path><path d=\"M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5\"></path><path d=\"M22 9v6\"></path></svg>"}
+NOTE PLAN-01h | en: small line (note) | observed: No violation found
+OK   PLAN-01h | en: the strip names no graduation term and never says "can graduate" | observed: No violation foundEvery requirement that can be checked is met</>Kiến thức Computer Science (A): bắt buộc: 40/40 credits40/40★Kiến thức Computer Science (A): tự chọn: 16/16 credits16/16∑Kiến thức Math: 16/16 credits16/16&Kiến thức Non Computer Science: 26/26 credits26/26ℏKiến thức Physics: 12/12 credits12/12∎Kiến thức tốt nghiệp: 10/10 credits10/10★Tự chọn Computer Science (C): 36 credits36∑Tự chọn Math (B): 8/8 credits8/8 Saved
+[2026-11-27T09:29:28.446Z] board rows: ["HK1 2026–2027 [] "]
+OK   PLAN-01n | a tag opens the explorer at that course (/explorer?course=CS160) | observed: /explorer?course=CS160
+SUMMARY {"setup":{"ok":3,"diff":1},"PLAN-01n":{"ok":3,"diff":6},"PLAN-01h":{"ok":6,"diff":0}} elapsed 15s

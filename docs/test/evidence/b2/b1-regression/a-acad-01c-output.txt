@@ -1,0 +1,22 @@
+2026-11-27T09:16:10.873Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+FAIL ACAD-01c: fixture SHA-256 matches the case | observed: 508b3e1a870365ec61bf5efffa63c7027aff604be06e7d572569f41ab8462cf3
+2026-11-27T09:16:16.529Z a04 onboarding PUT: 200
+2026-11-27T09:16:16.838Z a04 fixture PUT: 200 | rows held: 45
+2026-11-27T09:16:20.358Z ACAD-01c API: {"status":"done","unmet":0,"notChecked":["no_prosecution_or_suspension","defence_education_certificate","foreign_language_standard","it_standard","study_time_limit"],"credits":{"accumulated":172,"towardTotal":164,"inProgressTowardTotal":0,"totalRequired":163,"remaining":0,"yearLevel":4},"gpa":{"average":7.77,"accumulatedAverage":7.77,"accumulatedAverageFourPoint":3.3,"classification":"good","gradedCredits":164}}
+2026-11-27T09:16:20.359Z ACAD-01c dashboard figures: {"graduation-status":"Đạt mọi điều kiện kiểm tra được","credits-toward-total":"164 / 163 TC","credits-remaining":"còn 0 TC","credits-in-progress":"0 TC đang học","credits-accumulated":"172 TC tích lũy","gpa-accumulated-average":"7,77","gpa-average":"7,77","gpa-classification":"Khá","gpa-four-point":null} | graduation card: Điều kiện tốt nghiệp | Đạt mọi điều kiện kiểm tra được | Còn 5 điều kiện OmniCourse không kiểm tra được, phòng đào tạo sẽ xét. | needs-attention card: Điều kiện chưa đạt | Xem chi tiết | Không còn điều kiện nào chưa đạt.
+2026-11-27T09:16:20.359Z ACAD-01c dashboard groups: ["</> Kiến thức Computer Science (A): bắt buộc 40 / 40 TC ✓ Đã đạt","∑ Kiến thức Math 16 / 16 TC ✓ Đã đạt","∑ Tự chọn Math (B) 8 / 8 TC ✓ Đã đạt","ℏ Kiến thức Physics 12 / 12 TC ✓ Đã đạt","& Kiến thức Non Computer Science 26 / 26 TC ✓ Đã đạt","★ Kiến thức Computer Science (A): tự chọn 16 / 16 TC ✓ Đã đạt","★ Tự chọn Computer Science (C) 36 TC Không có tối thiểu riêng · tính trong Kiến thức tự chọn","∎ Kiến thức tốt nghiệp 10 / 10 TC ✓ Đã đạt","+ Kiến thức tự chọn 44 / 43 TC ✓ Đã đạt"]
+ok   ACAD-01c: the dashboard shows the done chip, 164 / 163 TC, 0 remaining, 7,77 twice and the classification | observed: {"graduation-status":"Đạt mọi điều kiện kiểm tra được","credits-toward-total":"164 / 163 TC","credits-remaining":"còn 0 TC","credits-in-progress":"0 TC đang học","credits-accumulated":"172 TC tích lũy","gpa-accumulated-average":"7,77","gpa-average":"7,77","gpa-classification":"Khá","gpa-four-point":null}
+ok   ACAD-01c: every group and the combined minimum read as met | observed: []
+FAIL ACAD-01c: the five unchecked conditions are shown as not checked, never as met | observed: Điều kiện tốt nghiệp | Đạt mọi điều kiện kiểm tra được | Còn 5 điều kiện OmniCourse không kiểm tra được, phòng đào tạo sẽ xét.
+ok   ACAD-01c: no graduation-guide link on the dashboard | observed: 0 link(s) to /guides in the page body
+2026-11-27T09:16:22.146Z ACAD-01c audit page figures: {"graduation-status":"Đạt mọi điều kiện kiểm tra được","credits-toward-total":"164 / 163 TC","credits-remaining":"còn 0 TC","credits-in-progress":"0 TC đang học","credits-accumulated":"172 TC tích lũy","gpa-accumulated-average":"7,77","gpa-average":"7,77","gpa-classification":"Khá","gpa-four-point":"3,3"}
+2026-11-27T09:16:22.311Z ACAD-01c audit page, "not checked" wording: []
+ok   ACAD: no console error on these screens (a04) | observed: []
+file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/a-acad-01c.mjs:50
+void whole;
+^
+
+ReferenceError: whole is not defined
+    at file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/a-acad-01c.mjs:50:1
+
+Node.js v24.19.0

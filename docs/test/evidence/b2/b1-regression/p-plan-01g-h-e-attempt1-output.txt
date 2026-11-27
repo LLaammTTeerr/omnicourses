@@ -1,0 +1,24 @@
+[2026-11-27T09:25:36.257Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-27T09:25:44.224Z] PLAN-01g start: HK1 2026–2027: CS163 CS201 | HK2 2026–2027: -; design colours {"ok":"rgb(18, 146, 90)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)","info":"rgb(47, 95, 224)","ink-3":"rgb(107, 115, 131)"}
+[2026-11-27T09:25:44.880Z] panel before the drag: {"preview":"","cards":[{"title":"Dưới mức tín chỉ tối thiểu","term":"HK1 2026–2027","tag":"","state":"issue-flag"}]}
+[2026-11-27T09:25:45.535Z] rows in the viewport? second row bottom 1366 of 1500
+OK   PLAN-01g | picking up CS160 sends exactly one POST …/issues/drops, answered 200; no PUT yet | observed: drops 1; PUT 0; last answer: POST issues/drops 200
+[2026-11-27T09:25:47.134Z] rows while held, pointer over no row: [{"name":"HK1 2026–2027","tone":"unknown-drop","reason":"","hiddenWords":"Chưa kiểm tra được: CS160: chưa ghi nhận học kỳ mở môn.","reasonColour":"oklab(0.467933 -0.0155647 -0.168545)","load":"8 / 22 TC","delta":"","meter":"under","border":"oklab(0.786987 -0.00730981 -0.075771)","shadow":"oklab(0.532396 -0.0187198 -0.202776 / 0.16) 0px 0px 0px 2px"},{"name":"HK2 2026–2027","tone":"warn-drop","reason":"","hiddenWords":"Chưa kiểm tra được: CS160: chưa ghi nhận học kỳ mở môn.","reasonColour":"oklab(0.527365 0.0612504 0.0896036)","load":"","delta":"","meter":"","border":"oklab(0.785825 0.0350692 0.0516468)","shadow":"oklab(0.616855 0.0793566 0.123795 / 0.2) 0px 0px 0px 2px"}]
+[2026-11-27T09:25:52.814Z] over the first row: [{"name":"HK1 2026–2027","tone":"unknown-drop over","reason":"Chưa kiểm tra được: CS160: chưa ghi nhận học kỳ mở môn.","hiddenWords":"","reasonColour":"oklab(0.467933 -0.0155647 -0.168545)","load":"12 / 22 TC","delta":"+4","meter":"ok","border":"oklab(0.786987 -0.00730981 -0.075771)","shadow":"oklab(0.532396 -0.0187198 -0.202776 / 0.26) 0px 0px 0px 3px,"},{"name":"HK2 2026–2027","tone":"warn-drop","reason":"","hiddenWords":"Chưa kiểm tra được: CS160: chưa ghi nhận học kỳ mở môn.","reasonColour":"oklab(0.527365 0.0612504 0.0896036)","load":"","delta":"","meter":"","border":"oklab(0.785825 0.0350692 0.0516468)","shadow":"oklab(0.616855 0.0793566 0.123795 / 0.2) 0px 0px 0px 2px"}] panel {"preview":"Xem trước: CS160 → HK1 2026–2027 · số vi phạm không đổi","cards":[{"title":"Dưới mức tín chỉ tối thiểu","term":"HK1 2026–2027","tag":"Sẽ hết","state":"issue-gone"}]}
+node:internal/fs/promises:697
+  return new FileHandle(await PromisePrototypeThen(
+                        ^
+
+Error: ENOENT: no such file or directory, open 'E:\E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\p-plan-01g-over-first-row.png'
+    at async open (node:internal/fs/promises:697:25)
+    at async Object.writeFile (node:internal/fs/promises:1317:14)
+    at async _Page.screenshot (E:\Project\omnicourses\node_modules\playwright-core\lib\coreBundle.js:63324:11)
+    at async shot (file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/p-lib.mjs:183:3)
+    at async file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/p-plan-01g-h-e.mjs:80:3 {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\E:\\Project\\omnicourses\\docs\\test\\evidence\\b2\\b1-regression\\p-plan-01g-over-first-row.png'
+}
+
+Node.js v24.19.0

@@ -1,0 +1,10 @@
+Chrome 144.0.7559.110, base https://stag-omnicourses.lamter.cc, profile {"offline":false,"latency":50,"downloadThroughput":1250000,"uploadThroughput":250000}
+PERF-01b health ms: 248.5, 177.8, 166.3, 125.3, 106.7, 109, 93.1, 95.5, 123.6, 109.6 (all >= 50: true)
+PERF-01b largest JS /assets/index-CAWT2Yk5.js: 170172 bytes on the wire, 227.1 ms (profile predicts about 186 ms)
+PERF-01c /dashboard cold cache: 5 runs, median 995 ms, p95 1095 ms, max 1095 ms, 0 at or over 2 s -> PASS
+PERF-01d /dashboard warm cache: 30 runs, median 464 ms, p95 816 ms, max 845 ms, 0 at or over 2 s -> PASS
+PERF-01e /dashboard in-app from Guides (Tổng quan): 30 runs, median 128 ms, p95 141 ms, max 190 ms, 0 at or over 2 s -> PASS
+PERF-01f /audit cold cache: 5 runs, median 1228 ms, p95 1398 ms, max 1398 ms, 0 at or over 2 s -> PASS
+PERF-01g /audit warm cache: 30 runs, median 495 ms, p95 852 ms, max 880 ms, 0 at or over 2 s -> PASS
+PERF-01h /audit in-app from Guides (Xét tốt nghiệp): 30 runs, median 130 ms, p95 205 ms, max 227 ms, 0 at or over 2 s -> PASS
+Raw results: E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\perf-01-2026-11-27T10-06-25-336Z.json

@@ -1,0 +1,98 @@
+# GUIDE-01i, j, k (and the script's second part), tree 1bde552 (main), Node v24.19.0 (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) in a new disposable docker container (omni-b1r-guides, port 55432); API node dist/main.js on :3056, Vite dev on :5176 (VITE_API_URL=http://localhost:3056/api)
+2026-11-27T10:22:10Z
+--- setup (UTC 10:21:40Z): migrate, then seed with --guide-fixtures (NODE_ENV unset)
+Applied: CreateUsersAndSessions1761696000000, CreateAiUsage1792800000000, AddUsersDeletionRequestedAt1792886400000, CreateCurriculumCourseSchema1792912952302, CreateTranscriptRows1793159431000, CreateGuides1793872582380, CreateOnboardingAnswers1794216390492, CreatePlans1794218005469, CreateCurriculumAdmin1794230000000, AddAuditRulesToCurriculum1794300000000, CreateAcademicCalendar1794500000000, CreatePlanShares1795564800000, CreateNotifications1795575059760
+Guides, with the test-only zz-* guides: {"inserted":12,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":6}
+Inserted: {"programs":10,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+--- APP=http://localhost:5176 API=http://localhost:3056/api node g-guides-local.mjs
+2026-11-27T10:22:11.365Z Chromium 156.0.8078.4 headless, playwright-core 1.64.1; app http://localhost:5176; API http://localhost:3056/api
+2026-11-27T10:22:11.414Z GET /api/guides: accounts-and-portals [en,vi]; grades-and-transcript [en,vi]; zz-en-only [en]; zz-fresh [en,vi]; zz-six-months [en,vi]; zz-six-months-and-a-day [en,vi]; zz-vi-only [vi]
+2026-11-27T10:22:11.459Z test day in Vietnam time: 2026-11-27
+ok   GUIDE-01i: zz-vi-only with the screen in en: shows the vi text, not blank and not "not found" | observed: {"h1":"Hướng dẫn thử zz-vi-only","steps":2,"notFound":0}
+ok   GUIDE-01i: zz-vi-only: a note says it exists only in that language | observed: ["This guide is only available in Vietnamese."]
+ok   GUIDE-01i: zz-en-only with the screen in vi: shows the en text, not blank and not "not found" | observed: {"h1":"Test guide zz-en-only","steps":2,"notFound":0}
+ok   GUIDE-01i: zz-en-only: a note says it exists only in that language | observed: ["Hướng dẫn này hiện chỉ có bằng tiếng Anh."]
+ok   GUIDE-01i: search "zz-vi-only" with the screen in vi finds it | observed: {"found":["zz-vi-only"],"chips":"Kiểm tra ngày 27/11/2026"}
+ok   GUIDE-01i: search "zz-en-only" with the screen in vi finds it | observed: {"found":["zz-en-only"],"chips":"Kiểm tra ngày 27/11/2026 | Chỉ có tiếng Anh"}
+ok   GUIDE-01i: search "zz-vi-only" with the screen in en finds it | observed: {"found":["zz-vi-only"],"chips":"Checked on 27 Nov 2026 | Vietnamese only"}
+ok   GUIDE-01i: search "zz-en-only" with the screen in en finds it | observed: {"found":["zz-en-only"],"chips":"Checked on 27 Nov 2026"}
+ok   GUIDE-01j: zz-fresh: the API gives version 1 and last checked 2026-11-27 (worked out here from the test day), outOfDate false | observed: {"version":1,"lastCheckedOn":"2026-11-27","outOfDate":false}
+ok   GUIDE-01j: zz-fresh (vi): shows its version and last-checked date | observed: Phiên bản 1 · kiểm tra trên cổng ngày 27/11/2026 bởi Test team |  | Thay đổi: Bản thử nghiệm.
+ok   GUIDE-01j: zz-fresh (vi): no out-of-date warning | observed: []
+ok   GUIDE-01j: zz-fresh (vi): fully readable (steps and the portal link are there) | observed: {"steps":2,"portal":1}
+ok   GUIDE-01j: zz-fresh (en): shows its version and last-checked date | observed: Version 1 · checked on the portal on 27 Nov 2026 by Test team |  | What changed: Test version.
+ok   GUIDE-01j: zz-fresh (en): no out-of-date warning | observed: []
+ok   GUIDE-01j: zz-fresh (en): fully readable (steps and the portal link are there) | observed: {"steps":2,"portal":1}
+ok   GUIDE-01j: zz-six-months: the API gives version 1 and last checked 2026-05-27 (worked out here from the test day), outOfDate false | observed: {"version":1,"lastCheckedOn":"2026-05-27","outOfDate":false}
+ok   GUIDE-01j: zz-six-months (vi): shows its version and last-checked date | observed: Phiên bản 1 · kiểm tra trên cổng ngày 27/05/2026 bởi Test team |  | Thay đổi: Bản thử nghiệm.
+ok   GUIDE-01j: zz-six-months (vi): no out-of-date warning | observed: []
+ok   GUIDE-01j: zz-six-months (vi): fully readable (steps and the portal link are there) | observed: {"steps":2,"portal":1}
+ok   GUIDE-01j: zz-six-months (en): shows its version and last-checked date | observed: Version 1 · checked on the portal on 27 May 2026 by Test team |  | What changed: Test version.
+ok   GUIDE-01j: zz-six-months (en): no out-of-date warning | observed: []
+ok   GUIDE-01j: zz-six-months (en): fully readable (steps and the portal link are there) | observed: {"steps":2,"portal":1}
+ok   GUIDE-01j: zz-six-months-and-a-day: the API gives version 1 and last checked 2026-05-26 (worked out here from the test day), outOfDate true | observed: {"version":1,"lastCheckedOn":"2026-05-26","outOfDate":true}
+ok   GUIDE-01j: zz-six-months-and-a-day (vi): shows its version and last-checked date | observed: Phiên bản 1 · kiểm tra trên cổng ngày 26/05/2026 bởi Test team |  | Thay đổi: Bản thử nghiệm.
+ok   GUIDE-01j: zz-six-months-and-a-day (vi): warns that the portal may have changed, with the date | observed: ["Hướng dẫn này có thể đã cũ |  | Nhóm kiểm tra lần cuối ngày 26/05/2026, đã hơn 6 tháng. Cổng có thể đã thay đổi: hãy đối chiếu với những gì cổng hiển thị."]
+ok   GUIDE-01j: zz-six-months-and-a-day (vi): fully readable (steps and the portal link are there) | observed: {"steps":2,"portal":1}
+ok   GUIDE-01j: zz-six-months-and-a-day (en): shows its version and last-checked date | observed: Version 1 · checked on the portal on 26 May 2026 by Test team |  | What changed: Test version.
+ok   GUIDE-01j: zz-six-months-and-a-day (en): warns that the portal may have changed, with the date | observed: ["This guide may be out of date |  | A team member last checked it on 26 May 2026, more than 6 months ago. The portal may have changed: compare with what the portal shows."]
+ok   GUIDE-01j: zz-six-months-and-a-day (en): fully readable (steps and the portal link are there) | observed: {"steps":2,"portal":1}
+ok   GUIDE-01k: GET /api/guides/zz-draft: the same answer as the unknown guide | observed: 404 {"message":"Guide not found","error":"Not Found","statusCode":404}
+ok   GUIDE-01k: zz-draft is not in GET /api/guides | observed: ["accounts-and-portals","grades-and-transcript","zz-en-only","zz-fresh","zz-six-months","zz-six-months-and-a-day","zz-vi-only"]
+ok   GUIDE-01k: search "zz-draft" (vi): not listed, not found | observed: {"found":[],"noMatch":1}
+ok   GUIDE-01k: search "zz-draft" (en): not listed, not found | observed: {"found":[],"noMatch":1}
+ok   GUIDE-01k: /guides/zz-draft shows the same page as the unknown guide | observed: Không tìm thấy hướng dẫn |  | Hướng dẫn này không tồn tại hoặc đã được gỡ. |  | Xem tất cả hướng dẫn
+ok   GUIDE-01k: /guides/zz-draft: the page asked the API for it | observed: /api/guides/zz-draft
+ok   GUIDE-01k: GET /api/guides/zz-withdrawn: the same answer as the unknown guide | observed: 404 {"message":"Guide not found","error":"Not Found","statusCode":404}
+ok   GUIDE-01k: zz-withdrawn is not in GET /api/guides | observed: ["accounts-and-portals","grades-and-transcript","zz-en-only","zz-fresh","zz-six-months","zz-six-months-and-a-day","zz-vi-only"]
+ok   GUIDE-01k: search "zz-withdrawn" (vi): not listed, not found | observed: {"found":[],"noMatch":1}
+ok   GUIDE-01k: search "zz-withdrawn" (en): not listed, not found | observed: {"found":[],"noMatch":1}
+ok   GUIDE-01k: /guides/zz-withdrawn shows the same page as the unknown guide | observed: Không tìm thấy hướng dẫn |  | Hướng dẫn này không tồn tại hoặc đã được gỡ. |  | Xem tất cả hướng dẫn
+ok   GUIDE-01k: /guides/zz-withdrawn: the page asked the API for it | observed: /api/guides/zz-withdrawn
+
+=== LATER COMMIT ONLY: G01 (accounts-and-portals) and G07 (grades-and-transcript) as published by #112. Not a result for the B1 build. ===
+2026-11-27T10:22:47.274Z groups on the list (with the zz-* guides loaded too): Tài khoản và cổng thông tin | Đăng ký học phần | Học phí và lệ phí | Bảng điểm và giấy xác nhận
+ok   later: GUIDE-01b: accounts-and-portals is listed with its task, portal, account and direct link | observed: {"title":"Tài khoản và cổng thông tin","meta":"Portal Chương trình đề án · Tài khoản: Mã số sinh viên và mật khẩu Portal Chương trình đề án"}
+ok   later: GUIDE-01f: accounts-and-portals: the list link is an <a> with exactly the content file's address, new tab, rel noopener | observed: {"tag":"A","href":"https://portal.ctdb.hcmus.edu.vn","target":"_blank","rel":"noopener noreferrer"}
+ok   later: GUIDE-01b: grades-and-transcript is listed with its task, portal, account and direct link | observed: {"title":"Xem điểm","meta":"Portal Chương trình đề án · Tài khoản: Mã số sinh viên và mật khẩu Portal Chương trình đề án"}
+ok   later: GUIDE-01f: grades-and-transcript: the list link is an <a> with exactly the content file's address, new tab, rel noopener | observed: {"tag":"A","href":"https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan","target":"_blank","rel":"noopener noreferrer"}
+ok   later: GUIDE-01c (vi): "bảng điểm" lists grades-and-transcript among the real guides | observed: {"real":["grades-and-transcript"],"withTestGuides":["grades-and-transcript"]}
+ok   later: GUIDE-01c (vi): "bang diem" lists grades-and-transcript among the real guides | observed: {"real":["grades-and-transcript"],"withTestGuides":["grades-and-transcript"]}
+ok   later: GUIDE-01c (vi): "transcript" lists grades-and-transcript among the real guides | observed: {"real":["grades-and-transcript"],"withTestGuides":["grades-and-transcript"]}
+ok   later: GUIDE-01c (vi): "tài khoản" lists accounts-and-portals among the real guides | observed: {"real":["accounts-and-portals"],"withTestGuides":["accounts-and-portals"]}
+ok   later: GUIDE-01c (vi): "tai khoan" lists accounts-and-portals among the real guides | observed: {"real":["accounts-and-portals"],"withTestGuides":["accounts-and-portals"]}
+ok   later: GUIDE-01c/d (vi): "%" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (vi): "_" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (vi): "'" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (vi): "\" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (vi): "500 letters a" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (vi): "xyzzy" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01d (vi): the no-match message shows task groups; no Suggest-a-guide or advisor link | observed: Chưa có hướng dẫn cho việc này. |  | Xem theo nhóm việc: |  | Tài khoản và cổng thông tin | Đăng ký học phần | Học phí và lệ phí | Bảng điểm và giấy xác nhận
+ok   later: GUIDE-01d (vi): cleared, the two real guides are back | observed: ["accounts-and-portals","grades-and-transcript","zz-en-only","zz-fresh","zz-six-months","zz-six-months-and-a-day","zz-vi-only"]
+ok   later: GUIDE-01c (en): "bảng điểm" lists grades-and-transcript among the real guides | observed: {"real":["grades-and-transcript"],"withTestGuides":["grades-and-transcript"]}
+ok   later: GUIDE-01c (en): "bang diem" lists grades-and-transcript among the real guides | observed: {"real":["grades-and-transcript"],"withTestGuides":["grades-and-transcript"]}
+ok   later: GUIDE-01c (en): "transcript" lists grades-and-transcript among the real guides | observed: {"real":["grades-and-transcript"],"withTestGuides":["grades-and-transcript"]}
+ok   later: GUIDE-01c (en): "tài khoản" lists accounts-and-portals among the real guides | observed: {"real":["accounts-and-portals"],"withTestGuides":["accounts-and-portals"]}
+ok   later: GUIDE-01c (en): "tai khoan" lists accounts-and-portals among the real guides | observed: {"real":["accounts-and-portals"],"withTestGuides":["accounts-and-portals"]}
+ok   later: GUIDE-01c/d (en): "%" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (en): "_" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (en): "'" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (en): "\" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (en): "500 letters a" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01c/d (en): "xyzzy" lists nothing, with the no-match message | observed: []
+ok   later: GUIDE-01d (en): the no-match message shows task groups; no Suggest-a-guide or advisor link | observed: No guide covers this yet. |  | Browse by task group: |  | Accounts and portals | Registration | Tuition and fees | Records and certificates
+ok   later: GUIDE-01d (en): cleared, the two real guides are back | observed: ["accounts-and-portals","grades-and-transcript","zz-en-only","zz-fresh","zz-six-months","zz-six-months-and-a-day","zz-vi-only"]
+ok   later: GUIDE-01g: /guides/accounts-and-portals opens directly, signed out, and again after a reload | observed: Tài khoản và cổng thông tin
+ok   later: GUIDE-01f: accounts-and-portals: "Open portal" is an <a> with exactly the content file's address, new tab, rel noopener | observed: {"tag":"A","href":"https://portal.ctdb.hcmus.edu.vn","target":"_blank","rel":"noopener noreferrer"}
+ok   later: GUIDE-01m: accounts-and-portals: no password field, no form, and no request to a portal address | observed: {"passwordFields":0,"forms":0,"hosts":["localhost:5176","fonts.googleapis.com","localhost:3056","fonts.gstatic.com"]}
+ok   later: GUIDE-01l: accounts-and-portals: signed out, no API request carries an Authorization header | observed: ["GET /api/guides/accounts-and-portals","GET /api/guides/accounts-and-portals"]
+ok   later: GUIDE-01l: accounts-and-portals: the response holds no email, display name, program, cohort, transcript or plan field | observed: 9965 bytes; top-level keys: id, group, texts
+ok   later: GUIDE-01h: accounts-and-portals: the title and text change language, the address does not; version and date in each language's format | observed: {"vi":"Tài khoản và cổng thông tin","en":"Your school accounts and portals","versionVi":"Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng |  | Thay đổi: Bản đầu tiên.","versionEn":"Version 1 · checked on the portal on 15 Nov 2026 by Dũng |  | What changed: First version."}
+ok   later: GUIDE-01g: /guides/grades-and-transcript opens directly, signed out, and again after a reload | observed: Xem điểm
+ok   later: GUIDE-01f: grades-and-transcript: "Open portal" is an <a> with exactly the content file's address, new tab, rel noopener | observed: {"tag":"A","href":"https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan","target":"_blank","rel":"noopener noreferrer"}
+ok   later: GUIDE-01m: grades-and-transcript: no password field, no form, and no request to a portal address | observed: {"passwordFields":0,"forms":0,"hosts":["localhost:5176","fonts.googleapis.com","localhost:3056","fonts.gstatic.com"]}
+ok   later: GUIDE-01l: grades-and-transcript: signed out, no API request carries an Authorization header | observed: ["GET /api/guides/grades-and-transcript","GET /api/guides/grades-and-transcript"]
+ok   later: GUIDE-01l: grades-and-transcript: the response holds no email, display name, program, cohort, transcript or plan field | observed: 4555 bytes; top-level keys: id, group, texts
+ok   later: GUIDE-01h: grades-and-transcript: the title and text change language, the address does not; version and date in each language's format | observed: {"vi":"Xem điểm","en":"View your grades","versionVi":"Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng |  | Thay đổi: Bản đầu tiên.","versionEn":"Version 1 · checked on the portal on 15 Nov 2026 by Dũng |  | What changed: First version."}
+ok   later: GUIDE-01n: GET /api/guides/{id} without a token answers 200 for a published guide | observed: 200
+exit 0

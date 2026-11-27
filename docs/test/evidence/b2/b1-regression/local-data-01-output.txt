@@ -1,0 +1,223 @@
+# DATA-01a, b, c, e and AI-01f, local disposable PostgreSQL (docker), migrated by DB-01a, tree 1bde552 (main), Node v24.19.0 (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) in a disposable docker container (omni-b1r-db, port 55432)
+2026-11-27T09:21:32Z
+=== DATA-01a: seed run 1
+
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":4,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":4}
+Inserted: {"programs":10,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+Already present, left untouched: {"programs":1,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+exit 0
+--- shared-data counts after run 1
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+=== DATA-01a: seed run 2
+
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+exit 0
+--- shared-data counts after run 2
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+=== DATA-01e
+   code   | cohort_year | total_credits_min 
+----------+-------------+-------------------
+ APCS2024 |        2024 |               163
+ APCS2025 |        2025 |               163
+(2 rows)
+
+ courses | codes_breaking_format 
+---------+-----------------------
+     249 |                     0
+(1 row)
+
+ curriculum |                   name                   |    kind    | credits_total | credits_total_min | courses | listed_credits 
+------------+------------------------------------------+------------+---------------+-------------------+---------+----------------
+ APCS2024   | Kiến thức Computer Science (A): bắt buộc | compulsory |            40 |                   |      10 |             40
+ APCS2024   | Kiến thức Computer Science (A): tự chọn  | elective   |               |                16 |       6 |             24
+ APCS2024   | Kiến thức Math                           | compulsory |            16 |                   |       4 |             16
+ APCS2024   | Kiến thức Non Computer Science           | compulsory |            26 |                   |      12 |             34
+ APCS2024   | Kiến thức Physics                        | compulsory |            12 |                   |       3 |             12
+ APCS2024   | Kiến thức tốt nghiệp                     | elective   |               |                10 |       3 |             20
+ APCS2024   | Tự chọn Computer Science (C)             | elective   |               |                   |      27 |            108
+ APCS2024   | Tự chọn Math (B)                         | elective   |               |                 8 |       4 |             16
+ APCS2025   | Kiến thức Computer Science (A): bắt buộc | compulsory |            40 |                   |      10 |             40
+ APCS2025   | Kiến thức Computer Science (A): tự chọn  | elective   |               |                16 |       6 |             24
+ APCS2025   | Kiến thức Math                           | compulsory |            16 |                   |       4 |             16
+ APCS2025   | Kiến thức Non Computer Science           | compulsory |            26 |                   |      12 |             34
+ APCS2025   | Kiến thức Physics                        | compulsory |            12 |                   |       3 |             12
+ APCS2025   | Kiến thức tốt nghiệp                     | elective   |               |                10 |       3 |             20
+ APCS2025   | Tự chọn Computer Science (C)             | elective   |               |                   |      29 |            116
+ APCS2025   | Tự chọn Math (B)                         | elective   |               |                 8 |       4 |             16
+(16 rows)
+
+                   name                   |                                 codes                                 
+------------------------------------------+-----------------------------------------------------------------------
+ Kiến thức Computer Science (A): bắt buộc | CS160, CS163, CS201, CS202, CS250, CS300, CS323, CS333, CS486, ECE341
+ Kiến thức Computer Science (A): tự chọn  | CS251, CS252, CS311, CS320, CS350, CS420
+(2 rows)
+
+--- prerequisites and offering terms recorded (all programs, then APCS curricula only)
+ prerequisite_lists | prerequisites | offering_terms 
+--------------------+---------------+----------------
+                140 |             2 |              0
+(1 row)
+
+                 Table "public.course_prerequisite_lists"
+    Column     |           Type           | Collation | Nullable | Default 
+---------------+--------------------------+-----------+----------+---------
+ curriculum_id | uuid                     |           | not null | 
+ course_code   | character varying(20)    |           | not null | 
+ created_at    | timestamp with time zone |           | not null | now()
+ updated_at    | timestamp with time zone |           | not null | now()
+Indexes:
+    "course_prerequisite_lists_pkey" PRIMARY KEY, btree (curriculum_id, course_code)
+    "ix_course_prerequisite_lists_course_code" btree (course_code)
+Foreign-key constraints:
+    "course_prerequisite_lists_course_code_fkey" FOREIGN KEY (course_code) REFERENCES courses(code) ON DELETE RESTRICT
+    "course_prerequisite_lists_curriculum_id_fkey" FOREIGN KEY (curriculum_id) REFERENCES curriculums(id) ON DELETE CASCADE
+Referenced by:
+    TABLE "course_prerequisites" CONSTRAINT "course_prerequisites_curriculum_id_course_code_fkey" FOREIGN KEY (curriculum_id, course_code) REFERENCES course_prerequisite_lists(curriculum_id, course_code) ON DELETE CASCADE
+
+                   Table "public.course_offering_terms"
+    Column     |           Type           | Collation | Nullable | Default 
+---------------+--------------------------+-----------+----------+---------
+ curriculum_id | uuid                     |           | not null | 
+ course_code   | character varying(20)    |           | not null | 
+ term_number   | smallint                 |           | not null | 
+ created_at    | timestamp with time zone |           | not null | now()
+Indexes:
+    "course_offering_terms_pkey" PRIMARY KEY, btree (curriculum_id, course_code, term_number)
+    "ix_course_offering_terms_course_code" btree (course_code)
+Check constraints:
+    "ck_course_offering_terms_term_number" CHECK (term_number = ANY (ARRAY[1, 2, 3]))
+Foreign-key constraints:
+    "course_offering_terms_course_code_fkey" FOREIGN KEY (course_code) REFERENCES courses(code) ON DELETE RESTRICT
+    "course_offering_terms_curriculum_id_fkey" FOREIGN KEY (curriculum_id) REFERENCES curriculums(id) ON DELETE CASCADE
+
+=== DATA-01b
+   code   | official_notes 
+----------+----------------
+ APCS2024 | 4 học phần
+ APCS2025 | 4 học phần
+(2 rows)
+
+UPDATE 1
+--- seed after the edit
+
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+exit 0
+   code   | official_notes 
+----------+----------------
+ APCS2024 | admin note
+ APCS2025 | 4 học phần
+(2 rows)
+
+--- restore
+UPDATE 1
+   code   | official_notes 
+----------+----------------
+ APCS2024 | 4 học phần
+ APCS2025 | 4 học phần
+(2 rows)
+
+=== DATA-01c (by hand)
+--- shared counts before
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+UPDATE 1
+--- seed with the conflict
+
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Course catalog conflict: 1 value(s) differ for the same course code. Resolve each in the seed data or with an explicit catalog decision; the seed never lets the last write win.
+  CS160.name_vi: "Renamed" (database) vs "Nhập môn Tin học" (seed)
+npm error Lifecycle script `db:seed` failed with error:
+npm error code 1
+npm error path E:\Project\omnicourses\src\backend
+npm error workspace @omnicourse/backend@0.6.0
+npm error location E:\Project\omnicourses\src\backend
+npm error command failed
+npm error command C:\Windows\system32\cmd.exe /d /s /c node dist/database/seed.js
+exit 1
+ code  | name_vi 
+-------+---------
+ CS160 | Renamed
+(1 row)
+
+--- shared counts after the aborted seed
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+UPDATE 1
+--- seed after the restore
+
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+exit 0
+ code  |     name_vi      
+-------+------------------
+ CS160 | Nhập môn Tin học
+(1 row)
+
+=== AI-01f: \d ai_usage
+                               Table "public.ai_usage"
+    Column     |           Type           | Collation | Nullable |      Default      
+---------------+--------------------------+-----------+----------+-------------------
+ id            | uuid                     |           | not null | gen_random_uuid()
+ user_id       | uuid                     |           | not null | 
+ feature       | character varying(50)    |           | not null | 
+ model         | character varying(100)   |           | not null | 
+ input_tokens  | integer                  |           | not null | 0
+ output_tokens | integer                  |           | not null | 0
+ latency_ms    | integer                  |           | not null | 0
+ succeeded     | boolean                  |           | not null | false
+ created_at    | timestamp with time zone |           | not null | now()
+Indexes:
+    "ai_usage_pkey" PRIMARY KEY, btree (id)
+    "ix_ai_usage_user_id_created_at" btree (user_id, created_at)
+Foreign-key constraints:
+    "ai_usage_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+
+
+=== DATA-01e, addendum: where the 140 prerequisite lists and 2 prerequisites are (new since B1: the seed now records them; B1 had 0 of each)
+2026-11-27T09:23:04Z
+ curriculum | prerequisite_lists | prerequisites 
+------------+--------------------+---------------
+ APCS2024   |                 69 |             1
+ APCS2025   |                 71 |             1
+(2 rows)
+
+ curriculum |            curriculum_id             | course_code | prerequisite_code |          created_at           
+------------+--------------------------------------+-------------+-------------------+-------------------------------
+ APCS2024   | e067f3e9-7d16-406a-9fb1-fc71c50c1423 | CS470       | CS469             | 2026-11-27 09:21:38.500055+00
+ APCS2025   | 4b06a5b5-5c55-4d8a-ab7d-8f35aab7859d | CS470       | CS469             | 2026-11-27 09:21:38.500055+00
+(2 rows)
+

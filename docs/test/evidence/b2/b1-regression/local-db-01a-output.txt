@@ -1,0 +1,26 @@
+# DB-01a, local disposable PostgreSQL (docker, port 55432), empty database, tree 1bde552 (main), Node v24.19.0 (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) in a disposable docker container (omni-b1r-db, port 55432)
+2026-11-27T09:20:37Z
+--- npm run build
+dist/assets/index-DQHi_C-P.js   537.82 kB │ gzip: 169.33 kB
+
+✓ built in 1.93s
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+exit 0
+--- migrate run 1
+
+> @omnicourse/backend@0.6.0 db:migrate
+> node dist/database/migrate.js
+
+Applied: CreateUsersAndSessions1761696000000, CreateAiUsage1792800000000, AddUsersDeletionRequestedAt1792886400000, CreateCurriculumCourseSchema1792912952302, CreateTranscriptRows1793159431000, CreateGuides1793872582380, CreateOnboardingAnswers1794216390492, CreatePlans1794218005469, CreateCurriculumAdmin1794230000000, AddAuditRulesToCurriculum1794300000000, CreateAcademicCalendar1794500000000, CreatePlanShares1795564800000, CreateNotifications1795575059760
+exit 0
+--- migrate run 2
+
+> @omnicourse/backend@0.6.0 db:migrate
+> node dist/database/migrate.js
+
+Database is up to date.
+exit 0

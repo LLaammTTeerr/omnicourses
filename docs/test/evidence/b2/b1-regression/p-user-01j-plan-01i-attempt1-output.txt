@@ -1,0 +1,31 @@
+[2026-11-27T09:25:02.755Z] signed up b1-run-r27a-p03@example.com
+OK   setup | onboarded to APCS 2024 (API, 200) | observed: 200
+[2026-11-27T09:25:04.667Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+DIFF USER-01j | with no plan, Lộ trình creates "Kế hoạch mặc định" and opens it | observed: h1 "Kế hoạch mặc định", tabs []
+OK   USER-01j | the planner has no Save button | observed: 0 such buttons
+OK   USER-01j | CS160 added with +; chip says Đã lưu | observed: Đã lưu; HK1 2026–2027: CS160
+NOTE USER-01j | curriculum line before the change (note) | observed: CTĐT APCS2024
+[2026-11-27T09:25:10.090Z] Settings before: program "APCS", cohort "Khóa 2024"
+OK   USER-01j | Settings saves the cohort 2025 (PUT 200; the API then reads APCS 2025) | observed: PUT 200; GET program APCS, cohort 2025
+OK   USER-01j | the same plan opens | observed: same address: true; h1 "Kế hoạch mặc định"
+OK   USER-01j | the line under the status strip still says "CTĐT APCS2024" | observed: CTĐT APCS2024
+OK   USER-01j | CS160 is still placed | observed: HK1 2026–2027: CS160
+OK   USER-01j | the course list holds exactly APCS 2024's courses less CS160 | observed: 68 courses listed; APCS2024 has 69, APCS2025 71; only in 2024: none; only in 2025: CS436 CS437; 2025-only courses listed: none
+OK   USER-01j | API: the plan's curriculum.code is APCS2024 | observed: {"id":"4a941965-834b-4d5a-a9c3-91a0607c3cbc","code":"APCS2024","programCode":"APCS","cohortYear":2024}
+node:internal/fs/promises:697
+  return new FileHandle(await PromisePrototypeThen(
+                        ^
+
+Error: ENOENT: no such file or directory, open 'E:\E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\p-user-01j-plan-after-cohort-change.png'
+    at async open (node:internal/fs/promises:697:25)
+    at async Object.writeFile (node:internal/fs/promises:1317:14)
+    at async _Page.screenshot (E:\Project\omnicourses\node_modules\playwright-core\lib\coreBundle.js:63324:11)
+    at async shot (file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/p-lib.mjs:183:3)
+    at async file:///E:/Project/omnicourses/docs/test/evidence/b2/b1-regression/p-user-01j-plan-01i.mjs:63:1 {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'E:\\E:\\Project\\omnicourses\\docs\\test\\evidence\\b2\\b1-regression\\p-user-01j-plan-after-cohort-change.png'
+}
+
+Node.js v24.19.0
