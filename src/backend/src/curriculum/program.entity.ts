@@ -1,9 +1,7 @@
 import { Check, Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { Curriculum } from './curriculum.entity.js';
 import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
-
-export const TRAINING_TYPES = ['advanced', 'joint', 'high_quality', 'standard'] as const;
-export type TrainingType = (typeof TRAINING_TYPES)[number];
+import type { TrainingType } from './curriculum-rules.js';
 
 export const FACULTY_MAX_LENGTH = 100;
 

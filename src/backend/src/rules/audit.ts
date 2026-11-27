@@ -1,5 +1,5 @@
 import { byText, groupBy } from '../common/collections.js';
-import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
+import type { CurriculumRules } from '../curriculum/curriculum-rules.js';
 import { compareTerms, copyTerm, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { attemptPasses, courseRecords, isCompleted, recordAsOf, resolve, type CourseRecord } from './attempts.js';

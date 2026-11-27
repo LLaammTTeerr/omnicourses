@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy } from 'class-validator';
 import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, NullableTextField, RequiredTextField } from '../common/field-validators.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/curriculum-rules.js';
 import { TERM_NUMBERS } from '../terms/term.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
 import { NAME_MAX_LENGTH } from '../common/column-limits.js';

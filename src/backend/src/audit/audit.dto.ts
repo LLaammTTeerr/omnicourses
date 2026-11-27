@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, Max, Min, ValidateIf } from 'class-validator';
-import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
-import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
+import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind, TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
 import {
   AUDIT_UNAVAILABLE_CODES,
   AUDIT_WARNING_CODES,

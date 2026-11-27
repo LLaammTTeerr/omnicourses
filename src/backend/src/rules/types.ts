@@ -1,5 +1,5 @@
-import type { RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
-import type { TrainingType } from '../curriculum/program.entity.js';
+import type { RequirementGroupKind } from '../curriculum/curriculum-rules.js';
+import type { TrainingType } from '../curriculum/curriculum-rules.js';
 import type { Term } from '../terms/term.js';
 import type { TranscriptResult } from '../transcript/transcript-entry.js';
 import type { CapViolation, CreditCaps, TermKind } from './credit-caps.js';

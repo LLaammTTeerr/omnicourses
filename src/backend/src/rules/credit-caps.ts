@@ -1,4 +1,4 @@
-import type { TrainingType } from '../curriculum/program.entity.js';
+import type { TrainingType } from '../curriculum/curriculum-rules.js';
 import type { Term } from '../terms/term.js';
 import { CITATIONS } from './types.js';
 

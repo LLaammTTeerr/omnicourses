@@ -1,5 +1,5 @@
 import { byText } from '../common/collections.js';
-import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
+import type { CurriculumRuleCourse, CurriculumRuleGroup, CurriculumRules } from '../curriculum/curriculum-rules.js';
 import type { CourseRecord } from './attempts.js';
 import type { CombinedMinimumCoverage, CourseCoverage, CourseStatus, GroupCoverage } from './types.js';
 

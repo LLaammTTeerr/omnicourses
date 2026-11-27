@@ -1,5 +1,5 @@
 import { byText } from '../common/collections.js';
-import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
+import type { CurriculumRules } from '../curriculum/curriculum-rules.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { courseRecords, type CourseRecord } from './attempts.js';
 import { checkPrerequisites } from './prerequisites.js';

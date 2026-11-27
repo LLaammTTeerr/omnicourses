@@ -3,7 +3,8 @@ import { Transform } from 'class-transformer';
 import { IsInt, IsString, Matches, Max, Min } from 'class-validator';
 import { ifPresent, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
 import { LANGUAGE_MAX_LENGTH } from '../curriculum/curriculum.entity.js';
-import { FACULTY_MAX_LENGTH, TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
+import { TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
+import { FACULTY_MAX_LENGTH } from '../curriculum/program.entity.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
 import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
 
