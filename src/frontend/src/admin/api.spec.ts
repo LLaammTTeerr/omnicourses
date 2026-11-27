@@ -56,6 +56,7 @@ import {
   type UpdateCourseBody,
   type UpdateGroupBody,
 } from './api.js';
+import * as grants from './grants.js';
 import { fetchOwnGrants, GLOBAL_PERMISSIONS, PERMISSION_KINDS, type GlobalGrant, type ProgramGrant, type UserGrants } from './grants.js';
 
 const error = { statusCode: 'required', code: 'required', message: 'required' } as const;
@@ -316,7 +317,7 @@ describe('administration addresses against the contract', () => {
   });
 
   it('calls every function this module exports', () => {
-    const functions = Object.entries(api).filter(([, value]) => typeof value === 'function').map(([name]) => name);
+    const functions = Object.entries({ ...api, ...grants }).filter(([, value]) => typeof value === 'function').map(([name]) => name);
     expect(functions.sort()).toEqual(CALLS.map(([name]) => name).sort());
   });
 
