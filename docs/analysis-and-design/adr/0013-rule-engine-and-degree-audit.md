@@ -18,7 +18,7 @@ The curriculum schema of #23 ([ADR 0005](0005-curriculum-cohort-and-course-catal
 | Decision | Alternatives rejected | Evidence |
 | --- | --- | --- |
 | **A `rules` module holds the engine.** Every rule is a pure function in `src/backend/src/rules/` with no I/O: `credit-caps.ts`, `grades.ts`, `attempts.ts`, `gpa.ts`, `coverage.ts`, `graduation.ts`, `prerequisites.ts`, and `audit.ts`, which composes them. `RulesService` loads the inputs (onboarding answers, the transcript, the curriculum rules) and calls them; it also exposes the pure functions to other modules. | Rules inside the audit controller or the curriculum service; a rules table interpreted at run time | Pure functions are tested with synthetic inputs and no database (`src/rules/*.spec.ts`, statement coverage of `src/rules` above 98 %, gate 80 % in `vitest.config.mts`). One module keeps hard rule 1 checkable: no other folder decides a rule. |
-| **The F3 route lives in an `audit` module**, `GET /api/users/me/audit`, behind the global AuthGuard. Its DTOs implement the engine's result types (`rules/audit-types.ts`), so the contract and the engine cannot drift apart. | Routes in `rules` | One Nest module per feature (AGENTS.md). The planner and the advisor import `RulesModule` without a controller. |
+| **The F3 route lives in an `audit` module**, `GET /api/users/me/audit`, behind the global AuthGuard. Its DTOs implement the engine's result types (`rules/types.ts`, was `rules/audit-types.ts`; renamed, see the amendment below), so the contract and the engine cannot drift apart. | Routes in `rules` | One Nest module per feature (AGENTS.md). The planner and the advisor import `RulesModule` without a controller. |
 | **The curriculum module reads the rule data for the engine** (`CurriculumRulesReader.rulesFor(program, cohort)`), returning plain data. The curriculum read DTOs gain only `trainingType`. | The engine querying curriculum tables itself; every rule field on the explorer DTOs | The curriculum module owns its tables. The explorer's shape stays as F4 and F12 define it. |
 | **Without finished onboarding the audit answers 409 `onboarding_required`**; with a program and cohort that have no curriculum, 409 `curriculum_not_found`. The body is `{ statusCode, code, message }`, like `ai_unavailable`. | 404 | 404 reads as a missing route or a missing student. 409 says the request is valid but the account's state does not allow it yet, and the UI sends the student to onboarding (B1 test cases, USER-01k). |
 
@@ -72,7 +72,7 @@ Not stored, with the reason:
 
 ### Plan issues (amended 9 November 2026)
 
-`RulesService` implements the plans module's `PlanIssuesProvider` (ADR 0014); `checkPlan` in `rules/plan-issues.ts` composes the rules above. `GET /api/plans/{id}/issues` serves it to the plan's owner only.
+`RulesService` serves the plan issues to the plans module (`RulesService`, was the `PlanIssuesProvider` interface; renamed, see the amendment below); `checkPlan` in `rules/plan-issues.ts` composes the rules above. `GET /api/plans/{id}/issues` serves it to the plan's owner only.
 
 | Decision | Alternatives rejected | Evidence |
 | --- | --- | --- |
