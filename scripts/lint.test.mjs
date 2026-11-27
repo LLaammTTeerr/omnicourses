@@ -14,6 +14,7 @@ const BASE_LAYERS = {
   frontendComposition: ['App.vue', 'router.ts'],
   frontendLayerExceptions: [],
   frontendFeatureEdges: [],
+  identifierHomes: [],
 };
 
 const BASE_FILES = {
@@ -234,6 +235,35 @@ describe('backend-import-direction', () => {
         [`${BACKEND}/b/b.spec.ts`]: "import { A } from '../a/a.service.js';\n",
         [`${BACKEND}/b/testing/fake.ts`]: "import { A } from '../../a/a.service.js';\n",
       }),
+      [],
+    );
+  });
+});
+
+describe('identifier-home', () => {
+  const homes = { identifierHomes: [{ identifiers: ['secret_column', 'secretColumn'], folders: [`${BACKEND}/owner/`, `${BACKEND}/database/migrations/`] }] };
+
+  it('reports an identifier outside its folders', () => {
+    const [error, ...rest] = problems({ [`${BACKEND}/other/a.service.ts`]: 'export const a = 1;\nexport const b = "x.secretColumn";\n' }, homes);
+    assert.deepEqual(rest, []);
+    assert.equal(error.rule, 'identifier-home');
+    assert.equal(error.file, `${BACKEND}/other/a.service.ts`);
+    assert.equal(error.line, 2);
+    assert.match(error.message, /secretColumn/);
+  });
+
+  it('allows the identifier in its folders, in specs and testing folders, and does not match a longer name', () => {
+    assert.deepEqual(
+      problems(
+        {
+          [`${BACKEND}/owner/a.ts`]: 'export const a = "secret_column";\n',
+          [`${BACKEND}/database/migrations/1-a.ts`]: 'export const a = "secret_column";\n',
+          [`${BACKEND}/other/a.spec.ts`]: 'export const a = "secret_column";\n',
+          [`${BACKEND}/other/testing/a.ts`]: 'export const a = "secretColumn";\n',
+          [`${BACKEND}/other/b.ts`]: 'export const a = "secret_columns";\n',
+        },
+        homes,
+      ),
       [],
     );
   });
