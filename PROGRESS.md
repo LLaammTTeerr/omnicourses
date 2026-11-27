@@ -38,14 +38,15 @@ Evidence for every item: the seven survey files (`converge/survey/*.md`, finding
 | 04 | refactor/cv-04-engine-vocabulary | 03 | #223 (draft) | stack 06, #225 |
 | 05 | refactor/cv-05-fe-kernel | 09 | #224 (draft) | stack 05, #224 |
 | 06 | refactor/cv-06-rules-one-derivation | 04 | #225 (draft) | stack 12, #231 |
-| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | building |
-| 08 | refactor/cv-08-plan-components | 11 | #227 (draft) | stack 08, #227 |
+| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | stack 15, #234 |
+| 08 | refactor/cv-08-plan-components | 11 | #227 (draft) | building |
 | 09 | refactor/cv-09-admin-messages | 16 | #228 (draft) | stack 09, #228 |
 | 10 | refactor/cv-10-account-state | 05 | #229 (draft) | pushed; SQL byte for byte; hand-merged `scripts/lint.mjs` at integration |
 | 11 | refactor/cv-11-actions-and-drafts | 14 | #230 (draft) | stack 11, #230 |
 | 12 | refactor/cv-12-errors-and-limiter | 06 | #231 (draft) | stack 14, #233 |
 | 13 | refactor/cv-13-contract-checks | 15 | #232 (draft) | stack 13, #232 (part F moved to batch 17) |
 | 14 | refactor/cv-14-routes-and-effects | 12 | #233 (draft) | pushed; route table byte-identical |
+| 15 | refactor/cv-15-admin-access | 07 | #234 (draft) | pushed; openapi.json byte-identical |
 
 Stack order follows readiness, so stack numbers differ from the batch numbers of the plan below. Each batch is built on `cvb/<batch slug>` in `.claude/worktrees/cv-build-{be,fa,fb}` and cherry-picked onto the stack tip in `.claude/worktrees/cv-stack`. Since batch 06, every new batch branches from the current stack tip, not from its track's previous build branch: two tracks that had each edited `scripts/lint.mjs` or a file an earlier layer had split needed hand merges.
 
@@ -82,6 +83,7 @@ Build: 01 first, alone, through the whole pipeline. Then three tracks in paralle
 ### Rejected
 
 - Removing the unused openapi artifact upload from `ci.yml` (T-1): CI gates are the Project Lead's; listed under decisions instead.
+- One export line per migration (part of BP-5), built in batch 07 and taken out again: it put timestamp-sorting logic into the migration registry and a list file in another folder, while two branches that each append a migration still collide on the same line. `database/migrations/index.ts` is unchanged; its spec already fails on an unlisted migration.
 - T-3 parallel e2e: the suite takes 83 s; not worth the flakiness risk.
 - BA-5 notification-kind guard: already enforced by `notifications/api.spec.ts` (contractEnum).
 - BA-6 exclude `testing/` from the build: staging may seed fixtures from dist; leave.
