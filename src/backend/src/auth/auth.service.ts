@@ -15,6 +15,7 @@ import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { sessionTtlDays } from '../config/env.js';
 import { DAY_MS, MINUTE_MS } from '../config/time.js';
+import { isWaitingForDeletion } from '../users/account-state.js';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
@@ -83,7 +84,7 @@ export class AuthService {
     if (!user || !valid) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    const accountRestored = user.deletionRequestedAt !== null;
+    const accountRestored = isWaitingForDeletion(user);
     if (accountRestored && !(await this.users.cancelDeletion(user.id, now))) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -108,7 +109,7 @@ export class AuthService {
     const now = this.clock.now();
     if (!session || session.revokedAt || session.expiresAt.getTime() <= now.getTime()) return null;
     if (session.createdAt && session.createdAt.getTime() + maxSessionLifetimeMs() <= now.getTime()) return null;
-    if (session.user.deletionRequestedAt) return null;
+    if (isWaitingForDeletion(session.user)) return null;
     return { user: session.user, session };
   }
 
