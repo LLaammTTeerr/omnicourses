@@ -45,7 +45,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 15 | `refactor/cv-15-admin-access` | 07 | #234 (draft) | refactor(backend): move the admin write gate into admin-access |
 | 16 | `refactor/cv-16-clc-seeds` | 08 | #235 (draft) | refactor(curriculum): write each CLC 2025 course once |
 | 17 | `refactor/cv-17-docs-and-extras` | 17 | #236 (draft) | docs: match decision records and architecture map to the code |
-| 18 | `refactor/cv-18-dashboard-folder` | 18 | to open | the dashboard moves from `audit/` into its own `dashboard/` folder (building) |
+| 18 | `refactor/cv-18-dashboard-folder` | 18 | #237 (draft) | refactor(dashboard): move the dashboard screen into its own folder |
 
 Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. Every layer passed the full verify when it was stacked; the tip passed again after `main` was merged in: backend 1205 unit / 365 e2e, frontend 1393 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). No test was removed; two titles were widened.
 
@@ -53,7 +53,7 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 
 - Backend: the folder cycle `curriculum <-> curriculum-admin <-> database` is gone; `common` and `config` import no feature. One folder cycle is left, `auth <-> users` (the users controller imports the auth decorators, which import the User type; type-only, left on purpose), and one file cycle, the three curriculum entities (TypeORM relations). The number of folder edges is the same as at the start (101 with the root); the gain is direction, not count.
 - Owners that did not exist before: lock keys (`common/advisory-locks.ts`), "account waiting for deletion" and the student row lock (`users/account-state.ts`), coded API errors (`common/api-errors.ts`), the admin write gate (`admin-access/`), the rule engine's input vocabulary (`curriculum/curriculum-rules.ts`), curriculum seed data (`curriculum/seeds/`), each CLC course (`curriculum/seeds/clc-2025-courses.ts`).
-- Frontend: three enforced layers (kernel, features, composition) with no exception left; feature-to-feature imports are a ratchet list. Two-way pairs: `plans <-> sharing` (accepted: the editor mounts the share dialog, the shared page reuses plan components) and, until stack 18 merges, `audit <-> plans` through the dashboard. Largest files: `plans/PlanEditorView.vue` 956, `audit/DashboardView.vue` 925 (from #214), `admin/CurriculumAdmin.vue` 796, `sharing/SharedPlanView.vue` 769 (1077 at the start).
+- Frontend: three enforced layers (kernel, features, composition) with no exception left; feature-to-feature imports are a ratchet list. Two-way pairs: `plans <-> sharing` only (accepted: the editor mounts the share dialog, the shared page reuses plan components). Stack 18 moves the dashboard out of `audit/`, which ends `audit <-> plans`; until it merges, layers 01 to 17 list four `audit -> ...` edges for the dashboard. Largest files: `plans/PlanEditorView.vue` 956, `dashboard/DashboardView.vue` 925 (from #214), `admin/CurriculumAdmin.vue` 796, `sharing/SharedPlanView.vue` 769 (1077 at the start).
 - Enforcement, all in `npm run lint` (`scripts/lint.mjs`, tables in `scripts/layers.mjs`, 40-odd tests of its own): backend import direction, frontend layers and feature edges, `fetch(` only in `api.ts`, modules reachable from the registry, the module table of architecture.md, identifier homes, coded-error homes. In specs: rule-engine purity including type imports, contract coverage and nullability, seeded group colours, message catalogues by glob, server reference sentences.
 
 ## Decisions from the Project Lead (28 Nov 2026)
@@ -110,4 +110,6 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 
 ## Next
 
-Stack 18 (the dashboard folder) is building in `cv-build-fa` from the stack tip. When it returns approved: polish, cherry-pick onto the tip as `refactor/cv-18-dashboard-folder`, full verify, draft PR on #236, thread. Then the mission waits on approvals, starting with #220.
+All 18 batches are pushed as PRs #220 to #237. An independent read of the stack (`converge/final-read.md`) found one remaining item, the dashboard folder, which is stack 18; for every other area it found nothing more worth a pull request. The mission now waits on approvals, starting with #220 (ready, auto-merge on). When a teammate reviews a PR and asks for a change: fix it on that PR's branch in `cv-stack`, then merge that branch into each branch above it and push them all. When #220 merges, follow "Merging the stack" above.
+
+Local leftovers that can be removed once the stack is merged: worktrees `.claude/worktrees/cv-build-{be,fa,fb}` and `cv-stack`, local branches `cvb/*`, databases `omnicourse_cv_*` and `omnicourse_converge` in the docker Postgres.
