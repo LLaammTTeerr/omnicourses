@@ -63,7 +63,6 @@ const notShared = computed(() => status.value === 'loaded' && shared.value === n
 
 usePageTitle(() => shared.value?.name ?? (notShared.value ? m.value.notSharedTitle : m.value.sharedPlanTitle));
 
-const glyphOf = groupGlyph;
 const wordSharedIssue = (issue: SharedPlanIssue) => wordIssue(planner.value, issue);
 
 const curriculumMeta = computed(() => (shared.value ? curriculumMetaOf(shared.value.curriculum, locale.lang, m.value) : ''));
@@ -155,7 +154,7 @@ function printPlan(): void {
             :class="['cov-item', groupClass(groupColour(group)), { short: !group.met }]"
             data-test="coverage-group"
           >
-            <span class="glyph sm" aria-hidden="true">{{ glyphOf(groupColour(group)) }}</span>
+            <span class="glyph sm" aria-hidden="true">{{ groupGlyph(groupColour(group)) }}</span>
             <div class="cov-body">
               <span class="nm">{{ group.name }}</span>
               <span class="v">

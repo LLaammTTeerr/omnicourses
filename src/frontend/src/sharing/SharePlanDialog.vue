@@ -23,7 +23,7 @@ const status = ref<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
 const share = shallowRef<PlanShare | null>(null);
 const showName = ref(false);
 const showTranscriptChecks = ref(false);
-const pending = ref<'creating' | 'updating' | 'stopping'>('creating');
+const pending = ref<'creating' | 'updating' | 'stopping' | null>(null);
 const { busy, error: actionError, run } = useAttempt(() => m.value.actionFailed);
 const busyWith = (kind: typeof pending.value) => busy.value && pending.value === kind;
 const copied = ref(false);

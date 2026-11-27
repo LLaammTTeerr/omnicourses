@@ -5,7 +5,7 @@ import { statusOf } from '../api.js';
 import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { courseName, matches } from '../curriculum/present.js';
-import { groupClass, type GroupId } from '../groups.js';
+import { groupClass, groupGlyph, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -87,7 +87,7 @@ const over = ref<DropTarget | null>(null);
 const dropRow = computed(() => (over.value?.startsWith('row:') ? over.value.slice(4) : null));
 const draggingPlaced = computed(() => !!dragging.value && 'key' in dragging.value);
 
-const { nameOf, shortName, glyphOf, tileTitle, ctx, hoverKey, panelPreview, dropOf, rows } = usePlanView({ board, issues, courses, moving, previews, lifted, dropRow });
+const { nameOf, shortName, tileTitle, ctx, hoverKey, panelPreview, dropOf, rows } = usePlanView({ board, issues, courses, moving, previews, lifted, dropRow });
 
 const announcement = ref('');
 function announce(text: string): void {
@@ -487,7 +487,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   :data-test="`pool-group-${g}`"
                   @click="poolGroup = poolGroup === g ? '' : g"
                 >
-                  <span class="glyph xs" aria-hidden="true">{{ glyphOf(g) }}</span>{{ shortName(g) }}
+                  <span class="glyph xs" aria-hidden="true">{{ groupGlyph(g) }}</span>{{ shortName(g) }}
                 </button>
               </div>
               <p v-if="draggingPlaced" class="drop-reason tray-reason"><Icon name="trash" size="sm" /><span>{{ m.dropToRemove }}</span></p>

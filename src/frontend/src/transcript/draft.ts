@@ -18,7 +18,7 @@ export interface AutoFillResult {
 }
 
 type Typed = Pick<DraftRow, 'courseName' | 'credits'>;
-type Curriculum = { name: string; credits: number };
+type AutoFillSource = { name: string; credits: number };
 
 const isBlank = (text: string): boolean => text.trim() === '';
 
@@ -31,7 +31,7 @@ function clearField(typed: string, previous: string | undefined): string {
   return previous !== undefined && typed === previous ? '' : typed;
 }
 
-export function autoFill(row: Typed, course: Curriculum | null, previous: AutoFilled | null): AutoFillResult {
+export function autoFill(row: Typed, course: AutoFillSource | null, previous: AutoFilled | null): AutoFillResult {
   if (!course) {
     return { courseName: clearField(row.courseName, previous?.name), credits: clearField(row.credits, previous?.credits), filled: null };
   }

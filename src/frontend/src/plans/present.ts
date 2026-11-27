@@ -3,7 +3,7 @@ import { reportFailure, useAsyncLoad } from '../async-load.js';
 import { fetchAudit, type DegreeAudit } from '../audit/api.js';
 import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour, orderGroups } from '../curriculum/present.js';
-import { groupClass, groupGlyph, groupShort, type GroupId } from '../groups.js';
+import { groupClass, groupShort, type GroupId } from '../groups.js';
 import { LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import { currentTermNow, termKey, termName, type Term } from '../terms.js';
@@ -149,7 +149,6 @@ export function usePlanView({ board, issues, courses, moving, previews, lifted, 
 
   const nameOf = (term: Term) => termName(term, locale.lang);
   const shortName = (colour: GroupId) => groupShort(colour, locale.lang);
-  const glyphOf = groupGlyph;
   const gradeText = (n: number) => n.toLocaleString(LANGUAGES[locale.lang].tag, { maximumFractionDigits: GRADE_DECIMALS });
   const slotTitle = (groupId: string | null | undefined) => m.value.slot(groupNames.value.get(groupId ?? '')?.name ?? m.value.slotGroupUnknown);
 
@@ -306,5 +305,5 @@ export function usePlanView({ board, issues, courses, moving, previews, lifted, 
   }
   const rows = computed(() => board.value.map(rowView));
 
-  return { nameOf, shortName, glyphOf, tileTitle, ctx, hoverKey, panelPreview, dropOf, rows };
+  return { nameOf, shortName, tileTitle, ctx, hoverKey, panelPreview, dropOf, rows };
 }

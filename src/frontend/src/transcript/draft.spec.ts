@@ -104,6 +104,13 @@ describe('useTranscriptDraft', () => {
     expect(draft.rows.value).toHaveLength(1);
   });
 
+  it('accepts an append that fills the rows to the limit exactly', () => {
+    const draft = open();
+    draft.adoptSaved([savedRow('ZZ101')]);
+    expect(draft.appendPasted(pasted(MAX_ROWS - 1))).toBe(true);
+    expect(draft.rows.value).toHaveLength(MAX_ROWS);
+  });
+
   it('replaces the rows within the limit and refuses past it', () => {
     const draft = open();
     draft.adoptSaved([savedRow('ZZ101')]);
