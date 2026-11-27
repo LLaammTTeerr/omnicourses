@@ -15,7 +15,7 @@ import {
   type TranscriptCourseStatus,
 } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { GROUPS, groupClass, groupGlyph, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import { programChoices } from '../onboarding/answers.js';
 import { useOnboarding } from '../onboarding/store.js';
@@ -107,7 +107,6 @@ const shown = computed(() =>
     .filter((entry) => entry.courses.length > 0),
 );
 const courseCount = computed(() => new Set(groups.value.flatMap(({ group }) => group.courses.map((course) => course.code))).size);
-const glyph = (id: GroupId) => GROUPS.find((g) => g.id === id)!.glyph;
 
 const open = shallowRef<{ course: CurriculumCourse; group: { id: GroupId; name: string } } | null>(null);
 function openCourse(course: CurriculumCourse, group: RequirementGroup, colour: GroupId): void {
@@ -220,7 +219,7 @@ usePageTitle(() => m.value.title);
         data-test="group"
       >
         <div class="ex-group-head">
-          <span class="glyph" aria-hidden="true">{{ glyph(colour) }}</span>
+          <span class="glyph" aria-hidden="true">{{ groupGlyph(colour) }}</span>
           <div>
             <h2 :id="`group-${group.id}`">{{ group.name }}</h2>
             <p class="small t3">{{ m.rule(group.kind, group.creditsTotal, group.creditsTotalMin) }} · {{ m.courses(group.courses.length) }}</p>

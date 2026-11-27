@@ -21,4 +21,10 @@ export const GROUPS: readonly Group[] = [
   { id: 'thesis', glyph: '∎', name: { vi: 'Khóa luận tốt nghiệp', en: 'Graduation thesis' }, short: { vi: 'Khóa luận', en: 'Thesis' } },
 ];
 
+const groupOf = (id: GroupId): Group => GROUPS.find((group) => group.id === id)!;
+
+export const groupGlyph = (id: GroupId): string => groupOf(id).glyph;
+
+export const groupShort = (id: GroupId, lang: Lang): string => groupOf(id).short[lang];
+
 export const groupClass = (id: GroupId): string => `g-${id}`;

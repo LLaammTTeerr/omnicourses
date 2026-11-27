@@ -4,7 +4,7 @@ import { useAsyncLoad } from '../async-load.js';
 import { fetchAudit, type DegreeAudit } from '../audit/api.js';
 import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour, orderGroups } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { groupClass, groupGlyph, groupShort, type GroupId } from '../groups.js';
 import { LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import { currentTermNow, termKey, termName, type Term } from '../terms.js';
@@ -149,8 +149,8 @@ export function usePlanView({ board, issues, courses, moving, previews, lifted, 
   const { catalog, groupNames, gradeOf, inProgressNow } = courses;
 
   const nameOf = (term: Term) => termName(term, locale.lang);
-  const shortName = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.short[locale.lang];
-  const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
+  const shortName = (colour: GroupId) => groupShort(colour, locale.lang);
+  const glyphOf = groupGlyph;
   const gradeText = (n: number) => n.toLocaleString(LANGUAGES[locale.lang].tag, { maximumFractionDigits: GRADE_DECIMALS });
   const slotTitle = (groupId: string | null | undefined) => m.value.slot(groupNames.value.get(groupId ?? '')?.name ?? m.value.slotGroupUnknown);
 

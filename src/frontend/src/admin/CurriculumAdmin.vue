@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router';
 import SelectMenu from '../components/SelectMenu.vue';
 import { fetchCurriculum, fetchPrograms, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour } from '../curriculum/present.js';
-import { GROUPS, groupClass } from '../groups.js';
+import { groupClass, groupGlyph } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
@@ -102,7 +102,7 @@ watch(groups, (list) => {
 });
 
 const colour = (group: RequirementGroup) => groupColour(group);
-const glyph = (group: RequirementGroup) => GROUPS.find((item) => item.id === colour(group))!.glyph;
+const glyph = (group: RequirementGroup) => groupGlyph(colour(group));
 const credits = (group: RequirementGroup) =>
   group.creditsTotal !== null ? text.value.creditsTotal(group.creditsTotal) : group.creditsTotalMin !== null ? text.value.creditsMin(group.creditsTotalMin) : m.value.notRecorded;
 

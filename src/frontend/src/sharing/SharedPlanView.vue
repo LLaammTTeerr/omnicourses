@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router';
 import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { groupColour } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { groupClass, groupGlyph } from '../groups.js';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import type { PlanIssueKind } from '../plans/api.js';
@@ -63,7 +63,7 @@ const notShared = computed(() => status.value === 'loaded' && shared.value === n
 
 usePageTitle(() => shared.value?.name ?? (notShared.value ? m.value.notSharedTitle : m.value.sharedPlanTitle));
 
-const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
+const glyphOf = groupGlyph;
 const wordSharedIssue = (issue: SharedPlanIssue) => wordIssue(planner.value, issue);
 
 const curriculumMeta = computed(() => (shared.value ? curriculumMetaOf(shared.value.curriculum, locale.lang, m.value) : ''));

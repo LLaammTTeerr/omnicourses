@@ -5,7 +5,7 @@ import { useAsyncLoad } from '../async-load.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { fetchCourse, type Course, type CourseStanding, type CurriculumCourse, type TranscriptCourseStatus } from '../curriculum/api.js';
 import { courseName } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { groupClass, groupGlyph, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
@@ -32,7 +32,7 @@ const prerequisiteNote = computed(() => {
   const said = prerequisites === null ? m.value.noPrerequisites : prerequisites.length ? m.value.prerequisitesListed(prerequisites) : m.value.prerequisitesNone;
   return `${said} ${terms === null ? m.value.termsUnknown : m.value.termsListed(terms)}`;
 });
-const glyph = computed(() => GROUPS.find((g) => g.id === props.group?.id)?.glyph ?? '');
+const glyph = computed(() => props.group ? groupGlyph(props.group.id) : '');
 const name = computed(() => (props.course ? courseName(props.course, locale.lang) : ''));
 const other = computed(() => (props.course ? (locale.lang === 'en' ? props.course.nameVi : props.course.nameEn) : null));
 const nameOf = (item: Course) => courseName(item, locale.lang);
