@@ -95,6 +95,21 @@ describe('importsOf', () => {
     assert.deepEqual(parse(`${BACKEND}/a.ts`, content), []);
   });
 
+  it('still sees an import between a /* inside one string and a */ inside another', () => {
+    const content = "const a = 'src/*.ts';\nimport { x } from './b.js';\nconst b = '**/*.spec.ts';\n";
+    assert.deepEqual(parse(`${BACKEND}/a.ts`, content), [['./b.js', 2, true]]);
+  });
+
+  it('ignores a commented-out import after a string and keeps line numbers', () => {
+    const content = "const a = 'x';\n/* import { c } from './c.js';\n*/\nimport { x } from './b.js';\n";
+    assert.deepEqual(parse(`${BACKEND}/a.ts`, content), [['./b.js', 4, true]]);
+  });
+
+  it('does not treat // inside a string as a comment', () => {
+    const content = "const u = 'http://x.test/'; import { a } from './b.js';\n";
+    assert.deepEqual(parse(`${BACKEND}/a.ts`, content), [['./b.js', 1, true]]);
+  });
+
   it('reads the script of a Vue file and skips its template', () => {
     const content = "<template><p>import x from './b.js'</p></template>\n<script setup lang=\"ts\">\nimport { a } from './b.js';\n</script>\n";
     assert.deepEqual(parse(`${BACKEND}/a.vue`, content), [['./b.js', 3, true]]);
@@ -151,6 +166,15 @@ describe('no-fetch-outside-api', () => {
     const [error] = problems({ [`${FRONTEND}/x/store.ts`]: 'export const a = 1;\nexport const b = fetch("/a");\n' });
     assert.equal(error.rule, 'no-fetch-outside-api');
     assert.equal(error.line, 2);
+  });
+
+  it('ignores fetch in a style block or a comment but reports it in the script', () => {
+    const quiet = '<template><p /></template>\n<style scoped>\n/* fetch("/a") */\n.a::after { content: "fetch(x)"; }\n</style>\n<script setup lang="ts">\n// fetch("/a")\n/* fetch("/b") */\n</script>\n';
+    assert.deepEqual(problems({ [`${FRONTEND}/x/Q.vue`]: quiet }), []);
+    const loud = '<style scoped>\n.a { color: red; }\n</style>\n<script setup lang="ts">\nawait fetch("/a");\n</script>\n';
+    const [error] = problems({ [`${FRONTEND}/x/L.vue`]: loud });
+    assert.equal(error.rule, 'no-fetch-outside-api');
+    assert.equal(error.line, 5);
   });
 
   it('allows fetch in api.ts, specs and testing folders, and a method named fetch', () => {
@@ -223,6 +247,15 @@ describe('frontend-layers', () => {
     });
     assert.equal(error.rule, 'frontend-layers');
     assert.equal(error.line, 2);
+  });
+
+  it('reports a dynamic import that breaks a layer rule', () => {
+    const [error] = problems({
+      [`${FRONTEND}/router.ts`]: 'export const router = 1;\n',
+      [`${FRONTEND}/plans/f.ts`]: "export const load = () => import('../router.js');\n",
+    });
+    assert.equal(error.rule, 'frontend-layers');
+    assert.equal(error.line, 1);
   });
 
   it('reports a feature file importing a composition file', () => {
@@ -303,6 +336,20 @@ describe('modules-registered', () => {
     const [error] = problems({ [`${BACKEND}/rules/rules.module.ts`]: 'export class RulesModule {}\n' });
     assert.equal(error.rule, 'modules-registered');
     assert.equal(error.file, `${BACKEND}/rules/rules.module.ts`);
+  });
+
+  it('reports two modules that import only each other', () => {
+    const errors = problems(
+      {
+        [`${BACKEND}/a/a.module.ts`]: "import { BModule } from '../b/b.module.js';\nexport class AModule {}\n",
+        [`${BACKEND}/b/b.module.ts`]: "import { AModule } from '../a/a.module.js';\nexport class BModule {}\n",
+      },
+      { backendEdges: ['a -> b', 'b -> a'] },
+    );
+    assert.deepEqual(errors.map((error) => [error.rule, error.file]), [
+      ['modules-registered', `${BACKEND}/a/a.module.ts`],
+      ['modules-registered', `${BACKEND}/b/b.module.ts`],
+    ]);
   });
 
   it('accepts a module imported by another module', () => {

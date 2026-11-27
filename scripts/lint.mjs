@@ -23,6 +23,10 @@ const TEST_FILE_PATTERN = /\.(?:spec|browser\.spec|e2e-spec)\.ts$/;
 const TESTING_FOLDER_PATTERN = /(?:^|\/)testing\//;
 const MODULE_SECTION_PATTERN = /^## 4\. [\s\S]*?(?=^## 5\. )/m;
 
+const KERNEL = 'kernel';
+const COMPOSITION = 'composition';
+const FEATURE = 'feature';
+
 const UNSCOPED_STYLE_ALLOWLIST = new Set(['src/frontend/src/App.vue']);
 
 function toPosix(p) {
@@ -48,13 +52,47 @@ function preserveLinesMask(segment) {
   return segment.replace(/[^\n]/g, ' ');
 }
 
-function maskComments(source, { html = false } = {}) {
-  let masked = source;
-  if (html) {
-    masked = masked.replace(/<!--[\s\S]*?-->/g, preserveLinesMask);
+const QUOTES = new Set(["'", '"', '`']);
+
+function blankedRun(source, start, end) {
+  return preserveLinesMask(source.slice(start, end));
+}
+
+function stringEnd(source, start) {
+  const quote = source[start];
+  let i = start + 1;
+  while (i < source.length && source[i] !== quote) {
+    if (source[i] === '\\') i++;
+    else if (source[i] === '\n' && quote !== '`') return i;
+    i++;
   }
-  masked = masked.replace(/\/\*[\s\S]*?\*\//g, preserveLinesMask);
-  masked = masked.replace(/^[ \t]*\/\/.*$/gm, preserveLinesMask);
+  return Math.min(i + 1, source.length);
+}
+
+function commentEnd(source, start, html) {
+  const openers = [
+    ['/*', '*/'],
+    ['//', '\n'],
+    ...(html ? [['<!--', '-->']] : []),
+  ];
+  for (const [open, close] of openers) {
+    if (!source.startsWith(open, start)) continue;
+    const found = source.indexOf(close, start + open.length);
+    if (found < 0) return source.length;
+    return close === '\n' ? found : found + close.length;
+  }
+  return -1;
+}
+
+function maskComments(source, { html = false } = {}) {
+  let masked = '';
+  let i = 0;
+  while (i < source.length) {
+    const commentStop = commentEnd(source, i, html);
+    const next = commentStop >= 0 ? commentStop : QUOTES.has(source[i]) ? stringEnd(source, i) : i + 1;
+    masked += commentStop >= 0 ? blankedRun(source, i, next) : source.slice(i, next);
+    i = next;
+  }
   return masked;
 }
 
@@ -112,14 +150,14 @@ function checkDirectProcessEnv(rootDir, backendFiles, addError) {
   }
 }
 
-function isProductionFrontendFile(relPath) {
+function isProductionFile(relPath) {
   return !TEST_FILE_PATTERN.test(relPath) && !TESTING_FOLDER_PATTERN.test(relPath);
 }
 
 function checkFetchOutsideApi(rootDir, frontendFiles, addError) {
   for (const fullPath of frontendFiles) {
     const relPath = toPosix(path.relative(rootDir, fullPath));
-    if (relPath === FRONTEND_API_FILE || !isProductionFrontendFile(relPath)) continue;
+    if (relPath === FRONTEND_API_FILE || !isProductionFile(relPath)) continue;
     const raw = fs.readFileSync(fullPath, 'utf8');
     const isVue = relPath.endsWith('.vue');
     const code = maskComments(isVue ? maskTagBlocks(raw, 'style') : raw, { html: isVue });
@@ -303,14 +341,10 @@ function topFolder(relPath, srcRoot) {
   return inside.includes('/') ? inside.split('/')[0] : ROOT_FOLDER;
 }
 
-function isBackendProduction(relPath) {
-  return isProductionFrontendFile(relPath);
-}
-
 function backendFolderImports(rootDir, backendFiles) {
   const prefix = `${BACKEND_SRC}/`;
   return relativeImports(rootDir, backendFiles)
-    .filter((entry) => isBackendProduction(entry.file) && entry.target.startsWith(prefix))
+    .filter((entry) => isProductionFile(entry.file) && entry.target.startsWith(prefix))
     .map((entry) => ({
       ...entry,
       from: topFolder(entry.file, BACKEND_SRC),
@@ -324,10 +358,10 @@ function layerEntryMatches(entries, relPath) {
 }
 
 function frontendLayerOf(relPath, layers) {
-  if (!isProductionFrontendFile(relPath)) return null;
-  if (layerEntryMatches(layers.frontendKernel, relPath)) return 'kernel';
-  if (layerEntryMatches(layers.frontendComposition, relPath)) return 'composition';
-  return 'feature';
+  if (!isProductionFile(relPath)) return null;
+  if (layerEntryMatches(layers.frontendKernel, relPath)) return KERNEL;
+  if (layerEntryMatches(layers.frontendComposition, relPath)) return COMPOSITION;
+  return FEATURE;
 }
 
 function frontendImports(rootDir, frontendFiles, layers) {
@@ -346,14 +380,17 @@ function featureFolder(relPath) {
   return relPath.includes('/') ? relPath.split('/')[0] : ROOT_FOLDER;
 }
 
-function entryLine(rootDir, entry) {
+function entryLineLocator(rootDir) {
   const layersPath = path.join(rootDir, LAYERS_FILE);
-  if (!fs.existsSync(layersPath)) return 1;
-  const index = fs.readFileSync(layersPath, 'utf8').indexOf(`'${entry}'`);
-  return index < 0 ? 1 : lineAt(fs.readFileSync(layersPath, 'utf8'), index);
+  const source = fs.existsSync(layersPath) ? fs.readFileSync(layersPath, 'utf8') : null;
+  return (entry) => {
+    const index = source === null ? -1 : source.indexOf(`'${entry}'`);
+    return index < 0 ? 1 : lineAt(source, index);
+  };
 }
 
 function checkEdgeRatchet({ rule, rootDir, allowed, imports, edgeOf, addError }) {
+  const entryLine = entryLineLocator(rootDir);
   const seen = new Set();
   for (const entry of imports) {
     const edge = edgeOf(entry);
@@ -370,7 +407,7 @@ function checkEdgeRatchet({ rule, rootDir, allowed, imports, edgeOf, addError })
     if (seen.has(edge)) continue;
     addError(
       LAYERS_FILE,
-      entryLine(rootDir, edge),
+      entryLine(edge),
       rule,
       `Listed dependency "${edge}" no longer exists: remove it from ${LAYERS_FILE}`,
     );
@@ -389,16 +426,17 @@ function checkBackendImportDirection(rootDir, backendFiles, layers, addError) {
 }
 
 function layerViolation(entry) {
-  if (entry.fromLayer === 'kernel' && entry.toLayer !== 'kernel') {
+  if (entry.fromLayer === KERNEL && entry.toLayer !== KERNEL) {
     return 'a kernel file may import only kernel files';
   }
-  if (entry.fromLayer === 'feature' && entry.toLayer === 'composition') {
+  if (entry.fromLayer === FEATURE && entry.toLayer === COMPOSITION) {
     return 'a feature file must not import a composition file';
   }
   return null;
 }
 
 function checkFrontendLayers(rootDir, imports, layers, addError) {
+  const entryLine = entryLineLocator(rootDir);
   const seen = new Set();
   for (const entry of imports) {
     const reason = layerViolation(entry);
@@ -417,7 +455,7 @@ function checkFrontendLayers(rootDir, imports, layers, addError) {
     if (seen.has(edge)) continue;
     addError(
       LAYERS_FILE,
-      entryLine(rootDir, edge),
+      entryLine(edge),
       'frontend-layers',
       `Listed exception "${edge}" no longer exists: remove it from ${LAYERS_FILE}`,
     );
@@ -430,34 +468,43 @@ function checkFrontendFeatureEdges(rootDir, imports, layers, addError) {
     rootDir,
     allowed: layers.frontendFeatureEdges,
     imports: imports
-      .filter((entry) => entry.fromLayer === 'feature' && entry.toLayer === 'feature')
+      .filter((entry) => entry.fromLayer === FEATURE && entry.toLayer === FEATURE)
       .filter((entry) => featureFolder(entry.from) !== featureFolder(entry.to)),
     edgeOf: (entry) => `${featureFolder(entry.from)}${EDGE_SEPARATOR}${featureFolder(entry.to)}`,
     addError,
   });
 }
 
+function reachableModules(rootDir, moduleFiles) {
+  const known = new Set(moduleFiles);
+  const reached = new Set();
+  const pending = [FEATURES_FILE, APP_MODULE_FILE];
+  while (pending.length > 0) {
+    const fullPath = path.join(rootDir, pending.pop());
+    if (!isFile(fullPath)) continue;
+    for (const entry of importsOf(fullPath)) {
+      if (entry.target === null) continue;
+      const relPath = toPosix(path.relative(rootDir, entry.target));
+      if (!known.has(relPath) || reached.has(relPath)) continue;
+      reached.add(relPath);
+      pending.push(relPath);
+    }
+  }
+  return reached;
+}
+
 function checkModulesRegistered(rootDir, backendFiles, addError) {
   const moduleFiles = backendFiles
     .map((fullPath) => toPosix(path.relative(rootDir, fullPath)))
     .filter((relPath) => relPath.endsWith(MODULE_SUFFIX) && relPath !== APP_MODULE_FILE);
-  const registrars = new Set(
-    [FEATURES_FILE, APP_MODULE_FILE, ...moduleFiles].map((relPath) => path.join(rootDir, relPath)),
-  );
-  const imported = new Set(
-    [...registrars]
-      .filter(isFile)
-      .flatMap((fullPath) =>
-        importsOf(fullPath).map((entry) => (entry.target === null ? null : toPosix(path.relative(rootDir, entry.target)))),
-      ),
-  );
+  const reached = reachableModules(rootDir, moduleFiles);
   for (const relPath of moduleFiles) {
-    if (imported.has(relPath)) continue;
+    if (reached.has(relPath)) continue;
     addError(
       relPath,
       1,
       'modules-registered',
-      `Module is imported by no module, ${FEATURES_FILE} or ${APP_MODULE_FILE}: register it in ${FEATURES_FILE}, import it from a registered module, or delete it`,
+      `Module is not reachable from ${FEATURES_FILE} or ${APP_MODULE_FILE} through module imports: register it in ${FEATURES_FILE}, import it from a registered module, or delete it`,
     );
   }
 }
@@ -490,7 +537,7 @@ export function observedLayerData(rootDir, layers) {
     backendEdges: edges(backendFolderImports(rootDir, backendFiles), (e) => `${e.from}${EDGE_SEPARATOR}${e.to}`),
     frontendLayerExceptions: edges(graph.filter((e) => layerViolation(e) !== null), (e) => `${e.from}${EDGE_SEPARATOR}${e.to}`),
     frontendFeatureEdges: edges(
-      graph.filter((e) => e.fromLayer === 'feature' && e.toLayer === 'feature' && featureFolder(e.from) !== featureFolder(e.to)),
+      graph.filter((e) => e.fromLayer === FEATURE && e.toLayer === FEATURE && featureFolder(e.from) !== featureFolder(e.to)),
       (e) => `${featureFolder(e.from)}${EDGE_SEPARATOR}${featureFolder(e.to)}`,
     ),
   };
