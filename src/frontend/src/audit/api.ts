@@ -102,6 +102,17 @@ export interface CapViolation {
   petition: string;
 }
 
+export interface TermAttempt {
+  code: string;
+  name: string;
+  credits: number;
+  result: TranscriptResult;
+  grade: number | null;
+  passed: boolean;
+  inProgress: boolean;
+  requirementGroupId: string | null;
+}
+
 export interface TermSummary {
   term: Term;
   kind: TermKind | null;
@@ -110,10 +121,14 @@ export interface TermSummary {
   average: number | null;
   accumulatedAverage: number | null;
   cumulativeAccumulatedAverage: number | null;
+  cumulativeAccumulatedAverageChange: number | null;
+  cumulativeAccumulatedCredits: number;
+  cumulativeTowardTotal: number;
   failedCourseCodes: string[];
   inProgressCourseCodes: string[];
   caps: CreditCaps | null;
   capViolations: CapViolation[];
+  attempts: TermAttempt[];
 }
 
 export interface GraduationCondition {
@@ -143,6 +158,7 @@ export interface DegreeAudit {
   trainingType: TrainingType | null;
   cohortYear: number;
   curriculumCode: string;
+  asOfTerm: Term | null;
   credits: CreditSummary;
   gpa: GpaSummary;
   terms: TermSummary[];

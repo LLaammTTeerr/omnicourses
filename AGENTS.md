@@ -105,6 +105,18 @@ Single-context: `GLOSSARY.md` at the root, ADRs in `docs/analysis-and-design/adr
 
 `.github/pull_request_template.md` already merges the `/pr` skill's Summary, Evidence and Merge Danger with this repo's required **Why this design**. Fill in that template.
 
+## Terminology
+
+Read each term in this sense in the docs, tasks and messages.
+
+- **Backlog / Queue:** open ideas, tasks, leads and jobs waiting to be picked up: the open GitHub issues.
+- **Ignore:** do not act on it. Forget it, as if it were not in your context.
+- **Hold:** wait for the user's word before you go on. Do not act on it until the user says so.
+- **Block:** mark a task as waiting on another task or a condition. Add the GitHub issue dependency (**Blocking** in `docs/agents/issue-tracker.md`), or a `Blocked by:` line at the top of the issue body for a condition.
+- **Park:** close a task with a `PARKED:` verdict: `gh issue close <n> --reason "not planned" --comment "PARKED: <why, and what would reopen it>"`.
+- **Adopt:** take up an idea or a lead as a task: give its issue a full spec in the body and the `ready-for-agent` or `ready-for-human` label.
+- **Archive:** take an idea or note out of the open list with no plan to return: `gh issue close <n> --reason "not planned"`.
+
 ## Hard rules: never
 
 1. **Never let a language model decide an academic rule.** Prerequisites, offering terms, credit caps by training type ([ADR 0012](docs/analysis-and-design/adr/0012-credit-caps-by-training-type.md)), requirement coverage and graduation status are computed only by the deterministic rule engine. A model is used only by F6's goal box and F8 ([ADR 0003](docs/analysis-and-design/adr/0003-language-model-scope.md)); it may call the engine and explain its results, never override them. F2 transcripts and F12 curriculum data are parsed or entered deterministically. APCS 2024 and 2025 courses have no prerequisites except CS469 before CS470 (Project Lead, 24 November 2026); never load the 2019 summary table or the 2021 course-description booklet as rules. A new academic rule needs an explicit answer from a person.

@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsIn, IsInt, Max, Min, ValidateIf } from 'class-validator';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/program.entity.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import {
@@ -20,13 +22,38 @@ import {
   type GraduationCondition,
   type GraduationStatus,
   type GroupCoverage,
+  type TermAttempt,
   type TermSummary,
   type UnmatchedCourse,
 } from '../rules/types.js';
 import { CAP_RULES, TERM_KINDS, type CapRule, type CapViolation, type CreditCaps, type TermKind } from '../rules/credit-caps.js';
 import { CLASSIFICATIONS, type Classification, YEAR_LEVELS } from '../rules/grades.js';
 import { TermDto } from '../common/field-validators.js';
+import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR, TERM_NUMBERS, type TermNumber } from '../terms/term.js';
 import { TRANSCRIPT_RESULTS, type TranscriptResult } from '../transcript/transcript-entry.js';
+
+const asOfSent = (query: AuditQueryDto) => query.asOfYear !== undefined || query.asOfNumber !== undefined;
+
+export class AuditQueryDto {
+  @ApiProperty({
+    required: false,
+    type: 'integer',
+    example: 2025,
+    description: 'With asOfNumber: the audit as it stood at the end of this term (UC-03 A2), from the transcript rows up to that term. ADR 0009: 2025 is 2025–2026. Send both or neither.',
+  })
+  @ValidateIf(asOfSent)
+  @Type(() => Number)
+  @IsInt()
+  @Min(MIN_ACADEMIC_YEAR)
+  @Max(MAX_ACADEMIC_YEAR)
+  asOfYear?: number;
+
+  @ApiProperty({ required: false, type: Number, enum: TERM_NUMBERS, example: 1, description: 'With asOfYear: the term of that academic year, 1, 2 or 3' })
+  @ValidateIf(asOfSent)
+  @Type(() => Number)
+  @IsIn(TERM_NUMBERS)
+  asOfNumber?: TermNumber;
+}
 
 class CourseCoverageDto implements CourseCoverage {
   @ApiProperty({ example: 'CS160' })
@@ -216,6 +243,32 @@ class CapViolationDto implements CapViolation {
   petition!: string;
 }
 
+class TermAttemptDto implements TermAttempt {
+  @ApiProperty({ example: 'CS160' })
+  code!: string;
+
+  @ApiProperty({ description: 'As the transcript names it' })
+  name!: string;
+
+  @ApiProperty({ description: 'As the transcript gives them; they add up to the term credits' })
+  credits!: number;
+
+  @ApiProperty({ enum: TRANSCRIPT_RESULTS })
+  result!: TranscriptResult;
+
+  @ApiProperty({ type: Number, nullable: true, example: 8.5 })
+  grade!: number | null;
+
+  @ApiProperty({ description: 'This sitting passed: a grade of 5.0 or more, exempt or pass (Điều 11.4, 13)' })
+  passed!: boolean;
+
+  @ApiProperty({ description: 'The sitting has no result yet' })
+  inProgress!: boolean;
+
+  @ApiProperty({ type: String, format: 'uuid', nullable: true, description: 'The requirement group the course counts in; null when no group lists it' })
+  requirementGroupId!: string | null;
+}
+
 class TermSummaryDto implements TermSummary {
   @ApiProperty({ type: TermDto })
   term!: TermDto;
@@ -238,6 +291,20 @@ class TermSummaryDto implements TermSummary {
   @ApiProperty({ type: Number, nullable: true, description: 'Điểm trung bình tích lũy from the start to the end of this term' })
   cumulativeAccumulatedAverage!: number | null;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 0.12,
+    description: "cumulativeAccumulatedAverage minus the previous term's, in points of the 10-point scale; null for the first term or when either is null",
+  })
+  cumulativeAccumulatedAverageChange!: number | null;
+
+  @ApiProperty({ description: 'CreditSummary.accumulated as it stood at the end of this term' })
+  cumulativeAccumulatedCredits!: number;
+
+  @ApiProperty({ description: 'CreditSummary.towardTotal as it stood at the end of this term' })
+  cumulativeTowardTotal!: number;
+
   @ApiProperty({ type: [String] })
   failedCourseCodes!: string[];
 
@@ -249,6 +316,9 @@ class TermSummaryDto implements TermSummary {
 
   @ApiProperty({ type: [CapViolationDto] })
   capViolations!: CapViolationDto[];
+
+  @ApiProperty({ type: [TermAttemptDto], description: 'Every transcript row of the term, failed and retaken sittings included, by course code' })
+  attempts!: TermAttemptDto[];
 }
 
 class GraduationConditionDto implements GraduationCondition {
@@ -308,6 +378,9 @@ export class DegreeAuditDto implements DegreeAudit {
 
   @ApiProperty({ example: 'APCS2024' })
   curriculumCode!: string;
+
+  @ApiProperty({ type: TermDto, nullable: true, description: 'The term the audit stands at the end of (asOfYear, asOfNumber); null: today, the whole transcript' })
+  asOfTerm!: TermDto | null;
 
   @ApiProperty({ type: CreditSummaryDto })
   credits!: CreditSummaryDto;

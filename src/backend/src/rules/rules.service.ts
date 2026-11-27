@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CurriculumRulesReader } from '../curriculum/curriculum-rules.reader.js';
 import { CurriculumService } from '../curriculum/curriculum.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
+import type { Term } from '../terms/term.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
 import { degreeAudit } from './audit.js';
 import { checkPlan, courseCodesOf } from './plan-issues.js';
@@ -17,13 +18,13 @@ export class RulesService {
     private readonly catalog: CurriculumService,
   ) {}
 
-  async auditFor(userId: string): Promise<AuditOutcome> {
+  async auditFor(userId: string, asOf: Term | null = null): Promise<AuditOutcome> {
     const cohort = await this.onboarding.cohortOf(userId);
     if (!cohort) return { status: 'onboarding_required' };
     const curriculumId = await this.catalog.findCurriculumId(cohort.programCode, cohort.cohortYear);
     const [rules, entries] = await Promise.all([curriculumId === null ? null : this.curriculum.rulesFor(curriculumId), this.transcript.rowsFor(userId)]);
     if (!rules) return { status: 'curriculum_not_found', ...cohort };
-    return { status: 'ok', audit: degreeAudit(rules, entries) };
+    return { status: 'ok', audit: degreeAudit(rules, entries, asOf) };
   }
 
   async standingFor(userId: string, programCode: string, cohortYear: number): Promise<CurriculumStanding | null> {

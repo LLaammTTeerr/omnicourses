@@ -284,6 +284,63 @@ describe('Degree audit API (e2e)', () => {
     expect(theirs.credits).toMatchObject({ accumulated: 50, towardTotal: 44 });
   });
 
+  describe('as it stood at the end of a term (UC-03 A2)', () => {
+    let auth: Record<string, string>;
+    let today: Record<string, any>;
+
+    beforeAll(async () => {
+      ({ auth } = await student());
+      today = (await http().get('/api/users/me/audit').set(auth).expect(200)).body;
+    });
+
+    it('lists every sitting of each term, with credits and the change of the average to date', () => {
+      const first = today.terms[0];
+      expect(first.attempts.map((a: Record<string, any>) => [a.code, a.credits, a.result, a.grade, a.passed, a.requirementGroupId === null])).toEqual([
+        ['BAA00030', 4, 'pass', null, true, false],
+        ['CM102', 4, 'graded', 7, true, false],
+        ['CS160', 4, 'graded', 8, true, false],
+        ['MTH251', 4, 'graded', 3, false, false],
+        ['PH211', 4, 'exempt', null, true, false],
+        ['ZZ101', 3, 'graded', 8.5, true, true],
+      ]);
+      expect(today.terms.at(-1).attempts).toEqual([expect.objectContaining({ code: 'CS412', inProgress: true, passed: false })]);
+      expect(today.terms.map((t: Record<string, any>) => [t.cumulativeAccumulatedCredits, t.cumulativeTowardTotal])).toEqual([
+        [16, 12],
+        [30, 24],
+        [38, 32],
+        [50, 44],
+        [50, 44],
+      ]);
+      expect(today.terms.map((t: Record<string, any>) => t.cumulativeAccumulatedAverageChange)).toEqual([
+        null,
+        ...today.terms.slice(1).map((t: Record<string, any>, i: number) => Math.round((t.cumulativeAccumulatedAverage - today.terms[i].cumulativeAccumulatedAverage) * 100) / 100),
+      ]);
+      expect(today.asOfTerm).toBeNull();
+    });
+
+    it('audits only the rows up to the term asked for', async () => {
+      const { body } = await http().get('/api/users/me/audit').query({ asOfYear: 2024, asOfNumber: 1 }).set(auth).expect(200);
+      expect(body.asOfTerm).toEqual({ year: 2024, number: 1 });
+      expect(body.terms).toEqual(today.terms.slice(0, 1));
+      expect(body.credits).toMatchObject({ accumulated: 16, towardTotal: 12, inProgressTowardTotal: 0 });
+      expect(body.gpa.accumulatedAverage).toBe(today.terms[0].cumulativeAccumulatedAverage);
+      const math = (body.groups as Record<string, any>[]).find((g) => g.name === 'Kiến thức Math')!;
+      expect(math.courses.find((c: { code: string }) => c.code === 'MTH251')).toMatchObject({ status: 'failed', grade: 3 });
+    });
+
+    it('answers the whole audit for the last term, and with no term', async () => {
+      const last = (await http().get('/api/users/me/audit').query({ asOfYear: 2025, asOfNumber: 2 }).set(auth).expect(200)).body;
+      expect({ ...last, asOfTerm: null }).toEqual(today);
+    });
+
+    it.each([{ asOfYear: 2024 }, { asOfNumber: 1 }, { asOfYear: 2024, asOfNumber: 4 }, { asOfYear: 'x', asOfNumber: 1 }, { asOfYear: 1999, asOfNumber: 1 }])(
+      'answers 400 for %o',
+      async (query) => {
+        await http().get('/api/users/me/audit').query(query).set(auth).expect(400);
+      },
+    );
+  });
+
   it('audits an empty transcript', async () => {
     const { auth } = await student(ONBOARDED, []);
     const { body } = await http().get('/api/users/me/audit').set(auth).expect(200);

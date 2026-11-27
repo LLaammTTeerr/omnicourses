@@ -93,6 +93,90 @@ describe('degree audit', () => {
     ]);
   });
 
+  describe('each term, as it stood at its end (UC-03 A2)', () => {
+    const transcript = [
+      graded('ZZA1', 4, 3, term(2024, 1)),
+      graded('ZZA2', 4, 7, term(2024, 1)),
+      ungraded('ZZPE1', 2, 'pass', term(2024, 1)),
+      graded('ZZX1', 3, 9, term(2024, 1)),
+      graded('ZZA1', 4, 8, term(2024, 2)),
+      graded('ZZB1', 4, 6, term(2024, 2)),
+      ungraded('ZZT1', 10, 'in_progress', term(2024, 3)),
+    ];
+    const full = degreeAudit(zzCurriculum(), transcript);
+
+    it('lists every sitting of the term with its result, by course code, and the group it counts in', () => {
+      expect(full.terms[0].attempts).toEqual([
+        { code: 'ZZA1', name: 'Course ZZA1', credits: 4, result: 'graded', grade: 3, passed: false, inProgress: false, requirementGroupId: 'a-bb' },
+        { code: 'ZZA2', name: 'Course ZZA2', credits: 4, result: 'graded', grade: 7, passed: true, inProgress: false, requirementGroupId: 'a-bb' },
+        { code: 'ZZPE1', name: 'Course ZZPE1', credits: 2, result: 'pass', grade: null, passed: true, inProgress: false, requirementGroupId: 'non' },
+        { code: 'ZZX1', name: 'Course ZZX1', credits: 3, result: 'graded', grade: 9, passed: true, inProgress: false, requirementGroupId: null },
+      ]);
+      expect(full.terms[2].attempts).toEqual([
+        { code: 'ZZT1', name: 'Course ZZT1', credits: 10, result: 'in_progress', grade: null, passed: false, inProgress: true, requirementGroupId: 'tn' },
+      ]);
+      for (const t of full.terms) expect(t.attempts.reduce((sum, a) => sum + a.credits, 0)).toBe(t.credits);
+    });
+
+    it('gives the credits accumulated and toward the total at the end of each term', () => {
+      expect(full.terms.map((t) => [t.cumulativeAccumulatedCredits, t.cumulativeTowardTotal])).toEqual([
+        [6, 4],
+        [14, 12],
+        [14, 12],
+      ]);
+    });
+
+    it("gives the change of the cumulative accumulated average from the previous term's, in points", () => {
+      expect(full.terms.map((t) => [t.cumulativeAccumulatedAverage, t.cumulativeAccumulatedAverageChange])).toEqual([
+        [7, null],
+        [7, 0],
+        [7, 0],
+      ]);
+      const rising = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 7, term(2024, 1)), graded('ZZA2', 4, 8, term(2024, 2)), graded('ZZB1', 4, 5, term(2024, 3))]);
+      expect(rising.terms.map((t) => [t.cumulativeAccumulatedAverage, t.cumulativeAccumulatedAverageChange])).toEqual([
+        [7, null],
+        [7.5, 0.5],
+        [6.67, -0.83],
+      ]);
+    });
+
+    it('has no change while a cumulative average is missing', () => {
+      const audit = degreeAudit(zzCurriculum(), [ungraded('ZZB1', 4, 'exempt', term(2024, 1)), graded('ZZA1', 4, 8, term(2024, 2)), graded('ZZA2', 4, 6, term(2024, 3))]);
+      expect(audit.terms.map((t) => [t.cumulativeAccumulatedAverage, t.cumulativeAccumulatedAverageChange])).toEqual([
+        [null, null],
+        [8, null],
+        [7, -1],
+      ]);
+    });
+
+    it('is the audit of the rows up to that term, and says which term', () => {
+      full.terms.forEach((t, i) => {
+        const asOf = degreeAudit(zzCurriculum(), transcript, t.term);
+        expect(asOf.asOfTerm).toEqual(t.term);
+        expect(asOf.terms).toEqual(full.terms.slice(0, i + 1));
+        expect(asOf.gpa.accumulatedAverage).toBe(t.cumulativeAccumulatedAverage);
+        expect([asOf.credits.accumulated, asOf.credits.towardTotal]).toEqual([t.cumulativeAccumulatedCredits, t.cumulativeTowardTotal]);
+      });
+      expect(full.asOfTerm).toBeNull();
+      expect({ ...degreeAudit(zzCurriculum(), transcript, term(2024, 3)), asOfTerm: null }).toEqual(full);
+    });
+
+    it('reads a course failed by then as failed, though a later term passes it', () => {
+      const first = degreeAudit(zzCurriculum(), transcript, term(2024, 1));
+      expect(statusOf(first, 'a-bb', 'ZZA1')).toBe('failed');
+      expect(groupOf(first, 'a-bb')).toMatchObject({ passedCredits: 4, remainingCredits: 4, met: false });
+      expect(statusOf(first, 'tn', 'ZZT1')).toBe('not_taken');
+      expect(first.credits).toMatchObject({ accumulated: 6, towardTotal: 4, inProgressTowardTotal: 0, yearLevel: 1 });
+      expect(statusOf(full, 'a-bb', 'ZZA1')).toBe('passed');
+    });
+
+    it('is an empty audit before the first term and the whole one after the last', () => {
+      const before = degreeAudit(zzCurriculum(), transcript, term(2023, 3));
+      expect({ ...before, asOfTerm: null }).toEqual(degreeAudit(zzCurriculum(), []));
+      expect({ ...degreeAudit(zzCurriculum(), transcript, term(2030, 1)), asOfTerm: null }).toEqual(full);
+    });
+  });
+
   it('counts exempt and pass results in credits but not in the GPA (Điều 13.3)', () => {
     const audit = degreeAudit(zzCurriculum(), [ungraded('ZZB1', 4, 'exempt'), ungraded('ZZA1', 4, 'pass'), graded('ZZA2', 4, 6)]);
     expect(groupOf(audit, 'b')).toMatchObject({ passedCredits: 4, met: true });
@@ -283,6 +367,7 @@ describe('degree audit', () => {
       accumulatedAverage: null,
       failedCourseCodes: ['ZZA1'],
     });
+    expect(audit.terms[0].attempts).toMatchObject([{ code: 'ZZA1', credits: 4, grade: 3, passed: false }]);
     expect(audit.warnings).toMatchObject([{ code: 'same_term_attempts', courseCode: 'ZZA1', transcriptCredits: null, curriculumCredits: null }]);
 
     const inProgressTwice = degreeAudit(zzCurriculum(), [ungraded('ZZA1', 4, 'in_progress'), ungraded('ZZA1', 4, 'in_progress')]);

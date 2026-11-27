@@ -548,6 +548,7 @@ classDiagram
         trainingType : TrainingType?
         cohortYear : number
         curriculumCode : string
+        asOfTerm : Term?
     }
     class CreditSummary {
         <<interface>>
@@ -575,8 +576,22 @@ classDiagram
         average : number?
         accumulatedAverage : number?
         cumulativeAccumulatedAverage : number?
+        cumulativeAccumulatedAverageChange : number?
+        cumulativeAccumulatedCredits : number
+        cumulativeTowardTotal : number
         failedCourseCodes : string list
         inProgressCourseCodes : string list
+    }
+    class TermAttempt {
+        <<interface>>
+        code : string
+        name : string
+        credits : number
+        result : TranscriptResult
+        grade : number?
+        passed : boolean
+        inProgress : boolean
+        requirementGroupId : string?
     }
     class CreditCaps {
         <<interface>>
@@ -670,6 +685,7 @@ classDiagram
     GroupCoverage *-- "0..*" CourseCoverage : courses
     TermSummary *-- "0..1" CreditCaps : caps
     TermSummary *-- "0..*" CapViolation : capViolations
+    TermSummary *-- "0..*" TermAttempt : attempts
     GraduationStatus *-- "0..*" GraduationCondition : met, unmet, notChecked
 ```
 
@@ -765,7 +781,7 @@ Every function below is pure (no database, no clock, no model) and is exported f
 
 | File in `rules/` | Function | Input → output | Rule it decides |
 | --- | --- | --- | --- |
-| `audit.ts` | `degreeAudit(rules, transcript)` | `CurriculumRules`, `TranscriptEntry[]` → `DegreeAudit` | The whole degree audit; composes the functions below |
+| `audit.ts` | `degreeAudit(rules, transcript, asOf?)` | `CurriculumRules`, `TranscriptEntry[]`, `Term` or null → `DegreeAudit` | The whole degree audit, of the rows up to `asOf` when given; composes the functions below |
 | `attempts.ts` | `courseRecords(entries)`, `resolve(code, attempts)`, `recordAsOf(record, term)` | `TranscriptEntry[]` → `Map<string, CourseRecord>` | The official attempt of each course: the last completed one (QĐ 1175 Điều 14) |
 | `attempts.ts` | `isCompleted(entry)`, `attemptPasses(entry)` | `TranscriptEntry` → `boolean` | Whether one attempt is finished, and whether it passes |
 | `coverage.ts` | `placements(rules)` | `CurriculumRules` → course code → group it counts in | A course linked to several groups counts in exactly one |
@@ -783,7 +799,7 @@ Every function below is pure (no database, no clock, no model) and is exported f
 classDiagram
     direction LR
     class RulesService {
-        +auditFor(userId) AuditOutcome
+        +auditFor(userId, asOf?) AuditOutcome
         +issuesFor(plan, userId?) PlanIssuesReport
         +issuesForBoards(plan, boards, userId?) PlanIssuesReport list
     }
@@ -960,10 +976,10 @@ classDiagram
         +courseRules(curriculumId) CourseRules
     }
     class AuditController {
-        +get(user) DegreeAuditDto
+        +get(user, query) DegreeAuditDto
     }
     class RulesService {
-        +auditFor(userId) AuditOutcome
+        +auditFor(userId, asOf?) AuditOutcome
         +issuesFor(plan, userId?) PlanIssuesReport
         +issuesForBoards(plan, boards, userId?) PlanIssuesReport list
     }
