@@ -108,7 +108,8 @@ describe('curriculum schema migration', () => {
         /combined_minimum_groups_requirement_group_id_fkey|requirement_group_overflows_to_group_id_fkey/,
       );
 
-      await expect(dataSource.query(`DELETE FROM curriculums WHERE id = $1`, [curriculum1])).resolves.toBeDefined();
+      await dataSource.query(`DELETE FROM curriculums WHERE id = $1`, [curriculum1]);
+      expect(await dataSource.query(`SELECT id FROM requirement_groups WHERE curriculum_id = $1`, [curriculum1])).toEqual([]);
     } finally {
       await drop();
     }
