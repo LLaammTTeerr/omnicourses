@@ -132,7 +132,6 @@ describe('streamChat', () => {
             response.emit('close');
           }
         } finally {
-          // eslint-disable-next-line no-unsafe-finally
           throw new Error('usage insert failed');
         }
       }
