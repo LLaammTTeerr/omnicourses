@@ -5,7 +5,7 @@ import { useAuth } from '../auth/store.js';
 import { mockApi } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import AppSidebar from '../shell/AppSidebar.vue';
-import { MAX_FAILED_LOADS, useGrantsFollowSession } from './access.js';
+import { useGrantsFollowSession } from './access.js';
 import { EVERY_GRANT, NO_GRANTS } from './testing/fixtures.js';
 
 let wrapper: VueWrapper | undefined;
@@ -63,7 +63,7 @@ describe('following the session for the administration grants', () => {
       await router.push(path);
       await flushPromises();
     }
-    expect(grantReads()).toBe(MAX_FAILED_LOADS);
-    expect(logged.mock.calls.filter(([text]) => String(text).includes('administration grants'))).toHaveLength(MAX_FAILED_LOADS);
+    expect(grantReads()).toBe(3);
+    expect(logged.mock.calls.filter(([text]) => String(text).includes('administration grants'))).toHaveLength(3);
   });
 });
