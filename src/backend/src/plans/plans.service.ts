@@ -7,6 +7,7 @@ import { OnboardingService } from '../onboarding/onboarding.service.js';
 import { courseCodesOf } from '../rules/plan-issues.js';
 import type { BoardTerm, Placement } from '../rules/types.js';
 import { compareTerms, type Term, termKey, toTerm } from '../terms/term.js';
+import { lockAccountRow, ROW_LOCK } from '../users/account-state.js';
 import { boardProblems, groupIdsOf, toBoard, toRows, withPlacement } from './plan-board.js';
 import { planNotFound } from './plan-id.js';
 import { PlanPlacement } from './plan-placement.entity.js';
@@ -54,7 +55,7 @@ export class PlansService {
     if (!curriculumId) throw new BadRequestException('No curriculum for this program and cohort');
     const terms = input.terms ?? [];
     const id = await this.db.transaction(async (tx) => {
-      await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
+      await lockAccountRow(tx, userId, ROW_LOCK.noKeyUpdate);
       if ((await tx.count(Plan, { where: { userId } })) >= MAX_PLANS_PER_USER) throw tooManyPlans();
       await this.checkBoard(curriculumId, terms, tx);
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId, name: input.name });
@@ -81,7 +82,7 @@ export class PlansService {
       );
       if (!source) throw planNotFound();
       if (!this.onboarding.offers(source.program_code, source.cohort_year)) throw notOffered(source.program_code, source.cohort_year);
-      await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', [userId]);
+      await lockAccountRow(tx, userId, ROW_LOCK.noKeyUpdate);
       if ((await tx.count(Plan, { where: { userId } })) >= MAX_PLANS_PER_USER) throw tooManyPlans();
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId: source.curriculum_id, name: name ?? source.name });
       const copyId = identifiers[0].id as string;
