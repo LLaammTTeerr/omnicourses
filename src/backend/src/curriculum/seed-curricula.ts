@@ -1,8 +1,8 @@
 import type { DataSource, EntityManager } from 'typeorm';
 import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
-import { buildCatalog, CatalogConflictError, type CatalogConflict } from '../database/seeds/catalog.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../database/seeds/index.js';
-import type { CatalogCourse, CatalogDecision, CurriculumSeed } from '../database/seeds/seed-types.js';
+import { buildCatalog, CatalogConflictError, type CatalogConflict } from './seeds/catalog.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './seeds/index.js';
+import type { CatalogCourse, CatalogDecision, CurriculumSeed } from './seeds/seed-types.js';
 
 const SEEDED_TABLES = ['programs', 'curriculums', 'requirement_groups', 'courses', 'links', 'combined_minimums', 'overflows', 'prerequisite_lists', 'prerequisites'] as const;
 type SeededTable = (typeof SEEDED_TABLES)[number];

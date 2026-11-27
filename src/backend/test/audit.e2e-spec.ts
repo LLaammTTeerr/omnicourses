@@ -5,7 +5,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { EXPECTED_NOT_CHECKED_CONDITIONS } from '../src/rules/testing/fixtures.js';
 import { bootApp } from './support/app.js';
