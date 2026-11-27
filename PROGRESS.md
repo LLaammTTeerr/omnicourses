@@ -37,12 +37,15 @@ Evidence for every item: the seven survey files (`converge/survey/*.md`, finding
 | 03 | refactor/cv-03-locks-and-seeds | 02 | #222 (draft) | stack 04, #223 |
 | 04 | refactor/cv-04-engine-vocabulary | 03 | #223 (draft) | stack 06, #225 |
 | 05 | refactor/cv-05-fe-kernel | 09 | #224 (draft) | stack 05, #224 |
-| 06 | refactor/cv-06-rules-one-derivation | 04 | #225 (draft) | building |
-| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | stack 07, #226 |
+| 06 | refactor/cv-06-rules-one-derivation | 04 | #225 (draft) | stack 12, #231 |
+| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | building |
 | 08 | refactor/cv-08-plan-components | 11 | #227 (draft) | stack 08, #227 |
 | 09 | refactor/cv-09-admin-messages | 16 | #228 (draft) | stack 09, #228 |
 | 10 | refactor/cv-10-account-state | 05 | #229 (draft) | pushed; SQL byte for byte; hand-merged `scripts/lint.mjs` at integration |
 | 11 | refactor/cv-11-actions-and-drafts | 14 | #230 (draft) | stack 11, #230 |
+| 12 | refactor/cv-12-errors-and-limiter | 06 | #231 (draft) | stack 14, #233 |
+| 13 | refactor/cv-13-contract-checks | 15 | #232 (draft) | stack 13, #232 (part F moved to batch 17) |
+| 14 | refactor/cv-14-routes-and-effects | 12 | #233 (draft) | pushed; route table byte-identical |
 
 Stack order follows readiness, so stack numbers differ from the batch numbers of the plan below. Each batch is built on `cvb/<batch slug>` in `.claude/worktrees/cv-build-{be,fa,fb}` and cherry-picked onto the stack tip in `.claude/worktrees/cv-stack`. Since batch 06, every new batch branches from the current stack tip, not from its track's previous build branch: two tracks that had each edited `scripts/lint.mjs` or a file an earlier layer had split needed hand merges.
 
@@ -106,6 +109,12 @@ PR #77 is two weeks stale and already conflicts with main, so only `src/backend/
 
 - 01 `refactor/cv-01-verify-and-lint-rules` at 3b9b542 (5 commits): PR #220, thread `#220 ...` in the sprite forum. Independent review: approved; its eight non-blocking findings were all taken. Full verify green, counts equal to the baseline.
 
+## State of the structure at stack 14
+
+- Backend: one folder cycle left, `auth <-> users` (the users controller imports the auth decorators, which import the User type; type-only, left on purpose). One file cycle, the three curriculum entities (TypeORM relations). 97 folder edges (101 at the start).
+- Frontend: no layer exception left; 19 feature edges; `plans <-> sharing` is the one two-way pair (the editor mounts the share dialog, the shared page reuses plan components) and is accepted. Largest files: `plans/PlanEditorView.vue` 956, `admin/CurriculumAdmin.vue` 796, `sharing/SharedPlanView.vue` 769 (1077 at the start); `admin/messages.ts` (1163) is split.
+- Tests: backend 1159 unit / 365 e2e, frontend 1365 unit / 68 browser (1132 / 364 / 1246 / 68 at the start). No test removed.
+
 ## Known limitations
 
 - The machine is shared: on 28 Nov a clock-sensitive job of the Project Lead (`~/wrong_way`, 6 workers) ran beside the builds and the load average passed 80, which made 5 s test timeouts fire. Since then the verify script runs at `nice 10` with 4 test workers, briefs tell agents to do the same, and at most three build tracks run. Read a "Test timed out in 5000ms" as load first: re-run the file.
@@ -130,4 +139,4 @@ None.
 
 ## Next
 
-Building: 06 (be), 12 (fa), 15 (fb), each from the stack tip. Then 07 and 08 on be, then 17 (docs, the two extras, and the reference-sentence pin moved from 15). After the last batch: one more read of the import graph and `scripts/layers.mjs` to see what is left, update the architecture map, final report. Merging then depends on approvals: #220 first.
+Building: 07 (be, admin-access module and composition root) from the stack tip. Then 08 (CLC seed rows written once), then 17 (docs, the two extras, the reference-sentence pin). After 17: one independent "what is left" read of the stack tip to confirm convergence or name a short second wave; final report. Merging depends on approvals: #220 first; when it merges, merge `origin/main` into the next branch, push, check its base is `main`, mark it ready, request reviewers, turn on auto-merge.
