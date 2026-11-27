@@ -10,6 +10,7 @@ import { usePageTitle } from '../page-title.js';
 import type { PlanIssueKind } from '../plans/api.js';
 import { PLANNER_MESSAGES } from '../plans/messages.js';
 import IssueCard from '../plans/IssueCard.vue';
+import UnknownIssueList from '../plans/UnknownIssueList.vue';
 import { BAR_CODES, ISSUE_KINDS_SHOWN, KIND_STYLE } from '../plans/issue-view.js';
 import Icon from '../shell/Icon.vue';
 import { termName } from '../terms.js';
@@ -71,6 +72,9 @@ const lists = computed(() => issueLists(shared.value?.issues ?? []));
 const issuesOfKind = (kind: PlanIssueKind) => lists.value.byKind[kind];
 const listedIssues = computed(() => lists.value.listed);
 const unknownIssues = computed(() => lists.value.byKind.unknown);
+const unknownItems = computed(() =>
+  unknownIssues.value.map((issue) => ({ text: wordSharedIssue(issue), place: issue.term ? termName(issue.term, locale.lang) : planner.value.wholePlan })),
+);
 const violationCount = computed(() => lists.value.violationCount);
 
 const orderedCoverageGroups = computed(() => (shared.value?.coverage ? orderedGroups(shared.value.coverage) : []));
@@ -302,15 +306,7 @@ function printPlan(): void {
           <div v-if="unknownIssues.length" class="unknowns-block" data-test="shared-unknowns">
             <h3 class="small">{{ planner.kindHeadings.unknown }} ({{ unknownIssues.length }})</h3>
             <p class="xs t2">{{ planner.notRecordedYet }}</p>
-            <ul class="unknown-list">
-              <li v-for="(issue, idx) in unknownIssues" :key="idx" data-test="issue-unknown">
-                <Icon name="info" size="sm" />
-                <span>
-                  {{ wordSharedIssue(issue) }}
-                  <span class="t3"> · {{ issue.term ? termName(issue.term, locale.lang) : planner.wholePlan }}</span>
-                </span>
-              </li>
-            </ul>
+            <UnknownIssueList :items="unknownItems" />
           </div>
         </aside>
       </div>
@@ -758,27 +754,6 @@ function printPlan(): void {
   gap: 6px;
   border-top: 1px solid var(--line);
   padding-top: 10px;
-}
-.unknown-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--ink-2);
-}
-.unknown-list li {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-}
-.unknown-list .icon {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin-top: 2px;
-  color: var(--ink-3);
 }
 .privacy-note {
   margin-top: 4px;

@@ -8,6 +8,7 @@ import type { AttachedIssues } from './board.js';
 import IssueCard from './IssueCard.vue';
 import { ISSUE_KINDS_SHOWN, KIND_STYLE } from './issue-view.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
+import UnknownIssueList from './UnknownIssueList.vue';
 
 const props = defineProps<{
   attached: AttachedIssues | null;
@@ -26,6 +27,9 @@ const placed = computed(() => issues.value.filter((issue) => issue.term !== null
 const ofKind = (kind: PlanIssueKind) => placed.value.filter((issue) => issue.kind === kind);
 const coverage = computed(() => props.attached?.report.coverage ?? null);
 const short = computed(() => [...(coverage.value?.groups ?? []), ...(coverage.value?.combinedMinimums ?? [])].filter((g) => !g.met).length);
+const unknownItems = computed(() =>
+  ofKind('unknown').map((issue) => ({ text: m.value.issue[issue.code](issue, props.ctx), place: issue.term ? termName(issue.term, locale.lang) : m.value.wholePlan })),
+);
 const tileOf = (issue: PlanIssue) => props.attached?.tileOf.get(issue);
 
 const idOf = (i: PlanIssue) => [i.code, i.courseCode ?? '', i.term ? termKey(i.term) : '', i.requirementGroupId ?? ''].join('|');
@@ -131,12 +135,7 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
         <details v-if="ofKind('unknown').length" class="unknowns" :class="{ stale: !fresh }" data-test="unknowns">
           <summary>{{ m.kindHeadings.unknown }} ({{ ofKind('unknown').length }})</summary>
           <p class="xs t2">{{ m.notRecordedYet }}</p>
-          <ul class="unknown-list">
-            <li v-for="(issue, i) in ofKind('unknown')" :key="i" data-test="issue-unknown">
-              <Icon name="info" size="sm" />
-              <span>{{ m.issue[issue.code](issue, ctx) }} <span class="t3">· {{ issue.term ? termName(issue.term, locale.lang) : m.wholePlan }}</span></span>
-            </li>
-          </ul>
+          <UnknownIssueList :items="unknownItems" />
         </details>
 
         <details v-if="coverage" class="coverage" :class="{ stale: !fresh }" data-test="coverage">
@@ -207,9 +206,6 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
 .unknowns summary, .coverage summary { cursor: pointer; font-weight: 650; font-size: 13.5px; color: var(--ink-2); }
 .coverage summary .chip { margin-left: 6px; }
 .unknowns[open], .coverage[open] { display: grid; gap: 8px; }
-.unknown-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 12.5px; color: var(--ink-2); }
-.unknown-list li { display: flex; gap: 6px; align-items: flex-start; }
-.unknown-list .icon { flex: none; width: 14px; height: 14px; margin-top: 2px; color: var(--ink-3); }
 .coverage { font-size: 13.5px; }
 .coverage .ok { color: color-mix(in oklab, var(--ok) 80%, var(--ink)); font-weight: 650; }
 .cov-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
