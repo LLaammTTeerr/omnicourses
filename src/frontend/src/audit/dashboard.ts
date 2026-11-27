@@ -36,11 +36,11 @@ export interface RowState {
   row: Row;
   d: number;
   c: number;
-  left: number;
+  left: number | null;
   cur: CourseLine[];
   fail: CourseLine[];
   todo: TodoTerm[];
-  unplaced: number;
+  unplaced: number | null;
   done: CourseLine[];
 }
 
@@ -52,6 +52,7 @@ export interface TermCourse {
   rowHash: string | null;
   grade: number | null;
   failed: boolean;
+  inProgress: boolean;
 }
 
 export interface Snapshot {
@@ -149,7 +150,7 @@ export class Dashboard {
       summary: live ? null : summary,
       rows: this.rows.map((row) => this.rowState(audit, row, live, lang)),
       passed: audit.credits.towardTotal,
-      courses: (summary?.attempts ?? []).filter((a) => !live || a.inProgress).map((a) => this.termCourse(a, lang)),
+      courses: (summary?.attempts ?? []).map((a) => this.termCourse(a, lang)),
     };
   }
 
@@ -158,7 +159,7 @@ export class Dashboard {
     const combined = audit.combinedMinimums.find((c) => c.id === row.key);
     const d = combined ? combined.credits : groups.reduce((t, g) => t + g.passedCredits + g.overflowInCredits, 0);
     const c = combined ? combined.inProgressCredits : groups.reduce((t, g) => t + g.inProgressCredits, 0);
-    const left = combined ? combined.remainingCredits : (groups[0]?.remainingCredits ?? Math.max(0, row.required - d - c));
+    const left = combined ? combined.remainingCredits : (groups[0]?.remainingCredits ?? null);
     const of = (status: string) => row.codes.filter((code) => coverageOf(audit, code)?.status === status);
     const retry = (code: string) => live && this.placed.has(code);
     const graded = (code: string) => this.line(audit, code, lang, coverageOf(audit, code)?.grade ?? null);
@@ -193,12 +194,12 @@ export class Dashboard {
     }
     const todo = [...byTerm.values()].sort((a, b) => compare(a.term, b.term));
     const { pending: _, ...rest } = s;
-    return { row, ...rest, todo, unplaced: Math.max(0, s.left - sum(todo)) };
+    return { row, ...rest, todo, unplaced: s.left === null ? null : Math.max(0, s.left - sum(todo)) };
   }
 
   private termCourse(a: TermAttempt, lang: Lang): TermCourse {
     const row = this.rowOf(a.requirementGroupId);
-    return { code: a.code, name: this.name(a.code, lang), credits: a.credits, colour: row?.colour ?? 'none', rowHash: row?.hash ?? null, grade: a.grade, failed: !a.passed && !a.inProgress };
+    return { code: a.code, name: this.name(a.code, lang), credits: a.credits, colour: row?.colour ?? 'none', rowHash: row?.hash ?? null, grade: a.grade, failed: !a.passed && !a.inProgress, inProgress: a.inProgress };
   }
 
   strip(lang: Lang): StripTerm[] {
@@ -208,7 +209,7 @@ export class Dashboard {
       const cells = summary.attempts.map(fromAttempt);
       return { term: summary.term, index, now: false, cells, credits: sum(cells) };
     });
-    const nowCells = (this.live?.attempts ?? []).filter((a) => a.inProgress).map(fromAttempt);
+    const nowCells = (this.live?.attempts ?? []).map(fromAttempt);
     const now = { term: this.liveTerm, index: this.nowIndex, now: true, cells: nowCells, credits: sum(nowCells) };
     const future = (this.input.plan?.terms ?? [])
       .filter((t) => compare(t.term, this.liveTerm) > 0)
@@ -232,11 +233,6 @@ export class Dashboard {
       return t.cumulativeAccumulatedAverageChange === null ? null : { change: t.cumulativeAccumulatedAverageChange, since: this.history[i - 1]!.term };
     }
     return null;
-  }
-
-  expectedGraduation(): Term | null {
-    const used = (this.input.plan?.terms ?? []).filter((t) => t.placements.length > 0).map((t) => t.term);
-    return used.sort(compare).pop() ?? null;
   }
 
   slotCredits(): number {
@@ -319,7 +315,7 @@ export function segments(rows: readonly RowState[]): Segment[] {
   for (const kind of ['d', 'c', 'left'] as const) {
     for (const state of rows) {
       const n = kind === 'd' ? Math.min(state.d, state.row.required) : state[kind];
-      if (n > 0) parts.push({ state, kind, n });
+      if (n !== null && n > 0) parts.push({ state, kind, n });
     }
   }
   const ring = parts.reduce((t, p) => t + p.n, 0);

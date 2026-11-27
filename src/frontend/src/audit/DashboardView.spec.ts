@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/store.js';
 import { user } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
+import { NOT_STARTED } from '../onboarding/api.js';
 import type { Plan, PlanIssues } from '../plans/api.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
@@ -109,7 +110,8 @@ function routes(audit: unknown, extra: Record<string, unknown> = {}) {
     [`GET /plans/${PLAN_ID}`]: plan,
     [`GET /plans/${PLAN_ID}/issues`]: issues(2),
     'GET /notifications': { notifications: [unread], nextBefore: null },
-    'GET /academic-calendar': { events: [{ kind: 'term_end', academicYear: 2027, term: 1, endsOn: '2028-01-20' }] },
+    'GET /academic-calendar': { events: [{ kind: 'term_end', academicYear: 2028, term: 2, endsOn: '2029-06-20' }] },
+    'GET /users/me/onboarding': { ...NOT_STARTED, targetGraduationTerm: { year: 2028, number: 2 } },
     ...extra,
   };
 }
@@ -212,11 +214,12 @@ describe('DashboardView (F3, UC-03)', () => {
   it('steps back to a past term and shows the audit as of that term, then returns with the arrow key', async () => {
     const { w, fetch } = await render();
     expect(text(w, 'term-label')).toBe('HK1 26–27 · nay');
+    expect(w.get('#db-term-title').text()).toBe('Học kỳ 1, 2026–27');
     expect(w.get('[data-test="next-term"]').attributes('disabled')).toBeDefined();
     await w.get('[data-test="previous-term"]').trigger('click');
     expect(w.get('.dashboard-page').classes()).toContain('db-past');
     expect(text(w, 'term-label')).toBe('HK1 24–25');
-    expect(w.get('#db-term-title').text()).toBe('Học kỳ 1, năm 1 (2024–2025)');
+    expect(w.get('#db-term-title').text()).toBe('Học kỳ 1, 2024–25');
     expect(text(w, 'term-gpa')).toBe('7,75/10ĐTB học kỳ');
     expect(text(w, 'attention')).toContain('Tổng kết học kỳ');
     expect(text(w, 'term-card')).toContain('4,5');
@@ -225,8 +228,9 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'credits-toward-total')).toBe(String(PAST_TOWARD_TOTAL));
     expect(text(w, 'credits-remaining')).toBe('16');
     expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(expect.stringContaining('/users/me/audit?asOfYear=2024&asOfNumber=1'));
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
-    await flushPromises();
+    await w.get('[data-test="terms"] a').trigger('keydown', { key: 'ArrowRight' });
+    expect(w.get('.dashboard-page').classes()).toContain('db-past');
+    await w.get('[data-test="term-label"]').trigger('keydown', { key: 'ArrowRight' });
     expect(w.get('.dashboard-page').classes()).not.toContain('db-past');
     expect(text(w, 'term-label')).toBe('HK1 26–27 · nay');
   });
@@ -295,10 +299,51 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'attention')).toContain("App doesn't know your certificate");
   });
 
-  it('shows the expected graduation term from the plan with the end month from the calendar', async () => {
+  it('shows the onboarding graduation target and its calendar end month', async () => {
     const { w } = await render();
-    expect(text(w, 'expected-graduation')).toContain('HK1 2027–28');
-    expect(text(w, 'expected-graduation')).toContain('01/2028');
+    expect(text(w, 'target-graduation')).toBe('HK2 2028–29Mục tiêu tốt nghiệp06/2029');
+    useLocale().set('en');
+    await flushPromises();
+    expect(text(w, 'target-graduation')).toBe('T2 2028–29Target graduation06/2029');
+    expect(w.get('[data-test="credits-remaining"] + small').text()).toBe('cr');
+  });
+
+  it('hides the graduation target when onboarding has no target even if a plan exists', async () => {
+    const { w } = await render(dashboardAudit(), { 'GET /users/me/onboarding': NOT_STARTED });
+    expect(w.get('[data-test="row1"]').findAll('.db-stat')).toHaveLength(1);
+    expect(text(w, 'gpa-accumulated-average')).toBe('8,00/10');
+  });
+
+  it('shows the live cumulative GPA and graded courses alongside courses in progress', async () => {
+    const audit = dashboardAudit();
+    const past = audit.terms[0]!;
+    const live = audit.terms[1]!;
+    const graded = attempt('ZZ420', { grade: 9 });
+    const { w } = await render({
+      ...audit,
+      credits: { ...audit.credits, inProgressTowardTotal: 2 },
+      gpa: { ...audit.gpa, accumulatedAverage: 8.5 },
+      terms: [past, { ...live, attempts: [...live.attempts, graded] }],
+    });
+    expect(text(w, 'gpa-accumulated-average')).toBe('8,50/10');
+    expect(w.get('[data-test="term-card"] .meta').text()).toBe(text(w, 'credits-in-progress'));
+    expect(text(w, 'credits-in-progress')).toBe('2 TC đang học');
+    expect(text(w, 'term-card')).toContain('ZZ4209,0');
+    expect(w.get('[data-test="terms"] .now').findAll('[title^="ZZ420"]')).toHaveLength(graded.credits);
+  });
+
+  it('shows unknown remaining credits without calculating them in the dashboard', async () => {
+    const audit = dashboardAudit();
+    const { w } = await render({
+      ...audit,
+      credits: { ...audit.credits, remaining: null },
+      groups: audit.groups.map((group) => group.id === GROUP_A ? { ...group, remainingCredits: null } : group),
+    });
+    expect(text(w, 'credits-remaining')).toBe('—');
+    expect(w.get(`[data-group="${GROUP_A}"] .db-bar`).attributes('aria-label')).toContain('còn lại —');
+    const arc = w.get(`.arc[data-g="${GROUP_A}"] path`);
+    await arc.trigger('pointermove');
+    expect(document.querySelector('.db-tip')?.textContent).toContain('Còn lại—');
   });
 
   it('draws one cell per credit for each term, past, current and planned, then graduation', async () => {
@@ -330,7 +375,7 @@ describe('DashboardView (F3, UC-03)', () => {
     });
     expect(text(w, 'credits-toward-total')).toBe('8');
     expect(w.findAll('[data-test="group"]')).toHaveLength(3);
-    expect(text(w, 'expected-graduation')).toContain('—');
+    expect(text(w, 'target-graduation')).toBe('HK2 2028–29Mục tiêu tốt nghiệp');
   });
 
   it('plays the intro once per browser session', async () => {

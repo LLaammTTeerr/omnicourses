@@ -23,17 +23,18 @@ interface DashboardMessages {
   left: string;
   required: string;
   credits: (n: number) => string;
+  creditUnit: string;
   cr: (n: number) => string;
   cumulativeGpa: string;
-  expectedGraduation: string;
-  expectedTerm: (term: Term) => string;
+  targetGraduation: string;
+  targetTerm: (term: Term) => string;
   termGpa: string;
   leftToGraduate: string;
   inProgressCredits: (n: number) => string;
   inTermCredits: (n: number) => string;
   comparedWith: (term: string) => string;
   groupsTitle: string;
-  barLabel: (d: number, c: number, left: number, required: number) => string;
+  barLabel: (d: number, c: number, left: number | null, required: number) => string;
   failed: string;
   termSection: (term: Term) => string;
   notInPlan: string;
@@ -41,7 +42,6 @@ interface DashboardMessages {
   grade: (grade: string) => string;
   retake: string;
   slot: string;
-  termTitle: (term: Term, yearOfStudy: number) => string;
   termMeta: (average: string, credits: number) => string;
   attention: string;
   termSummary: string;
@@ -86,17 +86,18 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     left: 'Còn lại',
     required: 'Yêu cầu',
     credits: (n) => `${n} tín chỉ`,
+    creditUnit: 'TC',
     cr: (n) => `${n} TC`,
     cumulativeGpa: 'GPA tích lũy',
-    expectedGraduation: 'Dự kiến tốt nghiệp',
-    expectedTerm: (term) => `HK${term.number} ${years(term)}`,
+    targetGraduation: 'Mục tiêu tốt nghiệp',
+    targetTerm: (term) => `${term.number === 3 ? 'Hè' : `HK${term.number}`} ${years(term)}`,
     termGpa: 'ĐTB học kỳ',
     leftToGraduate: 'Cần để tốt nghiệp',
     inProgressCredits: (n) => `${n} TC đang học`,
     inTermCredits: (n) => `${n} TC trong kỳ`,
     comparedWith: (term) => `So với cuối ${term}`,
     groupsTitle: 'Nhóm yêu cầu',
-    barLabel: (d, c, left, required) => `Đã đạt ${d}, đang học ${c}, còn lại ${left} trên ${required} tín chỉ`,
+    barLabel: (d, c, left, required) => `Đã đạt ${d}, đang học ${c}, còn lại ${left ?? '—'} trên ${required} tín chỉ`,
     failed: 'Chưa đạt',
     termSection: (term) => (term.number === 3 ? `Học kỳ hè, ${years(term)}` : `Học kỳ ${term.number}, ${years(term)}`),
     notInPlan: 'Chưa xếp vào lộ trình',
@@ -104,7 +105,6 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     grade: (grade) => `Điểm ${grade}`,
     retake: 'Học lại',
     slot: 'Tự chọn chưa chọn môn',
-    termTitle: (term, year) => `${term.number === 3 ? 'Học kỳ hè' : `Học kỳ ${term.number}`}, năm ${year} (${term.year}–${term.year + 1})`,
     termMeta: (average, credits) => `ĐTB ${average} · ${credits} tín chỉ`,
     attention: 'Cần chú ý',
     termSummary: 'Tổng kết học kỳ',
@@ -147,17 +147,18 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     left: 'Remaining',
     required: 'Required',
     credits: (n) => plural(n, 'credit'),
+    creditUnit: 'cr',
     cr: (n) => `${n} cr`,
     cumulativeGpa: 'Cumulative GPA',
-    expectedGraduation: 'Expected graduation',
-    expectedTerm: (term) => `T${term.number} ${years(term)}`,
+    targetGraduation: 'Target graduation',
+    targetTerm: (term) => `${term.number === 3 ? 'Summer' : `T${term.number}`} ${years(term)}`,
     termGpa: 'Term GPA',
     leftToGraduate: 'Left to graduate',
     inProgressCredits: (n) => `${n} cr in progress`,
     inTermCredits: (n) => `${n} cr in the term`,
     comparedWith: (term) => `Compared with the end of ${term}`,
     groupsTitle: 'Requirement groups',
-    barLabel: (d, c, left, required) => `Passed ${d}, in progress ${c}, remaining ${left} of ${required} credits`,
+    barLabel: (d, c, left, required) => `Passed ${d}, in progress ${c}, remaining ${left ?? '—'} of ${required} credits`,
     failed: 'Failed',
     termSection: (term) => (term.number === 3 ? `Summer term, ${years(term)}` : `Term ${term.number}, ${years(term)}`),
     notInPlan: 'Not in the plan yet',
@@ -165,7 +166,6 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     grade: (grade) => `Grade ${grade}`,
     retake: 'Retake',
     slot: 'Elective not chosen yet',
-    termTitle: (term, year) => `${term.number === 3 ? 'Summer term' : `Term ${term.number}`}, year ${year} (${term.year}–${term.year + 1})`,
     termMeta: (average, credits) => `GPA ${average} · ${plural(credits, 'credit')}`,
     attention: 'Needs attention',
     termSummary: 'Term summary',

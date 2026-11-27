@@ -6,6 +6,7 @@ import { GROUPS } from '../groups.js';
 import { LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { fetchNotifications, type Notification } from '../notifications/api.js';
 import { NOTIFICATION_MESSAGES } from '../notifications/messages.js';
+import { fetchOnboarding, type Onboarding } from '../onboarding/api.js';
 import { usePageTitle } from '../page-title.js';
 import { fetchPlan, fetchPlanIssues, fetchPlans, type Plan, type PlanIssues } from '../plans/api.js';
 import { reducedMotion } from '../plans/flip.js';
@@ -48,6 +49,7 @@ interface Extras {
   issues: PlanIssues | null;
   notifications: Notification[];
   calendar: CalendarEvent[];
+  targetGraduationTerm: Onboarding['targetGraduationTerm'];
 }
 
 const extras = shallowRef<Extras | null>(null);
@@ -71,15 +73,17 @@ async function loadPlan(): Promise<{ plan: Plan | null; issues: PlanIssues | nul
 }
 
 async function loadExtras(): Promise<void> {
-  const [planned, notifications, calendar] = await Promise.all([
+  const [planned, notifications, calendar, onboarding] = await Promise.all([
     loadPlan(),
     settled(fetchNotifications(NOTIFICATIONS_SHOWN)),
     settled(fetchAcademicCalendar()),
+    settled(fetchOnboarding()),
   ]);
   extras.value = {
     ...planned,
     notifications: notifications?.notifications ?? [],
     calendar: calendar?.events ?? [],
+    targetGraduationTerm: onboarding?.targetGraduationTerm ?? null,
   };
 }
 
@@ -294,16 +298,17 @@ function onDocumentClick(e: MouseEvent): void {
   }
 }
 
-function onDocumentKey(e: KeyboardEvent): void {
-  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName ?? '');
-  if (!dash.value || typing || e.ctrlKey || e.metaKey || e.altKey || pickerOpen.value) return;
-  if (e.key === 'ArrowLeft') pick(sel.value - 1);
-  if (e.key === 'ArrowRight') pick(sel.value + 1);
+function onScrubberKey(e: KeyboardEvent): void {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || pickerOpen.value) return;
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  pick(sel.value + (e.key === 'ArrowLeft' ? -1 : 1));
+  if (sel.value === 0 || sel.value === nowIndex.value) pickerButton.value?.focus();
 }
 
 const hi = computed(() => (snap.value?.live ? nowIndex.value - 1 : view.value));
 const cumValues = computed(() => history.value.map((h) => h.cumulativeAccumulatedAverage));
-const gpaNow = computed(() => cumValues.value[hi.value] ?? audit.value?.gpa.accumulatedAverage ?? null);
+const gpaNow = computed(() => (snap.value?.live ? audit.value?.gpa.accumulatedAverage : snap.value?.summary?.cumulativeAccumulatedAverage) ?? null);
 const delta = computed(() => dash.value?.gpaChange(hi.value) ?? null);
 const spark = computed(() => {
   const plotted = cumValues.value.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
@@ -313,16 +318,9 @@ const spark = computed(() => {
   return { pts, line: pts.map((p) => `${p.x},${p.y}`).join(' ') };
 });
 
-const expected = computed(() => dash.value?.expectedGraduation() ?? null);
-const expectedEnd = computed(() => (expected.value && extras.value ? calendarEnd(extras.value.calendar, expected.value) : null));
-const remaining = computed(() => {
-  const total = audit.value?.credits.totalRequired ?? null;
-  if (!snap.value || total === null) return null;
-  return dash.value?.auditAt(snap.value.index)?.credits.remaining ?? Math.max(0, total - snap.value.passed);
-});
-
-const yearOfStudy = computed(() => (snap.value && audit.value ? snap.value.term.year - audit.value.cohortYear + 1 : 1));
-const termCredits = computed(() => snap.value?.courses.reduce((t, c) => t + c.credits, 0) ?? 0);
+const target = computed(() => extras.value?.targetGraduationTerm ?? null);
+const targetEnd = computed(() => (target.value && extras.value ? calendarEnd(extras.value.calendar, target.value) : null));
+const remaining = computed(() => (snap.value ? dash.value?.auditAt(snap.value.index)?.credits.remaining ?? null : null));
 
 interface AttentionItem {
   tone: 'bad' | 'warn' | 'info';
@@ -385,12 +383,10 @@ watch(ready, (on) => {
 onMounted(() => {
   void loadExtras();
   document.addEventListener('click', onDocumentClick);
-  document.addEventListener('keydown', onDocumentKey);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick);
-  document.removeEventListener('keydown', onDocumentKey);
   clearTimeout(swapTimer);
   clearTimeout(leaveTimer);
   clearTimeout(back);
@@ -410,7 +406,8 @@ onBeforeUnmount(() => {
       </div>
       <div v-if="dash && snap" class="db-scrub-wrap">
         <button v-if="sel !== nowIndex" class="btn sm ghost" type="button" data-test="back-to-now" @click="pick(nowIndex)"><Icon name="undo" />{{ m.backToNow }}</button>
-        <div class="db-scrub" role="group" :aria-label="m.viewTerm">
+        <div class="db-scrub" role="group" :aria-label="m.viewTerm" @keydown="onScrubberKey">
+          <span class="sr-only" role="status">{{ termShort(snap.term, locale.lang) }}{{ snap.live ? m.now : '' }}</span>
           <button type="button" :aria-label="m.previousTerm" :disabled="sel === 0" data-test="previous-term" @click="pick(sel - 1)"><Icon name="left" /></button>
           <span class="db-tpick-wrap">
             <button
@@ -420,7 +417,6 @@ onBeforeUnmount(() => {
               aria-haspopup="listbox"
               :aria-expanded="pickerOpen"
               aria-controls="db-tpick"
-              aria-live="polite"
               data-test="term-label"
               @click="setPicker(!pickerOpen)"
             >
@@ -473,7 +469,7 @@ onBeforeUnmount(() => {
                     <path v-if="s.kind === 'd'" class="solid" :d="s.path" />
                     <path v-else-if="s.kind === 'c'" :d="s.path" :style="{ fill: `url(#db-hatch-${s.state.row.colour})` }" />
                     <path v-else class="air" :d="s.path" />
-                    <path class="hit" :d="s.hit" @click="$router.push(auditTo(s.state.row.hash))" />
+                    <path class="hit" :d="s.hit" aria-hidden="true" @click="$router.push(auditTo(s.state.row.hash))" />
                   </g>
                 </g>
               </svg>
@@ -513,14 +509,14 @@ onBeforeUnmount(() => {
                     </svg>
                   </div>
                 </div>
-                <div v-if="snap.live" class="db-stat" :title="expected ? m.termSection(expected) : undefined" data-test="expected-graduation">
+                <div v-if="snap.live && target" class="db-stat" :title="m.termSection(target)" data-test="target-graduation">
                   <div>
-                    <div class="v">{{ expected ? m.expectedTerm(expected) : '—' }}</div>
-                    <div class="k">{{ m.expectedGraduation }}</div>
+                    <div class="v">{{ m.targetTerm(target) }}</div>
+                    <div class="k">{{ m.targetGraduation }}</div>
                   </div>
-                  <div v-if="expectedEnd" class="end"><span class="small t3">{{ expectedEnd }}</span></div>
+                  <div v-if="targetEnd" class="end"><span class="small t3">{{ targetEnd }}</span></div>
                 </div>
-                <div v-else class="db-stat" data-test="term-gpa">
+                <div v-else-if="!snap.live" class="db-stat" data-test="term-gpa">
                   <div>
                     <div class="v">{{ snap.summary?.average == null ? '—' : countScore(snap.summary.average) }}<small>/10</small></div>
                     <div class="k">{{ m.termGpa }}</div>
@@ -530,7 +526,7 @@ onBeforeUnmount(() => {
               <div class="db-row" data-test="row2" @mouseover="onPreviewOver" @mouseleave="onPreviewLeave" @click="onPreviewClick">
                 <div class="db-stat">
                   <div>
-                    <div class="v"><span data-test="credits-remaining">{{ remaining === null ? '—' : count(remaining) }}</span><small>TC</small></div>
+                    <div class="v"><span data-test="credits-remaining">{{ remaining === null ? '—' : count(remaining) }}</span><small v-if="remaining !== null">{{ m.creditUnit }}</small></div>
                     <div class="k">{{ m.leftToGraduate }}</div>
                   </div>
                   <div class="end">
@@ -625,13 +621,13 @@ onBeforeUnmount(() => {
             <div class="db-aside">
               <section class="card" aria-labelledby="db-term-title" data-test="term-card">
                 <div class="db-sec-head">
-                  <h2 id="db-term-title">{{ m.termTitle(snap.term, yearOfStudy) }}</h2>
-                  <span class="meta">{{ snap.live ? m.credits(termCredits) : m.termMeta(snap.summary?.average == null ? '—' : score(snap.summary.average), snap.summary?.credits ?? 0) }}</span>
+                  <h2 id="db-term-title">{{ m.termSection(snap.term) }}</h2>
+                  <span class="meta">{{ snap.live ? m.inProgressCredits(a.credits.inProgressTowardTotal) : m.termMeta(snap.summary?.average == null ? '—' : score(snap.summary.average), snap.summary?.credits ?? 0) }}</span>
                 </div>
                 <div class="db-cur">
-                  <RouterLink v-for="(c, i) in snap.courses" :key="`${c.code}-${i}`" :class="['row', { g4: !snap.live }, `g-${c.colour}`]" :to="auditTo(c.rowHash)">
-                    <span :class="['sq', snap.live ? 'cur' : { fail: c.failed }]"></span><span>{{ c.name }}</span><span class="cd">{{ c.code }}</span>
-                    <b v-if="!snap.live" class="gr">{{ c.grade === null ? '—' : grade(c.grade) }}</b>
+                  <RouterLink v-for="(c, i) in snap.courses" :key="`${c.code}-${i}`" :class="['row', { g4: !snap.live || !c.inProgress }, `g-${c.colour}`]" :to="auditTo(c.rowHash)">
+                    <span :class="['sq', { cur: c.inProgress, fail: c.failed }]"></span><span>{{ c.name }}</span><span class="cd">{{ c.code }}</span>
+                    <b v-if="!snap.live || !c.inProgress" class="gr">{{ c.grade === null ? '—' : grade(c.grade) }}</b>
                   </RouterLink>
                 </div>
               </section>
@@ -641,7 +637,7 @@ onBeforeUnmount(() => {
                   <template v-if="snap.live">
                     <RouterLink v-for="(item, i) in attention" :key="i" :class="item.tone" :to="item.to">
                       <span class="tl"><span v-if="'count' in item.mark">{{ item.mark.count }}</span><Icon v-else :name="item.mark.icon" size="sm" /></span>
-                      <span style="min-width: 0"><b>{{ item.title }}</b><small>{{ item.cta }}</small></span>
+                      <span class="copy"><b>{{ item.title }}</b><small>{{ item.cta }}</small></span>
                       <Icon name="chev" size="sm" class="chev" />
                     </RouterLink>
                   </template>
@@ -699,7 +695,7 @@ onBeforeUnmount(() => {
           <b><i></i>{{ tipRow.row.name }}</b>
           <p><span>{{ m.passed }}</span><span>{{ m.cr(tipRow.d) }}</span></p>
           <p><span>{{ m.inProgress }}</span><span>{{ m.cr(tipRow.c) }}</span></p>
-          <p><span>{{ m.left }}</span><span>{{ m.cr(tipRow.left) }}</span></p>
+          <p><span>{{ m.left }}</span><span>{{ tipRow.left === null ? '—' : m.cr(tipRow.left) }}</span></p>
           <p><span>{{ m.required }}</span><span>{{ m.cr(tipRow.row.required) }}</span></p>
         </div>
       </div>
@@ -707,7 +703,7 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .g-none { --c: var(--ink-3); --on: #fff; }
 .dashboard-page .db-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px 20px; flex-wrap: wrap; }
 .dashboard-page .db-head h1 { font-size: 28px; }
@@ -831,6 +827,7 @@ onBeforeUnmount(() => {
 .db-attn b { display: block; font-size: 14.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .db-attn small { display: block; font-size: 13.5px; font-weight: 600; color: var(--info); }
 .db-attn .chev { color: var(--ink-3); }
+.db-attn .copy { min-width: 0; }
 .db-attn > .btn { justify-self: start; }
 .db-sum { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; font-size: 14.5px; margin: 0 0 14px; padding: 6px 0 0; }
 .db-sum dt { color: var(--ink-3); }
@@ -845,7 +842,7 @@ onBeforeUnmount(() => {
 .db-term[data-hi] { cursor: pointer; }
 .db-term .cells { display: grid; grid-template-columns: repeat(5, 11px); grid-auto-rows: 11px; gap: 3px; align-content: start; min-height: 67px; }
 .db-term .cells i { border-radius: 3px; background: var(--c); }
-.db-term .cells i.cur { background: var(--c-half); }
+.db-term .cells i.cur { background: repeating-linear-gradient(135deg, var(--c) 0 2px, var(--c-half) 2px 4.5px); }
 .db-term .cells i.todo { background: var(--c-air); }
 .db-term .cells i.fail { background: transparent; box-shadow: inset 0 0 0 1.5px var(--bad); }
 .db-term .lb { font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
