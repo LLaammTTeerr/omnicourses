@@ -128,18 +128,18 @@ describe('RulesService.issuesFor without a student', () => {
 });
 
 describe('the rule engine library', () => {
-  const PURE_IMPORTS = ['../common/collections.js', '../terms/term.js', '../transcript/transcript-entry.js'];
+  const PURE_IMPORTS = ['../common/collections.js', '../curriculum/curriculum-rules.js', '../terms/term.js', '../transcript/transcript-entry.js'];
   const LOADERS = ['rules.module.ts', 'rules.service.ts'];
   const LOADER_PATHS = LOADERS.map((f) => join(__dirname, f));
-  const runtimeImports = (path: string) =>
-    [...readFileSync(path, 'utf8').matchAll(/^(?:import|export) (?!type )[^;]*? from '([^']+)';|^import '([^']+)';/gms)].map((m) => (m[1] ?? m[2])!);
+  const importedSources = (path: string) =>
+    [...readFileSync(path, 'utf8').matchAll(/^(?:import|export) [^;]*? from '([^']+)';|^import '([^']+)';/gms)].map((m) => (m[1] ?? m[2])!);
   const sourcePath = (from: string, source: string) => resolve(dirname(from), source.replace(/\.js$/, '.ts'));
 
-  it('imports no framework, database or HTTP code at run time', () => {
+  it('imports no framework, database or HTTP code, not even as a type', () => {
     const files = readdirSync(__dirname).filter((f) => f.endsWith('.ts') && !f.endsWith('.spec.ts') && !LOADERS.includes(f));
     expect(files.length).toBeGreaterThan(0);
     for (const f of files) {
-      for (const source of runtimeImports(join(__dirname, f))) {
+      for (const source of importedSources(join(__dirname, f))) {
         const inEngine = source.startsWith('./') && !LOADER_PATHS.includes(sourcePath(join(__dirname, f), source));
         expect(inEngine || PURE_IMPORTS.includes(source), `${f} imports ${source}`).toBe(true);
       }
@@ -150,7 +150,7 @@ describe('the rule engine library', () => {
       const path = pending.pop()!;
       if (seen.has(path)) continue;
       seen.add(path);
-      for (const source of runtimeImports(path)) {
+      for (const source of importedSources(path)) {
         const next = sourcePath(path, source);
         expect(source.startsWith('.') && !LOADER_PATHS.includes(next), `${path} imports ${source}`).toBe(true);
         pending.push(next);
