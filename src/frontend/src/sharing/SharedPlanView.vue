@@ -9,6 +9,7 @@ import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import type { PlanIssueKind } from '../plans/api.js';
 import { PLANNER_MESSAGES } from '../plans/messages.js';
+import CapMeter from '../plans/CapMeter.vue';
 import IssueCard from '../plans/IssueCard.vue';
 import UnknownIssueList from '../plans/UnknownIssueList.vue';
 import { BAR_CODES, ISSUE_KINDS_SHOWN, KIND_STYLE } from '../plans/issue-view.js';
@@ -208,13 +209,7 @@ function printPlan(): void {
                   <b>{{ row.credits }}</b>{{ planner.ofCap(row.maxCap) }}
                   <span class="caps-text"> · {{ row.capsLabel }}</span>
                 </div>
-                <div v-if="row.meter" :class="['cap', row.cap]" aria-hidden="true">
-                  <span class="track">
-                    <i class="fill" :style="{ width: `${row.meter.fill}%` }" />
-                  </span>
-                  <span v-if="row.meter.min !== null" class="tick" :style="{ left: `${row.meter.min}%` }"><em>{{ row.meter.minLabel }}</em></span>
-                  <span class="tick max" :style="{ left: `${row.meter.max}%` }"><em>{{ row.meter.maxLabel }}</em></span>
-                </div>
+                <CapMeter v-if="row.meter" :meter="row.meter" :cap="row.cap" variant="shared" />
                 <ul v-if="row.rowIssues.length" class="row-issues">
                   <li
                     v-for="(issue, idx) in row.rowIssues"
@@ -504,51 +499,6 @@ function printPlan(): void {
 .caps-text {
   font-size: 12px;
   color: var(--ink-3);
-}
-.cap {
-  position: relative;
-  padding-bottom: 14px;
-}
-.cap .track {
-  display: block;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--surface-3);
-  overflow: hidden;
-}
-.cap .fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--info);
-}
-.cap.ok .fill {
-  background: var(--ok);
-}
-.cap.under .fill {
-  background: var(--warn);
-}
-.cap.over .fill {
-  background: var(--bad);
-}
-.cap .tick {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-}
-.cap .tick::before {
-  content: '';
-  display: block;
-  width: 2px;
-  height: 8px;
-  background: var(--ink-3);
-  margin: -1px auto 0;
-}
-.cap .tick em {
-  display: block;
-  font: 600 10.5px var(--mono);
-  color: var(--ink-3);
-  margin-top: 1px;
 }
 .row-issues {
   list-style: none;

@@ -29,6 +29,7 @@ import {
   type Moving,
   type Tile,
 } from './board.js';
+import CapMeter from './CapMeter.vue';
 import { pointerDrag, type DropTarget } from './drag.js';
 import { FLIP_MS, play, reducedMotion, snapshot, type Lift } from './flip.js';
 import { BAR_CODES, KIND_STYLE } from './issue-view.js';
@@ -608,14 +609,9 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   <template v-if="row.load.atLeast">{{ `${m.atLeast} ` }}</template><b :key="row.load.credits" class="pop">{{ row.load.credits }}</b>{{ m.ofCap(row.load.max) }}<span class="sr-only">{{ ` · ${row.load.caps}` }}</span>
                   <span v-if="row.load.delta" :class="['delta', row.load.delta > 0 ? 'up' : 'down']" data-test="load-delta">{{ row.load.delta > 0 ? '+' : '−' }}{{ Math.abs(row.load.delta) }}</span>
                 </div>
-                <div v-if="row.meter" :class="['cap', row.cap, { preview: !!row.load?.delta }]" aria-hidden="true">
-                  <span class="track">
-                    <i class="fill" :style="{ width: `${row.meter.fill}%` }" />
-                    <i :class="['pre', { minus: (row.load?.delta ?? 0) < 0 }]" :style="{ left: `${row.meter.from}%`, width: `${row.meter.to - row.meter.from}%` }" />
-                  </span>
-                  <span v-if="row.meter.min !== null" class="tick" :style="{ left: `${row.meter.min}%` }"><em>{{ row.meter.minLabel }}</em></span>
-                  <span class="tick max" :style="{ left: `${row.meter.max}%` }"><em>{{ row.meter.maxLabel }}</em></span>
-                </div>
+                <CapMeter v-if="row.meter" :meter="row.meter" :cap="row.cap" variant="editor" :class="{ preview: !!row.load?.delta }">
+                  <i :class="['pre', { minus: (row.load?.delta ?? 0) < 0 }]" :style="{ left: `${row.meter.from}%`, width: `${row.meter.to - row.meter.from}%` }" />
+                </CapMeter>
                 <p v-if="row.drop?.reason" class="drop-reason" data-test="drop-reason">
                   <Icon :name="row.drop.tone === 'ok-drop' ? 'check' : row.drop.tone === 'checking' || row.drop.tone === 'failed-drop' ? 'refresh' : row.drop.tone === 'unknown-drop' ? 'info' : 'alert'" size="sm" /><span>{{ row.drop.reason }}</span>
                 </p>
@@ -883,20 +879,15 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 .row-enter-active { transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .row-enter-from { opacity: 0; transform: translateY(-10px) scale(0.99); }
 
-.cap { position: relative; padding-bottom: 16px; margin-top: 2px; }
-.cap .track { display: block; position: relative; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
-.cap .fill, .cap .pre { position: absolute; top: 0; bottom: 0; left: 0; transition: width 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), left 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.25s; }
-.cap .fill { border-radius: 999px; background: var(--ink-3); animation: grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.cap.ok .fill, .cap.ok .pre:not(.minus) { background: var(--ok); }
-.cap.under .fill, .cap.under .pre:not(.minus) { background: var(--warn); }
-.cap.over .fill, .cap.over .pre:not(.minus) { background: var(--bad); }
-.cap .pre { width: 0; border-radius: 0 999px 999px 0; background: var(--ok); opacity: 0.5; }
+.cap .pre {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 0; border-radius: 0 999px 999px 0; background: var(--ok); opacity: 0.5;
+  transition: width 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), left 0.34s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.25s;
+}
+.cap.ok .pre:not(.minus) { background: var(--ok); }
+.cap.under .pre:not(.minus) { background: var(--warn); }
+.cap.over .pre:not(.minus) { background: var(--bad); }
 .cap.preview .pre { animation: pre-pulse 0.9s ease-in-out infinite alternate; }
 .cap .pre.minus { background: var(--ink-3); opacity: 0.22; animation: none; }
-.cap .tick { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; border-radius: 2px; background: var(--edge-strong); }
-.cap .tick.max { background: var(--ink-3); }
-.cap .tick em { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font: 600 10.5px var(--font); font-style: normal; color: var(--ink-3); }
-@keyframes grow { from { width: 0; } }
 @keyframes pre-pulse { from { opacity: 0.35; } to { opacity: 0.75; } }
 
 .drop-reason {
