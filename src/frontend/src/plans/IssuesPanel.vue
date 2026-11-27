@@ -2,11 +2,11 @@
 import { computed } from 'vue';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
-import { REGULATION_URL } from '../shell/messages.js';
 import { termKey, termName } from '../terms.js';
 import type { PlanIssue, PlanIssueKind } from './api.js';
 import type { AttachedIssues } from './board.js';
-import { clause, ISSUE_KINDS_SHOWN, KIND_STYLE } from './issue-view.js';
+import IssueCard from './IssueCard.vue';
+import { ISSUE_KINDS_SHOWN, KIND_STYLE } from './issue-view.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
 
 const props = defineProps<{
@@ -98,42 +98,29 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
         </div>
 
         <TransitionGroup v-if="cards.length" tag="ul" name="v" class="rail-list" :class="{ stale: !fresh && !preview }">
-          <li
+          <IssueCard
             v-for="c in cards"
             :key="c.id"
-            :class="['vitem', c.issue.kind, c.state]"
+            :class="c.state"
+            :issue="c.issue"
+            :text="m.issue[c.issue.code](c.issue, ctx)"
+            :place="c.issue.term ? termName(c.issue.term, locale.lang) : null"
+            :icon="icon(c)"
+            variant="editor"
             :data-test="c.state === 'gone' ? 'issue-gone' : `issue-${c.issue.kind}`"
           >
-            <span class="ic" aria-hidden="true"><Icon :name="icon(c)" size="sm" /></span>
-            <div>
-              <b><span class="sr-only">{{ m.kinds[c.issue.kind] }}: </span>{{ m.issueTitle[c.issue.code] }}</b>
-              <p data-test="issue-text">{{ m.issue[c.issue.code](c.issue, ctx) }}</p>
-              <div class="vfoot">
-                <span v-if="c.issue.term" class="chip line">{{ termName(c.issue.term, locale.lang) }}</span>
-                <a
-                  v-if="clause(c.issue.citation)"
-                  class="ref"
-                  :href="REGULATION_URL"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  :title="m.sourceTitle(c.issue.citation)"
-                  data-test="citation"
-                ><Icon name="book" size="sm" /><span class="sr-only">{{ m.source }}: {{ c.issue.citation }}</span><span aria-hidden="true">{{ clause(c.issue.citation) }}</span></a>
-                <span v-else class="chip line" data-test="citation">{{ c.issue.citation }}</span>
-                <span v-if="c.state === 'new'" class="tag">{{ m.newTag }}</span>
-                <span v-else-if="c.state === 'gone'" class="tag ok">{{ m.goneTag }}</span>
-                <button
-                  v-if="!preview && tileOf(c.issue) !== undefined"
-                  class="btn sm"
-                  type="button"
-                  data-test="go-to"
-                  @click="emit('focusTile', tileOf(c.issue)!)"
-                >
-                  {{ m.goTo }}<Icon name="right" size="sm" />
-                </button>
-              </div>
-            </div>
-          </li>
+            <span v-if="c.state === 'new'" class="tag">{{ m.newTag }}</span>
+            <span v-else-if="c.state === 'gone'" class="tag ok">{{ m.goneTag }}</span>
+            <button
+              v-if="!preview && tileOf(c.issue) !== undefined"
+              class="btn sm"
+              type="button"
+              data-test="go-to"
+              @click="emit('focusTile', tileOf(c.issue)!)"
+            >
+              {{ m.goTo }}<Icon name="right" size="sm" />
+            </button>
+          </IssueCard>
         </TransitionGroup>
         <div v-else class="rail-empty" :class="{ open: short > 0 }" data-test="no-issues">
           <Icon :name="short ? 'info' : 'check'" />
@@ -205,31 +192,10 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
 .issue-counts { display: flex; flex-wrap: wrap; gap: 6px; }
 .rail .chip.line { background: transparent; border: 1px dashed var(--edge-strong); color: var(--ink-2); min-height: 20px; font-size: 12px; }
 .rail-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.vitem {
-  display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border-radius: 12px;
-  background: color-mix(in oklab, var(--bad) 5%, var(--surface)); border: 1px solid color-mix(in oklab, var(--bad) 22%, var(--edge));
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, opacity 0.2s;
-}
-.vitem .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--bad); color: #fff; }
-.vitem b { display: block; font-size: 13.5px; line-height: 1.35; }
-.vitem p { font-size: 12.5px; color: var(--ink-2); margin: 2px 0 0; }
-.vfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .vfoot .btn { margin-left: auto; }
-.vitem.flag { background: color-mix(in oklab, var(--warn) 6%, var(--surface)); border-color: color-mix(in oklab, var(--warn) 26%, var(--edge)); }
-.vitem.flag .ic { background: var(--warn); }
-.vitem.new { box-shadow: 0 0 0 2px color-mix(in oklab, var(--bad) 40%, transparent); }
-.vitem.gone { background: color-mix(in oklab, var(--ok) 6%, var(--surface)); border-color: color-mix(in oklab, var(--ok) 30%, var(--edge)); }
-.vitem.gone .ic { background: var(--ok); }
-.vitem.gone b { color: var(--ink-2); text-decoration: line-through; text-decoration-color: color-mix(in oklab, var(--ink-3) 60%, transparent); }
 .v-enter-active { transition: opacity 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .v-enter-from { opacity: 0; transform: translateX(14px); }
 .v-move { transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.ref {
-  display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 650; text-decoration: none; padding: 1px 8px; border-radius: 999px;
-  border: 1px solid var(--edge-strong); color: var(--ink-2); background: var(--surface); white-space: nowrap;
-}
-.ref .icon { width: 13px; height: 13px; }
-.ref:hover { border-color: var(--ink-3); color: var(--ink); }
 .tag { font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--bad); color: #fff; }
 .tag.ok { background: var(--ok); }
 .rail-empty { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 22px 10px; font-size: 13px; color: var(--ink-3); }

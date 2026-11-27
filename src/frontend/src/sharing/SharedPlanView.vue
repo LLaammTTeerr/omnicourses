@@ -9,9 +9,9 @@ import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import type { PlanIssueKind } from '../plans/api.js';
 import { PLANNER_MESSAGES } from '../plans/messages.js';
-import { BAR_CODES, clause, ISSUE_KINDS_SHOWN, KIND_STYLE } from '../plans/issue-view.js';
+import IssueCard from '../plans/IssueCard.vue';
+import { BAR_CODES, ISSUE_KINDS_SHOWN, KIND_STYLE } from '../plans/issue-view.js';
 import Icon from '../shell/Icon.vue';
-import { REGULATION_URL } from '../shell/messages.js';
 import { termName } from '../terms.js';
 import { fetchSharedPlan, type SharedPlanIssue } from './api.js';
 import { SHARING_MESSAGES } from './messages.js';
@@ -272,35 +272,15 @@ function printPlan(): void {
           </div>
 
           <ul v-if="listedIssues.length" class="rail-list">
-            <li
+            <IssueCard
               v-for="(issue, idx) in listedIssues"
               :key="idx"
-              :class="['vitem', issue.kind]"
+              :issue="issue"
+              :text="wordSharedIssue(issue)"
+              :place="issue.term ? termName(issue.term, locale.lang) : planner.wholePlan"
+              variant="shared"
               :data-test="`issue-${issue.kind}`"
-            >
-              <span class="ic" aria-hidden="true"><Icon :name="KIND_STYLE[issue.kind].icon" size="sm" /></span>
-              <div>
-                <b><span class="sr-only">{{ planner.kinds[issue.kind] }}: </span>{{ planner.issueTitle[issue.code] }}</b>
-                <p data-test="issue-text">{{ wordSharedIssue(issue) }}</p>
-                <div class="vfoot">
-                  <span class="chip line">{{ issue.term ? termName(issue.term, locale.lang) : planner.wholePlan }}</span>
-                  <a
-                    v-if="clause(issue.citation)"
-                    class="ref"
-                    :href="REGULATION_URL"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    :title="planner.sourceTitle(issue.citation)"
-                    data-test="citation"
-                  >
-                    <Icon name="book" size="sm" />
-                    <span class="sr-only">{{ planner.source }}: {{ issue.citation }}</span>
-                    <span aria-hidden="true">{{ clause(issue.citation) }}</span>
-                  </a>
-                  <span v-else class="chip line" data-test="citation">{{ issue.citation }}</span>
-                </div>
-              </div>
-            </li>
+            />
           </ul>
 
           <div v-else class="rail-empty" :class="{ partial: withheldTitles.length > 0 || shortGroupsCount > 0 }" data-test="no-issues">
@@ -752,66 +732,6 @@ function printPlan(): void {
   padding: 0;
   display: grid;
   gap: 8px;
-}
-.vitem {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--bad) 5%, var(--surface));
-  border: 1px solid color-mix(in oklab, var(--bad) 24%, var(--edge));
-}
-.vitem .ic {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  background: var(--bad);
-  color: #fff;
-}
-.vitem.flag {
-  background: color-mix(in oklab, var(--warn) 6%, var(--surface));
-  border-color: color-mix(in oklab, var(--warn) 28%, var(--edge));
-}
-.vitem.flag .ic {
-  background: var(--warn);
-}
-.vitem b {
-  display: block;
-  font-size: 13.5px;
-  line-height: 1.35;
-}
-.vitem p {
-  font-size: 12.5px;
-  color: var(--ink-2);
-  margin-top: 2px;
-  overflow-wrap: anywhere;
-}
-.vfoot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-}
-.ref {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: none;
-  padding: 1px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--edge-strong);
-  color: var(--ink-2);
-  background: var(--surface);
-}
-.ref .icon {
-  width: 13px;
-  height: 13px;
 }
 .rail-empty {
   display: grid;
