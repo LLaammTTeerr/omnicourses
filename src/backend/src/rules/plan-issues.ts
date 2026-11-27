@@ -2,7 +2,7 @@ import type { CurriculumRuleGroup, CurriculumRules } from '../curriculum/curricu
 import { groupBy } from '../common/collections.js';
 import { compareTerms, copyTerm, type Term, termKey, termLabel } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { courseRecords, type CourseRecord, isCompleted, resolve } from './attempts.js';
+import { courseRecords, type CourseRecord, isCompleted, recordBefore } from './attempts.js';
 import { degreeAudit } from './audit.js';
 import { type CapViolation, checkTermLoad, type LoadCourse, PETITION_NOTE, type TermLoadCheck } from './credit-caps.js';
 import { type CountedLink, placements } from './coverage.js';
@@ -117,11 +117,6 @@ const slotLoad = (rules: CurriculumRules, slot: Placement): LoadCourse => ({
   excludedFromMinimum: !slotCountsTowardTotal(rules, slot.requirementGroupId),
 });
 
-function standingBefore(record: CourseRecord | undefined, term: Term): CourseRecord | null {
-  const earlier = (record?.attempts ?? []).filter((a) => compareTerms(a.term, term) < 0);
-  return record && earlier.length ? resolve(record.code, earlier) : null;
-}
-
 function passedBefore(records: ReadonlyMap<string, CourseRecord>, plannedEarlier: ReadonlyMap<string, Term>, term: Term): Set<string> {
   const passed = new Set<string>();
   for (const [code, placedIn] of plannedEarlier) {
@@ -129,10 +124,15 @@ function passedBefore(records: ReadonlyMap<string, CourseRecord>, plannedEarlier
     if (!recorded) passed.add(code);
   }
   for (const record of records.values()) {
-    const standing = standingBefore(record, term);
+    const standing = recordBefore(record, term);
     if (standing && (standing.passed || standing.inProgress)) passed.add(record.code);
   }
   return passed;
+}
+
+function recordBeforeTile(plan: PlanContext, tile: CourseTile): CourseRecord | null {
+  const record = plan.records.get(tile.courseCode);
+  return record ? recordBefore(record, tile.term) : null;
 }
 
 interface CourseFacts {
@@ -146,7 +146,7 @@ function courseIssues(plan: PlanContext, tile: CourseTile, facts: CourseFacts): 
     facts.credits === undefined ? creditsNotRecorded(tile) : null,
     facts.first ? placedTwice(tile, facts.first) : null,
     plan.placed.has(tile.courseCode) ? null : notInCurriculum(plan.rules, tile),
-    repeatIssue(standingBefore(plan.records.get(tile.courseCode), tile.term), tile),
+    repeatIssue(recordBeforeTile(plan, tile), tile),
     prerequisiteIssue(plan.rules, tile, facts.passed),
     offeringIssue(plan.rules, tile),
   ].filter((i): i is PlanIssue => i !== null);

@@ -79,7 +79,15 @@ export function courseStatus(record: CourseRecord): TranscriptCourseStatus {
   return 'failed';
 }
 
-export function recordAsOf(record: CourseRecord, term: Term): CourseRecord | null {
-  const attempts = record.attempts.filter((a) => compareTerms(a.term, term) <= 0);
+function recordWithin(record: CourseRecord, keeps: (attempt: TranscriptEntry) => boolean): CourseRecord | null {
+  const attempts = record.attempts.filter(keeps);
   return attempts.length ? resolve(record.code, attempts) : null;
+}
+
+export function recordAsOf(record: CourseRecord, term: Term): CourseRecord | null {
+  return recordWithin(record, (a) => compareTerms(a.term, term) <= 0);
+}
+
+export function recordBefore(record: CourseRecord, term: Term): CourseRecord | null {
+  return recordWithin(record, (a) => compareTerms(a.term, term) < 0);
 }
