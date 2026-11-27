@@ -8,6 +8,6 @@ defineProps<{ id: string; errors: readonly string[] | undefined }>();
   </p>
 </template>
 
-<style>
+<style scoped>
 .field-error[data-test='field-error'] { display: grid; gap: 2px; overflow-wrap: anywhere; }
 </style>

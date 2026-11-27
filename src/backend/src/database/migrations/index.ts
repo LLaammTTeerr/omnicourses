@@ -11,6 +11,8 @@ import { AddAuditRulesToCurriculum1794300000000 } from './1794300000000-add-audi
 import { CreateAcademicCalendar1794500000000 } from './1794500000000-create-academic-calendar.js';
 import { CreatePlanShares1795564800000 } from './1795564800000-create-plan-shares.js';
 import { CreateNotifications1795575059760 } from './1795575059760-create-notifications.js';
+import { HardenConstraintsAndIndexes1795600000000 } from './1795600000000-harden-constraints-and-indexes.js';
+import { CreateSignInAttempts1795600000001 } from './1795600000001-create-sign-in-attempts.js';
 import { AddUsersStudentIdAndClassName1795700000000 } from './1795700000000-add-users-student-id-and-class-name.js';
 
 // Imported classes, not a glob: globs break between ts (tests) and compiled js
@@ -29,5 +31,7 @@ export const MIGRATIONS = [
   CreateAcademicCalendar1794500000000,
   CreatePlanShares1795564800000,
   CreateNotifications1795575059760,
+  HardenConstraintsAndIndexes1795600000000,
+  CreateSignInAttempts1795600000001,
   AddUsersStudentIdAndClassName1795700000000,
 ];

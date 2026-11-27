@@ -12,12 +12,12 @@
 
 | Item | Component | Pts | Source File | Deliverable PDF | Status |
 | :---: | :--- | :---: | :--- | :--- | :---: |
-| **a** | **Revised Project Plan & Vision Document (2nd submission)**<br>• Incorporate TA feedback from PA1.<br>• Detail schedule, functional & non-functional requirements, competitors.<br>• Update **Revision History** for each document.<br>• **Highlight changes in BLUE font** (`\textcolor{blue}{...}`). | 5 | `ProjectPlan.tex`<br>`Vision.tex` | `ProjectPlan.pdf`<br>`Vision.pdf` | In progress |
-| **c** | **Use-Case Model**<br>Actor-use case diagrams & relationships. Included in the Use-Case Specification document. | 5 | Included in `UseCase-Specification.tex` | Included in `UseCase-Specification.pdf` | In progress |
-| **d** | **Use-Case Specification**<br>Detailed flows (Basic flow, Alternative flows, Pre-conditions, Post-conditions) for key use cases. | 10 | `UseCase-Specification.tex` | `UseCase-Specification.pdf` | In progress |
-| **e** | **UI Prototyping**<br>Prototypes/screens for at least 3 key use cases directly matching specifications. | 5 | `UI-Prototypes.tex`, `shots/` and `docs/analysis-and-design/ui-prototypes/` | `UI-Prototypes.pdf` (compiled by the build scripts) | Ready |
-| **f** | **Project Execution & Tracking**<br>Teamwork, task board, continuous integration, Build B0 deployed. | 20 | Git repo, Discord board, Staging CI | Verified by TA | Ongoing |
-| **g** | **Weekly Reports (Sprint 2)**<br>Week 3 (19/10--25/10) & Week 4 (26/10--01/11). | 5 | `../../weekly/WeeklyReport-Week03.tex`<br>`../../weekly/WeeklyReport-Week04.tex` | `WeeklyReport-Week03.pdf`<br>`WeeklyReport-Week04.pdf` | Ready / In progress |
+| **a** | **Revised Project Plan & Vision Document (2nd submission)**<br>• Incorporate TA feedback from PA1.<br>• Detail schedule, functional & non-functional requirements, competitors.<br>• Update **Revision History** for each document.<br>• **Highlight changes in BLUE font** (`\textcolor{blue}{...}`). | 5 | `ProjectPlan.tex`<br>`Vision.tex` | `ProjectPlan.pdf`<br>`Vision.pdf` | Completed |
+| **c** | **Use-Case Model**<br>Actor-use case diagrams & relationships. Included in the Use-Case Specification document. | 5 | Included in `UseCase-Specification.tex` | Included in `UseCase-Specification.pdf` | Completed |
+| **d** | **Use-Case Specification**<br>Detailed flows (Basic flow, Alternative flows, Pre-conditions, Post-conditions) for key use cases. | 10 | `UseCase-Specification.tex` | `UseCase-Specification.pdf` | Completed |
+| **e** | **UI Prototyping**<br>Prototypes/screens for at least 3 key use cases directly matching specifications. | 5 | `UI-Prototypes.tex`, `shots/` and `docs/analysis-and-design/ui-prototypes/` | `UI-Prototypes.pdf` (compiled by the build scripts) | Completed |
+| **f** | **Project Execution & Tracking**<br>Teamwork, task board, continuous integration, Build B0 deployed. | 20 | Git repo, Discord board, Staging CI | Verified by TA | Completed |
+| **g** | **Weekly Reports (Sprint 2)**<br>Week 3 (19/10--25/10) & Week 4 (26/10--01/11). | 5 | `../../weekly/WeeklyReport-Week03.tex`<br>`../../weekly/WeeklyReport-Week04.tex` | `WeeklyReport-Week03.pdf`<br>`WeeklyReport-Week04.pdf` | Completed |
 
 ---
 

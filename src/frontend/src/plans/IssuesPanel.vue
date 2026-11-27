@@ -184,7 +184,7 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
   </aside>
 </template>
 
-<style>
+<style scoped>
 .rail { display: flex; flex-direction: column; overflow: hidden; min-width: 0; padding: 0; }
 .rail-head { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; }
 .rail-head h2 { flex: 1; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -196,8 +196,9 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
   min-width: 26px; height: 26px; padding: 0 8px; border-radius: 999px; background: var(--bad); color: #fff; font: 700 13px var(--display);
   display: grid; place-items: center; font-variant-numeric: tabular-nums; transition: background 0.25s; animation: bump 0.4s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
-.rail-n.zero { background: var(--ok); }
+.rail-n.zero { background: var(--ok-bg, var(--ok)); }
 @keyframes bump { 40% { transform: scale(1.28); } }
+@keyframes pre-pulse { from { opacity: 0.35; } to { opacity: 0.75; } }
 .rail-body { display: grid; gap: 10px; padding: 0 14px 14px; overflow-y: auto; min-height: 0; }
 .rail-sub { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; gap: 7px; margin: 0; }
 .rail.previewing .rail-sub { color: var(--info); font-weight: 600; }

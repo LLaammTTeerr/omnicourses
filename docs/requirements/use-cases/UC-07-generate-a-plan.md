@@ -2,7 +2,7 @@
 
 - Feature: F6 AI plan generator (Vision §5, as changed by [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md))
 - Owner: Lâm
-- Status: draft for the use-case model (PA2)
+- Status: draft for the use-case model (PA2); formally rescoped beyond B3 on 27 November 2026 ([ADR 0006](../../analysis-and-design/adr/0006-plan-generator.md), [design differences](../../analysis-and-design/design-differences.md#uc-07-generate-a-plan-f6))
 - Change from Vision v1.0: the model does not place courses. A **deterministic planner** builds the plan over the rule engine. The model only turns a goal written in the student's own words into the fields of the planning-goal form (the **goal box**), and the student reviews that form before planning. Vision v2 (Hoà) restates F6 to match.
 
 ## 1. Brief description

@@ -1,22 +1,29 @@
 # Use-case specifications
 
-One file per use case, in the RUP structure: brief description, actors, preconditions, basic flow, alternative flows, postconditions, special requirements. Use the words in [GLOSSARY.md](../../../GLOSSARY.md).
+One specification per use case, in the RUP structure: brief description, actors, preconditions, basic flow, alternative flows, postconditions, special requirements and relationships. Terms follow [GLOSSARY.md](../../../GLOSSARY.md).
 
-The Use-Case Specification v1.0 submitted for PA2 holds all nineteen use cases in one document: [`report/assignments/PA2/uc-specs.tex`](../../../report/assignments/PA2/uc-specs.tex). This folder keeps a Markdown file for the use cases that have one; the others are in the PA2 document only.
+The canonical Use-Case Specification v1.0 submitted for PA2 holds all nineteen use cases (`UC-01` through `UC-19`): [`report/assignments/PA2/uc-specs.tex`](../../../report/assignments/PA2/uc-specs.tex). This folder also keeps standalone Markdown specifications for the use cases expanded or amended in Markdown. Where built code differs from a specification or a use case is formally rescoped, see [design-differences.md](../../analysis-and-design/design-differences.md) and the [README feature table](../../../README.md#what-is-built).
 
-| Use case | Feature | Owner | File |
-| --- | --- | --- | --- |
-| UC-01 Sign up and onboard | F1 | Lâm | [UC-01](UC-01-sign-up-and-onboard.md) |
-| UC-02 Import transcript | F2 | Lâm | [UC-02](UC-02-import-transcript.md) |
-| UC-03 View degree audit | F3 | Triết | PA2 only |
-| UC-04 Explore curriculum | F4 | Triết | PA2 only |
-| UC-05 Build and edit a plan | F5 | Hoà | PA2 only |
-| UC-06 Simulate a what-if scenario | F7 | Hoà | PA2 only |
-| UC-07 Generate a plan | F6 | Lâm | [UC-07](UC-07-generate-a-plan.md) |
-| UC-08 Ask the advisor chat | F8 | Dũng | [UC-08](UC-08-ask-the-advisor-chat.md) |
-| UC-09 Share or export a plan | F9 | Dũng | [UC-09](UC-09-share-or-export-a-plan.md) |
-| UC-10 Follow a school-task guide | F11 | Dũng | [UC-10](UC-10-follow-a-school-task-guide.md) |
-| UC-11 Maintain curriculum | F12 | Thắng | [UC-11](UC-11-maintain-curriculum.md) |
-| UC-12 to UC-19 | | | PA2 only |
+| ID | Use case | Feature | Owner | Markdown file | PA2 `uc-specs.tex` | Build status |
+| --- | --- | --- | --- | --- | --- | --- |
+| UC-01 | Sign up and onboard | F1 | Lâm | [UC-01](UC-01-sign-up-and-onboard.md) | [`uc-specs.tex#L4-L75`](../../../report/assignments/PA2/uc-specs.tex#L4-L75) | Built (`/sign-up`, `/onboarding`; Google OAuth deferred) |
+| UC-02 | Import transcript | F2 | Lâm | [UC-02](UC-02-import-transcript.md) | [`uc-specs.tex#L78-L139`](../../../report/assignments/PA2/uc-specs.tex#L78-L139) | Built (`/transcript`: deterministic paste parser `paste.ts`, manual entry, row review & pre-save diff; no file upload per [ADR 0007](../../analysis-and-design/adr/0007-transcript.md)) |
+| UC-03 | View degree audit | F3 | Triết | — | [`uc-specs.tex#L142-L197`](../../../report/assignments/PA2/uc-specs.tex#L142-L197) | Built (`/dashboard`, `/audit`; estimated graduation term & past-term picker not built) |
+| UC-04 | Explore curriculum | F4 | Triết | — | [`uc-specs.tex#L200-L245`](../../../report/assignments/PA2/uc-specs.tex#L200-L245) | Built (`/explorer` with readiness states, search & course drawer with unlocks; prerequisite graph A1 not built) |
+| UC-05 | Build and edit a plan | F5 | Hoà | — | [`uc-specs.tex#L248-L317`](../../../report/assignments/PA2/uc-specs.tex#L248-L317) | Built (`/plans`, `/plans/:id` with live rule-engine issues & drag preview; fix suggestions A2 not built) |
+| UC-06 | Simulate a what-if scenario | F7 | Hoà | — | [`uc-specs.tex#L320-L369`](../../../report/assignments/PA2/uc-specs.tex#L320-L369) | Rescoped beyond B3 (`POST /api/plans/:id/duplicate` built for manual plan copies; see [design differences](../../analysis-and-design/design-differences.md#uc-06-simulate-a-what-if-scenario-f7)) |
+| UC-07 | Generate a plan | F6 | Lâm | [UC-07](UC-07-generate-a-plan.md) | [`uc-specs.tex#L372-L446`](../../../report/assignments/PA2/uc-specs.tex#L372-L446) | Rescoped beyond B3 ([ADR 0006](../../analysis-and-design/adr/0006-plan-generator.md) `accepted, not built yet`; AI gateway built; see [design differences](../../analysis-and-design/design-differences.md#uc-07-generate-a-plan-f6)) |
+| UC-08 | Ask the advisor chat | F8 | Dũng | [UC-08](UC-08-ask-the-advisor-chat.md) | [`uc-specs.tex#L449-L522`](../../../report/assignments/PA2/uc-specs.tex#L449-L522) | Not on `main` yet (AI gateway, regulations & course descriptions built; [#77](https://github.com/LLaammTTeerr/omnicourses/pull/77) open for B3) |
+| UC-09 | Share or export a plan | F9 | Dũng | [UC-09](UC-09-share-or-export-a-plan.md) | [`uc-specs.tex#L525-L568`](../../../report/assignments/PA2/uc-specs.tex#L525-L568) | Built (`SharePlanDialog`, `GET`/`PUT`/`DELETE /api/plans/:id/share`, browser Print/PDF) |
+| UC-10 | Follow a school-task guide | F11 | Dũng | [UC-10](UC-10-follow-a-school-task-guide.md) | [`uc-specs.tex#L571-L622`](../../../report/assignments/PA2/uc-specs.tex#L571-L622) | Built (public `/guides` & `/guides/:id` list, search & read; personal values A3/A4 & problem reports A6 deferred; `G02`/`G06` remain drafts until portal-verified) |
+| UC-11 | Maintain curriculum | F12 | Thắng | [UC-11](UC-11-maintain-curriculum.md) | [`uc-specs.tex#L625-L685`](../../../report/assignments/PA2/uc-specs.tex#L625-L685) | Built (`/admin/curriculum`, `/admin/import`, `/api/admin/*`; `trainingType`, credit totals & change-history log deferred) |
+| UC-12 | Receive notifications | F10 | Dũng | — | [`uc-specs.tex#L688-L733`](../../../report/assignments/PA2/uc-specs.tex#L688-L733) | Built (`/notifications` inbox, unread bell, `/calendar`, `/admin/calendar`, school-date & transcript-change triggers; popover, filters & audit/plan summaries deferred) |
+| UC-13 | Sign in | F1 | Lâm | Covered in [UC-01](UC-01-sign-up-and-onboard.md) | [`uc-specs.tex#L736-L776`](../../../report/assignments/PA2/uc-specs.tex#L736-L776) | Built (`/sign-in`, session rotation, 30-day max session cap, per-IP & per-email rate limits, pending-deletion restore; Google OAuth deferred) |
+| UC-14 | Manage account and privacy | F1, privacy NFR | Lâm | — | [`uc-specs.tex#L779-L828`](../../../report/assignments/PA2/uc-specs.tex#L779-L828) | Built (`/settings` sessions, User ID copy, JSON export, 30-day grace deletion & hourly purge, `/privacy`; AI consent withdrawal deferred) |
+| UC-15 | View grades and what each course still needs | F3 | Triết | — | [`uc-specs.tex#L831-L878`](../../../report/assignments/PA2/uc-specs.tex#L831-L878) | Rescoped beyond B2/B3 (overall & per-term GPAs and course final grades shown on `/audit` & `/dashboard`; see [design differences](../../analysis-and-design/design-differences.md#uc-15-view-grades-and-what-each-course-still-needs)) |
+| UC-16 | View a shared plan | F9 | Dũng | Covered in [UC-09](UC-09-share-or-export-a-plan.md) | [`uc-specs.tex#L881-L920`](../../../report/assignments/PA2/uc-specs.tex#L881-L920) | Built (public `/shared/:token`, `GET /api/shared-plans/:token` with `noindex`, `no-store` & Print/PDF) |
+| UC-17 | Maintain the course catalog | F12 | Thắng | Covered in [UC-11 A8](UC-11-maintain-curriculum.md#a8-create-or-change-a-shared-catalog-course) | [`uc-specs.tex#L923-L966`](../../../report/assignments/PA2/uc-specs.tex#L923-L966) | Built (`/admin/catalog`, `/admin/import`, `/api/admin/catalog/courses` with shared-impact confirmation) |
+| UC-18 | Manage administration access | F12 | Thắng | Covered in [UC-11 A2, §8](UC-11-maintain-curriculum.md#proposed-f12-permission-model) | [`uc-specs.tex#L969-L1008`](../../../report/assignments/PA2/uc-specs.tex#L969-L1008) | Built (`/admin/access`, `admin:bootstrap` CLI, `/api/admin/access/*` & `POST /api/admin/programs`) |
+| UC-19 | Evaluate academic rules | F3, F4, F5, F6, F7 (shared) | Triết | — | [`uc-specs.tex#L1011-L1066`](../../../report/assignments/PA2/uc-specs.tex#L1011-L1066) | Built (`src/backend/src/rules/`, `RulesService`: degree audit, prerequisites, offering terms, credit caps & plan issues; ≥ 80 % coverage; A2 part-score needed & estimated graduation term not built) |
 
 An earlier UC-12, "Import a curriculum PDF", was dropped: [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md) allows no curriculum PDF-to-data import, so curriculum data is entered by a program administrator or catalog maintainer (UC-11). The PA2 document reuses the number for "Receive notifications".

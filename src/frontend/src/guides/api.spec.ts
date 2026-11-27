@@ -8,6 +8,7 @@ import {
   type Guide,
   type GuideItem,
   type GuideLink,
+  type GuideList,
   type GuideListItem,
   type GuideListText,
   type GuideNoteSource,
@@ -30,6 +31,7 @@ describe('guide types against the contract', () => {
   });
 
   it.each([
+    ['GuideListDto', { guides: 'required' } satisfies Shape<GuideList>],
     ['GuideListItemDto', { id: 'required', group: 'required', texts: 'required' } satisfies Shape<GuideListItem>],
     ['GuideDto', { id: 'required', group: 'required', texts: 'required' } satisfies Shape<Guide>],
     ['GuidePortalDto', { name: 'required', url: 'required', account: 'required' } satisfies Shape<GuidePortal>],

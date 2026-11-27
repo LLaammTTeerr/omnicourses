@@ -138,7 +138,7 @@ Agents have full authority over the branch → PR → merge cycle, under these c
 
 GitHub behaviour that trips agents:
 - Any push to an approved PR dismisses the approval. Put a reviewer's optional nits in a follow-up PR.
-- Editing a PR description reruns the `pr-title` and `commit-messages` checks. Wait for them before you merge.
+- Editing a PR description reruns the `pr-title` check. Wait for it before you merge.
 - Any merge to `main` updates the Version Packages PR and dismisses its approvals. Merge nothing else while you collect them. That PR gets no CI from the bot's push: close and reopen it to run the checks.
 - Run npm as `npx --yes npm@11.21.1` when the machine's own npm is older.
 

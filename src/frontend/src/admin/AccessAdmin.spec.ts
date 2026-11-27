@@ -85,6 +85,8 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
     expect(row.findAll('th, td').slice(0, 3).map((cell) => cell.text())).toEqual(['ZZPROG', expect.stringMatching(/^\d\d:\d\d 20\/11\/2026$/), MANAGER_ID]);
     expect(state(w, 'catalog_maintainer')).toEqual(['held', expect.stringMatching(/^Đang có · cấp lúc \d\d:\d\d 20\/11\/2026$/)]);
     expect(state(w, 'access_manager')).toEqual(['not-held', 'Chưa có']);
+    expect(get(w, 'access-program').attributes('aria-label')).toBe(ADMIN_MESSAGES.vi.access.program);
+    expect(get(w, 'access-program').element.closest('label')).toBeNull();
     expect(optionsOf(get(w, 'access-program'))).toEqual(['ZZEMPTY · Chương trình thử chưa có khóa', 'ZZPROG · Chương trình thử']);
     expect(globalRow(w, 'access_manager').text()).toContain('Không tự có quyền sửa chương trình hay danh mục.');
   });

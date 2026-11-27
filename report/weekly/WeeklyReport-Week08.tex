@@ -1,0 +1,76 @@
+\documentclass{article}
+\usepackage{../shared/omnicourse}
+\input{../shared/meta.tex}
+
+\renewcommand{\docshortname}{Weekly Report -- Week 8}
+\hypersetup{pdftitle={OmniCourse -- Weekly Report Week 8}}
+
+\begin{document}
+
+\weeklycover{Weekly Report \textbullet{} Week 8}{23 November -- 29 November 2026 \textbullet{} Sprint 4, Construction}
+             {Phan Bình Nguyên Lâm (Project Lead)}{ESE-PA4-WR-08}
+
+\pagestyle{fancy}
+\ocompact
+
+{\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 4 \textbullet{} CONSTRUCTION \textbullet{} WEEK 2 OF 2 (PA4 \& BUILD
+B2)}\par\vspace{4pt}
+
+\noindent\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}XXXX@{}}
+  \kpi{28}{tasks worked on} & \kpi{26}{tasks finished} & \kpi{147}{unit/browser spec files} & \kpi{77.8 kB}{max JS chunk}
+\end{tabularx}
+\par\vspace{0.45cm}
+
+\section{Team}
+The five members of the group, as registered in PA0. Week 8 completed the Construction B2 feature set and executed a
+full-repository security, accessibility, database, DevOps and architectural remediation pass ahead of PA4.
+
+\par\vspace{5pt}
+{\color{ocRule}\rule{\textwidth}{0.4pt}}\par\vspace{4pt}
+\OmniCourseTeamShort
+
+\section{Achievements since last week}
+Rows summarise merged pull requests and B2 candidate work through 27 November 2026.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.5cm}p{2.0cm}p{1.3cm}@{}}
+\hcell{No.} & \hcell{Task} & \hcell{Due date} & \hcell{Responsibility} & \hcell{Complete}\\\hdrline
+\endhead
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Phan Bình Nguyên Lâm}\\
+1 & Untangled backend \& frontend modules (\#188--\#198); hardened rule engine (same-term dedup, \texttt{null}-total graduation guard) & 27/11/2026 & Lâm & 100\%\\
+2 & Hardened auth \& AI gateway: \texttt{password\_hash} \texttt{select: false}, per-email login throttling, 30-day session cap, unbilled error release, SSE \texttt{AbortSignal} & 27/11/2026 & Lâm & 100\%\\
+3 & Hardened DevOps \& DB: HTTP 503 \texttt{/api/health} rollback, CSP + HSTS headers, \texttt{omnicourse-backup.timer} nightly dumps, migration \texttt{1795600000000}, AST linter & 27/11/2026 & Lâm & 100\%\\
+4 & Shipped F2 deterministic transcript paste parser (\texttt{paste.ts}), curriculum lookup, pre-save diff and \textbf{Cancel changes} & 27/11/2026 & Lâm & 100\%\\
+5 & Accepted ADRs 0005, 0007--0009, 0014, 0017, 0018; synced C4/class/sequence docs and PA3/PA4 reports & 27/11/2026 & Lâm & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Võ Nguyễn Minh Triết}\\
+6 & Curriculum group credit-total and \texttt{trainingType} write validation contract (carried to Sprint 5) & 29/11/2026 & Triết & 30\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Hữu Quốc Thắng}\\
+7 & Shipped F12 program/cohort routes (\#161), CSV import UI (\texttt{/admin/import}, \#165), group-delete FK protection (\#172), and \texttt{/admin/calendar} UI & 27/11/2026 & Thắng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Anh Dũng}\\
+8 & Shipped F9 sharing API (\#153) + Share dialog / \texttt{/shared/:token} / Print-PDF UI, and F10 notification inbox + bell (\#156, \#204, \#205) & 27/11/2026 & Dũng & 100\%\\
+9 & Completed 122-case \texttt{test-cases-b2.md} (adding \texttt{PLAN-01a--f} and \texttt{OPS-01a--c}) and updated \texttt{report-b2.md} & 27/11/2026 & Dũng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Lê Hữu Hoà}\\
+10 & Fixed WCAG 2.1 AA contrast tokens (\#119), scoped all SFC styles, split router chunks (538 kB $\to$ 77.8 kB max), fixed planner \#137/\#138, and added F4 readiness/unlocks & 27/11/2026 & Hoà, Lâm & 100\%\\
+\end{xltabular}}
+
+\section{Issues and impacts}
+\begin{ocnote}{Issues of the week}
+\begin{itemize}
+  \item \textbf{Sprint 5 scope triage.} With 16 days to Final RC (\texttt{B3}, 13 December), F6 (Plan Generator), F7
+        (What-If Simulator) and UC-15 (component course grades) are formally tracked in \texttt{design-differences.md} while
+        prioritising F8 Advisor Chat (\#77) and full B2/B3 staging acceptance.
+\end{itemize}
+\end{ocnote}
+
+\section{Next week's goals}
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.8cm}p{3.0cm}@{}}
+\hcell{No.} & \hcell{Goal} & \hcell{Due date} & \hcell{Responsibility}\\\hdrline
+\endhead
+1 & Deploy candidate to host, run \texttt{setup.sh}, tag \texttt{B2}, and close staging retests in \texttt{report-b2.md} & 29/11/2026 & Lâm, Dũng\\
+2 & Merge and verify F8 AI Academic Advisor Chat (\#77) over verified QĐ 1175 clauses & 6/12/2026 & Dũng, Lâm\\
+3 & Portal-check draft guides G02 and G06 and run B3 integrated regression & 6/12/2026 & Dũng, Thắng, Hoà\\
+\end{xltabular}}
+
+\end{document}

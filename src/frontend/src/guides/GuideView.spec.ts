@@ -10,7 +10,8 @@ import GuideView from './GuideView.vue';
 import { guideText } from './testing/guide-fixtures.js';
 import { GUIDE_MESSAGES } from './messages.js';
 
-vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuide: vi.fn() }));
+const { mockedFetchGuide } = vi.hoisted(() => ({ mockedFetchGuide: vi.fn() }));
+vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuide: mockedFetchGuide }));
 
 const text = (lang: 'vi' | 'en', extra: Partial<GuideText> = {}): GuideText =>
   guideText({
@@ -164,5 +165,18 @@ describe('GuideView (UC-10 steps 4–6)', () => {
     expect(entry.text()).toContain('Board portal');
     expect(entry.text()).toContain('Registration and grades');
     expect(entry.get('a').attributes('target')).toBe('_blank');
+  });
+
+  it('falls back to the raw address string when a portal URL is not a valid URL', async () => {
+    const w = await render({
+      ...GUIDE,
+      texts: {
+        en: text('en', {
+          portal: { name: 'Relative portal', url: 'not-a-valid-url', account: 'Student account' },
+          portals: [{ name: 'Board relative', url: 'also-not-a-url', account: 'Student account', purpose: 'Testing' }],
+        }),
+      },
+    });
+    expect(w.findAll('.host').map((el) => el.text())).toEqual(['also-not-a-url', 'not-a-valid-url']);
   });
 });

@@ -9,6 +9,7 @@ import {
   boardOf,
   boardWith,
   dropVerdict,
+  MAX_PLAN_TERMS,
   moveTile,
   nextTerm,
   placedCodes,
@@ -16,6 +17,7 @@ import {
   PREVIEW_KEY,
   removeTile,
   rowsFor,
+  sameTerms,
   sameTiles,
   termsBetween,
   withNextRow,
@@ -80,6 +82,20 @@ describe('board changes', () => {
   it('leaves empty rows out of the saved body, as the API requires', () => {
     expect(boardBody(start())).toEqual([{ term: t(2026, 1), placements: [course('ZZ101'), course('ZZ102')] }]);
     expect(boardBody(removeTile(removeTile(start(), 0), 1))).toEqual([]);
+  });
+
+  it('caps plan terms at 30 and compares normalized server terms by value', () => {
+    expect(MAX_PLAN_TERMS).toBe(30);
+    const a = [
+      { term: t(2026, 2), placements: [{ kind: 'slot' as const, requirementGroupId: 'g-elec', credits: 4 }] },
+      { term: t(2026, 1), placements: [course('ZZ101')] },
+    ];
+    const b = [
+      { term: t(2026, 1), placements: [{ kind: 'course' as const, courseCode: 'ZZ101' }] },
+      { term: t(2026, 2), placements: [{ kind: 'slot' as const, courseCode: null, requirementGroupId: 'g-elec', credits: 4 }] },
+    ];
+    expect(sameTerms(a, b)).toBe(true);
+    expect(sameTerms(a, [{ term: t(2026, 1), placements: [course('ZZ102')] }])).toBe(false);
   });
 });
 

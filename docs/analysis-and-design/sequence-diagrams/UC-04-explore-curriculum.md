@@ -2,7 +2,7 @@
 
 - Use case: UC-04 (Use-Case Specification v1.0, [`report/assignments/PA2/uc-specs.tex`](../../../report/assignments/PA2/uc-specs.tex)), feature F4
 - Drawn from the code on `main` (15 November 2026): `src/frontend/src/explorer/` (`ExplorerView.vue`, `CourseDrawer.vue`), `src/frontend/src/curriculum/` (`api.ts`, `present.ts`), `src/frontend/src/transcript/codes.ts`, `src/backend/src/curriculum/` ([ADR 0005](../adr/0005-curriculum-cohort-and-course-catalog.md))
-- Built: the list by requirement group, the search without diacritics and the course drawer. Not built: the state of each course for the student (available, locked, passed), the prerequisite graph (A1), and prerequisites, unlocks and offering terms in the drawer; the explorer does not call the rule engine. See [the differences list](../design-differences.md).
+- Built: the list by requirement group with course readiness states (`passed`, `in_progress`, `available` / ready, `locked`), search without diacritics, and the course drawer with recorded prerequisites, readiness states and unlocked courses. Not built: the prerequisite graph (A1). See [the differences list](../design-differences.md#uc-04-explore-curriculum-f4).
 
 ## Basic flow: read the curriculum
 
@@ -44,17 +44,22 @@ sequenceDiagram
         CR-->>Svc: CourseRules
         Svc-->>Ctrl: CurriculumDto: groups, courses, each course's<br/>prerequisites and offeringTerms, or null when not recorded
         Ctrl-->>View: 200 CurriculumDto
-    and the transcript marks
-        View->>Auth: useTranscriptCodes: authed(fetchTranscript)
-        Auth-->>View: the course codes of the saved transcript
+    and the rule-engine standing of each course
+        View->>Auth: authed(fetchCurriculumStanding)
+        Auth->>Api: fetchCurriculumStanding(token, program, cohort)
+        Api->>Ctrl: GET /api/programs/{program}/curricula/{cohort}/standing
+        Ctrl->>Svc: RulesService.standingFor(user.id, program, cohort)
+        Svc->>DB: SELECT curriculum rules and transcript rows
+        Svc-->>Ctrl: CurriculumStandingDto: transcriptStatus, readiness,<br/>and missingPrerequisites per course
+        Ctrl-->>View: 200 CurriculumStandingDto
     end
     View->>View: orderGroups, groupColour, one section per requirement group
-    View-->>Student: every course by group, with a neutral<br/>"in your transcript" mark on the saved ones
+    View-->>Student: every course by group, with rule-engine transcript<br/>and prerequisite readiness badges
 ```
 
-The three reads start together when the view is set up (`ExplorerView.vue`); none waits for another. `GET /api/programs` only fills the program and cohort menus. The curriculum is read again each time the selection changes, for example when the student picks another program or cohort.
+The three reads start together when the view is set up (`ExplorerView.vue`); none waits for another. `GET /api/programs` only fills the program and cohort menus. Both the curriculum and its rule-engine standing (`GET /api/programs/{program}/curricula/{cohort}/standing`) are read again each time the selection changes, for example when the student picks another program or cohort.
 
-The transcript read is `GET /api/users/me/transcript`, drawn in [UC-02](UC-02-import-transcript.md). It only adds a mark: whether a course is passed is the rule engine's call, and the explorer does not ask it. `GET /api/programs` and the curriculum read need a signed-in user like every other route; they are not public.
+Course standing is computed exclusively by `RulesService.standingFor` (`src/backend/src/rules/standing.ts`) over `courseRecords` and `checkPrerequisites`, never in the browser (AGENTS.md hard rule 1). `GET /api/programs`, the curriculum read, and the standing read all require a signed-in user; they are not public.
 
 ## Search and open a course (steps 4–8)
 

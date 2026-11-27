@@ -49,7 +49,10 @@ interface PlannerMessages {
   notFound: string;
   saved: string;
   saving: string;
+  savingWait: string;
   notSaved: string;
+  signedOutNotSaved: string;
+  saveSessionEnded: string;
   saveFailed: string;
   saveRefused: (details: string) => string;
   checking: string;
@@ -106,6 +109,8 @@ interface PlannerMessages {
   whatIf: string;
   whatIfName: (name: string) => string;
   whatIfHint: string;
+  share: string;
+  shareHint: string;
   plansLabel: string;
   defaultPlanName: string;
   opening: string;
@@ -214,7 +219,10 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     notFound: 'Không có kế hoạch này trong các kế hoạch của bạn.',
     saved: 'Đã lưu',
     saving: 'Đang lưu…',
+    savingWait: 'Đang lưu lộ trình, vui lòng đợi giây lát.',
     notSaved: 'Chưa lưu',
+    signedOutNotSaved: 'Hết phiên · chưa lưu',
+    saveSessionEnded: 'Phiên đăng nhập đã kết thúc — thay đổi vừa rồi chưa được lưu. Hãy đăng nhập lại.',
     saveFailed: 'Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất.',
     saveRefused: (details) => `Máy chủ không nhận thay đổi này (${details}). Kế hoạch đã trở về lần lưu gần nhất.`,
     checking: 'Đang kiểm tra…',
@@ -271,6 +279,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIf: 'What-if',
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Thử thay đổi trên một bản sao. Kế hoạch này giữ nguyên.',
+    share: 'Chia sẻ',
+    shareHint: 'Chia sẻ liên kết chỉ đọc hoặc in kế hoạch ra PDF',
     plansLabel: 'Các kế hoạch',
     defaultPlanName: 'Kế hoạch mặc định',
     opening: 'Đang mở kế hoạch…',
@@ -410,7 +420,10 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     notFound: 'This plan is not among your plans.',
     saved: 'Saved',
     saving: 'Saving…',
+    savingWait: 'Saving your plan — please wait a moment.',
     notSaved: 'Not saved',
+    signedOutNotSaved: 'Session expired · not saved',
+    saveSessionEnded: 'Your session has ended — your last change was not saved. Please sign in again.',
     saveFailed: 'The change could not be saved. The plan is back to its last saved state.',
     saveRefused: (details) => `The server refused this change (${details}). The plan is back to its last saved state.`,
     checking: 'Checking…',
@@ -467,6 +480,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIf: 'What-if',
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Try a change on a copy. This plan stays as it is.',
+    share: 'Share',
+    shareHint: 'Share a read-only link with an advisor or print as PDF',
     plansLabel: 'Plans',
     defaultPlanName: 'Default plan',
     opening: 'Opening your plan…',

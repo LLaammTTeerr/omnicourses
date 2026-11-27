@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { LANGUAGES, useLocale } from '../locale.js';
 import Icon from './Icon.vue';
 
-defineProps<{ short?: boolean }>();
+defineProps<{ short?: boolean; title?: string }>();
 const locale = useLocale();
 const other = computed(() => LANGUAGES[locale.lang].other);
 </script>
@@ -14,7 +14,7 @@ const other = computed(() => LANGUAGES[locale.lang].other);
     class="lang-btn"
     :lang="other"
     :aria-label="short ? LANGUAGES[other].name : undefined"
-    :title="short ? LANGUAGES[other].name : undefined"
+    :title="title ?? (short ? LANGUAGES[other].name : undefined)"
     @click="locale.set(other)"
   >
     <span class="ico"><Icon name="globe" /></span>

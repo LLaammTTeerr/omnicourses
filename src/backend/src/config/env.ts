@@ -1,6 +1,8 @@
+import { Logger } from '@nestjs/common';
 import { existsSync } from 'node:fs';
 
 const ENV_FILES = ['.env', '../../.env'];
+const envLogger = new Logger('Env');
 
 export function loadEnvFiles(): void {
   for (const file of ENV_FILES) if (existsSync(file)) process.loadEnvFile(file);
@@ -13,11 +15,29 @@ function positiveInt(value: string | undefined, fallback: number): number {
 
 export const port = (): number => positiveInt(process.env.PORT, 3000);
 
-export const trustProxy = (): string | undefined => process.env.TRUST_PROXY?.trim() || undefined;
+export function trustProxy(): string | undefined {
+  const raw = process.env.TRUST_PROXY?.trim();
+  if (!raw) return undefined;
+  const lower = raw.toLowerCase();
+  if (lower === 'true' || lower === 'false') {
+    envLogger.warn(`Ignoring boolean TRUST_PROXY=${raw}; set an explicit hop count or subnet such as loopback`);
+    return undefined;
+  }
+  return raw;
+}
 
 export const listenHost = (): string | undefined => process.env.LISTEN_HOST?.trim() || undefined;
 
-export const corsOrigin = (): string => process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+const DEFAULT_CORS_ORIGIN = 'http://localhost:5173';
+
+export function corsOrigin(): string | string[] {
+  const origins = (process.env.CORS_ORIGIN ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (origins.length === 0) return DEFAULT_CORS_ORIGIN;
+  return origins.length === 1 ? origins[0]! : origins;
+}
 
 export const databaseUrl = (): string | undefined => process.env.DATABASE_URL;
 

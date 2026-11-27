@@ -1,6 +1,6 @@
 # ADR 0014: The plan model
 
-- Status: proposed
+- Status: accepted (2026-11-27, Lâm)
 - Date: 2026-11-09
 - Deciders: Lâm (Project Lead)
 - Reviewers: Hoà (F5 planner, F7 what-if), Triết (rule engine), Dũng (F9 sharing)

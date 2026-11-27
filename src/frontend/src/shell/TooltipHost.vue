@@ -27,7 +27,10 @@ function release(): void {
 }
 
 async function reveal(): Promise<void> {
-  if (!owner || busy()) return;
+  if (!owner || busy() || owner.closest('dialog[open]')) {
+    if (owner?.closest('dialog[open]')) release();
+    return;
+  }
   shown.value = true;
   if (!owner.hasAttribute('aria-describedby')) owner.setAttribute('aria-describedby', ID);
   await nextTick();
@@ -44,7 +47,7 @@ function take(target: EventTarget | null, now: boolean): void {
   const found = (target as Element | null)?.closest?.<HTMLElement>('[title], [data-tip-title]');
   if (!found || found === owner) return;
   release();
-  if (busy()) return;
+  if (busy() || found.closest('dialog[open]')) return;
   const title = found.getAttribute('title') ?? found.dataset.tipTitle ?? '';
   if (!title.trim()) return;
   owner = found;
@@ -104,7 +107,7 @@ onBeforeUnmount(() => {
   >{{ text }}</div>
 </template>
 
-<style>
+<style scoped>
 .app-tooltip {
   position: fixed; z-index: 130; pointer-events: none; max-width: min(320px, calc(100vw - 16px));
   padding: 7px 10px; border-radius: 9px; background: #fff; color: #14161c; border: 1px solid rgba(16, 24, 40, 0.22);

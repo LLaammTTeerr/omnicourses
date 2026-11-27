@@ -357,4 +357,17 @@ describe('SettingsView', () => {
     await flushPromises();
     expect(rows(w)).toHaveLength(1);
   });
+
+  it('stays quiet and shows no revoke error toast when revoking a session answers 401', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render({ [`DELETE /auth/sessions/${PHONE.id}`]: status(401) });
+    useToast().message = '';
+    await rows(w)[1]!.get('button').trigger('click');
+    await flushPromises();
+    await w.get('dialog[open]').findAll('button').find((b) => b.text() === 'Thu hồi')!.trigger('click');
+    await flushPromises();
+    expect(useAuth().signedIn).toBe(false);
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(useToast().message).toBe('');
+  });
 });

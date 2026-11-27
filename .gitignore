@@ -24,3 +24,10 @@ report/shared/meta.tex
 .idea/
 
 mise.local.toml
+
+# Agent workspaces and browser test state
+.agents/
+.claude/
+skills-lock.json
+docs/test/evidence/**/*.state.json
+docs/test/evidence/**/*-state.json

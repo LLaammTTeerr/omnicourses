@@ -6,6 +6,7 @@ import { Plan } from './plan.entity.js';
 @Entity({ name: 'plan_placements' })
 @Unique('uq_plan_placements_term_position', ['planId', 'termYear', 'termNumber', 'position'])
 @Index('uq_plan_placements_course', ['planId', 'courseCode'], { unique: true, where: `"course_code" IS NOT NULL` })
+@Index('idx_plan_placements_course_code', ['courseCode'], { where: `"course_code" IS NOT NULL` })
 @Index('ix_plan_placements_user_id', ['userId'])
 @Index('ix_plan_placements_requirement_group_id', ['requirementGroupId'])
 @Check('ck_plan_placements_term_year', `"term_year" BETWEEN 2000 AND 2100`)

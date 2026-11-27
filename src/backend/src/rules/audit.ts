@@ -1,8 +1,8 @@
-import { byText } from '../common/collections.js';
+import { byText, groupBy } from '../common/collections.js';
 import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
 import { compareTerms, copyTerm, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
-import { attemptPasses, courseRecords, isCompleted, recordAsOf, type CourseRecord } from './attempts.js';
+import { attemptPasses, courseRecords, isCompleted, recordAsOf, resolve, type CourseRecord } from './attempts.js';
 import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermAttempt, TermSummary, UnmatchedCourse } from './types.js';
 import { checkTermLoad } from './credit-caps.js';
 import { combinedMinimumCoverage, type CountedLink, creditsOf, groupCoverage, placements, recordCredits } from './coverage.js';
@@ -137,6 +137,14 @@ function termAttempts(rows: readonly TranscriptEntry[], placed: ReadonlyMap<stri
     }));
 }
 
+function deduplicateTermRows(rows: readonly TranscriptEntry[]): TranscriptEntry[] {
+  return [...groupBy(rows, (e) => e.courseCode)].map(([code, courseRows]) => {
+    if (courseRows.length === 1) return courseRows[0];
+    const resolved = resolve(code, courseRows);
+    return resolved.official ?? resolved.attempts.at(-1)!;
+  });
+}
+
 function termSummary(
   rules: CurriculumRules,
   term: Term,
@@ -145,7 +153,8 @@ function termSummary(
   placed: ReadonlyMap<string, CountedLink>,
   previousCumulativeAverage: number | null,
 ): TermSummary {
-  const graded = rows.flatMap((e): (WeightedGrade & { passes: boolean })[] => {
+  const entries = deduplicateTermRows(rows);
+  const graded = entries.flatMap((e): (WeightedGrade & { passes: boolean })[] => {
     const place = placed.get(e.courseCode);
     if (!place || !place.course.countsTowardGpa || e.result !== 'graded' || e.grade === null) return [];
     return [{ grade: e.grade, credits: creditsOf(place.course, e.credits), passes: attemptPasses(e) }];
@@ -157,13 +166,13 @@ function termSummary(
   const load = checkTermLoad(
     rules.trainingType,
     term.number,
-    rows.map((e) => ({ credits: e.credits, excludedFromMinimum: placed.get(e.courseCode)?.course.countsTowardTotal === false })),
+    entries.map((e) => ({ credits: e.credits, excludedFromMinimum: placed.get(e.courseCode)?.course.countsTowardTotal === false })),
   );
   return {
     term: { year: term.year, number: term.number },
     kind: load.kind,
     credits: load.credits,
-    passedCredits: rows.filter(attemptPasses).reduce((sum, e) => sum + e.credits, 0),
+    passedCredits: entries.filter(attemptPasses).reduce((sum, e) => sum + e.credits, 0),
     average: weightedAverage(graded)?.value ?? null,
     accumulatedAverage: weightedAverage(graded.filter((g) => g.passes))?.value ?? null,
     cumulativeAccumulatedAverage,
@@ -172,11 +181,11 @@ function termSummary(
     cumulativeTowardTotal: toDate.towardTotal,
     cumulativeYearLevel: toDate.yearLevel,
     cumulativeClassification: cumulative ? classify(cumulative.numerator, cumulative.denominator, rules.cohortYear) : null,
-    failedCourseCodes: unique(rows.filter((e) => isCompleted(e) && !attemptPasses(e)).map((e) => e.courseCode)),
-    inProgressCourseCodes: unique(rows.filter((e) => e.result === 'in_progress').map((e) => e.courseCode)),
+    failedCourseCodes: unique(entries.filter((e) => isCompleted(e) && !attemptPasses(e)).map((e) => e.courseCode)),
+    inProgressCourseCodes: unique(entries.filter((e) => e.result === 'in_progress').map((e) => e.courseCode)),
     caps: load.caps,
     capViolations: load.violations,
-    attempts: termAttempts(rows, placed),
+    attempts: termAttempts(entries, placed),
   };
 }
 

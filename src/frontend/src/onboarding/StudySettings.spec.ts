@@ -42,6 +42,10 @@ describe('StudySettings (UC-01 A9)', () => {
   it('shows the saved answers and saves the whole object, still finished', async () => {
     const { w, fetch } = await render(onboarding());
     const [program, cohort] = w.findAll('.study-program [role="combobox"]');
+    expect(program!.attributes('aria-label')).toBe(STUDY_MESSAGES.vi.program);
+    expect(cohort!.attributes('aria-label')).toBe(STUDY_MESSAGES.vi.cohort);
+    expect(program!.element.closest('label')).toBeNull();
+    expect(cohort!.element.closest('label')).toBeNull();
     expect(program!.text()).toBe('Chương trình Tiên tiến thử');
     expect(cohort!.text()).toBe('Khóa 2024');
     expect(w.get('#study-graduation').text()).toBe('HK2 2027–2028');
@@ -79,5 +83,22 @@ describe('StudySettings (UC-01 A9)', () => {
     const { w } = await render({ ...NOT_STARTED, program: 'APCS', cohort: 2024 });
     expect(w.find('[data-test="study-form"]').exists()).toBe(false);
     expect(w.get('[data-test="finish-onboarding"]').attributes('href')).toBe('/onboarding');
+  });
+
+  it('shows an error with Retry when GET /programs fails even if saved answers succeeded', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let failPrograms = true;
+    const { w, fetch } = await render(onboarding(), {
+      'GET /programs': () => (failPrograms ? status(503)() : Response.json({ programs: PROGRAMS })),
+    });
+    expect(w.find('[data-test="study-form"]').exists()).toBe(false);
+    expect(w.get('[role="alert"]').text()).toContain(STUDY_MESSAGES.vi.loadFailed);
+
+    failPrograms = false;
+    await w.get('#study button').trigger('click');
+    await flushPromises();
+    expect(w.find('[data-test="study-form"]').exists()).toBe(true);
+    expect(w.findAll('.study-program [role="combobox"]')[0]!.text()).toBe('Chương trình Tiên tiến thử');
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/programs'))).toHaveLength(2);
   });
 });

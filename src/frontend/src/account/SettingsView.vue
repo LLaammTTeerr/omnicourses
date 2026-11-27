@@ -44,8 +44,9 @@ async function revoke(): Promise<void> {
     revoking.value = null;
     await sessions.reload();
   } catch (e) {
-    console.error('Revoking a session failed:', e);
     revoking.value = null;
+    if (statusOf(e) === 401) return;
+    console.error('Revoking a session failed:', e);
     toast.show(m.value.revokeFailed);
   } finally {
     revokeBusy.value = false;
@@ -296,14 +297,14 @@ usePageTitle(() => m.value.title);
   </div>
 </template>
 
-<style>
+<style scoped>
 .settings-page { max-width: 1080px; }
 .settings { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 22px; align-items: start; }
 .settings > .stack { grid-row: 1; grid-column: 1; }
 .snav { grid-column: 2; display: grid; gap: 4px; padding: 10px; position: sticky; top: 20px; }
 .snav a { padding: 9px 12px; border-radius: 10px; text-decoration: none; font-weight: 600; color: var(--ink-2); font-size: 14px; }
 .snav a:hover { background: var(--surface-2); color: var(--ink); }
-.settings section { scroll-margin-top: 20px; }
+.settings :deep(section) { scroll-margin-top: 20px; }
 .srow { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; padding: 16px 22px; border-top: 1px solid var(--line); flex-wrap: wrap; }
 .card-head + .srow { border-top: 0; }
 .srow .txt { min-width: 0; flex: 1 1 260px; }

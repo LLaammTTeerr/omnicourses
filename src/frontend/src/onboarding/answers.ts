@@ -90,7 +90,7 @@ function useProgramChoices(program: Ref<string | null>) {
   const choices = computed(() => programChoices(programs.data.value?.programs ?? []));
   const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
   const programName = (choice: ProgramChoice) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
-  return { choices, cohorts, programName };
+  return { programs, choices, cohorts, programName };
 }
 
 export function useAnswerForm(onLoaded: (answers: Onboarding) => void = () => {}) {
@@ -98,14 +98,25 @@ export function useAnswerForm(onLoaded: (answers: Onboarding) => void = () => {}
   const program = ref<string | null>(null);
   const cohort = ref<number | null>(null);
   const goal = reactive<GoalDraft>({ graduation: '', credits: '', internship: '' });
-  const { status, reload } = useAsyncLoad('the onboarding answers', async () => {
+  const answersLoad = useAsyncLoad('the onboarding answers', async () => {
     const answers = await onboarding.load();
     program.value = answers.program;
     cohort.value = answers.cohort;
     Object.assign(goal, goalDraft(answers));
     onLoaded(answers);
   });
-  const { choices, cohorts, programName } = useProgramChoices(program);
+  const { programs, choices, cohorts, programName } = useProgramChoices(program);
+  const status = computed<'loading' | 'loaded' | 'failed'>(() => {
+    if (answersLoad.status.value === 'loading' || programs.status.value === 'loading') return 'loading';
+    if (answersLoad.status.value === 'failed' || programs.status.value === 'failed') return 'failed';
+    return 'loaded';
+  });
+  async function reload(): Promise<void> {
+    const tasks: Promise<void>[] = [];
+    if (answersLoad.status.value !== 'loaded') tasks.push(answersLoad.reload());
+    if (programs.status.value !== 'loaded') tasks.push(programs.reload());
+    await Promise.all(tasks.length ? tasks : [answersLoad.reload(), programs.reload()]);
+  }
   const saving = ref(false);
   const saveFailed = ref(false);
   const errors = useAnswerErrors();

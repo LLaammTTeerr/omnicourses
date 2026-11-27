@@ -380,6 +380,28 @@ describe('degree audit', () => {
     expect(audit.warnings).toMatchObject([{ code: 'same_term_attempts', transcriptCredits: null, curriculumCredits: null }]);
   });
 
+  it('deduplicates same-term attempts in the term summary using the conservative resolved attempt', () => {
+    const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 8), graded('ZZA1', 4, 3)]);
+    expect(audit.terms[0]).toMatchObject({
+      credits: 4,
+      passedCredits: 0,
+      average: 3,
+      accumulatedAverage: null,
+      failedCourseCodes: ['ZZA1'],
+    });
+    expect(audit.terms[0].attempts).toMatchObject([{ code: 'ZZA1', credits: 4, grade: 3, passed: false }]);
+    expect(audit.warnings).toMatchObject([{ code: 'same_term_attempts', courseCode: 'ZZA1', transcriptCredits: null, curriculumCredits: null }]);
+
+    const inProgressTwice = degreeAudit(zzCurriculum(), [ungraded('ZZA1', 4, 'in_progress'), ungraded('ZZA1', 4, 'in_progress')]);
+    expect(inProgressTwice.terms[0]).toMatchObject({
+      credits: 4,
+      passedCredits: 0,
+      average: null,
+      accumulatedAverage: null,
+      inProgressCourseCodes: ['ZZA1'],
+    });
+  });
+
   it('checks no cap and no total when the curriculum does not record them', () => {
     const audit = degreeAudit(zzCurriculum({ trainingType: null, totalCreditsMin: null }), [graded('ZZA1', 4, 8)]);
     expect(audit.terms[0]).toMatchObject({ kind: null, caps: null, capViolations: [] });

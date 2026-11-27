@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractMaxItems, contractShape, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
+import { MAX_PLAN_TERMS } from './board.js';
 import {
   createPlan,
   deletePlan,
@@ -9,6 +10,7 @@ import {
   fetchPlan,
   fetchPlanIssues,
   fetchPlans,
+  previewPlanDrops,
   previewPlanIssues,
   PLACEMENT_KINDS,
   PLAN_ISSUE_CODES,
@@ -18,11 +20,16 @@ import {
   TERM_KINDS,
   type CreatePlanBody,
   type CreditCaps,
+  type DuplicatePlanBody,
   type Placement,
   type Plan,
+  type PlanBoardBody,
   type PlanCombinedMinimumCoverage,
   type PlanCoverage,
   type PlanCurriculum,
+  type PlanDropPreview,
+  type PlanDropReport,
+  type PlanDropReports,
   type PlanGroupCoverage,
   type PlanIssue,
   type PlanIssues,
@@ -31,6 +38,7 @@ import {
   type PlanPreview,
   type PlanTerm,
   type PlanTermLoad,
+  type RenamePlanBody,
 } from './api.js';
 import { PLANNER_MESSAGES } from './messages.js';
 import { course, PLAN_ID } from './testing/fixtures.js';
@@ -47,6 +55,12 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     ['PlanTermDto', { term: 'required', placements: 'required' } satisfies Shape<PlanTerm>],
     ['PlanPlacementDto', { kind: 'required', courseCode: 'optional', requirementGroupId: 'optional', credits: 'optional' } satisfies Shape<Placement>],
     ['CreatePlanDto', { name: 'required', programCode: 'required', cohortYear: 'required', terms: 'optional' } satisfies Shape<CreatePlanBody>],
+    ['RenamePlanDto', { name: 'required' } satisfies Shape<RenamePlanBody>],
+    ['DuplicatePlanDto', { name: 'optional' } satisfies Shape<DuplicatePlanBody>],
+    ['PlanBoardDto', { terms: 'required' } satisfies Shape<PlanBoardBody>],
+    ['PlanDropPreviewDto', { terms: 'required', placement: 'required', targets: 'required' } satisfies Shape<PlanDropPreview>],
+    ['PlanDropReportDto', { term: 'required', issues: 'required' } satisfies Shape<PlanDropReport>],
+    ['PlanDropReportsDto', { reports: 'required' } satisfies Shape<PlanDropReports>],
     ['CreditCapsDto', { min: 'required', max: 'required' } satisfies Shape<CreditCaps>],
     ['PlanTermLoadDto', { term: 'required', kind: 'required', credits: 'required', caps: 'required' } satisfies Shape<PlanTermLoad>],
     [
@@ -84,12 +98,14 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     expect(contractShape(schema)).toEqual(shape);
   });
 
-  it('has the issue codes, kinds, placement kinds and term kinds of the contract', () => {
+  it('has the issue codes, kinds, placement kinds, term kinds and max term cap of the contract', () => {
     expect([...PLAN_ISSUE_CODES].sort()).toEqual(contractEnum('PlanIssueDto', 'code'));
     expect([...PLAN_ISSUE_KINDS].sort()).toEqual(contractEnum('PlanIssueDto', 'kind'));
     expect([...PLACEMENT_KINDS].sort()).toEqual(contractEnum('PlanPlacementDto', 'kind'));
     expect([...TERM_KINDS, null].sort()).toEqual(contractEnum('PlanTermLoadDto', 'kind'));
     expect(contractEnum('PlanCoverageDto', 'graduation')).toEqual(['done', 'not_yet']);
+    expect(MAX_PLAN_TERMS).toBe(contractMaxItems('PlanBoardDto', 'terms'));
+    expect(MAX_PLAN_TERMS).toBe(contractMaxItems('CreatePlanDto', 'terms'));
   });
 
   it('words the change a drag preview would make to the violations, in both languages', () => {
@@ -125,6 +141,8 @@ describe('plan requests', () => {
     await savePlacements(PLAN_ID, terms);
     await fetchPlanIssues(PLAN_ID);
     await previewPlanIssues(PLAN_ID, terms);
+    const drops: PlanDropPreview = { terms: [], placement: course('ZZ101'), targets: [{ year: 2026, number: 1 }] };
+    await previewPlanDrops(PLAN_ID, drops);
     const calls = fetch.mock.calls.map(([url, init]) => [init?.method, String(url).slice(API_URL.length), init?.body === undefined ? undefined : JSON.parse(String(init.body))]);
     expect(calls).toEqual([
       ['GET', '/plans', undefined],
@@ -136,6 +154,7 @@ describe('plan requests', () => {
       ['PUT', `/plans/${PLAN_ID}/placements`, { terms }],
       ['GET', `/plans/${PLAN_ID}/issues`, undefined],
       ['POST', `/plans/${PLAN_ID}/issues`, { terms }],
+      ['POST', `/plans/${PLAN_ID}/issues/drops`, drops],
     ]);
     for (const [, init] of fetch.mock.calls) expect(init).toMatchObject({ headers: { Authorization: 'Bearer zz-token' } });
   });

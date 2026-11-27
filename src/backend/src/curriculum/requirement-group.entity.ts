@@ -97,11 +97,11 @@ export class RequirementGroupOverflow {
   @Column({ name: 'to_group_id', type: 'uuid' })
   toGroupId!: string;
 
-  @ManyToOne(() => RequirementGroup, { onDelete: 'CASCADE' })
+  @ManyToOne(() => RequirementGroup, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'from_group_id', foreignKeyConstraintName: 'requirement_group_overflows_from_group_id_fkey' })
   fromGroup!: RequirementGroup;
 
-  @ManyToOne(() => RequirementGroup, { onDelete: 'CASCADE' })
+  @ManyToOne(() => RequirementGroup, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'to_group_id', foreignKeyConstraintName: 'requirement_group_overflows_to_group_id_fkey' })
   toGroup!: RequirementGroup;
 

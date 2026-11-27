@@ -49,6 +49,7 @@ export const useAuth = defineStore('auth', () => {
   }
 
   function start(): Promise<void> {
+    if (signedIn.value) return Promise.resolve();
     started ??= (async () => {
       const saved = readToken();
       if (!saved) return;
@@ -58,7 +59,10 @@ export const useAuth = defineStore('auth', () => {
         if (statusOf(e) === 401) {
           writeToken(null);
           forgetAccountData();
-        } else console.error('Restoring the session failed:', e);
+        } else {
+          started = null;
+          console.error('Restoring the session failed:', e);
+        }
       }
     })();
     return started;

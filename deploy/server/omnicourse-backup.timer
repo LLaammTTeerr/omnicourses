@@ -1,0 +1,11 @@
+# Runs OmniCourse nightly backups daily at 20:00 UTC (03:00 Vietnam time).
+[Unit]
+Description=Run OmniCourse nightly PostgreSQL backup at 20:00 UTC (03:00 ICT)
+
+[Timer]
+OnCalendar=*-*-* 20:00:00 UTC
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

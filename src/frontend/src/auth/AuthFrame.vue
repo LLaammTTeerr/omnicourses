@@ -24,21 +24,21 @@ defineProps<{ tone: 'ink' | 'phys' }>();
   </div>
 </template>
 
-<style>
+<style scoped>
 .auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
 .auth-form { position: relative; display: grid; align-content: center; justify-items: center; padding: 64px 16px 64px; }
 .auth-tools { position: absolute; top: 14px; right: 16px; display: flex; gap: 6px; }
-.auth-tools .ico { display: grid; place-items: center; }
-.auth-tools .ico .icon { width: 16px; height: 16px; }
+.auth-tools :deep(.ico) { display: grid; place-items: center; }
+.auth-tools :deep(.ico .icon) { width: 16px; height: 16px; }
 .auth-form .inner { width: min(420px, 100%); display: grid; gap: 18px; }
-.auth-form h1 { font-size: clamp(26px, 3vw, 34px); }
+.auth-form :deep(h1) { font-size: clamp(26px, 3vw, 34px); }
 .auth-art { position: relative; overflow: hidden; border-left: 1px solid var(--edge); display: grid; place-items: center; padding: 40px; }
 .auth-art.tone-ink { background: #111827; color: #fff; }
 .auth-art.tone-phys { background: var(--phys); color: #06221f; }
 .auth-art .quote { max-width: 420px; display: grid; gap: 14px; }
-.auth-art .quote b { font: 700 clamp(28px, 3vw, 40px) / 1.08 var(--display); letter-spacing: -0.03em; }
-.auth-art .chip { background: #fff; color: #14161e; justify-self: start; }
-.auth-form .error-list { margin: 4px 0 0; padding-left: 1.2em; }
+.auth-art .quote :deep(b) { font: 700 clamp(28px, 3vw, 40px) / 1.08 var(--display); letter-spacing: -0.03em; }
+.auth-art :deep(.chip) { background: #fff; color: #14161e; justify-self: start; }
+.auth-form :deep(.error-list) { margin: 4px 0 0; padding-left: 1.2em; }
 @media (max-width: 960px) {
   .auth { grid-template-columns: 1fr; }
   .auth-art { display: none; }

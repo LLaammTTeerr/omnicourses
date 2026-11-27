@@ -298,14 +298,14 @@ function pickCohort(curriculumId: string): void {
           </p>
           <p v-else-if="!program" class="callout" role="status" data-test="import-no-programs"><Icon name="info" /><span>{{ text.noPrograms }}</span></p>
           <div v-else class="import-target" role="group" :aria-label="text.target">
-            <label class="field">
-              <span>{{ m.curriculum.program }}</span>
-              <SelectMenu :model-value="program.id" :options="(programList ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" :disabled="writes.busy.value" data-test="import-program" @update:model-value="pickProgram" />
-            </label>
-            <label v-if="program.curricula.length" class="field">
-              <span>{{ m.curriculum.cohort }}</span>
-              <SelectMenu :model-value="cohort?.id" :options="program.curricula.map((item) => ({ value: item.id, label: m.curriculum.cohortOption(item.cohortYear) }))" :disabled="writes.busy.value" data-test="import-cohort" @update:model-value="pickCohort" />
-            </label>
+            <div class="field">
+              <span class="label">{{ m.curriculum.program }}</span>
+              <SelectMenu :model-value="program.id" :aria-label="m.curriculum.program" :options="(programList ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" :disabled="writes.busy.value" data-test="import-program" @update:model-value="pickProgram" />
+            </div>
+            <div v-if="program.curricula.length" class="field">
+              <span class="label">{{ m.curriculum.cohort }}</span>
+              <SelectMenu :model-value="cohort?.id" :aria-label="m.curriculum.cohort" :options="program.curricula.map((item) => ({ value: item.id, label: m.curriculum.cohortOption(item.cohortYear) }))" :disabled="writes.busy.value" data-test="import-cohort" @update:model-value="pickCohort" />
+            </div>
             <p v-else class="callout" role="status" data-test="import-no-cohort"><Icon name="info" /><span>{{ text.noCohort }}</span></p>
           </div>
         </template>
@@ -457,7 +457,7 @@ function pickCohort(curriculumId: string): void {
   </section>
 </template>
 
-<style>
+<style scoped>
 .import-tools { gap: 14px; }
 .import-type { display: flex; gap: 10px; align-items: flex-start; }
 .import-type input { margin-top: 4px; }

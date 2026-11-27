@@ -1,4 +1,5 @@
 import type { DataSource, EntityManager } from 'typeorm';
+import { ADMIN_WRITE_LOCK } from '../curriculum-admin/admin-write.service.js';
 import { buildCatalog, CatalogConflictError, type CatalogConflict } from '../database/seeds/catalog.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../database/seeds/index.js';
 import type { CatalogCourse, CatalogDecision, CurriculumSeed } from '../database/seeds/seed-types.js';
@@ -28,6 +29,7 @@ export async function seedCurricula(
   const catalog = buildCatalog(seeds, decisions);
   const report: SeedReport = { inserted: noRows(), skipped: noRows() };
   await dataSource.transaction(async (em) => {
+    await em.query('SELECT pg_advisory_xact_lock($1)', [ADMIN_WRITE_LOCK]);
     await assertNoCatalogConflictsWithDatabase(em, catalog);
     const writer = new SeedWriter(em, report);
     await insertCourses(writer, catalog);

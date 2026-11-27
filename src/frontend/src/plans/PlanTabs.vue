@@ -11,7 +11,7 @@ import DeletePlanDialog from './DeletePlanDialog.vue';
 import { PLANNER_MESSAGES } from './messages.js';
 import PlanNameDialog from './PlanNameDialog.vue';
 
-const props = defineProps<{ id: string; name: string; curriculum: PlanCurriculum }>();
+const props = defineProps<{ id: string; name: string; curriculum: PlanCurriculum; busy?: boolean }>();
 const router = useRouter();
 const toast = useToast();
 const m = useMessages(PLANNER_MESSAGES);
@@ -20,7 +20,8 @@ const plans = ref<PlanSummary[]>([]);
 const naming = ref(false);
 const deleting = ref(false);
 const canDelete = computed(() => plans.value.length > 1);
-const { busy, dialogError, attempt, attemptOrToast } = usePlanActions(() => naming.value || deleting.value);
+const { busy: actionBusy, dialogError, attempt, attemptOrToast } = usePlanActions(() => naming.value || deleting.value);
+const busy = computed(() => Boolean(props.busy) || actionBusy.value);
 
 async function load(): Promise<void> {
   try {
@@ -45,10 +46,12 @@ async function copy(name: string): Promise<void> {
 defineExpose({ copy });
 
 function openNaming(): void {
+  if (busy.value) return;
   dialogError.value = null;
   naming.value = true;
 }
 async function create(name: string): Promise<void> {
+  if (busy.value) return;
   const { programCode, cohortYear } = props.curriculum;
   await attempt('Creating a plan', async () => {
     const made = await createPlan({ name, programCode, cohortYear });
@@ -59,10 +62,12 @@ async function create(name: string): Promise<void> {
 }
 
 function askDelete(): void {
+  if (busy.value) return;
   dialogError.value = null;
   deleting.value = true;
 }
 async function confirmDelete(): Promise<void> {
+  if (busy.value) return;
   const { id, name } = props;
   const next = plans.value.find((p) => p.id !== id);
   const done = await attempt('Deleting the plan', () => deletePlanIfThere(id));
@@ -76,8 +81,18 @@ async function confirmDelete(): Promise<void> {
 <template>
   <nav class="plan-tabs" :aria-label="m.plansLabel" data-test="plan-tabs">
     <template v-for="p in plans" :key="p.id">
-      <RouterLink :to="{ name: 'plan', params: { id: p.id } }" :aria-current="p.id === id ? 'page' : undefined" :class="{ on: p.id === id }" :title="p.name" data-test="plan-tab">
-        <span class="tab-name">{{ p.name }}</span>
+      <RouterLink v-slot="{ href, navigate }" :to="{ name: 'plan', params: { id: p.id } }" custom>
+        <a
+          :href="href"
+          :aria-current="p.id === id ? 'page' : undefined"
+          :aria-disabled="busy && p.id !== id ? 'true' : undefined"
+          :class="{ on: p.id === id, disabled: busy && p.id !== id }"
+          :title="p.name"
+          data-test="plan-tab"
+          @click="busy ? $event.preventDefault() : navigate($event)"
+        >
+          <span class="tab-name">{{ p.name }}</span>
+        </a>
       </RouterLink>
       <button
         v-if="p.id === id && canDelete"
@@ -109,7 +124,7 @@ async function confirmDelete(): Promise<void> {
   <DeletePlanDialog :open="deleting" :name="name" :busy="busy" :error="dialogError" @close="deleting = false" @confirm="confirmDelete" />
 </template>
 
-<style>
+<style scoped>
 .plan-tabs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .plan-tabs a, .plan-tabs .add, .plan-tabs .del {
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; border: 1px solid var(--edge); background: var(--surface); padding: 7px 14px;
@@ -117,10 +132,11 @@ async function confirmDelete(): Promise<void> {
 }
 .plan-tabs a { max-width: 260px; }
 .plan-tabs .tab-name { overflow: hidden; text-overflow: ellipsis; }
-.plan-tabs a:hover { border-color: var(--edge-strong); }
-.plan-tabs a.on { background: var(--acc-bg); color: var(--acc-ink); box-shadow: var(--acc-shadow); border-color: transparent; }
+.plan-tabs a:hover:not(.disabled) { border-color: var(--edge-strong); }
+.plan-tabs a.on { background: var(--acc-bg); color: var(--acc-ink); box-shadow: var(--acc-shadow, var(--shadow-sm)); border-color: transparent; }
+.plan-tabs a.disabled, .plan-tabs button:disabled { opacity: 0.5; cursor: not-allowed; }
 .plan-tabs .add { border-style: dashed; background: transparent; color: var(--ink-2); }
-.plan-tabs .add:hover { color: var(--ink); border-color: var(--ink-3); }
+.plan-tabs .add:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
 .plan-tabs .del { padding: 7px 9px; margin-left: -4px; border-color: transparent; background: transparent; color: var(--ink-3); }
 .plan-tabs .del:hover:not(:disabled) { color: var(--bad); background: color-mix(in oklab, var(--bad) 10%, var(--surface)); }
 .plan-tabs a:focus-visible, .plan-tabs button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }

@@ -7,6 +7,7 @@ import { CODE_MAX_LENGTH } from '../common/column-limits.js';
 @Entity({ name: 'notifications' })
 @Unique('uq_notifications_user_event_kind', ['userId', 'calendarEventId', 'kind'])
 @Index('ix_notifications_user_created', ['userId', 'createdAt', 'id'])
+@Index('idx_notifications_unread', ['userId'], { where: `"read_at" IS NULL` })
 @Check('ck_notifications_kind', `"kind" IN ('registration_soon', 'registration_open', 'term_start', 'transcript_changed')`)
 @Check('ck_notifications_event', `("kind" = 'transcript_changed') = ("calendar_event_id" IS NULL)`)
 @Check(

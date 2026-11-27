@@ -175,7 +175,7 @@ usePageTitle(() => m.value.dashboardTitle);
   </div>
 </template>
 
-<style>
+<style scoped>
 .dashboard-page .db-top { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
 .db-stat { display: grid; gap: 8px; align-content: start; min-width: 0; }
 .db-stat .label { font-size: 13px; font-weight: 650; color: var(--ink-3); }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
 import { statusOf } from '../api.js';
+import { useAuth } from '../auth/store.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import { courseName, matches } from '../curriculum/present.js';
 import { groupClass, type GroupId } from '../groups.js';
@@ -9,6 +10,7 @@ import { useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
+import SharePlanDialog from '../sharing/SharePlanDialog.vue';
 import { currentTermNow, termKey, type Term } from '../terms.js';
 import {
   addCourse,
@@ -16,6 +18,7 @@ import {
   compareTerms,
   findTile,
   isHome,
+  MAX_PLAN_TERMS,
   moveTile,
   nextTerm,
   placedCodes,
@@ -39,6 +42,7 @@ import StatusStrip from './StatusStrip.vue';
 const HISTORY_MAX = 50;
 
 const props = defineProps<{ id: string }>();
+const auth = useAuth();
 const locale = useLocale();
 const toast = useToast();
 const router = useRouter();
@@ -46,6 +50,7 @@ const m = useMessages(PLANNER_MESSAGES);
 
 const lifted = shallowRef<{ key: number; target: number } | null>(null);
 const locked = ref(false);
+const sharing = ref(false);
 const history = shallowRef<{ board: Board; said: string }[]>([]);
 const addTarget = ref('');
 const boardEl = ref<HTMLElement | null>(null);
@@ -53,6 +58,7 @@ const boardEl = ref<HTMLElement | null>(null);
 const session = usePlanSession(() => props.id, {
   reset() {
     lifted.value = null;
+    sharing.value = false;
     history.value = [];
   },
   opened(found, start) {
@@ -68,7 +74,7 @@ const session = usePlanSession(() => props.id, {
     lifted.value = null;
   },
 });
-const { plan, board, saved, newKey, issues, issuesStatus, fresh, retryCheck, saveState, saveError, save, loaded } = session;
+const { plan, board, saved, newKey, issues, issuesStatus, fresh, retryCheck, saveState, saveError, busy, save, loaded } = session;
 const { moving, previews, previewRow, previewAll, stopPreview } = useDropPreview(session);
 
 const courses = usePlanCourses(plan);
@@ -196,7 +202,7 @@ function addSlotTo(groupId: string, credits: number, to: Term | null = addTarget
 const scrollBehaviour = (): ScrollBehavior => (reducedMotion() ? 'auto' : 'smooth');
 
 async function addRow(event?: MouseEvent): Promise<void> {
-  if (locked.value) return;
+  if (locked.value || board.value.length >= MAX_PLAN_TERMS) return;
   const button = event?.currentTarget as HTMLElement | undefined;
   const top = button?.getBoundingClientRect().top;
   const before = board.value;
@@ -383,12 +389,26 @@ function toggleRail(): void {
 
 const tabs = ref<InstanceType<typeof PlanTabs> | null>(null);
 function whatIf(): void {
-  if (plan.value) void tabs.value?.copy(m.value.whatIfName(plan.value.name));
+  if (plan.value && !busy.value) void tabs.value?.copy(m.value.whatIfName(plan.value.name));
 }
 
-onMounted(() => window.addEventListener('keydown', onWindowKey));
+onBeforeRouteLeave(() => {
+  if (!session.busy.value || !auth.signedIn) return true;
+  toast.show(m.value.savingWait);
+  return false;
+});
+
+function onBeforeUnload(event: BeforeUnloadEvent): void {
+  if (session.busy.value) event.preventDefault();
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onWindowKey);
+  window.addEventListener('beforeunload', onBeforeUnload);
+});
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onWindowKey);
+  window.removeEventListener('beforeunload', onBeforeUnload);
   drag.stop();
   stopPreview();
 });
@@ -417,12 +437,13 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
           <Icon :name="locked ? 'lock' : 'unlock'" size="sm" />{{ locked ? m.unlock : m.lock }}
         </button>
         <button class="btn" type="button" :disabled="history.length === 0 || locked" :title="`${m.undo} (Ctrl+Z)`" data-test="undo" @click="undo"><Icon name="undo" size="sm" />{{ m.undo }}</button>
-        <button class="btn" type="button" :title="m.whatIfHint" data-test="what-if" @click="whatIf"><Icon name="fork" size="sm" />{{ m.whatIf }}</button>
+        <button class="btn" type="button" :disabled="busy" :title="m.whatIfHint" data-test="what-if" @click="whatIf"><Icon name="fork" size="sm" />{{ m.whatIf }}</button>
+        <button class="btn primary" type="button" :title="m.shareHint" data-test="share-plan" @click="sharing = true"><Icon name="globe" size="sm" />{{ m.share }}</button>
       </div>
     </header>
 
     <p v-if="loaded.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-    <div v-else-if="loaded.status.value === 'failed'" class="callout bad" role="alert">
+    <div v-else-if="loaded.status.value === 'failed' && auth.signedIn && statusOf(loaded.error.value) !== 401" class="callout bad" role="alert">
       <Icon name="alert" />
       <div v-if="statusOf(loaded.error.value) === 404">
         <p>{{ m.notFound }}</p>
@@ -435,7 +456,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
     </div>
 
     <template v-else-if="plan">
-      <PlanTabs :id="plan.id" ref="tabs" :name="plan.name" :curriculum="plan.curriculum" />
+      <PlanTabs :id="plan.id" ref="tabs" :name="plan.name" :curriculum="plan.curriculum" :busy="busy" />
       <p v-if="locked" class="callout info small lock-note" role="status" data-test="locked-note"><Icon name="lock" size="sm" /><span>{{ m.lockedNote }}</span></p>
       <StatusStrip :attached="issues" :fresh="fresh" :save-state="saveState" />
       <p class="small t3">{{ m.curriculum(plan.curriculum.code) }}</p>
@@ -475,13 +496,13 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                 <Icon name="search" size="sm" />
                 <input id="course-search" v-model="query" class="input" type="search" :placeholder="m.searchPlaceholder" />
               </label>
-              <label class="field add-to">
-                <span>{{ m.addTo }}</span>
-                <SelectMenu v-model="addTarget" :options="board.map((row) => ({ value: termKey(row.term), label: nameOf(row.term) }))" data-test="add-to" />
-              </label>
+              <div class="field add-to">
+                <span class="label">{{ m.addTo }}</span>
+                <SelectMenu v-model="addTarget" :options="board.map((row) => ({ value: termKey(row.term), label: nameOf(row.term) }))" :aria-label="m.addTo" data-test="add-to" />
+              </div>
             </div>
             <p v-if="curriculum.status.value === 'loading'" class="t3">{{ m.loading }}</p>
-            <div v-else-if="curriculum.status.value === 'failed'" class="callout warn small" role="alert">
+            <div v-else-if="curriculum.status.value === 'failed' && auth.signedIn && statusOf(curriculum.error.value) !== 401" class="callout warn small" role="alert">
               <Icon name="alert" size="sm" />
               <div>
                 <p>{{ statusOf(curriculum.error.value) === 404 ? m.noCurriculum : m.curriculumFailed }}</p>
@@ -497,7 +518,6 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                 :class="['pcourse', groupClass(colour), { 'dragging-src': dragging && 'code' in dragging && dragging.code === course.code }]"
                 :data-flip="`pool-${course.code}`"
                 :data-test="`pool-${course.code}`"
-                aria-roledescription="draggable"
                 @pointerdown="grab($event, { code: course.code })"
               >
                 <span class="top">
@@ -529,7 +549,6 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   v-for="s in slotOffers"
                   :key="s.group.id"
                   :class="['pcourse', 'slot', groupClass(s.colour)]"
-                  aria-roledescription="draggable"
                   data-test="slot-offer"
                   @pointerdown="grab($event, { slot: s.group.id, credits: s.credits })"
                 >
@@ -631,11 +650,11 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
                   :id="`tile-${t.tile.key}`"
                   :key="t.tile.key"
                   :class="[t.classes, { lifted: lifted?.key === t.tile.key, 'dragging-src': dragging && 'key' in dragging && dragging.key === t.tile.key }]"
-                  tabindex="0"
+                  :tabindex="locked ? undefined : 0"
                   :title="t.tip || undefined"
                   :aria-label="t.label"
                   :aria-describedby="`tile-${t.tile.key}-body`"
-                  aria-roledescription="draggable"
+                  :aria-roledescription="locked ? undefined : 'draggable'"
                   :data-flip="`tile-${t.tile.key}`"
                   :data-test="`tile-${t.tile.placement.courseCode ?? 'slot'}`"
                   @keydown="onTileKey($event, t.tile, r)"
@@ -681,7 +700,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
               </ul>
             </section>
           </TransitionGroup>
-          <button v-if="board.length" class="add-row" type="button" data-test="add-row" @click="addRow">
+          <button v-if="board.length" class="add-row" type="button" :disabled="board.length >= MAX_PLAN_TERMS" data-test="add-row" @click="addRow">
             <Icon name="plus" size="sm" />{{ m.addTerm(nameOf(nextTerm(board[board.length - 1]!.term))) }}
           </button>
         </div>
@@ -707,11 +726,13 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
       </div>
     </Transition>
 
+    <SharePlanDialog v-if="plan" :open="sharing" :plan-id="plan.id" :plan-name="plan.name" @close="sharing = false" />
+
     <p class="sr-only" aria-live="polite" data-test="announcer">{{ announcement }}</p>
   </div>
 </template>
 
-<style>
+<style scoped>
 .planner-page { max-width: 1480px; }
 .back-link { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 650; font-size: 14px; color: var(--ink-2); text-decoration: none; }
 .back-link:hover { color: var(--ink); }
@@ -817,7 +838,7 @@ usePageTitle(() => plan.value?.name ?? m.value.title);
 }
 .ghost-tile .ptile-acts, .ghost-tile .add-btn { display: none; }
 @keyframes lift { from { box-shadow: var(--shadow-sm); } }
-body.dragging, body.dragging * { cursor: grabbing !important; }
+:global(body.dragging), :global(body.dragging *) { cursor: grabbing !important; }
 .tile-ph {
   align-self: stretch; min-height: 64px; border-radius: 10px; border: 2px dashed var(--c, var(--ink-3)); background: var(--c-air, var(--surface-2));
   display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; color: var(--c-ink, var(--ink-2));
@@ -856,7 +877,8 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
   display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; border: 1px dashed var(--edge-strong); border-radius: 14px; background: transparent; cursor: pointer;
   font: inherit; font-weight: 650; color: var(--ink-2); padding: 16px; transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.add-row:hover { background: var(--surface); color: var(--ink); border-color: var(--edge-strong); }
+.add-row:hover:not(:disabled) { background: var(--surface); color: var(--ink); border-color: var(--edge-strong); }
+.add-row:disabled { opacity: 0.5; cursor: not-allowed; }
 .row-enter-active { transition: opacity 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .row-enter-from { opacity: 0; transform: translateY(-10px) scale(0.99); }
 

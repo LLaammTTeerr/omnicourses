@@ -6,7 +6,8 @@ import type { Term } from '../terms/term.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
 import { degreeAudit } from './audit.js';
 import { checkPlan, courseCodesOf } from './plan-issues.js';
-import type { AuditOutcome, BoardTerm, PlanIssuesReport, PlanUnderCheck } from './types.js';
+import { curriculumStanding } from './standing.js';
+import type { AuditOutcome, BoardTerm, CurriculumStanding, PlanIssuesReport, PlanUnderCheck } from './types.js';
 
 @Injectable()
 export class RulesService {
@@ -24,6 +25,14 @@ export class RulesService {
     const [rules, entries] = await Promise.all([curriculumId === null ? null : this.curriculum.rulesFor(curriculumId), this.transcript.rowsFor(userId)]);
     if (!rules) return { status: 'curriculum_not_found', ...cohort };
     return { status: 'ok', audit: degreeAudit(rules, entries, asOf) };
+  }
+
+  async standingFor(userId: string, programCode: string, cohortYear: number): Promise<CurriculumStanding | null> {
+    const curriculumId = await this.catalog.findCurriculumId(programCode, cohortYear);
+    if (curriculumId === null) return null;
+    const [rules, entries] = await Promise.all([this.curriculum.rulesFor(curriculumId), this.transcript.rowsFor(userId)]);
+    if (!rules) return null;
+    return { courses: curriculumStanding(rules, entries) };
   }
 
   async issuesFor(plan: PlanUnderCheck, userId: string | null): Promise<PlanIssuesReport> {

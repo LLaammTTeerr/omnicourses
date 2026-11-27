@@ -2,21 +2,41 @@ import type { Response } from 'express';
 import { AiUnavailableError } from './ai-unavailable.error.js';
 import type { ChatEvent } from './llm.service.js';
 
-export async function streamChat(response: Response, events: AsyncIterable<ChatEvent>): Promise<void> {
+export async function streamChat(
+  response: Response,
+  eventsOrFactory: AsyncIterable<ChatEvent> | ((signal: AbortSignal) => AsyncIterable<ChatEvent>),
+): Promise<void> {
+  const controller = new AbortController();
+  const events = typeof eventsOrFactory === 'function' ? eventsOrFactory(controller.signal) : eventsOrFactory;
   const iterator = events[Symbol.asyncIterator]();
   let closed = false;
   response.on('close', () => {
     closed = true;
+    controller.abort();
     iterator.return?.()?.catch(() => undefined);
   });
 
-  const first = await iterator.next();
+  let first: IteratorResult<ChatEvent>;
+  try {
+    first = await iterator.next();
+  } catch (error) {
+    if (closed) {
+      response.end();
+      return;
+    }
+    throw error;
+  }
   if (closed) {
     response.end();
     return;
   }
 
-  response.status(200).set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+  response.status(200).set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
   response.flushHeaders();
   const send = (event: string, data: unknown) => response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 

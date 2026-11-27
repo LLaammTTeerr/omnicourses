@@ -1,4 +1,4 @@
-import type { RequirementGroupKind } from '../curriculum/api.js';
+import type { CourseReadiness, RequirementGroupKind, TranscriptCourseStatus } from '../curriculum/api.js';
 import type { Lang } from '../locale.js';
 
 interface ExplorerMessages {
@@ -16,7 +16,13 @@ interface ExplorerMessages {
   kinds: Record<RequirementGroupKind, string>;
   credits: (n: number) => string;
   inTranscript: string;
-  inTranscriptNote: string;
+  transcriptStatuses: Record<TranscriptCourseStatus, string>;
+  transcriptNotes: Record<TranscriptCourseStatus, string>;
+  readiness: string;
+  readinessStatuses: Record<CourseReadiness, string>;
+  missingPrerequisites: (codes: string[]) => string;
+  unlocks: string;
+  openPlanner: string;
   noMatch: string;
   noMatchHint: string;
   loading: string;
@@ -54,8 +60,18 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
       kind === 'compulsory' ? (total === null ? 'Bắt buộc' : `Bắt buộc · ${total} TC`) : min === null ? 'Tự chọn' : `Tự chọn · tối thiểu ${min} TC`,
     kinds: { compulsory: 'bắt buộc', elective: 'tự chọn' },
     credits: (n) => `${n} TC`,
-    inTranscript: 'Trong bảng điểm',
-    inTranscriptNote: 'Môn này có trong bảng điểm bạn đã lưu. Việc môn này được tính hay chưa sẽ do phần xét tốt nghiệp quyết định.',
+    inTranscript: 'Bảng điểm',
+    transcriptStatuses: { passed: 'Đã đạt', in_progress: 'Đang học', failed: 'Chưa đạt' },
+    transcriptNotes: {
+      passed: 'Lần hoàn thành gần nhất trong bảng điểm bạn đã lưu đạt học phần này.',
+      in_progress: 'Học phần này đang học trong bảng điểm bạn đã lưu.',
+      failed: 'Lần hoàn thành gần nhất trong bảng điểm bạn đã lưu chưa đạt học phần này.',
+    },
+    readiness: 'Điều kiện học',
+    readinessStatuses: { available: 'Có thể học', locked: 'Chưa đủ tiên quyết' },
+    missingPrerequisites: (codes) => `Cần đạt trước: ${codes.join(', ')}.`,
+    unlocks: 'Mở khóa',
+    openPlanner: 'Mở lộ trình học tập',
     noMatch: 'Không có học phần nào khớp.',
     noMatchHint: 'Thử mã môn hoặc bỏ lọc nhóm.',
     loading: 'Đang tải chương trình…',
@@ -91,8 +107,18 @@ export const EXPLORER_MESSAGES: Record<Lang, ExplorerMessages> = {
       kind === 'compulsory' ? (total === null ? 'Compulsory' : `Compulsory · ${total} credits`) : min === null ? 'Elective' : `Elective · at least ${min} credits`,
     kinds: { compulsory: 'compulsory', elective: 'elective' },
     credits: (n) => `${n} cr`,
-    inTranscript: 'In your transcript',
-    inTranscriptNote: 'This course is in the transcript you saved. Whether it counts is for the degree audit to decide.',
+    inTranscript: 'Transcript',
+    transcriptStatuses: { passed: 'Passed', in_progress: 'In progress', failed: 'Failed' },
+    transcriptNotes: {
+      passed: 'Your latest completed attempt in the saved transcript passed this course.',
+      in_progress: 'This course is currently in progress in your saved transcript.',
+      failed: 'Your latest completed attempt in the saved transcript failed this course.',
+    },
+    readiness: 'Readiness',
+    readinessStatuses: { available: 'Available', locked: 'Locked' },
+    missingPrerequisites: (codes) => `Needs first: ${codes.join(', ')}.`,
+    unlocks: 'Unlocks',
+    openPlanner: 'Open planner',
     noMatch: 'No course matches.',
     noMatchHint: 'Try a course code, or clear the group filter.',
     loading: 'Loading the curriculum…',

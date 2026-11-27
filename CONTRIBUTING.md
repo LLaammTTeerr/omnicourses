@@ -21,7 +21,7 @@ git switch main && git pull
 git switch -c <type>/<short-name>      # e.g. feat/degree-audit, fix/credit-cap
 ```
 
-Commit messages and PR titles follow **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)**. CI checks both (`pr-title`, `commit-messages`). The **PR title matters most**: squash merge turns it into the one commit that lands on `main`.
+PR titles follow **[Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)**, and CI checks them (`pr-title`): squash merge turns the title into the one commit that lands on `main`. Use the same format for commit messages where you can; CI does not check them, since they do not reach `main`.
 
 ```
 <type>(<scope>): <subject>
@@ -75,7 +75,7 @@ If you already pushed unsigned commits: `git rebase --exec 'git commit --amend -
   ```
   Commit the generated `.changeset/*.md` file. See [.changeset/README.md](.changeset/README.md).
 - Fill in the PR template. The **"Why this design"** section is required (see AI policy).
-- CI must be green: the `changeset`, `signed-commits`, `pr-title`, `commit-messages`, `backend` and `frontend` checks.
+- CI must be green: the `changeset`, `signed-commits`, `pr-title`, `backend` and `frontend` checks.
 - At least **one approval** from another member. Pushing new commits dismisses earlier approvals.
 - **Admin override:** the Project Lead (repo admin) has final authority and may merge a PR without an approval (merge box → *Merge without waiting for requirements to be met*, or `gh pr merge --admin`). CI and signed commits still apply, and it is still a PR. Use it for urgent fixes or tie-breaks, and say why in the PR.
 - Reviewers: Frontend Lead for `src/frontend`, Backend Lead for `src/backend`, Project Lead for the data model and the rule engine.

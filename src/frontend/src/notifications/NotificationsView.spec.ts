@@ -337,4 +337,36 @@ describe('NotificationsView (F10, UC-12)', () => {
     await flushPromises();
     expect(items(w)).toHaveLength(3);
   });
+
+  it('focuses the notification heading when marking a linkless notification read unmounts its button', async () => {
+    const LINKLESS = notification({ id: 'zz-linkless', kind: 'transcript_changed', event: null, links: [] });
+    const { w } = await render({
+      'GET /notifications': list([LINKLESS]),
+      'POST /notifications/zz-linkless/read': { ...LINKLESS, readAt: '2026-12-02T04:00:00.000Z' },
+    });
+    const button = items(w)[0]!.get('[data-test="mark-read"]');
+    (button.element as HTMLElement).focus();
+    await button.trigger('click');
+    await flushPromises();
+    expect(items(w)[0]!.find('[data-test="mark-read"]').exists()).toBe(false);
+    expect(document.activeElement).toBe(items(w)[0]!.get('h2').element);
+  });
+
+  it('neither logs nor shows markFailed toast on 401 from readOne or readAll', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const one = await render({ 'GET /notifications': list(), [`POST /notifications/${SOON.id}/read`]: status(401) });
+    useToast().message = '';
+    await items(one.w)[0]!.get('[data-test="mark-read"]').trigger('click');
+    await flushPromises();
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(useToast().message).toBe('');
+    one.w.unmount();
+
+    const all = await render({ 'GET /notifications': list(), 'POST /notifications/read-all': status(401) });
+    useToast().message = '';
+    await all.w.get('[data-test="read-all"]').trigger('click');
+    await flushPromises();
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(useToast().message).toBe('');
+  });
 });

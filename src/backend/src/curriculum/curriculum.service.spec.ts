@@ -1,13 +1,14 @@
 import { NotFoundException } from '@nestjs/common';
-import type { ObjectLiteral, Repository } from 'typeorm';
+import type { DataSource, EntityManager, ObjectLiteral, Repository } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
-import type { Course } from './course.entity.js';
+import { Course } from './course.entity.js';
 import type { CourseRules, CurriculumRulesReader } from './curriculum-rules.reader.js';
 import { CurriculumController } from './curriculum.controller.js';
-import type { Curriculum } from './curriculum.entity.js';
+import { Curriculum } from './curriculum.entity.js';
 import { CurriculumService } from './curriculum.service.js';
 import type { Program } from './program.entity.js';
 import type { RequirementGroup, RequirementGroupCourse } from './requirement-group.entity.js';
+import { seedCurricula } from './seed-curricula.js';
 
 const course = (code: string, credits = 4): Course =>
   ({ code, nameVi: `Học phần ${code}`, nameEn: null, credits, theoryPeriods: 45, labPeriods: null, exercisePeriods: 0, projectPeriods: 0 }) as Course;
@@ -196,6 +197,37 @@ describe('CurriculumService bulk reads for plans', () => {
   it('lists the requirement group ids of a curriculum, none for an unknown one', async () => {
     expect(await bulk().svc.requirementGroupIds('c1')).toEqual(new Set(['g1', 'g2']));
     expect(await bulk({ curriculum: null }).svc.requirementGroupIds('c9')).toEqual(new Set());
+  });
+
+  it('uses the transaction EntityManager when given to catalogCourses and requirementGroupIds', async () => {
+    const { svc, find, findOne } = bulk();
+    const txFind = vi.fn().mockResolvedValue([course('ZZ001', 4)]);
+    const txFindOne = vi.fn().mockResolvedValue({ id: 'c1', requirementGroups: [{ id: 'g9' }] });
+    const manager = {
+      getRepository: vi.fn((entity: unknown) => (entity === Course ? { find: txFind } : entity === Curriculum ? { findOne: txFindOne } : {})),
+    } as unknown as EntityManager;
+
+    expect(await svc.catalogCourses(['ZZ001'], manager)).toEqual(new Map([['ZZ001', { nameVi: 'Học phần ZZ001', nameEn: null, credits: 4 }]]));
+    expect(await svc.requirementGroupIds('c1', manager)).toEqual(new Set(['g9']));
+    expect(find).not.toHaveBeenCalled();
+    expect(findOne).not.toHaveBeenCalled();
+    expect(txFind).toHaveBeenCalledOnce();
+    expect(txFindOne).toHaveBeenCalledOnce();
+  });
+});
+
+describe('seedCurricula', () => {
+  it('acquires ADMIN_WRITE_LOCK at the start of its transaction', async () => {
+    const calls: [string, unknown[] | undefined][] = [];
+    const em = {
+      query: vi.fn(async (sql: string, params?: unknown[]) => {
+        calls.push([sql, params]);
+        return [];
+      }),
+    };
+    const dataSource = { transaction: vi.fn((work: (m: typeof em) => unknown) => work(em)) } as unknown as DataSource;
+    await seedCurricula(dataSource, [], []);
+    expect(calls[0]).toEqual(['SELECT pg_advisory_xact_lock($1)', [11_012_001]]);
   });
 });
 

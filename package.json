@@ -7,9 +7,11 @@
     "src/frontend"
   ],
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.12.0",
+    "npm": ">=11.0.0"
   },
   "scripts": {
+    "lint": "node scripts/lint.mjs",
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test --workspaces",

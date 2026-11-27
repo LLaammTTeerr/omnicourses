@@ -105,8 +105,8 @@ usePageTitle(() => m.value.signIn);
   </AuthFrame>
 </template>
 
-<style>
+<style scoped>
 .auth-fields { display: grid; gap: 14px; }
 .auth-fields .field > label { font-weight: 650; font-size: 13.5px; }
-.auth-form .lead { margin-top: 8px; }
+.lead { margin-top: 8px; }
 </style>

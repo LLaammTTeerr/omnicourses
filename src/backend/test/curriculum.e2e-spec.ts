@@ -174,8 +174,28 @@ describe('Curriculum API (e2e)', () => {
     await get('/api/courses/csc10001').expect(404);
   });
 
+  it('computes per-course standing against the student transcript via GET /api/programs/:program/curricula/:cohort/standing', async () => {
+    const { token: studentToken } = await signedInUser(app);
+    const auth = { Authorization: `Bearer ${studentToken}` };
+    await http()
+      .put('/api/users/me/transcript')
+      .set(auth)
+      .send({
+        rows: [{ courseCode: 'CS469', courseName: 'Đề cương khóa luận', credits: 2, result: 'fail', grade: null, term: { year: 2025, number: 1 } }],
+      })
+      .expect(200);
+
+    const locked = await http().get('/api/programs/APCS/curricula/2024/standing').set(auth).expect(200);
+    const byCode = new Map((locked.body.courses as { code: string; transcriptStatus: string | null; readiness: string | null; missingPrerequisites: string[] }[]).map((c) => [c.code, c]));
+    expect(byCode.get('CS469')).toEqual({ code: 'CS469', transcriptStatus: 'failed', readiness: 'available', missingPrerequisites: [] });
+    expect(byCode.get('CS470')).toEqual({ code: 'CS470', transcriptStatus: null, readiness: 'locked', missingPrerequisites: ['CS469'] });
+
+    await http().get('/api/programs/APCS/curricula/1999/standing').set(auth).expect(404);
+    await http().get('/api/programs/APCS/curricula/twenty/standing').set(auth).expect(404);
+  });
+
   it('refuses every route without a token', async () => {
-    for (const path of ['/api/programs', '/api/programs/APCS/curricula/2024', '/api/courses/ZZ99999']) {
+    for (const path of ['/api/programs', '/api/programs/APCS/curricula/2024', '/api/programs/APCS/curricula/2024/standing', '/api/courses/ZZ99999']) {
       await http().get(path).expect(401);
     }
   });

@@ -100,13 +100,13 @@ const BoardTerms = () => applyDecorators(Type(() => PlanTermDto), ValidateNested
 const BOARD_DESCRIPTION = `One entry per term, each term once, at most ${MAX_BOARD_TERMS} terms and ${MAX_BOARD_PLACEMENTS} placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.`;
 
 export class PlanBoardDto {
-  @ApiProperty({ type: [PlanTermDto], description: BOARD_DESCRIPTION })
+  @ApiProperty({ type: [PlanTermDto], maxItems: MAX_BOARD_TERMS, description: BOARD_DESCRIPTION })
   @BoardTerms()
   terms!: PlanTermDto[];
 }
 
 export class PlanDropPreviewDto {
-  @ApiProperty({ type: [PlanTermDto], description: `The board without the placement (a moved course is taken out of its term first). ${BOARD_DESCRIPTION}` })
+  @ApiProperty({ type: [PlanTermDto], maxItems: MAX_BOARD_TERMS, description: `The board without the placement (a moved course is taken out of its term first). ${BOARD_DESCRIPTION}` })
   @BoardTerms()
   terms!: PlanTermDto[];
 
@@ -116,7 +116,7 @@ export class PlanDropPreviewDto {
   @Type(() => PlanPlacementDto)
   placement!: PlanPlacementDto;
 
-  @ApiProperty({ type: [TermDto], description: `The terms to try it in, each once, at most ${MAX_BOARD_TERMS}.` })
+  @ApiProperty({ type: [TermDto], minItems: 1, maxItems: MAX_BOARD_TERMS, description: `The terms to try it in, each once, at most ${MAX_BOARD_TERMS}.` })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(MAX_BOARD_TERMS)
@@ -141,7 +141,7 @@ export class CreatePlanDto {
   @Max(MAX_ACADEMIC_YEAR)
   cohortYear!: number;
 
-  @ApiProperty({ type: [PlanTermDto], required: false, description: `${BOARD_DESCRIPTION} Left out: an empty plan.` })
+  @ApiProperty({ type: [PlanTermDto], required: false, maxItems: MAX_BOARD_TERMS, description: `${BOARD_DESCRIPTION} Left out: an empty plan.` })
   @IsOptional()
   @BoardTerms()
   terms?: PlanTermDto[];

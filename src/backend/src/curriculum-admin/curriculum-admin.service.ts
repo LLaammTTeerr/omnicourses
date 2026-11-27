@@ -92,10 +92,35 @@ export class CurriculumAdminService {
         [groupId],
       );
       if (plans) throw plansUseGroup([REFERENCES.groupPlans(plans)]);
+      const overflows: { from_group_id: string; to_group_id: string }[] = await em.query(
+        'SELECT "from_group_id", "to_group_id" FROM "requirement_group_overflows" WHERE "from_group_id" = $1 OR "to_group_id" = $1',
+        [groupId],
+      );
+      const combinedMinimums: { combined_minimum_id: string }[] = await em.query(
+        'SELECT "combined_minimum_id" FROM "combined_minimum_groups" WHERE "requirement_group_id" = $1',
+        [groupId],
+      );
+      const ruleReferences = [
+        ...(overflows.length ? [REFERENCES.groupOverflows(overflows.length)] : []),
+        ...(combinedMinimums.length ? [REFERENCES.groupCombinedMinimums(combinedMinimums.length)] : []),
+      ];
+      if (ruleReferences.length) {
+        throw referencedItem(
+          'Curriculum rules still reference this requirement group; keep it while overflow or combined-minimum rules name it',
+          ruleReferences,
+        );
+      }
       try {
         await em.query('DELETE FROM "requirement_groups" WHERE "id" = $1', [groupId]);
       } catch (error) {
         if (isPlanSlotRefusal(error)) throw plansUseGroup([REFERENCES.groupPlans(null)]);
+        const ruleReference = groupRuleRefusalReference(error);
+        if (ruleReference) {
+          throw referencedItem(
+            'Curriculum rules still reference this requirement group; keep it while overflow or combined-minimum rules name it',
+            [ruleReference],
+          );
+        }
         throw error;
       }
     });
@@ -118,8 +143,17 @@ export class CurriculumAdminService {
     const code = courseCodeOr400(rawCode);
     return this.writes.run(callerId, { program: programId }, async (em) => {
       await groupIn(em, programId, curriculumId, groupId);
-      const [link] = await em.query('SELECT 1 FROM "requirement_group_courses" WHERE "requirement_group_id" = $1 AND "course_code" = $2', [groupId, code]);
+      const [link]: { counts_toward_total?: boolean; counts_toward_gpa?: boolean }[] = await em.query(
+        'SELECT "counts_toward_total", "counts_toward_gpa" FROM "requirement_group_courses" WHERE "requirement_group_id" = $1 AND "course_code" = $2',
+        [groupId, code],
+      );
       if (!link) throw notFound(`${code} is not in this group`);
+      if (link.counts_toward_total === false || link.counts_toward_gpa === false) {
+        throw referencedItem(
+          `${code} carries non-default GPA or credit-counting rules that cannot be re-entered through administration yet`,
+          [REFERENCES.countingRule(code)],
+        );
+      }
       const [elsewhere] = await em.query(
         `SELECT 1 FROM "requirement_group_courses" l JOIN "requirement_groups" g ON g."id" = l."requirement_group_id"
          WHERE g."curriculum_id" = $1 AND l."course_code" = $2 AND l."requirement_group_id" <> $3`,
@@ -249,11 +283,25 @@ async function savePrerequisites(em: EntityManager, curriculumId: string, code: 
 }
 
 const PLAN_SLOT_GROUP_KEY = 'plan_placements_requirement_group_id_fkey';
+const OVERFLOW_FROM_GROUP_KEY = 'requirement_group_overflows_from_group_id_fkey';
+const OVERFLOW_TO_GROUP_KEY = 'requirement_group_overflows_to_group_id_fkey';
+const COMBINED_MINIMUM_GROUP_KEY = 'combined_minimum_groups_requirement_group_id_fkey';
 
 const plansUseGroup = (references: string[]) => referencedItem('Saved plans use the group; it stays while they name it', references);
 
 export function isPlanSlotRefusal(error: unknown): boolean {
   return isRefusal(error, [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation], PLAN_SLOT_GROUP_KEY);
+}
+
+function groupRuleRefusalReference(error: unknown): string | null {
+  const states = [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation];
+  if (isRefusal(error, states, OVERFLOW_FROM_GROUP_KEY) || isRefusal(error, states, OVERFLOW_TO_GROUP_KEY)) {
+    return REFERENCES.groupOverflows(null);
+  }
+  if (isRefusal(error, states, COMBINED_MINIMUM_GROUP_KEY)) {
+    return REFERENCES.groupCombinedMinimums(null);
+  }
+  return null;
 }
 
 function groupDto(group: RequirementGroup): RequirementGroupAdminDto {

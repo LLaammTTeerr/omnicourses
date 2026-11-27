@@ -279,3 +279,20 @@ export interface PlanUnderCheck {
   curriculum: { id: string };
   terms: readonly BoardTerm[];
 }
+
+export const TRANSCRIPT_COURSE_STATUSES = ['passed', 'in_progress', 'failed'] as const;
+export type TranscriptCourseStatus = (typeof TRANSCRIPT_COURSE_STATUSES)[number];
+
+export const COURSE_READINESS_STATES = ['available', 'locked'] as const;
+export type CourseReadiness = (typeof COURSE_READINESS_STATES)[number];
+
+export interface CourseStandingItem {
+  code: string;
+  transcriptStatus: TranscriptCourseStatus | null;
+  readiness: CourseReadiness | null;
+  missingPrerequisites: string[];
+}
+
+export interface CurriculumStanding {
+  courses: CourseStandingItem[];
+}

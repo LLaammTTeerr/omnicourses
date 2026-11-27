@@ -22,10 +22,15 @@ async function* events(list: ChatEvent[], failAfter?: Error): AsyncIterable<Chat
 }
 
 describe('streamChat', () => {
-  it('writes each event as a server-sent event and ends', async () => {
+  it('writes each event as a server-sent event, disables proxy buffering, and ends', async () => {
     const response = fakeResponse();
     await streamChat(response as never, events([{ type: 'text', delta: 'Hi' }, { type: 'done', text: 'Hi' }]));
-    expect(response.set).toHaveBeenCalledWith(expect.objectContaining({ 'Content-Type': 'text/event-stream' }));
+    expect(response.set).toHaveBeenCalledWith({
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
     expect(response.written).toEqual(['event: text\ndata: {"type":"text","delta":"Hi"}\n\n', 'event: done\ndata: {"type":"done","text":"Hi"}\n\n']);
     expect(response.end).toHaveBeenCalled();
   });
@@ -86,6 +91,32 @@ describe('streamChat', () => {
     expect(stopped).toBe(true);
     expect(yielded).toBe(1);
     expect(response.written).toEqual([]);
+  });
+
+  it('aborts the factory AbortSignal immediately when the client disconnects before the first token', async () => {
+    const response = fakeResponse();
+    let capturedSignal: AbortSignal | undefined;
+    const streaming = streamChat(response as never, (signal) => {
+      capturedSignal = signal;
+      return {
+        [Symbol.asyncIterator]() {
+          return {
+            next: () =>
+              new Promise<IteratorResult<ChatEvent>>((_, reject) => {
+                signal.addEventListener('abort', () => reject(new AiUnavailableError('The model stream ended early')), { once: true });
+              }),
+          };
+        },
+      };
+    });
+
+    expect(capturedSignal?.aborted).toBe(false);
+    response.emit('close');
+    expect(capturedSignal?.aborted).toBe(true);
+    await expect(streaming).resolves.toBeUndefined();
+    expect(response.status).not.toHaveBeenCalled();
+    expect(response.written).toEqual([]);
+    expect(response.end).toHaveBeenCalled();
   });
 
   it('does not leave an unhandled rejection when stopping the chat fails', async () => {

@@ -4,10 +4,11 @@ import contract from '../../../backend/openapi.json';
 import { user } from '../auth/testing/fixtures.js';
 import { contractShape, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
-import { CLASS_NAME_MAX_LENGTH, exportAccount, revokeSession, saveFile, STUDENT_ID_PATTERN, updateProfile, type DeleteAccountBody, type DeletionScheduled, type ProfileBody } from './api.js';
+import { CLASS_NAME_MAX_LENGTH, exportAccount, revokeSession, saveFile, STUDENT_ID_PATTERN, updateProfile, type AccountExport, type DeleteAccountBody, type DeletionScheduled, type ProfileBody } from './api.js';
 
 describe('account types against the contract', () => {
   it.each([
+    ['AccountExportDto', { exportedAt: 'required', user: 'required', tables: 'required' } satisfies Shape<AccountExport>],
     ['DeleteAccountDto', { password: 'required' } satisfies Shape<DeleteAccountBody>],
     ['DeletionScheduledDto', { purgeAfter: 'required' } satisfies Shape<DeletionScheduled>],
     ['UpdateProfileDto', { studentId: 'optional', className: 'optional' } satisfies Shape<ProfileBody>],

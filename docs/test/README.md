@@ -11,3 +11,9 @@ See [Browser tests](browser-tests.md) for Chromium installation, run commands, s
 [B2 detailed cases](test-cases-b2.md) hold the B2 checks, the B1 regression run on B2 and the retests of B1 defects; each case says whether it is written, blocked or not started. The [B2 test report](report-b2.md) records the B2 runs and lists what is still to run.
 
 The test plan and the reports are dated records. What is built today is in the [README feature table](../../README.md#what-is-built).
+
+## Evidence policy
+
+- **Automated regression checks belong in Vitest, not in `docs/test/evidence/`.** New repeatable checks must be written as permanent Vitest suites next to the code (`src/**/*.spec.ts` for unit and component tests, `src/backend/test/*.e2e-spec.ts` for API and database tests, and `src/frontend/src/**/*.browser.spec.ts` for Chromium layout and keyboard tests) so CI enforces them on every pull request. Do not add ad-hoc `.mjs` or `.sh` driver scripts or raw console dumps to Git as a substitute for test suites.
+- **Keep committed evidence curated and immutable.** `docs/test/evidence/<build>/` stores only dated milestone acceptance summaries (`results-<date>.md`), versioned benchmark fixtures (such as `perf-01-plan.json`), and concise screenshots or measurements cited by a build report (`report-b0.md` to `report-b3.md`).
+- **No retry noise, mutable state, or sensitive values in new runs.** For future runs onward, do not commit new aborted or duplicate retry outputs, mutable run-state files (`*.state.json` / `*-state.json`, ignored in `.gitignore`), bearer tokens, password hashes, or personal student data (AGENTS.md hard rule 3). Existing historical logs and active multi-day run-state files already cited by dated B1/B2 `results-*.md` files remain untouched until their run completes so links and pending steps stay intact.

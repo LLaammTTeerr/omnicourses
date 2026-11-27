@@ -533,14 +533,14 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
     <p v-else-if="!program" class="callout" role="status" data-test="no-programs"><Icon name="info" /><span>{{ text.noPrograms }}</span></p>
     <template v-else>
       <div class="admin-banner">
-        <label class="field">
-          <span>{{ text.program }}</span>
-          <SelectMenu :model-value="program.id" :options="(programList ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" data-test="admin-program" @update:model-value="pickProgram" />
-        </label>
-        <label v-if="program.curricula.length" class="field">
-          <span>{{ text.cohort }}</span>
-          <SelectMenu :model-value="cohort?.id" :options="program.curricula.map((item) => ({ value: item.id, label: text.cohortOption(item.cohortYear) }))" data-test="admin-cohort" @update:model-value="pickCohort" />
-        </label>
+        <div class="field">
+          <span class="label">{{ text.program }}</span>
+          <SelectMenu :model-value="program.id" :aria-label="text.program" :options="(programList ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))" data-test="admin-program" @update:model-value="pickProgram" />
+        </div>
+        <div v-if="program.curricula.length" class="field">
+          <span class="label">{{ text.cohort }}</span>
+          <SelectMenu :model-value="cohort?.id" :aria-label="text.cohort" :options="program.curricula.map((item) => ({ value: item.id, label: text.cohortOption(item.cohortYear) }))" data-test="admin-cohort" @update:model-value="pickCohort" />
+        </div>
         <div v-if="curriculum" class="grow small" data-test="curriculum-summary">
           <b>{{ (locale.lang === 'en' && curriculum.nameEn) || curriculum.nameVi }} · {{ curriculum.code }}</b><br />{{ text.thisCohortOnly }}
         </div>
@@ -617,7 +617,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
                     <td class="r" :data-label="text.columns.courses">{{ group.courses.length }}</td>
                     <td class="r acts">
                       <div class="row-acts">
-                        <button class="btn sm" type="button" :aria-expanded="group.id === openId" aria-controls="group-panel" :aria-label="text.openLabel(group.name)" data-test="group-open" @click="openId = group.id">
+                        <button class="btn sm" type="button" :aria-expanded="group.id === openId" :aria-controls="openGroup ? 'group-panel' : undefined" :aria-label="text.openLabel(group.name)" data-test="group-open" @click="openId = group.id">
                           {{ group.id === openId ? text.opened : text.open }}
                         </button>
                         <button class="btn sm" type="button" :disabled="stale" :aria-label="text.editGroupLabel(group.name)" data-test="group-edit" @click="open({ type: 'group', group }, $event)">
@@ -796,7 +796,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
   </section>
 </template>
 
-<style>
+<style scoped>
 .admin-banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: color-mix(in oklab, var(--hi) 55%, var(--surface)); border-radius: 16px; border: 1px solid var(--edge); flex-wrap: wrap; }
 .admin-banner .field { min-width: 180px; }
 .admin-banner .grow { flex: 1; min-width: 200px; }
@@ -830,10 +830,10 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
   .admin-groups tr.group-note { display: block; border-top: 0; padding-top: 0; }
   .admin-groups .note { padding-left: 0; }
   .admin-groups .group-name { min-width: 0; }
-  .admin-courses tr { grid-template-columns: minmax(0, 1fr) auto; }
-  .admin-courses th[scope='row'] { grid-column: 1; grid-row: 1; align-self: center; }
-  .admin-courses td.acts { grid-column: 2; grid-row: 1; }
-  .admin-courses td.name, .admin-courses td[data-label] { grid-column: 1 / -1; }
-  .admin-courses td.name { font-weight: 650; min-width: 0; }
+  .admin-cards.admin-courses tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .admin-cards.admin-courses th[scope='row'] { grid-column: 1; grid-row: 1; align-self: center; }
+  .admin-cards.admin-courses td.acts { grid-column: 2; grid-row: 1; }
+  .admin-cards.admin-courses td.name, .admin-cards.admin-courses td[data-label] { grid-column: 1 / -1; }
+  .admin-cards.admin-courses td.name { font-weight: 650; min-width: 0; }
 }
 </style>

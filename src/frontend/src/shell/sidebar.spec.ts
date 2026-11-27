@@ -38,4 +38,35 @@ describe('isSidebarKey', () => {
   it.each(['input', 'textarea', 'select'])('ignores [ typed in a %s', (tag) => {
     expect(isSidebarKey(key({ key: '[' }, document.createElement(tag)))).toBe(false);
   });
+
+  it('ignores [ while a dialog is open', () => {
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('open', '');
+    document.body.append(dialog);
+    try {
+      expect(isSidebarKey(key({ key: '[' }))).toBe(false);
+    } finally {
+      dialog.remove();
+    }
+  });
+
+  it('ignores [ when focus is inside a listbox or an expanded trigger', () => {
+    const listbox = document.createElement('ul');
+    listbox.setAttribute('role', 'listbox');
+    const option = document.createElement('li');
+    option.tabIndex = 0;
+    listbox.append(option);
+    const combobox = document.createElement('button');
+    combobox.setAttribute('aria-expanded', 'true');
+    document.body.append(listbox, combobox);
+    try {
+      option.focus();
+      expect(isSidebarKey(key({ key: '[' }, option))).toBe(false);
+      combobox.focus();
+      expect(isSidebarKey(key({ key: '[' }, combobox))).toBe(false);
+    } finally {
+      listbox.remove();
+      combobox.remove();
+    }
+  });
 });

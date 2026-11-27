@@ -107,6 +107,13 @@ Not stored, with the reason:
 - `CurriculumRulesReader.rulesFor(curriculumId)` reads one curriculum by its id, with its prerequisites and offering terms; `CourseRulesService` is merged into it. The audit finds the id with `CurriculumService.findCurriculumId(program, cohort)`.
 - A spec fails when a pure file of `rules/` imports framework, database or HTTP code at run time (`rules.service.spec.ts`).
 
+## Amendment, 27 November 2026: curriculum standing and failed in-progress prerequisites
+
+*Decided by Lâm (Project Lead), 27 November 2026.*
+
+- `curriculumStanding` in `rules/standing.ts` (served at `GET /api/programs/{code}/curricula/{cohortYear}/standing` for F4) computes per-course `transcriptStatus` (`passed`, `in_progress`, `failed`, or `null`) and prerequisite `readiness` (`available`, `locked`, or `null`) in the rule engine so the browser never duplicates attempt or prerequisite rules.
+- `curriculumStanding` counts only **passed** prerequisites (`record.passed`) toward `available` readiness (Điều 3.1.c: *"phải học và thi đạt mới được đăng ký"*), so while `CS469` is still `in_progress` (unfinished) or `failed`, `CS470` remains `locked` (`missingPrerequisites: ['CS469']`)—even if `CS470` was entered as `in_progress`. In multi-semester plans (`checkPlan` in `plan-issues.ts`), an `in_progress` or placed `CS469` in an earlier term counts toward a later planned `CS470` term, and if `CS469` is later recorded as failed, `checkPlan` reports `prerequisite_not_met` (`violation`) on `CS470`.
+
 ## Amendment, 28 November 2026: the audit at the end of a past term, and term details for the dashboard
 
 *Added for the dashboard of the UI prototype (`ui-prototypes/dashboard.html`, UC-03 step 3 and A2), at the Frontend Lead's request.* No academic rule changes: every figure below comes from rules already decided above, applied to a part of the transcript.

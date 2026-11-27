@@ -1,17 +1,108 @@
 #!/usr/bin/env bash
-# The only root actions the omnicourse user may run (via /etc/sudoers.d/omnicourse):
-#   omnicourse-root restart <prod|stag>   restart that environment's API
-#   omnicourse-root dump <prod|stag>      write a compressed pg_dump to /var/backups/omnicourse, keep 14
+# Privileged helper installed at /usr/local/sbin/omnicourse-root.
+# The omnicourse user may run only restart and dump (via /etc/sudoers.d/omnicourse):
+#   omnicourse-root restart <prod|stag>        restart that environment's API
+#   omnicourse-root dump <prod|stag>           write a pre-deploy pg_dump to /var/backups/omnicourse (keep 14)
+# Root systemd timers also run:
+#   omnicourse-root nightly-dump <prod|stag>   write a daily pg_dump to /var/backups/omnicourse/daily (keep 14) + optional sync
+#   omnicourse-root cloudflare-ips             stage updated Cloudflare IPs via temp file + nginx -t + reload
 set -euo pipefail
-action="${1:-}"; env="${2:-}"
-[[ "$env" == prod || "$env" == stag ]] || { echo "usage: $0 restart|dump prod|stag" >&2; exit 2; }
+
+action="${1:-}"
+env="${2:-}"
+
+require_env() {
+  [[ "$env" == prod || "$env" == stag ]] || {
+    echo "usage: $0 restart|dump|nightly-dump prod|stag | $0 cloudflare-ips" >&2
+    exit 2
+  }
+}
+
 case "$action" in
-  restart) systemctl restart "omnicourse@$env" ;;
+  restart)
+    require_env
+    systemctl restart "omnicourse@$env"
+    ;;
   dump)
+    require_env
+    install -d -o root -g omnicourse -m 750 /var/backups/omnicourse
     out="/var/backups/omnicourse/$env-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
-    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$out"
-    chown omnicourse:omnicourse "$out"; chmod 600 "$out"
+    umask 077
+    tmp="$(mktemp /var/backups/omnicourse/.dump.XXXXXX)"
+    trap 'rm -f "$tmp"' EXIT
+    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$tmp"
+    chown -h root:omnicourse "$tmp"
+    chmod 640 "$tmp"
+    mv -f "$tmp" "$out"
+    trap - EXIT
     ls -1t /var/backups/omnicourse/"$env"-*.sql.gz | tail -n +15 | xargs -r rm -f
-    echo "backup: $out" ;;
-  *) echo "usage: $0 restart|dump prod|stag" >&2; exit 2 ;;
+    echo "backup: $out"
+    ;;
+  nightly-dump)
+    require_env
+    install -d -o root -g omnicourse -m 750 /var/backups/omnicourse /var/backups/omnicourse/daily
+    out="/var/backups/omnicourse/daily/$env-$(date -u +%Y-%m-%d).sql.gz"
+    umask 077
+    tmp="$(mktemp /var/backups/omnicourse/daily/.dump.XXXXXX)"
+    trap 'rm -f "$tmp"' EXIT
+    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$tmp"
+    chown -h root:omnicourse "$tmp"
+    chmod 640 "$tmp"
+    mv -f "$tmp" "$out"
+    trap - EXIT
+    ls -1t /var/backups/omnicourse/daily/"$env"-*.sql.gz | tail -n +15 | xargs -r rm -f
+    if [[ -f /etc/omnicourse/backup-sync.sh && -x /etc/omnicourse/backup-sync.sh ]]; then
+      /etc/omnicourse/backup-sync.sh "$out"
+    fi
+    echo "nightly backup: $out"
+    ;;
+  cloudflare-ips)
+    conf=/etc/nginx/conf.d/omnicourse-cloudflare-origin.conf
+    tmp="$(mktemp)"
+    bak="$(mktemp)"
+    log="$(mktemp)"
+    trap 'rm -f "$tmp" "$bak" "$log"' EXIT
+    v4="$(curl -fsSL https://www.cloudflare.com/ips-v4)"
+    v6="$(curl -fsSL https://www.cloudflare.com/ips-v6)"
+    [[ -n "$v4" && -n "$v6" ]] || { echo "empty Cloudflare IP response" >&2; exit 1; }
+    while IFS= read -r cidr; do
+      [[ -z "$cidr" ]] && continue
+      [[ "$cidr" =~ ^[0-9a-fA-F:.]+/[0-9]{1,3}$ ]] || { echo "invalid Cloudflare CIDR '$cidr'" >&2; exit 1; }
+    done < <(printf '%s\n%s\n' "$v4" "$v6")
+    {
+      echo "# Generated from https://www.cloudflare.com/ips-v4 and ips-v6 (managed by setup.sh and omnicourse-cloudflare-ips.timer)."
+      echo 'geo $realip_remote_addr $omnicourse_via_cloudflare {'
+      echo '    default 0;'
+      echo '    127.0.0.1/32 1;'
+      echo '    ::1/128 1;'
+      printf '%s\n%s\n' "$v4" "$v6" | sed -E '/^[[:space:]]*$/d; s|^(.+)$|    \1 1;|'
+      echo '}'
+    } >"$tmp"
+    if [[ -f "$conf" ]] && cmp -s "$tmp" "$conf"; then
+      echo "cloudflare IPs unchanged"
+      exit 0
+    fi
+    had_prev=0
+    if [[ -f "$conf" ]]; then
+      cp -a "$conf" "$bak"
+      had_prev=1
+    fi
+    install -o root -g root -m 644 "$tmp" "$conf"
+    if ! nginx -t 2>"$log"; then
+      cat "$log" >&2
+      if [[ "$had_prev" -eq 1 ]]; then
+        cp -a "$bak" "$conf"
+      else
+        rm -f "$conf"
+      fi
+      echo "nginx config test failed: restored previous $conf, nothing reloaded" >&2
+      exit 1
+    fi
+    systemctl reload nginx
+    echo "reloaded nginx with updated Cloudflare IPs"
+    ;;
+  *)
+    echo "usage: $0 restart|dump|nightly-dump prod|stag | $0 cloudflare-ips" >&2
+    exit 2
+    ;;
 esac

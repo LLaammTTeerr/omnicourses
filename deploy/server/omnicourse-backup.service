@@ -1,0 +1,13 @@
+# Nightly PostgreSQL backup for OmniCourse production and staging.
+# Installed by deploy/server/setup.sh and triggered by omnicourse-backup.timer.
+[Unit]
+Description=OmniCourse nightly PostgreSQL backup (prod and stag)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'failed=0; for env in prod stag; do /usr/local/sbin/omnicourse-root nightly-dump "$$env" || failed=1; done; exit "$$failed"'
+Nice=10
+IOSchedulingClass=best-effort

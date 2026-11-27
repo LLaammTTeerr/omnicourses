@@ -5,6 +5,7 @@ import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 
 @Entity({ name: 'transcript_rows' })
 @Index('ix_transcript_rows_user_id', ['userId'])
+@Index('idx_transcript_rows_course_code', ['courseCode'])
 export class TranscriptRow {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

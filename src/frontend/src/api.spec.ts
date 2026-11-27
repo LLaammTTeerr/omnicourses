@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, codePoints, failureKind, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
+import { API_URL, codePoints, failureKind, fetchHealth, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
@@ -13,6 +13,15 @@ describe('Health against the contract', () => {
     const database: Record<Health['database'], true> = { up: true, down: true };
     expect(Object.keys(status).sort()).toEqual(contractEnum('HealthDto', 'status'));
     expect(Object.keys(database).sort()).toEqual(contractEnum('HealthDto', 'database'));
+  });
+
+  it('returns the degraded payload on HTTP 503 database-down responses while still failing on proxy 502/503 HTML', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({ status: 'degraded', database: 'down' }, { status: 503 }));
+    await expect(fetchHealth()).resolves.toEqual({ status: 'degraded', database: 'down' });
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('<html>503</html>', { status: 503 }));
+    await expect(fetchHealth()).rejects.toBeInstanceOf(HttpError);
+    vi.restoreAllMocks();
   });
 });
 
@@ -132,8 +141,9 @@ describe('failureKind', () => {
     expect(failureKind(new HttpError('/x', status))).toBe(kind);
   });
 
-  it('tells a timeout from a request that never reached the API', () => {
+  it('tells a timeout and a caller abort from a request that never reached the API', () => {
     expect(failureKind(new DOMException('The operation timed out.', 'TimeoutError'))).toBe('timed_out');
+    expect(failureKind(new DOMException('Left the page', 'AbortError'))).toBe('aborted');
     expect(failureKind(new TypeError('Failed to fetch'))).toBe('unreachable');
   });
 });

@@ -1,6 +1,6 @@
 # Class model
 
-- Drawn from the code on `main` on 15 November 2026 (commit `47e4ba3`), not from the UI prototypes or the use-case specifications. Every class, attribute, relation and method below exists in `src/`; each diagram names its source files. The academic calendar (§1.6, §3.5 and the `calendar/` row of §4) was added from `main` on 17 November 2026 (commit `b6892b7`). The notification inbox (§1.8, §3.6, and the three methods it reads in §3.2 and §3.5) was added on 25 November 2026 with the code of [ADR 0018](adr/0018-notification-inbox.md); it is built in the API only, so §4 has no row for it.
+- Drawn from the code on `main` on 15 November 2026 (commit `47e4ba3`), not from the UI prototypes or the use-case specifications, and synchronized through 27 November 2026 (`academic-calendar`, `notifications`, `sharing`, `ProgramAdminController`, `CsvImportController`, the `RESTRICT` foreign-key rules on requirement groups, and the single-page app's `admin/`, `notifications/`, `sharing/` and `privacy/` modules). Every class, attribute, relation and method below exists in `src/`; each diagram names its source files.
 - Where the built code differs from a use-case specification, the code is drawn and the difference is listed in [Design vs. use-case specification differences](design-differences.md).
 - Level: this is the fourth C4 level (code) under the [software architecture document](architecture.md). The matching behaviour is in the [sequence diagrams](sequence-diagrams/README.md).
 
@@ -178,9 +178,9 @@ classDiagram
     RequirementGroupCourse "0..*" --> "1" Course : course_code RESTRICT
     CombinedMinimum "0..*" --> "1" Curriculum : curriculum_id CASCADE
     CombinedMinimumGroup "1..*" --> "1" CombinedMinimum : combined_minimum_id CASCADE
-    CombinedMinimumGroup "0..*" --> "1" RequirementGroup : requirement_group_id CASCADE
-    RequirementGroupOverflow "0..1" --> "1" RequirementGroup : from_group_id CASCADE
-    RequirementGroupOverflow "0..*" --> "1" RequirementGroup : to_group_id CASCADE
+    CombinedMinimumGroup "0..*" --> "1" RequirementGroup : requirement_group_id RESTRICT
+    RequirementGroupOverflow "0..1" --> "1" RequirementGroup : from_group_id RESTRICT
+    RequirementGroupOverflow "0..*" --> "1" RequirementGroup : to_group_id RESTRICT
     CoursePrerequisiteList "0..*" --> "1" Curriculum : curriculum_id CASCADE
     CoursePrerequisiteList "0..*" --> "1" Course : course_code RESTRICT
     CoursePrerequisite "0..*" --> "1" CoursePrerequisiteList : curriculum_id, course_code CASCADE
@@ -396,7 +396,7 @@ classDiagram
 | `User` | `Session`, `OnboardingAnswers`, `TranscriptRow`, `AiUsage`, `Plan`, `PlanPlacement`, `PlanShare`, `Notification`, `ProgramAdminGrant` and `GlobalAdminGrant` the user holds | none | grants the user gave (`granted_by`); `AcademicCalendarEvent` rows the user created or last changed (`created_by`, `updated_by`) |
 | `Program` | none | `Curriculum`, `ProgramAdminGrant`, `AcademicCalendarEvent` | none |
 | `Curriculum` | `RequirementGroup`, `CombinedMinimum`, `CoursePrerequisiteList`, `CourseOfferingTerm` | `Plan` | none |
-| `RequirementGroup` | `RequirementGroupCourse`, `CombinedMinimumGroup`, `RequirementGroupOverflow` | `PlanPlacement` slots | none |
+| `RequirementGroup` | `RequirementGroupCourse` | `PlanPlacement` slots; `CombinedMinimumGroup` (`fk_combined_minimum_groups_group`); `RequirementGroupOverflow` (`fk_group_overflows_from`, `fk_group_overflows_to`) | none |
 | `Course` | none | `RequirementGroupCourse`, `CoursePrerequisiteList`, `CoursePrerequisite`, `CourseOfferingTerm` | none |
 | `Plan` | `PlanPlacement`, `PlanShare` | none | none |
 | `Guide` | `GuideText` | none | none |
@@ -407,7 +407,7 @@ Deleting an `AcademicCalendarEvent` deletes no `Notification` and clears nothing
 
 ### 1.8 Notification inbox
 
-Sources: `notifications/notification.entity.ts`, `notifications/notification-kinds.ts`; migration `create-notifications` ([ADR 0018](adr/0018-notification-inbox.md), proposed).
+Sources: `notifications/notification.entity.ts`, `notifications/notification-kinds.ts`; migration `create-notifications` ([ADR 0018](adr/0018-notification-inbox.md)).
 
 ```mermaid
 classDiagram
@@ -921,10 +921,12 @@ classDiagram
     AccountController --> AccountService
     AccountService --> UsersService
     AccountService --> AuthService
+    AccountService --> SharingService : stopAllWithin
     AccountService --> DataSource : transaction, catalog queries
     AccountPurgeService --> User : Repository
     class Session
     class User
+    class SharingService
     class DataSource
 ```
 
@@ -972,6 +974,7 @@ classDiagram
         +getCourse(code) CourseDetailDto
         +findCurriculumId(programCode, cohortYear) string
         +catalogCourses(codes) Map
+        +curriculumLabels(curriculumId) CurriculumLabels?
         +requirementGroupIds(curriculumId) Set
     }
     class CurriculumRulesReader {
@@ -1000,6 +1003,7 @@ classDiagram
     }
     class PlansService {
         +list(userId) PlanListItemDto list
+        +find(userId, planId) PlanDto?
         +get(userId, planId) PlanDto
         +create(userId, input) PlanDto
         +rename(userId, planId, name) PlanDto
@@ -1036,13 +1040,14 @@ Each service reaches its own tables through TypeORM repositories (left out of th
 
 ### 3.3 Curriculum administration
 
-Sources: `curriculum-admin/`. The API is built and tested ([ADR 0011](adr/0011-curriculum-administration.md)); the single-page app has no administration screen yet.
+Sources: `curriculum-admin/` ([ADR 0011](adr/0011-curriculum-administration.md)); the single-page app screens are in `src/frontend/src/admin/` (§4).
 
 ```mermaid
 classDiagram
     direction LR
     class CurriculumAdminController {
         +programs(user) AdminProgramListDto
+        +grants(user) UserGrantsDto
         +createGroup()
         +updateGroup()
         +deleteGroup()
@@ -1053,10 +1058,24 @@ classDiagram
         +setOfferingTerms()
         +clearOfferingTerms()
     }
+    class ProgramAdminController {
+        +createProgram(user, dto) ProgramDetailsDto
+        +updateProgram(user, programId, dto) ProgramDetailsDto
+        +listCohorts(user, programId) CohortListDto
+        +createCohort(user, programId, dto) CohortDetailsDto
+        +getCohort(user, programId, curriculumId) CohortDetailsDto
+        +updateCohort(user, programId, curriculumId, dto) CohortDetailsDto
+    }
     class CatalogAdminController {
         +create(user, dto) CourseDto
         +update(user, courseCode, dto) CourseDto
         +delete(user, courseCode)
+    }
+    class CsvImportController {
+        +previewCatalog(user, dto) CatalogImportPreviewDto
+        +confirmCatalog(user, dto) ImportResultDto
+        +previewLinks(user, programId, curriculumId, dto) GroupLinkImportPreviewDto
+        +confirmLinks(user, programId, curriculumId, dto) ImportResultDto
     }
     class AccessAdminController {
         +programs(user) AccessProgramListDto
@@ -1068,6 +1087,7 @@ classDiagram
     }
     class CurriculumAdminService {
         +editablePrograms(callerId)
+        +ownGrants(callerId) UserGrantsDto
         +createGroup(callerId, programId, curriculumId, dto)
         +updateGroup(callerId, programId, curriculumId, groupId, dto)
         +deleteGroup(callerId, programId, curriculumId, groupId)
@@ -1078,10 +1098,25 @@ classDiagram
         +setOfferingTerms(callerId, programId, curriculumId, rawCode, dto)
         +clearOfferingTerms(callerId, programId, curriculumId, rawCode)
     }
+    class ProgramAdminService {
+        +createProgram(callerId, dto) ProgramDetailsDto
+        +updateProgram(callerId, programId, dto) ProgramDetailsDto
+        +listCohorts(callerId, programId) CohortDetailsDto list
+        +getCohort(callerId, programId, curriculumId) CohortDetailsDto
+        +createCohort(callerId, programId, dto) CohortDetailsDto
+        +updateCohort(callerId, programId, curriculumId, dto) CohortDetailsDto
+    }
     class CatalogAdminService {
         +createCourse(callerId, dto) CourseDto
         +updateCourse(callerId, rawCode, dto) CourseDto
         +deleteCourse(callerId, rawCode)
+    }
+    class CsvImportService {
+        +previewCatalog(callerId, dto) CatalogImportPreviewDto
+        +confirmCatalog(callerId, dto) ImportResultDto
+        +previewLinks(callerId, programId, curriculumId, dto) GroupLinkImportPreviewDto
+        +confirmLinks(callerId, programId, curriculumId, dto) ImportResultDto
+        +validationRevision() string
     }
     class AccessAdminService {
         +programs(callerId)
@@ -1092,7 +1127,9 @@ classDiagram
         +revokeGlobal(callerId, userId, permission)
     }
     class AdminWriteService {
-        +run(callerId, need, write, otherUserIds)
+        +run(callerId, need, write)
+        +runForRecipient(callerId, recipientId, write)
+        +read(callerId, need, read)
     }
     class Need {
         <<union>>
@@ -1100,22 +1137,30 @@ classDiagram
         global permission
     }
     CurriculumAdminController --> CurriculumAdminService
+    ProgramAdminController --> ProgramAdminService
     CatalogAdminController --> CatalogAdminService
+    CsvImportController --> CsvImportService
     AccessAdminController --> AccessAdminService
     CurriculumAdminService --> AdminWriteService
+    ProgramAdminService --> AdminWriteService
     CatalogAdminService --> AdminWriteService
+    CsvImportService --> AdminWriteService
+    CsvImportService --> CatalogAdminService
+    CsvImportService --> CurriculumAdminService
     AccessAdminService --> AdminWriteService
     AdminWriteService ..> Need : checks grants against
-    AdminWriteService --> DataSource : one transaction per write
+    AdminWriteService --> DataSource : one transaction per write or snapshot read
     class DataSource
 ```
 
-`AdminWriteService.run` opens a transaction, locks the caller's row (`lockAdminWrite`), refuses a caller whose account is scheduled for deletion, reads the caller's grants (`grantsOf`) and answers 403 `permission_required` when `missingPermission` finds the `Need` uncovered; only then does the write run. `prerequisite-cycle.ts` refuses a prerequisite cycle. The first access manager is granted from a shell by `bootstrap-cli.ts` (`bootstrapAccessManager`), never over HTTP.
+`AdminWriteService.run` (and `runForRecipient`, which also locks the recipient row in UUID order) opens a transaction, takes the advisory write lock (`lockAdminWrite`), refuses a caller whose account is scheduled for deletion, reads the caller's grants (`grantsOf`) and answers 403 `permission_required` when `missingPermission` finds the `Need` uncovered; only then does the write run. `AdminWriteService.read` checks the same grants inside a `REPEATABLE READ`, `READ ONLY` transaction without taking the write lock (used by cohort detail reads and CSV previews). `prerequisite-cycle.ts` refuses a prerequisite cycle. The first access manager is granted from a shell by `bootstrap-cli.ts` (`bootstrapAccessManager`), never over HTTP.
 
 | Controller | Routes |
 | --- | --- |
-| `CurriculumAdminController` | `GET /admin/programs`; under `/admin/programs/{programId}/cohorts/{curriculumId}`: `POST /requirement-groups`, `PATCH`, `DELETE /requirement-groups/{groupId}`, `PUT`, `DELETE /requirement-groups/{groupId}/courses/{courseCode}`, `PUT`, `DELETE /courses/{courseCode}/prerequisites`, `PUT`, `DELETE /courses/{courseCode}/offering-terms` |
+| `CurriculumAdminController` | `GET /admin/programs`, `GET /admin/grants`; under `/admin/programs/{programId}/cohorts/{curriculumId}`: `POST /requirement-groups`, `PATCH`, `DELETE /requirement-groups/{groupId}`, `PUT`, `DELETE /requirement-groups/{groupId}/courses/{courseCode}`, `PUT`, `DELETE /courses/{courseCode}/prerequisites`, `PUT`, `DELETE /courses/{courseCode}/offering-terms` |
+| `ProgramAdminController` | `POST /admin/programs`; `PATCH /admin/programs/{programId}`; `GET`, `POST /admin/programs/{programId}/cohorts`; `GET`, `PATCH /admin/programs/{programId}/cohorts/{curriculumId}` |
 | `CatalogAdminController` | `POST /admin/catalog/courses`, `PATCH`, `DELETE /admin/catalog/courses/{courseCode}` |
+| `CsvImportController` | `POST /admin/catalog/imports/preview`, `POST /admin/catalog/imports/confirm`; `POST /admin/programs/{programId}/cohorts/{curriculumId}/imports/preview`, `POST /admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm` |
 | `AccessAdminController` | `GET /admin/access/programs`, `GET /admin/access/users/{userId}/grants`, `PUT`, `DELETE /admin/access/users/{userId}/programs/{programId}`, `PUT`, `DELETE /admin/access/users/{userId}/global/{permission}` |
 
 ### 3.4 Guides, health and the AI gateway
@@ -1222,7 +1267,7 @@ classDiagram
 - Reading: any signed-in user. `AcademicCalendarQueryDto` takes `program` (a program code), `academicYear`, `from` and `to`. Without `program`, the service reads the caller's program from `onboarding_answers.program_code`; with none, it answers `program: null` and no events. An unknown program code is 404 `not_found`, and `to` before `from` is 400 `validation_failed`. `from` and `to` keep every date that overlaps the range. The events come ordered by `startsOn`, `endsOn`, `title` and `id`.
 - Writing: a program administrator of that program. Each write runs inside `AdminWriteService.run` with the need `{ program: programId }`, so it uses F12's grant check, write lock and error codes, and has no guard of its own ([ADR 0011](adr/0011-curriculum-administration.md)). `AcademicCalendarModule` imports `CurriculumAdminModule`, which exports `AdminWriteService`. `StrictBody` refuses a body field that `CreateCalendarEventDto` or `UpdateCalendarEventDto` does not declare.
 - Checks before a write: `IsCalendarDate` refuses a date that is not a real `YYYY-MM-DD` day; `datesProblem` refuses an `endsOn` before `startsOn` and a `startsOn` outside the academic year's two calendar years; `sourceUrl` must start with lowercase `https://`. `eventIn` answers 404 for an event of another program. `eventDto` leaves out `createdBy` and `updatedBy`.
-- The single-page app only reads: the `calendar/` folder (§4). No screen calls the write routes yet.
+- In the single-page app, `calendar/` (`CalendarView`, §4) reads the dates for students and `admin/` (`CalendarAdmin`, at `/admin/calendar`) calls the write routes.
 - `startingOn` has no route. It is the read-only method the notification inbox calls (§3.6): the dates of the given kinds whose first day is one of the given days, in every program, as `CalendarEventStart` (the program code, the kind, the days and the titles; no notes, no source link, no actor ID). `AcademicCalendarModule` exports the service for it.
 
 | Controller | Routes |
@@ -1231,7 +1276,7 @@ classDiagram
 
 ### 3.6 Notification inbox
 
-Sources: `notifications/`, `config/clock.ts`, `transcript/transcript-change.ts` ([ADR 0018](adr/0018-notification-inbox.md), proposed).
+Sources: `notifications/`, `config/clock.ts`, `transcript/transcript-change.ts` ([ADR 0018](adr/0018-notification-inbox.md)).
 
 ```mermaid
 classDiagram
@@ -1300,11 +1345,64 @@ classDiagram
 - The transcript: `TranscriptService.replace` (§3.2) calls its listeners inside the save's transaction with a `TranscriptSave`. The service writes one `transcript_changed` row through that transaction when `changed` is true and `wasEmpty` is false. A save that fails leaves no row, and the listener is never given a transcript row.
 - Reading: the caller's own notifications only; no route takes a user ID. `list` orders by `createdAt` then `id`, both descending, and takes the filters `unread` and `kind`, `limit` (default 50, at most 100) and `before` (the ID of the last notification of the previous page). `NotificationDto.links` holds keys (`calendar`, `planner`, `audit`), never a URL. Another student's ID, an unknown ID and a malformed ID (`NotificationIdPipe`) all answer 404 `not_found`.
 - `markRead` and `markAllRead` can be repeated without effect: `readAt` keeps the first time.
-- No screen calls these routes yet: the single-page app has no bell and no inbox (§4).
+- In the single-page app, `notifications/` (§4) renders the inbox at `/notifications` (`NotificationsView`) and the unread badge (`UnreadBadge`, fed by `useUnread`).
 
 | Controller | Routes |
 | --- | --- |
 | `NotificationsController` | `GET /notifications`; `GET /notifications/unread-count`; `POST /notifications/read-all`; `POST /notifications/{id}/read` |
+
+### 3.7 Plan sharing
+
+Sources: `sharing/` (`sharing.controller.ts`, `sharing.service.ts`, `shared-plan.ts`, `sharing.module.ts`; [ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026).
+
+```mermaid
+classDiagram
+    direction LR
+    class PlanShareController {
+        +state(user, id) PlanShareStateDto
+        +share(user, id, dto) PlanShareDto
+        +stop(user, id)
+    }
+    class SharedPlansController {
+        +read(token) SharedPlanDto
+    }
+    class SharingService {
+        +shareOf(userId, planId) PlanShareDto?
+        +share(userId, planId, choices) PlanShareDto
+        +stop(userId, planId)
+        +stopAllWithin(manager, userId)
+        +read(token) SharedPlanDto
+    }
+    class PlansService {
+        +get(userId, planId) PlanDto
+        +find(userId, planId) PlanDto?
+    }
+    class CurriculumService {
+        +catalogCourses(codes) Map
+        +curriculumLabels(curriculumId) CurriculumLabels?
+    }
+    class RulesService {
+        +issuesFor(plan, userId?) PlanIssuesReport
+    }
+    PlanShareController --> SharingService
+    SharedPlansController --> SharingService
+    SharingService --> PlansService
+    SharingService --> CurriculumService
+    SharingService --> RulesService
+    SharingService --> DataSource : transaction, queries
+    SharingService ..> PlanShare
+    class DataSource
+    class PlanShare
+```
+
+- Owner routes (`PlanShareController`): behind sign-in; `PlansService.get(userId, planId)` checks ownership and answers 404 when the plan does not belong to the caller. `PUT /plans/{id}/share` runs in a transaction with `FOR SHARE` on `users` (refusing an account with `deletion_requested_at` set) and upserts `plan_shares` (`ON CONFLICT (plan_id) DO UPDATE`), keeping an existing token and updating only the explicitly supplied booleans (`showName`, `showTranscriptChecks`). Both `GET` and `PUT` send `Cache-Control: no-store`. `DELETE` deletes the `plan_shares` row so the link stops working at once.
+- Public read (`SharedPlansController`): `@Public()`. Middleware `sharedPlanHeaders` (`sharing.module.ts`) sets `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store` on every `/shared-plans` response before guards run. A token that does not match `^[A-Za-z0-9_-]{43}$`, a stopped link, a deleted plan, or an owner waiting for deletion all answer the same `404` (`NotSharedDto`). When `showTranscriptChecks` is `false`, `RulesService.issuesFor(plan, null)` checks the plan without reading the transcript and `sharedPlan()` lists the four omitted codes in `issueCodesNotShown`; when `true`, the owner's transcript-backed issues and requirement `coverage` are included, with names in place of IDs and never a grade.
+- Account deletion: `AccountService.requestDeletion` (§3.1) calls `SharingService.stopAllWithin(manager, user.id)` in the transaction that revokes every session, permanently deleting all `plan_shares` rows of the user.
+
+| Controller | Routes |
+| --- | --- |
+| `PlanShareController` (`plans/{id}/share`) | `GET`, `PUT`, `DELETE /plans/{id}/share` |
+| `SharedPlansController` (`shared-plans`) | `GET /shared-plans/{token}` (public) |
 
 ## 4. Single-page app modules
 
@@ -1315,15 +1413,19 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `/` (root) | `App.vue`, `views/HomeView.vue` | `async-load.ts` (`useAsyncLoad`), `locale.ts` | `api.ts`: `send`, `request`, `getJson`, `statusOf`, `HttpError` | `router.ts`, `terms.ts` |
 | `auth/` | `SignInView`, `SignUpView` | `store.ts`: `useAuth` (`start`, `signIn`, `signUp`, `signOut`, `authed`, `clear`) | `signUp`, `signIn`, `refresh`, `signOut`, `listSessions`, `revokeSession` | `redirect.ts`, `password-strength.ts` |
 | `onboarding/` | `OnboardingView`, `StudySettings`, `GoalFields` | `store.ts`: `useOnboarding` (`load`, `save`) | `fetchOnboarding`, `saveOnboarding` | `answers.ts` |
-| `transcript/` | `TranscriptView` | `codes.ts`: `useTranscriptCodes` | `fetchTranscript`, `saveTranscript` | `rows.ts` (`DraftRow`, `problems`, `toRow`, `fromRow`, `blankRow`) |
+| `transcript/` | `TranscriptView` | `codes.ts`: `useTranscriptCodes` | `fetchTranscript`, `saveTranscript` | `rows.ts` (`DraftRow`, `problems`, `toRow`, `fromRow`, `blankRow`), `paste.ts` (deterministic grades-table parser and diff) |
 | `audit/` | `DashboardView`, `AuditView`, `AuditGate` | `present.ts`: `useAudit` | `fetchAudit` | `present.ts` (`shownGroups`, `conditionLabel`, `formatScore`) |
-| `curriculum/`, `explorer/` | `ExplorerView`, `CourseDrawer` | none | `fetchPrograms`, `fetchCurriculum`, `fetchCourse` | `curriculum/present.ts` (`matches`, `orderGroups`, `groupColour`) |
-| `plans/` | `PlannerEntry`, `PlansView`, `PlanEditorView`, `IssuesPanel`, `StatusStrip`, `PlanTabs`, dialogs | none | `fetchPlans`, `createPlan`, `fetchPlan`, `renamePlan`, `duplicatePlan`, `deletePlan`, `savePlacements`, `fetchPlanIssues`, `previewPlanIssues`, `previewPlanDrops` | `board.ts` (`Board`, `boardOf`, `boardBody`, `moveTile`, `attachIssues`, `dropVerdict`), `drag.ts`, `lock.ts`, `last-plan.ts` |
+| `curriculum/`, `explorer/` | `ExplorerView`, `CourseDrawer` | none | `fetchPrograms`, `fetchCurriculum`, `fetchCourse` | `curriculum/present.ts` (`matches`, `orderGroups`, `groupColour`, readiness states and unlocks) |
+| `plans/` | `PlannerEntry`, `PlansView`, `PlanEditorView`, `IssuesPanel`, `StatusStrip`, `PlanTabs`, dialogs | `session.ts` (`usePlanSession`, `useDropPreview`), `present.ts` (`usePlanCourses`, `usePlanView`) | `fetchPlans`, `createPlan`, `fetchPlan`, `renamePlan`, `duplicatePlan`, `deletePlan`, `savePlacements`, `fetchPlanIssues`, `previewPlanIssues`, `previewPlanDrops` | `board.ts` (`Board`, `boardOf`, `boardBody`, `moveTile`, `attachIssues`, `dropVerdict`), `actions.ts`, `drag.ts`, `flip.ts`, `lock.ts`, `last-plan.ts` |
+| `sharing/` | `SharePlanDialog`, `SharedPlanView` | none | `sharing/api.ts`: owner share state/create/update/stop (`/plans/{id}/share`) and public read (`/shared-plans/{token}`) | `messages.ts` |
 | `account/` | `SettingsView`, `DeleteAccountDialog` | none | `exportAccount`, `deleteAccount`, `saveFile` | `user-agent.ts` |
+| `privacy/` | `PrivacyView` | none | none | `messages.ts` (`PRIVACY_MESSAGES`, `PRIVACY_UPDATED_ON`) |
 | `guides/` | `GuidesView`, `GuideView` | none | `fetchGuides`, `fetchGuide` | `pick-text.ts`, `search.ts` |
 | `calendar/` | `CalendarView` (week and month views at `/calendar`) | none | `fetchAcademicCalendar` | `dates.ts` (`mondayOf`, `sundayOf`, `thursdayOf`, `weekDays`, `dayOfMonth`, `daysFromTo`, `isWeekend`, `monthDays`, `monthWeeks`, `academicYearOf`, `termWeek`, `eventsByDay`) |
+| `notifications/` | `NotificationsView`, `UnreadBadge` | `store.ts`: `useUnread` (`count`, `refresh`, `set`, `UNREAD_POLL_MS`) | `fetchNotifications`, `fetchUnreadCount`, `markRead`, `markAllRead` | `messages.ts` (`eventLine`) |
+| `admin/` | `AdminView`, `CurriculumAdmin`, `CatalogAdmin`, `ImportAdmin`, `AccessAdmin`, `CalendarAdmin`, dialogs (`ProgramDialog`, `CohortDialog`, `GroupDialog`, `CourseDialog`, `PrerequisitesDialog`, `OfferingTermsDialog`, `ConfirmDialog`, `ProblemNote`, `FieldErrors`) | `store.ts`: `useAdminAccess` (`load`, `holds`), `useProgramPicker`; `write.ts`: `useWrites`, `useAdminDialog`, `settleWrite`, `stayWhileBusy` | `fetchOwnGrants`, `fetchAdminPrograms`, `createProgram`, `updateProgram`, `fetchCohorts`, `createCohort`, `fetchCohort`, `updateCohort`, `createGroup`, `updateGroup`, `deleteGroup`, `linkCourse`, `unlinkCourse`, `setPrerequisites`, `clearPrerequisites`, `setOfferingTerms`, `clearOfferingTerms`, `createCourse`, `updateCourse`, `deleteCourse`, `fetchAccessPrograms`, `fetchUserGrants`, `grantProgram`, `revokeProgram`, `grantGlobal`, `revokeGlobal`, `previewCatalogImport`, `confirmCatalogImport`, `previewLinkImport`, `confirmLinkImport`, calendar-event admin writes | `sections.ts`, `errors.ts`, `forms.ts`, `problem.ts`, `csv-file.ts` |
 
-`useAuth().authed(call)` runs an API call with the session token and clears the session on a 401; `App.vue` then sends the student to sign-in. The router guard (`router.ts`, `onboardingFirst`) sends a signed-in student whose onboarding is unfinished to `/onboarding` before any private page except `/settings`.
+`useAuth().authed(call)` (and `requestAsUser`) runs an API call with the session token and clears the session on a 401; `App.vue` then sends the student to sign-in. The router guard (`router.ts`, `onboardingFirst`) sends a signed-in student whose onboarding is unfinished to `/onboarding` before any private page except `/settings` and `/admin`.
 
 ## 5. Features and decisions
 
@@ -1339,11 +1441,11 @@ The Vue app has no classes of its own apart from `HttpError`; each feature folde
 | `Term`, `termYear` and `termNumber` columns | 1.1, 1.4, 2.1 | F2, F3, F5 | [ADR 0009](adr/0009-term-encoding.md) |
 | `Plan`, `PlanPlacement`, `BoardTerm`, `Placement`, `PlansService`, `RulesService`, `PlanIssuesReport`, `checkPlan` | 1.4, 2.3, 2.4, 3.2 | F5 (and the copy a what-if scenario of F7 starts from) | [ADR 0014](adr/0014-plan-model.md); [ADR 0015](adr/0015-rule-engine-in-the-browser.md) for where the drag preview runs |
 | `CoursePrerequisiteList`, `CoursePrerequisite`, `CourseOfferingTerm`, `CurriculumRulesReader`, `checkPrerequisites`, `checkOfferingTerm` | 1.2, 2.4 | F4, F5, F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
-| `ProgramAdminGrant`, `GlobalAdminGrant`, `AdminWriteService`, the three administration services and controllers | 1.3, 3.3 | F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
+| `ProgramAdminGrant`, `GlobalAdminGrant`, `AdminWriteService`, the five administration services and controllers, `AdminView` and its sections | 1.3, 3.3, 4 | F12 | [ADR 0011](adr/0011-curriculum-administration.md) |
 | `Guide`, `GuideText`, `GuideContent`, `GuidesService` | 1.5, 3.4 | F11 | [ADR 0010](adr/0010-public-pages-and-guide-content.md) |
 | `AiUsage`, `LlmService`, `GatewayLlmService`, `AiCostGuard`, `ModelClient` | 1.1, 3.4 | F6 goal box and F8 (the gateway) | [ADR 0003](adr/0003-language-model-scope.md) |
-| `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView` | 1.6, 3.5, 4 | F10 school dates (the dates and the calendar page) | [ADR 0017](adr/0017-academic-calendar.md) |
-| `Notification`, `NotificationsService`, `NotificationSchedule`, `NotificationsController`, `Clock`, `TranscriptSave` | 1.8, 3.6 | F10 notification inbox | [ADR 0018](adr/0018-notification-inbox.md) |
-| `PlanShare` (`SharingService`, `PlanShareController` and `SharedPlansController` in `sharing/` are not drawn in §3 yet) | 1.4, 1.7 | F9 shared plans | [ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026 |
+| `AcademicCalendarEvent`, `AcademicCalendarService`, `AcademicCalendarController`, `CalendarView`, `CalendarAdmin` | 1.6, 3.5, 4 | F10 school dates (the dates, `/calendar` and `/admin/calendar`) | [ADR 0017](adr/0017-academic-calendar.md) |
+| `Notification`, `NotificationsService`, `NotificationSchedule`, `NotificationsController`, `Clock`, `TranscriptSave`, `NotificationsView`, `UnreadBadge`, `useUnread` | 1.8, 3.6, 4 | F10 notification inbox | [ADR 0018](adr/0018-notification-inbox.md) |
+| `PlanShare`, `SharingService`, `PlanShareController`, `SharedPlansController`, `SharePlanDialog`, `SharedPlanView` | 1.4, 1.7, 3.7, 4 | F9 shared plans | [ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026 |
 
 Which features have an API and a screen is in the [README feature table](../../README.md#what-is-built). The stack these classes are written in is [ADR 0001](adr/0001-technology-stack.md); how they are tested in a browser is [ADR 0008](adr/0008-browser-testing.md).

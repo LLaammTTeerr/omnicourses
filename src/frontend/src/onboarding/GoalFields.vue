@@ -26,23 +26,25 @@ const shows = (field: Field) => props.fields.includes(field);
 const id = (field: Field) => `${props.idPrefix}-${field}`;
 const errorsOf = (field: Field) => props.errors[field] ?? [];
 const creditsErrors = computed(() => (creditsCheck.value ? [m.value.creditsProblems[creditsCheck.value]] : errorsOf('credits')));
+const describedBy = (field: Field, hasError: boolean) => (hasError ? `${id(field)}-hint ${id(field)}-error` : `${id(field)}-hint`);
 </script>
 
 <template>
   <div class="goal-fields">
-    <label v-if="shows('graduation')" class="field">
-      <span>{{ m.graduation }}</span>
+    <div v-if="shows('graduation')" class="field">
+      <span class="label">{{ m.graduation }}</span>
       <SelectMenu
         :id="id('graduation')"
         v-model="graduation"
         class="goal-select"
+        :aria-label="m.graduation"
         :options="[{ value: '', label: m.notSure }, ...termOptions]"
         :aria-invalid="errorsOf('graduation').length > 0 || undefined"
-        :aria-describedby="`${id('graduation')}-hint ${id('graduation')}-error`"
+        :aria-describedby="describedBy('graduation', errorsOf('graduation').length > 0)"
       />
       <small :id="`${id('graduation')}-hint`" class="hint">{{ m.graduationHint }}</small>
       <small v-if="errorsOf('graduation').length" :id="`${id('graduation')}-error`" class="field-error" role="alert">{{ errorsOf('graduation').join(' ') }}</small>
-    </label>
+    </div>
 
     <div v-if="shows('credits')" class="field">
       <label :for="id('credits')">{{ m.credits }}</label>
@@ -54,7 +56,7 @@ const creditsErrors = computed(() => (creditsCheck.value ? [m.value.creditsProbl
           inputmode="numeric"
           autocomplete="off"
           :aria-invalid="creditsErrors.length > 0 || undefined"
-          :aria-describedby="`${id('credits')}-hint ${id('credits')}-error`"
+          :aria-describedby="describedBy('credits', creditsErrors.length > 0)"
         />
         <span class="t3">{{ m.creditsUnit }}</span>
       </div>
@@ -62,23 +64,24 @@ const creditsErrors = computed(() => (creditsCheck.value ? [m.value.creditsProbl
       <small v-if="creditsErrors.length" :id="`${id('credits')}-error`" class="field-error" role="alert" data-test="credits-error">{{ creditsErrors.join(' ') }}</small>
     </div>
 
-    <label v-if="shows('internship')" class="field">
-      <span>{{ m.internship }}</span>
+    <div v-if="shows('internship')" class="field">
+      <span class="label">{{ m.internship }}</span>
       <SelectMenu
         :id="id('internship')"
         v-model="internship"
         class="goal-select"
+        :aria-label="m.internship"
         :options="[{ value: '', label: m.notAnswered }, { value: NO_INTERNSHIP, label: m.noInternship }, ...termOptions]"
         :aria-invalid="errorsOf('internship').length > 0 || undefined"
-        :aria-describedby="`${id('internship')}-hint ${id('internship')}-error`"
+        :aria-describedby="describedBy('internship', errorsOf('internship').length > 0)"
       />
       <small :id="`${id('internship')}-hint`" class="hint">{{ m.internshipHint }}</small>
       <small v-if="errorsOf('internship').length" :id="`${id('internship')}-error`" class="field-error" role="alert">{{ errorsOf('internship').join(' ') }}</small>
-    </label>
+    </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 .goal-fields { display: grid; gap: 18px; }
 .goal-fields .goal-select { max-width: 320px; }
 .goal-fields .field > span, .goal-fields .field > label { font-weight: 650; font-size: 13.5px; }

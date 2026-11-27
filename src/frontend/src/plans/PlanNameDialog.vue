@@ -60,6 +60,6 @@ function save(): void {
   </ModalDialog>
 </template>
 
-<style>
+<style scoped>
 .plan-name-form { gap: 14px; }
 </style>

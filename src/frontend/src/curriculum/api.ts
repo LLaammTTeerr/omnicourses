@@ -74,9 +74,29 @@ export interface CourseDetail extends Course {
   memberships: CourseMembership[];
 }
 
+export const TRANSCRIPT_COURSE_STATUSES = ['passed', 'in_progress', 'failed'] as const;
+export type TranscriptCourseStatus = (typeof TRANSCRIPT_COURSE_STATUSES)[number];
+
+export const COURSE_READINESS_STATES = ['available', 'locked'] as const;
+export type CourseReadiness = (typeof COURSE_READINESS_STATES)[number];
+
+export interface CourseStanding {
+  code: string;
+  transcriptStatus: TranscriptCourseStatus | null;
+  readiness: CourseReadiness | null;
+  missingPrerequisites: string[];
+}
+
+export interface CurriculumStanding {
+  courses: CourseStanding[];
+}
+
 export const fetchPrograms = () => requestAsUser<ProgramList>('GET', '/programs');
 
 export const fetchCurriculum = (program: string, cohort: number) =>
   requestAsUser<Curriculum>('GET', `/programs/${segment(program)}/curricula/${cohort}`);
+
+export const fetchCurriculumStanding = (program: string, cohort: number) =>
+  requestAsUser<CurriculumStanding>('GET', `/programs/${segment(program)}/curricula/${cohort}/standing`);
 
 export const fetchCourse = (code: string) => requestAsUser<CourseDetail>('GET', `/courses/${segment(code)}`);

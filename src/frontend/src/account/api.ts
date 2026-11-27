@@ -2,6 +2,12 @@ import { segment } from '../api.js';
 import type { Session, User } from '../auth/api.js';
 import { requestAsUser, sendAsUser } from '../auth/store.js';
 
+export interface AccountExport {
+  exportedAt: string;
+  user: Record<string, unknown>;
+  tables: Record<string, Record<string, unknown>[]>;
+}
+
 export interface DeleteAccountBody {
   password: string;
 }

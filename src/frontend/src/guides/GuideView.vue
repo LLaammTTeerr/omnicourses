@@ -22,7 +22,13 @@ const t = computed(() => picked.value?.text ?? null);
 const textLang = computed(() => (picked.value?.fallback ? picked.value.lang : undefined));
 const missing = computed(() => status.value === 'loaded' && picked.value === null);
 const date = (iso: string) => formatDate(iso, locale.lang);
-const host = (url: string) => new URL(url).host;
+function host(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
 
 usePageTitle(() => t.value?.title ?? (missing.value ? m.value.notFoundTitle : m.value.guides));
 </script>

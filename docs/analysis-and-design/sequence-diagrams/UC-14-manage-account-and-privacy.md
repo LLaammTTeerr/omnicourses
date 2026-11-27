@@ -80,6 +80,7 @@ sequenceDiagram
         Users->>DB: UPDATE users SET deletion_requested_at = now, purge_after = purgeAfter
         Svc->>AuthSvc: revokeAllWithin(tx, user.id)
         AuthSvc->>DB: UPDATE sessions SET revoked_at = now<br/>WHERE user_id = user.id AND revoked_at IS NULL
+        Svc->>DB: SharingService.stopAllWithin(tx, user.id) -> DELETE FROM plan_shares WHERE user_id = user.id
         Svc->>DB: COMMIT
         Svc-->>Ctrl: DeletionScheduledDto { purgeAfter }
         Ctrl-->>Api: 202 { purgeAfter }

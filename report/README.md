@@ -17,7 +17,9 @@ report/
 │   └── WeeklyReport-WeekNN.tex # One file per week (Week01 to Week10)
 ├── assignments/
 │   ├── PA1/                    # Inception, due 18/10/2026: ProjectPlan.tex, Vision.tex (v1.0)
-│   └── PA2/                    # Elaboration, due 01/11/2026: ProjectPlan.tex, Vision.tex (v2.0), UseCase-Specification.tex
+│   ├── PA2/                    # Elaboration, due 01/11/2026: ProjectPlan.tex, Vision.tex (v2.0), UseCase-Specification.tex
+│   ├── PA3/                    # Elaboration B1, due 15/11/2026: ArchitectureAndTestPlan.tex
+│   └── PA4/                    # Construction B2, due 29/11/2026: ConstructionAndVerificationB2.tex
 ├── dist/                       # Packaged submissions (generated, git-ignored)
 ├── build.ps1                   # Build and package on Windows (PowerShell)
 └── build.sh                    # Build and package on Linux, macOS and Git Bash

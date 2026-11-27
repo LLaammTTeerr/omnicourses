@@ -11,7 +11,7 @@ import { PLANNER_MESSAGES } from './messages.js';
 const props = defineProps<{
   attached: AttachedIssues | null;
   fresh: boolean;
-  saveState: 'saved' | 'saving' | 'failed';
+  saveState: 'saved' | 'saving' | 'failed' | 'signed_out';
 }>();
 const m = useMessages(PLANNER_MESSAGES);
 
@@ -47,14 +47,19 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
         <span aria-hidden="true"><b class="num">{{ g.credits }}</b><template v-if="g.requiredCredits !== null">/{{ g.requiredCredits }}</template></span>
       </li>
     </ul>
-    <span class="chip" :class="{ bad: saveState === 'failed', ok: saveState === 'saved' }" role="status" data-test="save-state">
-      <Icon :name="saveState === 'failed' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
-      {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : m.notSaved }}
+    <span
+      class="chip"
+      :class="{ bad: saveState === 'failed', warn: saveState === 'signed_out', ok: saveState === 'saved' }"
+      role="status"
+      data-test="save-state"
+    >
+      <Icon :name="saveState === 'failed' || saveState === 'signed_out' ? 'alert' : saveState === 'saved' ? 'check' : 'info'" size="sm" />
+      {{ saveState === 'saving' ? m.saving : saveState === 'saved' ? m.saved : saveState === 'signed_out' ? m.signedOutNotSaved : m.notSaved }}
     </span>
   </section>
 </template>
 
-<style>
+<style scoped>
 .status-strip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 14px 18px; }
 .status-strip .est { display: flex; gap: 12px; align-items: center; }
 .status-strip .est-ic { width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--ok); color: #fff; border: 1px solid var(--edge); transition: background 0.25s; }

@@ -1,8 +1,10 @@
-import { computed, ref, shallowRef } from 'vue';
+import { computed, nextTick, ref, shallowRef } from 'vue';
 import { HttpError, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
+import { useAuth } from '../auth/store.js';
 import { useMessages } from '../locale.js';
 import { useOnboarding } from '../onboarding/store.js';
+import { useToast } from '../shell/toast.js';
 import { currentTermNow, termKey, type Term } from '../terms.js';
 import { fetchPlan, fetchPlanIssues, previewPlanDrops, savePlacements, type Plan } from './api.js';
 import {
@@ -12,10 +14,12 @@ import {
   boardWith,
   dropVerdict,
   isHome,
+  MAX_PLAN_TERMS,
   placementOf,
   PREVIEW_KEY,
   removeTile,
   rowsFor,
+  sameTerms,
   sameTiles,
   type AttachedIssues,
   type Board,
@@ -41,8 +45,11 @@ interface Opened {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function usePlanSession(id: () => string, hooks: SessionHooks) {
+  const auth = useAuth();
   const onboarding = useOnboarding();
+  const toast = useToast();
   const m = useMessages(PLANNER_MESSAGES);
+  const isSignedOut = (e: unknown) => statusOf(e) === 401 || !auth.signedIn;
 
   const plan = shallowRef<Plan | null>(null);
   const board = shallowRef<Board>([]);
@@ -70,19 +77,34 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
       issuesStatus.value = 'idle';
     } catch (e) {
       if (call !== checkCall) return;
-      if (statusOf(e) !== 401) console.error('Checking the plan failed:', e);
+      if (isSignedOut(e)) {
+        issuesStatus.value = 'idle';
+        return;
+      }
+      console.error('Checking the plan failed:', e);
       issuesStatus.value = 'failed';
     }
   }
 
   function retryCheck(): void {
-    if (!opened.saving) void check(saved.value);
+    if (!opened.saving && auth.signedIn) void check(saved.value);
   }
 
   const fresh = computed(() => issues.value !== null && sameTiles(issues.value.board, board.value));
 
-  const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
+  const saveState = ref<'saved' | 'saving' | 'failed' | 'signed_out'>('saved');
   const saveError = ref<string | null>(null);
+  const busy = computed(() => saveState.value === 'saving');
+
+  async function recoverSaved(mine: Opened, sending: Board): Promise<Plan | null> {
+    try {
+      const found = await fetchPlan(mine.id);
+      return mine === opened && sameTerms(boardBody(sending), found.terms) ? found : null;
+    } catch (e) {
+      if (isSignedOut(e)) throw e;
+      return null;
+    }
+  }
 
   async function sendUntilSaved(mine: Opened): Promise<boolean> {
     let waits = 0;
@@ -97,10 +119,17 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
       try {
         updated = await savePlacements(mine.id, boardBody(sending));
       } catch (e) {
-        if (statusOf(e) !== 429 || waits >= SAVE_RETRY_MS.length) throw e;
-        await wait(SAVE_RETRY_MS[waits++]!);
+        const code = statusOf(e);
+        if (code === 429 && waits < SAVE_RETRY_MS.length) {
+          await wait(SAVE_RETRY_MS[waits++]!);
+          if (mine !== opened) return false;
+          continue;
+        }
+        if (isSignedOut(e)) throw e;
+        const recovered = code === null || code >= 500 ? await recoverSaved(mine, sending) : null;
         if (mine !== opened) return false;
-        continue;
+        if (!recovered) throw e;
+        updated = recovered;
       }
       waits = 0;
       if (mine !== opened) return false;
@@ -111,9 +140,16 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
 
   function failSave(e: unknown): void {
     hooks.revert(() => (board.value = saved.value));
+    if (isSignedOut(e)) {
+      saveState.value = 'signed_out';
+      saveError.value = null;
+      const notice = m.value.saveSessionEnded;
+      toast.show(notice);
+      void nextTick(() => toast.show(notice));
+      return;
+    }
     const code = statusOf(e);
-    saveState.value = code === 401 ? 'saved' : 'failed';
-    if (code === 401) return;
+    saveState.value = 'failed';
     console.error('Saving the plan failed:', e);
     const details = e instanceof HttpError ? e.details.join('; ') : '';
     saveError.value = code === 400 && details ? m.value.saveRefused(details) : m.value.saveFailed;
@@ -179,6 +215,7 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
     retryCheck,
     saveState,
     saveError,
+    busy,
     save,
     loaded,
   };
@@ -196,6 +233,7 @@ const LOADING: RowPreview = { status: 'loading', attached: null, verdict: null }
 const FAILED: RowPreview = { status: 'failed', attached: null, verdict: null };
 
 export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | 'openedId'>) {
+  const auth = useAuth();
   const { board, issues } = session;
   const moving = shallowRef<Moving | null>(null);
   const previews = shallowRef<Map<string, RowPreview>>(new Map());
@@ -219,13 +257,13 @@ export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | '
   function previewRows(what: Moving, terms: readonly Term[]): void {
     startFor(what);
     const snapshot = board.value;
-    const todo = terms.filter((term) => needsAsking(snapshot, what, term));
+    const targets = terms.filter((term) => needsAsking(snapshot, what, term)).slice(0, MAX_PLAN_TERMS);
     const placement = placementOf(snapshot, what);
-    if (!todo.length || !placement) return;
+    if (!targets.length || !placement) return;
     const setAll = (value: (term: Term) => RowPreview) => {
       if (previewOf !== what) return;
       const next = new Map(previews.value);
-      for (const term of todo) next.set(termKey(term), value(term));
+      for (const term of targets) next.set(termKey(term), value(term));
       previews.value = next;
     };
     setAll(() => LOADING);
@@ -233,7 +271,7 @@ export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | '
     const without = 'key' in what ? removeTile(snapshot, what.key) : snapshot;
     const before = issues.value;
     const { signal } = previewAbort!;
-    previewPlanDrops(session.openedId(), { terms: boardBody(without), placement, targets: todo }, signal)
+    previewPlanDrops(session.openedId(), { terms: boardBody(without), placement, targets }, signal)
       .then(({ reports }) => {
         const byTerm = new Map(reports.map((r) => [termKey(r.term), r.issues]));
         setAll((term) => {
@@ -245,7 +283,11 @@ export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | '
       })
       .catch((e) => {
         if (signal.aborted) return;
-        if (statusOf(e) !== 401) console.error('Previewing a drop failed:', e);
+        if (statusOf(e) === 401 || !auth.signedIn) {
+          stopPreview();
+          return;
+        }
+        console.error('Previewing a drop failed:', e);
         setAll(() => FAILED);
       });
   }

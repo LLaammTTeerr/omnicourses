@@ -9,32 +9,10 @@ import {
   type RouterHistory,
   type RouterScrollBehavior,
 } from 'vue-router';
-import SettingsView from './account/SettingsView.vue';
-import AccessAdmin from './admin/AccessAdmin.vue';
-import AdminView from './admin/AdminView.vue';
-import CatalogAdmin from './admin/CatalogAdmin.vue';
-import CurriculumAdmin from './admin/CurriculumAdmin.vue';
-import ImportAdmin from './admin/ImportAdmin.vue';
-import AuditView from './audit/AuditView.vue';
-import DashboardView from './audit/DashboardView.vue';
 import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
-import SignInView from './auth/SignInView.vue';
-import SignUpView from './auth/SignUpView.vue';
 import { useAuth } from './auth/store.js';
-import CalendarView from './calendar/CalendarView.vue';
-import ExplorerView from './explorer/ExplorerView.vue';
-import GuideView from './guides/GuideView.vue';
-import GuidesView from './guides/GuidesView.vue';
-import NotificationsView from './notifications/NotificationsView.vue';
-import OnboardingView from './onboarding/OnboardingView.vue';
-import PlanEditorView from './plans/PlanEditorView.vue';
-import PlannerEntry from './plans/PlannerEntry.vue';
-import PlansView from './plans/PlansView.vue';
-import PrivacyView from './privacy/PrivacyView.vue';
-import type { MenuEntry } from './shell/nav.js';
 import { useOnboarding } from './onboarding/store.js';
-import TranscriptView from './transcript/TranscriptView.vue';
-import HomeView from './views/HomeView.vue';
+import type { MenuEntry } from './shell/nav.js';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -49,26 +27,26 @@ declare module 'vue-router' {
 const APP = { layout: 'app', auth: 'required' } as const;
 
 export const routes: RouteRecordRaw[] = [
-  { path: '/', name: 'home', component: HomeView, meta: { layout: 'public' } },
-  { path: '/sign-in', name: 'sign-in', component: SignInView, meta: { layout: 'bare', auth: 'guest' } },
-  { path: '/sign-up', name: 'sign-up', component: SignUpView, meta: { layout: 'bare', auth: 'guest' } },
-  { path: '/onboarding', name: 'onboarding', component: OnboardingView, meta: { layout: 'bare', auth: 'required' } },
+  { path: '/', name: 'home', component: () => import('./views/HomeView.vue'), meta: { layout: 'public' } },
+  { path: '/sign-in', name: 'sign-in', component: () => import('./auth/SignInView.vue'), meta: { layout: 'bare', auth: 'guest' } },
+  { path: '/sign-up', name: 'sign-up', component: () => import('./auth/SignUpView.vue'), meta: { layout: 'bare', auth: 'guest' } },
+  { path: '/onboarding', name: 'onboarding', component: () => import('./onboarding/OnboardingView.vue'), meta: { layout: 'bare', auth: 'required' } },
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: DashboardView,
+    component: () => import('./audit/DashboardView.vue'),
     meta: { ...APP, menu: { icon: 'home', label: { vi: 'Tổng quan', en: 'Dashboard' }, group: 'core', section: 'main', phoneTab: 1 } },
   },
   {
     path: '/calendar',
     name: 'calendar',
-    component: CalendarView,
+    component: () => import('./calendar/CalendarView.vue'),
     meta: { ...APP, menu: { icon: 'calendar', label: { vi: 'Lịch', en: 'Calendar' }, group: 'pol', section: 'main' } },
   },
   {
     path: '/notifications',
     name: 'notifications',
-    component: NotificationsView,
+    component: () => import('./notifications/NotificationsView.vue'),
     meta: {
       ...APP,
       menu: { icon: 'bell', label: { vi: 'Thông báo', en: 'Notifications' }, group: 'pol', section: 'main', unreadBadge: true },
@@ -77,7 +55,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/audit',
     name: 'audit',
-    component: AuditView,
+    component: () => import('./audit/AuditView.vue'),
     meta: {
       ...APP,
       menu: {
@@ -93,13 +71,13 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/transcript',
     name: 'transcript',
-    component: TranscriptView,
+    component: () => import('./transcript/TranscriptView.vue'),
     meta: { ...APP, menu: { icon: 'file', label: { vi: 'Bảng điểm', en: 'Transcript' }, group: 'gen', section: 'main' } },
   },
   {
     path: '/explorer',
     name: 'explorer',
-    component: ExplorerView,
+    component: () => import('./explorer/ExplorerView.vue'),
     meta: { ...APP, menu: { icon: 'graph', label: { vi: 'Chương trình', en: 'Curriculum' }, group: 'phys', section: 'main', phoneTab: 4 } },
   },
   {
@@ -109,29 +87,30 @@ export const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'plans',
-        component: PlannerEntry,
+        component: () => import('./plans/PlannerEntry.vue'),
         meta: { menu: { icon: 'columns', label: { vi: 'Lộ trình', en: 'Plans' }, group: 'elec', section: 'main', phoneTab: 2 } },
       },
-      { path: 'all', name: 'plan-list', component: PlansView },
-      { path: ':id', name: 'plan', component: PlanEditorView, props: true },
+      { path: 'all', name: 'plan-list', component: () => import('./plans/PlansView.vue') },
+      { path: ':id', name: 'plan', component: () => import('./plans/PlanEditorView.vue'), props: true },
     ],
   },
   {
     path: '/guides',
     name: 'guides',
-    component: GuidesView,
+    component: () => import('./guides/GuidesView.vue'),
     meta: {
       layout: 'auto',
       keepAlive: true,
       menu: { icon: 'book', label: { vi: 'Hướng dẫn', en: 'Guides' }, group: 'math', section: 'main', visitors: true },
     },
   },
-  { path: '/guides/:id', name: 'guide', component: GuideView, props: true, meta: { layout: 'auto' } },
-  { path: '/privacy', name: 'privacy', component: PrivacyView, meta: { layout: 'auto' } },
+  { path: '/guides/:id', name: 'guide', component: () => import('./guides/GuideView.vue'), props: true, meta: { layout: 'auto' } },
+  { path: '/shared/:token', name: 'shared-plan', component: () => import('./sharing/SharedPlanView.vue'), props: true, meta: { layout: 'auto' } },
+  { path: '/privacy', name: 'privacy', component: () => import('./privacy/PrivacyView.vue'), meta: { layout: 'auto' } },
   {
     path: '/settings',
     name: 'settings',
-    component: SettingsView,
+    component: () => import('./account/SettingsView.vue'),
     meta: {
       ...APP,
       onboarding: 'optional',
@@ -141,23 +120,35 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/admin',
     name: 'admin',
-    component: AdminView,
+    component: () => import('./admin/AdminView.vue'),
     meta: {
       ...APP,
       onboarding: 'optional',
       menu: { icon: 'db', label: { vi: 'Quản trị', en: 'Administration' }, group: 'thesis', section: 'account', grant: true },
     },
     children: [
-      { path: 'curriculum', name: 'admin-curriculum', component: CurriculumAdmin },
-      { path: 'catalog', name: 'admin-catalog', component: CatalogAdmin },
-      { path: 'import', name: 'admin-import', component: ImportAdmin },
-      { path: 'access', name: 'admin-access', component: AccessAdmin },
+      { path: 'curriculum', name: 'admin-curriculum', component: () => import('./admin/CurriculumAdmin.vue') },
+      { path: 'calendar', name: 'admin-calendar', component: () => import('./admin/CalendarAdmin.vue') },
+      { path: 'catalog', name: 'admin-catalog', component: () => import('./admin/CatalogAdmin.vue') },
+      { path: 'import', name: 'admin-import', component: () => import('./admin/ImportAdmin.vue') },
+      { path: 'access', name: 'admin-access', component: () => import('./admin/AccessAdmin.vue') },
     ],
   },
   { path: '/:unknown(.*)*', redirect: '/' },
 ];
 
 const scrollBehavior: RouterScrollBehavior = (to, _from, saved) => saved ?? (to.hash ? { el: to.hash } : { top: 0 });
+
+function warmRouteChunks(records: readonly RouteRecordRaw[]): Promise<unknown>[] {
+  return records.flatMap((record) => [
+    ...(typeof record.component === 'function' ? [(record.component as () => Promise<unknown>)()] : []),
+    ...warmRouteChunks(record.children ?? []),
+  ]);
+}
+
+if (import.meta.env.MODE === 'test') {
+  await Promise.all(warmRouteChunks(routes));
+}
 
 async function onboardingFirst(to: RouteLocationNormalized): Promise<NavigationGuardReturn> {
   let finished: boolean;
@@ -175,7 +166,33 @@ async function onboardingFirst(to: RouteLocationNormalized): Promise<NavigationG
   return finished ? true : { name: 'onboarding', query: { redirect: to.fullPath } };
 }
 
-export function createAppRouter(history: RouterHistory = createWebHistory()): Router {
+export const CHUNK_RELOAD_KEY = 'omnicourse.chunk-reload';
+
+const CHUNK_ERROR_PATTERN =
+  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/i;
+
+export function isChunkLoadError(error: unknown): boolean {
+  return error instanceof Error && CHUNK_ERROR_PATTERN.test(error.message);
+}
+
+export function reloadOnStaleChunk(targetPath: string, reload: (url: string) => void = (url) => window.location.assign(url)): boolean {
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === targetPath) {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      return false;
+    }
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, targetPath);
+  } catch {
+    return false;
+  }
+  reload(targetPath);
+  return true;
+}
+
+export function createAppRouter(
+  history: RouterHistory = createWebHistory(),
+  onChunkReload?: (url: string) => void,
+): Router {
   const router = createRouter({ history, routes, scrollBehavior });
   router.beforeEach(async (to) => {
     const auth = getActivePinia() ? useAuth() : null;
@@ -185,6 +202,18 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
     if (to.meta.auth === 'guest' && signedIn) return afterSignIn(to.query.redirect);
     if (signedIn && to.meta.auth === 'required' && to.meta.onboarding !== 'optional') return onboardingFirst(to);
     return true;
+  });
+  router.afterEach((to) => {
+    try {
+      if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === to.fullPath) {
+        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      }
+    } catch {}
+  });
+  router.onError((error, to) => {
+    if (isChunkLoadError(error)) {
+      reloadOnStaleChunk(to.fullPath, onChunkReload);
+    }
   });
   return router;
 }

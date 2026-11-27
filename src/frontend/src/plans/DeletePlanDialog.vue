@@ -35,7 +35,7 @@ const shell = useMessages(SHELL_MESSAGES);
   </ModalDialog>
 </template>
 
-<style>
+<style scoped>
 .plan-quote {
   padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-weight: 650; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden;

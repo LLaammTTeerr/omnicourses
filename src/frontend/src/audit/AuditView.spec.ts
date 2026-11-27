@@ -324,4 +324,18 @@ describe('AuditView (F3, ADR 0013)', () => {
     expect(useAuth().signedIn).toBe(false);
     expect(w.find('[role="alert"]').exists()).toBe(false);
   });
+
+  it('labels course and term cells with localized column names for mobile cards', async () => {
+    const { w } = await render();
+    const courseCells = section(w, GROUP_A).get('tbody tr').findAll('td[data-label]');
+    expect(courseCells.map((td) => td.attributes('data-label'))).toEqual([AUDIT_MESSAGES.vi.credits, AUDIT_MESSAGES.vi.status, AUDIT_MESSAGES.vi.grade]);
+    const termCells = w.get('[data-test="terms"] tbody tr').findAll('td[data-label]');
+    expect(termCells.map((td) => td.attributes('data-label'))).toEqual([
+      AUDIT_MESSAGES.vi.load,
+      AUDIT_MESSAGES.vi.passed,
+      AUDIT_MESSAGES.vi.termAverage,
+      AUDIT_MESSAGES.vi.cumulative,
+      AUDIT_MESSAGES.vi.status,
+    ]);
+  });
 });

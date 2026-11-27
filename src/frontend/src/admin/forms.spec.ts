@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   blankToNull,
+  calendarEventChanges,
+  calendarEventMatches,
+  calendarEventValues,
   cohortChanges,
   cohortMatches,
   cohortValues,
+  newCalendarEventBody,
   newCohortBody,
   newProgramBody,
   programChanges,
@@ -23,6 +27,7 @@ import {
   storedCode,
   storedPrerequisites,
 } from './forms.js';
+import { REGISTRATION } from '../calendar/testing/fixtures.js';
 import { BASE_GROUP, catalogCourse, curriculum, ELECTIVE_GROUP, GROUP_BASE_ID, GROUP_ELECTIVE_ID } from './testing/fixtures.js';
 
 describe('what a form sends: the values typed, never a judgement of them', () => {
@@ -160,5 +165,50 @@ describe('the program and cohort forms (UC-11 A1, A2): what is typed, and nothin
     expect(cohortChanges(COHORT, { ...cohortValues(COHORT), cohortYear: '2027', code: 'X', language: '' })).toEqual({ language: null });
     expect(cohortMatches(COHORT, { ...cohortValues(COHORT), code: 'zz-new-2026 ' }, true)).toBe(true);
     expect(cohortMatches(COHORT, { ...cohortValues(COHORT), cohortYear: '2025' }, true)).toBe(false);
+  });
+
+  it('builds a calendar event body omitting blank endsOn and turning blank optional fields to null, and diffs edits cleanly (F10)', () => {
+    expect(newCalendarEventBody(calendarEventValues(null))).toEqual({
+      academicYear: null,
+      term: null,
+      kind: null,
+      startsOn: '',
+      title: '',
+      titleEn: null,
+      sourceUrl: null,
+      notes: null,
+    });
+    expect(
+      newCalendarEventBody({
+        academicYear: ' 2026 ',
+        term: '1',
+        kind: 'registration',
+        startsOn: '2026-09-01',
+        endsOn: '2026-09-05',
+        title: ' Đăng ký HK1 ',
+        titleEn: ' Term 1 registration ',
+        sourceUrl: 'https://example.edu.vn/reg',
+        notes: '  ',
+      }),
+    ).toEqual({
+      academicYear: 2026,
+      term: 1,
+      kind: 'registration',
+      startsOn: '2026-09-01',
+      endsOn: '2026-09-05',
+      title: 'Đăng ký HK1',
+      titleEn: 'Term 1 registration',
+      sourceUrl: 'https://example.edu.vn/reg',
+      notes: null,
+    });
+    expect(calendarEventChanges(REGISTRATION, calendarEventValues(REGISTRATION))).toEqual({});
+    expect(calendarEventChanges(REGISTRATION, { ...calendarEventValues(REGISTRATION), title: `  ${REGISTRATION.title}  ` })).toEqual({});
+    expect(calendarEventChanges(REGISTRATION, { ...calendarEventValues(REGISTRATION), title: '  Đăng ký HK2 mới  ' })).toEqual({
+      title: 'Đăng ký HK2 mới',
+    });
+    const shortened = { ...calendarEventValues(REGISTRATION), term: '' as const, endsOn: '', notes: ' ' };
+    expect(calendarEventChanges(REGISTRATION, shortened)).toEqual({ term: null, endsOn: '2026-11-10', notes: null });
+    expect(calendarEventMatches({ ...REGISTRATION, term: null, endsOn: '2026-11-10', notes: null }, shortened)).toBe(true);
+    expect(calendarEventMatches(REGISTRATION, shortened)).toBe(false);
   });
 });

@@ -17,7 +17,7 @@ const shown = computed(() => (unread.count > BADGE_MAX ? `${BADGE_MAX}+` : Strin
   </span>
 </template>
 
-<style>
+<style scoped>
 .badge {
   min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--bad); color: #fff;
   font-size: 12px; font-weight: 650; display: inline-grid; place-items: center; line-height: 1; flex: none;
