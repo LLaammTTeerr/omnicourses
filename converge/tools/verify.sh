@@ -8,7 +8,7 @@ WT="$(cd "$1" && pwd)"; DB="$2"; shift 2
 STEPS=("$@"); [ ${#STEPS[@]} -eq 0 ] && STEPS=(typecheck lint unit-be unit-fe build e2e openapi contract browser)
 ROOT="${CV_OUT:-$HOME/.cache/cv-verify}"; OUT="$ROOT/$(basename "$WT")"; mkdir -p "$OUT"
 exec 9>"$ROOT/lock"; flock 9
-renice -n 10 $ > /dev/null 2>&1
+renice -n 10 $$ > /dev/null 2>&1
 W="${CV_WORKERS:-4}"
 NPM="npx --yes npm@11.21.1"
 export DATABASE_URL="postgres://omnicourse:omnicourse@localhost:5432/$DB"
