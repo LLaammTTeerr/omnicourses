@@ -1,3 +1,4 @@
+import { beforeAll } from 'vitest';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { user } from '../auth/testing/fixtures.js';
@@ -7,6 +8,8 @@ import { useOnboarding } from '../onboarding/store.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { createAppRouter } from '../router.js';
 import { warmRoutes } from './routes.js';
+
+beforeAll(() => warmRoutes());
 
 interface Options {
   signedIn?: boolean;
@@ -26,7 +29,6 @@ export async function setup(path: string, { signedIn = true, onboarded = onboard
   const pinia = signedIn ? signedInPinia() : createPinia();
   if (!signedIn) setActivePinia(pinia);
   if (onboarded) useOnboarding().seed(user().id, onboarded);
-  await warmRoutes();
   const router = createAppRouter(createMemoryHistory());
   await router.push(path);
   await router.isReady();
