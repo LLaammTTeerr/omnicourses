@@ -493,6 +493,10 @@ function reachableModules(rootDir, moduleFiles) {
   return reached;
 }
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function checkIdentifierHomes(rootDir, backendFiles, layers, addError) {
   for (const fullPath of backendFiles) {
     const relPath = toPosix(path.relative(rootDir, fullPath));
@@ -502,7 +506,7 @@ function checkIdentifierHomes(rootDir, backendFiles, layers, addError) {
     for (const { identifiers, folders } of layers.identifierHomes) {
       if (folders.some((folder) => relPath.startsWith(folder))) continue;
       for (const identifier of identifiers) {
-        for (const match of code.matchAll(new RegExp(`\\b${identifier}\\b`, 'g'))) {
+        for (const match of code.matchAll(new RegExp(`\\b${escapeRegExp(identifier)}\\b`, 'g'))) {
           addError(
             relPath,
             lineAt(raw, match.index),

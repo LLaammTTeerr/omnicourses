@@ -5,7 +5,7 @@ import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
 import { AdminWriteService, lockAdminWrite } from './admin-write.service.js';
 
 const ADVISORY_LOCK = 'SELECT pg_advisory_xact_lock($1)';
-const ROW_LOCK = 'SELECT "id", "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = ANY($1::uuid[]) ORDER BY "id" FOR NO KEY UPDATE';
+const ROW_LOCK_SQL = 'SELECT "id", "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = ANY($1::uuid[]) ORDER BY "id" FOR NO KEY UPDATE';
 const CALLER_STATE = 'SELECT "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = $1';
 const [A, B] = ['00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000b'];
 
@@ -21,7 +21,7 @@ describe('lockAdminWrite', () => {
     await expect(lockAdminWrite(em, [B, A, B])).resolves.toBe(rows);
     expect(query.mock.calls).toEqual([
       [ADVISORY_LOCK, [SINGLE_KEY_LOCKS.adminWrite]],
-      [ROW_LOCK, [[A, B]]],
+      [ROW_LOCK_SQL, [[A, B]]],
     ]);
   });
 
@@ -31,7 +31,7 @@ describe('lockAdminWrite', () => {
     expect(query.mock.calls).toEqual([
       [ADVISORY_LOCK, [SINGLE_KEY_LOCKS.adminWrite]],
       [ADVISORY_LOCK, [SINGLE_KEY_LOCKS.accessManager]],
-      [ROW_LOCK, [[A]]],
+      [ROW_LOCK_SQL, [[A]]],
     ]);
   });
 });

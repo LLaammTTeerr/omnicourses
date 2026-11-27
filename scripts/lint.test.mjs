@@ -261,6 +261,7 @@ describe('identifier-home', () => {
           [`${BACKEND}/other/a.spec.ts`]: 'export const a = "secret_column";\n',
           [`${BACKEND}/other/testing/a.ts`]: 'export const a = "secretColumn";\n',
           [`${BACKEND}/other/b.ts`]: 'export const a = "secret_columns";\n',
+          [`${BACKEND}/other/c.ts`]: 'export const a = "my_secret_column";\n',
         },
         homes,
       ),
