@@ -152,7 +152,8 @@ function termSummary(
   });
   const asOf = [...records.values()].map((r) => recordAsOf(r, term)).filter((r): r is CourseRecord => r !== null);
   const toDate = creditSummary(rules, new Map(asOf.map((r) => [r.code, r])), placed);
-  const cumulativeAccumulatedAverage = weightedAverage(gpaCourses(asOf, placed, true))?.value ?? null;
+  const cumulative = weightedAverage(gpaCourses(asOf, placed, true));
+  const cumulativeAccumulatedAverage = cumulative?.value ?? null;
   const load = checkTermLoad(
     rules.trainingType,
     term.number,
@@ -169,6 +170,8 @@ function termSummary(
     cumulativeAccumulatedAverageChange: averageChange(previousCumulativeAverage, cumulativeAccumulatedAverage),
     cumulativeAccumulatedCredits: toDate.accumulated,
     cumulativeTowardTotal: toDate.towardTotal,
+    cumulativeYearLevel: toDate.yearLevel,
+    cumulativeClassification: cumulative ? classify(cumulative.numerator, cumulative.denominator, rules.cohortYear) : null,
     failedCourseCodes: unique(rows.filter((e) => isCompleted(e) && !attemptPasses(e)).map((e) => e.courseCode)),
     inProgressCourseCodes: unique(rows.filter((e) => e.result === 'in_progress').map((e) => e.courseCode)),
     caps: load.caps,

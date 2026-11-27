@@ -124,6 +124,8 @@ export interface TermSummary {
   cumulativeAccumulatedAverageChange: number | null;
   cumulativeAccumulatedCredits: number;
   cumulativeTowardTotal: number;
+  cumulativeYearLevel: 1 | 2 | 3 | 4;
+  cumulativeClassification: Classification | null;
   failedCourseCodes: string[];
   inProgressCourseCodes: string[];
   caps: CreditCaps | null;

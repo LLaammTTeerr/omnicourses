@@ -581,6 +581,8 @@ classDiagram
         cumulativeAccumulatedAverageChange : number?
         cumulativeAccumulatedCredits : number
         cumulativeTowardTotal : number
+        cumulativeYearLevel : 1 to 4
+        cumulativeClassification : Classification?
         failedCourseCodes : string list
         inProgressCourseCodes : string list
     }
