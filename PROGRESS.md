@@ -26,7 +26,59 @@ Import graph (production files): backend folder cycles `auth <-> users` and `cur
 
 ## Task pool
 
-Pending the survey.
+Evidence for every item: the seven survey files (`<scratchpad>/survey/*.md`, findings with `path:line`). IDs: T tooling, BP backend platform, BD backend domain, BA backend admin/content, FK frontend kernel/platform, FP frontend planning, FA frontend admin/content. Status: todo, building, review, pushed (#PR), merged, deferred, rejected.
+
+### The stack (bottom first)
+
+| PR | Branch | Items | What changes | Risk | Status |
+| --- | --- | --- | --- | --- | --- |
+| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands; drop the unused openapi artifact step. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | todo |
+| 02 | cv-02-locks-and-seeds | BP-2, BA-3 | `common/advisory-locks.ts` owns every lock key (uniqueness spec). Curriculum seed data and loader move to `curriculum/seeds/`; `database/seed.ts` runs a list of seeders with one signature. Ends `curriculum <-> curriculum-admin <-> database`. | low | todo |
+| 03 | cv-03-engine-vocabulary | BD-1, BP-6, BD-6 (CreditCapsDto only) | Rule-engine input types and the training-type / group-kind lists move to a pure `curriculum/curriculum-rules.ts`; the purity spec also walks type imports. `TermDto` moves to `terms/`; `common` and `config` become enforced leaves. | low | todo |
+| 04 | cv-04-rules-one-derivation | BD-2 | One `courseStatus`, one `recordBefore`, two named prerequisite policies inside `rules/`. No result changes; existing specs pin it. | low | todo |
+| 05 | cv-05-account-state | BP-1, BD-7 | `users/` owns "account pending deletion" (predicate, SQL fragment) and the student row lock; nine raw-SQL copies in five modules call it. | med | todo |
+| 06 | cv-06-errors-and-limiter | BP-3, BP-4 | Coded API errors only through `common/api-errors.ts` (lint rule); the sign-in attempt limiter leaves `AuthService` and shares its numbers with `PASSWORD_LIMIT`. | low | todo |
+| 07 | cv-07-admin-access | BA-1 step 2, BP-5 | The write gate, grants and 403 helpers become `admin-access/`; calendar and account stop importing `curriculum-admin`. Registries one entry per line; one `platformImports` for app and contract. | low | todo |
+| 08 | cv-08-clc-seeds | BA-2 | Each CLC 2025 course written once; a specialisation lists only group membership and PDF pages. Proof: built seed arrays deep-equal before and after. Group membership stays explicit (no derived "free" group: that would be an academic assumption). | med | todo |
+| 09 | cv-09-fe-kernel | FK-2/FP-3, FA-4, FK-7, FK-3 | `account-storage.ts` owns account-scoped browser keys (auth stops importing plans); grants store split so the shell does not import the admin stack; `ModalDialog` owns its busy text; the test-only route warm-up leaves `router.ts`. | low-med | todo |
+| 10 | cv-10-plan-view | FP-2, FP-1 step 1, FP-7 | `plans/issue-view.ts` pure leaf; `sharing/view.ts` holds the shared page's view model (tested), the `toEngineIssue` adapter goes; dead sharing aliases go. | low | todo |
+| 11 | cv-11-plan-components | FP-1 steps 2-3 | Shared presentational components (term load, issue card, coverage list) own their styles; 46 duplicated style rules leave `SharedPlanView.vue`. | med | todo |
+| 12 | cv-12-routes-and-effects | FK-4, FA-3, T-4 | Each feature owns its route records and app-wide effects; `router.ts`, `App.vue`, `App.spec.ts` become short lists; admin and bell tests move to their features. | low-med | todo |
+| 13 | cv-13-admin-screens | FA-2, FA-5, FA-1 | One saved-document composable for the two scoped admin screens; one calendar-event presentation module; the client's parsing of server reference sentences pinned to the server's list (fixes three unparsed kinds). | med | todo |
+| 14 | cv-14-actions-and-drafts | FP-6, FP-5 | One attempt helper for "run, ignore 401, report"; explorer reuses the program-choice composable; `groupGlyph`; transcript draft logic in a tested module. | low-med | todo |
+| 15 | cv-15-contract-checks | FK-5, FP-4, FP-8 (option A), FK-6 | Contract coverage spec (every schema checked or allow-listed), nullability, limits; group-colour rules pinned to the seeded group names; message catalogues collected by glob. | low | todo |
+| 16 | cv-16-admin-messages | FA-6 | `admin/messages.ts` (1163 lines) split per screen, same keys. | low | todo |
+| 17 | cv-17-docs-and-extras | BD-4, T-5, T-7, architecture map | Stale ADR rows, `.rgignore` for dated evidence, architecture.md layer and lock tables; then the two extras: comments that restate code, tests that cannot fail. | low | todo |
+
+Build tracks (parallel, disjoint paths): tooling (01, 17) / backend A (02, 03, 04, 08) / backend B after 02 (05, 06, 07) / frontend A (10, 11, 14) / frontend B (09, 13, 16) / then 12 and 15, which touch every feature.
+
+### Deferred
+
+- BA-4 split `curriculum-admin.dto.ts` by service: after PR #166 merges (it imports from that file).
+- BP-8 `ai/` owns its config shape: after PR #77 (all files are its).
+- Moving the frontend kernel files or the shell kit into their own folders: about 100 import lines in every open branch for no behaviour gain; the lint rule gives the guarantee without the move.
+
+### Rejected
+
+- T-3 parallel e2e: the suite takes 83 s; not worth the flakiness risk.
+- BA-5 notification-kind guard: already enforced by `notifications/api.spec.ts` (contractEnum).
+- BA-6 exclude `testing/` from the build: staging may seed fixtures from dist; leave.
+- Module self-registration by folder scan, dependency-cruiser, eslint-plugin-boundaries, generated API types: new machinery; ADR 0002 and architecture.md already decided against them.
+
+### Needs a decision (none blocks the stack)
+
+1. BP-3a: should every 4xx carry a `code` (auth, account, plans, curriculum, guides, sharing answer with Nest's default body today)? Changes response bodies. And rename `AdminErrorDto` to `ApiErrorDto` (changes openapi.json)?
+2. BD-5: make graduation-condition ids a contract (`kind` enum + `subjectId`) so the frontend parser is checked? Changes openapi.json.
+3. BD-4: the description of `CourseStandingDto.readiness` is stale ("null for in progress"; the engine returns `locked`). Text-only openapi.json change.
+4. FP-4/FP-8B: may DTOs gain `maxLength`/`maximum` and requirement groups a stable category? Additive openapi.json changes.
+5. BP-4: with `SESSION_TTL_DAYS` above 30 the "hard 30-day cap" follows the TTL (`auth.service.ts:216`). Intended?
+6. BD-3: must `class-model.md` keep field-level copies of engine types (it has already drifted), or may it point at `rules/types.ts`?
+7. T-8: ADR 0019 still says "proposed" although #217 shipped it.
+8. FA-1: Vietnamese and English wording for three reference kinds (owner: Hoà). FK-4: menu labels from the feature's messages or literal on the route (owner: Hoà).
+
+### In-flight zones, narrowed
+
+PR #77 is two weeks stale and already conflicts with main, so only `src/backend/src/advisor/**` and `src/backend/src/ai/**` are treated as its own. Shared hubs it also lists (`features.ts`, `migrations/index.ts`, `config/env.ts`, `AGENTS.md`, `architecture.md`, `package.json`) get minimal edits; whoever rebases #77 re-adds one line. `openapi.json` never changes in this mission.
 
 ## Completed batches
 
@@ -44,4 +96,4 @@ None.
 
 ## Next
 
-Seven surveys are running (files in `<scratchpad>/survey/`). Merge them into the task pool, pick the first batch, and take it through the whole pipeline once before running batches in parallel.
+Build PR 01 through the whole pipeline (brief, implement, independent review, verify, signed commit, push, PR, thread), then run the tracks in parallel.
