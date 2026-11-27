@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { contractSchemaNames } from './testing/contract.js';
+import { sourceFiles } from './testing/files.js';
 
-const SPECS = import.meta.glob<string>('./**/*.spec.ts', { query: '?raw', import: 'default', eager: true });
-const THIS_SPEC = './contract-coverage.spec.ts';
 const CONTRACT_IMPORT = 'testing/contract.js';
 const CHECKED_SCHEMA = /(?:contract\w+\(\s*'|\[\s*'(?=\w+',(?:(?!\n\s*\['|\]\)\()[\s\S])*?satisfies Shape))(\w+)'/g;
 
 const NOT_READ_BY_THE_SCREENS = ['NotificationNotFoundDto'];
 
 const checkedSchemas = new Set(
-  Object.entries(SPECS)
-    .filter(([path, source]) => path !== THIS_SPEC && source.includes(CONTRACT_IMPORT))
-    .flatMap(([, source]) => [...source.matchAll(CHECKED_SCHEMA)].map((match) => match[1])),
+  sourceFiles('.spec.ts')
+    .filter((path) => path !== import.meta.filename)
+    .map((path) => readFileSync(path, 'utf8'))
+    .filter((source) => source.includes(CONTRACT_IMPORT))
+    .flatMap((source) => [...source.matchAll(CHECKED_SCHEMA)].map((match) => match[1])),
 );
 
 describe('the contract checks cover openapi.json', () => {
