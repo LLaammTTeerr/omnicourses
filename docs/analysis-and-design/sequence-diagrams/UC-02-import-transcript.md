@@ -114,7 +114,7 @@ sequenceDiagram
         App->>App: signedIn turned false on a private page
         App-->>Student: /sign-in?redirect=/transcript
     else 429, too many requests
-        API-->>Api: 429 from ThrottlerGuard (120 a minute per address)
+        API-->>Api: 429 from ThrottlerGuard (120 a minute per route and address)
         Api-->>View: HttpError 429
         View-->>Student: "saving failed", rows stay on screen, the student saves again
     else no answer within 30 s, or the network is down

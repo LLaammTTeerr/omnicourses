@@ -837,7 +837,7 @@ Source: `rules/rules.service.ts`, `rules/rules.module.ts`. `RulesModule` provide
 
 ## 3. Services and controllers
 
-One Nest module per feature folder (`src/backend/src/features.ts` lists them). Two global guards run before every controller method, in this order: `ThrottlerGuard` (120 requests a minute per address; 10 on a route marked `@Throttle(PASSWORD_LIMIT)`), then `AuthGuard` (`app.module.ts`, `auth/rate-limits.ts`). A global `ValidationPipe` (`whitelist`, `transform`) checks every DTO (`bootstrap.ts`). All paths below are under `/api`.
+One Nest module per feature folder (`src/backend/src/features.ts` lists them). Two global guards run before every controller method, in this order: `ThrottlerGuard` (120 requests a minute per route from one address; 10 on a route marked `@Throttle(PASSWORD_LIMIT)`), then `AuthGuard` (`app.module.ts`, `auth/rate-limits.ts`). A global `ValidationPipe` (`whitelist`, `transform`) checks every DTO (`bootstrap.ts`). All paths below are under `/api`.
 
 ### 3.1 Users, authentication and account
 
