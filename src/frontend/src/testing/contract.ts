@@ -8,7 +8,6 @@ interface Property {
   items?: { enum?: (string | number | null)[] };
   maxItems?: number;
   maxLength?: number;
-  minimum?: number;
   maximum?: number;
 }
 interface Schema {
@@ -57,10 +56,6 @@ export function contractMaxItems(schema: string, property: string): number | und
 
 export function contractMaxLength(schema: string, property: string): number | undefined {
   return schemas[schema].properties[property].maxLength;
-}
-
-export function contractMinimum(schema: string, property: string): number | undefined {
-  return schemas[schema].properties[property].minimum;
 }
 
 export function contractMaximum(schema: string, property: string): number | undefined {

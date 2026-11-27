@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractMaxItems, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
+import { contractEnum, contractMaxItems, contractMaxLength, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
+import { PLAN_NAME_MAX_CODE_POINTS } from './actions.js';
 import { MAX_PLAN_TERMS } from './board.js';
 import {
   createPlan,
@@ -118,6 +119,10 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     expect(contractEnum('PlanCoverageDto', 'graduation')).toEqual(['done', 'not_yet']);
     expect(MAX_PLAN_TERMS).toBe(contractMaxItems('PlanBoardDto', 'terms'));
     expect(MAX_PLAN_TERMS).toBe(contractMaxItems('CreatePlanDto', 'terms'));
+  });
+
+  it.each(['CreatePlanDto', 'RenamePlanDto', 'DuplicatePlanDto'])('limits the plan name as %s does', (schema) => {
+    expect(PLAN_NAME_MAX_CODE_POINTS).toBe(contractMaxLength(schema, 'name'));
   });
 
   it('words the change a drag preview would make to the violations, in both languages', () => {
