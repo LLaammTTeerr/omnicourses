@@ -9,7 +9,7 @@ import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import type { PlanIssue, PlanIssueKind } from '../plans/api.js';
 import { PLANNER_MESSAGES } from '../plans/messages.js';
-import { BAR_CODES, capOf, ISSUE_KINDS_SHOWN, KIND_STYLE, meter, toneOf } from '../plans/present.js';
+import { BAR_CODES, capOf, clause, ISSUE_KINDS_SHOWN, KIND_STYLE, meter, toneOf } from '../plans/issue-view.js';
 import Icon from '../shell/Icon.vue';
 import { REGULATION_URL } from '../shell/messages.js';
 import { termKey, termName } from '../terms.js';
@@ -60,7 +60,6 @@ const notShared = computed(() => status.value === 'loaded' && shared.value === n
 usePageTitle(() => shared.value?.name ?? (notShared.value ? m.value.notSharedTitle : m.value.sharedPlanTitle));
 
 const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
-const clause = (citation: string) => /Điều\s+[\w.]+/.exec(citation)?.[0] ?? null;
 
 function toEngineIssue(issue: SharedPlanIssue): PlanIssue {
   return {

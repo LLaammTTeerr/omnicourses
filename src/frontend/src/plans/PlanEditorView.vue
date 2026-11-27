@@ -31,11 +31,12 @@ import {
 } from './board.js';
 import { pointerDrag, type DropTarget } from './drag.js';
 import { FLIP_MS, play, reducedMotion, snapshot, type Lift } from './flip.js';
+import { BAR_CODES, KIND_STYLE } from './issue-view.js';
 import IssuesPanel from './IssuesPanel.vue';
 import { isLocked, setLocked } from './lock.js';
 import { PLANNER_MESSAGES } from './messages.js';
 import PlanTabs from './PlanTabs.vue';
-import { BAR_CODES, KIND_STYLE, usePlanCourses, usePlanView } from './present.js';
+import { usePlanCourses, usePlanView } from './present.js';
 import { useDropPreview, usePlanSession } from './session.js';
 import StatusStrip from './StatusStrip.vue';
 
