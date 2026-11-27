@@ -99,6 +99,7 @@ export const frontendKernel = [
   'groups.ts',
   'locale.ts',
   'page-title.ts',
+  'route-meta.ts',
   'shell/BrandLink.vue',
   'shell/Icon.vue',
   'shell/LangButton.vue',

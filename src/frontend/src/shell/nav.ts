@@ -1,20 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router';
-import type { GroupId } from '../groups.js';
-import type { Lang } from '../locale.js';
 import { routes } from '../router.js';
-import type { IconName } from './icons.js';
-
-export interface MenuEntry {
-  icon: IconName;
-  label: Record<Lang, string>;
-  tab?: Record<Lang, string>;
-  group: GroupId;
-  section: 'main' | 'account';
-  phoneTab?: number;
-  visitors?: true;
-  grant?: true;
-  unreadBadge?: true;
-}
+import type { MenuEntry } from '../route-meta.js';
 
 export interface NavItem extends MenuEntry {
   route: string;
