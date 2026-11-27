@@ -6,11 +6,12 @@ import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 import { Session } from './session.entity.js';
 import { SignInAttempt } from './sign-in-attempt.entity.js';
+import { SignInLimiter } from './sign-in-limiter.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Session, SignInAttempt]), UsersModule],
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard],
+  providers: [AuthService, AuthGuard, SignInLimiter],
   exports: [AuthService, AuthGuard],
 })
 export class AuthModule {}

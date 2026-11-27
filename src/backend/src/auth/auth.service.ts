@@ -1,33 +1,22 @@
 import { createHash, randomBytes } from 'node:crypto';
-import {
-  ConflictException,
-  HttpException,
-  HttpStatus,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Algorithm, hash, verify } from '@node-rs/argon2';
 import { EntityManager, IsNull, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
-import { NAMESPACED_LOCKS } from '../common/advisory-locks.js';
 import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { sessionTtlDays } from '../config/env.js';
-import { DAY_MS, MINUTE_MS } from '../config/time.js';
+import { DAY_MS } from '../config/time.js';
 import { isWaitingForDeletion } from '../users/account-state.js';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthResultDto, SessionDto, SignInDto, SignUpDto } from './auth.dto.js';
 import { Session, USER_AGENT_MAX_LENGTH } from './session.entity.js';
-import { SignInAttempt } from './sign-in-attempt.entity.js';
+import { SignInLimiter } from './sign-in-limiter.js';
 
 const SESSION_TOKEN_BYTES = 32;
 export const MAX_SESSION_LIFETIME_DAYS = 30;
-const MAX_FAILED_SIGN_INS = 10;
-const FAILED_SIGN_IN_WINDOW_MS = MINUTE_MS;
-const SIGN_IN_ATTEMPT_PURGE_BATCH = 100;
 
 export const ARGON2_OPTIONS = {
   algorithm: Algorithm.Argon2id,
@@ -49,7 +38,7 @@ export class AuthService {
 
   constructor(
     @InjectRepository(Session) private readonly sessions: Repository<Session>,
-    @InjectRepository(SignInAttempt) private readonly signInAttempts: Repository<SignInAttempt>,
+    private readonly signInLimiter: SignInLimiter,
     private readonly users: UsersService,
     private readonly clock: Clock,
   ) {}
@@ -75,7 +64,7 @@ export class AuthService {
   async signIn(dto: SignInDto, userAgent?: string, clientIp?: string): Promise<AuthResultDto> {
     const now = this.clock.now();
     const attemptKey = signInAttemptKey(clientIp, dto.email);
-    await this.reserveSignInAttempt(attemptKey, now);
+    await this.signInLimiter.reserve(attemptKey, now);
 
     const user = await this.users.findByEmailForAuth(dto.email);
     const valid = user?.passwordHash
@@ -88,7 +77,7 @@ export class AuthService {
     if (accountRestored && !(await this.users.cancelDeletion(user.id, now))) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    await this.signInAttempts.delete({ attemptKey });
+    await this.signInLimiter.clear(attemptKey);
     return { ...(await this.issue(user, userAgent, now)), accountRestored };
   }
 
@@ -169,38 +158,6 @@ export class AuthService {
       }),
     );
     return { token, expiresAt, user: UserDto.from(user) };
-  }
-
-  private async reserveSignInAttempt(attemptKey: string, now: Date): Promise<void> {
-    const cutoff = new Date(now.getTime() - FAILED_SIGN_IN_WINDOW_MS);
-    await this.signInAttempts.manager.transaction(async (manager) => {
-      await manager.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [
-        NAMESPACED_LOCKS.signInAttempt,
-        attemptKey,
-      ]);
-      await manager.delete(SignInAttempt, { attemptKey, attemptedAt: LessThanOrEqual(cutoff) });
-      const activeCount = await manager.count(SignInAttempt, {
-        where: { attemptKey, attemptedAt: MoreThan(cutoff) },
-      });
-      if (activeCount >= MAX_FAILED_SIGN_INS) {
-        throw new HttpException(
-          'Too many sign-in attempts for this account; try again in a minute',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-      await manager.insert(SignInAttempt, { attemptKey, attemptedAt: now });
-    });
-    await this.purgeExpiredSignInAttempts(cutoff);
-  }
-
-  private async purgeExpiredSignInAttempts(cutoff: Date): Promise<void> {
-    await this.signInAttempts.query(
-      `DELETE FROM "sign_in_attempts" WHERE "id" IN (
-        SELECT "id" FROM "sign_in_attempts" WHERE "attempted_at" <= $1
-        LIMIT $2 FOR UPDATE SKIP LOCKED
-      )`,
-      [cutoff, SIGN_IN_ATTEMPT_PURGE_BATCH],
-    );
   }
 }
 
