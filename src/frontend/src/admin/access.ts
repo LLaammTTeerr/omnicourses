@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { reportFailure } from '../async-load.js';
 import { useAccountCache, useAuth } from '../auth/store.js';
 import { fetchOwnGrants, GLOBAL_PERMISSIONS, type PermissionKind, type UserGrants } from './grants.js';
@@ -65,3 +66,22 @@ export const useAdminAccess = defineStore('admin-access', () => {
 
   return { seed: cache.seed, grants, failed, retryable, held, any, holds, load, refusal };
 });
+
+export function useGrantsFollowSession(): void {
+  const auth = useAuth();
+  const access = useAdminAccess();
+  const route = useRoute();
+  watch(
+    () => auth.user?.id,
+    (userId) => {
+      if (userId) void access.load();
+    },
+    { immediate: true },
+  );
+  watch(
+    () => route.fullPath,
+    () => {
+      if (auth.signedIn && access.retryable) void access.load();
+    },
+  );
+}

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { newestOnly, reportFailure } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import { fetchUnreadCount } from './api.js';
@@ -38,3 +39,24 @@ export const useUnread = defineStore('notifications-unread', () => {
 
   return { count, refresh, set };
 });
+
+export function useUnreadPolling(): void {
+  const auth = useAuth();
+  const unread = useUnread();
+  const route = useRoute();
+  watch(
+    () => route.fullPath,
+    () => {
+      if (auth.signedIn) void unread.refresh();
+    },
+    { immediate: true },
+  );
+  let poll: ReturnType<typeof setInterval> | undefined;
+  onMounted(
+    () =>
+      (poll = setInterval(() => {
+        if (!document.hidden) void unread.refresh();
+      }, UNREAD_POLL_MS)),
+  );
+  onBeforeUnmount(() => clearInterval(poll));
+}
