@@ -9,8 +9,6 @@ export interface SharePlanBody {
   showTranscriptChecks?: boolean;
 }
 
-export type UpdatePlanShareBody = SharePlanBody;
-
 export interface PlanShare {
   token: string;
   showName: boolean;
@@ -21,8 +19,6 @@ export interface PlanShare {
 export interface PlanShareState {
   share: PlanShare | null;
 }
-
-export type PlanShareStatus = PlanShareState;
 
 export interface SharedProgram {
   code: string;
@@ -106,12 +102,6 @@ export interface SharedPlan {
   issues: SharedPlanIssue[];
   issueCodesNotShown: PlanIssueCode[];
   coverage?: SharedPlanCoverage;
-}
-
-export interface NotShared {
-  statusCode: number;
-  message: string;
-  error: string;
 }
 
 const sharePath = (planId: string) => `/plans/${segment(planId)}/share`;
