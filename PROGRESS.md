@@ -7,7 +7,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 1. Read this file, then `git worktree list` and `gh pr list --search "head:refactor/cv-"`.
 2. The work is one stack of small pull requests (Lâm, 28 Nov 2026). Stack branches are `refactor/cv-NN-<topic>`: 01 is based on `main`, each later one on the branch below it, and each PR's base is that branch. The stack worktree is `.claude/worktrees/cv-stack`; build worktrees are `.claude/worktrees/cv-build-{be,fa,fb}` (local branches `cvb/<batch slug>`, never pushed).
 3. Install with `npx --yes npm@11.21.1 ci` (the machine's npm is 9; it rewrites the lockfile). Never commit a lockfile change.
-4. Verify with `converge/tools/verify.sh <worktree> <database name>` (on this branch): typecheck, lint, unit, build, e2e, openapi and migration diffs, browser. It runs at `nice 10` with 4 test workers and one run at a time. Each worktree uses its own database on the Postgres at `127.0.0.1:5432` (a docker container left by an earlier session).
+4. Verify with `converge/tools/verify.sh <worktree> <database name>` (on this branch): typecheck, lint, unit, build, e2e, openapi and migration diffs, browser. It runs at `nice 10` with 4 test workers, one run at a time, and removes `node_modules/.vitest-cache` first (Vitest 5 caches transformed modules by file content; a spec that finds files by glob otherwise runs with a stale file list and its counts differ from CI). Each worktree uses its own database on the Postgres at `127.0.0.1:5432` (a docker container left by an earlier session).
 5. A batch is done when: full verify passes on the stack branch, `src/backend/openapi.json` is byte-identical, an independent reviewer has read the diff, every commit is signed, and it carries a changeset (empty when nothing user-facing changes).
 6. A new batch branches from the current stack tip. Brief, review brief and fix brief of every batch are in `converge/briefs/`; the surveys the work started from are in `converge/survey/`.
 
@@ -97,7 +97,7 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 
 ## Known limitations
 
-- The machine is shared: on 28 Nov a clock-sensitive job of the Project Lead (`~/wrong_way`, 6 workers) ran beside the builds and the load average passed 80 for about ten minutes, which made 5 s test timeouts fire. Since then the verify script runs at `nice 10` with 4 test workers, briefs tell agents to do the same, and at most three build tracks run.
+- The machine is shared: on 28 Nov another long-running job ran beside the builds and the load average passed 80 for about ten minutes, which made 5 s test timeouts fire. Since then the verify script runs at `nice 10` with 4 test workers, briefs tell agents to do the same, and at most three build tracks run.
 - `gh pr edit` fails on this machine (GitHub's Projects-classic GraphQL error). Set a PR body with `gh api repos/<owner>/<repo>/pulls/<n> -X PATCH -F body=@file` and reviewers with `.../requested_reviewers`.
 - Workflow subagents cannot write files outside their worktree with the Write tool; their reports come back in the structured result (journal in the session's `subagents/workflows/<run>/journal.jsonl`).
 - Commits made by subagents carry the Co-Authored-By trailer of the model that wrote them (Sonnet or Opus); the orchestrator's own commits carry Fable's.
