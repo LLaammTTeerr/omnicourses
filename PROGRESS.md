@@ -4,90 +4,63 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 
 ## How to resume
 
-1. Read this file, then `git worktree list` and `git branch --list 'refactor/*'`.
-2. The work lands as one stack of small pull requests (Lâm, 28 Nov 2026). Stack branches are `refactor/cv-NN-<topic>`: 01 is cut from `origin/main`, each later one from the one before it, and each PR's base is the branch below it. Batches may be built in parallel in their own worktrees (cut from the stack tip, with paths that overlap no other open batch), then cherry-picked onto the tip one at a time, verified, pushed and opened as the next layer.
-   - Auto-merge (`gh pr merge N --auto --squash`) only on the bottom PR, whose base is `main`. A PR whose base is an unprotected branch would merge at once.
-   - When the bottom PR is squash-merged: merge `origin/main` into the next branch (never rebase a pushed branch, never force-push), push, check its base is now `main`, then turn on auto-merge for it.
+1. Read this file, then `git worktree list` and `gh pr list --search "head:refactor/cv-"`.
+2. The work is one stack of small pull requests (Lâm, 28 Nov 2026). Stack branches are `refactor/cv-NN-<topic>`: 01 is based on `main`, each later one on the branch below it, and each PR's base is that branch. The stack worktree is `.claude/worktrees/cv-stack`; build worktrees are `.claude/worktrees/cv-build-{be,fa,fb}` (local branches `cvb/<batch slug>`, never pushed).
 3. Install with `npx --yes npm@11.21.1 ci` (the machine's npm is 9; it rewrites the lockfile). Never commit a lockfile change.
-4. Verify with `converge/tools/verify.sh <worktree> <database name>` (on this branch) (typecheck, lint, unit, build, e2e, openapi diff, browser). Each worktree uses its own database on the Postgres at `127.0.0.1:5432`.
-5. A batch is done when: full verify passes, `src/backend/openapi.json` is byte-identical, an independent reviewer has read the diff, the commit is signed, and it carries a changeset (`--empty` when nothing user-facing changes).
+4. Verify with `converge/tools/verify.sh <worktree> <database name>` (on this branch): typecheck, lint, unit, build, e2e, openapi and migration diffs, browser. It runs at `nice 10` with 4 test workers and one run at a time. Each worktree uses its own database on the Postgres at `127.0.0.1:5432` (a docker container left by an earlier session).
+5. A batch is done when: full verify passes on the stack branch, `src/backend/openapi.json` is byte-identical, an independent reviewer has read the diff, every commit is signed, and it carries a changeset (empty when nothing user-facing changes).
+6. A new batch branches from the current stack tip. Brief, review brief and fix brief of every batch are in `converge/briefs/`; the surveys the work started from are in `converge/survey/`.
+
+## Merging the stack (needs one approval per PR; nobody has approved yet)
+
+- Only the bottom PR is ready for review and has auto-merge on. Every PR above it is a draft.
+- When the bottom PR is squash-merged: in `cv-stack`, merge `origin/main` into the next branch (never rebase a pushed branch, never force-push), run the verify script, push, check on GitHub that its base is now `main` and that its diff shows only its own files and exactly one changeset, mark it ready, request the four teammates as reviewers (`gh api repos/LLaammTTeerr/omnicourses/pulls/<n>/requested_reviewers`), and turn on auto-merge. Then merge that branch into the one above it, and so on up, so every layer contains `main`.
+- The ruleset does not require a PR to be up to date with `main`. If another PR that adds a cross-folder import merges before a stack PR, `npm run lint` on `main` goes red until the edge is added to `scripts/layers.mjs`. Check lint on `main` after each merge. This already happened once: #214 merged while #220 was open; `main` was merged into every layer and the four dashboard edges were listed in #220.
+- Any merge to `main` updates the Version Packages PR (#211).
 
 ## Boundaries
 
-- Fixed: routes, DTO fields, status and error codes, columns, existing migrations, `openapi.json`, rule-engine results.
-- Files owned by in-flight PRs are off limits: #214 (frontend `audit/Dashboard*`, `audit/api.ts`, `audit/dashboard*.ts`, `shell/icons.ts`, `testing/fetch.ts`), #166 (`curriculum-admin/csv-import.service*`, its e2e spec, ADR 0011, `docs/test/test-cases-b2.md`), #77 (`src/backend/src/advisor/**` and the files that PR lists).
-- Earlier untangle passes: #56 to #58 (9 Nov) and #183 to #203 (26 Nov). Do not redo them.
+- Fixed: routes, DTO fields, status and error codes, response bodies, columns, existing migrations, `openapi.json`, rule-engine results. No test deleted or weakened.
+- Files owned by open PRs: #166 (`curriculum-admin/csv-import.service*`, its e2e spec, ADR 0011, `docs/test/test-cases-b2.md`), #77 (`src/backend/src/advisor/**`, `src/backend/src/ai/**`; its other files are shared hubs and got minimal edits). #214 merged on 28 Nov.
+- Earlier untangle passes: #56 to #58 (9 Nov) and #183 to #203 (26 Nov).
 
-## Baseline (main at 3c4da22, 28 Nov 2026)
+## The stack (bottom first)
 
-All green: typecheck, lint, build, openapi unchanged. Backend unit 72 files / 1132 tests (statements 75.51 %, branches 76.18 %). Frontend unit 79 files / 1246 tests. Backend e2e 24 files / 364 tests (83 s). Browser 13 files / 68 tests. No pre-existing failure. One conditional skip: `ai/gateway.live-spec.ts` (needs a provider key, by design).
-
-Import graph (production files): backend folder cycles `auth <-> users` and `curriculum <-> curriculum-admin <-> database`; one file cycle among the three curriculum entities (TypeORM relations). Frontend: the root folder holds shared leaves and the composition root, so every folder is in one cycle; two-way pairs `shell <-> admin/notifications/auth/components`, `auth <-> plans`, `plans <-> sharing`. Regenerate with `node converge/tools/depgraph.mjs <src dir>`.
-
-## Task pool
-
-Evidence for every item: the seven survey files (`converge/survey/*.md`, findings with `path:line`). IDs: T tooling, BP backend platform, BD backend domain, BA backend admin/content, FK frontend kernel/platform, FP frontend planning, FA frontend admin/content. Status: todo, building, review, pushed (#PR), merged, deferred, rejected.
-
-### The stack as built (bottom first)
-
-| Stack | Branch | Batch | PR | State |
+| Stack | Branch | Batch | PR | Title |
 | --- | --- | --- | --- | --- |
-| 01 | refactor/cv-01-verify-and-lint-rules | 01 | #220 | CI green, auto-merge on, waits for one approval |
-| 02 | refactor/cv-02-plan-view | 10 | #221 (draft) | CI green |
-| 03 | refactor/cv-03-locks-and-seeds | 02 | #222 (draft) | stack 04, #223 |
-| 04 | refactor/cv-04-engine-vocabulary | 03 | #223 (draft) | stack 06, #225 |
-| 05 | refactor/cv-05-fe-kernel | 09 | #224 (draft) | stack 05, #224 |
-| 06 | refactor/cv-06-rules-one-derivation | 04 | #225 (draft) | stack 12, #231 |
-| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | stack 15, #234 |
-| 08 | refactor/cv-08-plan-components | 11 | #227 (draft) | building |
-| 09 | refactor/cv-09-admin-messages | 16 | #228 (draft) | stack 09, #228 |
-| 10 | refactor/cv-10-account-state | 05 | #229 (draft) | pushed; SQL byte for byte; hand-merged `scripts/lint.mjs` at integration |
-| 11 | refactor/cv-11-actions-and-drafts | 14 | #230 (draft) | stack 11, #230 |
-| 12 | refactor/cv-12-errors-and-limiter | 06 | #231 (draft) | stack 14, #233 |
-| 13 | refactor/cv-13-contract-checks | 15 | #232 (draft) | stack 13, #232 (part F moved to batch 17) |
-| 14 | refactor/cv-14-routes-and-effects | 12 | #233 (draft) | pushed; route table byte-identical |
-| 15 | refactor/cv-15-admin-access | 07 | #234 (draft) | pushed; openapi.json byte-identical |
+| 01 | `refactor/cv-01-verify-and-lint-rules` | 01 | #220 | chore(lint): add npm run verify and structural lint rules |
+| 02 | `refactor/cv-02-plan-view` | 10 | #221 (draft) | refactor(plans): split the pure issue view out of the planner loaders |
+| 03 | `refactor/cv-03-locks-and-seeds` | 02 | #222 (draft) | refactor(backend): one lock-key registry, curriculum seeds in curriculum |
+| 04 | `refactor/cv-04-engine-vocabulary` | 03 | #223 (draft) | refactor(rules): move engine input types into pure curriculum-rules.ts |
+| 05 | `refactor/cv-05-fe-kernel` | 09 | #224 (draft) | refactor(frontend): give sign-out keys, grants and busy text one owner |
+| 06 | `refactor/cv-06-rules-one-derivation` | 04 | #225 (draft) | refactor(rules): derive course status and prerequisite sets once |
+| 07 | `refactor/cv-07-admin-screens` | 13 | #226 (draft) | refactor(admin): share the saved-document and calendar-event code |
+| 08 | `refactor/cv-08-plan-components` | 11 | #227 (draft) | refactor(plans): share issue cards and credit meter with the shared page |
+| 09 | `refactor/cv-09-admin-messages` | 16 | #228 (draft) | refactor(admin): split the admin message catalogue by screen |
+| 10 | `refactor/cv-10-account-state` | 05 | #229 (draft) | refactor(users): own the account deletion check and student row lock |
+| 11 | `refactor/cv-11-actions-and-drafts` | 14 | #230 (draft) | refactor(frontend): share one action helper, move the transcript draft |
+| 12 | `refactor/cv-12-errors-and-limiter` | 06 | #231 (draft) | refactor(backend): build coded errors in one place, move sign-in limiter |
+| 13 | `refactor/cv-13-contract-checks` | 15 | #232 (draft) | test(frontend): fail when a contract schema or limit goes unchecked |
+| 14 | `refactor/cv-14-routes-and-effects` | 12 | #233 (draft) | refactor(frontend): let each feature own its routes and effects |
+| 15 | `refactor/cv-15-admin-access` | 07 | #234 (draft) | refactor(backend): move the admin write gate into admin-access |
+| 16 | `refactor/cv-16-clc-seeds` | 08 | #235 (draft) | refactor(curriculum): write each CLC 2025 course once |
+| 17 | `refactor/cv-17-docs-and-extras` | 17 | #236 (draft) | docs: match decision records and architecture map to the code |
+| 18 | `refactor/cv-18-dashboard-folder` | 18 | to open | the dashboard moves from `audit/` into its own `dashboard/` folder (building) |
 
-Stack order follows readiness, so stack numbers differ from the batch numbers of the plan below. Each batch is built on `cvb/<batch slug>` in `.claude/worktrees/cv-build-{be,fa,fb}` and cherry-picked onto the stack tip in `.claude/worktrees/cv-stack`. Since batch 06, every new batch branches from the current stack tip, not from its track's previous build branch: two tracks that had each edited `scripts/lint.mjs` or a file an earlier layer had split needed hand merges.
+Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. Every layer passed the full verify when it was stacked; the tip passed again after `main` was merged in: backend 1205 unit / 365 e2e, frontend 1393 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). No test was removed; two titles were widened.
 
-### The plan (batches)
+## State of the structure at the stack tip
 
-| Batch | Build branch | Items | What changes | Risk | Status |
-| --- | --- | --- | --- | --- | --- |
-| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | stack 01, #220 |
-| 02 | cv-02-locks-and-seeds | BP-2, BA-3 | `common/advisory-locks.ts` owns every lock key (uniqueness spec). Curriculum seed data and loader move to `curriculum/seeds/`; `database/seed.ts` runs a list of seeders with one signature. Ends `curriculum <-> curriculum-admin <-> database`. | low | stack 03, #222 |
-| 03 | cv-03-engine-vocabulary | BD-1, BP-6, BD-6 (CreditCapsDto only) | Rule-engine input types and the training-type / group-kind lists move to a pure `curriculum/curriculum-rules.ts`; the purity spec also walks type imports. `TermDto` moves to `terms/`; `common` and `config` become enforced leaves. | low | stack 04 |
-| 04 | cv-04-rules-one-derivation | BD-2 | One `courseStatus`, one `recordBefore`, two named prerequisite policies inside `rules/`. No result changes; existing specs pin it. | low | building (Opus) |
-| 05 | cv-05-account-state | BP-1, BD-7 | `users/` owns "account pending deletion" (predicate, SQL fragment) and the student row lock; nine raw-SQL copies in five modules call it. | med | todo |
-| 06 | cv-06-errors-and-limiter | BP-3, BP-4 | Coded API errors only through `common/api-errors.ts` (lint rule); the sign-in attempt limiter leaves `AuthService` and shares its numbers with `PASSWORD_LIMIT`. | low | todo |
-| 07 | cv-07-admin-access | BA-1 step 2, BP-5 | The write gate, grants and 403 helpers become `admin-access/`; calendar and account stop importing `curriculum-admin`. Registries one entry per line; one `platformImports` for app and contract. | low | todo |
-| 08 | cv-08-clc-seeds | BA-2 | Each CLC 2025 course written once; a specialisation lists only group membership and PDF pages. Proof: built seed arrays deep-equal before and after. Group membership stays explicit (no derived "free" group: that would be an academic assumption). | med | todo |
-| 09 | cv-09-fe-kernel | FK-2/FP-3, FA-4, FK-7, FK-3 | `account-storage.ts` owns account-scoped browser keys (auth stops importing plans); grants store split so the shell does not import the admin stack; `ModalDialog` owns its busy text; the test-only route warm-up leaves `router.ts`. | low-med | approved after one fix round; polishing |
-| 10 | cv-10-plan-view | FP-2, FP-1 step 1, FP-7 | `plans/issue-view.ts` pure leaf; `sharing/view.ts` holds the shared page's view model (tested), the `toEngineIssue` adapter goes; dead sharing aliases go. | low | stack 02, #221 |
-| 11 | cv-11-plan-components | FP-1 steps 2-3 | Shared presentational components (term load, issue card, coverage list) own their styles; 46 duplicated style rules leave `SharedPlanView.vue`. | med | building (Opus) |
-| 12 | cv-12-routes-and-effects | FK-4, FA-3, T-4 | Each feature owns its route records and app-wide effects; `router.ts`, `App.vue`, `App.spec.ts` become short lists; admin and bell tests move to their features. | low-med | building |
-| 13 | cv-13-admin-screens | FA-2, FA-5, FA-1 | One saved-document composable for the two scoped admin screens; one calendar-event presentation module; the client's parsing of server reference sentences pinned to the server's list (the three kinds it cannot parse today are listed as known gaps; wording them is a separate fix PR with Hoà's sign-off, because it changes what an admin sees). | med | todo |
-| 14 | cv-14-actions-and-drafts | FP-6, FP-5 | One attempt helper for "run, ignore 401, report"; explorer reuses the program-choice composable; `groupGlyph`; transcript draft logic in a tested module. | low-med | todo |
-| 15 | cv-15-contract-checks | FK-5, FP-4, FP-8 (option A), FK-6 | Contract coverage spec (every schema checked or allow-listed), nullability, limits; group-colour rules pinned to the seeded group names; message catalogues collected by glob. | low | building (part F moved to batch 17) |
-| 16 | cv-16-admin-messages | FA-6 | `admin/messages.ts` (1163 lines) split per screen, same keys. | low | todo |
-| 17 | cv-17-docs-and-extras | BD-4, T-5, T-7, architecture map | Stale ADR rows, `.rgignore` for dated evidence, architecture.md layer and lock tables; then the two extras: comments that restate code, tests that cannot fail. | low | todo |
+- Backend: the folder cycle `curriculum <-> curriculum-admin <-> database` is gone; `common` and `config` import no feature. One folder cycle is left, `auth <-> users` (the users controller imports the auth decorators, which import the User type; type-only, left on purpose), and one file cycle, the three curriculum entities (TypeORM relations). The number of folder edges is the same as at the start (101 with the root); the gain is direction, not count.
+- Owners that did not exist before: lock keys (`common/advisory-locks.ts`), "account waiting for deletion" and the student row lock (`users/account-state.ts`), coded API errors (`common/api-errors.ts`), the admin write gate (`admin-access/`), the rule engine's input vocabulary (`curriculum/curriculum-rules.ts`), curriculum seed data (`curriculum/seeds/`), each CLC course (`curriculum/seeds/clc-2025-courses.ts`).
+- Frontend: three enforced layers (kernel, features, composition) with no exception left; feature-to-feature imports are a ratchet list. Two-way pairs: `plans <-> sharing` (accepted: the editor mounts the share dialog, the shared page reuses plan components) and, until stack 18 merges, `audit <-> plans` through the dashboard. Largest files: `plans/PlanEditorView.vue` 956, `audit/DashboardView.vue` 925 (from #214), `admin/CurriculumAdmin.vue` 796, `sharing/SharedPlanView.vue` 769 (1077 at the start).
+- Enforcement, all in `npm run lint` (`scripts/lint.mjs`, tables in `scripts/layers.mjs`, 40-odd tests of its own): backend import direction, frontend layers and feature edges, `fetch(` only in `api.ts`, modules reachable from the registry, the module table of architecture.md, identifier homes, coded-error homes. In specs: rule-engine purity including type imports, contract coverage and nullability, seeded group colours, message catalogues by glob, server reference sentences.
 
-Build: 01 first, alone, through the whole pipeline. Then three tracks in parallel, every one based on the 01 branch so the new lint rules run in each build: backend (02 to 08 in order), frontend A (10, 11, 14), frontend B (09, 13, 16); then 12 and 15, which touch every feature; then 17. A batch is built on a local branch `cvb/<slug>` and cherry-picked onto the stack tip as `refactor/cv-NN-<slug>`, so the stack order follows readiness. Every PR above the bottom one is opened as a draft.
+## Decisions from the Project Lead (28 Nov 2026)
 
-### Deferred
-
-- BA-4 split `curriculum-admin.dto.ts` by service: after PR #166 merges (it imports from that file).
-- BP-8 `ai/` owns its config shape: after PR #77 (all files are its).
-- Moving the frontend kernel files or the shell kit into their own folders: about 100 import lines in every open branch for no behaviour gain; the lint rule gives the guarantee without the move.
-
-### Rejected
-
-- Removing the unused openapi artifact upload from `ci.yml` (T-1): CI gates are the Project Lead's; listed under decisions instead.
-- One export line per migration (part of BP-5), built in batch 07 and taken out again: it put timestamp-sorting logic into the migration registry and a list file in another folder, while two branches that each append a migration still collide on the same line. `database/migrations/index.ts` is unchanged; its spec already fails on an unlisted migration.
-- T-3 parallel e2e: the suite takes 83 s; not worth the flakiness risk.
-- BA-5 notification-kind guard: already enforced by `notifications/api.spec.ts` (contractEnum).
-- BA-6 exclude `testing/` from the build: staging may seed fixtures from dist; leave.
-- Module self-registration by folder scan, dependency-cruiser, eslint-plugin-boundaries, generated API types: new machinery; ADR 0002 and architecture.md already decided against them.
+- Landing: a stack of small PRs, auto-merge on, a teammate approves each; one heads-up in the team channel before the first PR.
+- Extras from the untangle skill, both, done last: remove comments that only restate the code; remove tests that could not catch a real bug and fix the ones that fail without one. Every removed test is listed in its PR with the reason it could not fail (AGENTS.md forbids weakening tests to pass CI).
+- Subagents: set model and effort on every call. Sonnet/medium for repetitive surveys, mechanical refactors and chores; Opus/medium for design judgment and reviews; more only for one named hard step.
 
 ### Needs a decision (none blocks the stack)
 
@@ -102,43 +75,39 @@ Build: 01 first, alone, through the whole pipeline. Then three tracks in paralle
 8a. Hoà: the plan editor and the shared plan page differ in nine small style details (listed in PR #227). Should the shared page look like the editor? If yes, `CapMeter` and `IssueCard` lose their variants.
 8b. T-1: the backend CI job exports and uploads `openapi.json` as an artifact that no workflow downloads. Remove the step? (CI gates are Lâm-only.)
 9. FA-1: Vietnamese and English wording for three reference kinds (owner: Hoà). FK-4: menu labels from the feature's messages or literal on the route (owner: Hoà).
+10. BD-3: `class-model.md` now has the two standing types it lacked, but it is still a hand copy of `rules/types.ts`. Keep the field lists (course deliverable?) or point at the file?
+11. Hoà: three server "reference" sentences have no Vietnamese or English wording in the admin screens (overflow rules, combined-minimum rules, counting rule). `admin/references.spec.ts` lists them as known gaps; wording them is a small fix PR with a real changeset.
 
-### In-flight zones, narrowed
+## Deferred
 
-PR #77 is two weeks stale and already conflicts with main, so only `src/backend/src/advisor/**` and `src/backend/src/ai/**` are treated as its own. Shared hubs it also lists (`features.ts`, `migrations/index.ts`, `config/env.ts`, `AGENTS.md`, `architecture.md`, `package.json`) get minimal edits; whoever rebases #77 re-adds one line. `openapi.json` never changes in this mission.
+- BA-4 split `curriculum-admin.dto.ts` by service: after PR #166 merges (it imports from that file).
+- BP-8 `ai/` owns its config shape: after PR #77 (all files are its).
+- Moving the frontend kernel files or the shell kit into their own folders: about 100 import lines in every open branch for no behaviour gain; the lint rule gives the guarantee without the move.
+- `CreditCapsDto` in `rules/` instead of `plans/` (it would remove the backend edge `audit -> plans`): the purity check exempts only a fixed list of loader files and would need a special case.
+- Sharing the term-load text line and the coverage list between the editor and the shared page: markup and data-test ids differ; waits for Hoà's answer to question 8a.
 
-## Completed batches
+## Rejected
 
-- 01 `refactor/cv-01-verify-and-lint-rules` at 3b9b542 (5 commits): PR #220, thread `#220 ...` in the sprite forum. Independent review: approved; its eight non-blocking findings were all taken. Full verify green, counts equal to the baseline.
-
-## State of the structure at stack 14
-
-- Backend: one folder cycle left, `auth <-> users` (the users controller imports the auth decorators, which import the User type; type-only, left on purpose). One file cycle, the three curriculum entities (TypeORM relations). 97 folder edges (101 at the start).
-- Frontend: no layer exception left; 19 feature edges; `plans <-> sharing` is the one two-way pair (the editor mounts the share dialog, the shared page reuses plan components) and is accepted. Largest files: `plans/PlanEditorView.vue` 956, `admin/CurriculumAdmin.vue` 796, `sharing/SharedPlanView.vue` 769 (1077 at the start); `admin/messages.ts` (1163) is split.
-- Tests: backend 1159 unit / 365 e2e, frontend 1365 unit / 68 browser (1132 / 364 / 1246 / 68 at the start). No test removed.
+- One export line per migration: built in batch 07 and taken out again. It put timestamp-sorting logic into the migration registry while two branches that each append a migration still collide on the same line. `database/migrations/index.ts` is unchanged; its spec already fails on an unlisted migration.
+- Removing the unused openapi artifact upload from `ci.yml`: CI gates are the Project Lead's; listed under decisions.
+- Parallel e2e: the suite takes about 80 s; not worth the flakiness risk.
+- A notification-kind guard: `notifications/api.spec.ts` already compares the kinds with the contract.
+- Excluding `testing/` folders from the backend build: staging may seed guide fixtures from dist.
+- dependency-cruiser or eslint-plugin-boundaries: a new dependency and config language for what `scripts/layers.mjs` and 300 lines of `scripts/lint.mjs` already do. Module self-registration by folder scan: ADR 0002 rejects globs for migrations for the same reason (ts and dist differ), and the explicit list is how a reader finds the modules. Generated API types: architecture.md rejects them (the generator needs TypeScript 5).
 
 ## Known limitations
 
-- The machine is shared: on 28 Nov a clock-sensitive job of the Project Lead (`~/wrong_way`, 6 workers) ran beside the builds and the load average passed 80, which made 5 s test timeouts fire. Since then the verify script runs at `nice 10` with 4 test workers, briefs tell agents to do the same, and at most three build tracks run. Read a "Test timed out in 5000ms" as load first: re-run the file.
-- Batch 03 left `CreditCapsDto` in `plans/plan-issues.dto.ts` (one new backend edge `audit -> plans`). `rules/` would be the better home, but the purity check exempts only a fixed list of loader files and would need a special case.
-- `src/backend/src/curriculum-admin/import-body-limit.spec.ts` can hit its 5 s test timeout when the machine is loaded (seen once with four builds running, load average 22; green on the re-run). Pre-existing; re-run before reading a failure there as real.
+- The machine is shared: on 28 Nov a clock-sensitive job of the Project Lead (`~/wrong_way`, 6 workers) ran beside the builds and the load average passed 80 for about ten minutes, which made 5 s test timeouts fire. Since then the verify script runs at `nice 10` with 4 test workers, briefs tell agents to do the same, and at most three build tracks run.
 - `gh pr edit` fails on this machine (GitHub's Projects-classic GraphQL error). Set a PR body with `gh api repos/<owner>/<repo>/pulls/<n> -X PATCH -F body=@file` and reviewers with `.../requested_reviewers`.
 - Workflow subagents cannot write files outside their worktree with the Write tool; their reports come back in the structured result (journal in the session's `subagents/workflows/<run>/journal.jsonl`).
+- Commits made by subagents carry the Co-Authored-By trailer of the model that wrote them (Sonnet or Opus); the orchestrator's own commits carry Fable's.
 
 ## Follow-ups owed to teammates
 
-- PR #214 (Hoà, dashboard): against the new lint rules it needs edges `audit -> calendar`, `audit -> notifications`, `audit -> plans` (the last one makes `audit <-> plans` two-way). When #220 is merged and #214 rebases: add the edges on that branch, or move the dashboard into its own folder if Hoà prefers. Do it myself, post one line in the #214 thread.
-
-## Decisions from the Project Lead (28 Nov 2026)
-
-- Landing: a stack of small PRs, auto-merge on, a teammate approves each; one heads-up in the team channel before the first PR.
-- Extras from the untangle skill, both, done last: remove comments that only restate the code; remove tests that could not catch a real bug and fix the ones that fail without one. Every removed test is listed in its PR with the reason it could not fail (AGENTS.md forbids weakening tests to pass CI).
-- Subagents: set model and effort on every call. Sonnet/medium for repetitive surveys, mechanical refactors and chores; Opus/medium for design judgment and reviews; more only for one named hard step.
-
-## Pending decisions
-
-None.
+- PR #166 (csv empty periods): the stack changed three import-path lines in `curriculum-admin/csv-import.service.ts` and one in its e2e spec. When #166 rebases, resolve those for its author.
+- PR #77 (advisor harness): conflicts with `main` since before this mission; `features.ts` is now one module per line, `ai-cost-guard.service.ts` imports its lock key from `common/advisory-locks.ts`. Whoever rebases #77 re-adds its module line.
+- Sprite threads: one per PR, named `#N title`; the progress log is the thread "refactor: converge the codebase (stacked PRs), progress log".
 
 ## Next
 
-Building: 07 (be, admin-access module and composition root) from the stack tip. Then 08 (CLC seed rows written once), then 17 (docs, the two extras, the reference-sentence pin). After 17: one independent "what is left" read of the stack tip to confirm convergence or name a short second wave; final report. Merging depends on approvals: #220 first; when it merges, merge `origin/main` into the next branch, push, check its base is `main`, mark it ready, request reviewers, turn on auto-merge.
+Stack 18 (the dashboard folder) is building in `cv-build-fa` from the stack tip. When it returns approved: polish, cherry-pick onto the tip as `refactor/cv-18-dashboard-folder`, full verify, draft PR on #236, thread. Then the mission waits on approvals, starting with #220.
