@@ -230,14 +230,14 @@ export function parseTranscriptPaste(raw: string): PasteParseResult {
   const rows: PastedRow[] = [];
   const errors: PasteLineError[] = [];
   const lines = raw.split(/\r?\n/);
-  const firstLine = lines.find((line) => line.trim() !== '');
-  const delimiter = firstLine === undefined ? null : detectDelimiter(firstLine);
+  const firstIndex = lines.findIndex((line) => line.trim() !== '');
+  const delimiter = lines.map(detectDelimiter).find((found) => found !== null) ?? null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     if (line.trim() === '') continue;
     const cells = splitCells(line, delimiter);
-    if (line === firstLine && isHeaderLine(line, cells)) continue;
+    if (i === firstIndex && isHeaderLine(line, cells)) continue;
     const parsed = parseCells(cells);
     if (parsed.ok) rows.push(parsed.row);
     else errors.push({ line: i + 1, text: line, reason: parsed.reason });

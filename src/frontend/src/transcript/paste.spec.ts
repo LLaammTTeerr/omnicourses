@@ -156,6 +156,26 @@ describe('parseTranscriptPaste (F2 deterministic paste parser, ADR 0007)', () =>
     ]);
   });
 
+  it('takes the delimiter from the first line that has one, so a caption above the table is reported alone and repeated headers are not skipped', () => {
+    const text = [
+      'Grade report',
+      'Term\tCourse Code\tCourse Name\tCredits\tResult',
+      '2024-1\tZZ501\tCompilers\t4\t8.0',
+    ].join('\n');
+    expect(parseTranscriptPaste(text)).toEqual({
+      rows: [{ year: 2024, number: 1, courseCode: 'ZZ501', courseName: 'Compilers', credits: '4', result: 'graded', grade: '8.0' }],
+      errors: [
+        { line: 1, text: 'Grade report', reason: 'columns' },
+        { line: 2, text: 'Term\tCourse Code\tCourse Name\tCredits\tResult', reason: expect.any(String) },
+      ],
+    });
+
+    const header = 'Term\tCourse Code\tCourse Name\tCredits\tResult';
+    const repeated = parseTranscriptPaste([header, '2024-1\tZZ502\tGraphics\t4\t7.0', header].join('\n'));
+    expect(repeated.rows).toHaveLength(1);
+    expect(repeated.errors.map((error) => error.line)).toEqual([3]);
+  });
+
   it('never drops or guesses malformed lines, reporting 1-based line numbers and specific reasons', () => {
     const text = [
       'Term\tCourse Code\tCourse Name\tCredits\tResult',
