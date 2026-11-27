@@ -32,7 +32,7 @@ Evidence for every item: the seven survey files (`converge/survey/*.md`, finding
 
 | PR | Branch | Items | What changes | Risk | Status |
 | --- | --- | --- | --- | --- | --- |
-| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | todo |
+| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | pushed (#220), auto-merge on, waits for one approval |
 | 02 | cv-02-locks-and-seeds | BP-2, BA-3 | `common/advisory-locks.ts` owns every lock key (uniqueness spec). Curriculum seed data and loader move to `curriculum/seeds/`; `database/seed.ts` runs a list of seeders with one signature. Ends `curriculum <-> curriculum-admin <-> database`. | low | todo |
 | 03 | cv-03-engine-vocabulary | BD-1, BP-6, BD-6 (CreditCapsDto only) | Rule-engine input types and the training-type / group-kind lists move to a pure `curriculum/curriculum-rules.ts`; the purity spec also walks type imports. `TermDto` moves to `terms/`; `common` and `config` become enforced leaves. | low | todo |
 | 04 | cv-04-rules-one-derivation | BD-2 | One `courseStatus`, one `recordBefore`, two named prerequisite policies inside `rules/`. No result changes; existing specs pin it. | low | todo |
@@ -84,7 +84,17 @@ PR #77 is two weeks stale and already conflicts with main, so only `src/backend/
 
 ## Completed batches
 
-None yet.
+- 01 `refactor/cv-01-verify-and-lint-rules` at 3b9b542 (5 commits): PR #220, thread `#220 ...` in the sprite forum. Independent review: approved; its eight non-blocking findings were all taken. Full verify green, counts equal to the baseline.
+
+## Known limitations
+
+- `src/backend/src/curriculum-admin/import-body-limit.spec.ts` can hit its 5 s test timeout when the machine is loaded (seen once with four builds running, load average 22; green on the re-run). Pre-existing; re-run before reading a failure there as real.
+- `gh pr edit` fails on this machine (GitHub's Projects-classic GraphQL error). Set a PR body with `gh api repos/<owner>/<repo>/pulls/<n> -X PATCH -F body=@file` and reviewers with `.../requested_reviewers`.
+- Workflow subagents cannot write files outside their worktree with the Write tool; their reports come back in the structured result (journal in the session's `subagents/workflows/<run>/journal.jsonl`).
+
+## Follow-ups owed to teammates
+
+- PR #214 (Hoà, dashboard): against the new lint rules it needs edges `audit -> calendar`, `audit -> notifications`, `audit -> plans` (the last one makes `audit <-> plans` two-way). When #220 is merged and #214 rebases: add the edges on that branch, or move the dashboard into its own folder if Hoà prefers. Do it myself, post one line in the #214 thread.
 
 ## Decisions from the Project Lead (28 Nov 2026)
 
@@ -98,4 +108,4 @@ None.
 
 ## Next
 
-Build PR 01 through the whole pipeline (brief, implement, independent review, verify, signed commit, push, PR, thread), then run the tracks in parallel.
+Batches 02 (backend), 09 and 10 (frontend) are building in `.claude/worktrees/cv-build-{be,fb,fa}` on local branches `cvb/<slug>`, based on the 01 branch. As each returns approved: cherry-pick onto the stack tip as `refactor/cv-NN-<slug>`, run the full verify, push, open a draft PR on the branch below, create its thread. Then start the next batch of that track (briefs in `converge/briefs/`).
