@@ -63,8 +63,20 @@ export async function request<T>(method: string, path: string, options: RequestO
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
-export function fetchHealth(): Promise<Health> {
-  return request<Health>('GET', '/health');
+export async function fetchHealth(): Promise<Health> {
+  try {
+    return await request<Health>('GET', '/health');
+  } catch (error) {
+    if (
+      error instanceof HttpError &&
+      error.status === 503 &&
+      error.body?.status === 'degraded' &&
+      error.body?.database === 'down'
+    ) {
+      return { status: 'degraded', database: 'down' };
+    }
+    throw error;
+  }
 }
 
 export const statusOf = (e: unknown): number | null => (e instanceof HttpError ? e.status : null);

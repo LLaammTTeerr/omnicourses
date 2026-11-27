@@ -114,11 +114,23 @@ describe('parseTranscriptPaste (F2 deterministic paste parser, ADR 0007)', () =>
     ]);
   });
 
-  it('does not mistakenly skip a headerless first row whose course name contains Mã, Code, or Course', () => {
+  it('does not mistakenly skip a headerless first row whose course name contains Mã, Code, or Course, even when its term is malformed', () => {
     const { rows, errors } = parseTranscriptPaste('2024-1\tZZ101\tMã hóa và Clean Code Course\t4\t9,0');
     expect(errors).toEqual([]);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.courseName).toBe('Mã hóa và Clean Code Course');
+
+    const badTermVi = parseTranscriptPaste('2024-4\tCS101\tMã hóa\t4\t8.5');
+    expect(badTermVi).toEqual({
+      rows: [],
+      errors: [{ line: 1, text: '2024-4\tCS101\tMã hóa\t4\t8.5', reason: 'term' }],
+    });
+
+    const typoTermEn = parseTranscriptPaste('2O24-1\tCS101\tCode Design\t4\t8.5');
+    expect(typoTermEn).toEqual({
+      rows: [],
+      errors: [{ line: 1, text: '2O24-1\tCS101\tCode Design\t4\t8.5', reason: 'term' }],
+    });
   });
 
   it('never drops or guesses malformed lines, reporting 1-based line numbers and specific reasons', () => {

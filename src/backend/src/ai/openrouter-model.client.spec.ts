@@ -19,7 +19,7 @@ describe('OpenRouterModelClient', () => {
     [apiError(429), 'The AI provider is busy, try again shortly', false],
     [apiError(500), 'The AI provider failed', true],
     [new OpenAI.APIConnectionTimeoutError(), 'The AI provider timed out', true],
-    [new OpenAI.APIConnectionError({ message: 'connection refused with prompt' }), 'The AI provider failed', false],
+    [new OpenAI.APIConnectionError({ message: 'connection reset mid-stream with prompt' }), 'The AI provider failed', true],
     [new Error('anything'), 'The AI provider failed', true],
   ])('maps %s to a safe reason that drops the provider message, and says whether it may be billed', (error, reason, billed) => {
     const mapped = toAiUnavailable(error);

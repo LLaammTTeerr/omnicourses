@@ -24,7 +24,7 @@ const SESSION_TOKEN_BYTES = 32;
 export const MAX_SESSION_LIFETIME_DAYS = 30;
 const MAX_FAILED_SIGN_INS = 10;
 const FAILED_SIGN_IN_WINDOW_MS = MINUTE_MS;
-const MAX_TRACKED_SIGN_IN_EMAILS = 10_000;
+const MAX_TRACKED_SIGN_IN_KEYS = 10_000;
 
 export const ARGON2_OPTIONS = {
   algorithm: Algorithm.Argon2id,
@@ -40,7 +40,7 @@ export const hashToken = (token: string): string => createHash('sha256').update(
 @Injectable()
 export class AuthService {
   private readonly dummyHash = hashPassword('omnicourse-timing-equalizer');
-  private readonly failedSignIns = new Map<string, number[]>();
+  private readonly signInAttempts = new Map<string, number[]>();
 
   constructor(
     @InjectRepository(Session) private readonly sessions: Repository<Session>,
@@ -66,33 +66,29 @@ export class AuthService {
     return { ...(await this.issue(user, userAgent, now)), accountRestored: false };
   }
 
-  async signIn(dto: SignInDto, userAgent?: string): Promise<AuthResultDto> {
+  async signIn(dto: SignInDto, userAgent?: string, clientIp?: string): Promise<AuthResultDto> {
     const now = this.clock.now();
     const nowMs = now.getTime();
-    const emailKey = dto.email.trim().toLowerCase();
-    this.assertSignInAllowed(emailKey, nowMs);
+    const attemptKey = `${clientIp?.trim() || 'unknown'}\u0000${dto.email.trim().toLowerCase()}`;
+    this.reserveSignInAttempt(attemptKey, nowMs);
 
-    const user = await (this.users.findByEmailForAuth
-      ? this.users.findByEmailForAuth(dto.email)
-      : this.users.findByEmail(dto.email));
+    const user = await this.users.findByEmailForAuth(dto.email);
     const valid = user?.passwordHash
       ? await verify(user.passwordHash, dto.password)
       : (await verify(await this.dummyHash, dto.password), false);
     if (!user || !valid) {
-      this.recordFailedSignIn(emailKey, nowMs);
       throw new UnauthorizedException('Invalid email or password');
     }
     const accountRestored = user.deletionRequestedAt !== null;
     if (accountRestored && !(await this.users.cancelDeletion(user.id, now))) {
-      this.recordFailedSignIn(emailKey, nowMs);
       throw new UnauthorizedException('Invalid email or password');
     }
-    this.failedSignIns.delete(emailKey);
+    this.signInAttempts.delete(attemptKey);
     return { ...(await this.issue(user, userAgent, now)), accountRestored };
   }
 
   async verifyPassword(user: User, password: string): Promise<boolean> {
-    const passwordHash = user.passwordHash ?? (await this.users.findPasswordHash?.(user.id));
+    const passwordHash = user.passwordHash ?? (await this.users.findPasswordHash(user.id));
     return passwordHash ? verify(passwordHash, password) : false;
   }
 
@@ -155,9 +151,7 @@ export class AuthService {
   }
 
   private async issue(user: User, userAgent?: string, now = this.clock.now()): Promise<Omit<AuthResultDto, 'accountRestored'>> {
-    if (this.sessions.delete) {
-      await this.sessions.delete({ userId: user.id, expiresAt: LessThanOrEqual(now) });
-    }
+    await this.sessions.delete({ userId: user.id, expiresAt: LessThanOrEqual(now) });
     const token = newToken();
     const expiresAt = sessionExpiry(now);
     await this.sessions.save(
@@ -172,37 +166,34 @@ export class AuthService {
     return { token, expiresAt, user: UserDto.from(user) };
   }
 
-  private assertSignInAllowed(emailKey: string, nowMs: number): void {
-    this.pruneFailedSignIns(nowMs);
-    const attempts = this.failedSignIns.get(emailKey);
-    if (attempts && attempts.length >= MAX_FAILED_SIGN_INS) {
+  private reserveSignInAttempt(attemptKey: string, nowMs: number): void {
+    this.pruneSignInAttempts(nowMs);
+    const cutoff = nowMs - FAILED_SIGN_IN_WINDOW_MS;
+    const active = (this.signInAttempts.get(attemptKey) ?? []).filter((t) => t > cutoff);
+    if (active.length >= MAX_FAILED_SIGN_INS) {
       throw new HttpException(
         'Too many sign-in attempts for this account; try again in a minute',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-  }
-
-  private recordFailedSignIn(emailKey: string, nowMs: number): void {
-    const cutoff = nowMs - FAILED_SIGN_IN_WINDOW_MS;
-    const active = (this.failedSignIns.get(emailKey) ?? []).filter((t) => t > cutoff);
-    active.push(nowMs);
-    this.failedSignIns.delete(emailKey);
-    if (this.failedSignIns.size >= MAX_TRACKED_SIGN_IN_EMAILS) {
-      const oldest = this.failedSignIns.keys().next().value;
-      if (oldest !== undefined) this.failedSignIns.delete(oldest);
+    if (!this.signInAttempts.has(attemptKey) && this.signInAttempts.size >= MAX_TRACKED_SIGN_IN_KEYS) {
+      throw new HttpException(
+        'Too many sign-in attempts; try again in a minute',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
-    this.failedSignIns.set(emailKey, active);
+    active.push(nowMs);
+    this.signInAttempts.set(attemptKey, active);
   }
 
-  private pruneFailedSignIns(nowMs: number): void {
+  private pruneSignInAttempts(nowMs: number): void {
     const cutoff = nowMs - FAILED_SIGN_IN_WINDOW_MS;
-    for (const [key, timestamps] of this.failedSignIns) {
+    for (const [key, timestamps] of this.signInAttempts) {
       const active = timestamps.filter((t) => t > cutoff);
       if (active.length === 0) {
-        this.failedSignIns.delete(key);
+        this.signInAttempts.delete(key);
       } else if (active.length !== timestamps.length) {
-        this.failedSignIns.set(key, active);
+        this.signInAttempts.set(key, active);
       }
     }
   }

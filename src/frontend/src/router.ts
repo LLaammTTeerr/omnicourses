@@ -166,7 +166,33 @@ async function onboardingFirst(to: RouteLocationNormalized): Promise<NavigationG
   return finished ? true : { name: 'onboarding', query: { redirect: to.fullPath } };
 }
 
-export function createAppRouter(history: RouterHistory = createWebHistory()): Router {
+export const CHUNK_RELOAD_KEY = 'omnicourse.chunk-reload';
+
+const CHUNK_ERROR_PATTERN =
+  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Unable to preload CSS/i;
+
+export function isChunkLoadError(error: unknown): boolean {
+  return error instanceof Error && CHUNK_ERROR_PATTERN.test(error.message);
+}
+
+export function reloadOnStaleChunk(targetPath: string, reload: (url: string) => void = (url) => window.location.assign(url)): boolean {
+  try {
+    if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === targetPath) {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      return false;
+    }
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, targetPath);
+  } catch {
+    return false;
+  }
+  reload(targetPath);
+  return true;
+}
+
+export function createAppRouter(
+  history: RouterHistory = createWebHistory(),
+  onChunkReload?: (url: string) => void,
+): Router {
   const router = createRouter({ history, routes, scrollBehavior });
   router.beforeEach(async (to) => {
     const auth = getActivePinia() ? useAuth() : null;
@@ -176,6 +202,18 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
     if (to.meta.auth === 'guest' && signedIn) return afterSignIn(to.query.redirect);
     if (signedIn && to.meta.auth === 'required' && to.meta.onboarding !== 'optional') return onboardingFirst(to);
     return true;
+  });
+  router.afterEach((to) => {
+    try {
+      if (sessionStorage.getItem(CHUNK_RELOAD_KEY) === to.fullPath) {
+        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      }
+    } catch {}
+  });
+  router.onError((error, to) => {
+    if (isChunkLoadError(error)) {
+      reloadOnStaleChunk(to.fullPath, onChunkReload);
+    }
   });
   return router;
 }

@@ -199,9 +199,21 @@ function hasValidTermPrefix(cells: readonly string[]): boolean {
   return false;
 }
 
+function hasDataCell(cells: readonly string[]): boolean {
+  if (/^\d/.test(cells[0]?.trim() ?? '')) return true;
+  for (const raw of cells) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    if (parseCredits(trimmed) !== null || parseGrade(trimmed) !== null) return true;
+    const code = normalizeCode(trimmed);
+    if (COURSE_CODE_PATTERN.test(code) && /[A-Z]/.test(code) && /\d/.test(code)) return true;
+  }
+  return false;
+}
+
 function isHeaderLine(line: string, cells: readonly string[]): boolean {
   if (cells.length < 2) return false;
-  if (hasValidTermPrefix(cells)) return false;
+  if (hasValidTermPrefix(cells) || hasDataCell(cells)) return false;
   return HEADER_WORD_PATTERN.test(line.normalize('NFC'));
 }
 

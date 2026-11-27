@@ -184,10 +184,12 @@ describe('PlansService', () => {
     expect(replaced.curriculum.requirementGroupIds).toHaveBeenCalledWith('c1', replaced.tx);
   });
 
-  it('caps a student at 50 plans on create and duplicate, writing nothing when at the limit', async () => {
+  it('locks the user row before counting plans and caps a student at 50 plans on create and duplicate', async () => {
     const allowed = service({ planCount: 49 });
     await expect(create(allowed.svc)).resolves.toMatchObject({ id: 'p1' });
+    expect(allowed.tx.query.mock.calls[0]).toEqual(['SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', ['u1']]);
     await expect(allowed.svc.duplicate('u1', 'p1')).resolves.toMatchObject({ id: 'p1' });
+    expect(allowed.tx.query.mock.calls).toContainEqual(['SELECT 1 FROM "users" WHERE "id" = $1 FOR NO KEY UPDATE', ['u1']]);
     expect(allowed.tx.insert).toHaveBeenCalledTimes(2);
 
     const atCapCreate = service({ planCount: 50 });

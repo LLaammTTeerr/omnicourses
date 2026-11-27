@@ -65,7 +65,7 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. Ea
 
 | Item | Used |
 | --- | --- |
-| API client | Node `fetch` scripts with no dependencies, in place of the Swagger page: the same requests and bodies as the cases. Each prints `OK` / `ok` or `MISMATCH` / `FAIL` per expected result, and no token. Retained outputs sit beside each results file; aborted retry logs and mutable state files were removed per the [Evidence policy](README.md#evidence-policy). |
+| API client | Node `fetch` scripts with no dependencies, in place of the Swagger page: the same requests and bodies as the cases. Each prints `OK` / `ok` or `MISMATCH` / `FAIL` per expected result, and no token. Retained outputs sit beside each results file; mutable run-state files (`*.state.json`) were removed per the [Evidence policy](README.md#evidence-policy). |
 | Browser | Chrome 144 on Windows 10. Headed through Claude in Chrome for TRN-02 and PLAN-02; headless through playwright-core 1.64.1 at 1280 × 800 for the 25 November screens. axe-core 4.10.2 for A11Y-01e. |
 | Server steps | ADM-06b, ADM-06e–f, TRN-02f and NOTIF-01i(4) need the staging host or its database. Lâm's bot ran them on request; its output is copied into the results files. |
 | Test data | Synthetic `example.com` accounts `b2-s1` to `b2-s15` and `b2-a1` to `b2-a6`, password `correct horse battery` (cases §1); synthetic `ZZ` courses and test groups, removed after each run. No real name, student ID, transcript or secret. |

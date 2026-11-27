@@ -69,8 +69,21 @@ async function render(routes: Record<string, unknown> = {}, path = '/explorer') 
   const fetch = mockApi({
     'GET /programs': { programs: PROGRAMS },
     'GET /programs/APCS/curricula/2024': CURRICULUM,
-    'GET /users/me/transcript': {
-      rows: [{ courseCode: 'ZZ101', courseName: 'Giải tích thử', credits: 4, result: 'fail', grade: 3, term: { year: 2024, number: 1 } }],
+    'GET /programs/APCS/curricula/2024/standing': {
+      courses: [
+        { code: 'ZZ101', transcriptStatus: 'failed', readiness: null, missingPrerequisites: [] },
+        { code: 'ZZ102', transcriptStatus: null, readiness: null, missingPrerequisites: [] },
+        { code: 'ZZ201', transcriptStatus: null, readiness: 'available', missingPrerequisites: [] },
+        { code: 'ZZ414', transcriptStatus: null, readiness: null, missingPrerequisites: [] },
+      ],
+    },
+    'GET /programs/APCS/curricula/2025/standing': {
+      courses: [
+        { code: 'ZZ101', transcriptStatus: 'failed', readiness: null, missingPrerequisites: [] },
+        { code: 'ZZ102', transcriptStatus: null, readiness: null, missingPrerequisites: [] },
+        { code: 'ZZ201', transcriptStatus: null, readiness: 'available', missingPrerequisites: [] },
+        { code: 'ZZ414', transcriptStatus: null, readiness: null, missingPrerequisites: [] },
+      ],
     },
     'GET /courses/ZZ414': DETAIL,
     ...routes,
@@ -160,13 +173,14 @@ describe('ExplorerView (F4)', () => {
     expect(headings(w)).toHaveLength(3);
   });
 
-  it('distinguishes failed, in_progress, and passed transcript badges and never marks unrecorded prerequisites as available or locked', async () => {
+  it('renders failed, in_progress, passed, and available badges returned by the backend rule engine without client-side rule math', async () => {
     const { w } = await render({
-      'GET /users/me/transcript': {
-        rows: [
-          { courseCode: 'ZZ101', courseName: 'Giải tích thử', credits: 4, result: 'fail', grade: 3, term: { year: 2024, number: 1 } },
-          { courseCode: 'ZZ102', courseName: 'Đại số thử', credits: 3, result: 'graded', grade: 8.5, term: { year: 2024, number: 1 } },
-          { courseCode: 'ZZ414', courseName: 'Học máy thử', credits: 4, result: 'in_progress', grade: null, term: { year: 2024, number: 2 } },
+      'GET /programs/APCS/curricula/2024/standing': {
+        courses: [
+          { code: 'ZZ101', transcriptStatus: 'failed', readiness: null, missingPrerequisites: [] },
+          { code: 'ZZ102', transcriptStatus: 'passed', readiness: null, missingPrerequisites: [] },
+          { code: 'ZZ201', transcriptStatus: null, readiness: 'available', missingPrerequisites: [] },
+          { code: 'ZZ414', transcriptStatus: 'in_progress', readiness: null, missingPrerequisites: [] },
         ],
       },
     });
@@ -191,7 +205,7 @@ describe('ExplorerView (F4)', () => {
     expect(w.get('[data-test="course-ZZ201"]').text()).toContain('Available');
   });
 
-  it('computes locked vs available readiness and Unlocks downstream courses for CS469 -> CS470, with a link to the planner', async () => {
+  it('displays backend-computed locked vs available readiness and Unlocks downstream courses for CS469 -> CS470, with a link to the planner', async () => {
     const cs469: CurriculumCourse = { ...course('CS469', 'Đề cương khóa luận thử', 2, 'Thesis proposal (test)'), prerequisites: [] };
     const cs470: CurriculumCourse = { ...course('CS470', 'Khóa luận tốt nghiệp thử', 10, 'Graduation thesis (test)'), prerequisites: ['CS469'] };
     const thesisCurriculum: Curriculum = {
@@ -201,8 +215,11 @@ describe('ExplorerView (F4)', () => {
 
     const lockedRun = await render({
       'GET /programs/APCS/curricula/2024': thesisCurriculum,
-      'GET /users/me/transcript': {
-        rows: [{ courseCode: 'CS469', courseName: 'Đề cương khóa luận thử', credits: 2, result: 'fail', grade: null, term: { year: 2025, number: 1 } }],
+      'GET /programs/APCS/curricula/2024/standing': {
+        courses: [
+          { code: 'CS469', transcriptStatus: 'failed', readiness: 'available', missingPrerequisites: [] },
+          { code: 'CS470', transcriptStatus: null, readiness: 'locked', missingPrerequisites: ['CS469'] },
+        ],
       },
       'GET /courses/CS469': { ...DETAIL, ...cs469 },
       'GET /courses/CS470': { ...DETAIL, ...cs470 },
@@ -231,8 +248,11 @@ describe('ExplorerView (F4)', () => {
 
     const unlockedRun = await render({
       'GET /programs/APCS/curricula/2024': thesisCurriculum,
-      'GET /users/me/transcript': {
-        rows: [{ courseCode: 'CS469', courseName: 'Đề cương khóa luận thử', credits: 2, result: 'pass', grade: null, term: { year: 2025, number: 2 } }],
+      'GET /programs/APCS/curricula/2024/standing': {
+        courses: [
+          { code: 'CS469', transcriptStatus: 'passed', readiness: null, missingPrerequisites: [] },
+          { code: 'CS470', transcriptStatus: null, readiness: 'available', missingPrerequisites: [] },
+        ],
       },
     });
     expect(unlockedRun.w.get('[data-test="course-CS469"] [data-test="transcript-status"]').attributes('data-status')).toBe('passed');
@@ -240,9 +260,9 @@ describe('ExplorerView (F4)', () => {
     expect(unlockedRun.w.get('[data-test="course-CS470"]').text()).toContain('Có thể học');
   });
 
-  it('shows no marks, and no error, when the transcript cannot be loaded', async () => {
+  it('shows no marks, and no error, when the curriculum standing cannot be loaded', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { w } = await render({ 'GET /users/me/transcript': status(500) });
+    const { w } = await render({ 'GET /programs/APCS/curricula/2024/standing': status(500) });
     expect(w.findAll('[data-test="transcript-status"]')).toHaveLength(0);
     expect(w.findAll('[data-test="course-readiness"]')).toHaveLength(0);
     expect(w.find('[role="alert"]').exists()).toBe(false);

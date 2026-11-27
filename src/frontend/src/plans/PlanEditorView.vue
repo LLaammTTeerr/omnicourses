@@ -392,7 +392,11 @@ function whatIf(): void {
   if (plan.value && !busy.value) void tabs.value?.copy(m.value.whatIfName(plan.value.name));
 }
 
-onBeforeRouteLeave(() => !session.busy.value || !auth.signedIn);
+onBeforeRouteLeave(() => {
+  if (!session.busy.value || !auth.signedIn) return true;
+  toast.show(m.value.savingWait);
+  return false;
+});
 
 function onBeforeUnload(event: BeforeUnloadEvent): void {
   if (session.busy.value) event.preventDefault();

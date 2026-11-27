@@ -114,6 +114,13 @@ export class CurriculumAdminService {
         await em.query('DELETE FROM "requirement_groups" WHERE "id" = $1', [groupId]);
       } catch (error) {
         if (isPlanSlotRefusal(error)) throw plansUseGroup([REFERENCES.groupPlans(null)]);
+        const ruleReference = groupRuleRefusalReference(error);
+        if (ruleReference) {
+          throw referencedItem(
+            'Curriculum rules still reference this requirement group; keep it while overflow or combined-minimum rules name it',
+            [ruleReference],
+          );
+        }
         throw error;
       }
     });
@@ -276,11 +283,25 @@ async function savePrerequisites(em: EntityManager, curriculumId: string, code: 
 }
 
 const PLAN_SLOT_GROUP_KEY = 'plan_placements_requirement_group_id_fkey';
+const OVERFLOW_FROM_GROUP_KEY = 'requirement_group_overflows_from_group_id_fkey';
+const OVERFLOW_TO_GROUP_KEY = 'requirement_group_overflows_to_group_id_fkey';
+const COMBINED_MINIMUM_GROUP_KEY = 'combined_minimum_groups_requirement_group_id_fkey';
 
 const plansUseGroup = (references: string[]) => referencedItem('Saved plans use the group; it stays while they name it', references);
 
 export function isPlanSlotRefusal(error: unknown): boolean {
   return isRefusal(error, [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation], PLAN_SLOT_GROUP_KEY);
+}
+
+function groupRuleRefusalReference(error: unknown): string | null {
+  const states = [SQLSTATE.restrictViolation, SQLSTATE.foreignKeyViolation];
+  if (isRefusal(error, states, OVERFLOW_FROM_GROUP_KEY) || isRefusal(error, states, OVERFLOW_TO_GROUP_KEY)) {
+    return REFERENCES.groupOverflows(null);
+  }
+  if (isRefusal(error, states, COMBINED_MINIMUM_GROUP_KEY)) {
+    return REFERENCES.groupCombinedMinimums(null);
+  }
+  return null;
 }
 
 function groupDto(group: RequirementGroup): RequirementGroupAdminDto {

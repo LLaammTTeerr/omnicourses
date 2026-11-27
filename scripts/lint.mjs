@@ -131,10 +131,21 @@ function checkVueSfcRules(rootDir, frontendFiles, addError) {
   }
 }
 
+function inlineScriptHashes(html) {
+  const hashes = [];
+  for (const match of html.matchAll(/<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const digest = createHash('sha256').update(match[1], 'utf8').digest('base64');
+    hashes.push(`sha256-${digest}`);
+  }
+  return hashes;
+}
+
 function checkNginxCspScriptHashes(rootDir, addError) {
   const indexHtmlRel = 'src/frontend/index.html';
+  const distHtmlRel = 'src/frontend/dist/index.html';
   const nginxConfRel = 'deploy/server/nginx-site.conf';
   const indexHtmlPath = path.join(rootDir, indexHtmlRel);
+  const distHtmlPath = path.join(rootDir, distHtmlRel);
   const nginxConfPath = path.join(rootDir, nginxConfRel);
 
   if (!fs.existsSync(indexHtmlPath)) {
@@ -146,15 +157,7 @@ function checkNginxCspScriptHashes(rootDir, addError) {
     return;
   }
 
-  const html = fs.readFileSync(indexHtmlPath, 'utf8');
   const nginx = fs.readFileSync(nginxConfPath, 'utf8');
-
-  const expectedHashes = [];
-  for (const match of html.matchAll(/<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi)) {
-    const digest = createHash('sha256').update(match[1], 'utf8').digest('base64');
-    expectedHashes.push(`sha256-${digest}`);
-  }
-
   const cspMatch = nginx.match(/add_header\s+Content-Security-Policy\s+"([^"]+)"/);
   if (!cspMatch) {
     addError(
@@ -178,16 +181,24 @@ function checkNginxCspScriptHashes(rootDir, addError) {
     return;
   }
 
-  const configuredHashes = [...scriptSrcMatch[1].matchAll(/'(sha256-[^']+)'/g)].map((m) => m[1]);
-  const expectedKey = expectedHashes.join(', ');
-  const configuredKey = configuredHashes.join(', ');
-  if (expectedKey !== configuredKey) {
-    addError(
-      nginxConfRel,
-      cspLine,
-      'csp-script-hash',
-      `CSP script-src hash mismatch: nginx-site.conf has [${configuredKey || 'none'}], expected [${expectedKey || 'none'}] from ${indexHtmlRel}`,
-    );
+  const configuredKey = [...scriptSrcMatch[1].matchAll(/'(sha256-[^']+)'/g)]
+    .map((m) => m[1])
+    .join(', ');
+
+  const targets = [
+    [indexHtmlRel, indexHtmlPath],
+    ...(fs.existsSync(distHtmlPath) ? [[distHtmlRel, distHtmlPath]] : []),
+  ];
+  for (const [rel, full] of targets) {
+    const expectedKey = inlineScriptHashes(fs.readFileSync(full, 'utf8')).join(', ');
+    if (expectedKey !== configuredKey) {
+      addError(
+        nginxConfRel,
+        cspLine,
+        'csp-script-hash',
+        `CSP script-src hash mismatch: nginx-site.conf has [${configuredKey || 'none'}], expected [${expectedKey || 'none'}] from ${rel}`,
+      );
+    }
   }
 }
 

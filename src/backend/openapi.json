@@ -3974,6 +3974,59 @@
         ]
       }
     },
+    "/api/programs/{program}/curricula/{cohort}/standing": {
+      "get": {
+        "operationId": "CurriculumStandingController_get",
+        "parameters": [
+          {
+            "name": "program",
+            "required": true,
+            "in": "path",
+            "description": "Program code",
+            "schema": {
+              "example": "APCS",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cohort",
+            "required": true,
+            "in": "path",
+            "description": "Cohort year",
+            "schema": {
+              "example": "2024",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-course transcript status and prerequisite readiness computed by the rule engine against the signed-in student's transcript.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumStandingDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          },
+          "404": {
+            "description": "The program does not exist, has no curriculum for this cohort, or the cohort is not a 4-digit year."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
     "/api/shared-plans/{token}": {
       "get": {
         "operationId": "SharedPlansController_read",
@@ -5325,6 +5378,57 @@
           "kind"
         ]
       },
+      "CourseStandingDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CS470",
+            "pattern": "^[A-Z0-9]{2,20}$"
+          },
+          "transcriptStatus": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "passed",
+              "in_progress",
+              "failed",
+              null
+            ],
+            "description": "Official transcript status from the rule engine (QĐ 1175/QĐ-KHTN Điều 14). null: not taken."
+          },
+          "readiness": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "available",
+              "locked",
+              null
+            ],
+            "description": "Prerequisite readiness for a course not yet passed or in progress. null when prerequisites are not recorded or the course is already passed/in progress."
+          },
+          "missingPrerequisites": {
+            "example": [
+              "CS469"
+            ],
+            "description": "Sorted course codes of unmet prerequisites when readiness is locked.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "transcriptStatus",
+          "readiness",
+          "missingPrerequisites"
+        ]
+      },
       "CreateCalendarEventDto": {
         "type": "object",
         "properties": {
@@ -5539,6 +5643,7 @@
             "description": "The cohort of that curriculum."
           },
           "terms": {
+            "maxItems": 30,
             "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues. Left out: an empty plan.",
             "type": "array",
             "items": {
@@ -5836,6 +5941,21 @@
           "language",
           "totalCreditsMin",
           "requirementGroups"
+        ]
+      },
+      "CurriculumStandingDto": {
+        "type": "object",
+        "properties": {
+          "courses": {
+            "description": "Standing of every course in the curriculum against the signed-in student’s transcript.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseStandingDto"
+            }
+          }
+        },
+        "required": [
+          "courses"
         ]
       },
       "DegreeAuditDto": {
@@ -7241,6 +7361,7 @@
         "type": "object",
         "properties": {
           "terms": {
+            "maxItems": 30,
             "description": "One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
             "type": "array",
             "items": {
@@ -7368,6 +7489,7 @@
         "type": "object",
         "properties": {
           "terms": {
+            "maxItems": 30,
             "description": "The board without the placement (a moved course is taken out of its term first). One entry per term, each term once, at most 30 terms and 300 placements in all; a course is placed once. Prerequisites, offering terms and credit caps are not checked here: the rule engine reports them as issues.",
             "type": "array",
             "items": {
@@ -7383,6 +7505,8 @@
             ]
           },
           "targets": {
+            "minItems": 1,
+            "maxItems": 30,
             "description": "The terms to try it in, each once, at most 30.",
             "type": "array",
             "items": {

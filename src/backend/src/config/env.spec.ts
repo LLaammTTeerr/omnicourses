@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -69,22 +70,25 @@ describe('settings', () => {
   });
 
   it.each([
-    [undefined, undefined],
-    ['', undefined],
-    ['   ', undefined],
-    ['true', undefined],
-    ['TRUE', undefined],
-    [' true ', undefined],
-    ['false', undefined],
-    ['FALSE', undefined],
-    [' false ', undefined],
-    ['loopback', 'loopback'],
-    [' 1 ', '1'],
-    ['127.0.0.1', '127.0.0.1'],
-    ['loopback, linklocal', 'loopback, linklocal'],
-  ])('trustProxy with TRUST_PROXY=%j returns %j', (raw, expected) => {
+    [undefined, undefined, false],
+    ['', undefined, false],
+    ['   ', undefined, false],
+    ['true', undefined, true],
+    ['TRUE', undefined, true],
+    [' true ', undefined, true],
+    ['false', undefined, true],
+    ['FALSE', undefined, true],
+    [' false ', undefined, true],
+    ['loopback', 'loopback', false],
+    [' 1 ', '1', false],
+    ['127.0.0.1', '127.0.0.1', false],
+    ['loopback, linklocal', 'loopback, linklocal', false],
+  ])('trustProxy with TRUST_PROXY=%j returns %j (warns=%s)', (raw, expected, warns) => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     vi.stubEnv('TRUST_PROXY', raw);
     expect(trustProxy()).toBe(expected);
+    expect(warn.mock.calls.length > 0).toBe(warns);
+    warn.mockRestore();
   });
 
   it.each([

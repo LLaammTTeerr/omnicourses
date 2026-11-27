@@ -4,7 +4,7 @@ import { useMessages } from '../locale.js';
 
 const props = defineProps<{ href: string }>();
 const m = useMessages({ vi: { newTab: ' (mở ở tab mới)' }, en: { newTab: ' (opens in a new tab)' } });
-const safe = computed(() => /^(?:https?:\/\/|\/(?![/\\]))/i.test(props.href));
+const safe = computed(() => !/[\u0000-\u0020\u007f]/.test(props.href) && /^(?:https?:\/\/.+|\/(?![/\\]).*)/i.test(props.href));
 </script>
 
 <template>

@@ -51,7 +51,7 @@ export function toAiUnavailable(error: unknown, signal?: AbortSignal): AiUnavail
   }
   if (error instanceof OpenAI.APIConnectionError) {
     logger.warn('OpenRouter error: connection');
-    return new AiUnavailableError(AI_REASONS.providerFailed, { billed: false });
+    return new AiUnavailableError(AI_REASONS.providerFailed);
   }
   if (error instanceof OpenAI.APIError) {
     logger.warn(`OpenRouter error: status=${error.status ?? '-'} code=${error.code ?? '-'} type=${error.type ?? '-'}`);

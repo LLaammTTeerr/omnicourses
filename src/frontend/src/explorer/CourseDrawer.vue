@@ -3,13 +3,12 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
 import ModalDialog from '../components/ModalDialog.vue';
-import { fetchCourse, type Course, type CurriculumCourse } from '../curriculum/api.js';
+import { fetchCourse, type Course, type CourseStanding, type CurriculumCourse, type TranscriptCourseStatus } from '../curriculum/api.js';
 import { courseName } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
-import type { CourseStanding, TranscriptCourseStatus } from './readiness.js';
 
 const props = defineProps<{
   course: CurriculumCourse | null;

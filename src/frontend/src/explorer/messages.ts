@@ -1,6 +1,5 @@
-import type { RequirementGroupKind } from '../curriculum/api.js';
+import type { CourseReadiness, RequirementGroupKind, TranscriptCourseStatus } from '../curriculum/api.js';
 import type { Lang } from '../locale.js';
-import type { CourseReadiness, TranscriptCourseStatus } from './readiness.js';
 
 interface ExplorerMessages {
   title: string;

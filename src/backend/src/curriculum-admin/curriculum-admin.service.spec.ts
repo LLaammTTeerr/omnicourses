@@ -99,6 +99,24 @@ describe('CurriculumAdminService.deleteGroup', () => {
     expect(both.sql.some((s) => s.startsWith('DELETE'))).toBe(false);
   });
 
+  it('maps concurrent overflow or combined-minimum FK refusals on DELETE to 409 referenced_item', async () => {
+    for (const [constraint, expectedRef] of [
+      ['requirement_group_overflows_from_group_id_fkey', 'overflow rules name it'],
+      ['requirement_group_overflows_to_group_id_fkey', 'overflow rules name it'],
+      ['combined_minimum_groups_requirement_group_id_fkey', 'combined-minimum rules name it'],
+    ] as const) {
+      const { service } = serviceWith({ deleteFails: refused('23503', constraint) });
+      const body = await bodyOf(deleteGroup(service));
+      expect(body).toEqual({
+        statusCode: 409,
+        code: 'referenced_item',
+        message: 'Curriculum rules still reference this requirement group; keep it while overflow or combined-minimum rules name it',
+        references: [expectedRef],
+      });
+      expect(JSON.stringify(body)).not.toContain('synthetic-id');
+    }
+  });
+
   it('lets any other database failure through as it is', async () => {
     for (const error of [refused('23001', 'some_other_fkey'), refused('40001'), new Error('connection lost')]) {
       const { service } = serviceWith({ deleteFails: error });

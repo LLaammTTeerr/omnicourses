@@ -52,7 +52,7 @@ First-time steps after `setup.sh`:
 
 ## Backups and restore rehearsal
 
-OmniCourse maintains two separate local backup pools per environment (`chmod 600`, owned by `omnicourse:omnicourse`), plus an optional off-host replication hook:
+OmniCourse maintains two separate local backup pools per environment (`chmod 640`, owned by `root:omnicourse` inside `root:omnicourse 750` directories so `omnicourse` can read dumps without planting symlinks), plus an optional off-host replication hook:
 
 - **Pre-deploy dumps**: `/var/backups/omnicourse/<env>-<YYYYMMDDTHHMMSSZ>.sql.gz` — written automatically before every deploy migration, retaining the 14 newest per environment.
 - **Nightly dumps**: `/var/backups/omnicourse/daily/<env>-<YYYY-MM-DD>.sql.gz` — written daily at `20:00 UTC` (`03:00` Vietnam time) by `omnicourse-backup.timer` (`Persistent=true`), retaining the 14 newest daily dumps per environment independently of deploy frequency.

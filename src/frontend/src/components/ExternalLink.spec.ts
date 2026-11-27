@@ -38,6 +38,9 @@ describe('ExternalLink', () => {
     'vbscript:msgbox(1)',
     'ftp://example.com/file',
     '//evil.example.com/phish',
+    '/\t/evil.example.com/phish',
+    '/ /evil.example.com/phish',
+    'https://example.com/bad\nline',
     '',
   ])('renders a disabled span without an unsafe href for %j', (href) => {
     const w = mount(ExternalLink, { props: { href }, slots: { default: 'Portal' } });

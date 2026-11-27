@@ -25,25 +25,31 @@ case "$action" in
     ;;
   dump)
     require_env
-    install -d -o omnicourse -g omnicourse -m 700 /var/backups/omnicourse
+    install -d -o root -g omnicourse -m 750 /var/backups/omnicourse
     out="/var/backups/omnicourse/$env-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
     umask 077
-    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$out.tmp"
-    chown omnicourse:omnicourse "$out.tmp"
-    chmod 600 "$out.tmp"
-    mv -f "$out.tmp" "$out"
+    tmp="$(mktemp /var/backups/omnicourse/.dump.XXXXXX)"
+    trap 'rm -f "$tmp"' EXIT
+    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$tmp"
+    chown -h root:omnicourse "$tmp"
+    chmod 640 "$tmp"
+    mv -f "$tmp" "$out"
+    trap - EXIT
     ls -1t /var/backups/omnicourse/"$env"-*.sql.gz | tail -n +15 | xargs -r rm -f
     echo "backup: $out"
     ;;
   nightly-dump)
     require_env
-    install -d -o omnicourse -g omnicourse -m 700 /var/backups/omnicourse /var/backups/omnicourse/daily
+    install -d -o root -g omnicourse -m 750 /var/backups/omnicourse /var/backups/omnicourse/daily
     out="/var/backups/omnicourse/daily/$env-$(date -u +%Y-%m-%d).sql.gz"
     umask 077
-    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$out.tmp"
-    chown omnicourse:omnicourse "$out.tmp"
-    chmod 600 "$out.tmp"
-    mv -f "$out.tmp" "$out"
+    tmp="$(mktemp /var/backups/omnicourse/daily/.dump.XXXXXX)"
+    trap 'rm -f "$tmp"' EXIT
+    docker exec omnicourse-db pg_dump -U postgres --no-owner "omnicourse_$env" | gzip >"$tmp"
+    chown -h root:omnicourse "$tmp"
+    chmod 640 "$tmp"
+    mv -f "$tmp" "$out"
+    trap - EXIT
     ls -1t /var/backups/omnicourse/daily/"$env"-*.sql.gz | tail -n +15 | xargs -r rm -f
     if [[ -f /etc/omnicourse/backup-sync.sh && -x /etc/omnicourse/backup-sync.sh ]]; then
       /etc/omnicourse/backup-sync.sh "$out"
@@ -54,7 +60,8 @@ case "$action" in
     conf=/etc/nginx/conf.d/omnicourse-cloudflare-origin.conf
     tmp="$(mktemp)"
     bak="$(mktemp)"
-    trap 'rm -f "$tmp" "$bak"' EXIT
+    log="$(mktemp)"
+    trap 'rm -f "$tmp" "$bak" "$log"' EXIT
     v4="$(curl -fsSL https://www.cloudflare.com/ips-v4)"
     v6="$(curl -fsSL https://www.cloudflare.com/ips-v6)"
     [[ -n "$v4" && -n "$v6" ]] || { echo "empty Cloudflare IP response" >&2; exit 1; }
@@ -81,9 +88,8 @@ case "$action" in
       had_prev=1
     fi
     install -o root -g root -m 644 "$tmp" "$conf"
-    if ! nginx -t 2>/tmp/omnicourse-cloudflare-nginx-test.log; then
-      cat /tmp/omnicourse-cloudflare-nginx-test.log >&2
-      rm -f /tmp/omnicourse-cloudflare-nginx-test.log
+    if ! nginx -t 2>"$log"; then
+      cat "$log" >&2
       if [[ "$had_prev" -eq 1 ]]; then
         cp -a "$bak" "$conf"
       else
@@ -92,7 +98,6 @@ case "$action" in
       echo "nginx config test failed: restored previous $conf, nothing reloaded" >&2
       exit 1
     fi
-    rm -f /tmp/omnicourse-cloudflare-nginx-test.log
     systemctl reload nginx
     echo "reloaded nginx with updated Cloudflare IPs"
     ;;

@@ -1,6 +1,8 @@
+import { Logger } from '@nestjs/common';
 import { existsSync } from 'node:fs';
 
 const ENV_FILES = ['.env', '../../.env'];
+const envLogger = new Logger('Env');
 
 export function loadEnvFiles(): void {
   for (const file of ENV_FILES) if (existsSync(file)) process.loadEnvFile(file);
@@ -17,7 +19,10 @@ export function trustProxy(): string | undefined {
   const raw = process.env.TRUST_PROXY?.trim();
   if (!raw) return undefined;
   const lower = raw.toLowerCase();
-  if (lower === 'true' || lower === 'false') return undefined;
+  if (lower === 'true' || lower === 'false') {
+    envLogger.warn(`Ignoring boolean TRUST_PROXY=${raw}; set an explicit hop count or subnet such as loopback`);
+    return undefined;
+  }
   return raw;
 }
 

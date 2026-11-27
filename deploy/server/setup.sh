@@ -25,7 +25,7 @@ id omnicourse >/dev/null 2>&1 || useradd --system --create-home --home-dir /home
 install -d -o omnicourse -g omnicourse -m 755 "$APP"
 install -d -o omnicourse -g omnicourse -m 700 /home/omnicourse/.ssh
 install -d -o root -g omnicourse -m 750 /etc/omnicourse
-install -d -o omnicourse -g omnicourse -m 700 /var/backups/omnicourse /var/backups/omnicourse/daily
+install -d -o root -g omnicourse -m 750 /var/backups/omnicourse /var/backups/omnicourse/daily
 
 # 2. Node, pinned. A private copy: the host's own Node is left alone.
 if [[ "$("$APP/node/bin/node" -v 2>/dev/null)" != "v$NODE_VERSION" ]]; then
@@ -104,15 +104,23 @@ systemctl daemon-reload
 for spec in "${ENVS[@]}"; do read -r env _ _ <<<"$spec"; systemctl enable "omnicourse@$env" >/dev/null 2>&1; done
 
 # 7. nginx: Cloudflare-only origin gate, then one server block per environment.
+cf_tmp="$(mktemp)"
+nginx_log="$(mktemp)"
+trap 'rm -f "$cf_tmp" "$nginx_log"' EXIT
+cf_v4="$(curl -fsSL https://www.cloudflare.com/ips-v4)"
+cf_v6="$(curl -fsSL https://www.cloudflare.com/ips-v6)"
+[[ -n "$cf_v4" && -n "$cf_v6" ]] || { echo "empty Cloudflare IP response" >&2; exit 1; }
 {
   echo "# Generated from https://www.cloudflare.com/ips-v4 and ips-v6 (managed by setup.sh and omnicourse-cloudflare-ips.timer)."
   echo 'geo $realip_remote_addr $omnicourse_via_cloudflare {'
   echo '    default 0;'
   echo '    127.0.0.1/32 1;'
   echo '    ::1/128 1;'
-  for list in ips-v4 ips-v6; do curl -fsSL "https://www.cloudflare.com/$list" | sed -E '/^[[:space:]]*$/d; s|^(.+)$|    \1 1;|'; done
+  printf '%s\n%s\n' "$cf_v4" "$cf_v6" | sed -E '/^[[:space:]]*$/d; s|^(.+)$|    \1 1;|'
   echo '}'
-} >/etc/nginx/conf.d/omnicourse-cloudflare-origin.conf
+} >"$cf_tmp"
+install -o root -g root -m 644 "$cf_tmp" /etc/nginx/conf.d/omnicourse-cloudflare-origin.conf
+rm -f "$cf_tmp"
 for spec in "${ENVS[@]}"; do
   read -r env host port <<<"$spec"
   site="/etc/nginx/sites-available/omnicourse-$env.conf"
@@ -124,12 +132,14 @@ for spec in "${ENVS[@]}"; do
   ln -sfn "$site" "/etc/nginx/sites-enabled/omnicourse-$env.conf"
 done
 # Other sites share this nginx: if the new files break the config, remove them before anything reloads.
-if ! nginx -t 2>/tmp/omnicourse-nginx-test.log; then
-  cat /tmp/omnicourse-nginx-test.log >&2
+if ! nginx -t 2>"$nginx_log"; then
+  cat "$nginx_log" >&2
   rm -f /etc/nginx/conf.d/omnicourse-cloudflare-origin.conf /etc/nginx/sites-enabled/omnicourse-*.conf
   echo "nginx config test failed: OmniCourse's nginx files removed, nothing reloaded" >&2
   exit 1
 fi
+rm -f "$nginx_log"
+trap - EXIT
 systemctl reload nginx
 
 # 8. Enable and start scheduled timers now that databases and nginx are ready.

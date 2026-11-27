@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractMaxItems, contractShape, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
+import { MAX_PLAN_TERMS } from './board.js';
 import {
   createPlan,
   deletePlan,
@@ -97,12 +98,14 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     expect(contractShape(schema)).toEqual(shape);
   });
 
-  it('has the issue codes, kinds, placement kinds and term kinds of the contract', () => {
+  it('has the issue codes, kinds, placement kinds, term kinds and max term cap of the contract', () => {
     expect([...PLAN_ISSUE_CODES].sort()).toEqual(contractEnum('PlanIssueDto', 'code'));
     expect([...PLAN_ISSUE_KINDS].sort()).toEqual(contractEnum('PlanIssueDto', 'kind'));
     expect([...PLACEMENT_KINDS].sort()).toEqual(contractEnum('PlanPlacementDto', 'kind'));
     expect([...TERM_KINDS, null].sort()).toEqual(contractEnum('PlanTermLoadDto', 'kind'));
     expect(contractEnum('PlanCoverageDto', 'graduation')).toEqual(['done', 'not_yet']);
+    expect(MAX_PLAN_TERMS).toBe(contractMaxItems('PlanBoardDto', 'terms'));
+    expect(MAX_PLAN_TERMS).toBe(contractMaxItems('CreatePlanDto', 'terms'));
   });
 
   it('words the change a drag preview would make to the violations, in both languages', () => {

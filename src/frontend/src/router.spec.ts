@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryHistory } from 'vue-router';
 import { SESSION_STORAGE_KEY } from './auth/store.js';
 import { authResult } from './auth/testing/fixtures.js';
-import { createAppRouter } from './router.js';
+import { CHUNK_RELOAD_KEY, createAppRouter, isChunkLoadError, reloadOnStaleChunk } from './router.js';
 import { NOT_STARTED } from './onboarding/api.js';
 import { onboarding } from './onboarding/testing/fixtures.js';
 import { mockApi, status } from './testing/fetch.js';
@@ -60,6 +60,28 @@ describe('router guard (issue #13)', () => {
     for (const record of withViews) {
       expect(typeof record.components!.default, `route ${String(record.name ?? record.path)} should be lazy`).toBe('function');
     }
+  });
+
+  it('reloads once on a stale lazy-route chunk 404 after a deploy, without looping on repeated failure', async () => {
+    const reloads: string[] = [];
+    const router = createAppRouter(createMemoryHistory(), (url) => reloads.push(url));
+    router.addRoute({
+      path: '/stale-chunk-test',
+      name: 'stale-chunk-test',
+      component: () => Promise.reject(new TypeError('Failed to fetch dynamically imported module: https://omnicourses.lamter.cc/assets/Old-123.js')),
+    });
+
+    await expect(router.push('/stale-chunk-test')).rejects.toThrow(/Failed to fetch dynamically imported module/);
+    expect(reloads).toEqual(['/stale-chunk-test']);
+    expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBe('/stale-chunk-test');
+
+    await expect(router.push('/stale-chunk-test')).rejects.toThrow(/Failed to fetch dynamically imported module/);
+    expect(reloads).toEqual(['/stale-chunk-test']);
+    expect(sessionStorage.getItem(CHUNK_RELOAD_KEY)).toBeNull();
+
+    expect(isChunkLoadError(new Error('regular component failure'))).toBe(false);
+    expect(reloadOnStaleChunk('/guides?lang=en', (url) => reloads.push(url))).toBe(true);
+    expect(reloads.at(-1)).toBe('/guides?lang=en');
   });
 });
 

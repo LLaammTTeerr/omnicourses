@@ -114,7 +114,7 @@ async function insertCurriculum(writer: SeedWriter, seed: CurriculumSeed): Promi
     return id;
   };
   await insertCombinedMinimums(writer, curriculumId, seed.blocks, groupId);
-  await insertOverflows(writer, seed.groups, groupId);
+  await insertOverflows(writer, curriculumId, seed.groups, groupId);
   if (seed.no_prerequisites) await insertPrerequisiteLists(writer, curriculumId, seed.groups, seed.no_prerequisites.except);
 }
 
@@ -170,13 +170,13 @@ async function insertCombinedMinimums(writer: SeedWriter, curriculumId: string, 
   }
 }
 
-async function insertOverflows(writer: SeedWriter, groups: Group[], groupId: (name: string) => string): Promise<void> {
+async function insertOverflows(writer: SeedWriter, curriculumId: string, groups: Group[], groupId: (name: string) => string): Promise<void> {
   for (const group of groups.filter((g) => g.overflow_to !== undefined)) {
     await writer.insert(
       'overflows',
-      `INSERT INTO requirement_group_overflows (from_group_id, to_group_id) VALUES ($1, $2)
+      `INSERT INTO requirement_group_overflows (curriculum_id, from_group_id, to_group_id) VALUES ($1, $2, $3)
        ON CONFLICT (from_group_id) DO NOTHING RETURNING from_group_id`,
-      [groupId(group.name), groupId(group.overflow_to!)],
+      [curriculumId, groupId(group.name), groupId(group.overflow_to!)],
     );
   }
 }

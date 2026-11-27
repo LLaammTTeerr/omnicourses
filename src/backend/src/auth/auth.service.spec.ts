@@ -195,19 +195,25 @@ describe('AuthService', () => {
       expect(users.cancelDeletion).not.toHaveBeenCalled();
     });
 
-    it('throttles after 10 failed sign-in attempts per normalized email within 60s without running Argon2, and resets after success or window expiry', async () => {
+    it('throttles after 10 attempts per (clientIp, normalized email) before running Argon2, keeps other IPs unaffected, and resets on success or window expiry', async () => {
       const passwordHash = await hash('correct horse battery', ARGON2_OPTIONS);
       users.findByEmailForAuth.mockResolvedValue(makeUser({ passwordHash }));
 
-      for (let i = 0; i < 10; i++) {
-        await expect(
-          service.signIn({ email: ' Student@Example.com ', password: 'wrong password!' }),
-        ).rejects.toBeInstanceOf(UnauthorizedException);
-      }
+      const parallel = await Promise.allSettled(
+        Array.from({ length: 11 }, () =>
+          service.signIn({ email: ' Student@Example.com ', password: 'wrong password!' }, 'vitest', '203.0.113.10'),
+        ),
+      );
+      const statuses = parallel.map((outcome) =>
+        outcome.status === 'rejected' && outcome.reason instanceof HttpException ? outcome.reason.getStatus() : 200,
+      );
+      expect(statuses.filter((code) => code === HttpStatus.UNAUTHORIZED)).toHaveLength(10);
+      expect(statuses.filter((code) => code === HttpStatus.TOO_MANY_REQUESTS)).toHaveLength(1);
+      expect(users.findByEmailForAuth).toHaveBeenCalledTimes(10);
 
       users.findByEmailForAuth.mockClear();
       const throttled = await service
-        .signIn({ email: 'STUDENT@example.com', password: 'correct horse battery' })
+        .signIn({ email: 'STUDENT@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10')
         .catch((caught: unknown) => caught);
       expect(throttled).toBeInstanceOf(HttpException);
       expect((throttled as HttpException).getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
@@ -216,28 +222,33 @@ describe('AuthService', () => {
       );
       expect(users.findByEmailForAuth).not.toHaveBeenCalled();
 
+      users.findByEmailForAuth.mockResolvedValueOnce(makeUser({ passwordHash }));
+      await expect(
+        service.signIn({ email: 'student@example.com', password: 'correct horse battery' }, 'vitest', '198.51.100.42'),
+      ).resolves.toMatchObject({ accountRestored: false });
+
       users.findByEmailForAuth.mockResolvedValueOnce(makeUser({ email: 'other@example.com', passwordHash }));
       await expect(
-        service.signIn({ email: 'other@example.com', password: 'correct horse battery' }),
+        service.signIn({ email: 'other@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10'),
       ).resolves.toMatchObject({ accountRestored: false });
 
       currentNow = new Date(currentNow.getTime() + MINUTE_MS);
       users.findByEmailForAuth.mockResolvedValue(makeUser({ passwordHash }));
       await expect(
-        service.signIn({ email: 'student@example.com', password: 'correct horse battery' }),
+        service.signIn({ email: 'student@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10'),
       ).resolves.toMatchObject({ accountRestored: false });
 
       for (let i = 0; i < 9; i++) {
         await expect(
-          service.signIn({ email: 'student@example.com', password: 'wrong password!' }),
+          service.signIn({ email: 'student@example.com', password: 'wrong password!' }, 'vitest', '203.0.113.10'),
         ).rejects.toBeInstanceOf(UnauthorizedException);
       }
       await expect(
-        service.signIn({ email: 'student@example.com', password: 'correct horse battery' }),
+        service.signIn({ email: 'student@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10'),
       ).resolves.toMatchObject({ accountRestored: false });
       for (let i = 0; i < 9; i++) {
         await expect(
-          service.signIn({ email: 'student@example.com', password: 'wrong password!' }),
+          service.signIn({ email: 'student@example.com', password: 'wrong password!' }, 'vitest', '203.0.113.10'),
         ).rejects.toBeInstanceOf(UnauthorizedException);
       }
     });

@@ -2,9 +2,18 @@
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
+import { newestOnly, useAsyncLoad } from '../async-load.js';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, fetchPrograms, type Course, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
+import {
+  fetchCurriculum,
+  fetchCurriculumStanding,
+  fetchPrograms,
+  type Course,
+  type CourseStanding,
+  type CurriculumCourse,
+  type RequirementGroup,
+  type TranscriptCourseStatus,
+} from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -13,10 +22,9 @@ import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import type { IconName } from '../shell/icons.js';
-import { fetchTranscript } from '../transcript/api.js';
 import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
-import { courseStanding, transcriptStatuses, unlockedBy, type CourseStanding, type TranscriptCourseStatus } from './readiness.js';
+import { unlockedBy } from './readiness.js';
 
 const onboarding = useOnboarding();
 const locale = useLocale();
@@ -59,16 +67,31 @@ const curriculum = useAsyncLoad(
   () => (selection.value ? `${selection.value.program}-${selection.value.cohort}` : null),
 );
 
-const statuses = shallowRef<ReadonlyMap<string, TranscriptCourseStatus>>(new Map());
-const transcriptLoaded = ref(false);
-fetchTranscript()
-  .then(({ rows }) => {
-    statuses.value = transcriptStatuses(rows);
-    transcriptLoaded.value = true;
-  })
-  .catch((e) => statusOf(e) === 401 || console.error('Loading the transcript for the explorer failed:', e));
+const standings = shallowRef<ReadonlyMap<string, CourseStanding> | null>(null);
+const latestStanding = newestOnly();
+watch(
+  () => (selection.value ? `${selection.value.program}-${selection.value.cohort}` : null),
+  async () => {
+    const chosen = selection.value;
+    standings.value = null;
+    if (!chosen) {
+      latestStanding.drop();
+      return;
+    }
+    const isNewest = latestStanding.start();
+    try {
+      const { courses } = await fetchCurriculumStanding(chosen.program, chosen.cohort);
+      if (!isNewest()) return;
+      standings.value = new Map(courses.map((item) => [item.code, item]));
+    } catch (e) {
+      if (!isNewest()) return;
+      if (statusOf(e) !== 401) console.error('Loading the curriculum standing for the explorer failed:', e);
+    }
+  },
+  { immediate: true },
+);
 
-const standingOf = (course: CurriculumCourse): CourseStanding | null => (transcriptLoaded.value ? courseStanding(course, statuses.value) : null);
+const standingOf = (course: CurriculumCourse): CourseStanding | null => standings.value?.get(course.code) ?? null;
 const transcriptIcon = (status: TranscriptCourseStatus): IconName => (status === 'passed' ? 'check' : status === 'in_progress' ? 'clock' : 'alert');
 
 const query = ref('');

@@ -30,7 +30,7 @@ describe('MIGRATIONS', () => {
 });
 
 describe('HardenConstraintsAndIndexes1795600000000', () => {
-  it('hardens group rule FKs to ON DELETE RESTRICT, adds the five missing indexes without UNIQUE(curriculums.code), and reverses cleanly', async () => {
+  it('switches group rule FKs to ON DELETE NO ACTION with curriculum cascade on overflows, adds the five missing indexes, and reverses cleanly', async () => {
     const upSql: string[] = [];
     const downSql: string[] = [];
     const migration = new HardenConstraintsAndIndexes1795600000000();
@@ -39,11 +39,13 @@ describe('HardenConstraintsAndIndexes1795600000000', () => {
     await migration.down({ query: vi.fn(async (sql: string) => downSql.push(sql)) } as unknown as QueryRunner);
 
     const joinedUp = upSql.join('\n');
+    expect(joinedUp).toContain('requirement_group_overflows_curriculum_id_fkey');
     expect(joinedUp).toContain('requirement_group_overflows_from_group_id_fkey');
     expect(joinedUp).toContain('requirement_group_overflows_to_group_id_fkey');
     expect(joinedUp).toContain('combined_minimum_groups_requirement_group_id_fkey');
-    expect(joinedUp).toContain('ON DELETE RESTRICT');
-    expect(joinedUp).not.toContain('curriculums');
+    expect(joinedUp).toContain('ON DELETE NO ACTION');
+    expect(joinedUp).not.toContain('ON DELETE RESTRICT');
+    expect(joinedUp).not.toContain('uq_curriculums_code');
     for (const indexName of [
       'idx_transcript_rows_course_code',
       'idx_plan_placements_course_code',
@@ -54,6 +56,7 @@ describe('HardenConstraintsAndIndexes1795600000000', () => {
       expect(joinedUp).toContain(`CREATE INDEX IF NOT EXISTS "${indexName}"`);
       expect(downSql.join('\n')).toContain(`DROP INDEX IF EXISTS "${indexName}"`);
     }
+    expect(downSql.join('\n')).toContain('DROP COLUMN "curriculum_id"');
     expect(downSql.join('\n')).toContain('ON DELETE CASCADE');
   });
 });
