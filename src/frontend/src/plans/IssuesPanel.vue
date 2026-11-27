@@ -187,6 +187,7 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
 .rail-sub .live { width: 7px; height: 7px; border-radius: 50%; background: var(--info); flex: none; animation: pre-pulse 0.7s ease-in-out infinite alternate; }
 .rail-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .vfoot .btn { margin-left: auto; }
+.vitem { transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, opacity 0.2s; }
 .v-enter-active { transition: opacity 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .v-enter-from { opacity: 0; transform: translateX(14px); }
 .v-move { transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }

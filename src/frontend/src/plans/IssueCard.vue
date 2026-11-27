@@ -48,7 +48,7 @@ const article = computed(() => clause(props.issue.citation));
   display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border-radius: 12px;
   background: color-mix(in oklab, var(--bad) 5%, var(--surface)); border: 1px solid;
 }
-.vitem.in-editor { border-color: color-mix(in oklab, var(--bad) 22%, var(--edge)); transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, opacity 0.2s; }
+.vitem.in-editor { border-color: color-mix(in oklab, var(--bad) 22%, var(--edge)); }
 .vitem.in-shared { border-color: color-mix(in oklab, var(--bad) 24%, var(--edge)); }
 .vitem .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--bad); color: #fff; }
 .vitem b { display: block; font-size: 13.5px; line-height: 1.35; }
