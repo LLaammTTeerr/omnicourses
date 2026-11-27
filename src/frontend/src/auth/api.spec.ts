@@ -5,7 +5,7 @@ import { DISPLAY_NAME_MAX_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, type
 
 describe('auth types against the contract', () => {
   it.each([
-    ['UserDto', { id: 'required', email: 'required', displayName: 'required', emailVerifiedAt: 'required', createdAt: 'required' } satisfies Shape<User>],
+    ['UserDto', { id: 'required', email: 'required', displayName: 'required', studentId: 'required', className: 'required', emailVerifiedAt: 'required', createdAt: 'required' } satisfies Shape<User>],
     ['AuthResultDto', { token: 'required', expiresAt: 'required', user: 'required', accountRestored: 'required' } satisfies Shape<AuthResult>],
     ['SignUpDto', { email: 'required', password: 'required', displayName: 'required', acceptedTerms: 'required' } satisfies Shape<SignUpBody>],
     ['SignInDto', { email: 'required', password: 'required' } satisfies Shape<SignInBody>],

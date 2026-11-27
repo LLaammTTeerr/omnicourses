@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import { RouterView, type Router } from 'vue-router';
 import { useAuth } from '../auth/store.js';
-import { session } from '../auth/testing/fixtures.js';
+import { session, user } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
@@ -88,6 +88,71 @@ describe('SettingsView', () => {
     expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
     expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.userIdNotCopied);
     vi.unstubAllGlobals();
+  });
+
+  it('saves the student ID and the class name, trimmed, and keeps them on the signed-in account (Lâm 4B, ADR 0019)', async () => {
+    const saved = user({ studentId: '24120000', className: '24CTT0' });
+    const { w, fetch } = await render({ 'PATCH /users/me': saved });
+    expect(w.get('label[for="student-id"]').text()).toBe('Mã số sinh viên (MSSV)');
+    expect(w.get('#profile').text()).toContain('không bao giờ gửi cho AI');
+    await w.get('[data-test="student-id"]').setValue(' 24120000 ');
+    await w.get('[data-test="class-name"]').setValue(' 24CTT0 ');
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    const call = fetch.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
+    expect(sentBody(call[1])).toEqual({ studentId: '24120000', className: '24CTT0' });
+    expect(useAuth().user).toEqual(saved);
+    expect(useToast().message).toBe(SETTINGS_MESSAGES.vi.profileSaved);
+  });
+
+  it('shows the saved values and clears both with blank fields', async () => {
+    const fetch = mockApi({ 'GET /auth/sessions': [HERE], 'GET /programs': { programs: [] }, 'PATCH /users/me': user() });
+    const app = await setup('/settings');
+    useAuth().user = user({ studentId: '24120000', className: '24CTT0' });
+    wrapper = mount(SettingsView, { global: { plugins: [app.pinia, app.router] }, attachTo: document.body });
+    await flushPromises();
+    expect((wrapper.get('[data-test="student-id"]').element as HTMLInputElement).value).toBe('24120000');
+    expect((wrapper.get('[data-test="class-name"]').element as HTMLInputElement).value).toBe('24CTT0');
+    await wrapper.get('[data-test="student-id"]').setValue('  ');
+    await wrapper.get('[data-test="class-name"]').setValue('');
+    await wrapper.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    const call = fetch.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
+    expect(sentBody(call[1])).toEqual({ studentId: null, className: null });
+    expect(useAuth().user).toMatchObject({ studentId: null, className: null });
+  });
+
+  it.each(['2412000', '241200001', '2412000a', '２４１２００００'])('refuses the student ID %s without calling the API', async (value) => {
+    const { w, fetch } = await render();
+    await w.get('[data-test="student-id"]').setValue(value);
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    expect(w.get('#student-id-error').text()).toBe(SETTINGS_MESSAGES.vi.studentIdInvalid);
+    expect(w.get('[data-test="student-id"]').attributes('aria-invalid')).toBe('true');
+    expect(w.get('[data-test="student-id"]').attributes('aria-describedby')).toBe('student-id-error');
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
+  });
+
+  it('refuses a class name longer than 32 characters, counted in code points', async () => {
+    const { w, fetch } = await render();
+    await w.get('[data-test="class-name"]').setValue('😀'.repeat(33));
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    expect(w.get('#class-name-error').text()).toBe(SETTINGS_MESSAGES.vi.classNameTooLong);
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
+  });
+
+  it('says when saving failed, keeps what was typed, and logs no value', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render({ 'PATCH /users/me': status(500) });
+    await w.get('[data-test="student-id"]').setValue('24120000');
+    await w.get('[data-test="class-name"]').setValue('24CTT0');
+    await w.get('[data-test="profile-form"]').trigger('submit');
+    await flushPromises();
+    expect(w.get('[data-test="profile-save-failed"]').text()).toBe(SETTINGS_MESSAGES.vi.profileSaveFailed);
+    expect((w.get('[data-test="student-id"]').element as HTMLInputElement).value).toBe('24120000');
+    expect(useAuth().user?.studentId).toBeNull();
+    expect(JSON.stringify(error.mock.calls)).not.toMatch(/24120000|24CTT0/);
   });
 
   it('lists the sessions, this device first, then the newest, each named after its browser (ADR 0002)', async () => {

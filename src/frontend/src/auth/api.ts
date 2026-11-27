@@ -4,6 +4,8 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  studentId: string | null;
+  className: string | null;
   emailVerifiedAt: string | null;
   createdAt: string;
 }

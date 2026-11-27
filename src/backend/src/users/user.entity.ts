@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, Updat
 
 export const EMAIL_MAX_LENGTH = 254;
 export const DISPLAY_NAME_MAX_LENGTH = 100;
+export const STUDENT_ID_LENGTH = 8;
+export const CLASS_NAME_MAX_LENGTH = 32;
 
 @Entity({ name: 'users' })
 @Unique('uq_users_email', ['email'])
@@ -18,6 +20,12 @@ export class User {
 
   @Column({ name: 'display_name', type: 'varchar', length: DISPLAY_NAME_MAX_LENGTH })
   displayName!: string;
+
+  @Column({ name: 'student_id', type: 'varchar', length: STUDENT_ID_LENGTH, nullable: true })
+  studentId!: string | null;
+
+  @Column({ name: 'class_name', type: 'varchar', length: CLASS_NAME_MAX_LENGTH, nullable: true })
+  className!: string | null;
 
   @Column({ name: 'google_sub', type: 'varchar', length: 255, nullable: true })
   googleSub!: string | null;

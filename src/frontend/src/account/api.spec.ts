@@ -1,16 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
+import contract from '../../../backend/openapi.json';
+import { user } from '../auth/testing/fixtures.js';
 import { contractShape, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
-import { exportAccount, revokeSession, saveFile, type AccountExport, type DeleteAccountBody, type DeletionScheduled } from './api.js';
+import { CLASS_NAME_MAX_LENGTH, exportAccount, revokeSession, saveFile, STUDENT_ID_PATTERN, updateProfile, type AccountExport, type DeleteAccountBody, type DeletionScheduled, type ProfileBody } from './api.js';
 
 describe('account types against the contract', () => {
   it.each([
     ['AccountExportDto', { exportedAt: 'required', user: 'required', tables: 'required' } satisfies Shape<AccountExport>],
     ['DeleteAccountDto', { password: 'required' } satisfies Shape<DeleteAccountBody>],
     ['DeletionScheduledDto', { purgeAfter: 'required' } satisfies Shape<DeletionScheduled>],
+    ['UpdateProfileDto', { studentId: 'optional', className: 'optional' } satisfies Shape<ProfileBody>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+  });
+
+  it('checks the student ID and the class name as the API does', () => {
+    const { studentId, className } = contract.components.schemas.UpdateProfileDto.properties;
+    expect(studentId.pattern).toBe(STUDENT_ID_PATTERN.source);
+    expect(className.maxLength).toBe(CLASS_NAME_MAX_LENGTH);
   });
 });
 
@@ -23,6 +32,21 @@ describe('exportAccount', () => {
     const blob = await exportAccount();
     expect(fetch).toHaveBeenCalledWith(`${API_URL}/users/me/export`, expect.objectContaining({ method: 'GET', headers: { Authorization: 'Bearer zz-token' } }));
     expect(JSON.parse(await blob.text())).toEqual({ exportedAt: '2026-11-09T00:00:00.000Z' });
+  });
+});
+
+describe('updateProfile', () => {
+  beforeEach(() => signedInPinia());
+  afterEach(() => vi.restoreAllMocks());
+
+  it('patches the account with the token and returns the account', async () => {
+    const saved = user({ studentId: '24120000', className: '24CTT0' });
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json(saved));
+    await expect(updateProfile({ studentId: '24120000', className: '24CTT0' })).resolves.toEqual(saved);
+    expect(fetch).toHaveBeenCalledWith(
+      `${API_URL}/users/me`,
+      expect.objectContaining({ method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer zz-token' }, body: '{"studentId":"24120000","className":"24CTT0"}' }),
+    );
   });
 });
 

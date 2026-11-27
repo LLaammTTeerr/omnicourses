@@ -324,8 +324,24 @@ describe('Degree audit API (e2e)', () => {
       expect(body.terms).toEqual(today.terms.slice(0, 1));
       expect(body.credits).toMatchObject({ accumulated: 16, towardTotal: 12, inProgressTowardTotal: 0 });
       expect(body.gpa.accumulatedAverage).toBe(today.terms[0].cumulativeAccumulatedAverage);
+      expect(body.gpa.classification).toBe(today.terms[0].cumulativeClassification);
+      expect(body.credits.yearLevel).toBe(today.terms[0].cumulativeYearLevel);
       const math = (body.groups as Record<string, any>[]).find((g) => g.name === 'Kiến thức Math')!;
       expect(math.courses.find((c: { code: string }) => c.code === 'MTH251')).toMatchObject({ status: 'failed', grade: 3 });
+    });
+
+    it('agrees with each term summary on the credits, the year level and the classification at its end', async () => {
+      for (const t of today.terms as Record<string, any>[]) {
+        const { body } = await http().get('/api/users/me/audit').query({ asOfYear: t.term.year, asOfNumber: t.term.number }).set(auth).expect(200);
+        expect([body.credits.accumulated, body.credits.towardTotal, body.credits.yearLevel, body.gpa.accumulatedAverage, body.gpa.classification]).toEqual([
+          t.cumulativeAccumulatedCredits,
+          t.cumulativeTowardTotal,
+          t.cumulativeYearLevel,
+          t.cumulativeAccumulatedAverage,
+          t.cumulativeClassification,
+        ]);
+      }
+      expect(today.terms.map((t: Record<string, any>) => t.cumulativeYearLevel)).toEqual([1, 1, 2, 2, 2]);
     });
 
     it('answers the whole audit for the last term, and with no term', async () => {

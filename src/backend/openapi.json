@@ -4138,6 +4138,46 @@
         "tags": [
           "users"
         ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved; the account as it now stands. Only the fields sent change.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A student ID that is not 8 digits, a class name too long or with a control character, or any other field in the body"
+          },
+          "401": {
+            "description": "Missing, expired or revoked token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "users"
+        ]
       }
     },
     "/api/users/me/audit": {
@@ -9303,6 +9343,33 @@
             "type": "number",
             "description": "CreditSummary.towardTotal as it stood at the end of this term"
           },
+          "cumulativeYearLevel": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "description": "CreditSummary.yearLevel as it stood at the end of this term (Điều 15.3)"
+          },
+          "cumulativeClassification": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "excellent",
+              "very_good",
+              "good",
+              "fairly_good",
+              "average",
+              "weak",
+              "poor",
+              null
+            ],
+            "description": "Điều 15.2.b, from cumulativeAccumulatedAverage: the classification as it stood at the end of this term. A term is never classified by its own average (Project Lead, 27 November 2026)"
+          },
           "failedCourseCodes": {
             "type": "array",
             "items": {
@@ -9350,6 +9417,8 @@
           "cumulativeAccumulatedAverageChange",
           "cumulativeAccumulatedCredits",
           "cumulativeTowardTotal",
+          "cumulativeYearLevel",
+          "cumulativeClassification",
           "failedCourseCodes",
           "inProgressCourseCodes",
           "caps",
@@ -9636,6 +9705,29 @@
           }
         }
       },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9]{8}$",
+            "example": "24120000",
+            "description": "Student ID (MSSV): exactly 8 ASCII digits. null or a blank string clears it; leaving it out keeps it."
+          },
+          "className": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 32,
+            "example": "24CTT0",
+            "description": "Class name, trimmed. null or a blank string clears it; leaving it out keeps it."
+          }
+        }
+      },
       "UpdateProgramDto": {
         "type": "object",
         "properties": {
@@ -9698,6 +9790,22 @@
             "type": "string",
             "example": "Nguyễn Văn A"
           },
+          "studentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "24120000",
+            "description": "Student ID (MSSV), 8 digits. Typed by the student; shown to them only, exported with the account and never sent to an AI model (ADR 0019)."
+          },
+          "className": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "24CTT0",
+            "description": "Class name. Typed by the student; shown to them only, exported with the account and never sent to an AI model (ADR 0019)."
+          },
           "emailVerifiedAt": {
             "type": [
               "string",
@@ -9714,6 +9822,8 @@
           "id",
           "email",
           "displayName",
+          "studentId",
+          "className",
           "emailVerifiedAt",
           "createdAt"
         ]

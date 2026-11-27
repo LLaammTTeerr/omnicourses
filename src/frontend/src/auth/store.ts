@@ -89,6 +89,10 @@ export const useAuth = defineStore('auth', () => {
     }
   }
 
+  function setUser(next: User): void {
+    user.value = next;
+  }
+
   async function authed<T>(call: (token: string) => Promise<T>): Promise<T> {
     if (!token.value) throw new Error('Not signed in');
     try {
@@ -99,7 +103,7 @@ export const useAuth = defineStore('auth', () => {
     }
   }
 
-  return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, authed };
+  return { token, user, signedIn, accountRestored, start, signIn, signUp, signOut, clear, setUser, authed };
 });
 
 type UserRequestOptions = Omit<RequestOptions, 'token'>;

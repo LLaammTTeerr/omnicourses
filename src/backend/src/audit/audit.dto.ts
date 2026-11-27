@@ -305,6 +305,16 @@ class TermSummaryDto implements TermSummary {
   @ApiProperty({ description: 'CreditSummary.towardTotal as it stood at the end of this term' })
   cumulativeTowardTotal!: number;
 
+  @ApiProperty({ enum: YEAR_LEVELS, description: 'CreditSummary.yearLevel as it stood at the end of this term (Điều 15.3)' })
+  cumulativeYearLevel!: (typeof YEAR_LEVELS)[number];
+
+  @ApiProperty({
+    enum: CLASSIFICATIONS,
+    nullable: true,
+    description: 'Điều 15.2.b, from cumulativeAccumulatedAverage: the classification as it stood at the end of this term. A term is never classified by its own average (Project Lead, 27 November 2026)',
+  })
+  cumulativeClassification!: Classification | null;
+
   @ApiProperty({ type: [String] })
   failedCourseCodes!: string[];
 

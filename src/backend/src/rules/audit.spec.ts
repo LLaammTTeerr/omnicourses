@@ -140,6 +140,26 @@ describe('degree audit', () => {
       ]);
     });
 
+    it('gives the year level and the classification of the cumulative average at the end of each term, never of the term average alone', () => {
+      const graduating = degreeAudit(zzCurriculum(), zzGraduatingTranscript());
+      expect(graduating.terms.map((t) => [t.cumulativeAccumulatedCredits, t.cumulativeYearLevel])).toEqual([
+        [12, 1],
+        [22, 1],
+        [30, 1],
+        [40, 2],
+      ]);
+      const rising = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 9, term(2024, 1)), graded('ZZA2', 4, 5, term(2024, 2))]);
+      expect(rising.terms.map((t) => [t.average, t.cumulativeAccumulatedAverage, t.cumulativeClassification])).toEqual([
+        [9, 9, 'excellent'],
+        [5, 7, 'good'],
+      ]);
+      const old = degreeAudit(zzCurriculum({ cohortYear: 2020 }), [graded('ZZA1', 4, 6.5, term(2020, 1))]);
+      expect(old.terms[0].cumulativeClassification).toBe('fairly_good');
+      expect(old.terms[0].cumulativeClassification).toBe(old.gpa.classification);
+      const exemptFirst = degreeAudit(zzCurriculum(), [ungraded('ZZB1', 4, 'exempt', term(2024, 1))]);
+      expect(exemptFirst.terms[0]).toMatchObject({ cumulativeAccumulatedAverage: null, cumulativeClassification: null, cumulativeYearLevel: 1 });
+    });
+
     it('has no change while a cumulative average is missing', () => {
       const audit = degreeAudit(zzCurriculum(), [ungraded('ZZB1', 4, 'exempt', term(2024, 1)), graded('ZZA1', 4, 8, term(2024, 2)), graded('ZZA2', 4, 6, term(2024, 3))]);
       expect(audit.terms.map((t) => [t.cumulativeAccumulatedAverage, t.cumulativeAccumulatedAverageChange])).toEqual([
@@ -156,6 +176,8 @@ describe('degree audit', () => {
         expect(asOf.terms).toEqual(full.terms.slice(0, i + 1));
         expect(asOf.gpa.accumulatedAverage).toBe(t.cumulativeAccumulatedAverage);
         expect([asOf.credits.accumulated, asOf.credits.towardTotal]).toEqual([t.cumulativeAccumulatedCredits, t.cumulativeTowardTotal]);
+        expect(asOf.credits.yearLevel).toBe(t.cumulativeYearLevel);
+        expect(asOf.gpa.classification).toBe(t.cumulativeClassification);
       });
       expect(full.asOfTerm).toBeNull();
       expect({ ...degreeAudit(zzCurriculum(), transcript, term(2024, 3)), asOfTerm: null }).toEqual(full);

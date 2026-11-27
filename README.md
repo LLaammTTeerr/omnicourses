@@ -19,7 +19,7 @@ This table is the one place that says what is built. It describes `main` as of 2
 
 | Feature | API (under `/api`) | Screen | Not built yet |
 | --- | --- | --- | --- |
-| F1 Account and onboarding | `auth/*`, `users/me`, `users/me/onboarding`, `users/me/export`, `DELETE users/me` | Sign-up, sign-in, onboarding, settings (sessions, export, deletion) | Google sign-in, email verification |
+| F1 Account and onboarding | `auth/*`, `users/me` (`GET`, `PATCH`), `users/me/onboarding`, `users/me/export`, `DELETE users/me` | Sign-up, sign-in, onboarding, settings (student ID and class, sessions, export, deletion) | Google sign-in, email verification |
 | F2 Transcript import | `users/me/transcript` (`GET`, `PUT`) | Transcript page: paste a grades table (deterministic parser) or type rows in, with review, curriculum lookup and a diff summary before saving | File upload (out of scope: [ADR 0007](docs/analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)) |
 | F3 Degree audit dashboard | `users/me/audit` | Dashboard, degree audit | Estimated graduation term, past-term view |
 | F4 Curriculum explorer | `programs`, `programs/:program/curricula/:cohort`, `courses/:code` | Explorer, with recorded prerequisites, readiness states (`passed`, `in progress`, `failed`, `available`, `locked`) and downstream unlocked courses | Prerequisite graph |

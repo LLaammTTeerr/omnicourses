@@ -74,6 +74,8 @@ export function degreeAudit(overrides: Partial<DegreeAudit> = {}): DegreeAudit {
         cumulativeAccumulatedAverageChange: null,
         cumulativeAccumulatedCredits: 9,
         cumulativeTowardTotal: 8,
+        cumulativeYearLevel: 1,
+        cumulativeClassification: 'very_good',
         failedCourseCodes: [],
         inProgressCourseCodes: [],
         caps: { min: 10, max: 22 },
