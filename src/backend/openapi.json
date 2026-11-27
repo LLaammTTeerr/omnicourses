@@ -4080,10 +4080,36 @@
     "/api/users/me/audit": {
       "get": {
         "operationId": "AuditController_get",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "asOfYear",
+            "required": false,
+            "in": "query",
+            "description": "With asOfNumber: the audit as it stood at the end of this term (UC-03 A2), from the transcript rows up to that term. ADR 0009: 2025 is 2025–2026. Send both or neither.",
+            "schema": {
+              "example": 2025,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "asOfNumber",
+            "required": false,
+            "in": "query",
+            "description": "With asOfYear: the term of that academic year, 1, 2 or 3",
+            "schema": {
+              "example": 1,
+              "type": "number",
+              "enum": [
+                1,
+                2,
+                3
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "The student's transcript against the curriculum of their onboarding program and cohort.",
+            "description": "The student's transcript against the curriculum of their onboarding program and cohort. With asOfYear and asOfNumber, only the transcript rows up to that term count.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4091,6 +4117,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Only one of asOfYear and asOfNumber, or a value out of range"
           },
           "401": {
             "description": "Missing, expired or revoked token"
@@ -5855,6 +5884,17 @@
             "type": "string",
             "example": "APCS2024"
           },
+          "asOfTerm": {
+            "description": "The term the audit stands at the end of (asOfYear, asOfNumber); null: today, the whole transcript",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TermDto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "credits": {
             "$ref": "#/components/schemas/CreditSummaryDto"
           },
@@ -5903,6 +5943,7 @@
           "trainingType",
           "cohortYear",
           "curriculumCode",
+          "asOfTerm",
           "credits",
           "gpa",
           "terms",
@@ -8982,6 +9023,66 @@
           "acceptedTerms"
         ]
       },
+      "TermAttemptDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CS160"
+          },
+          "name": {
+            "type": "string",
+            "description": "As the transcript names it"
+          },
+          "credits": {
+            "type": "number",
+            "description": "As the transcript gives them; they add up to the term credits"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "graded",
+              "in_progress",
+              "exempt",
+              "pass",
+              "fail"
+            ]
+          },
+          "grade": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 8.5
+          },
+          "passed": {
+            "type": "boolean",
+            "description": "This sitting passed: a grade of 5.0 or more, exempt or pass (Điều 11.4, 13)"
+          },
+          "inProgress": {
+            "type": "boolean",
+            "description": "The sitting has no result yet"
+          },
+          "requirementGroupId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The requirement group the course counts in; null when no group lists it"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "credits",
+          "result",
+          "grade",
+          "passed",
+          "inProgress",
+          "requirementGroupId"
+        ]
+      },
       "TermDto": {
         "type": "object",
         "properties": {
@@ -9051,6 +9152,22 @@
             ],
             "description": "Điểm trung bình tích lũy from the start to the end of this term"
           },
+          "cumulativeAccumulatedAverageChange": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 0.12,
+            "description": "cumulativeAccumulatedAverage minus the previous term's, in points of the 10-point scale; null for the first term or when either is null"
+          },
+          "cumulativeAccumulatedCredits": {
+            "type": "number",
+            "description": "CreditSummary.accumulated as it stood at the end of this term"
+          },
+          "cumulativeTowardTotal": {
+            "type": "number",
+            "description": "CreditSummary.towardTotal as it stood at the end of this term"
+          },
           "failedCourseCodes": {
             "type": "array",
             "items": {
@@ -9078,6 +9195,13 @@
             "items": {
               "$ref": "#/components/schemas/CapViolationDto"
             }
+          },
+          "attempts": {
+            "description": "Every transcript row of the term, failed and retaken sittings included, by course code",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermAttemptDto"
+            }
           }
         },
         "required": [
@@ -9088,10 +9212,14 @@
           "average",
           "accumulatedAverage",
           "cumulativeAccumulatedAverage",
+          "cumulativeAccumulatedAverageChange",
+          "cumulativeAccumulatedCredits",
+          "cumulativeTowardTotal",
           "failedCourseCodes",
           "inProgressCourseCodes",
           "caps",
-          "capViolations"
+          "capViolations",
+          "attempts"
         ]
       },
       "TranscriptDto": {

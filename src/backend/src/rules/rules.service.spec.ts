@@ -35,6 +35,17 @@ describe('RulesService.auditFor', () => {
     expect(outcome.status === 'ok' && outcome.audit.graduation.status).toBe('done');
   });
 
+  it('audits the transcript as it stood at the end of a term when asked', async () => {
+    const outcome = await service(ANSWERS).rules.auditFor('user-1', { year: 2024, number: 2 });
+    expect(outcome.status === 'ok' && [outcome.audit.asOfTerm, outcome.audit.terms.map((t) => t.term)]).toEqual([
+      { year: 2024, number: 2 },
+      [
+        { year: 2024, number: 1 },
+        { year: 2024, number: 2 },
+      ],
+    ]);
+  });
+
   it('asks for onboarding while onboarding names no program and cohort', async () => {
     expect(await service(null).rules.auditFor('u')).toEqual({ status: 'onboarding_required' });
   });

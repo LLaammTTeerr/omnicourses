@@ -1,9 +1,9 @@
 import { byText } from '../common/collections.js';
 import type { CurriculumRules } from '../curriculum/curriculum-rules.reader.js';
-import { compareTerms, type Term } from '../terms/term.js';
+import { compareTerms, copyTerm, type Term } from '../terms/term.js';
 import type { TranscriptEntry } from '../transcript/transcript-entry.js';
 import { attemptPasses, courseRecords, isCompleted, recordAsOf, type CourseRecord } from './attempts.js';
-import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermSummary, UnmatchedCourse } from './types.js';
+import type { AuditWarning, CreditSummary, DegreeAudit, GpaSummary, TermAttempt, TermSummary, UnmatchedCourse } from './types.js';
 import { checkTermLoad } from './credit-caps.js';
 import { combinedMinimumCoverage, type CountedLink, creditsOf, groupCoverage, placements, recordCredits } from './coverage.js';
 import { fourPointAverage, weightedAverage, type WeightedGrade } from './gpa.js';
@@ -12,8 +12,9 @@ import { graduationStatus } from './graduation.js';
 
 const unique = (codes: string[]) => [...new Set(codes)].sort(byText);
 
-export function degreeAudit(rules: CurriculumRules, transcript: readonly TranscriptEntry[]): DegreeAudit {
-  const records = courseRecords(transcript);
+export function degreeAudit(rules: CurriculumRules, transcript: readonly TranscriptEntry[], asOf: Term | null = null): DegreeAudit {
+  const entries = asOf === null ? transcript : transcript.filter((e) => compareTerms(e.term, asOf) <= 0);
+  const records = courseRecords(entries);
   const placed = placements(rules);
 
   const groups = groupCoverage(rules, records, placed);
@@ -24,9 +25,10 @@ export function degreeAudit(rules: CurriculumRules, transcript: readonly Transcr
     trainingType: rules.trainingType,
     cohortYear: rules.cohortYear,
     curriculumCode: rules.curriculumCode,
+    asOfTerm: asOf === null ? null : copyTerm(asOf),
     credits,
     gpa: gpaSummary(records, placed, rules.cohortYear),
-    terms: termSummaries(rules, transcript, records, placed),
+    terms: termSummaries(rules, entries, records, placed),
     groups,
     combinedMinimums,
     unmatchedCourses: unmatched(records, placed),
@@ -105,7 +107,34 @@ function termSummaries(
   records: ReadonlyMap<string, CourseRecord>,
   placed: ReadonlyMap<string, CountedLink>,
 ): TermSummary[] {
-  return transcriptTerms(transcript).map((term) => termSummary(rules, term, transcript.filter((e) => compareTerms(e.term, term) === 0), records, placed));
+  const summaries: TermSummary[] = [];
+  for (const term of transcriptTerms(transcript)) {
+    const rows = transcript.filter((e) => compareTerms(e.term, term) === 0);
+    summaries.push(termSummary(rules, term, rows, records, placed, summaries.at(-1)?.cumulativeAccumulatedAverage ?? null));
+  }
+  return summaries;
+}
+
+const HUNDREDTHS = 100;
+
+function averageChange(previous: number | null, current: number | null): number | null {
+  if (previous === null || current === null) return null;
+  return (Math.round(current * HUNDREDTHS) - Math.round(previous * HUNDREDTHS)) / HUNDREDTHS;
+}
+
+function termAttempts(rows: readonly TranscriptEntry[], placed: ReadonlyMap<string, CountedLink>): TermAttempt[] {
+  return [...rows]
+    .sort((a, b) => byText(a.courseCode, b.courseCode))
+    .map((e) => ({
+      code: e.courseCode,
+      name: e.courseName,
+      credits: e.credits,
+      result: e.result,
+      grade: e.grade,
+      passed: attemptPasses(e),
+      inProgress: e.result === 'in_progress',
+      requirementGroupId: placed.get(e.courseCode)?.group.id ?? null,
+    }));
 }
 
 function termSummary(
@@ -114,6 +143,7 @@ function termSummary(
   rows: readonly TranscriptEntry[],
   records: ReadonlyMap<string, CourseRecord>,
   placed: ReadonlyMap<string, CountedLink>,
+  previousCumulativeAverage: number | null,
 ): TermSummary {
   const graded = rows.flatMap((e): (WeightedGrade & { passes: boolean })[] => {
     const place = placed.get(e.courseCode);
@@ -121,6 +151,8 @@ function termSummary(
     return [{ grade: e.grade, credits: creditsOf(place.course, e.credits), passes: attemptPasses(e) }];
   });
   const asOf = [...records.values()].map((r) => recordAsOf(r, term)).filter((r): r is CourseRecord => r !== null);
+  const toDate = creditSummary(rules, new Map(asOf.map((r) => [r.code, r])), placed);
+  const cumulativeAccumulatedAverage = weightedAverage(gpaCourses(asOf, placed, true))?.value ?? null;
   const load = checkTermLoad(
     rules.trainingType,
     term.number,
@@ -133,11 +165,15 @@ function termSummary(
     passedCredits: rows.filter(attemptPasses).reduce((sum, e) => sum + e.credits, 0),
     average: weightedAverage(graded)?.value ?? null,
     accumulatedAverage: weightedAverage(graded.filter((g) => g.passes))?.value ?? null,
-    cumulativeAccumulatedAverage: weightedAverage(gpaCourses(asOf, placed, true))?.value ?? null,
+    cumulativeAccumulatedAverage,
+    cumulativeAccumulatedAverageChange: averageChange(previousCumulativeAverage, cumulativeAccumulatedAverage),
+    cumulativeAccumulatedCredits: toDate.accumulated,
+    cumulativeTowardTotal: toDate.towardTotal,
     failedCourseCodes: unique(rows.filter((e) => isCompleted(e) && !attemptPasses(e)).map((e) => e.courseCode)),
     inProgressCourseCodes: unique(rows.filter((e) => e.result === 'in_progress').map((e) => e.courseCode)),
     caps: load.caps,
     capViolations: load.violations,
+    attempts: termAttempts(rows, placed),
   };
 }
 

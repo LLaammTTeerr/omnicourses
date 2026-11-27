@@ -24,7 +24,8 @@ The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/
 | Specification | As built |
 | --- | --- |
 | The summary shows the estimated graduation term (step 3). | The rule engine does not compute one: nothing in `src/` does. `DegreeAudit.graduation` says `done` or `not_yet` with the conditions met, unmet and not checked. |
-| A past-term picker shows the dashboard as it stood at the end of a term (A2). | Not built. The audit page lists each term's credits and averages (`DegreeAudit.terms`). |
+| A past-term picker shows the dashboard as it stood at the end of a term (A2). | The API serves it, and no screen uses it yet. `GET /api/users/me/audit?asOfYear=2024&asOfNumber=2` runs the same engine on the transcript rows up to that term, and `asOfTerm` names the term. Each `DegreeAudit.terms` entry also lists every sitting of the term (`attempts`), with the credits accumulated and toward the total at its end, so a picker can list every term without one call per term. |
+| The summary shows the cumulative GPA with its change from the last term (step 3). | The API gives the change in points of the 10-point scale (`TermSummary.cumulativeAccumulatedAverageChange`), not as a percentage like the prototype. The dashboard does not show it yet. |
 | **Needs attention** items link to the planner, a guide or the transcript (step 6). | The dashboard lists up to five unmet graduation conditions, each linking to its place on the audit page. |
 | Precondition only: a program and cohort are chosen. | The API also answers 409 `curriculum_not_found` when the chosen program and cohort have no curriculum ([ADR 0013](adr/0013-rule-engine-and-degree-audit.md)). |
 
