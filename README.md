@@ -19,7 +19,7 @@ This table is the one place that says what is built. It describes `main` at comm
 
 | Feature | API (under `/api`) | Screen | Not built yet |
 | --- | --- | --- | --- |
-| F1 Account and onboarding | `auth/*`, `users/me`, `users/me/onboarding`, `users/me/export`, `DELETE users/me` | Sign-up, sign-in, onboarding, settings (sessions, export, deletion) | Google sign-in, email verification |
+| F1 Account and onboarding | `auth/*`, `users/me` (`GET`, `PATCH`), `users/me/onboarding`, `users/me/export`, `DELETE users/me` | Sign-up, sign-in, onboarding, settings (student ID and class, sessions, export, deletion) | Google sign-in, email verification |
 | F2 Transcript import | `users/me/transcript` (`GET`, `PUT`) | Transcript page: the student types each row | Paste of the grades table. F2 is "paste or type, no file" ([ADR 0007, amendment of 15 November 2026](docs/analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); the paste format is not decided |
 | F3 Degree audit dashboard | `users/me/audit` | Dashboard, degree audit | Estimated graduation term, past-term view |
 | F4 Curriculum explorer | `programs`, `programs/:program/curricula/:cohort`, `courses/:code` | Explorer, with each course's recorded prerequisites | Course states from the rule engine, prerequisite graph |

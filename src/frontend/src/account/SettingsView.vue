@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { codePoints, statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import type { Session } from '../auth/api.js';
 import { useAuth } from '../auth/store.js';
@@ -11,7 +12,7 @@ import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { useTheme } from '../shell/theme.js';
 import { useToast } from '../shell/toast.js';
-import { EXPORT_FILE_NAME, exportAccount, listSessions, revokeSession, saveFile } from './api.js';
+import { CLASS_NAME_MAX_LENGTH, EXPORT_FILE_NAME, exportAccount, listSessions, revokeSession, saveFile, STUDENT_ID_PATTERN, updateProfile } from './api.js';
 import StudySettings from '../onboarding/StudySettings.vue';
 import DeleteAccountDialog from './DeleteAccountDialog.vue';
 import { SETTINGS_MESSAGES } from './messages.js';
@@ -68,6 +69,33 @@ async function download(): Promise<void> {
 }
 
 const deleting = ref(false);
+
+const studentId = ref(auth.user?.studentId ?? '');
+const className = ref(auth.user?.className ?? '');
+const profileChecked = ref(false);
+const profileSaving = ref(false);
+const profileFailed = ref(false);
+const studentIdInvalid = computed(() => profileChecked.value && studentId.value.trim() !== '' && !STUDENT_ID_PATTERN.test(studentId.value.trim()));
+const classNameTooLong = computed(() => profileChecked.value && codePoints(className.value.trim()) > CLASS_NAME_MAX_LENGTH);
+async function saveProfile(): Promise<void> {
+  profileChecked.value = true;
+  if (studentIdInvalid.value || classNameTooLong.value) return;
+  profileSaving.value = true;
+  profileFailed.value = false;
+  try {
+    const saved = await updateProfile({ studentId: studentId.value.trim() || null, className: className.value.trim() || null });
+    auth.setUser(saved);
+    studentId.value = saved.studentId ?? '';
+    className.value = saved.className ?? '';
+    profileChecked.value = false;
+    toast.show(m.value.profileSaved);
+  } catch (e) {
+    console.error('Saving the student ID and class failed with status', statusOf(e));
+    profileFailed.value = true;
+  } finally {
+    profileSaving.value = false;
+  }
+}
 
 const userIdField = ref<HTMLInputElement | null>(null);
 async function copyUserId(): Promise<void> {
@@ -128,6 +156,45 @@ usePageTitle(() => m.value.title);
               <button class="btn sm" type="button" data-test="copy-user-id" @click="copyUserId"><Icon name="copy" size="sm" />{{ m.copy }}</button>
             </div>
           </div>
+          <form class="srow profile-form" novalidate data-test="profile-form" @submit.prevent="saveProfile">
+            <div class="profile-field">
+              <label for="student-id"><b>{{ m.studentId }}</b></label>
+              <p id="student-id-note">{{ m.studentIdNote }}</p>
+              <input
+                id="student-id"
+                v-model="studentId"
+                class="input mono"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="24120000"
+                data-test="student-id"
+                :aria-invalid="studentIdInvalid"
+                :aria-describedby="studentIdInvalid ? 'student-id-error' : 'student-id-note'"
+              />
+              <p v-if="studentIdInvalid" id="student-id-error" class="field-error" role="alert">{{ m.studentIdInvalid }}</p>
+            </div>
+            <div class="profile-field">
+              <label for="class-name"><b>{{ m.className }}</b></label>
+              <p id="class-name-note">{{ m.classNameNote }}</p>
+              <input
+                id="class-name"
+                v-model="className"
+                class="input"
+                type="text"
+                autocomplete="off"
+                placeholder="24CTT0"
+                data-test="class-name"
+                :aria-invalid="classNameTooLong"
+                :aria-describedby="classNameTooLong ? 'class-name-error' : 'class-name-note'"
+              />
+              <p v-if="classNameTooLong" id="class-name-error" class="field-error" role="alert">{{ m.classNameTooLong }}</p>
+            </div>
+            <div class="profile-save">
+              <p v-if="profileFailed" class="field-error" role="alert" data-test="profile-save-failed">{{ m.profileSaveFailed }}</p>
+              <button class="btn sm primary" type="submit" :disabled="profileSaving">{{ profileSaving ? m.savingProfile : m.saveProfile }}</button>
+            </div>
+          </form>
           <div class="srow">
             <div class="txt"><b id="language-label">{{ m.language }}</b><p>{{ m.languageNote }}</p></div>
             <div class="seg" role="group" aria-labelledby="language-label">
@@ -246,6 +313,11 @@ usePageTitle(() => m.value.title);
 .srow-note { padding: 0 22px 8px; }
 .user-id { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .user-id .input { flex: 1 1 calc(36ch + 28px); width: calc(36ch + 28px); min-width: 0; font-size: 13px; }
+.profile-form { align-items: flex-start; }
+.profile-field { display: grid; gap: 6px; flex: 1 1 220px; min-width: 0; }
+.profile-field b { font-size: 14.5px; }
+.profile-field p:not(.field-error) { font-size: 13.5px; color: var(--ink-2); }
+.profile-save { display: grid; gap: 6px; flex: 1 1 100%; justify-items: start; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .danger-zone { border-color: var(--bad); box-shadow: 4px 4px 0 var(--bad); }
 .sign-out { justify-self: start; }

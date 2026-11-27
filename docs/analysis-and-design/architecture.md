@@ -129,7 +129,7 @@ Every module reaches the database through its own TypeORM repositories and regis
 | Module | Folder | Feature | Routes and responsibility | Used by other modules |
 | --- | --- | --- | --- | --- |
 | health | `health/` |  | `GET /api/health`: API up and database reachable, never the PostgreSQL version (found in #28, fixed in #63). Public. |  |
-| users | `users/` | F1 | The `users` table: identity only (email, `password_hash`, `google_sub`, consent, deletion state). `create`, find, `cancelDeletion`, "is deletion pending", and `markDeletionRequestedWithin(manager, …)`. `GET /api/users/me`. | `UsersService` |
+| users | `users/` | F1 | The `users` table: identity only (email, `password_hash`, `google_sub`, consent, deletion state, and the optional student ID and class name the student types, [ADR 0019](adr/0019-student-id-and-class-name.md)). `create`, find, `updateProfile`, `cancelDeletion`, "is deletion pending", and `markDeletionRequestedWithin(manager, …)`. `GET` and `PATCH /api/users/me`. | `UsersService` |
 | auth | `auth/` | F1 | F1 sign-up, sign-in, refresh with rotation, sign-out, list and revoke sessions; argon2id passwords; the `sessions` table ([ADR 0002](adr/0002-authentication-and-sessions.md)). Sign-in before the purge deadline cancels a pending deletion. | `AuthService` (incl. `revokeAllWithin(manager, userId)`), `AuthGuard`, `@Public()`, `@CurrentUser()`, `@CurrentSession()`, `Authenticated()`, `PASSWORD_LIMIT` |
 | ai | `ai/` | F6 goal box, F8 | The AI gateway ([ADR 0003](adr/0003-language-model-scope.md)). No routes. `LlmService.structured()` and `chat()` with a tool loop; `AI_CONFIG`, a provider read once at boot from `config/env.ts`; one `preflight()` (model and key) before the cost guard reserves a call; the OpenRouter client built once; `streamChat` for SSE. Every failure is `AiUnavailableError` → 503 `ai_unavailable`. | `LlmService`, `streamChat`, `FakeLlmService` for tests |
 | transcript | `transcript/` | F2 | F2 storage: `GET` and `PUT /api/users/me/transcript`, whole-set replace under a row lock ([ADR 0007](adr/0007-transcript.md)). The rows are entered by the student; nothing reads a file. | `TranscriptService.rowsFor(userId)` returning `TranscriptEntry[]` |
@@ -329,6 +329,7 @@ Each ADR file states its own status; this table does not copy it. Number 0016 is
 | [0015 The rule engine in the browser for the drag preview](adr/0015-rule-engine-in-the-browser.md) | Where the plan check runs (the browser or the API) |
 | [0017 Academic calendar](adr/0017-academic-calendar.md) | `academic-calendar`; the calendar page |
 | [0018 Notification inbox](adr/0018-notification-inbox.md) | `notifications`; the inbox and what creates a notification |
+| [0019 Storing the student ID and the class name](adr/0019-student-id-and-class-name.md) | `users`; the Settings profile form; the dashboard header |
 
 ### Revisions in this version
 

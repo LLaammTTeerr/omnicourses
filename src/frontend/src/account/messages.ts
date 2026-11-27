@@ -1,5 +1,5 @@
 import type { Lang } from '../locale.js';
-import { DELETION_GRACE_DAYS } from './api.js';
+import { CLASS_NAME_MAX_LENGTH, DELETION_GRACE_DAYS } from './api.js';
 
 interface SettingsMessages {
   title: string;
@@ -17,6 +17,16 @@ interface SettingsMessages {
   copy: string;
   userIdCopied: string;
   userIdNotCopied: string;
+  studentId: string;
+  studentIdNote: string;
+  studentIdInvalid: string;
+  className: string;
+  classNameNote: string;
+  classNameTooLong: string;
+  saveProfile: string;
+  savingProfile: string;
+  profileSaved: string;
+  profileSaveFailed: string;
   language: string;
   languageNote: string;
   sessions: string;
@@ -82,6 +92,16 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     copy: 'Sao chép',
     userIdCopied: 'Đã sao chép mã người dùng.',
     userIdNotCopied: 'Chưa sao chép được. Mã đã được chọn sẵn: bấm Ctrl+C để sao chép.',
+    studentId: 'Mã số sinh viên (MSSV)',
+    studentIdNote: 'Không bắt buộc. Gồm 8 chữ số. Chỉ bạn thấy, và không bao giờ gửi cho AI.',
+    studentIdInvalid: 'MSSV gồm đúng 8 chữ số, ví dụ 24120000.',
+    className: 'Lớp',
+    classNameNote: 'Không bắt buộc, ví dụ 24CTT0. Chỉ bạn thấy, và không bao giờ gửi cho AI.',
+    classNameTooLong: `Tên lớp dài tối đa ${CLASS_NAME_MAX_LENGTH} ký tự.`,
+    saveProfile: 'Lưu',
+    savingProfile: 'Đang lưu…',
+    profileSaved: 'Đã lưu MSSV và lớp.',
+    profileSaveFailed: 'Chưa lưu được. Thử lại sau ít phút.',
     language: 'Ngôn ngữ',
     languageNote: 'Tiếng Việt hoặc English.',
     sessions: 'Các thiết bị đang đăng nhập',
@@ -147,6 +167,16 @@ export const SETTINGS_MESSAGES: Record<Lang, SettingsMessages> = {
     copy: 'Copy',
     userIdCopied: 'User ID copied.',
     userIdNotCopied: 'Could not copy. The ID is selected: press Ctrl+C to copy it.',
+    studentId: 'Student ID (MSSV)',
+    studentIdNote: 'Optional. 8 digits. Only you see it, and it is never sent to an AI.',
+    studentIdInvalid: 'A student ID is exactly 8 digits, for example 24120000.',
+    className: 'Class',
+    classNameNote: 'Optional, for example 24CTT0. Only you see it, and it is never sent to an AI.',
+    classNameTooLong: `A class name is at most ${CLASS_NAME_MAX_LENGTH} characters.`,
+    saveProfile: 'Save',
+    savingProfile: 'Saving…',
+    profileSaved: 'Student ID and class saved.',
+    profileSaveFailed: 'Could not save. Try again in a moment.',
     language: 'Language',
     languageNote: 'Vietnamese or English.',
     sessions: 'Devices signed in',
