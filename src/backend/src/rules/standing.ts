@@ -23,12 +23,15 @@ export function curriculumStanding(rules: CurriculumRules, entries: readonly Tra
   return codes.map((code): CourseStandingItem => {
     const transcriptStatus = statusOf(records.get(code));
     const prerequisites = rules.prerequisites.get(code) ?? null;
-    if (prerequisites === null || transcriptStatus === 'passed' || transcriptStatus === 'in_progress') {
+    if (prerequisites === null || transcriptStatus === 'passed') {
       return { code, transcriptStatus, readiness: null, missingPrerequisites: [] };
     }
     const check = checkPrerequisites(prerequisites, satisfied);
     if (check.status === 'not_met') {
       return { code, transcriptStatus, readiness: 'locked', missingPrerequisites: check.missing };
+    }
+    if (transcriptStatus === 'in_progress') {
+      return { code, transcriptStatus, readiness: null, missingPrerequisites: [] };
     }
     return { code, transcriptStatus, readiness: 'available', missingPrerequisites: [] };
   });

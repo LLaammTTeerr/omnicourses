@@ -105,3 +105,10 @@ Not stored, with the reason:
 - `RulesService` no longer exposes the pure functions (`termKind`, `creditCaps`, `checkTermLoad`, `checkPrerequisites`, `checkOfferingTerm`, `degreeAudit`). No module used them. The advisor (F8) imports them from `rules/` when it is built. This changes the module-boundary row above, which said that `RulesService` exposes them.
 - `CurriculumRulesReader.rulesFor(curriculumId)` reads one curriculum by its id, with its prerequisites and offering terms; `CourseRulesService` is merged into it. The audit finds the id with `CurriculumService.findCurriculumId(program, cohort)`.
 - A spec fails when a pure file of `rules/` imports framework, database or HTTP code at run time (`rules.service.spec.ts`).
+
+## Amendment, 27 November 2026: curriculum standing and failed in-progress prerequisites
+
+*Decided by Lâm (Project Lead), 27 November 2026.*
+
+- `curriculumStanding` in `rules/standing.ts` (served at `GET /api/programs/{code}/curricula/{cohortYear}/standing` for F4) computes per-course `transcriptStatus` (`passed`, `in_progress`, `failed`, or `null`) and prerequisite `readiness` (`available`, `locked`, or `null`) in the rule engine so the browser never duplicates attempt or prerequisite rules.
+- An `in_progress` prerequisite counts as satisfying readiness while it is in progress (matching `checkPlan`), so a student taking `CS469` sees `CS470` as `available` to plan next. If `CS469` is later recorded as failed (`fail` or grade below `5.0`), `CS470` immediately becomes ineligible: `curriculumStanding` marks `CS470` as `locked` (`missingPrerequisites: ['CS469']`)—even if `CS470` was already entered as `in_progress`—and `checkPlan` reports `prerequisite_not_met` (`violation`) on any later `CS470` placement.

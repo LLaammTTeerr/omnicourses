@@ -55,7 +55,7 @@ describe('curriculumStanding (F4, ADR 0013)', () => {
     ]);
   });
 
-  it('counts an in-progress prerequisite as satisfying readiness and uses official retake rules when a passed course is later failed', () => {
+  it('counts an in-progress prerequisite as available, and marks the dependent course locked if the prerequisite later fails (even when the dependent course is in progress)', () => {
     const rules = makeRules();
     const withInProgress = curriculumStanding(rules, [
       entry('CS469', 'graded', 3.0, 2024, 1),
@@ -63,6 +63,19 @@ describe('curriculumStanding (F4, ADR 0013)', () => {
     ]);
     expect(withInProgress).toContainEqual({ code: 'CS469', transcriptStatus: 'in_progress', readiness: null, missingPrerequisites: [] });
     expect(withInProgress).toContainEqual({ code: 'CS470', transcriptStatus: null, readiness: 'available', missingPrerequisites: [] });
+
+    const bothInProgress = curriculumStanding(rules, [
+      entry('CS469', 'in_progress', null, 2024, 2),
+      entry('CS470', 'in_progress', null, 2025, 1),
+    ]);
+    expect(bothInProgress).toContainEqual({ code: 'CS470', transcriptStatus: 'in_progress', readiness: null, missingPrerequisites: [] });
+
+    const afterPrerequisiteFails = curriculumStanding(rules, [
+      entry('CS469', 'graded', 4.0, 2024, 2),
+      entry('CS470', 'in_progress', null, 2025, 1),
+    ]);
+    expect(afterPrerequisiteFails).toContainEqual({ code: 'CS469', transcriptStatus: 'failed', readiness: 'available', missingPrerequisites: [] });
+    expect(afterPrerequisiteFails).toContainEqual({ code: 'CS470', transcriptStatus: 'in_progress', readiness: 'locked', missingPrerequisites: ['CS469'] });
 
     const withFailedRetake = curriculumStanding(rules, [
       entry('CS469', 'graded', 7.5, 2024, 1),
