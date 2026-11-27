@@ -132,7 +132,7 @@ describe('the rule engine library', () => {
   const LOADERS = ['rules.module.ts', 'rules.service.ts'];
   const LOADER_PATHS = LOADERS.map((f) => join(__dirname, f));
   const importedSources = (path: string) =>
-    [...readFileSync(path, 'utf8').matchAll(/^(?:import|export) [^;]*? from '([^']+)';|^import '([^']+)';/gms)].map((m) => (m[1] ?? m[2])!);
+    [...readFileSync(path, 'utf8').matchAll(/^(?:import|export) [^;]*? from '([^']+)';|^import '([^']+)';|\bimport\(\s*'([^']+)'\s*\)/gms)].map((m) => (m[1] ?? m[2] ?? m[3])!);
   const sourcePath = (from: string, source: string) => resolve(dirname(from), source.replace(/\.js$/, '.ts'));
 
   it('imports no framework, database or HTTP code, not even as a type', () => {
