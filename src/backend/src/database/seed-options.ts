@@ -1,4 +1,4 @@
-import type { SeedOptions } from '../common/seed-options.js';
+import type { SeedOptions } from '../common/seeder.js';
 
 const GUIDE_FIXTURES_FLAG = '--guide-fixtures';
 

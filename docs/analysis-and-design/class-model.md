@@ -519,6 +519,16 @@ classDiagram
         requirementGroupId : string?
         credits : number?
     }
+    class CurriculumStanding {
+        <<interface>>
+    }
+    class CourseStandingItem {
+        <<interface>>
+        code : string
+        transcriptStatus : TranscriptCourseStatus?
+        readiness : CourseReadiness?
+        missingPrerequisites : string list
+    }
     class PlanCheckInput {
         <<interface>>
         planId : string
@@ -531,6 +541,7 @@ classDiagram
     BoardTerm *-- "1" Term : term
     BoardTerm *-- "0..*" Placement : placements
     CurriculumRules --|> CourseRules
+    CurriculumStanding *-- "0..*" CourseStandingItem : courses
     PlanCheckInput --> "1" CurriculumRules : rules
     PlanCheckInput --> "0..*" TranscriptEntry : transcript
     PlanCheckInput --> "0..*" BoardTerm : terms

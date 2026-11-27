@@ -72,7 +72,7 @@ Not stored, with the reason:
 
 ### Plan issues (amended 9 November 2026)
 
-`RulesService` serves the plan issues to the plans module (`RulesService`, was the `PlanIssuesProvider` interface; renamed, see the amendment below); `checkPlan` in `rules/plan-issues.ts` composes the rules above. `GET /api/plans/{id}/issues` serves it to the plan's owner only.
+`RulesService` serves the plan issues to the plans module ([ADR 0014](0014-plan-model.md); it was the `PlanIssuesProvider` interface, renamed, see the amendment below); `checkPlan` in `rules/plan-issues.ts` composes the rules above. `GET /api/plans/{id}/issues` serves it to the plan's owner only.
 
 | Decision | Alternatives rejected | Evidence |
 | --- | --- | --- |
