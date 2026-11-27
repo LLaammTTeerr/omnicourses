@@ -1,4 +1,4 @@
-const COUNTED_REFERENCES = {
+export const COUNTED_REFERENCES = {
   prerequisiteLists: 'curricula record its prerequisites',
   requiredBy: 'courses require it',
   offeringTerms: 'offering-term rows name it',
