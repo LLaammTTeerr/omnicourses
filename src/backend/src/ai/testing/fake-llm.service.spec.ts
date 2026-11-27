@@ -41,7 +41,7 @@ describe('FakeLlmService', () => {
     );
     await expect(async () => {
       for await (const _event of llm.chat({ context, instructions: '', messages: [], signal: controller.signal })) {
-        // consume
+        void _event;
       }
     }).rejects.toThrow(new AiUnavailableError('The model stream ended early'));
   });

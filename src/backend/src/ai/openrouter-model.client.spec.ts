@@ -117,7 +117,7 @@ describe('OpenRouterModelClient', () => {
     } as never);
     await expect(async () => {
       for await (const _event of client.stream({ model: 'test-model', messages: [{ role: 'user', content: 'hi' }], tools: [], signal: controller.signal })) {
-        // consume
+        void _event;
       }
     }).rejects.toEqual(new AiUnavailableError(AI_REASONS.streamEndedEarly));
   });

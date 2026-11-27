@@ -68,9 +68,7 @@ describe('parseTranscriptPaste (F2 deterministic paste parser, ADR 0007)', () =>
       { year: 2025, number: 1, courseCode: 'ZZ203', courseName: 'Operating Systems', credits: '4', result: 'in_progress', grade: '' },
     ]);
 
-    const semicolonTable = [
-      'Code;Term;Credits', // header with Credits & Code
-    ];
+    const semicolonTable = ['Code;Term;Credits'];
     expect(parseTranscriptPaste(semicolonTable.join('\n'))).toEqual({ rows: [], errors: [] });
 
     const semiData = [

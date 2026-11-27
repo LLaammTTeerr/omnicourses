@@ -151,21 +151,28 @@ function scheduleCopiedReset(): void {
   }, COPY_FEEDBACK_MS);
 }
 
+async function tryWriteClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 async function copyLink(): Promise<void> {
   const url = shareUrl.value;
   if (!url) return;
   clearCopyFeedback();
 
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(url);
-      copied.value = true;
-      toast.show(m.value.copiedToast);
-      scheduleCopiedReset();
-      return;
-    }
-  } catch {
-    // Fall through to input selection + execCommand fallback.
+  if (await tryWriteClipboard(url)) {
+    copied.value = true;
+    toast.show(m.value.copiedToast);
+    scheduleCopiedReset();
+    return;
   }
 
   const el = urlInput.value;

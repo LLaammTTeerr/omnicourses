@@ -55,17 +55,8 @@ function lineAt(source, index) {
   return line;
 }
 
-export function lintWorkspace(rootDir = ROOT) {
-  const errors = [];
-  const addError = (relPath, line, rule, message) => {
-    errors.push({ file: relPath, line, rule, message });
-  };
-
-  const backendFiles = walkFiles(path.join(rootDir, 'src/backend/src'), ['.ts']);
-  const frontendFiles = walkFiles(path.join(rootDir, 'src/frontend/src'), ['.ts', '.vue']);
-
-  // Rule 1: No `debugger;` statement or `@ts-ignore` / `@ts-nocheck`
-  for (const fullPath of [...backendFiles, ...frontendFiles]) {
+function checkTsSuppressionsAndDebugger(rootDir, files, addError) {
+  for (const fullPath of files) {
     const relPath = toPosix(path.relative(rootDir, fullPath));
     const raw = fs.readFileSync(fullPath, 'utf8');
     const isVue = relPath.endsWith('.vue');
@@ -84,8 +75,9 @@ export function lintWorkspace(rootDir = ROOT) {
       addError(relPath, lineAt(raw, match.index), 'no-debugger', 'Forbidden `debugger` statement');
     }
   }
+}
 
-  // Rule 2: No direct `process.env` in backend outside `src/backend/src/config/env.ts` and `*.spec.ts`
+function checkDirectProcessEnv(rootDir, backendFiles, addError) {
   for (const fullPath of backendFiles) {
     const relPath = toPosix(path.relative(rootDir, fullPath));
     if (relPath === 'src/backend/src/config/env.ts' || relPath.endsWith('.spec.ts')) {
@@ -102,8 +94,9 @@ export function lintWorkspace(rootDir = ROOT) {
       );
     }
   }
+}
 
-  // Rule 3 & Rule 5: Vue SFC checks (`fetch(` and `<style scoped>`)
+function checkVueSfcRules(rootDir, frontendFiles, addError) {
   for (const fullPath of frontendFiles) {
     if (!fullPath.endsWith('.vue')) continue;
     const relPath = toPosix(path.relative(rootDir, fullPath));
@@ -136,8 +129,9 @@ export function lintWorkspace(rootDir = ROOT) {
       }
     }
   }
+}
 
-  // Rule 4: Verify inline `<script>` SHA-256 hash in `deploy/server/nginx-site.conf` matches `src/frontend/index.html`
+function checkNginxCspScriptHashes(rootDir, addError) {
   const indexHtmlRel = 'src/frontend/index.html';
   const nginxConfRel = 'deploy/server/nginx-site.conf';
   const indexHtmlPath = path.join(rootDir, indexHtmlRel);
@@ -145,53 +139,71 @@ export function lintWorkspace(rootDir = ROOT) {
 
   if (!fs.existsSync(indexHtmlPath)) {
     addError(indexHtmlRel, 1, 'csp-script-hash', `Missing ${indexHtmlRel}`);
-  } else if (!fs.existsSync(nginxConfPath)) {
-    addError(nginxConfRel, 1, 'csp-script-hash', `Missing ${nginxConfRel}`);
-  } else {
-    const html = fs.readFileSync(indexHtmlPath, 'utf8');
-    const nginx = fs.readFileSync(nginxConfPath, 'utf8');
-
-    const expectedHashes = [];
-    for (const match of html.matchAll(/<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi)) {
-      const digest = createHash('sha256').update(match[1], 'utf8').digest('base64');
-      expectedHashes.push(`sha256-${digest}`);
-    }
-
-    const cspMatch = nginx.match(/add_header\s+Content-Security-Policy\s+"([^"]+)"/);
-    if (!cspMatch) {
-      addError(
-        nginxConfRel,
-        1,
-        'csp-script-hash',
-        'Missing `Content-Security-Policy` header in nginx-site.conf',
-      );
-    } else {
-      const cspLine = lineAt(nginx, cspMatch.index);
-      const scriptSrcMatch = cspMatch[1].match(/(?:^|;\s*)script-src\s+([^;]+)/);
-      if (!scriptSrcMatch) {
-        addError(
-          nginxConfRel,
-          cspLine,
-          'csp-script-hash',
-          'Missing `script-src` directive in `Content-Security-Policy`',
-        );
-      } else {
-        const configuredHashes = [...scriptSrcMatch[1].matchAll(/'(sha256-[^']+)'/g)].map(
-          (m) => m[1],
-        );
-        const expectedKey = expectedHashes.join(', ');
-        const configuredKey = configuredHashes.join(', ');
-        if (expectedKey !== configuredKey) {
-          addError(
-            nginxConfRel,
-            cspLine,
-            'csp-script-hash',
-            `CSP script-src hash mismatch: nginx-site.conf has [${configuredKey || 'none'}], expected [${expectedKey || 'none'}] from ${indexHtmlRel}`,
-          );
-        }
-      }
-    }
+    return;
   }
+  if (!fs.existsSync(nginxConfPath)) {
+    addError(nginxConfRel, 1, 'csp-script-hash', `Missing ${nginxConfRel}`);
+    return;
+  }
+
+  const html = fs.readFileSync(indexHtmlPath, 'utf8');
+  const nginx = fs.readFileSync(nginxConfPath, 'utf8');
+
+  const expectedHashes = [];
+  for (const match of html.matchAll(/<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const digest = createHash('sha256').update(match[1], 'utf8').digest('base64');
+    expectedHashes.push(`sha256-${digest}`);
+  }
+
+  const cspMatch = nginx.match(/add_header\s+Content-Security-Policy\s+"([^"]+)"/);
+  if (!cspMatch) {
+    addError(
+      nginxConfRel,
+      1,
+      'csp-script-hash',
+      'Missing `Content-Security-Policy` header in nginx-site.conf',
+    );
+    return;
+  }
+
+  const cspLine = lineAt(nginx, cspMatch.index);
+  const scriptSrcMatch = cspMatch[1].match(/(?:^|;\s*)script-src\s+([^;]+)/);
+  if (!scriptSrcMatch) {
+    addError(
+      nginxConfRel,
+      cspLine,
+      'csp-script-hash',
+      'Missing `script-src` directive in `Content-Security-Policy`',
+    );
+    return;
+  }
+
+  const configuredHashes = [...scriptSrcMatch[1].matchAll(/'(sha256-[^']+)'/g)].map((m) => m[1]);
+  const expectedKey = expectedHashes.join(', ');
+  const configuredKey = configuredHashes.join(', ');
+  if (expectedKey !== configuredKey) {
+    addError(
+      nginxConfRel,
+      cspLine,
+      'csp-script-hash',
+      `CSP script-src hash mismatch: nginx-site.conf has [${configuredKey || 'none'}], expected [${expectedKey || 'none'}] from ${indexHtmlRel}`,
+    );
+  }
+}
+
+export function lintWorkspace(rootDir = ROOT) {
+  const errors = [];
+  const addError = (relPath, line, rule, message) => {
+    errors.push({ file: relPath, line, rule, message });
+  };
+
+  const backendFiles = walkFiles(path.join(rootDir, 'src/backend/src'), ['.ts']);
+  const frontendFiles = walkFiles(path.join(rootDir, 'src/frontend/src'), ['.ts', '.vue']);
+
+  checkTsSuppressionsAndDebugger(rootDir, [...backendFiles, ...frontendFiles], addError);
+  checkDirectProcessEnv(rootDir, backendFiles, addError);
+  checkVueSfcRules(rootDir, frontendFiles, addError);
+  checkNginxCspScriptHashes(rootDir, addError);
 
   return errors;
 }

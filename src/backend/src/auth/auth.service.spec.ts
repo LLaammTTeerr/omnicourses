@@ -216,20 +216,17 @@ describe('AuthService', () => {
       );
       expect(users.findByEmailForAuth).not.toHaveBeenCalled();
 
-      // Another account is unaffected
       users.findByEmailForAuth.mockResolvedValueOnce(makeUser({ email: 'other@example.com', passwordHash }));
       await expect(
         service.signIn({ email: 'other@example.com', password: 'correct horse battery' }),
       ).resolves.toMatchObject({ accountRestored: false });
 
-      // Once 60s passes, expired entries are pruned and sign-in succeeds, clearing history
       currentNow = new Date(currentNow.getTime() + MINUTE_MS);
       users.findByEmailForAuth.mockResolvedValue(makeUser({ passwordHash }));
       await expect(
         service.signIn({ email: 'student@example.com', password: 'correct horse battery' }),
       ).resolves.toMatchObject({ accountRestored: false });
 
-      // Successful sign-in cleared history: 9 failed attempts + success + 9 failed attempts do not trigger 429
       for (let i = 0; i < 9; i++) {
         await expect(
           service.signIn({ email: 'student@example.com', password: 'wrong password!' }),
