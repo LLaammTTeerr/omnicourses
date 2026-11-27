@@ -1,7 +1,8 @@
-import { parseSeedOptions, type Seeder } from '../common/seed-options.js';
+import type { Seeder } from '../common/seed-options.js';
 import { seed as seedCurricula } from '../curriculum/seed-curricula.js';
 import { seed as seedGuides } from '../guides/seed-guides.js';
 import { withDatabase } from './data-source.js';
+import { parseSeedOptions } from './seed-options.js';
 
 const SEEDERS: Seeder[] = [seedGuides, seedCurricula];
 
