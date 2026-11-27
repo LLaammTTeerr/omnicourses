@@ -1,0 +1,35 @@
+You are the independent reviewer of one refactor batch in the OmniCourse repo. You did not write it. Find what is wrong with it before a human reads it. Default to doubt: "behaviour unchanged" is true only where you checked it.
+
+## Where
+- Worktree /home/lamter/omnicourses/.claude/worktrees/cv-build-fa, branch cvb/10-plan-view. The batch is `git diff 9eef108dcb0dcfb23c7b428dd0469a442acb2c3c..HEAD` (commits: `git log --oneline 9eef108dcb0dcfb23c7b428dd0469a442acb2c3c..HEAD`).
+- READ-ONLY: do not edit, stage, commit, push or post anything. You may run targeted tests, typecheck and lint, and `node /home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/depgraph.mjs <src dir>`. Do not open /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/10-plan-view/report.md until you have written down your own findings; then read it only to check the implementer's stated omissions.
+
+## What the batch was asked to do: a pure issue-view leaf for the planner, and a tested view model for the shared plan page
+Sources: FRO-2, FRO-1 (step 1 only) and FRO-7 in /home/lamter/omnicourses/.claude/worktrees/converge/converge/survey/frontend-planning.md. Read them first. The rendered page must not change: sharing/SharedPlanView.spec.ts, the SharedPlan browser spec, plans/PlanEditorView.spec.ts and the IssuesPanel tests pass with their assertions untouched.
+
+A. plans/issue-view.ts. plans/present.ts does two jobs: what an issue or a term load looks like (pure), and loading the board's data (composables that fetch). The signed-out shared page imports the first and so drags in the second. Move the pure part (ISSUE_KINDS_SHOWN, KIND_STYLE, strongest, BAR_CODES, METER_HEADROOM_CREDITS, capOf, toneOf, meter, and the citation helper `clause` that exists twice) into plans/issue-view.ts, which imports types only: no composable, no api call. Callers import from the new file; present.ts re-exports nothing. The matching tests move beside it with the same assertions.
+
+B. sharing/view.ts. SharedPlanView.vue (1077 lines) computes its row and tile view models inside the component, re-deriving what plans/present.ts derives, and uses an adapter (toEngineIssue) that puts a group NAME into requirementGroupId so a planner function can word it. Move the view-model logic into pure functions in sharing/view.ts built on the leaf from A; make the leaf functions accept the structural part of an issue they need so the adapter can be deleted; give the wording function an explicit way to get the requirement name instead of the id convention (the editor's behaviour stays identical). Unit-test view.ts with fixtures. The component keeps only what needs Vue.
+
+C. Surplus in sharing/api.ts: the survey says UpdatePlanShareBody and PlanShareStatus have no reader and NotShared is read only by a spec. Verify by search; delete what is unused and point the spec at the real type.
+
+Do not start on shared components or CSS (that is the next batch). Do not touch plans/session.ts behaviour. If lint reports feature edges in scripts/layers.mjs that no longer exist, remove exactly those lines.
+
+## Boundaries it had to keep
+- Fixed contract: routes, DTO fields and class names, status and error codes, response bodies, database columns, existing migration files, and src/backend/openapi.json byte for byte. What the rule engine decides does not change (AGENTS.md hard rule 1).
+- Tests are the safety net: never delete, skip or weaken a test or an assertion. A test may move with the code it tests; its assertions stay. New logic gets a spec that would fail if the logic were wrong; a pure move needs none.
+- Repo rules that bite: no code comments at all, no new dependency, no lockfile change, relative imports with a .js suffix in the backend, no magic numbers, English, Conventional Commits.
+- Off limits (owned by open pull requests): src/frontend/src/audit/{DashboardView.vue,DashboardView.spec.ts,api.ts,dashboard.ts,dashboard.spec.ts,dashboard-messages.ts}, src/frontend/src/shell/icons.ts, src/frontend/src/testing/fetch.ts (PR #214); src/backend/src/curriculum-admin/csv-import.service.ts and its spec, src/backend/test/curriculum-admin-import.e2e-spec.ts, docs/analysis-and-design/adr/0011-curriculum-administration.md, docs/test/test-cases-b2.md (PR #166); everything under src/backend/src/advisor/ and src/backend/src/ai/ (PR #77). If the objective needs a one-line import-path change in one of these files because a module moved, make exactly that line and list it in your result.
+
+## Check, in this order, and record what you checked
+1. Behaviour: for every function, query, constant, type or template that moved, merged or was rewritten, compare old and new line by line. Name any difference in results, order, error text, SQL, lock mode, timing or rendered output.
+2. Contract: `git diff 9eef108dcb0dcfb23c7b428dd0469a442acb2c3c..HEAD -- src/backend/openapi.json src/backend/src/database/migrations package-lock.json` shows nothing it should not; no route, DTO field or class name, status or error code changed.
+3. Tests: `git diff 9eef108dcb0dcfb23c7b428dd0469a442acb2c3c..HEAD --stat -- '*.spec.ts' '*.e2e-spec.ts' '*.test.mjs'`. For each changed or deleted test file, confirm no `it(`, `test(` or `expect(` was lost or loosened; a moved test must be the same test. New logic has a test that fails when the logic is wrong (try to think of the mutation that would slip through).
+4. Completeness: search src/, test/, scripts/, deploy/, .github/, docs/analysis-and-design, AGENTS.md, README.md for every name, path and import the batch retired. Nothing still points at them; the old and the new implementation do not coexist.
+5. Structure: is the system simpler, or was the complexity only moved? Any new cross-folder import or cycle (compare the import graph with the base)? A wrapper, flag or parameter that only one caller understands? A smaller change that gets the same result?
+6. Repo rules: no comments, no new dependency, .js import suffixes in the backend, names that say what things are, no magic numbers; `git log --format='%h %G? %s' 9eef108dcb0dcfb23c7b428dd0469a442acb2c3c..HEAD` shows G for every commit and Conventional subjects; exactly one new file under .changeset/.
+7. Scope: nothing outside the objective, nothing in the off-limits files beyond a listed one-line import change.
+
+Blocking: wrong or changed behaviour, a broken boundary, a lost or weakened test, an incomplete migration, a repo-rule violation, or a clearly simpler design that removes real complexity. Non-blocking: naming, wording, optional polish. Each finding: file, line, the problem, the concrete fix.
+
+Write the review to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/10-plan-view/review-ROUND.md (ROUND is the round number you are told, 1 if none) and return the structured verdict.

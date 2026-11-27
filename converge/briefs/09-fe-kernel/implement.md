@@ -1,0 +1,38 @@
+You are implementing one batch of a whole-codebase architectural convergence of the OmniCourse repo. The aim of the mission: one change to a business concept lands in one place, and people and agents can work in parallel without colliding. The batch must leave the system simpler, with behaviour unchanged.
+
+## Where
+- Worktree: /home/lamter/omnicourses/.claude/worktrees/cv-build-fb (branch cvb/09-fe-kernel is checked out; base commit 9eef108dcb0dcfb23c7b428dd0469a442acb2c3c). Work only there. Never touch another worktree or /home/lamter/omnicourses itself, never switch branches, never push, never open a pull request, never post to GitHub or Discord, never write a progress file. The orchestrator integrates your commits.
+- npm: the machine's npm is 9 and rewrites the lockfile. Use `npx --yes npm@11.21.1 <command>` for every npm command. node_modules is installed.
+
+## Objective: four small ownership fixes in the frontend kernel
+Sources: FRO-2, FRO-3 and FRO-7 in /home/lamter/omnicourses/.claude/worktrees/converge/converge/survey/frontend-platform.md; FRO-4 in /home/lamter/omnicourses/.claude/worktrees/converge/converge/survey/frontend-admin-content.md. Read them first. Four independent steps, one or more commits each.
+
+A. Account-scoped browser storage. auth/store.ts (imported by 30 files) imports plans/last-plan.ts and plans/lock.ts only to wipe two localStorage keys at sign-out. Add a kernel file src/frontend/src/account-storage.ts that owns the list of account-scoped keys (names unchanged: no student may lose a stored value) and one function that forgets them all; plans/last-plan.ts and plans/lock.ts take their key from it; auth/store.ts calls the one function and imports nothing from plans/. A static key list, not a runtime registry (a registry misses keys of a chunk that was never loaded in this tab). Update the specs so they still prove sign-out and the 401 path clear both keys. In scripts/layers.mjs: add the file to the kernel list and delete the auth/store.ts exception.
+
+B. Grants store. shell/AppSidebar.vue, shell/MobileBars.vue and App.vue import useAdminAccess from admin/store.ts, which pulls in admin/api.ts, admin/errors.ts and the program picker. Split it: admin/access.ts holds the grants store and imports only what it needs (move the grant types and the own-grants call with it, or into a small grants-only api file); admin/store.ts keeps the program picker. The shell and App.vue import admin/access.ts. Build the frontend before and after and report the size of the entry chunk.
+
+C. ModalDialog busy text. Twelve dialogs import SHELL_MESSAGES only to pass `:busy-text="shell.working"`. ModalDialog reads its default busy text itself; `busyText` stays an optional override; the twelve dialogs drop the prop and the import when nothing else uses it. Rendered text unchanged.
+
+D. Test-only code in router.ts. router.ts ends with `if (import.meta.env.MODE === 'test') await Promise.all(warmRouteChunks(routes))`, a branch for one environment in production code. Move the warm-up into the test helpers (src/frontend/src/testing/, not testing/fetch.ts) and call it where a test builds the app router; warming only the matched route is better if it stays stable. Then run the frontend unit suite and the browser suite three times each; all six runs must pass. If this cannot be made stable without editing many specs, undo step D completely and report what you saw: A to C still ship.
+
+## Boundaries
+- Fixed contract: routes, DTO fields and class names, status and error codes, response bodies, database columns, existing migration files, and src/backend/openapi.json byte for byte. What the rule engine decides does not change (AGENTS.md hard rule 1).
+- Tests are the safety net: never delete, skip or weaken a test or an assertion. A test may move with the code it tests; its assertions stay. New logic gets a spec that would fail if the logic were wrong; a pure move needs none.
+- Repo rules that bite: no code comments at all, no new dependency, no lockfile change, relative imports with a .js suffix in the backend, no magic numbers, English, Conventional Commits.
+- Off limits (owned by open pull requests): src/frontend/src/audit/{DashboardView.vue,DashboardView.spec.ts,api.ts,dashboard.ts,dashboard.spec.ts,dashboard-messages.ts}, src/frontend/src/shell/icons.ts, src/frontend/src/testing/fetch.ts (PR #214); src/backend/src/curriculum-admin/csv-import.service.ts and its spec, src/backend/test/curriculum-admin-import.e2e-spec.ts, docs/analysis-and-design/adr/0011-curriculum-administration.md, docs/test/test-cases-b2.md (PR #166); everything under src/backend/src/advisor/ and src/backend/src/ai/ (PR #77). If the objective needs a one-line import-path change in one of these files because a module moved, make exactly that line and list it in your result.
+- The survey findings named above are leads, not truth: confirm each claim in the code before acting on it. If a claim is wrong, or a step cannot be done without breaking a boundary, do not force it: leave that step out and say so in your result.
+- Keep the diff to the objective: no drive-by renames, reformatting or unrelated cleanup.
+- Docs: search docs/analysis-and-design, AGENTS.md, README.md, CONTRIBUTING.md and GLOSSARY.md for names or paths you moved or removed, and correct the lines that would now be wrong (not docs/test/**, not report/**: those are dated records).
+
+## Verify
+- While working, run targeted checks: `cd src/backend && npx vitest run <path>`, `cd src/frontend && npx vitest run <path>`, `npx --yes npm@11.21.1 run typecheck -w src/backend` (or `-w src/frontend`), `npx --yes npm@11.21.1 run lint`.
+- Before you finish: `/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-fb omnicourse_cv_fb typecheck lint unit-fe build browser contract` must print `RESULT: ALL PASS`, and no number on its COUNTS line may be lower than the baseline it prints unless you can name the reason. It runs typecheck, lint, frontend unit tests, build, browser tests and the contract diff (a "-" on the COUNTS line is a suite it did not run; the orchestrator runs the rest); about 3 minutes, and it waits its turn if another run is active (allow up to 20 minutes). On failure, read the log path it prints and fix the cause; never the test.
+
+## Commits
+- Small commits, one coherent step each. Signing is configured: a plain `git commit` signs. Never pass --no-gpg-sign or change git config. If signing fails, stop and return status "blocked".
+- Message: a Conventional Commit subject in English (`refactor(frontend): ...`), a body of one or two sentences that says why, and the last line `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`.
+- In the last commit add `.changeset/09-fe-kernel.md`. Nothing here is visible to a user, so it is an empty changeset: the file holds exactly two lines, `---` and `---`.
+
+## Result
+- Write /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/09-fe-kernel/report.md (with a shell heredoc if the Write tool refuses a path outside the worktree; if that fails too, put the content in your result): what changed and why, commit by commit; every step of the objective you left out and why; what a reviewer should look at twice; the last lines of the verify output.
+- Return the structured result: status "done" only when verify printed RESULT: ALL PASS on your final commit and `git status --short` is empty.
