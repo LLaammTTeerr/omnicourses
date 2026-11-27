@@ -1,5 +1,6 @@
 import type { DataSource, EntityManager } from 'typeorm';
 import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
+import type { SeedOptions } from '../common/seed-options.js';
 import { buildCatalog, CatalogConflictError, type CatalogConflict } from './seeds/catalog.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './seeds/index.js';
 import type { CatalogCourse, CatalogDecision, CurriculumSeed } from './seeds/seed-types.js';
@@ -16,7 +17,7 @@ interface SeedReport {
 
 const FIELDS_CHECKED_AGAINST_DATABASE = ['name_vi', 'credits'] as const;
 
-export async function seed(dataSource: DataSource): Promise<string[]> {
+export async function seed(dataSource: DataSource, _options: SeedOptions): Promise<string[]> {
   const report = await seedCurricula(dataSource, CURRICULUM_SEEDS, CATALOG_DECISIONS);
   return [`Inserted: ${JSON.stringify(report.inserted)}`, `Already present, left untouched: ${JSON.stringify(report.skipped)}`];
 }

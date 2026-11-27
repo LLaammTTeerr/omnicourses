@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { DataSource, EntityManager } from 'typeorm';
+import type { SeedOptions } from '../common/seed-options.js';
 import { nodeEnv } from '../config/env.js';
 import { vietnamDate } from '../config/time.js';
 import { GUIDE_FILES } from './content/index.js';
@@ -23,7 +24,7 @@ export class GuideSeedError extends Error {
   }
 }
 
-export async function seed(dataSource: DataSource, options: { guideFixtures: boolean }): Promise<string[]> {
+export async function seed(dataSource: DataSource, options: SeedOptions): Promise<string[]> {
   let files = GUIDE_FILES;
   if (options.guideFixtures) {
     if (nodeEnv() === 'production') throw new Error('--guide-fixtures publishes the zz-* test guides: refused when NODE_ENV is production');
