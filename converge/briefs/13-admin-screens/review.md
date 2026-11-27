@@ -1,0 +1,36 @@
+You are the independent reviewer of one refactor batch in the OmniCourse repo. You did not write it. Find what is wrong with it before a human reads it. Default to doubt: "behaviour unchanged" is true only where you checked it.
+
+## Where
+- Worktree /home/lamter/omnicourses/.claude/worktrees/cv-build-fb, branch cvb/13-admin-screens. The batch is `git diff a84e93478f689ccad36fedb38aa5bd27f94f304e..HEAD` (commits: `git log --oneline a84e93478f689ccad36fedb38aa5bd27f94f304e..HEAD`).
+- READ-ONLY: do not edit, stage, commit, push or post anything. You may run targeted tests, typecheck and lint, and `node /home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/depgraph.mjs <src dir>`. Do not open /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/13-admin-screens/report.md until you have written down your own findings; then read it only to check the implementer's stated omissions.
+
+## What the batch was asked to do: one saved-document composable for the scoped admin screens, and one calendar-event presentation module
+Sources: FRO-2 and FRO-5 in /home/lamter/omnicourses/.claude/worktrees/converge/converge/survey/frontend-admin-content.md. Read them first.
+
+A. Saved document. admin/CalendarAdmin.vue (added by #207) copies from admin/CurriculumAdmin.vue the whole "pick a program and cohort, load the saved document, mark it stale, refresh, guard dialogs" scaffolding: the scope and on-screen check, the watch on granted and listed program ids, status / stale / newest-only reads, load and showSaved, the notice, the useAdminDialog wiring and the two problem computeds. The newest-only window rules are subtle and must not diverge.
+1. Move the program-grant refresh watch into useProgramPicker (it already owns the program list and its loading).
+2. Add a composable for a saved, scoped document (name it for what it is) that returns the document, its status, the stale state and the read / load / show-saved functions; useAdminDialog takes the stale object from it directly. Both screens use it. A status only one screen has (CurriculumAdmin maps not_found to 'missing') is expressed by that screen, not by a flag inside the composable.
+3. Dialogs, forms, messages and the other admin screens do not change. The specs of both screens and the admin browser spec pass with their assertions untouched. The composable gets its own spec for the newest-only rule and the stale transitions.
+
+B. Calendar event presentation. The kind-to-colour-group table is byte-identical in calendar/CalendarView.vue and admin/CalendarAdmin.vue; the bilingual title helpers are duplicated there, and notifications/messages.ts builds an event line a third way. Add calendar/present.ts with the table and the title / span helpers; the three callers import it; the copies go. One trap: the notification copy falls back with `titleEn ?? title`, the others on a falsy titleEn, so they differ for an empty string. Find out whether an empty titleEn can reach the client (the backend DTO and entity of academic-calendar decide that). If it cannot, use one rule. If it can, keep each caller's present behaviour and report it as a question; do not pick one.
+
+C. scripts/layers.mjs: add or remove exactly the frontend feature edges this batch changes (lint tells you), and list them in the report.
+
+## Boundaries it had to keep
+- Fixed contract: routes, DTO fields and class names, status and error codes, response bodies, database columns, existing migration files, and src/backend/openapi.json byte for byte. What the rule engine decides does not change (AGENTS.md hard rule 1).
+- Tests are the safety net: never delete, skip or weaken a test or an assertion. A test may move with the code it tests; its assertions stay. New logic gets a spec that would fail if the logic were wrong; a pure move needs none.
+- Repo rules that bite: no code comments at all, no new dependency, no lockfile change, relative imports with a .js suffix in the backend, no magic numbers, English, Conventional Commits.
+- Off limits (owned by open pull requests): src/frontend/src/audit/{DashboardView.vue,DashboardView.spec.ts,api.ts,dashboard.ts,dashboard.spec.ts,dashboard-messages.ts}, src/frontend/src/shell/icons.ts, src/frontend/src/testing/fetch.ts (PR #214); src/backend/src/curriculum-admin/csv-import.service.ts and its spec, src/backend/test/curriculum-admin-import.e2e-spec.ts, docs/analysis-and-design/adr/0011-curriculum-administration.md, docs/test/test-cases-b2.md (PR #166); everything under src/backend/src/advisor/ and src/backend/src/ai/ (PR #77). If the objective needs a one-line import-path change in one of these files because a module moved, make exactly that line and list it in your result.
+
+## Check, in this order, and record what you checked
+1. Behaviour: for every function, query, constant, type or template that moved, merged or was rewritten, compare old and new line by line. Name any difference in results, order, error text, SQL, lock mode, timing or rendered output.
+2. Contract: `git diff a84e93478f689ccad36fedb38aa5bd27f94f304e..HEAD -- src/backend/openapi.json src/backend/src/database/migrations package-lock.json` shows nothing it should not; no route, DTO field or class name, status or error code changed.
+3. Tests: `git diff a84e93478f689ccad36fedb38aa5bd27f94f304e..HEAD --stat -- '*.spec.ts' '*.e2e-spec.ts' '*.test.mjs'`. For each changed or deleted test file, confirm no `it(`, `test(` or `expect(` was lost or loosened; a moved test must be the same test. New logic has a test that fails when the logic is wrong (try to think of the mutation that would slip through).
+4. Completeness: search src/, test/, scripts/, deploy/, .github/, docs/analysis-and-design, AGENTS.md, README.md for every name, path and import the batch retired. Nothing still points at them; the old and the new implementation do not coexist.
+5. Structure: is the system simpler, or was the complexity only moved? Any new cross-folder import or cycle (compare the import graph with the base)? A wrapper, flag or parameter that only one caller understands? A smaller change that gets the same result?
+6. Repo rules: no comments, no new dependency, .js import suffixes in the backend, names that say what things are, no magic numbers; `git log --format='%h %G? %s' a84e93478f689ccad36fedb38aa5bd27f94f304e..HEAD` shows G for every commit and Conventional subjects; exactly one new file under .changeset/.
+7. Scope: nothing outside the objective, nothing in the off-limits files beyond a listed one-line import change.
+
+Blocking: wrong or changed behaviour, a broken boundary, a lost or weakened test, an incomplete migration, a repo-rule violation, or a clearly simpler design that removes real complexity. Non-blocking: naming, wording, optional polish. Each finding: file, line, the problem, the concrete fix.
+
+Write the review to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/13-admin-screens/review-ROUND.md (ROUND is the round number you are told, 1 if none) and return the structured verdict.

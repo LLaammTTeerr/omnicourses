@@ -35,7 +35,10 @@ Evidence for every item: the seven survey files (`converge/survey/*.md`, finding
 | 01 | refactor/cv-01-verify-and-lint-rules | 01 | #220 | CI green, auto-merge on, waits for one approval |
 | 02 | refactor/cv-02-plan-view | 10 | #221 (draft) | CI green |
 | 03 | refactor/cv-03-locks-and-seeds | 02 | #222 (draft) | CI green |
-| 04 | refactor/cv-04-engine-vocabulary | 03 | to open | integrated, full verify green |
+| 04 | refactor/cv-04-engine-vocabulary | 03 | #223 (draft) | pushed |
+| 05 | refactor/cv-05-fe-kernel | 09 | #224 (draft) | pushed |
+| 06 | refactor/cv-06-rules-one-derivation | 04 | #225 (draft) | pushed; reviewer's differential fuzz (20,000 inputs per entry point) agrees with the old code |
+| 07 | refactor/cv-07-admin-screens | 13 | #226 (draft) | pushed |
 
 Stack order follows readiness, so stack numbers differ from the batch numbers of the plan below. Each batch is built on `cvb/<batch slug>` in `.claude/worktrees/cv-build-{be,fa,fb}` and cherry-picked onto the stack tip in `.claude/worktrees/cv-stack`.
 
@@ -86,7 +89,8 @@ Build: 01 first, alone, through the whole pipeline. Then three tracks in paralle
 5. BP-4: with `SESSION_TTL_DAYS` above 30 the "hard 30-day cap" follows the TTL (`auth.service.ts:216`). Intended?
 6. BD-3: must `class-model.md` keep field-level copies of engine types (it has already drifted), or may it point at `rules/types.ts`?
 7. T-8: ADR 0019 still says "proposed" although #217 shipped it.
-8. T-1: the backend CI job exports and uploads `openapi.json` as an artifact that no workflow downloads. Remove the step? (CI gates are Lâm-only.)
+8. Hoà: should the import admin screen reload its program list when the admin's grants change, as the curriculum and calendar screens do? One line (`reloadProgramsOnGrantChange`); today's behaviour kept.
+8b. T-1: the backend CI job exports and uploads `openapi.json` as an artifact that no workflow downloads. Remove the step? (CI gates are Lâm-only.)
 9. FA-1: Vietnamese and English wording for three reference kinds (owner: Hoà). FK-4: menu labels from the feature's messages or literal on the route (owner: Hoà).
 
 ### In-flight zones, narrowed
@@ -121,4 +125,4 @@ None.
 
 ## Next
 
-Open the PR for stack 04. Stack batch 09 when its polish returns, then start batch 13 on the fb track. Batches 04 (be) and 11 (fa) are building; 05 to 08 follow on be, 14 on fa. Briefs for 02 to 13 are in `converge/briefs/` or prepared in the session; 12, 14, 15, 16, 17 still need a brief.
+Building: 05 (be, account state), 11 (fa, plan components), 16 (fb, admin messages). Then be: 06, 07, 08; fa: 14; then 12 and 15 (every feature), then 17. Briefs for all of them are prepared (`converge/briefs/` once a batch starts). When a batch returns approved: take the reviewer's cheap non-blocking findings with a small polish agent, cherry-pick onto the stack tip, full verify, draft PR on the branch below, thread in the sprite forum.
