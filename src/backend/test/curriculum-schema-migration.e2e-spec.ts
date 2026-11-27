@@ -97,8 +97,8 @@ describe('curriculum schema migration', () => {
         [minimumId, group2],
       );
       await dataSource.query(
-        `INSERT INTO requirement_group_overflows (curriculum_id, from_group_id, to_group_id) VALUES ($1,$2,$3)`,
-        [curriculum1, group1, group2],
+        `INSERT INTO requirement_group_overflows (from_group_id, to_group_id) VALUES ($1,$2)`,
+        [group1, group2],
       );
 
       await expect(dataSource.query(`DELETE FROM requirement_groups WHERE id = $1`, [group1])).rejects.toThrow(

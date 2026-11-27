@@ -434,14 +434,14 @@ usePageTitle(() => m.value.title);
 .cal-picker button[aria-selected='true'] { background: var(--surface-3); color: var(--ink); }
 .cal-picker b { font-weight: 650; color: var(--ink); }
 .cal-picker span { font-variant-numeric: tabular-nums; }
-.cal-picker em { font-style: normal; font-size: 11.5px; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--info); color: #fff; }
+.cal-picker em { font-style: normal; font-size: 11.5px; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--acc-bg); color: var(--acc-ink); }
 .cal-nav { display: flex; align-items: center; gap: 4px; }
 .cal-scroll { position: relative; overflow-x: auto; }
 
 .cal-week { display: grid; grid-template-columns: repeat(7, minmax(88px, 1fr)); gap: 8px; min-width: 660px; }
 .cal-dh { display: flex; align-items: center; gap: 8px; padding: 4px 4px 6px; font-size: 13.5px; color: var(--ink-2); }
 .cal-dh b { font: 650 19px var(--display); color: var(--ink); width: 34px; height: 34px; display: grid; place-items: center; margin-left: -4px; border-radius: 50%; font-variant-numeric: tabular-nums; }
-.cal-dh.today b { background: var(--info); color: #fff; }
+.cal-dh.today b { background: var(--acc-bg); color: var(--acc-ink); }
 .cal-cell { min-height: 280px; border-radius: 12px; background: var(--surface-2); display: grid; align-content: start; gap: 6px; }
 .cal-cell.weekend { background: color-mix(in oklab, var(--surface-2) 55%, var(--surface)); }
 .cal-cell.today { background: color-mix(in oklab, var(--info) 6%, var(--surface-2)); }
@@ -471,7 +471,7 @@ usePageTitle(() => m.value.title);
 .cal-md.out { opacity: 0.45; }
 .cal-md .n { justify-self: start; width: 28px; height: 28px; border: 0; border-radius: 50%; background: none; font: 650 14px var(--display); color: var(--ink); cursor: pointer; font-variant-numeric: tabular-nums; }
 .cal-md .n:hover { background: var(--surface-3); }
-.cal-md.today .n { background: var(--info); color: #fff; }
+.cal-md.today .n { background: var(--acc-bg); color: var(--acc-ink); }
 .cal-chip {
   display: flex; align-items: center; gap: 5px; min-width: 0; padding: 2px 6px; border: 0; border-radius: 6px; text-align: left; cursor: pointer; font: 600 11.5px var(--font);
   background: color-mix(in oklab, var(--c, var(--ink-3)) 14%, var(--surface)); color: var(--c-ink, var(--ink-2)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

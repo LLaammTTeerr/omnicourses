@@ -1,8 +1,8 @@
 # B2 test report
 
 - **Status: partial, in progress.** This report collects the B2 staging runs recorded on 21–25 November 2026 and updates the case inventory and branch readiness as of **27 November 2026**. It is updated as each open item in §6 runs on the B2 candidate, and it has no acceptance decision yet.
-- Owner: Dũng. Drafted from Dũng's staging runs of 21–25 November 2026. The raw results and notes of each run are in its results file under [`evidence/b2/`](evidence/b2/) (§2); this report summarises them and does not repeat them.
-- Build: B2 is due on 29 November 2026 ([test plan §8](test-plan.md#8-schedule-and-remaining-work)) and is not tagged yet. Every manual/scripted run so far was on staging, on the commit staging served that day (§2). Between 25 and 27 November, the remaining B2 features and defect fixes landed on this branch (`PLAN-01` planner live validation & `#137`/`#138` reconciliation, `TRN-01` deterministic paste parser & **Cancel changes**, `SHARE-01` Share dialog / `/shared/:token` / Print-PDF layout, `NOTIF-01j` `/notifications` inbox & unread bell `#204`/`#205`, `#170`/`#119` admin i18n and contrast fixes, and `OPS-01` nightly `omnicourse-backup.timer` + HTTP 503 `/api/health` rollback) with unit, e2e and browser test coverage. Before the decision, those newly unblocked cases and retests run on the tagged B2 candidate (§6).
+- Owner: Dũng. Drafted with Claude Code from Dũng's staging runs of 21–25 November 2026. The raw results and notes of each run are in its results file under [`evidence/b2/`](evidence/b2/) (§2); this report summarises them and does not repeat them.
+- Build: B2 is due on 29 November 2026 ([test plan §8](test-plan.md#8-schedule-and-remaining-work)) and is not tagged yet. Every manual/scripted run so far was on staging, on the commit staging served that day (§2). Between 25 and 27 November, `#170` was fixed on `main` (#210), `NOTIF-01j` merged to `main` and reached staging (`1bde552`, #204/#205), and the remaining B2 features and defect fixes landed on this branch (`PLAN-01` planner live validation & `#137`/`#138` reconciliation, `TRN-01` deterministic paste parser & **Cancel changes**, `SHARE-01` Share dialog / `/shared/:token` / Print-PDF layout, `#119` contrast fixes, and `OPS-01` nightly `omnicourse-backup.timer` + HTTP 503 `/api/health` rollback) with unit, e2e and browser test coverage. Before the decision, those newly unblocked cases and retests run on staging / the tagged B2 candidate (§6).
 - Cases: [B2 test cases](test-cases-b2.md) v0.14. Parent checks: [test plan §5](test-plan.md#5-required-checks).
 - Decision: **not made.** Lâm decides once the candidate is tagged and the open items in §6 are run or explained.
 
@@ -13,9 +13,9 @@
 | Result | Cases |
 | --- | --- |
 | Passed | 92. TRN-01a–e, TRN-02a–h, PLAN-02b, d, e, ADM-01a–e, ADM-02a–l, ADM-03a–f, ADM-04a–f, ADM-05a–g, ADM-06a–g, ADM-07a–i, SHARE-01a–k, NOTIF-01a–c, e–i, A11Y-01a, b, c, g, h |
-| Failed (21–25 Nov runs; fixes on branch) | 5. The planner's saved state on `086d49c`: PLAN-02a ([#137](https://github.com/LLaammTTeerr/omnicourses/issues/137)), PLAN-02c ([#138](https://github.com/LLaammTTeerr/omnicourses/issues/138)) — both fixed in `src/frontend/src/plans/session.ts` and awaiting staging retest. Accessibility of the administration screens on `5a5b9d5`: A11Y-01d ([#170](https://github.com/LLaammTTeerr/omnicourses/issues/170)), A11Y-01e and f ([#119](https://github.com/LLaammTTeerr/omnicourses/issues/119)) — fixes in `CatalogAdmin.vue` and `styles.css`, awaiting staging retest |
+| Failed (21–25 Nov runs) | 5. The planner's saved state on `086d49c`: PLAN-02a ([#137](https://github.com/LLaammTTeerr/omnicourses/issues/137)), PLAN-02c ([#138](https://github.com/LLaammTTeerr/omnicourses/issues/138)) — both fixed in `src/frontend/src/plans/session.ts` on this branch and awaiting staging retest. Accessibility of the administration screens on `5a5b9d5`: A11Y-01d ([#170](https://github.com/LLaammTTeerr/omnicourses/issues/170), fixed by #210 on `main`), A11Y-01e and f ([#119](https://github.com/LLaammTTeerr/omnicourses/issues/119), contrast tokens hardened in `styles.css` on this branch) — awaiting staging retest |
 | Blocked | 5. Group credit totals and `trainingType` (Triết): ADM-03g, ADM-04g, ADM-07k. Staging's proxy: ADM-07j (nginx answered 413 in HTML on 25 Nov; Lâm runs `deploy/server/setup.sh` for `client_max_body_size 8m`). Streamed advisor updates (B3): A11Y-01i (dragging and Print/PDF layout are now built on the branch; streamed updates wait for F8) |
-| Not run on staging yet | 20. Newly written & shipped on branch: PLAN-01a–f (6), OPS-01a–c (3). Unblocked on branch since the 25 Nov run (unit/component-tested, awaiting staging candidate run): TRN-01f (paste parser), TRN-01g (**Cancel changes**), SHARE-01l (Share dialog, `/shared/:token`, Print/PDF), NOTIF-01j (`/notifications` inbox & unread bell, #204/#205). Scheduled / candidate-timed: NOTIF-01d(2) (runs 28 November 2026), PERF-01a–f (6, ready to time against shipped live validation) |
+| Not run on staging yet | 20. Newly written & shipped on branch: PLAN-01a–f (6), OPS-01a–c (3). Unblocked since the 25 Nov run: TRN-01f (paste parser), TRN-01g (**Cancel changes**), SHARE-01l (Share dialog, `/shared/:token`, Print/PDF), NOTIF-01j (`/notifications` inbox & unread bell, #204/#205 — #204 is already on staging `1bde552`, so it can run now). Scheduled / candidate-timed: NOTIF-01d(2) (runs 28 November 2026), PERF-01a–f (6, ready to time against shipped live validation) |
 | **Total** | **122** |
 
 What matters so far:
@@ -45,14 +45,14 @@ By parent check. A parent passes only when all its required detailed outcomes pa
 | TC-B2-ADM-06 | passed | `a–g` passed. |
 | TC-B2-ADM-07 | not passed yet | `a–i` passed. `j` blocked on running `setup.sh` on staging's nginx, `k` on group credit totals. |
 | TC-B2-SHARE-01 | not passed yet | `a–k` passed through the API (`e7bd617`). `l` was blocked on 25 Nov (#178) and is now built on this branch (`SharePlanDialog.vue`, `SharedPlanView.vue` at `/shared/:token`, A4 Print/PDF layout) and unit-tested, awaiting staging run. |
-| TC-B2-NOTIF-01 | not passed yet | `a–c, e–i` passed (`e7bd617`). `d(2)` runs on 28 November. `j` was blocked on 25 Nov (#177) and is now merged (#204, #205: `NotificationsView.vue` at `/notifications` and `UnreadBadge.vue`), awaiting staging run. |
+| TC-B2-NOTIF-01 | not passed yet | `a–c, e–i` passed (`e7bd617`). `d(2)` runs on 28 November. `j` was blocked on 25 Nov (#177) and is now on staging (`1bde552`, #204; #205 on `main`), ready to run now. |
 | TC-B2-PERF-01 | not run | `PERF-01a–f` written; planner live validation is shipped on this branch and ready to time on the B2 candidate. |
-| TC-B2-A11Y-01 | failed on 25 Nov; fixes on branch | Administration screens on `5a5b9d5`: `a, b, c, g, h` passed; `d` (#170) and `e, f` (#119) failed and have fixes on this branch (`CatalogAdmin.vue`, `styles.css`); `i` remains blocked only on F8 streamed updates (dragging and Print/PDF are built). |
+| TC-B2-A11Y-01 | failed on 25 Nov | Administration screens on `5a5b9d5`: `a, b, c, g, h` passed; `d` (#170, fixed by #210 on `main`) and `e, f` (#119, contrast tokens updated in `styles.css` on this branch) await staging retest; `i` remains blocked only on F8 streamed updates (dragging and Print/PDF are built). |
 | TC-B2-OPS-01 | not run on host yet | `OPS-01a–c` written; `omnicourse-backup.timer`, isolated `pg_dump` rehearsal procedure and HTTP 503 `/api/health` deploy rollback shipped on this branch, awaiting host execution after `setup.sh`. |
 
 ## 2. Runs and environment
 
-Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. Each run's build was read from the staging deploy runs; each results file gives the deploy run and its time. Note: on this branch `HealthController` now returns HTTP **200** `{"status":"ok","database":"up"}` when PostgreSQL is reachable and HTTP **503** `{"status":"degraded","database":"down"}` when unreachable (`OPS-01c`).
+Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. Staging serves no version, so each run's build was read from the staging deploy runs; each results file gives the deploy run and its time. Note: on this branch `HealthController` now returns HTTP **200** `{"status":"ok","database":"up"}` when PostgreSQL is reachable and HTTP **503** `{"status":"degraded","database":"down"}` when unreachable (`OPS-01c`).
 
 | Run (UTC) | Staging build | Cases | Results | Pull request |
 | --- | --- | --- | --- | --- |
@@ -65,10 +65,10 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. Ea
 
 | Item | Used |
 | --- | --- |
-| API client | Node `fetch` scripts with no dependencies, in place of the Swagger page: the same requests and bodies as the cases. Each prints `OK` / `ok` or `MISMATCH` / `FAIL` per expected result, and no token. Retained outputs sit beside each results file; mutable run-state files (`*.state.json`) were removed per the [Evidence policy](README.md#evidence-policy). |
+| API client | Node `fetch` scripts with no dependencies, in place of the Swagger page: the same requests and bodies as the cases. Each prints `OK` / `ok` or `MISMATCH` / `FAIL` per expected result, and no token. Each output is next to its results file. |
 | Browser | Chrome 144 on Windows 10. Headed through Claude in Chrome for TRN-02 and PLAN-02; headless through playwright-core 1.64.1 at 1280 × 800 for the 25 November screens. axe-core 4.10.2 for A11Y-01e. |
 | Server steps | ADM-06b, ADM-06e–f, TRN-02f and NOTIF-01i(4) need the staging host or its database. Lâm's bot ran them on request; its output is copied into the results files. |
-| Test data | Synthetic `example.com` accounts `b2-s1` to `b2-s15` and `b2-a1` to `b2-a6`, password `correct horse battery` (cases §1); synthetic `ZZ` courses and test groups, removed after each run. No real name, student ID, transcript or secret. |
+| Test data | Synthetic `example.com` accounts `b2-s1` to `b2-s14` and `b2-a1` to `b2-a6`, password `correct horse battery` (cases §1); synthetic `ZZ` courses and test groups, removed after each run. No real name, student ID, transcript or secret. |
 | Model calls | None. |
 
 Rate limits: sign-in allows 10 requests a minute from one address (and per email on the current branch). The first attempts at ADM-05b–d (22 November) and ADM-07c–i (25 November) were refused with 429 because the test client sent sign-ins too fast; they were run again, and each results file explains what the refused attempt wrote. Two other first attempts stopped on a fault in the script (TRN-01b, SHARE-01a–j) and are recorded in the results files.
@@ -130,9 +130,9 @@ One line per group of cases from the same run with the same result. The results 
 | IDs | Result | What happened |
 | --- | --- | --- |
 | NOTIF-01a–c | passed | Routes, validation and not-found; a registration date makes one `registration_soon` or `registration_open`, a term start one `term_start`, and other kinds none. |
-| NOTIF-01d | not run yet | (1) passed: a registration date entered three days ahead, after its 7-day reminder day, made no notification. (2), which expects one `registration_open`, runs on 28 November 2026 (Vietnam), `STATE_DIR=/tmp/omnicourse-b2-state node docs/test/evidence/b2/a-notif-01.mjs d2`, which then deletes the test date `E-d`. |
+| NOTIF-01d | not run yet | (1) passed: a registration date entered three days ahead, after its 7-day reminder day, made no notification. (2), which expects one `registration_open`, runs on 28 November 2026 (Vietnam), `STATE_DIR=docs/test/evidence/b2 node docs/test/evidence/b2/a-notif-01.mjs d2`, which then deletes the test date `E-d`. |
 | NOTIF-01e–i | passed | A student who joins later gets the current notices; another program's dates reach nobody here; moved and deleted dates make no repeat and keep what was sent; a saved transcript change makes one `transcript_changed`, a refused, cancelled or failed save none; read, unread and paging; another student's IDs give 404; an account waiting for deletion gets nothing until it is restored. |
-| NOTIF-01j | not run on staging yet (unblocked) | Blocked on 25 Nov (#177); the `/notifications` inbox page (`NotificationsView.vue`) and unread bell badge (`UnreadBadge.vue`) merged in [#204](https://github.com/LLaammTTeerr/omnicourses/pull/204) and [#205](https://github.com/LLaammTTeerr/omnicourses/pull/205) with full component tests (`NotificationsView.spec.ts`, `AppSidebar.spec.ts`). Ready for staging run. |
+| NOTIF-01j | not run on staging yet (unblocked) | Blocked on 25 Nov (#177); the `/notifications` inbox page (`NotificationsView.vue`) and unread bell badge (`UnreadBadge.vue`) merged in [#204](https://github.com/LLaammTTeerr/omnicourses/pull/204) (already on staging at `1bde552`) and [#205](https://github.com/LLaammTTeerr/omnicourses/pull/205), so `NOTIF-01j` can run now on staging without waiting for the candidate. |
 
 ### TC-B2-PERF-01: planner validation time
 
@@ -145,7 +145,7 @@ One line per group of cases from the same run with the same result. The results 
 | IDs | Result | What happened |
 | --- | --- | --- |
 | A11Y-01a, b, c, g, h | passed | Every administration route at `5a5b9d5` is in the table; keyboard journeys; no sideways scroll in 46 states at 8 widths; every status in words; names and roles. |
-| A11Y-01d | **failed** (25 Nov); fix on branch | On `5a5b9d5`, after switching to English, the green "saved after all" line of ADM-05f(3) stayed Vietnamese (#170); fixed on this branch (`useAdminDialog` / `CatalogAdmin.vue`). The API's own field messages stay English on a Vietnamese page (`lang="en"`): a known deviation ([#154](https://github.com/LLaammTTeerr/omnicourses/issues/154)). |
+| A11Y-01d | **failed** (25 Nov); fixed on `main` | On `5a5b9d5`, after switching to English, the green "saved after all" line of ADM-05f(3) stayed Vietnamese (#170); fixed by #210 (on `main`); awaiting staging retest. The API's own field messages stay English on a Vietnamese page (`lang="en"`): a known deviation ([#154](https://github.com/LLaammTTeerr/omnicourses/issues/154)). |
 | A11Y-01e | **failed** (25 Nov); fix on branch | On `5a5b9d5`, axe-core `color-contrast` failed in 105 of 184 runs (38 of 46 states) on `#119`'s grey small text and dark-theme blue chips/buttons; token contrast updated in `styles.css` on this branch, awaiting staging retest. |
 | A11Y-01f | **failed** (25 Nov); fix on branch | On `5a5b9d5`, dark permission chips (4.19:1), text-field borders (1.28–1.65:1) and card separators (1.18–1.20:1) were below WCAG ratios (#119); updated in `styles.css` on this branch, awaiting staging retest. |
 | A11Y-01i | blocked (F8 part) | Keyboard alternative to dragging (`PLAN-01b`) and readable Print/PDF (`SHARE-01l`) are now built on this branch; non-disruptive streamed updates remain blocked until F8 advisor chat lands in B3. |
@@ -162,7 +162,7 @@ One line per group of cases from the same run with the same result. The results 
 | --- | --- | --- |
 | [#137](https://github.com/LLaammTTeerr/omnicourses/issues/137) A save refused with 401 shows Saved and hides the lost change | PLAN-02a | fixed on branch (`session.ts`, `PlanEditorView.spec.ts`); awaiting staging retest |
 | [#138](https://github.com/LLaammTTeerr/omnicourses/issues/138) A save with no answer says Not saved without reading the plan | PLAN-02c | fixed on branch (`recoverSaved` in `session.ts`, `PlanEditorView.spec.ts`); awaiting staging retest |
-| [#170](https://github.com/LLaammTTeerr/omnicourses/issues/170) The saved-after-all notice ignores a language switch | A11Y-01d | fixed on branch (`CatalogAdmin.vue` / `admin/write.ts`); awaiting staging retest |
+| [#170](https://github.com/LLaammTTeerr/omnicourses/issues/170) The saved-after-all notice ignores a language switch | A11Y-01d | fixed by #210 (on `main`); awaiting staging retest |
 | [#119](https://github.com/LLaammTTeerr/omnicourses/issues/119) Contrast (B1), with the administration's cases added on 25 November | A11Y-01e, f | contrast tokens hardened on branch (`styles.css`); awaiting axe-core / manual staging retest |
 | [#154](https://github.com/LLaammTTeerr/omnicourses/issues/154) Per-field server errors in English on a Vietnamese page | A11Y-01d | deviation (`lang="en"` marked), Lâm decides at acceptance |
 | [#171](https://github.com/LLaammTTeerr/omnicourses/issues/171) Deleting a group a saved plan names answers 500 | ADM-04d probe | fixed by #172 before ADM-04 ran (verified **409** in ADM-04d) |
@@ -175,17 +175,18 @@ Each item updates this report when it runs on the B2 candidate.
 | # | Item | Owner | Next |
 | --- | --- | --- | --- |
 | 1 | Carry 21–25 Nov results to the B2 candidate | Dũng, Lâm | When B2 is deployed and tagged: diff `src/` since each run's build (§2) and rerun touched cases (including #175 export dates and #179 text code-point limits). |
-| 2 | NOTIF-01d(2) | Dũng | 28 November 2026 (Vietnam): `STATE_DIR=/tmp/omnicourse-b2-state node docs/test/evidence/b2/a-notif-01.mjs d2`. |
+| 2 | NOTIF-01d(2) | Dũng | 28 November 2026 (Vietnam): `STATE_DIR=docs/test/evidence/b2 node docs/test/evidence/b2/a-notif-01.mjs d2`. |
 | 3 | Host `setup.sh`, `OPS-01a–c` and `ADM-07j` (4)–(5) | Lâm, then Dũng | Lâm runs `deploy/server/setup.sh` on the host, executes `OPS-01a–c` (`omnicourse-backup.timer`, `omnicourse_rehearsal` restore, `/api/health` 503 rollback), and Dũng reruns `ADM-07j` (4)–(5) against `client_max_body_size 8m`. |
 | 4 | CSV import and `/admin/calendar` screen checks | Dũng, Thắng | Run screen checks on `/admin/import` (#165) and `/admin/calendar` (`CalendarAdmin.vue`) at 360 and 1280 px. |
 | 5 | `SHARE-01l` and sharing screens in `A11Y-01` | Dũng, Hoà | Run `SHARE-01l` (`SharePlanDialog.vue`, `/shared/:token`, Print/PDF) once deployed to staging. |
-| 6 | `NOTIF-01j` and `/notifications` in `A11Y-01` | Dũng | Run `NOTIF-01j` (#204, #205) on staging. |
+| 6 | `NOTIF-01j` and `/notifications` in `A11Y-01` | Dũng | #204 is already on staging (`1bde552`); can run now (#205 on `main`). |
 | 7 | `PLAN-01a–f` and `PERF-01a–f` | Hoà, Triết; Dũng runs | Run `PLAN-01a–f` and time `PERF-01a–f` on the staging candidate. |
 | 8 | `TRN-01f, g` and `TRN-01a–e` rerun | Lâm, Dũng | Run `TRN-01f–g` (paste parser, pre-save diff, **Cancel changes**) and re-verify `TRN-01a–e` on staging. |
 | 9 | `ADM-03g`, `ADM-04g`, `ADM-07k` | Triết | Blocked until the final-state validation interface supports group credit totals and `trainingType`. |
-| 10 | B1 regression on B2 (cases §12) and B1 defect retests (§13) | Dũng | Run updated B1 regression (#128, #131) and retest #101, #114, #115, #117 and #119 on the candidate. |
-| 11 | Retests of B2 defects | Dũng | Retest `PLAN-02a, c` (#137, #138) and `A11Y-01d–f` (#170, #119) on the candidate. |
-| 12 | §3 Automated checks | Dũng | Record the green CI run and `src/rules/**` coverage on the tagged B2 commit. |
+| 10 | B1 regression on B2 (cases §12) | Dũng | Update the cases listed in #116, then run the B1 cases on the candidate. |
+| 11 | Retests of B1 defects (cases §13) | Dũng | For each of #101, #114, #115, #117 and #119 once its fix is merged. SHARE-01k already saw the 121st request refused, where #117 had let it through. |
+| 12 | Retests of B2 defects | Dũng | Retest `PLAN-02a, c` (#137, #138) and `A11Y-01d–f` (#170 fixed by #210 on `main`; #119 on branch) on staging / the candidate. |
+| 13 | §3 Automated checks | Dũng | Record the green CI run and `src/rules/**` coverage on the tagged B2 commit. |
 
 ## 7. Test data left on staging
 

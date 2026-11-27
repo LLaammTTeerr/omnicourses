@@ -78,7 +78,7 @@ describe('SharePlanDialog (F9, UC-09, ADR 0010)', () => {
     expect(openLink.attributes('target')).toBe('_blank');
   });
 
-  it('displays the ADR 0010 privacy warning whenever showTranscriptChecks is ticked (vi and en)', async () => {
+  it('stages active-link option changes so the ADR 0010 privacy warning is shown before saving (vi and en)', async () => {
     let current = makeShare();
     const puts: unknown[] = [];
     mockApi({
@@ -94,10 +94,12 @@ describe('SharePlanDialog (F9, UC-09, ADR 0010)', () => {
     const { w } = mountDialog(true);
     await flushPromises();
     expect(w.find('[data-test="transcript-checks-warning"]').exists()).toBe(false);
+    expect((w.get('[data-test="save-share-options"]').element as HTMLButtonElement).disabled).toBe(true);
 
     await w.get('[data-test="share-show-transcript-checks"]').setValue(true);
     await flushPromises();
-    expect(puts).toEqual([{ showTranscriptChecks: true }]);
+    expect(puts).toEqual([]);
+    expect((w.get('[data-test="save-share-options"]').element as HTMLButtonElement).disabled).toBe(false);
     const warningVi = w.get('[data-test="transcript-checks-warning"]').text();
     expect(warningVi).toContain('đạt, trượt hoặc đang học');
     expect(warningVi).toContain('Điểm số');
@@ -108,10 +110,21 @@ describe('SharePlanDialog (F9, UC-09, ADR 0010)', () => {
     expect(warningEn).toContain('passed, failed, or are taking in progress');
     expect(warningEn).toContain('Grades and transcript rows are never shown');
 
+    await w.get('[data-test="save-share-options"]').trigger('click');
+    await flushPromises();
+    expect(puts).toEqual([{ showName: false, showTranscriptChecks: true }]);
+    expect((w.get('[data-test="save-share-options"]').element as HTMLButtonElement).disabled).toBe(true);
+
     await w.get('[data-test="share-show-transcript-checks"]').setValue(false);
     await flushPromises();
-    expect(puts).toEqual([{ showTranscriptChecks: true }, { showTranscriptChecks: false }]);
+    expect(puts).toEqual([{ showName: false, showTranscriptChecks: true }]);
     expect(w.find('[data-test="transcript-checks-warning"]').exists()).toBe(false);
+    await w.get('[data-test="save-share-options"]').trigger('click');
+    await flushPromises();
+    expect(puts).toEqual([
+      { showName: false, showTranscriptChecks: true },
+      { showName: false, showTranscriptChecks: false },
+    ]);
   });
 
   it('shows the privacy warning before link creation when ticking showTranscriptChecks in draft state', async () => {
@@ -190,8 +203,9 @@ describe('SharePlanDialog (F9, UC-09, ADR 0010)', () => {
     expect(w.find('[data-test="active-share"]').exists()).toBe(true);
 
     await w.get('[data-test="share-show-name"]').setValue(true);
+    await w.get('[data-test="save-share-options"]').trigger('click');
     await flushPromises();
-    expect((w.get('[data-test="share-show-name"]').element as HTMLInputElement).checked).toBe(false);
+    expect((w.get('[data-test="share-show-name"]').element as HTMLInputElement).checked).toBe(true);
     expect(w.find('[data-test="share-action-error"]').exists()).toBe(true);
 
     w.unmount();

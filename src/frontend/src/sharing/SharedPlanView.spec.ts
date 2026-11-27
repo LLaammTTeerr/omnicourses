@@ -233,10 +233,65 @@ describe('SharedPlanView (F9, UC-09 & UC-16, ADR 0010)', () => {
     expect(cov.findAll('[data-test="coverage-group"]')).toHaveLength(2);
     expect(cov.get('[data-test="coverage-combined"]').text()).toContain('40/43 cr · 3 cr short');
 
+    const rail = w.get('[data-test="shared-issues"]');
+    expect(rail.get('[data-test="violation-count"]').text()).toBe('1');
     const issues = w.findAll('[data-test="issue-violation"]');
-    expect(issues).toHaveLength(2);
+    expect(issues).toHaveLength(1);
     expect(issues[0]!.text()).toContain('CS162 needs CS161 passed or placed in an earlier term.');
-    expect(issues[1]!.text()).toContain('Khóa luận tốt nghiệp still short: 0/10 credits; not placed: CS499.');
+  });
+
+  it('keeps whole-plan requirement shortfalls out of term violation counts and omits redundant curriculum names', async () => {
+    mockApi({
+      [`GET /shared-plans/${TOKEN}`]: sharedFixture({
+        issueCodesNotShown: [],
+        curriculum: {
+          code: 'APCS2025',
+          cohortYear: 2025,
+          nameVi: 'Chương trình đào tạo - Chương trình Tiên tiến ngành Khoa học máy tính - Khóa tuyển 2025',
+          nameEn: 'Curriculum - Advanced Program in Computer Science - Cohort 2025',
+          program: {
+            code: 'APCS',
+            nameVi: 'Chương trình Tiên tiến ngành Khoa học máy tính',
+            nameEn: 'Advanced Program in Computer Science',
+          },
+        },
+        issues: [
+          {
+            code: 'requirement_not_covered',
+            kind: 'violation',
+            term: null,
+            position: null,
+            courseCode: null,
+            missingCourseCodes: ['CS499'],
+            requirementGroupName: 'Khóa luận tốt nghiệp',
+            combinedMinimumName: null,
+            offeredTermNumbers: [],
+            credits: 0,
+            limit: 10,
+            citation: 'QĐ 1175/QĐ-KHTN Điều 17.3',
+            message: 'Thesis short.',
+          },
+        ],
+        coverage: {
+          groups: [
+            { name: 'Khóa luận tốt nghiệp', kind: 'compulsory', requiredCredits: 10, credits: 0, remainingCredits: 10, met: false },
+          ],
+          combinedMinimums: [],
+          totalRequired: 138,
+          totalCredits: 8,
+          totalRemaining: 130,
+          graduation: 'not_yet',
+        },
+      }),
+    });
+
+    const { w } = await renderShared(`/shared/${TOKEN}`, false, true);
+    expect(w.get('[data-test="curriculum-meta"]').text()).toBe(
+      'Chương trình Tiên tiến ngành Khoa học máy tính (APCS) · Khóa 2025 · CTĐT APCS2025',
+    );
+    expect(w.get('[data-test="violation-count"]').text()).toBe('0');
+    expect(w.get('[data-test="no-issues"]').text()).toContain('Không có vi phạm trong các học kỳ');
+    expect(w.get('[data-test="no-issues"]').text()).toContain('1 nhóm thiếu tín chỉ');
   });
 
   it('calls window.print() when Print / Save as PDF is clicked', async () => {

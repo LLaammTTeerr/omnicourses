@@ -89,9 +89,13 @@ const curriculumMeta = computed(() => {
   const cur = shared.value?.curriculum;
   if (!cur) return '';
   const programLabel = `${courseName(cur.program, locale.lang)} (${cur.program.code})`;
-  const curName = courseName(cur, locale.lang);
+  const curName = courseName(cur, locale.lang).trim();
   const parts = [programLabel, m.value.cohort(cur.cohortYear), m.value.curriculumCode(cur.code)];
-  if (curName && curName !== cur.program.nameVi && curName !== cur.program.nameEn && curName !== cur.code) {
+  const lower = curName.toLowerCase();
+  const repeatsProgram = [cur.program.nameVi, cur.program.nameEn, cur.code]
+    .filter((s): s is string => Boolean(s?.trim()))
+    .some((s) => lower.includes(s.trim().toLowerCase()));
+  if (curName && !repeatsProgram) {
     parts.push(curName);
   }
   return parts.join(' · ');
@@ -193,7 +197,8 @@ const termRows = computed(() => {
   return plan.terms.map((t) => buildRowView(t, plan.issues));
 });
 
-const issuesOfKind = (kind: PlanIssueKind) => (shared.value?.issues ?? []).filter((i) => i.kind === kind);
+const placedIssues = computed(() => (shared.value?.issues ?? []).filter((i) => i.term !== null));
+const issuesOfKind = (kind: PlanIssueKind) => placedIssues.value.filter((i) => i.kind === kind);
 const listedIssues = computed(() => [
   ...issuesOfKind('violation'),
   ...issuesOfKind('flag'),
@@ -860,7 +865,7 @@ function printPlan(): void {
   place-items: center;
 }
 .rail-n.zero {
-  background: var(--ok);
+  background: var(--ok-bg, var(--ok));
 }
 .rail-sub {
   font-size: 12.5px;
@@ -1022,16 +1027,16 @@ function printPlan(): void {
     background: #fff !important;
     color: #000 !important;
   }
-  :global(body:has(.shared-plan-page) > :not(.frame)),
-  :global(body:has(.shared-plan-page) .frame > :not(.column)),
-  :global(body:has(.shared-plan-page) .column > :not(#main)) {
+  :global(:has(> .frame .shared-plan-page) > :not(.frame)),
+  :global(.frame:has(.shared-plan-page) > :not(.column)),
+  :global(.column:has(.shared-plan-page) > :not(#main)) {
     display: none !important;
   }
-  :global(body:has(.shared-plan-page) .frame-app) {
+  :global(.frame-app:has(.shared-plan-page)) {
     display: block !important;
     min-height: 0 !important;
   }
-  :global(body:has(.shared-plan-page) #main) {
+  :global(#main:has(.shared-plan-page)) {
     padding: 0 !important;
   }
   .no-print {

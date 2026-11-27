@@ -23,6 +23,9 @@ export interface SharingMessages {
   createdOn: (when: string) => string;
   createLink: string;
   creatingLink: string;
+  saveChoices: string;
+  savingChoices: string;
+  savedToast: string;
   copyLink: string;
   copiedLink: string;
   copiedToast: string;
@@ -85,6 +88,9 @@ export const SHARING_MESSAGES: Record<Lang, SharingMessages> = {
     createdOn: (when) => `Tạo lúc ${when}`,
     createLink: 'Tạo liên kết chia sẻ',
     creatingLink: 'Đang tạo liên kết…',
+    saveChoices: 'Lưu thay đổi',
+    savingChoices: 'Đang lưu…',
+    savedToast: 'Đã lưu tùy chọn chia sẻ.',
     copyLink: 'Sao chép liên kết',
     copiedLink: 'Đã sao chép',
     copiedToast: 'Đã sao chép liên kết chia sẻ.',
@@ -147,6 +153,9 @@ export const SHARING_MESSAGES: Record<Lang, SharingMessages> = {
     createdOn: (when) => `Created ${when}`,
     createLink: 'Create share link',
     creatingLink: 'Creating link…',
+    saveChoices: 'Save changes',
+    savingChoices: 'Saving…',
+    savedToast: 'Saved sharing options.',
     copyLink: 'Copy link',
     copiedLink: 'Copied',
     copiedToast: 'Copied shared plan link.',

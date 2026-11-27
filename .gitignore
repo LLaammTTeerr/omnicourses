@@ -30,3 +30,4 @@ mise.local.toml
 .claude/
 skills-lock.json
 docs/test/evidence/**/*.state.json
+docs/test/evidence/**/*-state.json

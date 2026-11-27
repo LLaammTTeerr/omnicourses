@@ -89,27 +89,19 @@ export class RequirementGroupCourse {
 
 @Entity({ name: 'requirement_group_overflows' })
 @Check('ck_requirement_group_overflows_not_self', `"from_group_id" <> "to_group_id"`)
-@Index('ix_requirement_group_overflows_curriculum_id', ['curriculumId'])
 @Index('ix_requirement_group_overflows_to_group_id', ['toGroupId'])
 export class RequirementGroupOverflow {
-  @Column({ name: 'curriculum_id', type: 'uuid' })
-  curriculumId!: string;
-
-  @ManyToOne(() => Curriculum, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'curriculum_id', foreignKeyConstraintName: 'requirement_group_overflows_curriculum_id_fkey' })
-  curriculum!: Curriculum;
-
   @PrimaryColumn({ name: 'from_group_id', type: 'uuid', primaryKeyConstraintName: 'requirement_group_overflows_pkey' })
   fromGroupId!: string;
 
   @Column({ name: 'to_group_id', type: 'uuid' })
   toGroupId!: string;
 
-  @ManyToOne(() => RequirementGroup, { onDelete: 'NO ACTION' })
+  @ManyToOne(() => RequirementGroup, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'from_group_id', foreignKeyConstraintName: 'requirement_group_overflows_from_group_id_fkey' })
   fromGroup!: RequirementGroup;
 
-  @ManyToOne(() => RequirementGroup, { onDelete: 'NO ACTION' })
+  @ManyToOne(() => RequirementGroup, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'to_group_id', foreignKeyConstraintName: 'requirement_group_overflows_to_group_id_fkey' })
   toGroup!: RequirementGroup;
 

@@ -37,6 +37,11 @@ let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 const shareUrl = computed(() => (share.value ? sharedPlanUrl(share.value.token) : ''));
 const shareHref = computed(() => (share.value ? sharedPlanPath(share.value.token) : ''));
+const hasUnsavedChoices = computed(
+  () =>
+    share.value !== null &&
+    (showName.value !== share.value.showName || showTranscriptChecks.value !== share.value.showTranscriptChecks),
+);
 const displayNameLabel = computed(() => {
   const name = auth.user?.displayName?.trim();
   return name ? m.value.showNameWith(name) : m.value.showName;
@@ -116,24 +121,18 @@ async function createLink(): Promise<void> {
   }
 }
 
-async function onToggle(field: 'showName' | 'showTranscriptChecks', event: Event): Promise<void> {
-  const checked = (event.target as HTMLInputElement).checked;
-  if (field === 'showName') showName.value = checked;
-  else showTranscriptChecks.value = checked;
-
-  if (!share.value) return;
-  if (busy.value !== null) {
-    applyShare(share.value);
-    return;
-  }
-
+async function saveChoices(): Promise<void> {
+  if (!share.value || busy.value !== null || !hasUnsavedChoices.value) return;
   busy.value = 'updating';
   actionError.value = null;
   try {
-    const updated = await updatePlanShare(props.planId, { [field]: checked });
+    const updated = await updatePlanShare(props.planId, {
+      showName: showName.value,
+      showTranscriptChecks: showTranscriptChecks.value,
+    });
     applyShare(updated);
+    toast.show(m.value.savedToast);
   } catch (e) {
-    applyShare(share.value);
     if (statusOf(e) !== 401) {
       console.error('Updating the share link failed:', e);
       actionError.value = m.value.actionFailed;
@@ -269,11 +268,10 @@ async function revokeLink(): Promise<void> {
       <div class="choices">
         <label class="check">
           <input
+            v-model="showName"
             type="checkbox"
-            :checked="showName"
             :disabled="busy !== null"
             data-test="share-show-name"
-            @change="onToggle('showName', $event)"
           />
           <span>{{ displayNameLabel }}</span>
         </label>
@@ -281,11 +279,10 @@ async function revokeLink(): Promise<void> {
         <div class="choice-group">
           <label class="check">
             <input
+              v-model="showTranscriptChecks"
               type="checkbox"
-              :checked="showTranscriptChecks"
               :disabled="busy !== null"
               data-test="share-show-transcript-checks"
-              @change="onToggle('showTranscriptChecks', $event)"
             />
             <span>
               <span class="choice-title">{{ m.showTranscriptChecks }}</span>
@@ -363,6 +360,15 @@ async function revokeLink(): Promise<void> {
             <Icon name="external" size="sm" />{{ m.openShared }}
           </a>
           <button class="btn" type="button" :disabled="busy !== null" @click="emit('close')">{{ m.close }}</button>
+          <button
+            class="btn primary"
+            type="button"
+            :disabled="busy !== null || !hasUnsavedChoices"
+            data-test="save-share-options"
+            @click="saveChoices"
+          >
+            {{ busy === 'updating' ? m.savingChoices : m.saveChoices }}
+          </button>
         </template>
         <template v-else>
           <button class="btn" type="button" :disabled="busy !== null" @click="emit('close')">{{ m.close }}</button>
