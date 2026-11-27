@@ -133,6 +133,12 @@ describe('wordIssue', () => {
     expect(wordIssue(planner, coverageIssue({}))).toContain('Total credits still short');
   });
 
+  it('names the requirement group before the combined minimum', () => {
+    const worded = wordIssue(planner, coverageIssue({ requirementGroupName: 'Core', combinedMinimumName: 'Electives together' }));
+    expect(worded).toContain('Core still short');
+    expect(worded).not.toContain('Electives together');
+  });
+
   it('reads missing courses as none when the share omits them', () => {
     expect(wordIssue(planner, sharedIssue({ code: 'prerequisite_not_met', courseCode: 'ZZ101' }))).toBe(planner.issue.prerequisite_not_met({ ...sharedIssue({ courseCode: 'ZZ101' }), missingCourseCodes: [] }, { requirementName: () => null }));
     expect(wordIssue(planner, sharedIssue({ code: 'prerequisite_not_met', courseCode: 'ZZ101', missingCourseCodes: ['ZZ100'] }))).toContain('ZZ100');
