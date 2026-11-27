@@ -6,7 +6,8 @@ import { termKey, termName } from '../terms.js';
 import type { PlanIssue, PlanIssueKind } from './api.js';
 import type { AttachedIssues } from './board.js';
 import IssueCard from './IssueCard.vue';
-import { ISSUE_KINDS_SHOWN, KIND_STYLE } from './issue-view.js';
+import IssueCounts from './IssueCounts.vue';
+import { KIND_STYLE } from './issue-view.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
 import UnknownIssueList from './UnknownIssueList.vue';
 
@@ -95,11 +96,7 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
       </div>
 
       <template v-if="attached">
-        <div class="issue-counts" :class="{ stale: !fresh }" data-test="issue-counts">
-          <span v-for="kind in ISSUE_KINDS_SHOWN" :key="kind" :class="['chip', KIND_STYLE[kind].tone]">
-            <Icon :name="KIND_STYLE[kind].icon" size="sm" />{{ m.kindsPlural[kind](ofKind(kind).length) }}
-          </span>
-        </div>
+        <IssueCounts :class="{ stale: !fresh }" :count="(kind) => ofKind(kind).length" />
 
         <TransitionGroup v-if="cards.length" tag="ul" name="v" class="rail-list" :class="{ stale: !fresh && !preview }">
           <IssueCard
@@ -188,8 +185,6 @@ const icon = (c: { issue: PlanIssue; state: string }) => (c.state === 'gone' ? '
 .rail-sub { font-size: 12.5px; color: var(--ink-3); display: flex; align-items: center; gap: 7px; margin: 0; }
 .rail.previewing .rail-sub { color: var(--info); font-weight: 600; }
 .rail-sub .live { width: 7px; height: 7px; border-radius: 50%; background: var(--info); flex: none; animation: pre-pulse 0.7s ease-in-out infinite alternate; }
-.issue-counts { display: flex; flex-wrap: wrap; gap: 6px; }
-.rail .chip.line { background: transparent; border: 1px dashed var(--edge-strong); color: var(--ink-2); min-height: 20px; font-size: 12px; }
 .rail-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .vfoot .btn { margin-left: auto; }
 .v-enter-active { transition: opacity 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }

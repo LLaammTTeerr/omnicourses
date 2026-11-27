@@ -44,7 +44,6 @@ const article = computed(() => clause(props.issue.citation));
 </template>
 
 <style scoped>
-.chip.line { background: transparent; border: 1px dashed var(--edge-strong); color: var(--ink-2); min-height: 20px; font-size: 12px; }
 .vitem {
   display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px 12px; border-radius: 12px;
   background: color-mix(in oklab, var(--bad) 5%, var(--surface)); border: 1px solid;

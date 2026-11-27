@@ -11,8 +11,9 @@ import type { PlanIssueKind } from '../plans/api.js';
 import { PLANNER_MESSAGES } from '../plans/messages.js';
 import CapMeter from '../plans/CapMeter.vue';
 import IssueCard from '../plans/IssueCard.vue';
+import IssueCounts from '../plans/IssueCounts.vue';
 import UnknownIssueList from '../plans/UnknownIssueList.vue';
-import { BAR_CODES, ISSUE_KINDS_SHOWN, KIND_STYLE } from '../plans/issue-view.js';
+import { BAR_CODES, KIND_STYLE } from '../plans/issue-view.js';
 import Icon from '../shell/Icon.vue';
 import { termName } from '../terms.js';
 import { fetchSharedPlan, type SharedPlanIssue } from './api.js';
@@ -264,11 +265,7 @@ function printPlan(): void {
           </div>
           <p class="rail-sub">{{ m.issuesLead }}</p>
 
-          <div class="issue-counts" data-test="issue-counts">
-            <span v-for="kind in ISSUE_KINDS_SHOWN" :key="kind" :class="['chip', KIND_STYLE[kind].tone]">
-              <Icon :name="KIND_STYLE[kind].icon" size="sm" />{{ planner.kindsPlural[kind](issuesOfKind(kind).length) }}
-            </span>
-          </div>
+          <IssueCounts :count="(kind) => issuesOfKind(kind).length" />
 
           <ul v-if="listedIssues.length" class="rail-list">
             <IssueCard
@@ -659,18 +656,6 @@ function printPlan(): void {
 .rail-sub {
   font-size: 12.5px;
   color: var(--ink-3);
-}
-.issue-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.chip.line {
-  background: transparent;
-  border: 1px dashed var(--edge-strong);
-  color: var(--ink-2);
-  min-height: 20px;
-  font-size: 12px;
 }
 .rail-list {
   list-style: none;
