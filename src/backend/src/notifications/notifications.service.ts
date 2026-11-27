@@ -8,6 +8,7 @@ import { MINUTE_MS, vietnamDate } from '../config/time.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
 import type { TranscriptSave } from '../transcript/transcript-change.js';
 import { TranscriptService } from '../transcript/transcript.service.js';
+import { noDeletionWaitingSql } from '../users/account-state.js';
 import { type CalendarNotificationKind, LINKS_OF, notificationsDue, NOTIFYING_EVENT_KINDS, startDaysDueOn } from './notification-kinds.js';
 import { Notification } from './notification.entity.js';
 import { DEFAULT_PAGE_SIZE, NotificationDto, NotificationListDto, NotificationsQueryDto, UnreadCountDto } from './notifications.dto.js';
@@ -21,7 +22,7 @@ const INSERT_FOR_EVENT = `
     ("user_id", "kind", "calendar_event_id", "program_code", "academic_year", "term", "starts_on", "ends_on", "title", "title_en", "created_at")
   SELECT u."id", $2::varchar, $3::uuid, $4::varchar, $5::smallint, $6::smallint, $7::date, $8::date, $9::varchar, $10::varchar, $11::timestamptz
   FROM "users" u
-  WHERE u."id" = ANY($1::uuid[]) AND u."deletion_requested_at" IS NULL
+  WHERE u."id" = ANY($1::uuid[]) AND ${noDeletionWaitingSql('u')}
   ON CONFLICT ("user_id", "calendar_event_id", "kind") DO NOTHING
   RETURNING "id"`;
 
