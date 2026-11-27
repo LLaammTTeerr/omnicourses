@@ -67,7 +67,7 @@ async function find(): Promise<void> {
   const wanted = typed.value.trim();
   if (!wanted || writing.value) return;
   stale.value = false;
-  notice.value = null;
+  notice.value = false;
   inlineWrites.clear();
   grants.value = null;
   lookupFailure.value = null;
@@ -103,7 +103,7 @@ const programId = ref<string | null>(null);
 
 const inlineWrites = useWrites();
 type Revocation = { type: 'program'; grant: ProgramGrant } | { type: 'global'; permission: GlobalPermission };
-const notice = ref<string | null>(null);
+const notice = ref(false);
 const stale = ref(false);
 stayWhileBusy(() => inlineWrites.busy.value);
 const revocation = useAdminDialog<Revocation>({
@@ -128,14 +128,14 @@ function settle(result: WriteOutcome<UserGrants>, saved: string, of: string): bo
     toast.show(saved);
     return true;
   }
-  if (result.outcome === 'confirmed') notice.value = m.value.problem.confirmed;
+  if (result.outcome === 'confirmed') notice.value = true;
   return result.outcome === 'confirmed';
 }
 
 async function giveProgram(): Promise<void> {
   const [to, id] = [grants.value?.userId, programId.value];
   if (!to || !id || inlineWrites.busy.value || held.value) return;
-  notice.value = null;
+  notice.value = false;
   const program = programs.data.value?.find((item) => item.id === id);
   const result = await inlineWrites.send(
     () => grantProgram(to, id),
@@ -147,7 +147,7 @@ async function giveProgram(): Promise<void> {
 async function giveGlobal(permission: GlobalPermission): Promise<void> {
   const to = grants.value?.userId;
   if (!to || inlineWrites.busy.value || held.value) return;
-  notice.value = null;
+  notice.value = false;
   const result = await inlineWrites.send(
     () => grantGlobal(to, permission),
     async () => holdsGlobal(await refresh(to), permission),
@@ -160,7 +160,7 @@ async function giveGlobal(permission: GlobalPermission): Promise<void> {
 function askRevoke(next: Revocation, from: Event): void {
   if (held.value) return;
   inlineWrites.clear();
-  notice.value = null;
+  notice.value = false;
   revocation.open(next, from);
 }
 
@@ -200,13 +200,13 @@ async function revoke(): Promise<void> {
   await closeDialog(current.type === 'global' ? `access-action-${current.permission}` : 'access-program-select');
 }
 
-const programNotice = ref<string | null>(null);
+const programNotice = ref(false);
 const programForm = useAdminDialog<true>({ fallback: 'program-add', notice: programNotice });
 const { writes: programWrites, busy: programBusy, cancel: cancelProgram } = programForm;
 const programOpen = computed(() => programForm.dialog.value !== null);
 
 function openProgram(from: Event): void {
-  notice.value = null;
+  notice.value = false;
   programForm.open(true, from);
 }
 
@@ -218,7 +218,7 @@ async function programListed(values: ProgramValues): Promise<boolean> {
 const endProgram = (result: WriteOutcome<unknown>, code: string) => programForm.finish(result, m.value.programs.programCreated(code), { before: programs.reload });
 
 async function saveProgram(values: ProgramValues): Promise<void> {
-  programNotice.value = null;
+  programNotice.value = false;
   const result = await programWrites.send(
     () => createProgram(newProgramBody(values)),
     () => programListed(values),
@@ -240,12 +240,12 @@ const programProblem = computed(() => {
 const inlineProblem = computed(() => (inlineWrites.problem.value ? describeProblem(inlineWrites.problem.value, m.value) : null));
 const dialogProblem = computed(() => (dialogWrites.problem.value ? describeProblem(dialogWrites.problem.value, m.value) : null));
 async function recheckInline(): Promise<void> {
-  if ((await inlineWrites.recheck())?.outcome === 'confirmed') notice.value = m.value.problem.confirmed;
+  if ((await inlineWrites.recheck())?.outcome === 'confirmed') notice.value = true;
 }
 async function recheckDialog(): Promise<void> {
   if ((await dialogWrites.recheck())?.outcome !== 'confirmed') return;
   await closeDialog();
-  notice.value = m.value.problem.confirmed;
+  notice.value = true;
 }
 </script>
 
@@ -290,7 +290,7 @@ async function recheckDialog(): Promise<void> {
           <h3>{{ text.grantsOf }} <span class="mono" data-test="access-shown-id">{{ grants.userId }}</span></h3>
           <span v-if="own" class="chip info" data-test="access-own">{{ text.ownAccount }}</span>
         </div>
-        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
         <p v-if="stale" class="callout warn" role="alert" data-test="access-stale">
           <Icon name="alert" /><span>{{ m.stale }} <button id="access-reload" class="btn sm" type="button" data-test="access-reload" @click="reloadStale">{{ m.reload }}</button></span>
         </p>
@@ -401,7 +401,7 @@ async function recheckDialog(): Promise<void> {
       </div>
       <div class="admin-tools">
         <p class="small t2">{{ m.programs.programsLead }}</p>
-        <p v-if="programNotice" class="callout ok" role="status" data-test="program-notice"><Icon name="check" /><span>{{ programNotice }}</span></p>
+        <p v-if="programNotice" class="callout ok" role="status" data-test="program-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
       </div>
     </section>
 

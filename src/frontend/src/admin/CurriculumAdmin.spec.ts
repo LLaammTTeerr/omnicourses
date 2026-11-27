@@ -565,6 +565,9 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
       expect(calls(fetch, 'PATCH')).toHaveLength(1);
       expect(w.find('dialog[open]').exists()).toBe(false);
       expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
+      useLocale().set('en');
+      await flushPromises();
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.en.problem.confirmed);
       expect(useToast().message).toBe('');
       expect(groupRow(w, 'Tự chọn thử B').exists()).toBe(true);
     });

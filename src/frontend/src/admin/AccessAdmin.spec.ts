@@ -378,6 +378,9 @@ describe('AccessAdmin (F12, UC-11 section 8): grants and revocations of an acces
       await click(w, 'access-grant-catalog_maintainer');
       expect(calls(fetch, 'GET').length).toBe(reads + 1);
       expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
+      useLocale().set('en');
+      await flushPromises();
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.en.problem.confirmed);
       expect(state(w, 'catalog_maintainer')[0]).toBe('held');
       expect(useToast().message).toBe('');
 
@@ -534,6 +537,9 @@ describe('AccessAdmin (UC-11 A2): an access manager adds a program', () => {
     expect(calls(fetch, 'POST')).toHaveLength(1);
     expect(w.find('dialog[open]').exists()).toBe(false);
     expect(get(w, 'program-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
+    useLocale().set('en');
+    await flushPromises();
+    expect(get(w, 'program-notice').text()).toBe(ADMIN_MESSAGES.en.problem.confirmed);
   });
 
   it('says when the lost program is not in the list, and keeps the dialog to try again', async () => {

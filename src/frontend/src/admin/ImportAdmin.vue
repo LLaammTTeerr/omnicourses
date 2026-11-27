@@ -82,7 +82,7 @@ async function choose(): Promise<void> {
   dropPreview();
   draft.value = null;
   fileProblem.value = null;
-  notice.value = null;
+  notice.value = false;
   if (!file) return;
   reading.value = true;
   try {
@@ -107,7 +107,7 @@ const previewing = ref(false);
 const previewLost = ref(false);
 const refusal = shallowRef<Exclude<Failure, { kind: 'no_answer' }> | null>(null);
 const changed = ref(false);
-const notice = ref<string | null>(null);
+const notice = ref(false);
 const newest = newestOnly();
 
 function dropPreview(): void {
@@ -156,7 +156,7 @@ async function previewDraft(): Promise<void> {
   const [of, file] = [target.value, draft.value];
   if (!of || !file || previewing.value || writes.busy.value) return;
   dropPreview();
-  notice.value = null;
+  notice.value = false;
   await show(of, file.csv);
 }
 
@@ -185,7 +185,7 @@ async function confirm(): Promise<void> {
   const version = shown?.result.reviewVersion;
   if (!shown || !version || !confirmable.value || writes.busy.value) return;
   const { target: of, csv } = shown;
-  notice.value = null;
+  notice.value = false;
   changed.value = false;
   landedPreview = null;
   sent = { target: of, csv };
@@ -208,7 +208,7 @@ async function settle(outcome: string, summary: { inserts: number; updates: numb
   }
   if (outcome === 'confirmed') {
     await finishDraft();
-    notice.value = m.value.problem.confirmed;
+    notice.value = true;
     return;
   }
   if (outcome === 'not_applied' && landedPreview) preview.value = landedPreview;
@@ -232,7 +232,7 @@ async function cancel(): Promise<void> {
   const had = draft.value !== null;
   await finishDraft();
   fileProblem.value = null;
-  notice.value = null;
+  notice.value = false;
   if (had) toast.show(text.value.cancelled);
 }
 
@@ -344,7 +344,7 @@ function pickCohort(curriculumId: string): void {
         <p v-if="draft" class="small t2" role="status" data-test="import-file-read">{{ text.fileChosen(draft.name, size(draft.bytes)) }}</p>
         <p v-if="fileProblem" id="import-file-problem" class="callout bad" role="alert" data-test="import-file-problem"><Icon name="alert" /><span>{{ fileProblem }}</span></p>
 
-        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
         <p v-if="previewLost" class="callout bad" role="alert" data-test="import-preview-failed">
           <Icon name="alert" /><span>{{ text.previewFailed }} <button class="btn sm" type="button" @click="previewDraft">{{ m.retry }}</button></span>
         </p>

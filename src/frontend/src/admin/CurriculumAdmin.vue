@@ -165,7 +165,7 @@ type Ask =
   | { type: 'unlink'; group: RequirementGroup; course: CurriculumCourse }
   | { type: 'prerequisites'; course: CurriculumCourse }
   | { type: 'terms'; course: CurriculumCourse };
-const notice = ref<string | null>(null);
+const notice = ref(false);
 const asking = useAdminDialog<Ask & { at: Scope }>({
   fallback: 'add-group',
   notice,
@@ -187,7 +187,7 @@ function open(next: Ask, from: Event): void {
   if (!at) return;
   dropLinkProblem();
   if (stale.value) return;
-  notice.value = null;
+  notice.value = false;
   late.value = null;
   asking.open({ ...next, at }, from);
 }
@@ -202,12 +202,12 @@ const finish = (result: WriteOutcome<unknown>, saved: string, fallback?: string)
 async function recheckDialog(): Promise<void> {
   if ((await dialogWrites.recheck())?.outcome !== 'confirmed') return;
   await close();
-  notice.value = m.value.problem.confirmed;
+  notice.value = true;
 }
 async function recheckLink(): Promise<void> {
   if ((await linkWrites.recheck())?.outcome !== 'confirmed') return;
   linkCode.value = '';
-  notice.value = m.value.problem.confirmed;
+  notice.value = true;
 }
 
 async function saveGroup(entered: GroupValues): Promise<void> {
@@ -261,7 +261,7 @@ const linkCode = ref('');
 async function link(): Promise<void> {
   const [at, group, typed] = [scope.value, openGroup.value, linkCode.value];
   if (!at || !group || !typed.trim() || linkWrites.busy.value || stale.value) return;
-  notice.value = null;
+  notice.value = false;
   late.value = null;
   const code = storedCode(typed);
   const result = await linkWrites.send(
@@ -282,7 +282,7 @@ async function link(): Promise<void> {
   if (result.outcome === 'saved') {
     await showSaved();
     toast.show(text.value.linked(code, group.name));
-  } else notice.value = m.value.problem.confirmed;
+  } else notice.value = true;
   await nextTick();
   document.getElementById('link-code')?.focus();
 }
@@ -348,7 +348,7 @@ async function openProgramDialog(load: () => Promise<ProgramAsk | null>, from: E
   if (opening.value || programBusy.value) return;
   programForm.rememberOpener(from);
   detailsFailed.value = null;
-  notice.value = null;
+  notice.value = false;
   opening.value = true;
   try {
     const next = await load();
@@ -506,7 +506,7 @@ watch(
   () => {
     openId.value = null;
     linkCode.value = '';
-    notice.value = null;
+    notice.value = false;
     late.value = null;
     linkWrites.clear();
     expanded.value = new Set();
@@ -566,7 +566,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
         </div>
       </div>
 
-      <p v-if="notice && !curriculum" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+      <p v-if="notice && !curriculum" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
       <p v-if="!cohort" class="callout" role="status" data-test="no-cohorts"><Icon name="info" /><span>{{ text.noCohorts }}</span></p>
       <p v-else-if="status === 'loading'" class="t3" role="status">{{ m.loading }}</p>
       <p v-else-if="status === 'missing'" class="callout" role="status" data-test="no-curriculum"><Icon name="info" /><span>{{ text.noCurriculum }}</span></p>
@@ -574,7 +574,7 @@ const prerequisiteState = (course: CurriculumCourse) => (course.prerequisites ==
         <Icon name="alert" /><span>{{ text.loadFailed }} <button class="btn sm" type="button" @click="load">{{ m.retry }}</button></span>
       </p>
       <template v-else-if="curriculum">
-        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
         <p v-if="stale" class="callout warn" role="alert" data-test="curriculum-stale">
           <Icon name="alert" /><span>{{ m.stale }} <button id="curriculum-reload" class="btn sm" type="button" data-test="curriculum-reload" @click="showSaved">{{ m.reload }}</button></span>
         </p>

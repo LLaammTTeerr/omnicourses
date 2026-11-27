@@ -371,8 +371,11 @@ describe('CatalogAdmin (F12, UC-11 A8): the shared course catalog of a catalog m
       expect(calls(fetch, 'PATCH')).toHaveLength(3);
       expect(w.find('dialog[open]').exists()).toBe(false);
       expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
+      useLocale().set('en');
+      await flushPromises();
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.en.problem.confirmed);
       expect(useToast().message).toBe('');
-      expect(get(w, 'catalog-credits').text()).toBe('Tín chỉ3');
+      expect(get(w, 'catalog-credits').text()).toBe('Credits3');
     });
   });
 

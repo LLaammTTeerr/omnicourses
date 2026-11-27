@@ -50,7 +50,7 @@ async function refresh(of = code.value): Promise<CourseDetail | null> {
 async function find(): Promise<void> {
   const wanted = storedCode(typed.value);
   if (!wanted) return;
-  notice.value = null;
+  notice.value = false;
   course.value = null;
   status.value = 'loading';
   const isNewest = newest.upcoming();
@@ -67,7 +67,7 @@ async function find(): Promise<void> {
 type Dialog = { type: 'create' } | { type: 'edit' } | { type: 'delete' };
 const review = shallowRef<ImpactReview | null>(null);
 const editing = shallowRef<CourseDetail | null>(null);
-const notice = ref<string | null>(null);
+const notice = ref(false);
 let written = '';
 const stale = ref<string | null>(null);
 
@@ -84,7 +84,7 @@ const { dialog, writes, busy, close, cancel, finish: finishDialog, ...dialogs } 
 function open(next: Dialog, from: Event): void {
   if (stale.value) return;
   review.value = null;
-  notice.value = null;
+  notice.value = false;
   editing.value = next.type === 'edit' ? course.value : null;
   dialogs.open(next, from);
 }
@@ -184,7 +184,7 @@ async function remove(): Promise<void> {
   typed.value = '';
   await close();
   if (result.outcome === 'saved') toast.show(text.value.deleted(of));
-  else notice.value = m.value.problem.confirmed;
+  else notice.value = true;
 }
 
 async function recheck(): Promise<void> {
@@ -195,7 +195,7 @@ async function recheck(): Promise<void> {
     typed.value = '';
   } else typed.value = code.value;
   await close();
-  notice.value = m.value.problem.confirmed;
+  notice.value = true;
 }
 
 const problem = computed(() => (writes.problem.value ? describeProblem(writes.problem.value, m.value, COURSE_FIELDS) : null));
@@ -221,7 +221,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
         </form>
         <p id="catalog-hint" class="hint">{{ text.lookupHint }}</p>
 
-        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
         <p v-if="stale" class="callout warn" role="alert" data-test="catalog-stale">
           <Icon name="alert" /><span>{{ m.stale }} <button id="catalog-reload" class="btn sm" type="button" data-test="catalog-reload" @click="reloadStale">{{ m.reload }}</button></span>
         </p>
