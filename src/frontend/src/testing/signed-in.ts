@@ -6,6 +6,7 @@ import type { Onboarding } from '../onboarding/api.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { createAppRouter } from '../router.js';
+import { warmRoutes } from './routes.js';
 
 interface Options {
   signedIn?: boolean;
@@ -25,6 +26,7 @@ export async function setup(path: string, { signedIn = true, onboarded = onboard
   const pinia = signedIn ? signedInPinia() : createPinia();
   if (!signedIn) setActivePinia(pinia);
   if (onboarded) useOnboarding().seed(user().id, onboarded);
+  await warmRoutes();
   const router = createAppRouter(createMemoryHistory());
   await router.push(path);
   await router.isReady();

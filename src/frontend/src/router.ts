@@ -139,17 +139,6 @@ export const routes: RouteRecordRaw[] = [
 
 const scrollBehavior: RouterScrollBehavior = (to, _from, saved) => saved ?? (to.hash ? { el: to.hash } : { top: 0 });
 
-function warmRouteChunks(records: readonly RouteRecordRaw[]): Promise<unknown>[] {
-  return records.flatMap((record) => [
-    ...(typeof record.component === 'function' ? [(record.component as () => Promise<unknown>)()] : []),
-    ...warmRouteChunks(record.children ?? []),
-  ]);
-}
-
-if (import.meta.env.MODE === 'test') {
-  await Promise.all(warmRouteChunks(routes));
-}
-
 async function onboardingFirst(to: RouteLocationNormalized): Promise<NavigationGuardReturn> {
   let finished: boolean;
   try {
