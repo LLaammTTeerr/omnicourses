@@ -113,7 +113,7 @@ const otherTitle = (event: CalendarEvent) => (locale.lang === 'en' ? (event.titl
 const datesOf = (event: CalendarEvent) => formatSpan(event.startsOn, event.endsOn, (iso) => formatDate(iso, locale.lang));
 
 type Ask = { type: 'event'; event: CalendarEvent | null } | { type: 'delete-event'; event: CalendarEvent };
-const notice = ref<string | null>(null);
+const notice = ref(false);
 const asking = useAdminDialog<Ask & { at: Scope }>({
   fallback: 'add-event',
   notice,
@@ -124,7 +124,7 @@ const { dialog, writes: dialogWrites, busy, cancel, close } = asking;
 function open(next: Ask, from: Event): void {
   const at = scope.value;
   if (!at || stale.value) return;
-  notice.value = null;
+  notice.value = false;
   asking.open({ ...next, at }, from);
 }
 
@@ -134,7 +134,7 @@ const finish = (result: WriteOutcome<unknown>, saved: string): Promise<boolean> 
 async function recheckDialog(): Promise<void> {
   if ((await dialogWrites.recheck())?.outcome !== 'confirmed') return;
   await close();
-  notice.value = m.value.problem.confirmed;
+  notice.value = true;
 }
 
 async function saveEvent(entered: CalendarEventValues): Promise<void> {
@@ -193,7 +193,7 @@ function pickProgram(programId: string): void {
 watch(
   () => program.value?.id,
   () => {
-    notice.value = null;
+    notice.value = false;
     void load();
   },
   { immediate: true },
@@ -229,7 +229,7 @@ watch(
         <Icon name="alert" /><span>{{ text.loadFailed }} <button class="btn sm" type="button" @click="load">{{ m.retry }}</button></span>
       </p>
       <template v-else-if="calendar">
-        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ notice }}</span></p>
+        <p v-if="notice" class="callout ok" role="status" data-test="admin-notice"><Icon name="check" /><span>{{ m.problem.confirmed }}</span></p>
         <p v-if="stale" class="callout warn" role="alert" data-test="calendar-stale">
           <Icon name="alert" /><span>{{ m.stale }} <button id="calendar-reload" class="btn sm" type="button" data-test="calendar-reload" @click="showSaved">{{ m.reload }}</button></span>
         </p>

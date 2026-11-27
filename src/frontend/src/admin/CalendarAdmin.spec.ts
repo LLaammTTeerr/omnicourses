@@ -270,6 +270,9 @@ describe('CalendarAdmin (F10): school calendar administration for a program admi
     await flushPromises();
     expect(deleteCall).toBe(1);
     expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
+    useLocale().set('en');
+    await flushPromises();
+    expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.en.problem.confirmed);
     expect(w.find(`[data-test="event-row"][data-event-id="${TERM_START.id}"]`).exists()).toBe(false);
   });
 });
