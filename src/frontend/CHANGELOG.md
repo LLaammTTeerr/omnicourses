@@ -1,5 +1,15 @@
 # @omnicourse/frontend
 
+## 0.6.0
+
+### Minor Changes
+
+- [#204](https://github.com/LLaammTTeerr/omnicourses/pull/204) [`7b25fc6`](https://github.com/LLaammTTeerr/omnicourses/commit/7b25fc69d2d966d581ca582efcb0aadda80d55f5) Thanks [@rakun68](https://github.com/rakun68)! - Add the notification inbox page and the bell with the unread count (F10, UC-12).
+
+### Patch Changes
+
+- [#201](https://github.com/LLaammTTeerr/omnicourses/pull/201) [`159d90b`](https://github.com/LLaammTTeerr/omnicourses/commit/159d90bbf53021b1c2e9ab97a5b8fabaac308dfa) Thanks [@rakun68](https://github.com/rakun68)! - Shell: each route carries its own menu entry; the sidebar, phone bar and public header read them from the router. No visible change.
+
 ## 0.5.4
 
 ### Patch Changes
