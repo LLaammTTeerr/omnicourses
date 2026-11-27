@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEvent } from '../calendar/api.js';
-import type { DegreeAudit, TermSummary } from './api.js';
+import type { DegreeAudit, TermSummary } from '../audit/api.js';
 import { calendarEnd, Dashboard, segments, termShort } from './dashboard.js';
-import { course, degreeAudit, group, GROUP_A, GROUP_MATH } from './testing/fixtures.js';
+import { course, degreeAudit, group, GROUP_A, GROUP_MATH } from '../audit/testing/fixtures.js';
 
 const t = (year: number, number: 1 | 2 | 3) => ({ year, number });
 

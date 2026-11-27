@@ -3,8 +3,8 @@ import { GROUP_IDS, type GroupId } from '../groups.js';
 import type { Lang } from '../locale.js';
 import type { Plan } from '../plans/api.js';
 import { sameTerm, termKey, type Term } from '../terms.js';
-import type { CourseCoverage, DegreeAudit, TermAttempt, TermSummary } from './api.js';
-import { shownGroups } from './present.js';
+import type { CourseCoverage, DegreeAudit, TermAttempt, TermSummary } from '../audit/api.js';
+import { shownGroups } from '../audit/present.js';
 
 export type Colour = GroupId | 'none';
 
