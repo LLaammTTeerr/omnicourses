@@ -1,9 +1,8 @@
 # ADR 0019: Storing the student ID and the class name
 
-- Status: accepted
+- Status: proposed
 - Date: 2026-11-28
-- Deciders: Lâm (Project Lead), on the team Discord, 27 November 2026 (answer "4B")
-- Reviewers: Triết (backend), Hoà (dashboard header), Dũng
+- Deciders: Lâm (Project Lead) decided what is shown (answer "4B", team Discord, 27 November 2026)
 
 ## Context
 
@@ -16,7 +15,7 @@ On 27 November 2026 Lâm answered four questions about the dashboard in one Disc
 3. **3A**: classification (xếp loại) applies only to the cumulative average, as [ADR 0013](0013-rule-engine-and-degree-audit.md) already says, never to a single term.
 4. **4B**: the header shows the student ID and the class name, as in the prototype.
 
-This ADR records 4B and how the two values are stored. 1A and 2A are recorded in [design-differences.md](../design-differences.md) (UC-03), and 3A in ADR 0013 (dated line of 28 November 2026).
+This ADR records 4B and how the two values are stored. What is shown is Lâm's decision. How it is stored and checked (the decisions below) is the builder's proposal, so the status stays **proposed** until Lâm accepts it. 1A and 2A are recorded in [design-differences.md](../design-differences.md) (UC-03), and 3A in ADR 0013 (dated line of 28 November 2026).
 
 The number 0016 is still kept for the advisor harness (open PR #77), so this is 0019.
 

@@ -3,10 +3,10 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { AccountPurgeService } from '../src/account/account-purge.service.js';
 import { LlmService } from '../src/ai/llm.service.js';
 import { ModelClient, type ModelStreamEvent, type StreamRequest } from '../src/ai/model-client.js';
 import { AI_CONFIG, type AiConfig } from '../src/config/env.js';
+import { UsersService } from '../src/users/users.service.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
@@ -102,7 +102,7 @@ describe('Student ID and class name on the account (e2e)', () => {
     const { token, userId } = await signedInUser(app);
     await patch(token, { studentId: STUDENT_ID, className: CLASS_NAME }).expect(200);
     await db.query(`UPDATE users SET deletion_requested_at = now() - interval '31 days', purge_after = now() - interval '1 day' WHERE id = $1`, [userId]);
-    await app.get(AccountPurgeService, { strict: false }).purge();
+    expect(await app.get(UsersService).purgeIfDue(userId, new Date())).toBe(true);
     expect(await db.query('SELECT 1 FROM users WHERE id = $1', [userId])).toEqual([]);
   });
 
