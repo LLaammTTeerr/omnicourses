@@ -3,7 +3,7 @@ import type { PrintedRow } from './seed-types.js';
 type Periods = number | null;
 type Extra = Partial<Pick<PrintedRow, 'counts_toward_total' | 'counts_toward_gpa' | 'needs_check' | 'code_printed'>>;
 
-function row(type: PrintedRow['type'], code: string, name_vi: string, credits: number, lt: Periods, th: Periods, bt: Periods, dt: Periods, page: number, extra: Extra = {}): PrintedRow {
+export function row(type: PrintedRow['type'], code: string, name_vi: string, credits: number, lt: Periods, th: Periods, bt: Periods, dt: Periods, page: number, extra: Extra = {}): PrintedRow {
   return {
     code,
     name_vi,
