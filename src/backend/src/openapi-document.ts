@@ -2,15 +2,14 @@ import { Test } from '@nestjs/testing';
 import { OpenAPIObject } from '@nestjs/swagger';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { configureApp } from './bootstrap.js';
-import { ClockModule } from './config/clock.js';
 import { dataSourceOptions } from './database/data-source.js';
-import { FEATURE_MODULES } from './features.js';
+import { FEATURE_MODULES, platformImports } from './features.js';
 
 type Module = (typeof FEATURE_MODULES)[number];
 
 export async function buildOpenApiDocument(modules: readonly Module[] = FEATURE_MODULES): Promise<OpenAPIObject> {
   const moduleRef = await Test.createTestingModule({
-    imports: [TypeOrmModule.forRoot({ ...dataSourceOptions, autoLoadEntities: true, manualInitialization: true }), ClockModule, ...modules],
+    imports: platformImports(TypeOrmModule.forRoot({ ...dataSourceOptions, autoLoadEntities: true, manualInitialization: true }), modules),
   }).compile();
   const app = moduleRef.createNestApplication();
   const document = configureApp(app);
