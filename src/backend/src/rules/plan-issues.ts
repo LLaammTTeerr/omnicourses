@@ -124,11 +124,12 @@ interface CourseFacts {
 }
 
 function courseIssues(plan: PlanContext, tile: CourseTile, facts: CourseFacts): PlanIssue[] {
+  const record = plan.records.get(tile.courseCode);
   return [
     facts.credits === undefined ? creditsNotRecorded(tile) : null,
     facts.first ? placedTwice(tile, facts.first) : null,
     plan.placed.has(tile.courseCode) ? null : notInCurriculum(plan.rules, tile),
-    repeatIssue(plan.records.has(tile.courseCode) ? recordBefore(plan.records.get(tile.courseCode)!, tile.term) : null, tile),
+    repeatIssue(record ? recordBefore(record, tile.term) : null, tile),
     prerequisiteIssue(plan.rules, tile, facts.passed),
     offeringIssue(plan.rules, tile),
   ].filter((i): i is PlanIssue => i !== null);
