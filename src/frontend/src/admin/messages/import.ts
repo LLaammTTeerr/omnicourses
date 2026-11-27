@@ -1,8 +1,6 @@
-import { LANGUAGES, type Lang } from '../../locale.js';
-import { BYTES_PER_MIB, IMPORT_MAX_BYTES, IMPORT_MAX_RECORDS, type ImportFileType } from '../api.js';
-
-const MAX_MIB = `${IMPORT_MAX_BYTES / BYTES_PER_MIB} MiB`;
-const maxRecords = (lang: Lang) => IMPORT_MAX_RECORDS.toLocaleString(LANGUAGES[lang].tag);
+import type { Lang } from '../../locale.js';
+import type { ImportFileType } from '../api.js';
+import { MAX_MIB, maxRecords } from './shared.js';
 
 export interface ImportMessages {
   heading: string;

@@ -4,8 +4,8 @@ import type { ConflictCode, Reference } from '../errors.js';
 import type { PermissionKind } from '../grants.js';
 import type { AdminSection } from '../sections.js';
 
-const MAX_MIB = `${IMPORT_MAX_BYTES / BYTES_PER_MIB} MiB`;
-const maxRecords = (lang: Lang) => IMPORT_MAX_RECORDS.toLocaleString(LANGUAGES[lang].tag);
+export const MAX_MIB = `${IMPORT_MAX_BYTES / BYTES_PER_MIB} MiB`;
+export const maxRecords = (lang: Lang) => IMPORT_MAX_RECORDS.toLocaleString(LANGUAGES[lang].tag);
 
 export interface SharedMessages {
   title: string;

@@ -1,5 +1,5 @@
-import { type Lang } from '../../locale.js';
-import { type CalendarEventKind } from '../api.js';
+import type { Lang } from '../../locale.js';
+import type { CalendarEventKind } from '../api.js';
 import type { CalendarEventField } from '../forms.js';
 
 export interface CalendarAdminMessages {

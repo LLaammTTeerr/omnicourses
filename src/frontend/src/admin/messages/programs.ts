@@ -1,4 +1,4 @@
-import { type Lang } from '../../locale.js';
+import type { Lang } from '../../locale.js';
 import type { CohortField, ProgramField } from '../forms.js';
 
 export interface ProgramMessages {

@@ -1,5 +1,5 @@
 import type { RequirementGroupKind } from '../../curriculum/api.js';
-import { type Lang } from '../../locale.js';
+import type { Lang } from '../../locale.js';
 
 export interface CurriculumMessages {
   heading: string;

@@ -1,4 +1,4 @@
-import { type Lang } from '../../locale.js';
+import type { Lang } from '../../locale.js';
 import type { PermissionKind } from '../grants.js';
 
 export interface AccessMessages {

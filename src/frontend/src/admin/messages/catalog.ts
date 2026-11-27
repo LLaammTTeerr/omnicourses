@@ -1,5 +1,5 @@
 import { COURSE_CODE_LENGTH } from '../../course-code.js';
-import { type Lang } from '../../locale.js';
+import type { Lang } from '../../locale.js';
 import type { CourseField } from '../forms.js';
 
 const { min: CODE_MIN, max: CODE_MAX } = COURSE_CODE_LENGTH;
