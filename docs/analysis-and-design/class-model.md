@@ -14,7 +14,7 @@ Every table is a TypeORM entity; `synchronize` is off and the schema is made by 
 
 ### 1.1 Users, sessions and the student record
 
-Sources: `users/user.entity.ts`, `auth/session.entity.ts`, `onboarding/onboarding-answers.entity.ts`, `transcript/transcript-row.entity.ts`, `ai/ai-usage.entity.ts`; migrations `create-users-and-sessions`, `add-users-deletion-requested-at`, `create-onboarding-answers`, `create-transcript-rows`, `create-ai-usage`.
+Sources: `users/user.entity.ts`, `auth/session.entity.ts`, `onboarding/onboarding-answers.entity.ts`, `transcript/transcript-row.entity.ts`, `ai/ai-usage.entity.ts`; migrations `create-users-and-sessions`, `add-users-deletion-requested-at`, `add-users-student-id-and-class-name`, `create-onboarding-answers`, `create-transcript-rows`, `create-ai-usage`.
 
 ```mermaid
 classDiagram
@@ -24,6 +24,8 @@ classDiagram
         email : varchar 254, unique, lowercased
         passwordHash : text? credential
         displayName : varchar 100
+        studentId : varchar 8? 8 digits
+        className : varchar 32?
         googleSub : varchar 255? unique, credential
         emailVerifiedAt : timestamptz?
         consentAt : timestamptz
@@ -887,10 +889,12 @@ classDiagram
     }
     class UsersController {
         +me(user) UserDto
+        +updateMe(user, dto) UserDto
     }
     class UsersService {
         +findByEmail(email) User
         +create(fields) User
+        +updateProfile(userId, fields) User
         +markDeletionRequestedWithin(manager, userId, at, purgeAfter)
         +cancelDeletion(userId, now) boolean
     }
