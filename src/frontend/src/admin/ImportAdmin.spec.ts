@@ -283,6 +283,9 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
       const { w, fetch } = await lose(() => Response.json(appliedPreview()));
       expect(confirms(fetch)).toHaveLength(1);
       expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.vi.problem.confirmed);
+      useLocale().set('en');
+      await flushPromises();
+      expect(get(w, 'admin-notice').text()).toBe(ADMIN_MESSAGES.en.problem.confirmed);
       expect(has(w, 'import-result')).toBe(false);
     });
 

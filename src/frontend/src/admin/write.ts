@@ -102,7 +102,7 @@ export function stayWhileBusy(busy: () => boolean): void {
 
 interface AdminDialogOptions {
   fallback: string;
-  notice: Ref<string | null>;
+  notice: Ref<boolean>;
   stale?: { reloadId: string; is: () => boolean; mark: () => void };
   onClose?: () => void;
 }
@@ -165,7 +165,7 @@ export function useAdminDialog<D>(options: AdminDialogOptions) {
       await before?.(result);
       await close(fallback);
       if (result.outcome === 'saved') toast.show(saved);
-      else options.notice.value = m.value.problem.confirmed;
+      else options.notice.value = true;
       return true;
     } finally {
       settling.value = false;
