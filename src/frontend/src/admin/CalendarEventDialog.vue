@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { TERM_NUMBERS } from '../terms.js';
 import { CALENDAR_EVENT_KINDS, type CalendarEvent } from './api.js';
 import FieldErrors from './FieldErrors.vue';
@@ -14,7 +13,6 @@ import ProblemNote from './ProblemNote.vue';
 const props = defineProps<{ open: boolean; event: CalendarEvent | null; busy: boolean; problem: ProblemView<CalendarEventField> | null }>();
 const emit = defineEmits<{ close: []; save: [values: CalendarEventValues]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 const text = computed(() => m.value.calendar);
 
 const values = useValuesOnOpen(() => props.open, () => calendarEventValues(props.event));
@@ -32,7 +30,7 @@ const invalid = (field: CalendarEventField) => fieldInvalid(props.problem, field
 </script>
 
 <template>
-  <ModalDialog :open="open" labelledby="calendar-event-dialog-title" :busy="busy" :busy-text="shell.working" data-test="calendar-event-dialog" @close="emit('close')">
+  <ModalDialog :open="open" labelledby="calendar-event-dialog-title" :busy="busy" data-test="calendar-event-dialog" @close="emit('close')">
     <h2 id="calendar-event-dialog-title">{{ event ? text.dialogEdit(event.title) : text.dialogNew }}</h2>
     <form class="admin-form" novalidate @submit.prevent="emit('save', { ...values })">
       <div class="field">

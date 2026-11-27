@@ -6,7 +6,6 @@ import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { useToast } from '../shell/toast.js';
 import { fetchPlanShare, sharedPlanPath, sharedPlanUrl, stopPlanShare, updatePlanShare, type PlanShare } from './api.js';
 import { SHARING_MESSAGES } from './messages.js';
@@ -20,7 +19,6 @@ const auth = useAuth();
 const locale = useLocale();
 const toast = useToast();
 const m = useMessages(SHARING_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 
 const status = ref<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
 const share = shallowRef<PlanShare | null>(null);
@@ -223,7 +221,6 @@ async function revokeLink(): Promise<void> {
     labelledby="share-plan-title"
     describedby="share-plan-lead"
     :busy="busy !== null"
-    :busy-text="shell.working"
     data-test="share-dialog"
     @close="emit('close')"
   >

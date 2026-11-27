@@ -2,7 +2,6 @@
 import ModalDialog from '../components/ModalDialog.vue';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroup } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
 import { groupValues, useValuesOnOpen, type GROUP_FIELDS, type GroupValues } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
@@ -12,13 +11,12 @@ import ProblemNote from './ProblemNote.vue';
 const props = defineProps<{ open: boolean; group: RequirementGroup | null; busy: boolean; problem: ProblemView<(typeof GROUP_FIELDS)[number]> | null }>();
 const emit = defineEmits<{ close: []; save: [values: GroupValues]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 
 const values = useValuesOnOpen(() => props.open, () => groupValues(props.group));
 </script>
 
 <template>
-  <ModalDialog :open="open" labelledby="group-dialog-title" :busy="busy" :busy-text="shell.working" data-test="group-dialog" @close="emit('close')">
+  <ModalDialog :open="open" labelledby="group-dialog-title" :busy="busy" data-test="group-dialog" @close="emit('close')">
     <h2 id="group-dialog-title">{{ group ? m.curriculum.groupEdit(group.name) : m.curriculum.groupNew }}</h2>
     <form class="admin-form" novalidate @submit.prevent="emit('save', { ...values })">
       <div class="field">

@@ -3,7 +3,6 @@ import { ref, watch } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import type { CurriculumCourse } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { TERM_NUMBERS } from '../terms.js';
 import FieldErrors from './FieldErrors.vue';
 import { ADMIN_MESSAGES } from './messages.js';
@@ -13,7 +12,6 @@ import ProblemNote from './ProblemNote.vue';
 const props = defineProps<{ open: boolean; course: CurriculumCourse | null; busy: boolean; problem: ProblemView<'terms'> | null }>();
 const emit = defineEmits<{ close: []; save: [terms: number[]]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 
 const ticked = ref<number[]>([]);
 watch(
@@ -26,7 +24,7 @@ watch(
 </script>
 
 <template>
-  <ModalDialog :open="open" labelledby="terms-title" describedby="terms-lead" :busy="busy" :busy-text="shell.working" data-test="terms-dialog" @close="emit('close')">
+  <ModalDialog :open="open" labelledby="terms-title" describedby="terms-lead" :busy="busy" data-test="terms-dialog" @close="emit('close')">
     <h2 id="terms-title">{{ course ? m.curriculum.termsTitle(course.code) : '' }}</h2>
     <p id="terms-lead" class="t2 small">{{ m.curriculum.termsLead }}</p>
     <form class="admin-form" novalidate @submit.prevent="emit('save', TERM_NUMBERS.filter((term) => ticked.includes(term)))">

@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useMessages } from '../locale.js';
+import { SHELL_MESSAGES } from '../shell/messages.js';
 
-const props = defineProps<{ open: boolean; labelledby: string; describedby?: string; role?: 'dialog' | 'alertdialog'; busy?: boolean; busyText?: string }>();
+const props = withDefaults(defineProps<{ open: boolean; labelledby: string; describedby?: string; role?: 'dialog' | 'alertdialog'; busy?: boolean; busyText?: string }>(), { busy: undefined });
 const emit = defineEmits<{ close: [] }>();
+const shell = useMessages(SHELL_MESSAGES);
+const busyLabel = computed(() => props.busyText ?? shell.value.working);
 const dialog = ref<HTMLDialogElement>();
 
 function sync(open: boolean): void {
@@ -50,7 +54,7 @@ function closed(): void {
   >
     <template v-if="open">
       <slot />
-      <p v-if="busyText" class="small t2" :class="{ 'sr-only': !busy }" role="status">{{ busy ? busyText : '' }}</p>
+      <p v-if="busy !== undefined" class="small t2" :class="{ 'sr-only': !busy }" role="status">{{ busy ? busyLabel : '' }}</p>
     </template>
   </dialog>
 </template>

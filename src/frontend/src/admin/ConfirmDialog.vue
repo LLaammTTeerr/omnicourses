@@ -2,7 +2,6 @@
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import type { ProblemView } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
@@ -10,11 +9,10 @@ import ProblemNote from './ProblemNote.vue';
 defineProps<{ open: boolean; title: string; body: string; confirm: string; busy: boolean; problem: ProblemView | null }>();
 const emit = defineEmits<{ close: []; confirm: []; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 </script>
 
 <template>
-  <ModalDialog :open="open" role="alertdialog" labelledby="admin-confirm-title" describedby="admin-confirm-body" :busy="busy" :busy-text="shell.working" data-test="confirm-dialog" @close="emit('close')">
+  <ModalDialog :open="open" role="alertdialog" labelledby="admin-confirm-title" describedby="admin-confirm-body" :busy="busy" data-test="confirm-dialog" @close="emit('close')">
     <span class="ic" aria-hidden="true"><Icon name="trash" /></span>
     <h2 id="admin-confirm-title">{{ title }}</h2>
     <p id="admin-confirm-body" class="t2">{{ body }}</p>
