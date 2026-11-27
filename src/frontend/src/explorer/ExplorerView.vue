@@ -7,7 +7,6 @@ import SelectMenu from '../components/SelectMenu.vue';
 import {
   fetchCurriculum,
   fetchCurriculumStanding,
-  fetchPrograms,
   type Course,
   type CourseStanding,
   type CurriculumCourse,
@@ -17,7 +16,7 @@ import {
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, groupGlyph, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
-import { programChoices } from '../onboarding/answers.js';
+import { useProgramChoices } from '../onboarding/answers.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -30,8 +29,8 @@ const onboarding = useOnboarding();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
 
-const programs = useAsyncLoad('the programs', () => fetchPrograms());
-const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
+const { programs, choices: allChoices, cohorts, programName } = useProgramChoices(() => selection.value?.program ?? null);
+const choices = computed(() => allChoices.value.filter((choice) => choice.offered));
 const picked = ref<{ program: string; cohort: number } | null>(null);
 const selection = computed(() => {
   if (picked.value) return picked.value;
@@ -40,8 +39,6 @@ const selection = computed(() => {
   const first = choices.value[0];
   return first?.cohorts[0] ? { program: first.code, cohort: first.cohorts[0] } : null;
 });
-const cohorts = computed(() => choices.value.find((choice) => choice.code === selection.value?.program)?.cohorts ?? []);
-const programName = (choice: (typeof choices.value)[number]) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
 
 let shownCourse: string | null = null;
 
