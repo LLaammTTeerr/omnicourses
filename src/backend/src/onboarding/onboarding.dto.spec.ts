@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { TermDto } from '../common/field-validators.js';
+import { TermDto } from '../terms/term.dto.js';
 import { OnboardingDto } from './onboarding.dto.js';
 
 const answers = (overrides: Record<string, unknown> = {}) => ({
