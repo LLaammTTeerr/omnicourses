@@ -1,6 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/store.js';
+import { user } from '../auth/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import type { Plan, PlanIssues } from '../plans/api.js';
 import { mockApi, status } from '../testing/fetch.js';
@@ -144,7 +145,7 @@ describe('DashboardView (F3, UC-03)', () => {
     await flushPromises();
     const w = wrapper;
     expect(w.find('[aria-busy="true"]').exists()).toBe(false);
-    expect(text(w, 'who')).toContain('APCS2024');
+    expect(text(w, 'who')).toBe(user().displayName);
     expect(text(w, 'credits-toward-total')).toBe('8');
     expect(text(w, 'credits-remaining')).toBe('12');
     expect(text(w, 'credits-in-progress')).toBe('4 TC đang học');
@@ -155,6 +156,16 @@ describe('DashboardView (F3, UC-03)', () => {
       expect(g.attributes('data-group')).toBeTruthy();
       expect(g.get('[data-test="group-credits"]').text()).not.toBe('');
     }
+  });
+
+  it('shows the class and student ID the student saved in Settings beside the name, as the prototype does', async () => {
+    const { w } = await render();
+    useAuth().user = user({ studentId: '24120000', className: '24CTT0' });
+    await flushPromises();
+    expect(w.findAll('[data-test="who"] > span:not(.sep)').map((s) => s.text())).toEqual([user().displayName, '24CTT0', '24120000']);
+    useAuth().user = user({ studentId: null, className: '24CTT0' });
+    await flushPromises();
+    expect(w.findAll('[data-test="who"] > span:not(.sep)').map((s) => s.text())).toEqual([user().displayName, '24CTT0']);
   });
 
   it('shows one row per minimum, with a group that has no minimum of its own only inside its combined row', async () => {
@@ -209,6 +220,8 @@ describe('DashboardView (F3, UC-03)', () => {
     expect(text(w, 'term-gpa')).toBe('7,75/10ĐTB học kỳ');
     expect(text(w, 'attention')).toContain('Tổng kết học kỳ');
     expect(text(w, 'term-card')).toContain('4,5');
+    expect(text(w, 'term-cumulative')).toBe('8,00 · Giỏi');
+    expect(text(w, 'term-year-level')).toBe('Năm thứ 1');
     expect(text(w, 'credits-toward-total')).toBe(String(PAST_TOWARD_TOTAL));
     expect(text(w, 'credits-remaining')).toBe('16');
     expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(expect.stringContaining('/users/me/audit?asOfYear=2024&asOfNumber=1'));

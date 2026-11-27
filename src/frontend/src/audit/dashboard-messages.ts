@@ -29,7 +29,6 @@ interface DashboardMessages {
   expectedTerm: (term: Term) => string;
   termGpa: string;
   leftToGraduate: string;
-  noData: string;
   inProgressCredits: (n: number) => string;
   inTermCredits: (n: number) => string;
   comparedWith: (term: string) => string;
@@ -57,6 +56,7 @@ interface DashboardMessages {
   cumulativeAverage: string;
   earned: string;
   yearLevel: string;
+  yearNumber: (year: number) => string;
   byTerm: string;
   importTranscript: string;
   graduation: string;
@@ -92,7 +92,6 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     expectedTerm: (term) => `HK${term.number} ${years(term)}`,
     termGpa: 'ĐTB học kỳ',
     leftToGraduate: 'Cần để tốt nghiệp',
-    noData: 'Chưa có dữ liệu',
     inProgressCredits: (n) => `${n} TC đang học`,
     inTermCredits: (n) => `${n} TC trong kỳ`,
     comparedWith: (term) => `So với cuối ${term}`,
@@ -120,6 +119,7 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     cumulativeAverage: 'ĐTB tích lũy',
     earned: 'Tín chỉ tích lũy',
     yearLevel: 'Trình độ',
+    yearNumber: (year) => `Năm thứ ${year}`,
     byTerm: 'Theo học kỳ',
     importTranscript: 'Nhập bảng điểm',
     graduation: 'Tốt nghiệp',
@@ -153,7 +153,6 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     expectedTerm: (term) => `T${term.number} ${years(term)}`,
     termGpa: 'Term GPA',
     leftToGraduate: 'Left to graduate',
-    noData: 'No data yet',
     inProgressCredits: (n) => `${n} cr in progress`,
     inTermCredits: (n) => `${n} cr in the term`,
     comparedWith: (term) => `Compared with the end of ${term}`,
@@ -181,6 +180,7 @@ export const DASHBOARD_MESSAGES: Record<Lang, DashboardMessages> = {
     cumulativeAverage: 'Cumulative GPA',
     earned: 'Credits earned',
     yearLevel: 'Year level',
+    yearNumber: (year) => `Year ${year}`,
     byTerm: 'By term',
     importTranscript: 'Import transcript',
     graduation: 'Graduation',

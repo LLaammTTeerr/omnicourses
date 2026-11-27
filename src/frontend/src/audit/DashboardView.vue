@@ -403,7 +403,7 @@ onBeforeUnmount(() => {
       <div>
         <h1>{{ am.dashboardTitle }}</h1>
         <p v-if="audit" class="db-who" data-test="who">
-          <template v-for="(part, i) in [auth.user?.displayName, audit.curriculumCode].filter(Boolean)" :key="i">
+          <template v-for="(part, i) in [auth.user?.displayName, auth.user?.className, auth.user?.studentId].filter(Boolean)" :key="i">
             <span v-if="i" class="sep" aria-hidden="true">·</span><span>{{ part }}</span>
           </template>
         </p>
@@ -648,9 +648,9 @@ onBeforeUnmount(() => {
                   <template v-else>
                     <dl class="db-sum">
                       <dt>{{ m.termGpa }}</dt><dd>{{ snap.summary?.average == null ? '—' : score(snap.summary.average) }}</dd>
-                      <dt>{{ m.cumulativeAverage }}</dt><dd>{{ snap.summary?.cumulativeAccumulatedAverage == null ? '—' : score(snap.summary.cumulativeAccumulatedAverage) }}</dd>
+                      <dt>{{ m.cumulativeAverage }}</dt><dd data-test="term-cumulative">{{ snap.summary?.cumulativeAccumulatedAverage == null ? '—' : score(snap.summary.cumulativeAccumulatedAverage) }}<span v-if="snap.summary?.cumulativeClassification" class="t3"> · {{ am.classifications[snap.summary.cumulativeClassification] }}</span></dd>
                       <dt>{{ m.earned }}</dt><dd>{{ snap.passed }} / {{ a.credits.totalRequired ?? '—' }}</dd>
-                      <dt>{{ m.yearLevel }}</dt><dd :title="m.noData">—</dd>
+                      <dt>{{ m.yearLevel }}</dt><dd data-test="term-year-level">{{ snap.summary ? m.yearNumber(snap.summary.cumulativeYearLevel) : '—' }}</dd>
                     </dl>
                     <button class="btn sm" type="button" @click="pick(nowIndex)"><Icon name="undo" size="sm" />{{ m.backToNow }}</button>
                   </template>
