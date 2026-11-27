@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import { API_URL } from '../api.js';
 
-type Answer = unknown | ((init: RequestInit | undefined) => Response | Promise<Response>);
+type Answer = unknown | ((init: RequestInit | undefined, url: string) => Response | Promise<Response>);
 
 export function mockApi(routes: Record<string, Answer>) {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -9,7 +9,7 @@ export function mockApi(routes: Record<string, Answer>) {
     const key = `${init?.method ?? 'GET'} ${path}`;
     if (!Object.hasOwn(routes, key)) throw new Error(`Unexpected API call: ${key}`);
     const answer = routes[key];
-    return typeof answer === 'function' ? answer(init) : Response.json(answer);
+    return typeof answer === 'function' ? answer(init, String(input)) : Response.json(answer);
   });
 }
 
