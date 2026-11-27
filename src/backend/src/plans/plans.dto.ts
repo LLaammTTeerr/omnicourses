@@ -21,7 +21,8 @@ import {
 } from 'class-validator';
 import { COURSE_CODE_PATTERN } from '../common/course-code.js';
 import { CODE_MAX_LENGTH } from '../common/column-limits.js';
-import { MaxCodePoints, NoNullCharacter, TermDto, trimString } from '../common/field-validators.js';
+import { MaxCodePoints, NoNullCharacter, trimString } from '../common/field-validators.js';
+import { TermDto } from '../terms/term.dto.js';
 import { type BoardTerm, type Placement, PLACEMENT_KINDS, type PlacementKind } from '../rules/types.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
 import { PLAN_NAME_MAX_LENGTH } from './plan.entity.js';
