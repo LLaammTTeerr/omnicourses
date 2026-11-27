@@ -3,11 +3,11 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router';
 import { useAsyncLoad } from '../async-load.js';
 import ExternalLink from '../components/ExternalLink.vue';
-import { formatSpan, useLocale, useMessages, LANGUAGES } from '../locale.js';
+import { useLocale, useMessages, LANGUAGES } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { termName, vietnamDate } from '../terms.js';
-import { fetchAcademicCalendar, type CalendarEvent, type CalendarEventKind } from './api.js';
+import { fetchAcademicCalendar, type CalendarEvent } from './api.js';
 import {
   academicYearMonths,
   academicYearOf,
@@ -28,6 +28,7 @@ import {
   weekDays as daysOfWeek,
 } from './dates.js';
 import { CALENDAR_MESSAGES } from './messages.js';
+import { EVENT_KIND_GROUP, eventTitle, otherEventTitle, spanIn } from './present.js';
 
 const UPCOMING_SHOWN = 8;
 const EVENTS_SHOWN_PER_MONTH_DAY = 3;
@@ -184,18 +185,8 @@ function pick(key: string): void {
   closePicker(true);
 }
 
-const KIND_GROUP: Record<CalendarEventKind, string> = {
-  term_start: 'g-core',
-  term_end: 'g-core',
-  registration: 'g-elec',
-  add_drop: 'g-elec',
-  exam_period: 'g-pol',
-  holiday: 'g-gen',
-  other: 'g-thesis',
-};
-const titleOf = (e: CalendarEvent) => (locale.lang === 'en' && e.titleEn ? e.titleEn : e.title);
-const otherTitle = (e: CalendarEvent) => (locale.lang === 'en' ? (e.titleEn ? e.title : null) : e.titleEn);
-const spanIn = (e: CalendarEvent, format: (iso: string) => string) => formatSpan(e.startsOn, e.endsOn, format);
+const titleOf = (e: CalendarEvent) => eventTitle(e, locale.lang);
+const otherTitle = (e: CalendarEvent) => otherEventTitle(e, locale.lang);
 const spanOf = (e: CalendarEvent) => spanIn(e, m.value.day);
 const termOf = (e: CalendarEvent) => (e.term === null ? m.value.wholeYear(e.academicYear) : m.value.term(e.term, e.academicYear));
 const continues = (e: CalendarEvent, day: string) => day !== e.startsOn && day !== week.value;
@@ -298,7 +289,7 @@ usePageTitle(() => m.value.title);
                 :key="e.id"
                 type="button"
                 class="cal-ev"
-                :class="[KIND_GROUP[e.kind], { exam: e.kind === 'exam_period', cont: continues(e, day), on: e.id === selectedId }]"
+                :class="[EVENT_KIND_GROUP[e.kind], { exam: e.kind === 'exam_period', cont: continues(e, day), on: e.id === selectedId }]"
                 :aria-pressed="e.id === selectedId"
                 :title="titleOf(e)"
                 data-test="event"
@@ -323,7 +314,7 @@ usePageTitle(() => m.value.title);
                 :key="e.id"
                 type="button"
                 class="cal-chip"
-                :class="[KIND_GROUP[e.kind], { on: e.id === selectedId }]"
+                :class="[EVENT_KIND_GROUP[e.kind], { on: e.id === selectedId }]"
                 :aria-pressed="e.id === selectedId"
                 :title="titleOf(e)"
                 data-test="event"
@@ -340,7 +331,7 @@ usePageTitle(() => m.value.title);
       </section>
 
       <aside class="card cal-up" :aria-label="m.upcoming">
-        <div v-if="selected" class="cal-detail" :class="KIND_GROUP[selected.kind]" data-test="detail">
+        <div v-if="selected" class="cal-detail" :class="EVENT_KIND_GROUP[selected.kind]" data-test="detail">
           <div class="hd">
             <div>
               <p class="eyebrow">{{ m.kinds[selected.kind] }}</p>
@@ -394,7 +385,7 @@ usePageTitle(() => m.value.title);
               :key="e.id"
               type="button"
               class="cal-up-item"
-              :class="KIND_GROUP[e.kind]"
+              :class="EVENT_KIND_GROUP[e.kind]"
               data-test="upcoming-item"
               @click="select(e)"
             >

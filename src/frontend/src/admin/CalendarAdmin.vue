@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue';
 import { newestOnly } from '../async-load.js';
+import { EVENT_KIND_GROUP, eventTitle, otherEventTitle, spanIn } from '../calendar/present.js';
 import ExternalLink from '../components/ExternalLink.vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { formatDate, formatSpan, useLocale, useMessages } from '../locale.js';
+import { formatDate, useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import {
@@ -13,7 +14,6 @@ import {
   updateCalendarEvent,
   type AcademicCalendar,
   type CalendarEvent,
-  type CalendarEventKind,
 } from './api.js';
 import CalendarEventDialog from './CalendarEventDialog.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
@@ -30,16 +30,6 @@ import { describeProblem } from './problem.js';
 import { useAdminAccess } from './access.js';
 import { useProgramPicker } from './store.js';
 import { useAdminDialog, type WriteOutcome } from './write.js';
-
-const KIND_GROUP: Record<CalendarEventKind, string> = {
-  term_start: 'g-core',
-  term_end: 'g-core',
-  registration: 'g-elec',
-  add_drop: 'g-elec',
-  exam_period: 'g-pol',
-  holiday: 'g-gen',
-  other: 'g-thesis',
-};
 
 const access = useAdminAccess();
 const locale = useLocale();
@@ -109,9 +99,9 @@ async function showSaved(): Promise<void> {
 }
 
 const events = computed(() => calendar.value?.events ?? []);
-const titleIn = (event: CalendarEvent) => (locale.lang === 'en' && event.titleEn ? event.titleEn : event.title);
-const otherTitle = (event: CalendarEvent) => (locale.lang === 'en' ? (event.titleEn ? event.title : null) : event.titleEn);
-const datesOf = (event: CalendarEvent) => formatSpan(event.startsOn, event.endsOn, (iso) => formatDate(iso, locale.lang));
+const titleIn = (event: CalendarEvent) => eventTitle(event, locale.lang);
+const otherTitle = (event: CalendarEvent) => otherEventTitle(event, locale.lang);
+const datesOf = (event: CalendarEvent) => spanIn(event, (iso) => formatDate(iso, locale.lang));
 
 type Ask = { type: 'event'; event: CalendarEvent | null } | { type: 'delete-event'; event: CalendarEvent };
 const notice = ref(false);
@@ -266,7 +256,7 @@ watch(
                     <ExternalLink v-if="event.sourceUrl" class="link small source" :href="event.sourceUrl" data-test="event-source">{{ text.sourceLink }}</ExternalLink>
                   </th>
                   <td data-test="event-kind" :data-kind="event.kind" :data-label="text.columns.kind">
-                    <span :class="['chip', 'soft', KIND_GROUP[event.kind]]">{{ text.kinds[event.kind] }}</span>
+                    <span :class="['chip', 'soft', EVENT_KIND_GROUP[event.kind]]">{{ text.kinds[event.kind] }}</span>
                   </td>
                   <td data-test="event-term" :data-label="text.columns.term">
                     {{ event.term === null ? text.wholeYear(event.academicYear) : text.term(event.term, event.academicYear) }}
