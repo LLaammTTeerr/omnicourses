@@ -7,6 +7,7 @@ import { planNotFound } from '../plans/plan-id.js';
 import { PlansService } from '../plans/plans.service.js';
 import { courseCodesOf } from '../rules/plan-issues.js';
 import { RulesService } from '../rules/rules.service.js';
+import { lockAccountRow, noDeletionWaitingSql, ROW_LOCK } from '../users/account-state.js';
 import { PlanShare } from './plan-share.entity.js';
 import { sharedPlan } from './shared-plan.js';
 import { NOT_SHARED_MESSAGE, PlanShareDto, SharedPlanDto } from './sharing.dto.js';
@@ -54,8 +55,7 @@ export class SharingService {
     let rows: ShareRow[];
     try {
       rows = await this.db.transaction(async (tx) => {
-        const [active] = await tx.query('SELECT 1 FROM "users" WHERE "id" = $1 AND "deletion_requested_at" IS NULL FOR SHARE', [userId]);
-        if (!active) return [];
+        if (!(await lockAccountRow(tx, userId, ROW_LOCK.share, { activeOnly: true }))) return [];
         return tx.query(
           `INSERT INTO "plan_shares" ("plan_id", "user_id", "share_token", "show_name", "show_transcript_checks")
            VALUES ($1, $2, $3, COALESCE($4::boolean, false), COALESCE($5::boolean, false))
@@ -90,7 +90,7 @@ export class SharingService {
       `SELECT s."plan_id" AS "planId", s."user_id" AS "userId", s."show_transcript_checks" AS "showTranscriptChecks",
               CASE WHEN s."show_name" THEN u."display_name" END AS "ownerName"
        FROM "plan_shares" s JOIN "users" u ON u."id" = s."user_id"
-       WHERE s."share_token" = $1 AND u."deletion_requested_at" IS NULL`,
+       WHERE s."share_token" = $1 AND ${noDeletionWaitingSql('u')}`,
       [token],
     );
     if (!share) throw notShared();
