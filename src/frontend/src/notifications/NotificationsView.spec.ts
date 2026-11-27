@@ -134,6 +134,35 @@ describe('NotificationsView (F10, UC-12)', () => {
     expect(calls(fetch, 'GET', '/notifications/unread-count')).toHaveLength(2);
   });
 
+  it('leaves a Shift click and a middle-button click to the browser', async () => {
+    const { w, router } = await render({
+      'GET /notifications': list(),
+      [`POST /notifications/${SOON.id}/read`]: { ...SOON, readAt: '2026-12-02T04:00:00.000Z' },
+    });
+    const shift = new MouseEvent('click', { bubbles: true, cancelable: true, shiftKey: true });
+    const middle = new MouseEvent('click', { bubbles: true, cancelable: true, button: 1 });
+    for (const click of [shift, middle]) items(w)[0]!.get('[data-test="link-calendar"]').element.dispatchEvent(click);
+    await flushPromises();
+    expect([shift.defaultPrevented, middle.defaultPrevented]).toEqual([false, false]);
+    expect(router.currentRoute.value.name).toBe('notifications');
+  });
+
+  it('waits for the notification to be marked read before it follows the link', async () => {
+    let answer: () => void = () => {};
+    const { w, router } = await render({
+      'GET /notifications': list(),
+      [`POST /notifications/${TRANSCRIPT.id}/read`]: () =>
+        new Promise<Response>((resolve) => (answer = () => resolve(Response.json({ ...TRANSCRIPT, readAt: '2026-12-02T04:00:00.000Z' })))),
+    });
+    const push = vi.spyOn(router, 'push');
+    await items(w)[2]!.get('[data-test="link-audit"]').trigger('click');
+    await flushPromises();
+    expect(push).not.toHaveBeenCalled();
+    answer();
+    await flushPromises();
+    expect(push).toHaveBeenCalledTimes(1);
+  });
+
   it('tells the student when marking one read fails, and keeps it unread', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { w } = await render({ 'GET /notifications': list(), [`POST /notifications/${SOON.id}/read`]: status(500) });
@@ -200,6 +229,33 @@ describe('NotificationsView (F10, UC-12)', () => {
     useUnread().set(0);
     await flushPromises();
     useUnread().set(2);
+    await flushPromises();
+    expect(calls(fetch, 'GET', '/notifications?')).toHaveLength(1);
+    expect(items(w)).toHaveLength(3);
+  });
+
+  it('puts new notifications on top when the bell count goes down and then up again', async () => {
+    const NEW = notification({ id: 'zz-new', kind: 'registration_open', event: SOON.event });
+    const pages = [list([SOON, TERM, TRANSCRIPT]), list([NEW, SOON, TERM])];
+    const { w, fetch } = await render({ 'GET /notifications': () => Response.json(pages.shift()), 'GET /notifications/unread-count': { unread: 5 } });
+    useUnread().set(4);
+    await flushPromises();
+    expect(calls(fetch, 'GET', '/notifications?')).toHaveLength(1);
+    useUnread().set(1);
+    await flushPromises();
+    useUnread().set(3);
+    await flushPromises();
+    expect(items(w).map((item) => item.get('h2').attributes('id'))).toEqual([NEW, SOON, TERM, TRANSCRIPT].map((n) => `notification-${n.id}`));
+  });
+
+  it('fetches no new notifications when the count rises before the page has loaded', async () => {
+    let answer: () => void = () => {};
+    const { w, fetch } = await render({
+      'GET /notifications': () => new Promise<Response>((resolve) => (answer = () => resolve(Response.json(list())))),
+    });
+    useUnread().set(5);
+    await flushPromises();
+    answer();
     await flushPromises();
     expect(calls(fetch, 'GET', '/notifications?')).toHaveLength(1);
     expect(items(w)).toHaveLength(3);

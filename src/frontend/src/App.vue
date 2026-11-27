@@ -56,7 +56,7 @@ watch(
 );
 
 watch(
-  () => [auth.user?.id, route.fullPath],
+  () => route.fullPath,
   () => {
     if (auth.signedIn) void unread.refresh();
   },
