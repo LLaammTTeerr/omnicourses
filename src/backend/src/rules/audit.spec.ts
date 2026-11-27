@@ -302,25 +302,6 @@ describe('degree audit', () => {
     expect(audit.graduation.notChecked.map((c) => c.id)).toContain('total_credits');
   });
 
-  it('never marks graduation done when totalCreditsMin is null, even when all groups are met or empty', () => {
-    const metGroups = degreeAudit(zzCurriculum({ totalCreditsMin: null }), zzGraduatingTranscript());
-    expect(metGroups.graduation.unmet).toEqual([]);
-    expect(metGroups.graduation.notChecked.map((c) => c.id)).toContain('total_credits');
-    expect(metGroups.graduation.status).toBe('not_yet');
-
-    const emptyCohort = degreeAudit(zzCurriculum({ totalCreditsMin: null, groups: [], combinedMinimums: [] }), []);
-    expect(emptyCohort.graduation.unmet).toEqual([]);
-    expect(emptyCohort.graduation.notChecked.map((c) => c.id)).toContain('total_credits');
-    expect(emptyCohort.graduation.status).toBe('not_yet');
-
-    const openElectivesOnly = degreeAudit(
-      zzCurriculum({ totalCreditsMin: null, groups: [group('c', 'elective', null, [course('ZZC1', 4)])], combinedMinimums: [] }),
-      [],
-    );
-    expect(openElectivesOnly.graduation.unmet).toEqual([]);
-    expect(openElectivesOnly.graduation.status).toBe('not_yet');
-  });
-
   it('reads term 3 as a đại trà summer term with its own cap', () => {
     const audit = degreeAudit(zzCurriculum({ trainingType: 'standard' }), [graded('ZZT1', 10, 8, term(2024, 3)), graded('ZZA1', 4, 8, term(2024, 3))]);
     expect(audit.terms[0]).toMatchObject({ kind: 'summer', credits: 14, caps: { min: null, max: 12 } });

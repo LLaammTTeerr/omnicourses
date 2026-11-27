@@ -97,12 +97,13 @@ describe('AuthService', () => {
       expect(result.user).not.toHaveProperty('passwordHash');
     });
 
-    it('stores only the SHA-256 of the issued token and cleans up expired sessions', async () => {
+    it('stores only the SHA-256 of the issued token, sets createdAt from Clock, and cleans up expired sessions', async () => {
       const result = await service.signUp(
         { email: 'student@example.com', password: 'correct horse battery', displayName: 'Test Student', acceptedTerms: true },
       );
       const saved = sessions.save.mock.calls[0]![0] as Session;
       expect(saved.tokenHash).toBe(hashToken(result.token));
+      expect(saved.createdAt).toEqual(currentNow);
       expect(sessions.delete).toHaveBeenCalledOnce();
     });
 
@@ -143,8 +144,9 @@ describe('AuthService', () => {
       return expiresAt.getTime() - issuedAt.getTime();
     };
 
-    it('lasts SESSION_TTL_DAYS days', async () => {
+    it('lasts SESSION_TTL_DAYS days, including multi-semester values above 30 days', async () => {
       expect(await issuedFor('3')).toBe(3 * DAY_MS);
+      expect(await issuedFor('1000')).toBe(1000 * DAY_MS);
     });
 
     it.each(['', ' ', 'abc', '0'])('lasts 7 days when SESSION_TTL_DAYS is %j', async (value) => {

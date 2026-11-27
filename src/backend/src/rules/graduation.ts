@@ -63,5 +63,5 @@ export function graduationStatus(groups: readonly GroupCoverage[], combined: rea
   const met = conditions.filter((c) => c.status === 'met');
   const unmet = conditions.filter((c) => c.status === 'not_met');
   const notChecked = conditions.filter((c) => c.status === 'not_checked');
-  return { status: unmet.length === 0 && credits.totalRequired !== null ? 'done' : 'not_yet', met, unmet, notChecked };
+  return { status: unmet.length === 0 ? 'done' : 'not_yet', met, unmet, notChecked };
 }

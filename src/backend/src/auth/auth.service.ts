@@ -22,7 +22,6 @@ import { Session, USER_AGENT_MAX_LENGTH } from './session.entity.js';
 
 const SESSION_TOKEN_BYTES = 32;
 export const MAX_SESSION_LIFETIME_DAYS = 30;
-const MAX_SESSION_LIFETIME_MS = MAX_SESSION_LIFETIME_DAYS * DAY_MS;
 const MAX_FAILED_SIGN_INS = 10;
 const FAILED_SIGN_IN_WINDOW_MS = MINUTE_MS;
 const MAX_TRACKED_SIGN_IN_EMAILS = 10_000;
@@ -108,7 +107,7 @@ export class AuthService {
     });
     const now = this.clock.now();
     if (!session || session.revokedAt || session.expiresAt.getTime() <= now.getTime()) return null;
-    if (session.createdAt && session.createdAt.getTime() + MAX_SESSION_LIFETIME_MS <= now.getTime()) return null;
+    if (session.createdAt && session.createdAt.getTime() + maxSessionLifetimeMs() <= now.getTime()) return null;
     if (session.user.deletionRequestedAt) return null;
     return { user: session.user, session };
   }
@@ -120,7 +119,7 @@ export class AuthService {
 
   async refresh(session: Session): Promise<AuthResultDto> {
     const now = this.clock.now();
-    const maxExpiresAt = session.createdAt ? session.createdAt.getTime() + MAX_SESSION_LIFETIME_MS : Infinity;
+    const maxExpiresAt = session.createdAt ? session.createdAt.getTime() + maxSessionLifetimeMs() : Infinity;
     const expiresAt = new Date(Math.min(sessionExpiry(now).getTime(), maxExpiresAt));
     if (expiresAt.getTime() <= now.getTime()) throw new UnauthorizedException('Session expired');
     const token = newToken();
@@ -134,12 +133,13 @@ export class AuthService {
 
   async listSessions(userId: string, currentId: string): Promise<SessionDto[]> {
     const now = this.clock.now();
+    const maxLifetimeMs = maxSessionLifetimeMs();
     const live = await this.sessions.find({
       where: { userId, revokedAt: IsNull(), expiresAt: MoreThan(now) },
       order: { createdAt: 'DESC' },
     });
     return live
-      .filter((session) => !session.createdAt || session.createdAt.getTime() + MAX_SESSION_LIFETIME_MS > now.getTime())
+      .filter((session) => !session.createdAt || session.createdAt.getTime() + maxLifetimeMs > now.getTime())
       .map((session) => ({
         id: session.id,
         userAgent: session.userAgent,
@@ -165,6 +165,7 @@ export class AuthService {
         userId: user.id,
         tokenHash: hashToken(token),
         userAgent: userAgent?.slice(0, USER_AGENT_MAX_LENGTH) ?? null,
+        createdAt: now,
         expiresAt,
       }),
     );
@@ -216,9 +217,12 @@ function bearerToken(header: string | string[] | undefined): string | null {
   return scheme?.toLowerCase() === 'bearer' && token ? token : null;
 }
 
+function maxSessionLifetimeMs(): number {
+  return Math.max(MAX_SESSION_LIFETIME_DAYS, sessionTtlDays()) * DAY_MS;
+}
+
 function sessionExpiry(issuedAt: Date): Date {
-  const ttlDays = Math.min(sessionTtlDays(), MAX_SESSION_LIFETIME_DAYS);
-  return new Date(issuedAt.getTime() + ttlDays * DAY_MS);
+  return new Date(issuedAt.getTime() + sessionTtlDays() * DAY_MS);
 }
 
 function newToken(): string {
