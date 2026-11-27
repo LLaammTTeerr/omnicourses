@@ -4,6 +4,7 @@ interface Property {
   type?: string | string[];
   enum?: (string | number | null)[];
   anyOf?: Property[];
+  allOf?: Property[];
   oneOf?: Property[];
   items?: { enum?: (string | number | null)[] };
   maxItems?: number;
@@ -30,8 +31,8 @@ export type NullableKeys<T> = { [K in keyof T]-?: null extends T[K] ? K : never 
 const NULL_TYPE = 'null';
 
 function mayBeNull(property: Property): boolean {
-  const { type, enum: values, anyOf = [], oneOf = [] } = property;
-  return [type].flat().includes(NULL_TYPE) || (values ?? []).includes(null) || [...anyOf, ...oneOf].some(mayBeNull);
+  const { type, enum: values, anyOf = [], oneOf = [], allOf = [] } = property;
+  return [type].flat().includes(NULL_TYPE) || (values ?? []).includes(null) || [...anyOf, ...oneOf, ...allOf].some(mayBeNull);
 }
 
 export function contractNullable(schema: string): string[] {

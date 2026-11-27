@@ -4,7 +4,7 @@ import { contractSchemaNames } from './testing/contract.js';
 const SPECS = import.meta.glob<string>('./**/*.spec.ts', { query: '?raw', import: 'default', eager: true });
 const THIS_SPEC = './contract-coverage.spec.ts';
 const CONTRACT_IMPORT = 'testing/contract.js';
-const CHECKED_SCHEMA = /(?:\[\s*|contract\w+\(\s*)'(\w+)'/g;
+const CHECKED_SCHEMA = /(?:contract\w+\(\s*'|\[\s*'(?=\w+',(?:(?!\n\s*\['|\]\)\()[\s\S])*?satisfies Shape))(\w+)'/g;
 
 const NOT_READ_BY_THE_SCREENS = ['NotificationNotFoundDto'];
 

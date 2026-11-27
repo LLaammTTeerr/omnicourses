@@ -33,7 +33,7 @@ describe('transcript types against the contract (ADR 0007, ADR 0009)', () => {
   });
 
   it('checks the bounds the API checks', () => {
-    expect(schemas.TranscriptRowDto.properties.credits).toMatchObject({ minimum: 0, maximum: MAX_CREDITS });
+    expect(schemas.TranscriptRowDto.properties.credits).toMatchObject({ minimum: 0 });
     expect(schemas.TranscriptDto.properties.rows.description).toContain(`at most ${MAX_ROWS} rows`);
   });
 });

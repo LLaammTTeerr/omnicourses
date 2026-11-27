@@ -32,6 +32,8 @@ describe('guide types against the contract', () => {
     const texts = Object.fromEntries(GUIDE_LANGS.map((lang) => [lang, 'optional']));
     expect(contractShape('GuideListTextsDto')).toEqual(texts);
     expect(contractShape('GuideTextsDto')).toEqual(texts);
+    expect(contractNullable('GuideListTextsDto')).toEqual([]);
+    expect(contractNullable('GuideTextsDto')).toEqual([]);
   });
 
   it.each([
@@ -82,6 +84,7 @@ describe('guide types against the contract', () => {
     const regulation: Record<keyof RegulationSource, true> = { kind: true, document: true, clause: true, url: true };
     expect(Object.keys(kinds).sort()).toEqual(contractEnum('GuideNoteSourceDto', 'kind'));
     expect(Object.keys(contractShape('GuideNoteSourceDto')).sort()).toEqual(Object.keys(regulation).sort());
+    expect(contractNullable('GuideNoteSourceDto')).toEqual([]);
   });
 });
 
