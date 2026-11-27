@@ -4,7 +4,7 @@ import { nextTick } from 'vue';
 import { useAuth } from '../auth/store.js';
 import { user } from '../auth/testing/fixtures.js';
 import { mockApi, status } from '../testing/fetch.js';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 import { ACCESS_MANAGER, EVERY_GRANT, grants, NO_GRANTS, PROGRAM_ADMIN } from './testing/fixtures.js';
 
 function signIn(overrides = {}) {

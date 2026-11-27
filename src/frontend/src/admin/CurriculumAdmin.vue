@@ -64,7 +64,8 @@ import PrerequisitesDialog from './PrerequisitesDialog.vue';
 import { describeProblem, type ProblemView } from './problem.js';
 import ProgramDialog from './ProgramDialog.vue';
 import ProblemNote from './ProblemNote.vue';
-import { useAdminAccess, useProgramPicker } from './store.js';
+import { useAdminAccess } from './access.js';
+import { useProgramPicker } from './store.js';
 import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
 const access = useAdminAccess();

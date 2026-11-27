@@ -28,7 +28,7 @@ import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 import ProgramDialog from './ProgramDialog.vue';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
 const auth = useAuth();

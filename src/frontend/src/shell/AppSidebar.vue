@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { HOME_SIGNED_IN } from '../auth/redirect.js';
-import { useAdminAccess } from '../admin/store.js';
+import { useAdminAccess } from '../admin/access.js';
 import { useAuth } from '../auth/store.js';
 import { groupClass } from '../groups.js';
 import { LANGUAGES, useLocale, useMessages } from '../locale.js';

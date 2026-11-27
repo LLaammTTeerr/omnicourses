@@ -6,7 +6,7 @@ import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
 import { ADMIN_MESSAGES } from './messages.js';
 import { ADMIN_SECTIONS, opens } from './sections.js';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 
 const access = useAdminAccess();
 const route = useRoute();

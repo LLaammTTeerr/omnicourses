@@ -7,7 +7,7 @@ import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import type { UserGrants } from './api.js';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 import { AFFECTED_2024, AFFECTED_2025, CATALOG_MAINTAINER, catalogCourse, NO_GRANTS, SHARED_COURSE } from './testing/fixtures.js';
 import { ADMIN_MESSAGES } from './messages.js';
 

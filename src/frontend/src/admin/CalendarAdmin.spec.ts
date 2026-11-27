@@ -9,7 +9,7 @@ import { chooseOption, optionsOf } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { AcademicCalendar, CalendarEvent, UserGrants } from './api.js';
 import { ADMIN_MESSAGES } from './messages.js';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 import { adminPrograms, grants, OTHER_PROGRAM_ID, PROGRAM_ID, programGrant } from './testing/fixtures.js';
 
 const EVENTS_PATH = `/admin/programs/${PROGRAM_ID}/calendar-events`;

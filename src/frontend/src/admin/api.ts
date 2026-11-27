@@ -5,29 +5,9 @@ import type { Course, RequirementGroupKind, TrainingType } from '../curriculum/a
 
 export { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarEventKind, type CalendarProgram };
 
-export const GLOBAL_PERMISSIONS = ['catalog_maintainer', 'access_manager'] as const;
-export type GlobalPermission = (typeof GLOBAL_PERMISSIONS)[number];
-export const PERMISSION_KINDS = ['program_admin', ...GLOBAL_PERMISSIONS] as const;
-export type PermissionKind = (typeof PERMISSION_KINDS)[number];
+import { PERMISSION_KINDS, type GlobalGrant, type GlobalPermission, type PermissionKind, type ProgramGrant, type UserGrants } from './grants.js';
 
-export interface ProgramGrant {
-  programId: string;
-  programCode: string;
-  grantedAt: string;
-  grantedBy: string | null;
-}
-
-export interface GlobalGrant {
-  permission: GlobalPermission;
-  grantedAt: string;
-  grantedBy: string | null;
-}
-
-export interface UserGrants {
-  userId: string;
-  programs: ProgramGrant[];
-  permissions: GlobalGrant[];
-}
+export { fetchOwnGrants, GLOBAL_PERMISSIONS, PERMISSION_KINDS, type GlobalGrant, type GlobalPermission, type PermissionKind, type ProgramGrant, type UserGrants } from './grants.js';
 
 export interface AdminCurriculum {
   id: string;
@@ -323,7 +303,6 @@ const rulePath = (cohort: CohortRef, courseCode: string) => `${cohortPath(cohort
 const userPath = (userId: string) => `/admin/access/users/${segment(userId)}`;
 const calendarEventsPath = (programId: string) => `/admin/programs/${segment(programId)}/calendar-events`;
 
-export const fetchOwnGrants = () => requestAsUser<UserGrants>('GET', '/admin/grants');
 
 export const fetchAdminPrograms = () => requestAsUser<AdminProgramList>('GET', '/admin/programs');
 

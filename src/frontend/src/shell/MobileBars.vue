@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { HOME_SIGNED_IN } from '../auth/redirect.js';
-import { useAdminAccess } from '../admin/store.js';
+import { useAdminAccess } from '../admin/access.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { groupClass } from '../groups.js';
