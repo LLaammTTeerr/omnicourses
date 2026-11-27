@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import {
   fetchGuide,
   GUIDE_GROUPS,
@@ -17,6 +17,10 @@ import {
 } from './api.js';
 
 type RegulationSource = Extract<GuideNoteSource, { kind: 'regulation' }>;
+
+const NULLABLE: Record<string, string[]> = {
+  GuideTextDto: nullableKeys<GuideText>({ ifPortalDown: true }),
+};
 
 describe('guide types against the contract', () => {
   it('lists every guide group of the contract', () => {
@@ -70,6 +74,7 @@ describe('guide types against the contract', () => {
     ['GuideBoardPortalDto', { name: 'required', url: 'required', account: 'required', purpose: 'required' } satisfies Shape<GuideText['portals'][number]>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('has the note sources of the contract', () => {

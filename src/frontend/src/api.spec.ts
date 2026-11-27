@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, codePoints, failureKind, fetchHealth, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
-import { contractEnum, contractShape, type Shape } from './testing/contract.js';
+import { contractEnum, contractNullable, contractShape, type Shape } from './testing/contract.js';
 import { hang } from './testing/fetch.js';
 
 describe('Health against the contract', () => {
   it('has the fields of HealthDto', () => {
     expect(contractShape('HealthDto')).toEqual({ status: 'required', database: 'required' } satisfies Shape<Health>);
+  });
+
+  it('has no nullable field in HealthDto', () => {
+    expect(contractNullable('HealthDto')).toEqual([]);
   });
 
   it('has the values of HealthDto', () => {

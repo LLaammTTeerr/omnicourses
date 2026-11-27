@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractMaxItems, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractMaxItems, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import { MAX_PLAN_TERMS } from './board.js';
 import {
@@ -44,6 +44,17 @@ import { PLANNER_MESSAGES } from './messages.js';
 import { course, PLAN_ID } from './testing/fixtures.js';
 
 const summary = { id: 'required', name: 'required', curriculum: 'required', createdAt: 'required', updatedAt: 'required' } as const;
+
+const NULLABLE: Record<string, string[]> = {
+  PlanPreviewDto: nullableKeys<PlanPreview>({ firstTerm: true, lastTerm: true }),
+  PlanPlacementDto: nullableKeys<Placement>({ courseCode: true, credits: true, requirementGroupId: true }),
+  CreditCapsDto: nullableKeys<CreditCaps>({ min: true }),
+  PlanTermLoadDto: nullableKeys<PlanTermLoad>({ caps: true, kind: true }),
+  PlanIssueDto: nullableKeys<PlanIssue>({ combinedMinimumId: true, courseCode: true, credits: true, limit: true, position: true, requirementGroupId: true, term: true }),
+  PlanGroupCoverageDto: nullableKeys<PlanGroupCoverage>({ remainingCredits: true, requiredCredits: true }),
+  PlanCoverageDto: nullableKeys<PlanCoverage>({ totalRemaining: true, totalRequired: true }),
+  PlanIssuesDto: nullableKeys<PlanIssues>({ trainingType: true }),
+};
 
 describe('plan types against the contract (F5, ADR 0014)', () => {
   it.each([
@@ -96,6 +107,7 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
     ['PlanIssuesDto', { planId: 'required', trainingType: 'required', terms: 'required', issues: 'required', coverage: 'required' } satisfies Shape<PlanIssues>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('has the issue codes, kinds, placement kinds, term kinds and max term cap of the contract', () => {

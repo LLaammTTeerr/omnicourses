@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import {
   fetchNotifications,
@@ -15,6 +15,12 @@ import {
   type UnreadCount,
 } from './api.js';
 import { SOON } from './testing/fixtures.js';
+
+const NULLABLE: Record<string, string[]> = {
+  NotificationListDto: nullableKeys<NotificationList>({ nextBefore: true }),
+  NotificationDto: nullableKeys<Notification>({ event: true, readAt: true }),
+  NotificationEventDto: nullableKeys<NotificationEvent>({ term: true, titleEn: true }),
+};
 
 describe('notification types against the contract (ADR 0018)', () => {
   it.each([
@@ -36,6 +42,7 @@ describe('notification types against the contract (ADR 0018)', () => {
     ['UnreadCountDto', { unread: 'required' } satisfies Shape<UnreadCount>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('has the kinds and link keys of the contract', () => {
