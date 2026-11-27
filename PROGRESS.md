@@ -9,7 +9,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
    - Auto-merge (`gh pr merge N --auto --squash`) only on the bottom PR, whose base is `main`. A PR whose base is an unprotected branch would merge at once.
    - When the bottom PR is squash-merged: merge `origin/main` into the next branch (never rebase a pushed branch, never force-push), push, check its base is now `main`, then turn on auto-merge for it.
 3. Install with `npx --yes npm@11.21.1 ci` (the machine's npm is 9; it rewrites the lockfile). Never commit a lockfile change.
-4. Verify with `<scratchpad>/verify.sh <worktree> <database name>` (typecheck, lint, unit, build, e2e, openapi diff, browser). Each worktree uses its own database on the Postgres at `127.0.0.1:5432`.
+4. Verify with `converge/tools/verify.sh <worktree> <database name>` (on this branch) (typecheck, lint, unit, build, e2e, openapi diff, browser). Each worktree uses its own database on the Postgres at `127.0.0.1:5432`.
 5. A batch is done when: full verify passes, `src/backend/openapi.json` is byte-identical, an independent reviewer has read the diff, the commit is signed, and it carries a changeset (`--empty` when nothing user-facing changes).
 
 ## Boundaries
@@ -22,17 +22,17 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 
 All green: typecheck, lint, build, openapi unchanged. Backend unit 72 files / 1132 tests (statements 75.51 %, branches 76.18 %). Frontend unit 79 files / 1246 tests. Backend e2e 24 files / 364 tests (83 s). Browser 13 files / 68 tests. No pre-existing failure. One conditional skip: `ai/gateway.live-spec.ts` (needs a provider key, by design).
 
-Import graph (production files): backend folder cycles `auth <-> users` and `curriculum <-> curriculum-admin <-> database`; one file cycle among the three curriculum entities (TypeORM relations). Frontend: the root folder holds shared leaves and the composition root, so every folder is in one cycle; two-way pairs `shell <-> admin/notifications/auth/components`, `auth <-> plans`, `plans <-> sharing`. Regenerate with `node <scratchpad>/depgraph.mjs <src dir>`.
+Import graph (production files): backend folder cycles `auth <-> users` and `curriculum <-> curriculum-admin <-> database`; one file cycle among the three curriculum entities (TypeORM relations). Frontend: the root folder holds shared leaves and the composition root, so every folder is in one cycle; two-way pairs `shell <-> admin/notifications/auth/components`, `auth <-> plans`, `plans <-> sharing`. Regenerate with `node converge/tools/depgraph.mjs <src dir>`.
 
 ## Task pool
 
-Evidence for every item: the seven survey files (`<scratchpad>/survey/*.md`, findings with `path:line`). IDs: T tooling, BP backend platform, BD backend domain, BA backend admin/content, FK frontend kernel/platform, FP frontend planning, FA frontend admin/content. Status: todo, building, review, pushed (#PR), merged, deferred, rejected.
+Evidence for every item: the seven survey files (`converge/survey/*.md`, findings with `path:line`). IDs: T tooling, BP backend platform, BD backend domain, BA backend admin/content, FK frontend kernel/platform, FP frontend planning, FA frontend admin/content. Status: todo, building, review, pushed (#PR), merged, deferred, rejected.
 
 ### The stack (bottom first)
 
 | PR | Branch | Items | What changes | Risk | Status |
 | --- | --- | --- | --- | --- | --- |
-| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands; drop the unused openapi artifact step. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | todo |
+| 01 | cv-01-verify-and-lint-rules | T-1, T-2, FK-1 | One `npm run verify`; lint in the AGENTS.md commands. `scripts/lint.mjs` gains: backend import-direction ratchet (today's edges allowed, new ones fail), frontend layers kernel <- features <- composition over the files where they are, `fetch(` only in api modules, every module registered; lint gets its own spec and also walks `src/backend/test`. | low | todo |
 | 02 | cv-02-locks-and-seeds | BP-2, BA-3 | `common/advisory-locks.ts` owns every lock key (uniqueness spec). Curriculum seed data and loader move to `curriculum/seeds/`; `database/seed.ts` runs a list of seeders with one signature. Ends `curriculum <-> curriculum-admin <-> database`. | low | todo |
 | 03 | cv-03-engine-vocabulary | BD-1, BP-6, BD-6 (CreditCapsDto only) | Rule-engine input types and the training-type / group-kind lists move to a pure `curriculum/curriculum-rules.ts`; the purity spec also walks type imports. `TermDto` moves to `terms/`; `common` and `config` become enforced leaves. | low | todo |
 | 04 | cv-04-rules-one-derivation | BD-2 | One `courseStatus`, one `recordBefore`, two named prerequisite policies inside `rules/`. No result changes; existing specs pin it. | low | todo |
@@ -44,13 +44,13 @@ Evidence for every item: the seven survey files (`<scratchpad>/survey/*.md`, fin
 | 10 | cv-10-plan-view | FP-2, FP-1 step 1, FP-7 | `plans/issue-view.ts` pure leaf; `sharing/view.ts` holds the shared page's view model (tested), the `toEngineIssue` adapter goes; dead sharing aliases go. | low | todo |
 | 11 | cv-11-plan-components | FP-1 steps 2-3 | Shared presentational components (term load, issue card, coverage list) own their styles; 46 duplicated style rules leave `SharedPlanView.vue`. | med | todo |
 | 12 | cv-12-routes-and-effects | FK-4, FA-3, T-4 | Each feature owns its route records and app-wide effects; `router.ts`, `App.vue`, `App.spec.ts` become short lists; admin and bell tests move to their features. | low-med | todo |
-| 13 | cv-13-admin-screens | FA-2, FA-5, FA-1 | One saved-document composable for the two scoped admin screens; one calendar-event presentation module; the client's parsing of server reference sentences pinned to the server's list (fixes three unparsed kinds). | med | todo |
+| 13 | cv-13-admin-screens | FA-2, FA-5, FA-1 | One saved-document composable for the two scoped admin screens; one calendar-event presentation module; the client's parsing of server reference sentences pinned to the server's list (the three kinds it cannot parse today are listed as known gaps; wording them is a separate fix PR with Hoà's sign-off, because it changes what an admin sees). | med | todo |
 | 14 | cv-14-actions-and-drafts | FP-6, FP-5 | One attempt helper for "run, ignore 401, report"; explorer reuses the program-choice composable; `groupGlyph`; transcript draft logic in a tested module. | low-med | todo |
 | 15 | cv-15-contract-checks | FK-5, FP-4, FP-8 (option A), FK-6 | Contract coverage spec (every schema checked or allow-listed), nullability, limits; group-colour rules pinned to the seeded group names; message catalogues collected by glob. | low | todo |
 | 16 | cv-16-admin-messages | FA-6 | `admin/messages.ts` (1163 lines) split per screen, same keys. | low | todo |
 | 17 | cv-17-docs-and-extras | BD-4, T-5, T-7, architecture map | Stale ADR rows, `.rgignore` for dated evidence, architecture.md layer and lock tables; then the two extras: comments that restate code, tests that cannot fail. | low | todo |
 
-Build tracks (parallel, disjoint paths): tooling (01, 17) / backend A (02, 03, 04, 08) / backend B after 02 (05, 06, 07) / frontend A (10, 11, 14) / frontend B (09, 13, 16) / then 12 and 15, which touch every feature.
+Build: 01 first, alone, through the whole pipeline. Then three tracks in parallel, every one based on the 01 branch so the new lint rules run in each build: backend (02 to 08 in order), frontend A (10, 11, 14), frontend B (09, 13, 16); then 12 and 15, which touch every feature; then 17. A batch is built on a local branch `cvb/<slug>` and cherry-picked onto the stack tip as `refactor/cv-NN-<slug>`, so the stack order follows readiness. Every PR above the bottom one is opened as a draft.
 
 ### Deferred
 
@@ -60,6 +60,7 @@ Build tracks (parallel, disjoint paths): tooling (01, 17) / backend A (02, 03, 0
 
 ### Rejected
 
+- Removing the unused openapi artifact upload from `ci.yml` (T-1): CI gates are the Project Lead's; listed under decisions instead.
 - T-3 parallel e2e: the suite takes 83 s; not worth the flakiness risk.
 - BA-5 notification-kind guard: already enforced by `notifications/api.spec.ts` (contractEnum).
 - BA-6 exclude `testing/` from the build: staging may seed fixtures from dist; leave.
@@ -74,7 +75,8 @@ Build tracks (parallel, disjoint paths): tooling (01, 17) / backend A (02, 03, 0
 5. BP-4: with `SESSION_TTL_DAYS` above 30 the "hard 30-day cap" follows the TTL (`auth.service.ts:216`). Intended?
 6. BD-3: must `class-model.md` keep field-level copies of engine types (it has already drifted), or may it point at `rules/types.ts`?
 7. T-8: ADR 0019 still says "proposed" although #217 shipped it.
-8. FA-1: Vietnamese and English wording for three reference kinds (owner: Hoà). FK-4: menu labels from the feature's messages or literal on the route (owner: Hoà).
+8. T-1: the backend CI job exports and uploads `openapi.json` as an artifact that no workflow downloads. Remove the step? (CI gates are Lâm-only.)
+9. FA-1: Vietnamese and English wording for three reference kinds (owner: Hoà). FK-4: menu labels from the feature's messages or literal on the route (owner: Hoà).
 
 ### In-flight zones, narrowed
 
