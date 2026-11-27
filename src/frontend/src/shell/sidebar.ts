@@ -26,7 +26,13 @@ export const useSidebar = defineStore('sidebar', () => {
 
 export function isSidebarKey(event: KeyboardEvent): boolean {
   if (event.key !== '[' || event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (document.querySelector('dialog[open]')) return false;
+  if (document.activeElement?.closest('[role="listbox"], [aria-expanded="true"]')) return false;
   const target = event.target;
   if (!(target instanceof HTMLElement)) return true;
-  return !(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+  return !(
+    target.isContentEditable ||
+    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
+    target.closest('[role="listbox"], [aria-expanded="true"]')
+  );
 }

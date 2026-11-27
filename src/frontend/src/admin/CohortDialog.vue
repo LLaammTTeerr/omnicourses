@@ -92,6 +92,6 @@ const invalid = (field: CohortField) => fieldInvalid(props.problem, field);
   </ModalDialog>
 </template>
 
-<style>
+<style scoped>
 .cohort-identity { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: start; }
 </style>

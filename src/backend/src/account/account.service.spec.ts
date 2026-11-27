@@ -27,7 +27,7 @@ describe('AccountService', () => {
   let service: AccountService;
 
   beforeEach(() => {
-    tx.query.mockReset();
+    tx.query.mockReset().mockResolvedValue([]);
     db = { query: vi.fn(), transaction: vi.fn(async (...args: unknown[]) => (args.at(-1) as (m: unknown) => unknown)(tx)) };
     users = { markDeletionRequestedWithin: vi.fn(async () => undefined) };
     auth = { verifyPassword: vi.fn(async () => true), revokeAllWithin: vi.fn(async () => undefined) };
@@ -75,9 +75,16 @@ describe('AccountService', () => {
     await expect(service.requestDeletion(user, 'correct horse battery')).rejects.toThrow('db down');
   });
 
+  it('acquires ADMIN_WRITE_LOCK inside the transaction before marking deletion so revokeGlobal cannot race to 0 active access managers', async () => {
+    await service.requestDeletion(user, 'correct horse battery');
+    expect(tx.query).toHaveBeenCalledWith('SELECT pg_advisory_xact_lock($1)', [11_012_001]);
+    expect(tx.query.mock.invocationCallOrder[0]).toBeLessThan(users.markDeletionRequestedWithin.mock.invocationCallOrder[0]!);
+  });
+
   it('refuses with 403 (not 401, which would sign the client out) on a wrong password', async () => {
     auth.verifyPassword.mockResolvedValue(false);
     await expect(service.requestDeletion(user, 'wrong')).rejects.toThrow(new ForbiddenException('Wrong password'));
+    expect(tx.query).not.toHaveBeenCalled();
     expect(users.markDeletionRequestedWithin).not.toHaveBeenCalled();
     expect(auth.revokeAllWithin).not.toHaveBeenCalled();
     expect(sharing.stopAllWithin).not.toHaveBeenCalled();

@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+import type { NextFunction, Request, Response } from 'express';
 import { apiDocs, corsOrigin, trustProxy } from './config/env.js';
 import { FEATURE_SETUPS } from './features.js';
 
@@ -10,8 +11,8 @@ export function configureApp(app: INestApplication): OpenAPIObject {
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: corsOrigin() });
-  for (const setup of FEATURE_SETUPS) setup(app, API_PREFIX);
   configureExpress(app);
+  for (const setup of FEATURE_SETUPS) setup(app, API_PREFIX);
   return buildDocument(app);
 }
 
@@ -20,6 +21,12 @@ function configureExpress(app: INestApplication): void {
   const proxy = trustProxy();
   if (proxy) express.set('trust proxy', proxy);
   express.disable('x-powered-by');
+  express.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+  });
 }
 
 function buildDocument(app: INestApplication): OpenAPIObject {

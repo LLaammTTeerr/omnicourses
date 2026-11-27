@@ -1,5 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { ApiOkResponse, ApiProperty, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import { DataSource } from 'typeorm';
 import { Public } from '../auth/auth.decorators.js';
 
@@ -19,12 +19,13 @@ export class HealthController {
 
   @Get()
   @ApiOkResponse({ type: HealthDto })
+  @ApiServiceUnavailableResponse({ type: HealthDto })
   async check(): Promise<HealthDto> {
     try {
       await this.dataSource.query('SELECT 1');
       return { status: 'ok', database: 'up' };
     } catch {
-      return { status: 'degraded', database: 'down' };
+      throw new ServiceUnavailableException({ status: 'degraded', database: 'down' });
     }
   }
 }

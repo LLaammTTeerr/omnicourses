@@ -2,7 +2,7 @@
 // b1-run-<run>-p02@example.com, onboarded to APCS 2024 through the API.
 import { T, addCourse, board, browser, call, check, email, log, newPlan, openPlans, saved, shot, signedIn, sleep, summary, text, tokenFor, SITE } from './p-lib.mjs';
 
-const mail = email(process.env.ACC ?? '03'); // p02 was used by a first run that stopped on a script error (see the aborted-run output)
+const mail = email(process.env.ACC ?? '03'); // p02 was used by a first run that stopped on a script error (p-user-01j-plan-01i-output.txt holds the rerun)
 const token = await tokenFor(mail);
 const ob = await call(token, 'PUT', '/users/me/onboarding', { program: 'APCS', cohort: 2024, targetGraduationTerm: null, creditsPerTerm: null, internshipTerm: null, finished: true });
 check('setup', 'onboarded to APCS 2024 (API, 200)', ob.status === 200, ob.status);

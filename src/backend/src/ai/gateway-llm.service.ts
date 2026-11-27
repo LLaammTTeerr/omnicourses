@@ -24,6 +24,7 @@ interface Conversation {
   modelTools: ModelTool[];
   messages: ModelMessage[];
   maxSteps: number;
+  signal?: AbortSignal;
 }
 
 type ModelEnd = Extract<ModelStreamEvent, { type: 'end' }>;
@@ -117,9 +118,9 @@ async function* converse(conversation: Conversation, meter: Meter): AsyncGenerat
   }
 }
 
-async function* streamTurn({ client, model, messages, modelTools }: Conversation, toolChoice: 'auto' | 'none'): AsyncGenerator<ChatEvent, ModelEnd> {
+async function* streamTurn({ client, model, messages, modelTools, signal }: Conversation, toolChoice: 'auto' | 'none'): AsyncGenerator<ChatEvent, ModelEnd> {
   let end: ModelEnd | undefined;
-  for await (const event of client.stream({ model, messages, tools: modelTools, toolChoice })) {
+  for await (const event of client.stream({ model, messages, tools: modelTools, toolChoice, signal })) {
     if (event.type === 'text') yield event;
     else end = event;
   }
@@ -157,7 +158,7 @@ export class GatewayLlmService extends LlmService {
       { role: 'user', content: request.input },
     ];
     const jsonSchema = { name: 'reply', schema: toModelSchema(request.schema) };
-    const complete = () => client.complete({ model, messages, jsonSchema });
+    const complete = () => client.complete({ model, messages, jsonSchema, signal: request.signal });
     const call = this.metered(request.context, model, (meter) => withoutEvents(() => completeMatching(complete, request.schema, meter)));
     return (await call.next()).value as T;
   }
@@ -172,6 +173,7 @@ export class GatewayLlmService extends LlmService {
       modelTools: tools.map((t) => ({ name: t.name, description: t.description, parameters: toModelSchema(t.schema) })),
       messages: [{ role: 'system', content: request.instructions }, ...clientMessages(request.messages)],
       maxSteps: request.maxSteps ?? DEFAULT_MAX_STEPS,
+      signal: request.signal,
     };
     yield* this.metered(request.context, model, (meter) => converse(conversation, meter));
   }

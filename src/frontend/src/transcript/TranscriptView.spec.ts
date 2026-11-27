@@ -2,11 +2,12 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RouterView, type Router } from 'vue-router';
 import { useAuth } from '../auth/store.js';
+import type { Curriculum, CurriculumCourse } from '../curriculum/api.js';
 import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { TranscriptRow } from './api.js';
-import { chooseOption } from '../testing/select.js';
 import { TRANSCRIPT_MESSAGES } from './messages.js';
 
 const SAVED: TranscriptRow[] = [
@@ -14,11 +15,50 @@ const SAVED: TranscriptRow[] = [
   { courseCode: 'ZZ102', courseName: 'Môn thử hai', credits: 3, result: 'in_progress', grade: null, term: { year: 2025, number: 1 } },
 ];
 
+const catalogCourse = (code: string, nameVi: string, credits: number): CurriculumCourse => ({
+  code,
+  nameVi,
+  nameEn: null,
+  credits,
+  theoryPeriods: 45,
+  labPeriods: 30,
+  exercisePeriods: null,
+  projectPeriods: null,
+  prerequisites: null,
+  offeringTerms: null,
+});
+
+const CURRICULUM: Curriculum = {
+  id: '00000000-0000-4000-8000-0000000000c1',
+  code: 'APCS2024',
+  program: { code: 'APCS', nameVi: 'Chương trình Tiên tiến thử', nameEn: null, faculty: null, trainingType: 'advanced' },
+  cohortYear: 2024,
+  nameVi: 'CTĐT thử khóa 2024',
+  nameEn: null,
+  language: 'en',
+  totalCreditsMin: 140,
+  requirementGroups: [
+    {
+      id: '00000000-0000-4000-8000-000000000a01',
+      name: 'Nhóm bắt buộc thử',
+      kind: 'compulsory',
+      creditsTotal: 11,
+      creditsTotalMin: null,
+      officialNotes: null,
+      courses: [catalogCourse('ZZ101', 'Môn thử một', 4), catalogCourse('ZZ102', 'Môn thử hai', 3), catalogCourse('ZZ104', 'Môn tự động điền', 4)],
+    },
+  ],
+};
+
 let wrapper: VueWrapper | undefined;
 let router: Router;
 
 async function render(routes: Record<string, unknown> = {}) {
-  const fetch = mockApi({ 'GET /users/me/transcript': { rows: SAVED }, ...routes });
+  const fetch = mockApi({
+    'GET /users/me/transcript': { rows: SAVED },
+    'GET /programs/APCS/curricula/2024': CURRICULUM,
+    ...routes,
+  });
   const app = await setup('/transcript');
   router = app.router;
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
@@ -121,10 +161,12 @@ describe('TranscriptView (F2, UC-02)', () => {
 
   it('removes a row from the draft only', async () => {
     const { w, fetch } = await render();
+    const initialCalls = fetch.mock.calls.length;
     await row(w, 0).get('button[aria-label="Xóa dòng 1 (ZZ101)"]').trigger('click');
     await flushPromises();
     expect(w.findAll('tbody tr')).toHaveLength(1);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(initialCalls);
+    expect(fetch).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ method: 'PUT' }));
     expect(useToast().message).toBe('Đã bỏ dòng 1 (ZZ101) khỏi bảng. Bảng điểm đã lưu chỉ đổi khi bạn bấm lưu.');
     expect(document.activeElement?.id).toBe('add-row');
     expect(saveButton(w).attributes('disabled')).toBeUndefined();
@@ -153,6 +195,7 @@ describe('TranscriptView (F2, UC-02)', () => {
     const { w } = await render({ 'GET /users/me/transcript': { rows: [] } });
     expect(w.text()).toContain(TRANSCRIPT_MESSAGES.vi.empty);
     expect(summary(w)).toBe('0 dòng · chưa có thay đổi');
+    expect(w.find('[data-test="diff-summary"]').exists()).toBe(false);
   });
 
   it('says plainly that no PDF reader exists yet, so rows are entered by hand', async () => {
@@ -189,5 +232,111 @@ describe('TranscriptView (F2, UC-02)', () => {
     useAuth().clear();
     await router.push('/sign-in');
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('pastes a grades table with live preview and per-line error checking, loading rows into draft review only until saved', async () => {
+    const { w, fetch } = await render({
+      'PUT /users/me/transcript': (init: RequestInit) => Response.json(sentBody(init)),
+    });
+    await w.get('[data-test="open-paste"]').trigger('click');
+    await flushPromises();
+
+    const dialog = w.get('[data-test="paste-dialog"]');
+    const input = dialog.get('[data-test="paste-input"]');
+
+    await input.setValue(['Học kỳ\tMã MH\tTên môn\tTín chỉ\tĐiểm', '2024-2\tZZ104\tMôn tự động điền\t4\t9,0', 'bad-line'].join('\n'));
+    await flushPromises();
+    expect(dialog.findAll('[data-test="paste-preview-row"]')).toHaveLength(1);
+    expect(dialog.findAll('[data-test="paste-error"]')).toHaveLength(1);
+    expect(dialog.get('[data-test="paste-error"]').text()).toContain('Dòng 3');
+    expect(dialog.get('[data-test="paste-append"]').attributes('disabled')).toBeDefined();
+    expect(dialog.get('[data-test="paste-replace"]').attributes('disabled')).toBeDefined();
+
+    await input.setValue(['Học kỳ\tMã MH\tTên môn\tTín chỉ\tĐiểm', '2024-2\tZZ104\tMôn tự động điền\t4\t9,0', '2025-2\tZZ105\tMôn miễn thử\t2\tMiễn'].join('\n'));
+    await flushPromises();
+    expect(dialog.find('[data-test="paste-errors"]').exists()).toBe(false);
+    expect(dialog.findAll('[data-test="paste-preview-row"]')).toHaveLength(2);
+
+    await dialog.get('[data-test="paste-append"]').trigger('click');
+    await flushPromises();
+    expect(w.findAll('tbody tr')).toHaveLength(4);
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+    expect(w.get('[data-test="diff-summary"]').text()).toBe('+2 thêm / ~0 sửa / -0 xóa');
+
+    await w.get('[data-test="open-paste"]').trigger('click');
+    await flushPromises();
+    await w.get('[data-test="paste-input"]').setValue('2025-1\tZZ102\tMôn thử hai\t3\t8,0\n2025-2\tZZ104\tMôn tự động điền\t4\tĐang học');
+    await flushPromises();
+    await w.get('[data-test="paste-replace"]').trigger('click');
+    await flushPromises();
+
+    expect(w.findAll('tbody tr')).toHaveLength(2);
+    expect(w.get('[data-test="diff-summary"]').text()).toBe('+1 thêm / ~1 sửa / -1 xóa');
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+
+    await saveButton(w).trigger('click');
+    await flushPromises();
+    const put = fetch.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(sentBody(put[1])).toEqual({
+      rows: [
+        { courseCode: 'ZZ102', courseName: 'Môn thử hai', credits: 3, result: 'graded', grade: 8, term: { year: 2025, number: 1 } },
+        { courseCode: 'ZZ104', courseName: 'Môn tự động điền', credits: 4, result: 'in_progress', grade: null, term: { year: 2025, number: 2 } },
+      ],
+    });
+    expect(w.find('[data-test="diff-summary"]').exists()).toBe(false);
+  });
+
+  it('cancels unsaved edits and restores the last saved snapshot (UC-02, TC-B2-TRN-01)', async () => {
+    const { w } = await render();
+    expect(w.find('[data-test="cancel-edits"]').exists()).toBe(false);
+
+    await row(w, 0).get('button[aria-label="Xóa dòng 1 (ZZ101)"]').trigger('click');
+    await w.get('#add-row').trigger('click');
+    await flushPromises();
+    expect(summary(w)).toBe('2 dòng · 1 dòng cần sửa');
+    expect(w.get('[data-test="diff-summary"]').text()).toBe('+1 thêm / ~0 sửa / -1 xóa');
+
+    await w.get('[data-test="cancel-edits"]').trigger('click');
+    await flushPromises();
+    expect(w.findAll('tbody tr')).toHaveLength(2);
+    expect((row(w, 0).get('input.code-input').element as HTMLInputElement).value).toBe('ZZ101');
+    expect((row(w, 1).get('input.code-input').element as HTMLInputElement).value).toBe('ZZ102');
+    expect(summary(w)).toBe('2 dòng · chưa có thay đổi');
+    expect(w.find('[data-test="cancel-edits"]').exists()).toBe(false);
+    expect(w.find('[data-test="diff-summary"]').exists()).toBe(false);
+    expect(saveButton(w).attributes('disabled')).toBeDefined();
+  });
+
+  it('auto-fills course name and credits on a blank row and flags valid codes outside the curriculum without blocking save (UC-02 step 5, A4)', async () => {
+    const { w } = await render();
+    expect(row(w, 0).find('[data-test="not-in-curriculum"]').exists()).toBe(false);
+
+    await w.get('#add-row').trigger('click');
+    await flushPromises();
+    const added = row(w, 2);
+    await added.get('input.code-input').setValue('zz104');
+    await flushPromises();
+
+    expect((added.get(`input[aria-label^="Tên môn"]`).element as HTMLInputElement).value).toBe('Môn tự động điền');
+    expect((added.get('input[inputmode="numeric"]').element as HTMLInputElement).value).toBe('4');
+    expect(added.find('[data-test="not-in-curriculum"]').exists()).toBe(false);
+
+    await added.get('input.code-input').setValue('ZZ999');
+    await added.get(`input[aria-label^="Tên môn"]`).setValue('Môn tự do ngoài CTĐT');
+    await added.get('input[inputmode="numeric"]').setValue('3');
+    await chooseOption(added.findAll('[role="combobox"]')[1]!, 'Đạt');
+    await flushPromises();
+
+    expect(added.get('[data-test="not-in-curriculum"]').text()).toBe(TRANSCRIPT_MESSAGES.vi.notInCurriculum);
+    expect(added.get('[data-test="check"]').text()).toBe(TRANSCRIPT_MESSAGES.vi.ok);
+    expect(saveButton(w).attributes('disabled')).toBeUndefined();
+  });
+
+  it('fails silently when the curriculum endpoint is unavailable', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { w } = await render({ 'GET /programs/APCS/curricula/2024': status(503) });
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(w.findAll('tbody tr')).toHaveLength(2);
+    expect(row(w, 0).find('[data-test="not-in-curriculum"]').exists()).toBe(false);
   });
 });

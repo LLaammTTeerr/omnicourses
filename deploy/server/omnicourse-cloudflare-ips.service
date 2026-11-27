@@ -1,0 +1,12 @@
+# Weekly refresh of /etc/nginx/conf.d/omnicourse-cloudflare-origin.conf.
+# Stages the new config via a temp file and validates with `nginx -t` before `systemctl reload nginx`
+# (rolling back to the previous file if `nginx -t` fails).
+[Unit]
+Description=Refresh Cloudflare IP ranges for OmniCourse nginx origin gate
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/omnicourse-root cloudflare-ips
+Nice=10

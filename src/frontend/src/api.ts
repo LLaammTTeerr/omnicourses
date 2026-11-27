@@ -69,13 +69,28 @@ export function fetchHealth(): Promise<Health> {
 
 export const statusOf = (e: unknown): number | null => (e instanceof HttpError ? e.status : null);
 
-type FailureKind = 'unauthorized' | 'invalid' | 'forbidden' | 'not_found' | 'conflict' | 'rate_limited' | 'server_error' | 'timed_out' | 'unreachable' | 'other';
+export type FailureKind =
+  | 'unauthorized'
+  | 'invalid'
+  | 'forbidden'
+  | 'not_found'
+  | 'conflict'
+  | 'rate_limited'
+  | 'server_error'
+  | 'timed_out'
+  | 'aborted'
+  | 'unreachable'
+  | 'other';
 
 const FAILURE_BY_STATUS: Readonly<Record<number, FailureKind>> = { 400: 'invalid', 401: 'unauthorized', 403: 'forbidden', 404: 'not_found', 409: 'conflict', 429: 'rate_limited' };
 const FIRST_SERVER_ERROR = 500;
 
 export function failureKind(error: unknown): FailureKind {
-  if (!(error instanceof HttpError)) return error instanceof DOMException && error.name === 'TimeoutError' ? 'timed_out' : 'unreachable';
+  if (!(error instanceof HttpError)) {
+    if (error instanceof DOMException && error.name === 'AbortError') return 'aborted';
+    if (error instanceof DOMException && error.name === 'TimeoutError') return 'timed_out';
+    return 'unreachable';
+  }
   if (error.status >= FIRST_SERVER_ERROR) return 'server_error';
   return FAILURE_BY_STATUS[error.status] ?? 'other';
 }

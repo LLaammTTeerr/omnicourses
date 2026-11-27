@@ -3090,6 +3090,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthDto"
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -5599,6 +5609,7 @@
               "string",
               "null"
             ],
+            "maxLength": 2000,
             "description": "The printed rule text"
           }
         },
@@ -9368,6 +9379,7 @@
           },
           "confirmImpact": {
             "type": "string",
+            "maxLength": 128,
             "description": "The reviewVersion of a 409 impact_confirmation_required answer: confirms the change for exactly the curricula it listed. Needed whenever the course is linked to a curriculum."
           }
         }
@@ -9414,7 +9426,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 2000
           }
         }
       },

@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
 import { contractShape, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
-import { exportAccount, revokeSession, saveFile, type DeleteAccountBody, type DeletionScheduled } from './api.js';
+import { exportAccount, revokeSession, saveFile, type AccountExport, type DeleteAccountBody, type DeletionScheduled } from './api.js';
 
 describe('account types against the contract', () => {
   it.each([
+    ['AccountExportDto', { exportedAt: 'required', user: 'required', tables: 'required' } satisfies Shape<AccountExport>],
     ['DeleteAccountDto', { password: 'required' } satisfies Shape<DeleteAccountBody>],
     ['DeletionScheduledDto', { purgeAfter: 'required' } satisfies Shape<DeletionScheduled>],
   ])('has the fields of %s', (schema, shape) => {

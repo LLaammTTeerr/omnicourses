@@ -72,7 +72,8 @@ export function pointerDrag<W>(h: DragHandlers<W>) {
     state.dx += (state.cx - state.dx) * GRAB_POINT_EASING;
     state.dy += (state.cy - state.dy) * GRAB_POINT_EASING;
     place();
-    if (edgeScroll(state.y)) retarget();
+    const overBin = state.target === 'bin' || !!hit(state.x, state.y)?.closest('.drop-bin');
+    if (edgeScroll(state.y, window.innerHeight, undefined, overBin)) retarget();
     state.frame = requestAnimationFrame(loop);
   }
 

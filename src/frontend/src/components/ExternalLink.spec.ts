@@ -25,4 +25,26 @@ describe('ExternalLink', () => {
     await nextTick();
     expect(w.text()).toBe('Portal (opens in a new tab)');
   });
+
+  it('allows http:// as well as https://', () => {
+    const a = mount(ExternalLink, { props: { href: 'HTTP://example.com/docs' }, slots: { default: 'Docs' } }).get('a');
+    expect(a.attributes('href')).toBe('HTTP://example.com/docs');
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'JAVASCRIPT:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'ftp://example.com/file',
+    '//evil.example.com/phish',
+    '',
+  ])('renders a disabled span without an unsafe href for %j', (href) => {
+    const w = mount(ExternalLink, { props: { href }, slots: { default: 'Portal' } });
+    expect(w.find('a').exists()).toBe(false);
+    const span = w.get('span.link');
+    expect(span.attributes('aria-disabled')).toBe('true');
+    expect(span.attributes('href')).toBeUndefined();
+    expect(span.text()).toBe('Portal');
+  });
 });

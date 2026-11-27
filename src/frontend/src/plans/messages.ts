@@ -106,6 +106,8 @@ interface PlannerMessages {
   whatIf: string;
   whatIfName: (name: string) => string;
   whatIfHint: string;
+  share: string;
+  shareHint: string;
   plansLabel: string;
   defaultPlanName: string;
   opening: string;
@@ -271,6 +273,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIf: 'What-if',
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Thử thay đổi trên một bản sao. Kế hoạch này giữ nguyên.',
+    share: 'Chia sẻ',
+    shareHint: 'Chia sẻ liên kết chỉ đọc hoặc in kế hoạch ra PDF',
     plansLabel: 'Các kế hoạch',
     defaultPlanName: 'Kế hoạch mặc định',
     opening: 'Đang mở kế hoạch…',
@@ -467,6 +471,8 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     whatIf: 'What-if',
     whatIfName: (name) => `What-if: ${name}`,
     whatIfHint: 'Try a change on a copy. This plan stays as it is.',
+    share: 'Share',
+    shareHint: 'Share a read-only link with an advisor or print as PDF',
     plansLabel: 'Plans',
     defaultPlanName: 'Default plan',
     opening: 'Opening your plan…',

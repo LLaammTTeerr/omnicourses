@@ -1,10 +1,9 @@
 # UC-02: Import transcript
 
-- Feature: F2 Transcript import (Vision §5, as changed by [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md) and by the [amendment of 15 November 2026 to ADR 0007](../../analysis-and-design/adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file))
+- Feature: F2 Transcript import (Vision §5, as changed by [ADR 0003](../../analysis-and-design/adr/0003-language-model-scope.md) and by the [amendments of 15 and 27 November 2026 to ADR 0007](../../analysis-and-design/adr/0007-transcript.md#amendment-27-november-2026-deterministic-paste-parser-and-pre-save-diff))
 - Owner: Lâm
-- Status: draft for the use-case model (PA2); rewritten on 26 November 2026 for the decision of 15 November 2026. What is built: the [README feature table](../../../README.md#what-is-built).
-- Change from Vision v1.0: no language model, no file and no image. The student pastes the grades table or types the rows in. A deterministic parser reads the paste. Vision v2 (Hoà) restates F2 to match.
-- Not decided: the paste format (which columns the pasted table has, and how the portal's results map to the row results). The Project Lead decides it. This use case does not assume one.
+- Status: draft for the use-case model (PA2); rewritten on 26 November 2026 for the decision of 15 November 2026, and updated on 27 November 2026 for the deterministic paste parser (`paste.ts`) and pre-save diff. What is built: the [README feature table](../../../README.md#what-is-built).
+- Change from Vision v1.0: no language model, no file and no image. The student pastes the grades table or types the rows in. A deterministic client-side parser (`src/frontend/src/transcript/paste.ts`) reads the paste, and overwriting a saved transcript shows a pre-save diff summary. Vision v2 (Hoà) restates F2 to match.
 
 ## 1. Brief description
 

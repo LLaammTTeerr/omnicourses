@@ -90,6 +90,6 @@ async function confirm(): Promise<void> {
   </ModalDialog>
 </template>
 
-<style>
+<style scoped>
 .delete-form { gap: 14px; }
 </style>

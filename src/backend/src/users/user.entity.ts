@@ -13,7 +13,7 @@ export class User {
   @Column({ type: 'varchar', length: EMAIL_MAX_LENGTH })
   email!: string;
 
-  @Column({ name: 'password_hash', type: 'text', nullable: true })
+  @Column({ name: 'password_hash', type: 'text', nullable: true, select: false })
   passwordHash!: string | null;
 
   @Column({ name: 'display_name', type: 'varchar', length: DISPLAY_NAME_MAX_LENGTH })

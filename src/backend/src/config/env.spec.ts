@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountDeletionGraceDays, aiConfig, apiDocs, loadEnvFiles, port } from './env.js';
+import { accountDeletionGraceDays, aiConfig, apiDocs, corsOrigin, loadEnvFiles, port, sessionTtlDays, trustProxy } from './env.js';
 
 describe('loadEnvFiles', () => {
   const cwd = process.cwd();
@@ -66,5 +66,66 @@ describe('settings', () => {
     vi.stubEnv('NODE_ENV', env);
     vi.stubEnv('API_DOCS', flag);
     expect(apiDocs()).toBe(expected);
+  });
+
+  it.each([
+    [undefined, undefined],
+    ['', undefined],
+    ['   ', undefined],
+    ['true', undefined],
+    ['TRUE', undefined],
+    [' true ', undefined],
+    ['false', undefined],
+    ['FALSE', undefined],
+    [' false ', undefined],
+    ['loopback', 'loopback'],
+    [' 1 ', '1'],
+    ['127.0.0.1', '127.0.0.1'],
+    ['loopback, linklocal', 'loopback, linklocal'],
+  ])('trustProxy with TRUST_PROXY=%j returns %j', (raw, expected) => {
+    vi.stubEnv('TRUST_PROXY', raw);
+    expect(trustProxy()).toBe(expected);
+  });
+
+  it.each([
+    [undefined, 'http://localhost:5173'],
+    ['', 'http://localhost:5173'],
+    ['   ', 'http://localhost:5173'],
+    [' , , ', 'http://localhost:5173'],
+    ['https://app.omnicourse.vn', 'https://app.omnicourse.vn'],
+    [' https://app.omnicourse.vn , ', 'https://app.omnicourse.vn'],
+    ['https://app.omnicourse.vn, https://staging.omnicourse.vn', ['https://app.omnicourse.vn', 'https://staging.omnicourse.vn']],
+  ])('corsOrigin with CORS_ORIGIN=%j returns %j', (raw, expected) => {
+    vi.stubEnv('CORS_ORIGIN', raw);
+    expect(corsOrigin()).toEqual(expected);
+  });
+
+  it('reads AI provider credentials and models with null fallbacks when unset', () => {
+    vi.stubEnv('OPENROUTER_API_KEY', '');
+    vi.stubEnv('AI_MODEL_STRUCTURED', '');
+    vi.stubEnv('AI_MODEL_CHAT', '');
+    expect(aiConfig()).toEqual({
+      apiKey: null,
+      structuredModel: null,
+      chatModel: null,
+      timeoutMs: 30_000,
+      dailyCallsPerUser: 20,
+    });
+
+    vi.stubEnv('OPENROUTER_API_KEY', 'sk-or-test');
+    vi.stubEnv('AI_MODEL_STRUCTURED', 'openai/gpt-4.1-mini');
+    vi.stubEnv('AI_MODEL_CHAT', 'openai/gpt-4.1');
+    expect(aiConfig()).toMatchObject({
+      apiKey: 'sk-or-test',
+      structuredModel: 'openai/gpt-4.1-mini',
+      chatModel: 'openai/gpt-4.1',
+    });
+  });
+
+  it('reads SESSION_TTL_DAYS with default 7', () => {
+    vi.stubEnv('SESSION_TTL_DAYS', undefined);
+    expect(sessionTtlDays()).toBe(7);
+    vi.stubEnv('SESSION_TTL_DAYS', '14');
+    expect(sessionTtlDays()).toBe(14);
   });
 });

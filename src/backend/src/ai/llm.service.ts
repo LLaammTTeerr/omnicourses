@@ -10,6 +10,7 @@ export interface StructuredRequest<T> {
   instructions: string;
   input: string;
   schema: z.ZodType<T>;
+  signal?: AbortSignal;
 }
 
 export interface ChatMessage {
@@ -30,6 +31,7 @@ export interface ChatRequest {
   messages: ChatMessage[];
   tools?: ChatTool<any>[];
   maxSteps?: number;
+  signal?: AbortSignal;
 }
 
 export type ChatEvent =

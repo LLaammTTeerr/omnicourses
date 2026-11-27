@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { TranscriptRow } from './api.js';
-import { blankRow, fromRow, parseCredits, parseGrade, problems, toRow, yearChoices, type DraftRow } from './rows.js';
+import { blankRow, diffRows, fromRow, parseCredits, parseGrade, problems, toRow, yearChoices, type DraftRow } from './rows.js';
 
 const draft = (overrides: Partial<DraftRow> = {}): DraftRow => ({
   key: 0,
@@ -148,5 +148,35 @@ describe('yearChoices', () => {
     const years = yearChoices([draft({ year: 2005 })], new Date(2026, 10, 9));
     expect(years[0]).toBe(2005);
     expect(years.slice(1)).toEqual([2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027]);
+  });
+});
+
+describe('diffRows (UC-02 A5)', () => {
+  const base = [
+    draft({ key: 1, year: 2024, number: 1, courseCode: 'ZZ101', courseName: 'Môn một', credits: '4', result: 'graded', grade: '8.5' }),
+    draft({ key: 2, year: 2025, number: 1, courseCode: 'ZZ102', courseName: 'Môn hai', credits: '3', result: 'in_progress', grade: '' }),
+  ];
+
+  it('reports zero counts when rows match canonically', () => {
+    expect(diffRows(base, [draft({ ...base[0]!, key: 10, courseCode: ' zz101 ', grade: '8,5' }), draft({ ...base[1]!, key: 11 })])).toEqual({
+      added: 0,
+      changed: 0,
+      removed: 0,
+    });
+  });
+
+  it('counts added, changed, and removed rows across re-pasted replacements and in-place edits', () => {
+    const replaced = [
+      draft({ key: 20, year: 2025, number: 1, courseCode: 'ZZ102', courseName: 'Môn hai', credits: '3', result: 'graded', grade: '9.0' }),
+      draft({ key: 21, year: 2025, number: 2, courseCode: 'ZZ103', courseName: 'Môn ba', credits: '4', result: 'in_progress', grade: '' }),
+    ];
+    expect(diffRows(base, replaced)).toEqual({ added: 1, changed: 1, removed: 1 });
+
+    const inPlaceEdited = [
+      draft({ ...base[0]!, key: 1, courseCode: 'ZZ109' }),
+      base[1]!,
+      draft({ key: 3, courseCode: '', courseName: '', credits: '', result: '', grade: '' }),
+    ];
+    expect(diffRows(base, inPlaceEdited)).toEqual({ added: 1, changed: 1, removed: 0 });
   });
 });

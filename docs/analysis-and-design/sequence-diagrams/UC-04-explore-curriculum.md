@@ -2,7 +2,7 @@
 
 - Use case: UC-04 (Use-Case Specification v1.0, [`report/assignments/PA2/uc-specs.tex`](../../../report/assignments/PA2/uc-specs.tex)), feature F4
 - Drawn from the code on `main` (15 November 2026): `src/frontend/src/explorer/` (`ExplorerView.vue`, `CourseDrawer.vue`), `src/frontend/src/curriculum/` (`api.ts`, `present.ts`), `src/frontend/src/transcript/codes.ts`, `src/backend/src/curriculum/` ([ADR 0005](../adr/0005-curriculum-cohort-and-course-catalog.md))
-- Built: the list by requirement group, the search without diacritics and the course drawer. Not built: the state of each course for the student (available, locked, passed), the prerequisite graph (A1), and prerequisites, unlocks and offering terms in the drawer; the explorer does not call the rule engine. See [the differences list](../design-differences.md).
+- Built: the list by requirement group with course readiness states (`passed`, `in_progress`, `available` / ready, `locked`), search without diacritics, and the course drawer with recorded prerequisites, readiness states and unlocked courses. Not built: the prerequisite graph (A1). See [the differences list](../design-differences.md#uc-04-explore-curriculum-f4).
 
 ## Basic flow: read the curriculum
 

@@ -13,6 +13,8 @@ export interface Row {
 
 export type Board = readonly Row[];
 
+export const MAX_PLAN_TERMS = 30;
+
 export const compareTerms = (a: Term, b: Term): number => a.year - b.year || a.number - b.number;
 
 export function nextTerm(term: Term): Term {
@@ -72,6 +74,31 @@ export function sameTiles(a: Board, b: Board): boolean {
     x.every((row, i) => {
       const other = y[i]!;
       return termKey(row.term) === termKey(other.term) && row.tiles.length === other.tiles.length && row.tiles.every((tile, j) => tile === other.tiles[j]);
+    })
+  );
+}
+
+function samePlacement(a: Placement, b: Placement): boolean {
+  return (
+    a.kind === b.kind &&
+    (a.courseCode ?? null) === (b.courseCode ?? null) &&
+    (a.requirementGroupId ?? null) === (b.requirementGroupId ?? null) &&
+    (a.credits ?? null) === (b.credits ?? null)
+  );
+}
+
+export function sameTerms(a: readonly PlanTerm[], b: readonly PlanTerm[]): boolean {
+  const x = [...a].sort((l, r) => compareTerms(l.term, r.term));
+  const y = [...b].sort((l, r) => compareTerms(l.term, r.term));
+  return (
+    x.length === y.length &&
+    x.every((row, i) => {
+      const other = y[i]!;
+      return (
+        termKey(row.term) === termKey(other.term) &&
+        row.placements.length === other.placements.length &&
+        row.placements.every((p, j) => samePlacement(p, other.placements[j]!))
+      );
     })
   );
 }

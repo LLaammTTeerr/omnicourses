@@ -13,7 +13,10 @@ import { PlanPlacement } from './plan-placement.entity.js';
 import { Plan } from './plan.entity.js';
 import { PlanDto, PlanListItemDto, PlanPreviewDto, PlanSummaryDto } from './plans.dto.js';
 
+export const MAX_PLANS_PER_USER = 50;
+
 const notOffered = (programCode: string, cohortYear: number) => new BadRequestException(`Onboarding does not offer ${programCode} ${cohortYear} to students`);
+const tooManyPlans = () => new BadRequestException(`A student may keep at most ${MAX_PLANS_PER_USER} plans`);
 
 @Injectable()
 export class PlansService {
@@ -50,8 +53,9 @@ export class PlansService {
     const curriculumId = await this.curriculum.findCurriculumId(input.programCode, input.cohortYear);
     if (!curriculumId) throw new BadRequestException('No curriculum for this program and cohort');
     const terms = input.terms ?? [];
-    await this.checkBoard(curriculumId, terms);
     const id = await this.db.transaction(async (tx) => {
+      if ((await tx.count(Plan, { where: { userId } })) >= MAX_PLANS_PER_USER) throw tooManyPlans();
+      await this.checkBoard(curriculumId, terms, tx);
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId, name: input.name });
       const planId = identifiers[0].id as string;
       await insertBoard(tx, planId, userId, terms);
@@ -76,6 +80,7 @@ export class PlansService {
       );
       if (!source) throw planNotFound();
       if (!this.onboarding.offers(source.program_code, source.cohort_year)) throw notOffered(source.program_code, source.cohort_year);
+      if ((await tx.count(Plan, { where: { userId } })) >= MAX_PLANS_PER_USER) throw tooManyPlans();
       const { identifiers } = await tx.insert(Plan, { userId, curriculumId: source.curriculum_id, name: name ?? source.name });
       const copyId = identifiers[0].id as string;
       await tx.query(
@@ -93,7 +98,7 @@ export class PlansService {
     await this.db.transaction(async (tx) => {
       const [plan] = await tx.query('SELECT "curriculum_id" FROM "plans" WHERE "id" = $1 AND "user_id" = $2 FOR NO KEY UPDATE', [planId, userId]);
       if (!plan) throw planNotFound();
-      await this.checkBoard(plan.curriculum_id, terms);
+      await this.checkBoard(plan.curriculum_id, terms, tx);
       await tx.delete(PlanPlacement, { planId });
       await insertBoard(tx, planId, userId, terms);
       await tx.query('UPDATE "plans" SET "updated_at" = now() WHERE "id" = $1', [planId]);
@@ -123,16 +128,16 @@ export class PlansService {
     if (!affected) throw planNotFound();
   }
 
-  private async checkBoard(curriculumId: string, terms: readonly BoardTerm[]): Promise<void> {
+  private async checkBoard(curriculumId: string, terms: readonly BoardTerm[], manager?: EntityManager): Promise<void> {
     const problems = boardProblems(terms);
     if (problems.length) throw new BadRequestException(problems);
     const codes = courseCodesOf(terms);
-    const known = await this.curriculum.catalogCourses(codes);
+    const known = await this.curriculum.catalogCourses(codes, manager);
     const unknown = codes.filter((c) => !known.has(c));
     if (unknown.length) throw new BadRequestException(`No course in the catalog has the code ${unknown.join(', ')}`);
     const groups = groupIdsOf(terms);
     if (!groups.length) return;
-    const own = await this.curriculum.requirementGroupIds(curriculumId);
+    const own = await this.curriculum.requirementGroupIds(curriculumId, manager);
     const foreign = [...new Set(groups.filter((g) => !own.has(g)))];
     if (foreign.length) throw new BadRequestException(`Requirement group ${foreign.join(', ')} is not in the plan's curriculum`);
   }

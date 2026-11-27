@@ -6,18 +6,24 @@ import { signedInPinia } from '../testing/signed-in.js';
 import * as api from './api.js';
 import { COURSE_CODE_PATTERN as API_COURSE_CODE_PATTERN } from '../../../backend/src/common/course-code.js';
 import { COURSE_CODE_PATTERN } from '../course-code.js';
+import { TRAINING_TYPES } from '../curriculum/api.js';
 import {
   BYTES_PER_MIB,
+  CALENDAR_EVENT_KINDS,
   GLOBAL_PERMISSIONS,
   IMPORT_MAX_BYTES,
   IMPORT_MAX_RECORDS,
   PERMISSION_KINDS,
   IMPORT_HEADERS,
+  type AcademicCalendar,
   type AccessProgram,
+  type CalendarEvent,
+  type CalendarProgram,
   type CatalogImportPreview,
   type CatalogImportRow,
   type CohortDetails,
   type CohortList,
+  type CreateCalendarEventBody,
   type CreateCohortBody,
   type CreateProgramBody,
   type GroupLinkImportPreview,
@@ -29,6 +35,7 @@ import {
   type ImportRowError,
   type ImportSummary,
   type ProgramDetails,
+  type UpdateCalendarEventBody,
   type UpdateCohortBody,
   type UpdateProgramBody,
   type AccessProgramList,
@@ -159,6 +166,52 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     ['ReferencedItemDto', { ...error, references: 'required' } satisfies Shape<ReferencedItemBody>],
     ['AffectedCurriculumDto', { curriculumId: 'required', curriculumCode: 'required', programCode: 'required', cohortYear: 'required' } satisfies Shape<AffectedCurriculum>],
     ['ImpactConfirmationDto', { ...error, affectedCurricula: 'required', reviewVersion: 'required' } satisfies Shape<ImpactConfirmationBody>],
+    ['AcademicCalendarDto', { program: 'required', events: 'required' } satisfies Shape<AcademicCalendar>],
+    ['CalendarProgramDto', { id: 'required', code: 'required', nameVi: 'required', nameEn: 'required' } satisfies Shape<CalendarProgram>],
+    [
+      'AcademicCalendarEventDto',
+      {
+        id: 'required',
+        academicYear: 'required',
+        term: 'required',
+        kind: 'required',
+        startsOn: 'required',
+        endsOn: 'required',
+        title: 'required',
+        titleEn: 'required',
+        sourceUrl: 'required',
+        notes: 'required',
+        updatedAt: 'required',
+      } satisfies Shape<CalendarEvent>,
+    ],
+    [
+      'CreateCalendarEventDto',
+      {
+        academicYear: 'required',
+        term: 'optional',
+        kind: 'required',
+        startsOn: 'required',
+        endsOn: 'optional',
+        title: 'required',
+        titleEn: 'optional',
+        sourceUrl: 'optional',
+        notes: 'optional',
+      } satisfies Shape<CreateCalendarEventBody>,
+    ],
+    [
+      'UpdateCalendarEventDto',
+      {
+        academicYear: 'optional',
+        term: 'optional',
+        kind: 'optional',
+        startsOn: 'optional',
+        endsOn: 'optional',
+        title: 'optional',
+        titleEn: 'optional',
+        sourceUrl: 'optional',
+        notes: 'optional',
+      } satisfies Shape<UpdateCalendarEventBody>,
+    ],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
   });
@@ -181,9 +234,20 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     expect(COURSE_CODE_PATTERN.flags).toBe(API_COURSE_CODE_PATTERN.flags);
   });
 
-  it('has the permissions of the contract', () => {
+  it('has the permissions and training types of the contract', () => {
     expect([...GLOBAL_PERMISSIONS].sort()).toEqual(contractEnum('GlobalGrantDto', 'permission'));
     expect([...PERMISSION_KINDS].sort()).toEqual(contractEnum('PermissionRequiredDto', 'permission'));
+    expect([...TRAINING_TYPES, null].sort()).toEqual(contractEnum('ProgramDetailsDto', 'trainingType'));
+  });
+
+  it('has the calendar event kinds and terms of the contract (F10)', () => {
+    const kinds = [...CALENDAR_EVENT_KINDS].sort();
+    expect(contractEnum('AcademicCalendarEventDto', 'kind')).toEqual(kinds);
+    expect(contractEnum('CreateCalendarEventDto', 'kind')).toEqual(kinds);
+    expect(contractEnum('UpdateCalendarEventDto', 'kind')).toEqual(kinds);
+    const terms = [1, 2, 3, null].sort();
+    expect(contractEnum('CreateCalendarEventDto', 'term')).toEqual(terms);
+    expect(contractEnum('UpdateCalendarEventDto', 'term')).toEqual(terms);
   });
 });
 
@@ -191,6 +255,7 @@ const TOKEN = 'zz-token';
 const COHORT = { programId: '00000000-0000-4000-8000-0000000000a1', curriculumId: '00000000-0000-4000-8000-0000000000c1' };
 const GROUP = '00000000-0000-4000-8000-000000000a01';
 const USER = '00000000-0000-4000-8000-000000000002';
+const EVENT = '00000000-0000-4000-8000-000000000e01';
 
 const CALLS: [name: string, call: () => Promise<unknown>, method: string, path: string][] = [
   ['fetchOwnGrants', () => api.fetchOwnGrants(), 'get', '/api/admin/grants'],
@@ -223,6 +288,15 @@ const CALLS: [name: string, call: () => Promise<unknown>, method: string, path: 
   ['revokeProgram', () => api.revokeProgram(USER, COHORT.programId), 'delete', '/api/admin/access/users/{userId}/programs/{programId}'],
   ['grantGlobal', () => api.grantGlobal(USER, 'catalog_maintainer'), 'put', '/api/admin/access/users/{userId}/global/{permission}'],
   ['revokeGlobal', () => api.revokeGlobal(USER, 'access_manager'), 'delete', '/api/admin/access/users/{userId}/global/{permission}'],
+  ['fetchProgramCalendar', () => api.fetchProgramCalendar('ZZPROG'), 'get', '/api/academic-calendar'],
+  [
+    'createCalendarEvent',
+    () => api.createCalendarEvent(COHORT.programId, { academicYear: 2026, kind: 'registration', startsOn: '2026-09-01', title: 'Đăng ký thử' }),
+    'post',
+    '/api/admin/programs/{programId}/calendar-events',
+  ],
+  ['updateCalendarEvent', () => api.updateCalendarEvent(COHORT.programId, EVENT, { title: 'Đăng ký mới' }), 'patch', '/api/admin/programs/{programId}/calendar-events/{eventId}'],
+  ['deleteCalendarEvent', () => api.deleteCalendarEvent(COHORT.programId, EVENT), 'delete', '/api/admin/programs/{programId}/calendar-events/{eventId}'],
 ];
 
 const paths = contract.paths as Record<string, Record<string, unknown>>;
@@ -237,7 +311,7 @@ describe('administration addresses against the contract', () => {
     await call();
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url, init] = fetch.mock.calls[0]!;
-    const sent = `/api${String(url).slice(API_URL.length)}`;
+    const sent = `/api${String(url).slice(API_URL.length).split('?')[0]}`;
     expect(init).toMatchObject({ method: method.toUpperCase(), headers: expect.objectContaining({ Authorization: `Bearer ${TOKEN}` }) });
     expect(paths[path], `the contract has no ${path}`).toBeDefined();
     expect(Object.keys(paths[path]!)).toContain(method);
@@ -250,7 +324,7 @@ describe('administration addresses against the contract', () => {
     expect(functions.sort()).toEqual(CALLS.map(([name]) => name).sort());
   });
 
-  it('sends the bodies the API documents', async () => {
+  it('sends the bodies and query parameters the API documents', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));
     await api.setPrerequisites(COHORT, 'ZZ102', []);
     await api.setOfferingTerms(COHORT, 'ZZ102', [2]);
@@ -258,6 +332,9 @@ describe('administration addresses against the contract', () => {
     await api.grantGlobal(USER, 'access_manager');
     await api.previewLinkImport(COHORT, 'a,b\n');
     await api.confirmCatalogImport('a,b\n', 'zz-review');
+    await api.fetchProgramCalendar('ZZ&PROG');
+    await api.createCalendarEvent(COHORT.programId, { academicYear: 2026, term: 1, kind: 'add_drop', startsOn: '2026-09-14', endsOn: '2026-09-18', title: 'Điều chỉnh HK1' });
+    await api.updateCalendarEvent(COHORT.programId, EVENT, { term: null, notes: null });
     expect(fetch.mock.calls.map(([, init]) => init?.body)).toEqual([
       '{"prerequisites":[]}',
       '{"terms":[2]}',
@@ -265,7 +342,11 @@ describe('administration addresses against the contract', () => {
       undefined,
       JSON.stringify({ csv: 'a,b\n' }),
       JSON.stringify({ csv: 'a,b\n', reviewVersion: 'zz-review' }),
+      undefined,
+      JSON.stringify({ academicYear: 2026, term: 1, kind: 'add_drop', startsOn: '2026-09-14', endsOn: '2026-09-18', title: 'Điều chỉnh HK1' }),
+      JSON.stringify({ term: null, notes: null }),
     ]);
+    expect(fetch.mock.calls[6]![0]).toBe(`${API_URL}/academic-calendar?program=ZZ%26PROG`);
   });
 
   it('keeps a typed value one path segment, whatever it holds', async () => {

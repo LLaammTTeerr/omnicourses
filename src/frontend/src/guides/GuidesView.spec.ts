@@ -10,7 +10,8 @@ import GuidesView from './GuidesView.vue';
 import { listText } from './testing/guide-fixtures.js';
 import { GUIDE_MESSAGES } from './messages.js';
 
-vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuides: vi.fn() }));
+const { mockedFetchGuides } = vi.hoisted(() => ({ mockedFetchGuides: vi.fn() }));
+vi.mock('./api.js', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api.js')>()), fetchGuides: mockedFetchGuides }));
 
 const PORTAL = { name: 'Cổng thử', url: 'https://example.com/portal?x=1', account: 'Tài khoản thử' };
 const text = (title: string, keywords: string[], extra: Partial<GuideListText> = {}) =>

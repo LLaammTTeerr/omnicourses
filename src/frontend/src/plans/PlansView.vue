@@ -173,7 +173,7 @@ usePageTitle(() => m.value.title);
   </div>
 </template>
 
-<style>
+<style scoped>
 .plans-page .empty { text-align: center; display: grid; gap: 4px; }
 .plan-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 14px; }
 .plan-card {

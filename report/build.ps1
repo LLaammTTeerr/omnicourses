@@ -225,6 +225,14 @@ elseif ($t -eq "pa2") {
     $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments\PA2") -Filter "*.tex" |
         Where-Object { $_.Name -notlike "uc-*" -and $_.Name -notlike "_*" }
 }
+elseif ($t -eq "pa3") {
+    $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments\PA3") -Filter "*.tex" |
+        Where-Object { $_.Name -notlike "_*" }
+}
+elseif ($t -eq "pa4") {
+    $targets += Get-ChildItem -Path (Join-Path $ScriptDir "assignments\PA4") -Filter "*.tex" |
+        Where-Object { $_.Name -notlike "_*" }
+}
 elseif ($t -match "^week-?0?(\d+)$") {
     $wNum = [int]$matches[1]
     $padded = "{0:D2}" -f $wNum
@@ -240,7 +248,7 @@ else {
     if (Test-Path $Target) {
         $targets += Get-Item $Target
     } else {
-        Write-Error "Unknown target: $Target. Available targets: all, weekly, pa1, pa2, week1..week10"
+        Write-Error "Unknown target: $Target. Available targets: all, weekly, pa1, pa2, pa3, pa4, week1..week10"
     }
 }
 

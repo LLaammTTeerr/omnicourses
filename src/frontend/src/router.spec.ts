@@ -22,9 +22,15 @@ describe('router guard (issue #13)', () => {
     expect(router.currentRoute.value.query.redirect).toBe(`${path}?x=1`);
   });
 
-  it.each(['/', '/guides', '/guides/zz-fresh', '/privacy', '/sign-in', '/sign-up'])('lets a signed-out visitor open %s', async (path) => {
+  it.each(['/', '/guides', '/guides/zz-fresh', '/shared/zz-token', '/privacy', '/sign-in', '/sign-up'])('lets a signed-out visitor open %s', async (path) => {
     const { router } = await setup(path, { signedIn: false });
     expect(router.currentRoute.value.fullPath).toBe(path);
+  });
+
+  it('lets a signed-in student open /shared/:token even before onboarding is finished', async () => {
+    const { router } = await setup('/shared/zz-token', { signedIn: true, onboarded: null });
+    expect(router.currentRoute.value.name).toBe('shared-plan');
+    expect(router.currentRoute.value.params.token).toBe('zz-token');
   });
 
   it('sends a signed-in student away from sign-in, to the redirect or the dashboard', async () => {
@@ -45,6 +51,15 @@ describe('router guard (issue #13)', () => {
   it('sends an unknown address to the home page', async () => {
     const { router } = await setup('/no/such/page', { signedIn: false });
     expect(router.currentRoute.value.fullPath).toBe('/');
+  });
+
+  it('loads every feature screen lazily so routes split into chunks', () => {
+    const router = createAppRouter(createMemoryHistory());
+    const withViews = router.getRoutes().filter((record) => record.components?.default);
+    expect(withViews.length).toBeGreaterThanOrEqual(22);
+    for (const record of withViews) {
+      expect(typeof record.components!.default, `route ${String(record.name ?? record.path)} should be lazy`).toBe('function');
+    }
   });
 });
 

@@ -110,6 +110,8 @@ function openWeek(day: string): void {
 
 const pickerOpen = ref(false);
 const pickWrap = ref<HTMLElement | null>(null);
+const pickTrigger = ref<HTMLButtonElement | null>(null);
+const pickerList = ref<HTMLElement | null>(null);
 function weekItem(monday: string) {
   const found = weekOfTerm(monday);
   return {
@@ -124,10 +126,62 @@ const monthItem = (first: string) => ({ key: first, label: m.value.monthName(fir
 const pickerItems = computed(() =>
   mode.value === 'week' ? monthWeeks(monthStart(thursdayOf(week.value))).map(weekItem) : academicYearMonths(academicYearOf(month.value)).map(monthItem),
 );
+const pickerOptions = () => [...(pickerList.value?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [])];
+async function openPicker(which: 'selected' | 'first' | 'last' = 'selected'): Promise<void> {
+  pickerOpen.value = true;
+  await nextTick();
+  const options = pickerOptions();
+  if (!options.length) return;
+  const selectedIndex = pickerItems.value.findIndex((item) => item.selected);
+  const index = which === 'first' ? 0 : which === 'last' ? options.length - 1 : selectedIndex >= 0 ? selectedIndex : 0;
+  options[index]?.focus();
+}
+function closePicker(returnFocus = false): void {
+  if (!pickerOpen.value) return;
+  pickerOpen.value = false;
+  if (returnFocus) pickTrigger.value?.focus();
+}
+function togglePicker(): void {
+  if (pickerOpen.value) closePicker();
+  else void openPicker();
+}
+function movePickerFocus(step: 1 | -1): void {
+  const options = pickerOptions();
+  if (!options.length) return;
+  const current = options.indexOf(document.activeElement as HTMLButtonElement);
+  const next = current < 0 ? (step === 1 ? 0 : options.length - 1) : (current + step + options.length) % options.length;
+  options[next]?.focus();
+}
+function onTriggerKey(e: KeyboardEvent): void {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!pickerOpen.value) void openPicker('selected');
+    else movePickerFocus(1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!pickerOpen.value) void openPicker('last');
+    else movePickerFocus(-1);
+  }
+}
+function onPickerKey(e: KeyboardEvent): void {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    movePickerFocus(1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    movePickerFocus(-1);
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    pickerOptions()[0]?.focus();
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    pickerOptions().at(-1)?.focus();
+  }
+}
 function pick(key: string): void {
   if (mode.value === 'week') week.value = key;
   else month.value = key;
-  pickerOpen.value = false;
+  closePicker(true);
 }
 
 const KIND_GROUP: Record<CalendarEventKind, string> = {
@@ -161,7 +215,7 @@ const updatedOn = (e: CalendarEvent) => new Intl.DateTimeFormat(LANGUAGES[locale
 
 function onKey(e: KeyboardEvent): void {
   if (e.key !== 'Escape') return;
-  if (pickerOpen.value) pickerOpen.value = false;
+  if (pickerOpen.value) closePicker(true);
   else selectedId.value = null;
 }
 function onClick(e: MouseEvent): void {
@@ -199,18 +253,20 @@ usePageTitle(() => m.value.title);
         <div class="cal-bar">
           <div ref="pickWrap" class="cal-pick-wrap">
             <button
+              ref="pickTrigger"
               class="cal-pick"
               type="button"
               aria-haspopup="listbox"
               :aria-expanded="pickerOpen"
-              aria-controls="cal-picker"
+              :aria-controls="pickerOpen ? 'cal-picker' : undefined"
               data-test="range"
-              @click="pickerOpen = !pickerOpen"
+              @click="togglePicker"
+              @keydown="onTriggerKey"
             >
               <b>{{ rangeLabel }}</b><Icon name="down" />
             </button>
             <p class="cal-subt" data-test="subtitle">{{ subtitle }}</p>
-            <div v-if="pickerOpen" id="cal-picker" class="cal-picker" role="listbox" :aria-label="mode === 'week' ? m.pickWeek : m.pickMonth">
+            <div v-if="pickerOpen" id="cal-picker" ref="pickerList" class="cal-picker" role="listbox" :aria-label="mode === 'week' ? m.pickWeek : m.pickMonth" @keydown="onPickerKey">
               <button
                 v-for="item in pickerItems"
                 :key="item.key"
@@ -355,7 +411,7 @@ usePageTitle(() => m.value.title);
   </div>
 </template>
 
-<style>
+<style scoped>
 .cal-page { max-width: 1440px; }
 .cal-page .page-head { align-items: center; }
 .cal-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }

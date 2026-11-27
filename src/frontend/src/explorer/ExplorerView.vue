@@ -12,9 +12,11 @@ import { programChoices } from '../onboarding/answers.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
-import { useTranscriptCodes } from '../transcript/codes.js';
+import type { IconName } from '../shell/icons.js';
+import { fetchTranscript } from '../transcript/api.js';
 import CourseDrawer from './CourseDrawer.vue';
 import { EXPLORER_MESSAGES } from './messages.js';
+import { courseStanding, transcriptStatuses, unlockedBy, type CourseStanding, type TranscriptCourseStatus } from './readiness.js';
 
 const onboarding = useOnboarding();
 const locale = useLocale();
@@ -33,12 +35,22 @@ const selection = computed(() => {
 const cohorts = computed(() => choices.value.find((choice) => choice.code === selection.value?.program)?.cohorts ?? []);
 const programName = (choice: (typeof choices.value)[number]) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
 
+let shownCourse: string | null = null;
+
 function pickProgram(code: string): void {
   const cohort = choices.value.find((choice) => choice.code === code)?.cohorts[0];
-  if (cohort !== undefined) picked.value = { program: code, cohort };
+  if (cohort !== undefined) {
+    shownCourse = null;
+    open.value = null;
+    picked.value = { program: code, cohort };
+  }
 }
 function pickCohort(cohort: number): void {
-  if (selection.value) picked.value = { program: selection.value.program, cohort };
+  if (selection.value) {
+    shownCourse = null;
+    open.value = null;
+    picked.value = { program: selection.value.program, cohort };
+  }
 }
 
 const curriculum = useAsyncLoad(
@@ -47,11 +59,22 @@ const curriculum = useAsyncLoad(
   () => (selection.value ? `${selection.value.program}-${selection.value.cohort}` : null),
 );
 
-const transcriptCodes = useTranscriptCodes('the explorer');
+const statuses = shallowRef<ReadonlyMap<string, TranscriptCourseStatus>>(new Map());
+const transcriptLoaded = ref(false);
+fetchTranscript()
+  .then(({ rows }) => {
+    statuses.value = transcriptStatuses(rows);
+    transcriptLoaded.value = true;
+  })
+  .catch((e) => statusOf(e) === 401 || console.error('Loading the transcript for the explorer failed:', e));
+
+const standingOf = (course: CurriculumCourse): CourseStanding | null => (transcriptLoaded.value ? courseStanding(course, statuses.value) : null);
+const transcriptIcon = (status: TranscriptCourseStatus): IconName => (status === 'passed' ? 'check' : status === 'in_progress' ? 'clock' : 'alert');
 
 const query = ref('');
 const only = ref<GroupId | null>(null);
 const groups = computed(() => orderGroups(curriculum.data.value?.requirementGroups ?? []).map((group) => ({ group, colour: groupColour(group) })));
+const orderedGroups = computed(() => groups.value.map(({ group }) => group));
 const colours = computed(() => GROUPS.filter((g) => groups.value.some((entry) => entry.colour === g.id)));
 const courseName = (course: Course) => nameIn(course, locale.lang);
 const shown = computed(() =>
@@ -67,17 +90,26 @@ const open = shallowRef<{ course: CurriculumCourse; group: { id: GroupId; name: 
 function openCourse(course: CurriculumCourse, group: RequirementGroup, colour: GroupId): void {
   open.value = { course, group: { id: colour, name: group.name } };
 }
+const openUnlocks = computed(() => (open.value ? unlockedBy(orderedGroups.value, open.value.course.code) : []));
 
 const route = useRoute();
-let shownCourse: string | null = null;
+watch(
+  () => route.query.course,
+  (code, prev) => {
+    if (code === prev) return;
+    shownCourse = null;
+    if (typeof code === 'string') {
+      query.value = '';
+      only.value = null;
+    }
+  },
+);
 watch(
   () => [route.query.course, curriculum.status.value] as const,
   async ([code, status]) => {
     if (typeof code !== 'string' || code === shownCourse || status !== 'loaded') return;
     if (!groups.value.some(({ group }) => group.courses.some((course) => course.code === code))) return;
     shownCourse = code;
-    query.value = '';
-    only.value = null;
     await nextTick();
     const el = document.querySelector<HTMLElement>(`[data-test="course-${CSS.escape(code)}"]`);
     if (!el) return;
@@ -106,14 +138,24 @@ usePageTitle(() => m.value.title);
         </p>
       </div>
       <div class="head-actions">
-        <label class="field">
-          <span>{{ m.program }}</span>
-          <SelectMenu :model-value="selection?.program" :options="choices.map((choice) => ({ value: choice.code, label: programName(choice) }))" @update:model-value="pickProgram" />
-        </label>
-        <label class="field">
-          <span>{{ m.cohort }}</span>
-          <SelectMenu :model-value="selection?.cohort" :options="cohorts.map((year) => ({ value: year, label: m.cohortOption(year) }))" @update:model-value="pickCohort" />
-        </label>
+        <div class="field">
+          <span class="label">{{ m.program }}</span>
+          <SelectMenu
+            :model-value="selection?.program"
+            :aria-label="m.program"
+            :options="choices.map((choice) => ({ value: choice.code, label: programName(choice) }))"
+            @update:model-value="pickProgram"
+          />
+        </div>
+        <div class="field">
+          <span class="label">{{ m.cohort }}</span>
+          <SelectMenu
+            :model-value="selection?.cohort"
+            :aria-label="m.cohort"
+            :options="cohorts.map((year) => ({ value: year, label: m.cohortOption(year) }))"
+            @update:model-value="pickCohort"
+          />
+        </div>
       </div>
     </header>
 
@@ -170,7 +212,24 @@ usePageTitle(() => m.value.title);
                 <span class="cr">{{ m.credits(course.credits) }}</span>
               </span>
               <span class="nm">{{ courseName(course) }}</span>
-              <span v-if="transcriptCodes.has(course.code)" class="mark" data-test="in-transcript"><Icon name="file" size="sm" />{{ m.inTranscript }}</span>
+              <span v-if="standingOf(course)?.transcriptStatus || standingOf(course)?.readiness" class="marks">
+                <span
+                  v-if="standingOf(course)?.transcriptStatus"
+                  :class="['mark', `is-${standingOf(course)!.transcriptStatus}`]"
+                  data-test="transcript-status"
+                  :data-status="standingOf(course)!.transcriptStatus!"
+                >
+                  <Icon :name="transcriptIcon(standingOf(course)!.transcriptStatus!)" size="sm" />{{ m.transcriptStatuses[standingOf(course)!.transcriptStatus!] }}
+                </span>
+                <span
+                  v-if="standingOf(course)?.readiness"
+                  :class="['mark', `is-${standingOf(course)!.readiness}`]"
+                  data-test="course-readiness"
+                  :data-readiness="standingOf(course)!.readiness!"
+                >
+                  <Icon :name="standingOf(course)!.readiness === 'available' ? 'unlock' : 'lock'" size="sm" />{{ m.readinessStatuses[standingOf(course)!.readiness!] }}
+                </span>
+              </span>
             </button>
           </li>
         </ul>
@@ -184,18 +243,19 @@ usePageTitle(() => m.value.title);
     <CourseDrawer
       :course="open?.course ?? null"
       :group="open?.group ?? null"
-      :in-transcript="open ? transcriptCodes.has(open.course.code) : false"
+      :standing="open ? standingOf(open.course) : null"
+      :unlocks="openUnlocks"
       @close="open = null"
     />
   </div>
 </template>
 
-<style>
+<style scoped>
 .explorer-page { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
 .explorer-page .head-actions .field { min-width: 160px; }
 .ex-tools { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
 .ex-tools .search { position: relative; flex: 1 1 260px; max-width: 380px; display: block; }
-.ex-tools .search .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+.ex-tools .search :deep(.icon) { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
 .ex-tools .search .input { padding-left: 36px; width: 100%; }
 .ex-tools .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ex-tools .chip { cursor: pointer; }
@@ -218,8 +278,13 @@ usePageTitle(() => m.value.title);
 .tile .k { font: 700 12px var(--mono); color: var(--c-ink); }
 .tile .cr { font-size: 11.5px; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--c); color: var(--on); white-space: nowrap; }
 .tile .nm { font-weight: 650; font-size: 13.5px; line-height: 1.3; overflow-wrap: anywhere; }
-.tile .mark { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); }
-.tile .mark .icon { width: 14px; height: 14px; }
+.tile .marks { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.tile .mark { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.tile .mark.is-passed, .tile .mark.is-available { color: color-mix(in oklab, var(--ok) 75%, var(--ink)); }
+.tile .mark.is-in_progress { color: color-mix(in oklab, var(--info) 78%, var(--ink)); }
+.tile .mark.is-failed { color: color-mix(in oklab, var(--bad) 80%, var(--ink)); }
+.tile .mark.is-locked { color: color-mix(in oklab, var(--warn) 72%, var(--ink)); }
+.tile .mark :deep(.icon) { width: 14px; height: 14px; }
 .explorer-page .empty { text-align: center; display: grid; gap: 4px; }
 @media (max-width: 620px) {
   .explorer-page .head-actions { width: 100%; }

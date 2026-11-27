@@ -1,6 +1,6 @@
 # ADR 0009: Term encoding
 
-- Status: proposed
+- Status: accepted (2026-11-27, Lâm)
 - Amended by: [ADR 0012](0012-credit-caps-by-training-type.md)
 - Date: 2026-10-29
 - Deciders: Lâm
@@ -22,5 +22,5 @@ The transcript (ADR 0007), plans, offering terms (#23) and the planner (ADR 0006
 ## Consequences
 
 - Plans (Hoà), offering terms (#23) and the planner (ADR 0006) adopt this encoding, or change this ADR before they ship.
-- Open: confirm on a real portal transcript, read locally, that the portal numbers the third term of the year 3: the summer term of a đại trà program, and the third main term of a Tiên tiến program such as APCS (amended 9 November 2026). *Since 15 November 2026 F2 reads no file ([ADR 0007, amendment of 15 November 2026](0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); the question now belongs to the paste format, which is not decided.*
+- Open: confirm on a real portal transcript, read locally, that the portal numbers the third term of the year 3: the summer term of a đại trà program, and the third main term of a Tiên tiến program such as APCS (amended 9 November 2026). *Since 15 and 27 November 2026 F2 reads no file and parses pasted portal grades tables into `(year, number)` with `number` 1–3 ([ADR 0007, amendments of 15 and 27 November 2026](0007-transcript.md#amendment-27-november-2026-deterministic-paste-parser-and-pre-save-diff)).*
 - 2026-11-26: The screens find the current term from the date in Vietnam, not in the browser's time zone. Vietnam is UTC+7 all year, with no daylight saving time. The months that start each term are in the architecture document, section 6 (Term encoding); the screens copy that calendar only to offer the terms the API accepts.

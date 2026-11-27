@@ -1,7 +1,7 @@
 # ADR 0007: Storing the transcript
 
-- Status: proposed
-- Amended: 15 November 2026, F2 reads no file ([amendment](#amendment-15-november-2026-paste-or-type-no-file))
+- Status: accepted (2026-11-27, Lâm)
+- Amended: 15 November 2026, F2 reads no file ([amendment](#amendment-15-november-2026-paste-or-type-no-file)); 27 November 2026, deterministic client-side paste parser and pre-save diff ([amendment](#amendment-27-november-2026-deterministic-paste-parser-and-pre-save-diff))
 - Date: 2026-10-28
 - Deciders: Lâm (owner of F2 and `transcript`)
 - Reviewer: Triết (the degree audit reads it), Dũng (the advisor reads it)
@@ -43,15 +43,23 @@ What changes and what stays:
 - The storage decisions above stay as they are. The pasted or typed rows go to the same review table, and only the saved rows land in `transcript_rows`.
 - A paste is read by a deterministic parser in OmniCourse. No language model reads it (ADR 0003, AGENTS.md hard rule 1).
 - No file is uploaded, so nothing is stored or deleted after reading. The 5 MB limit and the file deletion of UC-02 no longer apply.
-- **Not decided:** the paste format, that is, which columns the pasted table has and how the parser maps the portal's results to `exempt`, `pass` and `fail`. The Project Lead decides it ([test plan, decisions and handoffs to close](../../test/test-plan.md#decisions-and-handoffs-to-close)). Until then, typed entry is the only way in.
+- **Not decided on 15 November 2026:** the paste format, that is, which columns the pasted table has and how the parser maps the portal's results to `exempt`, `pass` and `fail`. *Resolved on 27 November 2026: see the amendment below.*
 - Superseded: the first Consequence below ("the F2 parser turns the PDF into rows") and the open question about a real portal transcript. ADR 0003's F2 row, its open question about the PDF text layer, and ADR 0009's open question point here.
+
+## Amendment, 27 November 2026: deterministic paste parser and pre-save diff
+
+**Decided (Lâm, Project Lead, 27 November 2026):** `TranscriptView.vue` and `src/frontend/src/transcript/paste.ts` parse a pasted TSV / HCMUS portal grades table deterministically in the browser, populate the editable student review table, and show a pre-save diff summary before replacing an existing saved transcript.
+
+| Decision | Alternatives rejected | Evidence |
+| --- | --- | --- |
+| **Client-side deterministic TSV / portal grades-table parser (`paste.ts`).** Pasted text is parsed in the browser into `DraftRow` items (term, canonical course code, course name, credits, result and 0–10 grade): numeric grades map to `graded`, exemptions (`M` / `Miễn`) to `exempt`, pass/fail marks to `pass` / `fail`, and ungraded rows to `in_progress`. Incomplete or unrecognised cells surface inline field errors (`problems` in `rows.ts`) in the review table before save can run. | Server-side paste endpoint; language-model extraction (forbidden by [ADR 0003](0003-language-model-scope.md)); silently skipping malformed rows | Pasted raw text never leaves the browser, preserving [ADR 0003](0003-language-model-scope.md) and AGENTS.md hard rules 1 and 3. Inline review meets UC-02 steps 4–6 and A1–A3; `paste.spec.ts` and `TranscriptView.spec.ts` cover synthetic portal tables and malformed rows. |
+| **Pre-save diff summary before overwriting a saved transcript (UC-02 A5).** When the student already has saved `transcript_rows`, `TranscriptView.vue` computes and displays the rows added, changed and removed against the saved baseline before sending `PUT /api/users/me/transcript`. | Immediate overwrite with no comparison; server-side diff preview endpoint | UC-02 A5 requires showing added, changed and removed rows when replacing an existing transcript. The client already holds both the loaded baseline and the draft rows, so the comparison needs no extra round trip and leaves the backend `PUT /api/users/me/transcript` contract unchanged. |
 
 What is built today is in the [README feature table](../../../README.md#what-is-built).
 
 ## Consequences
 
-- An uploaded PDF is never stored. The F2 parser (a later PR) turns it into rows for the review table, and only the saved rows land here.
+- *(Superseded 15 November 2026: no file is uploaded; `paste.ts` parses pasted grades text in the browser into rows for the review table, and only the saved rows land in `transcript_rows`.)*
 - Other modules adopt the term encoding of [ADR 0009](0009-term-encoding.md), and #23's catalog the course-code format above, or change them before they ship.
-- Open:
-  - Confirm, on a real portal transcript read locally, how the portal writes an exemption and a pass/fail result, so the F2 parser maps them to `exempt`, `pass` and `fail`. The summer-term number is open in ADR 0009.
+- *(Closed 27 November 2026 by `paste.ts` and the amendment above: portal exemptions, pass/fail marks, numeric grades and ungraded rows map deterministically into `TranscriptResult`.)*
 - 2026-11-26: The pg driver returns a `numeric` column as a string. The entity turns `grade` back into a number when it reads a row.

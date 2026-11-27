@@ -207,7 +207,10 @@ describe('CalendarView (F10 school dates)', () => {
 
   it('picks a week of the month from the range button, numbered when the term is known', async () => {
     const { w } = await render();
-    await w.get('[data-test="range"]').trigger('click');
+    const trigger = w.get('[data-test="range"]');
+    expect(trigger.attributes('aria-controls')).toBeUndefined();
+    await trigger.trigger('click');
+    expect(trigger.attributes('aria-controls')).toBe('cal-picker');
     const options = w.findAll('[role="option"]');
     expect(options.map((o) => o.get('b').text())).toEqual(['Tuần 8', 'Tuần 9', 'Tuần 10', 'Tuần 11', 'Tuần 12', 'Tuần 13']);
     expect(options[2]!.attributes('aria-selected')).toBe('true');
@@ -215,6 +218,28 @@ describe('CalendarView (F10 school dates)', () => {
     await options[4]!.trigger('click');
     expect(text(w, 'range')).toBe('23/11 – 29/11');
     expect(w.find('[role="listbox"]').exists()).toBe(false);
+    expect(trigger.attributes('aria-controls')).toBeUndefined();
+  });
+
+  it('moves through the range picker with ArrowDown and ArrowUp, and returns focus to the button on Escape', async () => {
+    const { w } = await render();
+    const trigger = w.get('[data-test="range"]');
+    (trigger.element as HTMLElement).focus();
+    await trigger.trigger('keydown', { key: 'ArrowDown' });
+    await flushPromises();
+    const picker = w.get('#cal-picker');
+    const options = w.findAll('[role="option"]');
+    expect(document.activeElement).toBe(options[2]!.element);
+
+    await picker.trigger('keydown', { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(options[3]!.element);
+    await picker.trigger('keydown', { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(options[2]!.element);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+    expect(w.find('#cal-picker').exists()).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
   });
 
   it('says there are no school dates yet, with no made-up ones', async () => {

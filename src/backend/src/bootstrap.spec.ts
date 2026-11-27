@@ -59,4 +59,11 @@ describe('configureApp', () => {
     const response = await (await boot()).get('/api/anything');
     expect(response.headers).not.toHaveProperty('x-powered-by');
   });
+
+  it('sets default security headers on every response', async () => {
+    const response = await (await boot()).get('/api/anything');
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  });
 });

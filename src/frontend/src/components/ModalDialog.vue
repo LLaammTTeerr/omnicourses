@@ -54,3 +54,9 @@ function closed(): void {
     </template>
   </dialog>
 </template>
+
+<style scoped>
+.modal:focus {
+  outline: none;
+}
+</style>

@@ -11,6 +11,24 @@ export class UsersService {
     return this.users.findOneBy({ email: email.toLowerCase() });
   }
 
+  findByEmailForAuth(email: string): Promise<User | null> {
+    return this.users
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .where('u.email = :email', { email: email.toLowerCase() })
+      .getOne();
+  }
+
+  async findPasswordHash(userId: string): Promise<string | null> {
+    const user = await this.users
+      .createQueryBuilder('u')
+      .select('u.id')
+      .addSelect('u.passwordHash')
+      .where('u.id = :userId', { userId })
+      .getOne();
+    return user?.passwordHash ?? null;
+  }
+
   create(fields: Pick<User, 'email' | 'passwordHash' | 'displayName' | 'consentAt'>): Promise<User> {
     return this.users.save(this.users.create({ ...fields, email: fields.email.toLowerCase() }));
   }

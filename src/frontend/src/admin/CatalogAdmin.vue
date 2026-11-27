@@ -291,7 +291,7 @@ const details = computed(() => (course.value ? EDITABLE_COURSE_FIELDS.filter((fi
   </section>
 </template>
 
-<style>
+<style scoped>
 .catalog-course { border-top: 1px solid var(--edge); padding: 18px 22px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .catalog-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .catalog-head h3 { font-size: 19px; margin-top: 6px; overflow-wrap: anywhere; }

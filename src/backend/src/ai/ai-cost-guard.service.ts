@@ -9,6 +9,8 @@ import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { AiUsage } from './ai-usage.entity.js';
 import type { AiCallContext } from './llm.service.js';
 
+const AI_QUOTA_LOCK_NAMESPACE = 3003;
+
 type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
 
 @Injectable()
@@ -24,10 +26,11 @@ export class AiCostGuard {
   async reserve(context: AiCallContext, model: string): Promise<string> {
     const cap = this.config.dailyCallsPerUser;
     return this.usage.manager.transaction(async (em) => {
-      await em.query('SELECT pg_advisory_xact_lock(hashtext($1))', [context.userId]);
-      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(this.clock.now().getTime() - DAY_MS)) } });
+      await em.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [AI_QUOTA_LOCK_NAMESPACE, context.userId]);
+      const now = this.clock.now();
+      const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(now.getTime() - DAY_MS)) } });
       if (used >= cap) throw new AiUnavailableError(AI_REASONS.dailyLimit);
-      const { identifiers } = await em.insert(AiUsage, { userId: context.userId, feature: context.feature, model });
+      const { identifiers } = await em.insert(AiUsage, { userId: context.userId, feature: context.feature, model, createdAt: now });
       return identifiers[0].id as string;
     });
   }

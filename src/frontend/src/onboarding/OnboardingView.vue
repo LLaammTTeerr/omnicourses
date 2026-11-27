@@ -173,7 +173,7 @@ usePageTitle(() => m.value.title);
   </div>
 </template>
 
-<style>
+<style scoped>
 .wizard { max-width: 860px; margin: 0 auto; display: grid; gap: 26px; padding: 24px 16px 96px; align-content: start; min-height: 100vh; }
 .wizard-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .wizard-tools { display: flex; gap: 6px; align-items: center; }
@@ -202,6 +202,6 @@ usePageTitle(() => m.value.title);
 .wizard-nav { display: flex; justify-content: space-between; gap: 12px; }
 .wizard-nav .btn.primary { min-width: 140px; justify-content: center; }
 @media (max-width: 420px) {
-  .wizard-top .brand-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .wizard-top :deep(.brand-name) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 </style>

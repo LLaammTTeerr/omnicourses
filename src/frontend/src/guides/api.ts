@@ -70,8 +70,12 @@ export interface Guide {
   texts: GuideTexts<GuideText>;
 }
 
+export interface GuideList {
+  guides: GuideListItem[];
+}
+
 export async function fetchGuides(): Promise<GuideListItem[]> {
-  return (await request<{ guides: GuideListItem[] }>('GET', '/guides')).guides;
+  return (await request<GuideList>('GET', '/guides')).guides;
 }
 
 export async function fetchGuide(id: string): Promise<Guide | null> {

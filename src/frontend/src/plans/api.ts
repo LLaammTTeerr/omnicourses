@@ -60,6 +60,18 @@ export interface CreatePlanBody {
   terms?: PlanTerm[];
 }
 
+export interface RenamePlanBody {
+  name: string;
+}
+
+export interface DuplicatePlanBody {
+  name?: string;
+}
+
+export interface PlanBoardBody {
+  terms: PlanTerm[];
+}
+
 export const PLAN_ISSUE_CODES = [
   'prerequisite_not_met',
   'prerequisites_not_recorded',
@@ -156,13 +168,13 @@ export const createPlan = (body: CreatePlanBody) => requestAsUser<Plan>('POST', 
 
 export const fetchPlan = (id: string) => requestAsUser<Plan>('GET', path(id));
 
-export const renamePlan = (id: string, name: string) => requestAsUser<Plan>('PATCH', path(id), { body: { name } });
+export const renamePlan = (id: string, name: string) => requestAsUser<Plan>('PATCH', path(id), { body: { name } satisfies RenamePlanBody });
 
-export const duplicatePlan = (id: string, name: string) => requestAsUser<Plan>('POST', `${path(id)}/duplicate`, { body: { name } });
+export const duplicatePlan = (id: string, name: string) => requestAsUser<Plan>('POST', `${path(id)}/duplicate`, { body: { name } satisfies DuplicatePlanBody });
 
 export const deletePlan = (id: string) => requestAsUser<void>('DELETE', path(id));
 
-export const savePlacements = (id: string, terms: PlanTerm[]) => requestAsUser<Plan>('PUT', `${path(id)}/placements`, { body: { terms } });
+export const savePlacements = (id: string, terms: PlanTerm[]) => requestAsUser<Plan>('PUT', `${path(id)}/placements`, { body: { terms } satisfies PlanBoardBody });
 
 export const fetchPlanIssues = (id: string) => requestAsUser<PlanIssues>('GET', `${path(id)}/issues`);
 
@@ -183,4 +195,4 @@ export const previewPlanDrops = (id: string, body: PlanDropPreview, signal?: Abo
   requestAsUser<PlanDropReports>('POST', `${path(id)}/issues/drops`, { body, signal });
 
 export const previewPlanIssues = (id: string, terms: PlanTerm[], signal?: AbortSignal) =>
-  requestAsUser<PlanIssues>('POST', `${path(id)}/issues`, { body: { terms }, signal });
+  requestAsUser<PlanIssues>('POST', `${path(id)}/issues`, { body: { terms } satisfies PlanBoardBody, signal });

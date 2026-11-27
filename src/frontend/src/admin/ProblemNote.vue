@@ -25,7 +25,7 @@ const m = useMessages(ADMIN_MESSAGES);
   </div>
 </template>
 
-<style>
+<style scoped>
 .admin-problem > div { display: grid; gap: 6px; min-width: 0; justify-items: start; }
 .admin-problem ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
 .admin-problem li { overflow-wrap: anywhere; }

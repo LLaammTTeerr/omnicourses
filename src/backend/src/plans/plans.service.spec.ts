@@ -21,8 +21,9 @@ const storedPlan = {
   updatedAt: new Date('2030-01-02T00:00:00Z'),
 } as unknown as Plan;
 
-function service(found: { curriculumId?: string | null; plan?: Plan | null; affected?: number; offered?: boolean } = {}) {
+function service(found: { curriculumId?: string | null; plan?: Plan | null; affected?: number; offered?: boolean; planCount?: number } = {}) {
   const tx = {
+    count: vi.fn().mockResolvedValue(found.planCount ?? 0),
     insert: vi.fn().mockResolvedValue({ identifiers: [{ id: 'p1' }] }),
     delete: vi.fn(),
     query: vi.fn().mockResolvedValue([{ curriculum_id: 'c1', name: 'Main plan', program_code: 'ZZ', cohort_year: 2030 }]),
@@ -169,5 +170,32 @@ describe('PlansService', () => {
     expect(tx.insert).toHaveBeenCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'Main plan' });
     await svc.duplicate('u1', 'p1', 'What if');
     expect(tx.insert).toHaveBeenLastCalledWith(expect.anything(), { userId: 'u1', curriculumId: 'c1', name: 'What if' });
+  });
+
+  it('validates catalog courses and requirement groups inside the write transaction on create and replacePlacements', async () => {
+    const created = service();
+    await create(created.svc, board(course('ZZ001'), slot('g1')));
+    expect(created.curriculum.catalogCourses).toHaveBeenCalledWith(['ZZ001'], created.tx);
+    expect(created.curriculum.requirementGroupIds).toHaveBeenCalledWith('c1', created.tx);
+
+    const replaced = service();
+    await replaced.svc.replacePlacements('u1', 'p1', board(course('ZZ002'), slot('g1')));
+    expect(replaced.curriculum.catalogCourses).toHaveBeenCalledWith(['ZZ002'], replaced.tx);
+    expect(replaced.curriculum.requirementGroupIds).toHaveBeenCalledWith('c1', replaced.tx);
+  });
+
+  it('caps a student at 50 plans on create and duplicate, writing nothing when at the limit', async () => {
+    const allowed = service({ planCount: 49 });
+    await expect(create(allowed.svc)).resolves.toMatchObject({ id: 'p1' });
+    await expect(allowed.svc.duplicate('u1', 'p1')).resolves.toMatchObject({ id: 'p1' });
+    expect(allowed.tx.insert).toHaveBeenCalledTimes(2);
+
+    const atCapCreate = service({ planCount: 50 });
+    await expect(create(atCapCreate.svc)).rejects.toThrow(new BadRequestException('A student may keep at most 50 plans'));
+    expect(atCapCreate.tx.insert).not.toHaveBeenCalled();
+
+    const atCapDuplicate = service({ planCount: 50 });
+    await expect(atCapDuplicate.svc.duplicate('u1', 'p1')).rejects.toThrow(new BadRequestException('A student may keep at most 50 plans'));
+    expect(atCapDuplicate.tx.insert).not.toHaveBeenCalled();
   });
 });

@@ -88,3 +88,75 @@ export function yearChoices(rows: readonly DraftRow[], today = new Date()): numb
   for (const row of rows) if (Number.isInteger(row.year)) years.add(row.year);
   return [...years].filter((year) => year >= MIN_YEAR && year <= MAX_YEAR).sort((a, b) => a - b);
 }
+
+export interface TranscriptDiff {
+  added: number;
+  changed: number;
+  removed: number;
+}
+
+function canonicalRowSignature(row: DraftRow): string {
+  const credits = parseCredits(row.credits);
+  const grade = row.result === 'graded' ? parseGrade(row.grade) : null;
+  return JSON.stringify([
+    row.year,
+    row.number,
+    normalizeCode(row.courseCode),
+    row.courseName.trim(),
+    credits === null ? row.credits.trim() : String(credits),
+    row.result,
+    row.result === 'graded' ? (grade === null ? row.grade.trim() : grade.toFixed(1)) : '',
+  ]);
+}
+
+export function diffRows(baseline: readonly DraftRow[], current: readonly DraftRow[]): TranscriptDiff {
+  const savedUsed = new Set<number>();
+  const draftUsed = new Set<number>();
+  const savedSig = baseline.map(canonicalRowSignature);
+  const draftSig = current.map(canonicalRowSignature);
+
+  for (let di = 0; di < current.length; di++) {
+    const sameKeyIndex = baseline.findIndex((s, si) => !savedUsed.has(si) && s.key === current[di]!.key && savedSig[si] === draftSig[di]);
+    if (sameKeyIndex >= 0) {
+      savedUsed.add(sameKeyIndex);
+      draftUsed.add(di);
+    }
+  }
+  for (let di = 0; di < current.length; di++) {
+    if (draftUsed.has(di)) continue;
+    const matchIndex = baseline.findIndex((_s, si) => !savedUsed.has(si) && savedSig[si] === draftSig[di]);
+    if (matchIndex >= 0) {
+      savedUsed.add(matchIndex);
+      draftUsed.add(di);
+    }
+  }
+
+  let changed = 0;
+  const pairUp = (predicate: (s: DraftRow, d: DraftRow) => boolean): void => {
+    for (let di = 0; di < current.length; di++) {
+      if (draftUsed.has(di)) continue;
+      const matchIndex = baseline.findIndex((s, si) => !savedUsed.has(si) && predicate(s, current[di]!));
+      if (matchIndex >= 0) {
+        savedUsed.add(matchIndex);
+        draftUsed.add(di);
+        changed++;
+      }
+    }
+  };
+
+  pairUp((s, d) => {
+    const code = normalizeCode(d.courseCode);
+    return code !== '' && normalizeCode(s.courseCode) === code && s.year === d.year && s.number === d.number;
+  });
+  pairUp((s, d) => s.key === d.key);
+  pairUp((s, d) => {
+    const code = normalizeCode(d.courseCode);
+    return code !== '' && normalizeCode(s.courseCode) === code;
+  });
+
+  return {
+    added: current.length - draftUsed.size,
+    changed,
+    removed: baseline.length - savedUsed.size,
+  };
+}

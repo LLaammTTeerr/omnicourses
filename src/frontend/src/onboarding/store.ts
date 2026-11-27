@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useAccountCache, useAuth } from '../auth/store.js';
 import { fetchOnboarding, saveOnboarding, type Onboarding } from './api.js';
 
@@ -9,7 +9,13 @@ export const useOnboarding = defineStore('onboarding', () => {
   const answers = cache.value;
   const finished = computed(() => answers.value?.finished ?? false);
 
-  const load = (): Promise<Onboarding> => cache.load();
+  watch(
+    () => auth.user?.id,
+    () => cache.forget(),
+    { flush: 'sync' },
+  );
+
+  const load = (options?: { fresh?: boolean }): Promise<Onboarding> => cache.load(options);
 
   async function save(next: Onboarding): Promise<Onboarding> {
     const userId = auth.user?.id;

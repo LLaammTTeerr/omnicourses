@@ -1,6 +1,6 @@
 # Design vs. use-case specification differences
 
-The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/README.md) draw the code on `main` as of 15 November 2026 (the class model also draws the academic calendar and the notification inbox, added later); UC-12 below was rewritten on 25 November 2026 with the notification inbox API ([ADR 0018](adr/0018-notification-inbox.md)). Where that code differs from a use-case specification ([`docs/requirements/use-cases/`](../requirements/use-cases/README.md), and the Use-Case Specification v1.0 in [`report/assignments/PA2/uc-specs.tex`](../../report/assignments/PA2/uc-specs.tex)), the code is drawn and the difference is listed here. Each "not built" below was checked by searching `src/` for the code it would need. Which features have an API and a screen is in the [README feature table](../../README.md#what-is-built); this file lists only specific differences.
+The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/README.md) draw the code on `main`, synchronized through 27 November 2026. Where that code differs from a use-case specification ([`docs/requirements/use-cases/`](../requirements/use-cases/README.md), and the Use-Case Specification v1.0 in [`report/assignments/PA2/uc-specs.tex`](../../report/assignments/PA2/uc-specs.tex)), or where a feature or use case has been formally rescoped, the difference is recorded here. Which features have an API and a screen is in the [README feature table](../../README.md#what-is-built).
 
 ## UC-01 Sign up and onboard
 
@@ -13,10 +13,10 @@ The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/
 
 | Specification | As built | Follow-up |
 | --- | --- | --- |
-| The student pastes the grades table from the portal; a deterministic parser reads it (steps 1–5, A1, A8). | There is no paste and no parser. The student types every row in (`TranscriptView.vue`), as in A4. | The Project Lead decided on 15 November 2026 to change F2 to "paste the grades table, or type it in" ([ADR 0007, amendment](adr/0007-transcript.md#amendment-15-november-2026-paste-or-type-no-file)); UC-02 and the glossary follow it since 26 November 2026. Pasting is not on `main` yet, and the paste format is not decided. |
-| Rows not in the student's curriculum are marked **Not in your curriculum** in the review table (step 5). | The transcript page marks nothing. The degree audit reports such courses as unmatched courses with a `not_in_curriculum` warning. | |
-| Manual entry offers the curriculum's courses to pick from and fills in the credits (A4). | The student types the course code, name and credits; nothing is looked up. | |
-| Saving over an existing transcript first shows the rows added, changed and removed (A5). | The save replaces the whole set in one transaction; no comparison is shown. | |
+| The student pastes the grades table from the portal; a deterministic parser reads it (steps 1–5, A1, A8). | Built (`TranscriptView.vue`, `src/frontend/src/transcript/paste.ts`; [ADR 0007, amendments of 15 and 27 November 2026](adr/0007-transcript.md#amendment-27-november-2026-deterministic-paste-parser-and-pre-save-diff)): a deterministic client-side TSV/portal grades-table parser turns pasted text into editable review rows with inline validation (`problems` in `rows.ts`). No file is uploaded and no model is called. | |
+| Rows not in the student's curriculum are marked **Not in your curriculum** in the review table (step 5). | Courses outside the curriculum are surfaced in the degree audit as unmatched courses with a `not_in_curriculum` warning (and marked when curriculum codes are loaded). | |
+| Manual entry offers the curriculum's courses to pick from and fills in the credits (A4). | The student types or pastes the course code, name and credits; manual edits validate against the same canonical bounds. | |
+| Saving over an existing transcript first shows the rows added, changed and removed (A5). | Built (`TranscriptView.vue`, [ADR 0007 amendment of 27 November 2026](adr/0007-transcript.md#amendment-27-november-2026-deterministic-paste-parser-and-pre-save-diff)): when overwriting a non-empty saved transcript, the screen computes and shows the pre-save diff summary (rows added, changed and removed) before replacing the whole set in one transaction (`PUT /api/users/me/transcript`). | |
 | After saving, the degree audit opens (step 9). | The page stays on the transcript and shows a toast. | |
 
 ## UC-03 View degree audit (F3)
@@ -32,9 +32,9 @@ The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/
 
 | Specification | As built |
 | --- | --- |
-| The system asks the rule engine for each course's state; the list shows in progress, available now, locked and passed (steps 2–3). | The explorer does not call the rule engine. It lists the courses by requirement group and adds a neutral "in your transcript" mark from the saved transcript's course codes. |
+| The system asks the rule engine for each course's state; the list shows in progress, available now, locked and passed (steps 2–3). | Built in `ExplorerView.vue` (`explorer/readiness.ts`): when viewing the student's own cohort, each course shows its transcript status and readiness state (`passed`, `in_progress`, `failed`, `available`, or `locked` with missing prerequisites) computed deterministically from the student's saved transcript (`GET /api/users/me/transcript`) and the curriculum's recorded prerequisites (`CurriculumDto.prerequisites`). |
 | Prerequisite graph (A1). | Not built. |
-| The drawer shows prerequisites with their state, the courses it unlocks, the offering terms, and a link to place the course in a plan (step 7). | The drawer shows the catalog record, the requirement groups that list the course, and the course's recorded prerequisites (`CurriculumDto.prerequisites`), or a note when none are recorded. It always says that offering terms are not recorded. It shows no state for the prerequisites and no unlocked courses. |
+| The drawer shows prerequisites with their state, the courses it unlocks, the offering terms, and a link to place the course in a plan (step 7). | Built for prerequisites, readiness states and unlocked courses: `CourseDrawer.vue` shows the catalog record, the requirement groups that list the course, its recorded prerequisites with their readiness state, the courses in the curriculum that it unlocks, and its recorded offering terms (or a note when `offeringTerms` is `null`, as for seeded APCS courses). |
 | The student sees their own curriculum. | The student can also switch to another offered program and cohort. |
 
 ## UC-05 Build and edit a plan (F5)
@@ -49,20 +49,36 @@ The [class model](class-model.md) and the [sequence diagrams](sequence-diagrams/
 | A plan holds courses. | A placement is a course or a slot: credits held for a requirement group until a course is chosen. A plan can also be locked on one browser. Neither is in the specification. |
 | (none) | `POST /api/plans/{id}/issues` is built and tested, but no screen calls it since the batched drops route replaced it. |
 
-## UC-09 Share or export a plan (F9)
+## UC-06 Simulate a what-if scenario (F7)
 
-The API is in `src/backend/src/sharing/` ([ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026).
+**Formally rescoped out of B3 (27 November 2026).** Vision §5 gives F7 Medium priority ("completed if the earlier sprints hold").
 
 | Specification | As built | Follow-up |
 | --- | --- | --- |
-| The Share panel, the shared page with its banner, and **Download PDF** (steps 1–8, A1). | Not built. The API has the owner's routes (`GET`, `PUT`, `DELETE /api/plans/{id}/share`) and the reader's route (`GET /api/shared-plans/{token}`). | The screens. The PDF is the browser's print layout of the shared page (agreed by Dũng and accepted by Lâm, 25 November 2026; no server PDF), and it follows the owner's choice below |
+| **What if** copies the open plan, offers four automated scenarios (**Fail a course**, **Change specialization**, **Add a summer term**, **Take more credits**), compares violations and estimated graduation terms side by side, and saves or discards the copy (steps 1–7, A1–A6). | Deferred beyond B3: no `/what-if` screen, scenario runner or side-by-side comparison is built. `POST /api/plans/{id}/duplicate` ([ADR 0014](adr/0014-plan-model.md)) is built and exposed in the planner (`PlansView`, `PlanTabs`), so a student can duplicate a saved plan, edit the copy manually in `/plans/:id` with live rule-engine checks, and delete it if discarded. | Post-course / beyond B3 |
+
+## UC-07 Generate a plan (F6)
+
+**Formally rescoped out of B3 (27 November 2026).** [ADR 0006](adr/0006-plan-generator.md) is `accepted, not built yet`.
+
+| Specification | As built | Follow-up |
+| --- | --- | --- |
+| The student states a planning goal in the form or in the AI goal box (`LlmService.structured`), and the deterministic planner builds a valid plan to graduation over the rule engine with a reason code per placement (steps 1–10, A1–A8). | Deferred beyond B3: neither the `plan-generator` backend module nor a **Generate a plan** / goal-box screen is built. The AI gateway (`src/backend/src/ai/`, [ADR 0003](adr/0003-language-model-scope.md)) with `LlmService.structured()`, Zod 4 JSON Schema validation, per-user daily caps and 503 `ai_unavailable` handling is built and unit-tested, onboarding stores the default planning goal (`GET`/`PUT /api/users/me/onboarding`), and students build and validate plans manually in `/plans` (F5, UC-05). | Post-course / beyond B3 |
+
+## UC-09 Share or export a plan (F9)
+
+Also covers **UC-16 View a shared plan**. The API is in `src/backend/src/sharing/` ([ADR 0010](adr/0010-public-pages-and-guide-content.md), amendment of 25 November 2026) and the screens are in `src/frontend/src/sharing/`.
+
+| Specification | As built | Follow-up |
+| --- | --- | --- |
+| The Share panel, the shared page with its banner, and **Download PDF** (steps 1–8, A1; UC-16 steps 1–4, A1–A3). | Built: `SharePlanDialog.vue` in the planner (`GET`, `PUT`, `DELETE /api/plans/{id}/share`), `SharedPlanView.vue` at `/shared/:token` (`GET /api/shared-plans/{token}`) with its read-only banner, term rows, credit meters and violations, and **Print / Export PDF** via the browser's print layout (`window.print()`, A4 print styles, no server PDF), following the owner's `showName` and `showTranscriptChecks` choices. | |
 | **Create link** creates a link; a plan already shared shows its link instead (steps 3–4, A4). | One request does both: `PUT /api/plans/{id}/share` creates the link when there is none and returns the live one when there is. It also carries the two tick boxes, `showName` and `showTranscriptChecks`: only an explicit `true` turns one on, and one left out stays as it is. `GET` shows the link and both choices without changing anything. | |
-| A reader sees the violations the rule engine finds; the same problems as the student when the student chose to show the checks from the transcript (step 2, A9). | As specified, in the API. With the choice off, the answer holds the engine's issues that follow from the plan and its curriculum alone, does not read the transcript, and names the four codes left out in `issueCodesNotShown` (`prerequisite_not_met`, `already_passed`, `already_in_progress`, `requirement_not_covered`). With it on, the answer holds the owner's own issue list and the coverage of each requirement, with names in place of ids and never a grade. | The Share panel must warn the student when the box is ticked (a reader can then tell which courses the student passed, failed or is taking), and the shared page and the PDF must say "some checks are not shown" when `issueCodesNotShown` is not empty. The choice was agreed by Dũng and accepted by Lâm on 25 November 2026. |
+| A reader sees the violations the rule engine finds; the same problems as the student when the student chose to show the checks from the transcript (step 2, A9). | Built in both the API and the screens. With `showTranscriptChecks` off, the answer holds the engine's issues that follow from the plan and its curriculum alone, does not read the transcript, and names the four codes left out in `issueCodesNotShown` (`prerequisite_not_met`, `already_passed`, `already_in_progress`, `requirement_not_covered`), which `/shared/:token` and its print layout disclose ("some checks are not shown"). With it on, `SharePlanDialog.vue` warns that a reader can tell which courses the student passed, failed or is taking, and the answer holds the owner's full issue list and requirement `coverage`, with names in place of IDs and never a grade. | |
 | With that choice on, a reader sees the estimated graduation term (step 2, §7; UC-16). | A gap: nothing computes one (see UC-03 and UC-05), and only the rule engine may. With the choice on, the answer gives the coverage of each requirement and whether the plan would meet the curriculum (`coverage.graduation`); with it off, neither. | The rule engine; then the same choice |
 | The prototype `shared.html` shows a row of passed courses and the coverage of each requirement group. | The coverage is in the answer when the owner chose to show the checks from the transcript. The row of passed courses is in no answer: UC-09 step 2 does not list it. | |
 | A reader sees the plan's "program, cohort and curriculum version" (step 2). | The answer gives the curriculum's code, cohort and names and the program's code and names, and no id. | |
 | The token is "at least as strong as a session token" (§7). | 32 random bytes. Unlike a session token it is stored readable, because A4 shows the live link again (agreed by Dũng and accepted by Lâm, 25 November 2026). | |
-| The page tells search engines not to index it (§7). | Every answer that reaches the header step under `/api/shared-plans` carries `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store`: the plan, the "not shared" answer, and the 429, 400 and 404 that the route's own code does not make. The CORS answer to `OPTIONS` and the body parser's own 400, 413 and 415 are made earlier and do not carry them; none holds plan data (ADR 0010). The page must add its own `noindex`. | The shared page |
+| The page tells search engines not to index it (§7). | Built: every answer that reaches the header step under `/api/shared-plans` carries `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store` (the plan, the "not shared" 404, and the 429, 400 and 404 made after `sharedPlanHeaders`; the earlier CORS `OPTIONS` and body-parser 400/413/415 carry no plan data, ADR 0010), and `SharedPlanView.vue` sets `<meta name="robots" content="noindex">` on `/shared/:token`. | |
 
 ## UC-10 Follow a school-task guide (F11)
 
@@ -169,7 +185,7 @@ Other differences from ADR 0011:
 
 ## UC-12 Receive notifications (F10)
 
-The school dates and their calendar page are built ([ADR 0017](adr/0017-academic-calendar.md)). The notification inbox is built ([ADR 0018](adr/0018-notification-inbox.md), proposed): the API, and in the single-page app an inbox page at `/notifications` and a bell with the unread count (`src/frontend/src/notifications/`). Dũng, the owner of F10, decided the timing, the time zone and the repeat rules on 25 November 2026; UC-12 gives "seven days" only as an example.
+The school dates, their calendar page (`/calendar`) and their administration screen (`/admin/calendar`) are built ([ADR 0017](adr/0017-academic-calendar.md)). The notification inbox is built ([ADR 0018](adr/0018-notification-inbox.md)): the API, and in the single-page app an inbox page at `/notifications` and a bell with the unread count (`src/frontend/src/notifications/`). Dũng, the owner of F10, decided the timing, the time zone and the repeat rules on 25 November 2026; UC-12 gives "seven days" only as an example.
 
 | Specification | As built | Follow-up |
 | --- | --- | --- |
@@ -185,7 +201,7 @@ The school dates and their calendar page are built ([ADR 0017](adr/0017-academic
 | Notifications are in-app only; there is no mail sender before B3 (special requirements). | As specified: the inbox only, no email (Lâm, 12 November 2026). | |
 | (none) | An add/drop window (`add_drop` in the calendar) makes no notification. Not in B2 (Dũng, 25 November 2026). | |
 | (none) | A notification keeps a copy of the school date as it was announced. It stays when an administrator deletes the date (confirmed by Dũng, 25 November 2026), and it does not follow a later change of the date. | |
-| The dates come from the published school calendar, entered by the team (special requirements). | A program administrator of that program enters them through the API: `POST /api/admin/programs/{programId}/calendar-events`, and `PATCH` and `DELETE` on `…/calendar-events/{eventId}`. The writes use F12's program grant and write lock ([ADR 0011](adr/0011-curriculum-administration.md)). No screen calls these routes yet. Nothing is seeded, so a program shows no dates until its administrator enters them. | An administration screen for the dates |
+| The dates come from the published school calendar, entered by the team (special requirements). | Built: a program administrator of that program enters and edits them in `/admin/calendar` (`CalendarAdmin.vue`, `POST /api/admin/programs/{programId}/calendar-events` and `PATCH` / `DELETE …/calendar-events/{eventId}`), using F12's program grant and write lock ([ADR 0011](adr/0011-curriculum-administration.md), [ADR 0017](adr/0017-academic-calendar.md)). Nothing is seeded, so a program shows no dates until its administrator enters them. | |
 | (none) | The API also returns another program's dates when asked by program code (`program` query). The page always shows the student's own program. | |
 | (none) | The calendar prototype also shows a personal timetable: the student's classes, rooms, deadlines, exams and notes. It is not built. ADR 0017 leaves it to a separate feature with its own ADR, and the Project Lead approved it as that separate feature. | Personal timetable, its own PR and ADR |
 
@@ -199,8 +215,14 @@ The school dates and their calendar page are built ([ADR 0017](adr/0017-academic
 | The settings prototype (`ui-prototypes/settings.html`) edits the profile and changes the password. | Not built: no API route changes the display name or the password yet, so Settings shows neither. (2026-11-26) |
 | 30 days of grace. | The default of `ACCOUNT_DELETION_GRACE_DAYS`; the deadline promised is stored in `users.purge_after`. |
 
+## UC-15 View grades and what each course still needs
+
+**Formally rescoped/deferred beyond B2 and B3 (27 November 2026).** Feature F3, specified in [`report/assignments/PA2/uc-specs.tex`](../../report/assignments/PA2/uc-specs.tex#L831-L878) as an extension of UC-03.
+
+| Specification | As built | Follow-up |
+| --- | --- | --- |
+| A dedicated **Grades** screen lists current, planned and past terms with a term-GPA line chart, stacked component-grade bars per course (0–10), each graded part's weight and score, and the rule engine's minimum remaining score needed to pass (5.0) and reach excellent (8.0) (`UC-19 A2`, steps 1–6, A1–A5). | Deferred beyond B2/B3: there is no `/grades` route, `courses` stores no assessment-part weights, `transcript_rows` stores one course result/grade per term (`TranscriptRow`, [ADR 0007](adr/0007-transcript.md)) with no component scores, and `src/backend/src/rules/` implements no component-needed calculation (`UC-19 A2`). Instead, `/audit` and `/dashboard` show overall and per-term GPAs (`GpaSummary`, `TermSummary`) and each course's official attempt, final grade and coverage status (`CourseCoverage`, `UnmatchedCourse`, [ADR 0013](adr/0013-rule-engine-and-degree-audit.md)). | Post-course / beyond B3 (requires verified per-course assessment weights) |
+
 ## Documents that lag the code
 
-- The [class model](class-model.md) has `PlanShare` in §1.4 and §1.7 only; §3 does not draw `SharingService` and its two controllers, and no sequence diagram of UC-09 is drawn.
-- [`sequence-diagrams/UC-01-sign-up-and-onboard.md`](sequence-diagrams/UC-01-sign-up-and-onboard.md) draws sign-up, sign-in and sessions; onboarding (`GET` and `PUT /api/users/me/onboarding`) is not drawn.
-- No sequence diagram is drawn for curriculum administration (UC-11, UC-17, UC-18).
+- [`sequence-diagrams/UC-01-sign-up-and-onboard.md`](sequence-diagrams/UC-01-sign-up-and-onboard.md) draws sign-up, sign-in and sessions; onboarding (`GET` and `PUT /api/users/me/onboarding`) and the student calendar view (`GET /api/academic-calendar`) are not drawn separately.

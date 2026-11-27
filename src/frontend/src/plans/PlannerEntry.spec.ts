@@ -17,6 +17,7 @@ async function render(routes: Record<string, unknown>, options: Parameters<typeo
   const app = await setup('/plans', options);
   router = app.router;
   wrapper = mount(RouterView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
+  await vi.waitFor(() => expect(router.currentRoute.value.name !== 'plans' || wrapper!.find('[data-test="entry-failed"]').exists()).toBe(true));
   await flushPromises();
   return { w: wrapper, fetch };
 }

@@ -1,6 +1,6 @@
 # ADR 0018: Notification inbox
 
-- Status: proposed
+- Status: accepted (2026-11-27, Lâm)
 - Date: 2026-11-25
 - Deciders: Lâm (Project Lead)
 - Owner of F10: Dũng
@@ -33,7 +33,7 @@ F10 (Vision §5, UC-12) tells a student, inside the app, about a registration wi
 - A student is a recipient once the program is saved in onboarding, as built (decision 6). This differs from the precondition of UC-12, "has finished onboarding"; [design-differences.md](../design-differences.md) records the difference.
 - After a date moves, a notification that has not gone out yet still goes out on the new day. Nothing is sent again. The 7-day notification that went out earlier keeps the old date; this is accepted for B2 (decisions 5 and 7).
 
-The rest of this ADR is the mechanism that carries the rules. The mechanism is the builder's proposal, not Dũng's or Lâm's decision. The status stays **proposed** until Lâm decides.
+The rest of this ADR is the mechanism that carries the rules, proposed by the builder on 25 November 2026 and accepted by Lâm on 27 November 2026.
 
 This ADR is 0018 because 0016 is claimed by the advisor harness (open PR #77).
 
@@ -63,7 +63,7 @@ The tests named in the Evidence column are in `src/backend/test/notifications.e2
 
 ## Consequences
 
-- Hoà's inbox and bell read four routes. The screens are not started. The bell can poll `unread-count`. On a day with no date due, each poll adds one small query to the count. On a day with dates due, each poll also reads the caller's program and runs one `INSERT … ON CONFLICT DO NOTHING` for each date that is due in that program, also when the rows exist already. The reviewer of PR #156 measured about 12 ms for a poll with 15 dates due, against about 4 ms with none.
+- The `/notifications` inbox (`NotificationsView.vue`) and the unread bell (`UnreadBadge.vue`, `useUnread`) shipped in #204 and read the four routes: `App.vue` refreshes `unread-count` on sign-in, on each route change and every minute (`UNREAD_POLL_MS`) while the tab is visible. On a day with no date due, each poll adds one small query to the count. On a day with dates due, each poll also reads the caller's program and runs one `INSERT … ON CONFLICT DO NOTHING` for each date that is due in that program, also when the rows exist already. The reviewer of PR #156 measured about 12 ms for a poll with 15 dates due, against about 4 ms with none.
 - Known limit, not built: two lookups have no index. `academic_calendar` has none on `starts_on` alone, and `onboarding_answers` has none on `program_code`. Both tables belong to other modules, and both are small today.
 - A notification of a date entered during a day reaches a student who does not open the app within 10 minutes. A date entered in the last minutes of its day can miss the students who do not read before midnight: when the next run comes, the day has passed (rule 6).
 - If the server is down for a whole Vietnam day, that day's notifications are lost (decision 2). Nothing reports the gap.

@@ -1,5 +1,5 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
 import { chooseOption, optionsOf } from '../testing/select.js';
 import SelectMenu from './SelectMenu.vue';
@@ -14,6 +14,7 @@ let wrapper: VueWrapper | undefined;
 afterEach(() => {
   wrapper?.unmount();
   wrapper = undefined;
+  vi.restoreAllMocks();
 });
 
 function render(start: string | null = 'a', attrs: Record<string, unknown> = {}) {
@@ -114,5 +115,33 @@ describe('SelectMenu', () => {
     expect(optionsOf(w.get('[data-test="pick"]'))).toEqual(['Alpha', 'Bravo', 'Charlie']);
     await chooseOption(w.get('[data-test="pick"]'), 'Charlie');
     expect(changes).toEqual(['c']);
+  });
+
+  it('forwards id, ariaDescribedby and disabled onto the combobox button', async () => {
+    const { trigger } = render('a', { id: 'goal-term', ariaDescribedby: 'goal-hint goal-err', disabled: true });
+    expect(trigger().attributes('id')).toBe('goal-term');
+    expect(trigger().attributes('aria-describedby')).toBe('goal-hint goal-err');
+    expect(trigger().attributes('disabled')).toBeDefined();
+    await trigger().trigger('click');
+    await trigger().trigger('keydown', { key: 'ArrowDown' });
+    expect(trigger().attributes('aria-expanded')).toBe('false');
+  });
+
+  it('clamps the menu position inside the viewport so right-aligned menus do not clip', async () => {
+    vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(360);
+    const { trigger, w } = render('a');
+    vi.spyOn(trigger().element, 'getBoundingClientRect').mockReturnValue({
+      x: 300,
+      y: 40,
+      top: 40,
+      bottom: 80,
+      left: 300,
+      right: 350,
+      width: 50,
+      height: 40,
+      toJSON: () => ({}),
+    });
+    await trigger().trigger('click');
+    expect((w.get('[role="listbox"]').element as HTMLElement).style.left).toBe('172px');
   });
 });

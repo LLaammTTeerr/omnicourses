@@ -23,7 +23,7 @@ The privacy NFR (Vision §6) requires "export and deletion of a whole account", 
 - An email stays taken during the grace period: sign-up answers 409, and signing in restores the account.
 - The purge runs hourly, so an account can outlive its deadline by up to an hour. In that window sign-in answers the generic 401 `Invalid email or password` (it doesn't reveal that the account existed) and sign-up still answers 409. Accepted by the Project Lead; there is no inline purge.
 - Google-only accounts (no password) cannot confirm deletion yet. Handle this with Google OAuth.
-- Nightly backups (not set up yet) will hold purged accounts until they rotate out; the backup retention must be stated in the privacy notice.
+- Nightly backups (`omnicourse-backup.timer`, 7 days kept) and pre-deploy dumps (14 kept) hold purged accounts until they rotate out; the backup retention is stated in the privacy notice (`/privacy`).
 - 2026-11-26: The secret-name rule matches a suffix only, so a plural such as `input_tokens` is exported: it is the student's usage data. The e2e test flags any other column that looks like a credential.
 - 2026-11-26: The export skips the copy of a foreign key that PostgreSQL makes on a partition, because the SELECT on the parent table already reads the partition's rows. It also skips a key from `users` to `users`, because those rows are other accounts.
 - 2026-11-26: The export writes a `date` column as the `YYYY-MM-DD` text it holds (architecture.md, section 6, Dates).

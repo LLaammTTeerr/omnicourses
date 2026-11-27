@@ -148,4 +148,49 @@ describe('OnboardingView (UC-01 steps 6–9)', () => {
     const { w } = await render(NOT_STARTED, { 'GET /programs': status(500) });
     expect(w.get('[data-test="program-APCS"]').text()).toContain('APCS');
   });
+
+  it('waits for the program list before showing the wizard, and retries both loads after a failure', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let resolvePrograms!: (res: Response) => void;
+    let failInitial = true;
+    const fetch = mockApi({
+      'GET /programs': () => (failInitial ? status(503)() : new Promise<Response>((resolve) => { resolvePrograms = resolve; })),
+      'GET /users/me/onboarding': () => (failInitial ? status(503)() : Response.json(NOT_STARTED)),
+    });
+    const app = await setup('/onboarding', { onboarded: null });
+    router = app.router;
+    wrapper = mount(RouterView, { global: { plugins: [app.pinia, router] }, attachTo: document.body });
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toContain(ONBOARDING_MESSAGES.vi.loadFailed);
+
+    failInitial = false;
+    await wrapper.get('[role="alert"] button').trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain(ONBOARDING_MESSAGES.vi.loading);
+    expect(wrapper.find('form').exists()).toBe(false);
+
+    resolvePrograms(Response.json({ programs: PROGRAMS }));
+    await flushPromises();
+    expect(wrapper.get('[data-test="program-APCS"]').text()).toContain('Chương trình Tiên tiến thử');
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/programs')).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('names goal comboboxes via aria-label without wrapping labels or dangling error ids', async () => {
+    const { w } = await render(onboarding({ finished: false, creditsPerTerm: null }));
+    const grad = w.get('#onboarding-graduation');
+    expect(grad.attributes('aria-label')).toBe(GOAL_MESSAGES.vi.graduation);
+    expect(grad.element.closest('label')).toBeNull();
+    expect(grad.attributes('aria-describedby')).toBe('onboarding-graduation-hint');
+
+    await next(w);
+    const credits = w.get('#onboarding-credits');
+    const internship = w.get('#onboarding-internship');
+    expect(credits.attributes('aria-describedby')).toBe('onboarding-credits-hint');
+    expect(internship.attributes('aria-label')).toBe(GOAL_MESSAGES.vi.internship);
+    expect(internship.element.closest('label')).toBeNull();
+    expect(internship.attributes('aria-describedby')).toBe('onboarding-internship-hint');
+
+    await credits.setValue('0');
+    expect(credits.attributes('aria-describedby')).toBe('onboarding-credits-hint onboarding-credits-error');
+  });
 });

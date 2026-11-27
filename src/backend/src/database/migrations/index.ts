@@ -11,6 +11,7 @@ import { AddAuditRulesToCurriculum1794300000000 } from './1794300000000-add-audi
 import { CreateAcademicCalendar1794500000000 } from './1794500000000-create-academic-calendar.js';
 import { CreatePlanShares1795564800000 } from './1795564800000-create-plan-shares.js';
 import { CreateNotifications1795575059760 } from './1795575059760-create-notifications.js';
+import { HardenConstraintsAndIndexes1795600000000 } from './1795600000000-harden-constraints-and-indexes.js';
 
 // Imported classes, not a glob: globs break between ts (tests) and compiled js
 // (dist) (ADR 0002). A migration left out of this list never runs.
@@ -28,4 +29,5 @@ export const MIGRATIONS = [
   CreateAcademicCalendar1794500000000,
   CreatePlanShares1795564800000,
   CreateNotifications1795575059760,
+  HardenConstraintsAndIndexes1795600000000,
 ];

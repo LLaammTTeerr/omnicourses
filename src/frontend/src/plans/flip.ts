@@ -46,7 +46,8 @@ export function play(root: ParentNode | null, before: Snapshot, lift?: Lift): vo
   });
 }
 
-export function edgeScroll(clientY: number, viewport = window.innerHeight, edge = 80): number {
+export function edgeScroll(clientY: number, viewport = window.innerHeight, edge = 80, overBin = false): number {
+  if (overBin) return 0;
   let by = 0;
   if (clientY < edge) by = -Math.ceil((edge - clientY) / 5);
   else if (clientY > viewport - edge) by = Math.ceil((clientY - viewport + edge) / 5);

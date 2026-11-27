@@ -406,10 +406,18 @@ describe('checkPlan', () => {
       expect(total(course('ZZA1'), slot('b', 4))).toBe(8);
     });
 
-    it('says nothing about the total when the cohort total is not recorded', () => {
+    it('says nothing about the total when the cohort total is not recorded, and keeps graduation not_yet even when all groups are met or empty', () => {
       const report = check(COMPLETE_PLAN.slice(0, 1), { rules: zzCurriculum({ totalCreditsMin: null }) });
-      expect(report.coverage).toMatchObject({ totalRequired: null, totalRemaining: null });
+      expect(report.coverage).toMatchObject({ totalRequired: null, totalRemaining: null, graduation: 'not_yet' });
       expect(report.issues.some((i) => i.code === 'requirement_not_covered' && i.requirementGroupId === null && i.combinedMinimumId === null)).toBe(false);
+
+      const completeWithoutTotal = check(COMPLETE_PLAN, { rules: zzCurriculum({ totalCreditsMin: null }) });
+      expect(completeWithoutTotal.issues).toEqual([]);
+      expect(completeWithoutTotal.coverage).toMatchObject({ totalRequired: null, totalRemaining: null, graduation: 'not_yet' });
+
+      const emptyWithoutTotal = check([], { rules: zzCurriculum({ totalCreditsMin: null, groups: [], combinedMinimums: [] }) });
+      expect(emptyWithoutTotal.issues).toEqual([]);
+      expect(emptyWithoutTotal.coverage).toMatchObject({ totalRequired: null, totalCredits: 0, totalRemaining: null, graduation: 'not_yet' });
     });
   });
 

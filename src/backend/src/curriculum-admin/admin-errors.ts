@@ -78,5 +78,8 @@ export const REFERENCES = {
   ownTerms: (code: string) => `offering terms of ${code} are recorded`,
   linkedIn: (curriculumCode: string) => `linked in ${curriculumCode}`,
   groupPlans: (count: number | null) => (count === null ? 'saved plans use it' : `${count} saved plans use it`),
+  groupOverflows: (count: number) => `${count} overflow rules name it`,
+  groupCombinedMinimums: (count: number) => `${count} combined-minimum rules name it`,
+  countingRule: (code: string) => `counting_rule:${code}`,
   counted: (count: number, what: CountedReference) => `${count} ${COUNTED_REFERENCES[what]}`,
 } as const;

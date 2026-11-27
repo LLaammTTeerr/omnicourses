@@ -99,9 +99,13 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
 
   it('offers only the programs and cohorts the API lists for this user, and shows the groups of the chosen cohort', async () => {
     const { w } = await render();
-    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Nhóm yêu cầu', 'Nhập CSV']);
+    expect(w.get('[data-test="admin-tabs"]').findAll('a').map((a) => a.text())).toEqual(['Nhóm yêu cầu', 'Lịch năm học', 'Nhập CSV']);
     expect(optionsOf(get(w, 'admin-program'))).toEqual(['ZZEMPTY · Chương trình thử chưa có khóa', 'ZZPROG · Chương trình thử']);
     expect(optionsOf(get(w, 'admin-cohort'))).toEqual(['Khóa 2024', 'Khóa 2025']);
+    expect(get(w, 'admin-program').attributes('aria-label')).toBe(ADMIN_MESSAGES.vi.curriculum.program);
+    expect(get(w, 'admin-cohort').attributes('aria-label')).toBe(ADMIN_MESSAGES.vi.curriculum.cohort);
+    expect(get(w, 'admin-program').element.closest('label')).toBeNull();
+    expect(get(w, 'admin-cohort').element.closest('label')).toBeNull();
     expect(get(w, 'curriculum-summary').text()).toContain('CTĐT thử khóa 2024 · ZZPROG2024');
     expect(get(w, 'groups-title').text()).toBe('2 nhóm yêu cầu');
     expect(w.findAll('[data-test="group-row"]').map((row) => row.findAll('th, td').slice(0, 4).map((cell) => cell.text()))).toEqual([
@@ -111,6 +115,7 @@ describe('CurriculumAdmin (F12, UC-11): the curriculum editor of a program admin
     expect(w.findAll('[data-test="group-note"]').map((note) => note.text())).toEqual(['Chọn tối thiểu 8 tín chỉ.']);
     expect(get(w, 'group-panel').get('h3').text()).toBe('Kiến thức cơ sở thử · 3 học phần');
     expect(groupRow(w, BASE_GROUP.name).get('[data-test="group-open"]').attributes('aria-expanded')).toBe('true');
+    expect(groupRow(w, BASE_GROUP.name).get('[data-test="group-open"]').attributes('aria-controls')).toBe('group-panel');
     expect(w.findAll('[data-test="course-row"]').map((row) => row.attributes('data-course'))).toEqual(['ZZ101', 'ZZ102', 'ZZ103']);
   });
 

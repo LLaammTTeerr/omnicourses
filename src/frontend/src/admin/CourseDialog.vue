@@ -165,7 +165,7 @@ const changes = computed(() =>
   </ModalDialog>
 </template>
 
-<style>
+<style scoped>
 dialog.modal.course-dialog { width: min(560px, calc(100vw - 24px)); }
 #course-dialog-title:focus { outline: none; }
 .course-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }

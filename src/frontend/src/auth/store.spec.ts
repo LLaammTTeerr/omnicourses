@@ -52,13 +52,20 @@ describe('auth store (ADR 0002)', () => {
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
   });
 
-  it('keeps a saved token for the next load when the API cannot be reached', async () => {
+  it('keeps a saved token for the next load when the API cannot be reached, and retries on the next start()', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     sessionStorage.setItem(SESSION_STORAGE_KEY, 'zz-maybe');
-    fetchMock().mockRejectedValue(new TypeError('Failed to fetch'));
-    await useAuth().start();
-    expect(useAuth().signedIn).toBe(false);
+    const fetch = fetchMock().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(Response.json(authResult({ token: 'zz-recovered' })));
+    const auth = useAuth();
+    await auth.start();
+    expect(auth.signedIn).toBe(false);
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBe('zz-maybe');
+
+    await auth.start();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(auth.signedIn).toBe(true);
+    expect(auth.token).toBe('zz-recovered');
+    expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBe('zz-recovered');
   });
 
   it('remembers that a sign-in cancelled a pending deletion (ADR 0004)', async () => {

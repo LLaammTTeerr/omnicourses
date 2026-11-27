@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { byText } from '../common/collections.js';
 import { isCourseCode } from '../common/course-code.js';
 import { Course } from './course.entity.js';
@@ -89,10 +89,11 @@ export class CurriculumService {
     return row?.id ?? null;
   }
 
-  async catalogCourses(codes: readonly string[]): Promise<Map<string, CourseSummary>> {
+  async catalogCourses(codes: readonly string[], manager?: EntityManager): Promise<Map<string, CourseSummary>> {
     const wellFormed = [...new Set(codes)].filter(isCourseCode);
     if (!wellFormed.length) return new Map();
-    const rows = await this.courses.find({ select: { code: true, nameVi: true, nameEn: true, credits: true }, where: { code: In(wellFormed) } });
+    const courses = manager ? manager.getRepository(Course) : this.courses;
+    const rows = await courses.find({ select: { code: true, nameVi: true, nameEn: true, credits: true }, where: { code: In(wellFormed) } });
     return new Map(rows.map((c) => [c.code, { nameVi: c.nameVi, nameEn: c.nameEn, credits: c.credits }]));
   }
 
@@ -109,8 +110,9 @@ export class CurriculumService {
     };
   }
 
-  async requirementGroupIds(curriculumId: string): Promise<Set<string>> {
-    const row = await this.curriculums.findOne({ select: { id: true, requirementGroups: { id: true } }, where: { id: curriculumId }, relations: { requirementGroups: true } });
+  async requirementGroupIds(curriculumId: string, manager?: EntityManager): Promise<Set<string>> {
+    const curriculums = manager ? manager.getRepository(Curriculum) : this.curriculums;
+    const row = await curriculums.findOne({ select: { id: true, requirementGroups: { id: true } }, where: { id: curriculumId }, relations: { requirementGroups: true } });
     return new Set(row?.requirementGroups.map((g) => g.id) ?? []);
   }
 }

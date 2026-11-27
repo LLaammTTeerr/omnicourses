@@ -54,7 +54,7 @@ const glyphOf = (group: Pick<PlanGroupCoverage, 'name' | 'kind'>) => {
   </section>
 </template>
 
-<style>
+<style scoped>
 .status-strip { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 14px 18px; }
 .status-strip .est { display: flex; gap: 12px; align-items: center; }
 .status-strip .est-ic { width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--ok); color: #fff; border: 1px solid var(--edge); transition: background 0.25s; }

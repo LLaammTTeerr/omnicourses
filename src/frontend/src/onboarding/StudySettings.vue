@@ -42,14 +42,14 @@ async function save(): Promise<void> {
     <form v-else class="study-form" novalidate data-test="study-form" @submit.prevent="save">
       <p class="small t2">{{ m.note }}</p>
       <div class="study-program">
-        <label class="field">
-          <span>{{ m.program }}</span>
-          <SelectMenu :model-value="program" :options="choices.map((choice) => ({ value: choice.code, label: programName(choice) }))" @update:model-value="pickProgram" />
-        </label>
-        <label class="field">
-          <span>{{ m.cohort }}</span>
-          <SelectMenu v-model="cohort" :options="cohorts.map((year) => ({ value: year, label: m.cohortOption(year) }))" />
-        </label>
+        <div class="field">
+          <span class="label">{{ m.program }}</span>
+          <SelectMenu :model-value="program" :aria-label="m.program" :options="choices.map((choice) => ({ value: choice.code, label: programName(choice) }))" @update:model-value="pickProgram" />
+        </div>
+        <div class="field">
+          <span class="label">{{ m.cohort }}</span>
+          <SelectMenu v-model="cohort" :aria-label="m.cohort" :options="cohorts.map((year) => ({ value: year, label: m.cohortOption(year) }))" />
+        </div>
       </div>
       <GoalFields v-model:graduation="goal.graduation" v-model:credits="goal.credits" v-model:internship="goal.internship" id-prefix="study" :errors="goalErrors" />
       <div v-if="otherErrors.length" class="callout bad" role="alert"><Icon name="alert" /><div><p v-for="error in otherErrors" :key="error">{{ error }}</p></div></div>
@@ -59,11 +59,17 @@ async function save(): Promise<void> {
   </section>
 </template>
 
-<style>
+<style scoped>
+.srow { display: flex; justify-content: space-between; align-items: center; gap: 12px 16px; padding: 16px 22px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.card-head + .srow { border-top: 0; }
+.srow .txt { min-width: 0; flex: 1 1 260px; }
+.srow .txt b { display: block; font-size: 14.5px; }
+.srow .txt p { font-size: 13.5px; color: var(--ink-2); }
 .study-form { display: grid; gap: 18px; padding: 4px 22px 22px; }
 .study-program { display: flex; flex-wrap: wrap; gap: 14px; }
 .study-program .field { flex: 1 1 200px; max-width: 320px; }
 @media (max-width: 620px) {
+  .srow { padding: 14px 16px; }
   .study-form { padding: 4px 16px 18px; }
 }
 </style>

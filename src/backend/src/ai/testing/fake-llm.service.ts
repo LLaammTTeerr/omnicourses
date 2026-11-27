@@ -28,6 +28,7 @@ export class FakeLlmService extends LlmService {
 
   async structured<T>(request: StructuredRequest<T>): Promise<T> {
     this.structuredCalls.push(request as StructuredRequest<unknown>);
+    if (request.signal?.aborted) throw new AiUnavailableError(AI_REASONS.streamEndedEarly);
     if (this.failure) throw new AiUnavailableError(this.failure);
     if (!this.structuredReplies.length) throw new Error('FakeLlmService: no scripted structured reply left');
     const parsed = request.schema.safeParse(this.structuredReplies.shift());
@@ -37,11 +38,13 @@ export class FakeLlmService extends LlmService {
 
   async *chat(request: ChatRequest): AsyncIterable<ChatEvent> {
     this.chatCalls.push(request);
+    if (request.signal?.aborted) throw new AiUnavailableError(AI_REASONS.streamEndedEarly);
     if (this.failure) throw new AiUnavailableError(this.failure);
     const script = this.chatScripts.shift();
     if (!script) throw new Error('FakeLlmService: no scripted chat reply left');
     let text = '';
     for (const step of script) {
+      if (request.signal?.aborted) throw new AiUnavailableError(AI_REASONS.streamEndedEarly);
       if ('tool' in step) {
         const tool = request.tools?.find((t) => t.name === step.tool);
         if (!tool) throw new Error(`FakeLlmService: the request has no tool ${step.tool}`);
@@ -51,9 +54,13 @@ export class FakeLlmService extends LlmService {
           () => true,
           () => false,
         );
+        if (request.signal?.aborted) throw new AiUnavailableError(AI_REASONS.streamEndedEarly);
         yield { type: 'tool_result', name: step.tool, ok };
       } else {
-        for (const word of step.text.split(/(?<= )/)) yield { type: 'text', delta: word };
+        for (const word of step.text.split(/(?<= )/)) {
+          if (request.signal?.aborted) throw new AiUnavailableError(AI_REASONS.streamEndedEarly);
+          yield { type: 'text', delta: word };
+        }
         text = step.text;
       }
     }

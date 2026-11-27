@@ -321,6 +321,10 @@ describe('ImportAdmin (F12, UC-11 A9): CSV bulk entry with a preview', () => {
       [`POST ${LINKS(CURRICULUM_2025_ID)}/preview`]: linkPreview(),
       [`POST ${LINKS(CURRICULUM_2025_ID)}/confirm`]: { fileType: 'group_links', summary: { inserts: 1, updates: 0, noOps: 1 } },
     });
+    expect(get(w, 'import-program').attributes('aria-label')).toBe(ADMIN_MESSAGES.vi.curriculum.program);
+    expect(get(w, 'import-cohort').attributes('aria-label')).toBe(ADMIN_MESSAGES.vi.curriculum.cohort);
+    expect(get(w, 'import-program').element.closest('label')).toBeNull();
+    expect(get(w, 'import-cohort').element.closest('label')).toBeNull();
     expect(get(w, 'import-cohort').text()).toContain('Khóa 2025');
     await choose(w, LINKS_CSV);
     await previewFile(w);

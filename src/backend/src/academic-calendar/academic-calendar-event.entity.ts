@@ -13,6 +13,7 @@ export const SOURCE_URL_MAX_LENGTH = 2048;
 
 @Entity({ name: 'academic_calendar' })
 @Index('ix_academic_calendar_program_starts_on', ['programId', 'startsOn'])
+@Index('idx_academic_calendar_starts_on_kind', ['startsOn', 'kind'])
 @Check('ck_academic_calendar_kind', `"kind" IN ('term_start', 'term_end', 'registration', 'add_drop', 'exam_period', 'holiday', 'other')`)
 @Check('ck_academic_calendar_term', `"term" IN (1, 2, 3)`)
 @Check('ck_academic_calendar_academic_year', `"academic_year" BETWEEN 2000 AND 2100`)

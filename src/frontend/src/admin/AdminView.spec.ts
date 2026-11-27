@@ -73,6 +73,7 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     const all = await render('/admin/access', { 'GET /admin/grants': EVERY_GRANT, 'GET /admin/access/programs': { programs: [] } });
     expect(all.w.findAll('.admin-tabs a').map((a) => [a.text(), a.attributes('href')])).toEqual([
       ['Nhóm yêu cầu', '/admin/curriculum'],
+      ['Lịch năm học', '/admin/calendar'],
       ['Danh mục học phần', '/admin/catalog'],
       ['Nhập CSV', '/admin/import'],
       ['Phân quyền', '/admin/access'],
@@ -83,6 +84,10 @@ describe('AdminView: who may open the administration page (ADR 0011, UC-11 A4)',
     const manager = await render('/admin', { 'GET /admin/grants': ACCESS_MANAGER, 'GET /admin/access/programs': { programs: [] } });
     expect(manager.w.findAll('.admin-tabs a').map((a) => a.text())).toEqual(['Phân quyền']);
     expect(router.currentRoute.value.name).toBe('admin-access');
+    await router.push('/admin/calendar');
+    await flushPromises();
+    expect(manager.w.get('[data-test="admin-section-denied"]').attributes('data-permission')).toBe('program_admin');
+    expect(manager.w.get('[data-test="admin-section-denied"]').text()).toBe('Mục này cần quyền “Quản trị chương trình”. Tài khoản của bạn không có quyền đó.');
     await router.push('/admin/catalog');
     await flushPromises();
     expect(manager.w.get('[data-test="admin-section-denied"]').text()).toBe('Mục này cần quyền “Quản lý danh mục học phần”. Tài khoản của bạn không có quyền đó.');

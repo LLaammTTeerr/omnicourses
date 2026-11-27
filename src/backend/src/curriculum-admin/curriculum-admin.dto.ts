@@ -1,12 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy } from 'class-validator';
-import { ifPresent, ifSet, NoNullCharacter, NullableTextField, RequiredTextField } from '../common/field-validators.js';
+import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, NullableTextField, RequiredTextField } from '../common/field-validators.js';
 import { REQUIREMENT_GROUP_KINDS, type RequirementGroupKind } from '../curriculum/requirement-group.entity.js';
 import { TERM_NUMBERS } from '../terms/term.js';
 import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
 import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 
 const MAX_PREREQUISITES = 50;
+export const OFFICIAL_NOTES_MAX_LENGTH = 2000;
+export const CONFIRM_IMPACT_MAX_LENGTH = 128;
 
 class AdminCurriculumDto {
   @ApiProperty({ format: 'uuid' })
@@ -46,10 +48,11 @@ export class CreateRequirementGroupDto {
   @IsIn(REQUIREMENT_GROUP_KINDS)
   kind!: RequirementGroupKind;
 
-  @ApiProperty({ type: String, nullable: true, required: false, description: 'The printed rule text' })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: OFFICIAL_NOTES_MAX_LENGTH, description: 'The printed rule text' })
   @ifSet
   @IsString()
   @NoNullCharacter
+  @MaxCodePoints(OFFICIAL_NOTES_MAX_LENGTH)
   officialNotes?: string | null;
 }
 
@@ -63,10 +66,11 @@ export class UpdateRequirementGroupDto {
   @IsIn(REQUIREMENT_GROUP_KINDS)
   kind?: RequirementGroupKind;
 
-  @ApiProperty({ type: String, nullable: true, required: false })
+  @ApiProperty({ type: String, nullable: true, required: false, maxLength: OFFICIAL_NOTES_MAX_LENGTH })
   @ifSet
   @IsString()
   @NoNullCharacter
+  @MaxCodePoints(OFFICIAL_NOTES_MAX_LENGTH)
   officialNotes?: string | null;
 }
 
@@ -241,12 +245,14 @@ export class UpdateCourseDto {
 
   @ApiProperty({
     required: false,
+    maxLength: CONFIRM_IMPACT_MAX_LENGTH,
     description:
       'The reviewVersion of a 409 impact_confirmation_required answer: confirms the change for exactly the curricula it listed. Needed whenever the course is linked to a curriculum.',
   })
   @ifPresent
   @IsString()
   @IsNotEmpty()
+  @MaxCodePoints(CONFIRM_IMPACT_MAX_LENGTH)
   confirmImpact?: string;
 }
 

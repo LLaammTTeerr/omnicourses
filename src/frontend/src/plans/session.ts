@@ -12,10 +12,12 @@ import {
   boardWith,
   dropVerdict,
   isHome,
+  MAX_PLAN_TERMS,
   placementOf,
   PREVIEW_KEY,
   removeTile,
   rowsFor,
+  sameTerms,
   sameTiles,
   type AttachedIssues,
   type Board,
@@ -83,6 +85,17 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
 
   const saveState = ref<'saved' | 'saving' | 'failed'>('saved');
   const saveError = ref<string | null>(null);
+  const busy = computed(() => saveState.value === 'saving');
+
+  async function recoverSaved(mine: Opened, sending: Board): Promise<Plan | null> {
+    try {
+      const found = await fetchPlan(mine.id);
+      return mine === opened && sameTerms(boardBody(sending), found.terms) ? found : null;
+    } catch (e) {
+      if (statusOf(e) === 401) throw e;
+      return null;
+    }
+  }
 
   async function sendUntilSaved(mine: Opened): Promise<boolean> {
     let waits = 0;
@@ -97,10 +110,16 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
       try {
         updated = await savePlacements(mine.id, boardBody(sending));
       } catch (e) {
-        if (statusOf(e) !== 429 || waits >= SAVE_RETRY_MS.length) throw e;
-        await wait(SAVE_RETRY_MS[waits++]!);
+        const code = statusOf(e);
+        if (code === 429 && waits < SAVE_RETRY_MS.length) {
+          await wait(SAVE_RETRY_MS[waits++]!);
+          if (mine !== opened) return false;
+          continue;
+        }
+        const recovered = code === null || code >= 500 ? await recoverSaved(mine, sending) : null;
         if (mine !== opened) return false;
-        continue;
+        if (!recovered) throw e;
+        updated = recovered;
       }
       waits = 0;
       if (mine !== opened) return false;
@@ -112,7 +131,7 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
   function failSave(e: unknown): void {
     hooks.revert(() => (board.value = saved.value));
     const code = statusOf(e);
-    saveState.value = code === 401 ? 'saved' : 'failed';
+    saveState.value = 'failed';
     if (code === 401) return;
     console.error('Saving the plan failed:', e);
     const details = e instanceof HttpError ? e.details.join('; ') : '';
@@ -179,6 +198,7 @@ export function usePlanSession(id: () => string, hooks: SessionHooks) {
     retryCheck,
     saveState,
     saveError,
+    busy,
     save,
     loaded,
   };
@@ -219,13 +239,13 @@ export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | '
   function previewRows(what: Moving, terms: readonly Term[]): void {
     startFor(what);
     const snapshot = board.value;
-    const todo = terms.filter((term) => needsAsking(snapshot, what, term));
+    const targets = terms.filter((term) => needsAsking(snapshot, what, term)).slice(0, MAX_PLAN_TERMS);
     const placement = placementOf(snapshot, what);
-    if (!todo.length || !placement) return;
+    if (!targets.length || !placement) return;
     const setAll = (value: (term: Term) => RowPreview) => {
       if (previewOf !== what) return;
       const next = new Map(previews.value);
-      for (const term of todo) next.set(termKey(term), value(term));
+      for (const term of targets) next.set(termKey(term), value(term));
       previews.value = next;
     };
     setAll(() => LOADING);
@@ -233,7 +253,7 @@ export function useDropPreview(session: Pick<PlanSession, 'board' | 'issues' | '
     const without = 'key' in what ? removeTile(snapshot, what.key) : snapshot;
     const before = issues.value;
     const { signal } = previewAbort!;
-    previewPlanDrops(session.openedId(), { terms: boardBody(without), placement, targets: todo }, signal)
+    previewPlanDrops(session.openedId(), { terms: boardBody(without), placement, targets }, signal)
       .then(({ reports }) => {
         const byTerm = new Map(reports.map((r) => [termKey(r.term), r.issues]));
         setAll((term) => {

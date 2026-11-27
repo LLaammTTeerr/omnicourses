@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { RouterLink, type RouteLocationRaw } from 'vue-router';
+import { statusOf } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { groupClass, type GroupId } from '../groups.js';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
@@ -61,6 +62,7 @@ async function readOne(item: Notification): Promise<boolean> {
     replace(await markRead(item.id));
     return true;
   } catch (e) {
+    if (statusOf(e) === 401) return false;
     console.error('Marking a notification read failed:', e);
     toast.show(m.value.markFailed);
     return false;
@@ -76,7 +78,8 @@ async function readAndCount(item: Notification): Promise<boolean> {
 async function readWithButton(item: Notification): Promise<void> {
   if (!(await readAndCount(item))) return;
   await nextTick();
-  list.value?.querySelector<HTMLElement>(`[aria-labelledby="${titleId(item)}"] a`)?.focus();
+  const article = list.value?.querySelector<HTMLElement>(`[aria-labelledby="${titleId(item)}"]`);
+  (article?.querySelector<HTMLElement>('a') ?? article?.querySelector<HTMLElement>('h2'))?.focus();
 }
 
 const opensElsewhere = (event: MouseEvent) => event.button !== MAIN_BUTTON || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
@@ -102,6 +105,7 @@ async function readAll(): Promise<void> {
     await nextTick();
     heading.value?.focus();
   } catch (e) {
+    if (statusOf(e) === 401) return;
     console.error('Marking every notification read failed:', e);
     toast.show(m.value.markFailed);
   } finally {
@@ -170,7 +174,7 @@ async function loadOlder(): Promise<void> {
           <article :aria-labelledby="titleId(item)">
             <span :class="['glyph', groupClass(KIND_LOOK[item.kind].group)]" aria-hidden="true"><Icon :name="KIND_LOOK[item.kind].icon" /></span>
             <div class="note-body">
-              <h2 :id="titleId(item)" class="note-title">
+              <h2 :id="titleId(item)" class="note-title" tabindex="-1">
                 <span v-if="isUnread(item)" class="sr-only">{{ m.unread }}: </span>{{ m.kinds[item.kind] }}
               </h2>
               <p class="note-detail">{{ detail(item) }}</p>
@@ -204,7 +208,7 @@ async function loadOlder(): Promise<void> {
   </div>
 </template>
 
-<style>
+<style scoped>
 .inbox-page { display: grid; gap: 20px; max-width: 860px; }
 .inbox-list { list-style: none; margin: 0; overflow: hidden; }
 .inbox-list .note + .note { border-top: 1px solid var(--edge); }
@@ -220,7 +224,7 @@ async function loadOlder(): Promise<void> {
 .inbox-empty { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 40px 24px; }
 .inbox-empty h2 { font-size: 17px; margin: 0; }
 .inbox-older { justify-self: center; }
-.inbox-page h1:focus { outline: none; }
+.inbox-page h1:focus, .note-title:focus { outline: none; }
 @media (max-width: 600px) {
   .inbox-list article { grid-template-columns: auto minmax(0, 1fr); padding: 14px; }
   .note-time { grid-column: 2; grid-row: 1; justify-self: end; }

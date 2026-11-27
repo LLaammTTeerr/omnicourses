@@ -274,11 +274,51 @@ describe('degree audit', () => {
     expect(audit.warnings).toMatchObject([{ code: 'same_term_attempts', transcriptCredits: null, curriculumCredits: null }]);
   });
 
+  it('deduplicates same-term attempts in the term summary using the conservative resolved attempt', () => {
+    const audit = degreeAudit(zzCurriculum(), [graded('ZZA1', 4, 8), graded('ZZA1', 4, 3)]);
+    expect(audit.terms[0]).toMatchObject({
+      credits: 4,
+      passedCredits: 0,
+      average: 3,
+      accumulatedAverage: null,
+      failedCourseCodes: ['ZZA1'],
+    });
+    expect(audit.warnings).toMatchObject([{ code: 'same_term_attempts', courseCode: 'ZZA1', transcriptCredits: null, curriculumCredits: null }]);
+
+    const inProgressTwice = degreeAudit(zzCurriculum(), [ungraded('ZZA1', 4, 'in_progress'), ungraded('ZZA1', 4, 'in_progress')]);
+    expect(inProgressTwice.terms[0]).toMatchObject({
+      credits: 4,
+      passedCredits: 0,
+      average: null,
+      accumulatedAverage: null,
+      inProgressCourseCodes: ['ZZA1'],
+    });
+  });
+
   it('checks no cap and no total when the curriculum does not record them', () => {
     const audit = degreeAudit(zzCurriculum({ trainingType: null, totalCreditsMin: null }), [graded('ZZA1', 4, 8)]);
     expect(audit.terms[0]).toMatchObject({ kind: null, caps: null, capViolations: [] });
     expect(audit.credits).toMatchObject({ totalRequired: null, remaining: null });
     expect(audit.graduation.notChecked.map((c) => c.id)).toContain('total_credits');
+  });
+
+  it('never marks graduation done when totalCreditsMin is null, even when all groups are met or empty', () => {
+    const metGroups = degreeAudit(zzCurriculum({ totalCreditsMin: null }), zzGraduatingTranscript());
+    expect(metGroups.graduation.unmet).toEqual([]);
+    expect(metGroups.graduation.notChecked.map((c) => c.id)).toContain('total_credits');
+    expect(metGroups.graduation.status).toBe('not_yet');
+
+    const emptyCohort = degreeAudit(zzCurriculum({ totalCreditsMin: null, groups: [], combinedMinimums: [] }), []);
+    expect(emptyCohort.graduation.unmet).toEqual([]);
+    expect(emptyCohort.graduation.notChecked.map((c) => c.id)).toContain('total_credits');
+    expect(emptyCohort.graduation.status).toBe('not_yet');
+
+    const openElectivesOnly = degreeAudit(
+      zzCurriculum({ totalCreditsMin: null, groups: [group('c', 'elective', null, [course('ZZC1', 4)])], combinedMinimums: [] }),
+      [],
+    );
+    expect(openElectivesOnly.graduation.unmet).toEqual([]);
+    expect(openElectivesOnly.graduation.status).toBe('not_yet');
   });
 
   it('reads term 3 as a đại trà summer term with its own cap', () => {

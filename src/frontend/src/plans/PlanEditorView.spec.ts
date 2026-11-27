@@ -6,8 +6,9 @@ import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { PlanIssues, PlanTerm } from './api.js';
+import { MAX_PLAN_TERMS } from './board.js';
 import { FLIP_MS } from './flip.js';
-import { course, CURRICULUM, ELECTIVE_GROUP, issue, OTHER_ID, plan, PLAN_ID, report, summary } from './testing/fixtures.js';
+import { course, CURRICULUM, ELECTIVE_GROUP, issue, listItem, OTHER_ID, plan, PLAN_ID, report, summary } from './testing/fixtures.js';
 
 const FIRST_OCTOBER_2026_IN_VIETNAM = new Date('2026-10-01T03:00:00Z');
 
@@ -968,9 +969,10 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(w.findAll('.pcourse:not(.slot) .k').map((k) => k.text())).toEqual(['ZZ414']);
       expect(w.get('[data-test="pool-ZZ414"] [data-test="passed"]').text()).toBe('Đã đạt');
       expect(tile(w, 'ZZ102').get('[data-test="tile-taken"]').text()).toBe('Đã học trước · điểm 3,5');
+      vi.spyOn(console, 'error').mockImplementation(() => {});
       await past.get('[data-test="past-ZZ414"]').trigger('click');
+      await vi.waitFor(() => expect(w.vm.$router.currentRoute.value).toMatchObject({ name: 'explorer', query: { course: 'ZZ414' } }));
       await flushPromises();
-      expect(w.vm.$router.currentRoute.value).toMatchObject({ name: 'explorer', query: { course: 'ZZ414' } });
     });
 
     it('labels each tile with its group, badges one with a violation, and filters the tray by group', async () => {
@@ -1089,6 +1091,164 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(deleted).toBe(true);
       expect(router.currentRoute.value.params.id).toBe(OTHER_ID);
       expect(w.get('[data-test="back-to-list"]').attributes('href')).toBe('/plans/all');
+    });
+  });
+
+  describe('save reconciliation, navigation guards, term cap and ARIA isolation', () => {
+    it('marks saveState as failed ("Chưa lưu"), never "Đã lưu", when saving fails with 401 (#137)', async () => {
+      const { w } = await render({ routes: { [`PUT /plans/${PLAN_ID}/placements`]: status(401) } });
+      await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+      await flushPromises();
+      expect(useAuth().signedIn).toBe(false);
+      expect(w.get('[data-test="save-state"]').text()).toBe('Chưa lưu');
+      expect(w.find('[data-test="save-error"]').exists()).toBe(false);
+      expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ101 ZZ102', 'HK2 2026–2027:']);
+    });
+
+    it('reconciles a lost save response via fetchPlan when a network error or 5xx occurs after the server committed (#138)', async () => {
+      let currentTerms: PlanTerm[] = SAVED;
+      let mode: 'network' | '504' = 'network';
+      const { w, checks } = await render({
+        routes: {
+          [`GET /plans/${PLAN_ID}`]: () => Response.json(plan(currentTerms)),
+          [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+            currentTerms = (sentBody(init) as { terms: PlanTerm[] }).terms;
+            if (mode === 'network') return Promise.reject(new TypeError('Failed to fetch'));
+            return new Response(null, { status: 504 });
+          },
+        },
+      });
+      await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+      await flushPromises();
+      expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027: ZZ102', 'HK2 2026–2027: ZZ101']);
+      expect(w.get('[data-test="save-state"]').text()).toBe('Đã lưu');
+      expect(w.find('[data-test="save-error"]').exists()).toBe(false);
+      expect(checks()).toBe(2);
+
+      mode = '504';
+      await tile(w, 'ZZ102').get('[data-test="later"]').trigger('click');
+      await flushPromises();
+      expect(rowCodes(w).slice(0, 2)).toEqual(['HK1 2026–2027:', 'HK2 2026–2027: ZZ101 ZZ102']);
+      expect(w.get('[data-test="save-state"]').text()).toBe('Đã lưu');
+      expect(w.find('[data-test="save-error"]').exists()).toBe(false);
+      expect(checks()).toBe(3);
+    });
+
+    it('blocks route leave, tab actions and window unload while a save is in flight', async () => {
+      const puts = held();
+      const { w, router, sent } = await render({
+        routes: {
+          'GET /plans': { plans: [listItem(), listItem({ id: OTHER_ID, name: 'Kế hoạch khác' })] },
+          [`PUT /plans/${PLAN_ID}/placements`]: (init: RequestInit) => {
+            sent.push((sentBody(init) as { terms: PlanTerm[] }).terms);
+            return puts.respond();
+          },
+        },
+      });
+      await tile(w, 'ZZ101').get('[data-test="later"]').trigger('click');
+      await flushPromises();
+      expect(w.get('[data-test="save-state"]').text()).toBe('Đang lưu…');
+
+      await router.push('/plans/all');
+      await flushPromises();
+      expect(router.currentRoute.value.fullPath).toBe(`/plans/${PLAN_ID}`);
+
+      const otherTab = w.findAll('[data-test="plan-tab"]')[1]!;
+      expect(otherTab.attributes('aria-disabled')).toBe('true');
+      await otherTab.trigger('click');
+      await flushPromises();
+      expect(router.currentRoute.value.fullPath).toBe(`/plans/${PLAN_ID}`);
+      expect(w.get('[data-test="new-plan"]').attributes('disabled')).toBeDefined();
+      expect(w.get('[data-test="delete-plan"]').attributes('disabled')).toBeDefined();
+      expect(w.get('[data-test="what-if"]').attributes('disabled')).toBeDefined();
+
+      const savingUnload = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(savingUnload);
+      expect(savingUnload.defaultPrevented).toBe(true);
+
+      puts.answer(Response.json(plan(sent[0]!)));
+      await flushPromises();
+      expect(w.get('[data-test="save-state"]').text()).toBe('Đã lưu');
+
+      const idleUnload = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(idleUnload);
+      expect(idleUnload.defaultPrevented).toBe(false);
+
+      await router.push('/plans/all');
+      await flushPromises();
+      expect(router.currentRoute.value.fullPath).toBe('/plans/all');
+    });
+
+    it('caps + Add Term at MAX_PLAN_TERMS (30) and slices previewAll targets to 30', async () => {
+      const { w } = await render();
+      while (w.findAll('.trow').length < MAX_PLAN_TERMS) {
+        await w.get('[data-test="add-row"]').trigger('click');
+      }
+      expect(w.findAll('.trow')).toHaveLength(MAX_PLAN_TERMS);
+      expect(w.get('[data-test="add-row"]').attributes('disabled')).toBeDefined();
+      await w.get('[data-test="add-row"]').trigger('click');
+      expect(w.findAll('.trow')).toHaveLength(MAX_PLAN_TERMS);
+      wrapper!.unmount();
+
+      let sentTargets: PlanTerm['term'][] = [];
+      const wideSaved: PlanTerm[] = [
+        { term: { year: 2026, number: 1 }, placements: [course('ZZ101')] },
+        { term: { year: 2037, number: 1 }, placements: [course('ZZ102')] },
+      ];
+      const wide = await render({
+        routes: {
+          [`GET /plans/${PLAN_ID}`]: plan(wideSaved),
+          [`POST /plans/${PLAN_ID}/issues/drops`]: (init: RequestInit) => {
+            const { targets } = sentBody(init) as { targets: PlanTerm['term'][] };
+            sentTargets = targets;
+            return Response.json({ reports: targets.map((term) => ({ term, issues: report() })) });
+          },
+        },
+      });
+      expect(wide.w.findAll('.trow').length).toBeGreaterThan(MAX_PLAN_TERMS);
+      expect(wide.w.get('[data-test="add-row"]').attributes('disabled')).toBeDefined();
+      await press(wide.w.get('[data-test="pool-ZZ201"]'));
+      await hover(null);
+      expect(sentTargets).toHaveLength(MAX_PLAN_TERMS);
+      await release();
+    });
+
+    it('uses a non-label wrapper for SelectMenu and omits draggable ARIA on pool items and locked tiles', async () => {
+      const { w } = await render();
+      const addTo = w.get('[data-test="add-to"]');
+      expect(addTo.attributes('aria-label')).toBe('Thêm vào');
+      expect(addTo.element.closest('label')).toBeNull();
+      expect(addTo.element.closest('.field.add-to')?.querySelector('.label')?.textContent).toBe('Thêm vào');
+
+      expect(w.get('[data-test="pool-ZZ201"]').attributes('aria-roledescription')).toBeUndefined();
+      expect(w.get('[data-test="slot-offer"]').attributes('aria-roledescription')).toBeUndefined();
+
+      expect(tile(w, 'ZZ101').attributes('tabindex')).toBe('0');
+      expect(tile(w, 'ZZ101').attributes('aria-roledescription')).toBe('draggable');
+
+      await w.get('[data-test="lock"]').trigger('click');
+      expect(tile(w, 'ZZ101').attributes('tabindex')).toBeUndefined();
+      expect(tile(w, 'ZZ101').attributes('aria-roledescription')).toBeUndefined();
+    });
+
+    it('opens SharePlanDialog from the Share button in header actions (F9, UC-09)', async () => {
+      const shareToken = 'q3T0c6mJm0mB1bqT8mWl2k0E1e8b6Zb1K3w1r5yX9aA';
+      const { w } = await render({
+        routes: {
+          [`GET /plans/${PLAN_ID}/share`]: { share: null },
+          [`PUT /plans/${PLAN_ID}/share`]: () =>
+            Response.json({ token: shareToken, showName: false, showTranscriptChecks: false, createdAt: '2026-11-25T10:00:00.000Z' }),
+        },
+      });
+      await w.get('[data-test="share-plan"]').trigger('click');
+      await flushPromises();
+      expect(w.get('[data-test="share-dialog"]').attributes('open')).toBeDefined();
+      await w.get('[data-test="create-share-link"]').trigger('click');
+      await flushPromises();
+      expect((w.get('[data-test="share-url"]').element as HTMLInputElement).value).toBe(`${window.location.origin}/shared/${shareToken}`);
+      await w.get('[data-test="close-share-dialog"]').trigger('click');
+      await flushPromises();
+      expect(w.get('[data-test="share-dialog"]').attributes('open')).toBeUndefined();
     });
   });
 });

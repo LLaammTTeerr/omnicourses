@@ -1,0 +1,81 @@
+\documentclass{article}
+\usepackage{../shared/omnicourse}
+\input{../shared/meta.tex}
+
+\renewcommand{\docshortname}{Weekly Report -- Week 5}
+\hypersetup{pdftitle={OmniCourse -- Weekly Report Week 5}}
+
+\begin{document}
+
+\weeklycover{Weekly Report \textbullet{} Week 5}{2 November -- 8 November 2026 \textbullet{} Sprint 3, Elaboration}
+             {Phan Bình Nguyên Lâm (Project Lead)}{ESE-PA3-WR-05}
+
+\pagestyle{fancy}
+\ocompact
+
+{\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 3 \textbullet{} ELABORATION \textbullet{} WEEK 1 OF 2 (PA3
+PREPARATION)}\par\vspace{4pt}
+
+\noindent\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}XXXX@{}}
+  \kpi{16}{tasks worked on} & \kpi{12}{tasks finished} & \kpi{14}{pull requests merged} & \kpi{1}{build tagged (B0)}
+\end{tabularx}
+\par\vspace{0.45cm}
+
+\section{Team}
+The five members of the group, as registered in PA0. Sprint 3 opened by closing the two Sprint 2 carry-overs: the curriculum
+schema and the APCS/CLC seed data.
+
+\par\vspace{5pt}
+{\color{ocRule}\rule{\textwidth}{0.4pt}}\par\vspace{4pt}
+\OmniCourseTeamShort
+
+\section{Achievements since last week}
+Rows with a pull request number reflect merged commits on \texttt{main} during 2--8 November 2026.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.5cm}p{2.0cm}p{1.3cm}@{}}
+\hcell{No.} & \hcell{Task} & \hcell{Due date} & \hcell{Responsibility} & \hcell{Complete}\\\hdrline
+\endhead
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Phan Bình Nguyên Lâm}\\
+1 & Merged curriculum schema (\#23) and APCS 2024/2025 + CLC 2025 seed runner (\#36) with provenance tests & 4/11/2026 & Lâm, Triết & 100\%\\
+2 & Provisioned self-hosted staging and production Linux environment behind Cloudflare; tagged build \texttt{B0} & 4/11/2026 & Lâm & 100\%\\
+3 & Onboarding backend and screen for APCS 2024/2025, term encoding (ADR 0009), and credit caps by training type (ADR 0012) & 8/11/2026 & Lâm & 100\%\\
+4 & Drafted ADR 0013 for the deterministic rule engine and degree audit against QĐ 1175/QĐ-KHTN & 9/11/2026 & Lâm & 90\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Võ Nguyễn Minh Triết}\\
+5 & Finalised review fixes on curriculum schema migration \texttt{1792912952302} (\#23) & 3/11/2026 & Triết & 100\%\\
+6 & Reviewed academic rule clauses for ADR 0012 and ADR 0013 & 8/11/2026 & Triết & 80\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Hữu Quốc Thắng}\\
+7 & Authored ADR 0011: curriculum administration, program-scoped grants, advisory write lock and CSV contract & 8/11/2026 & Thắng & 100\%\\
+8 & Browser test harness expansion for real sign-in and shell navigation (\#13 follow-up) & 8/11/2026 & Thắng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Anh Dũng}\\
+9 & Guides API (\texttt{/api/guides}), seed SHA-256 validation, and initial school-portal guide drafts (G01, G02, G06, G07) & 8/11/2026 & Dũng & 100\%\\
+10 & Re-ran B0 deployment-dependent test cases on staging and expanded B1 test cases & 8/11/2026 & Dũng & 90\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Lê Hữu Hoà}\\
+11 & Ported app shell, dark/light design tokens, Vietnamese/English locale store, and sign-in/sign-up screens (\#13) & 8/11/2026 & Hoà & 100\%\\
+12 & Started \texttt{plans} CRUD module and explorer screen layout & 12/11/2026 & Hoà & 60\%\\
+\end{xltabular}}
+
+\section{Issues and impacts}
+\begin{ocnote}{Issues of the week}
+\begin{itemize}
+  \item \textbf{Credit-cap correction (ADR 0012).} Cross-checking QĐ 1175/QĐ-KHTN Điều 6.4 and 7.2 showed APCS (\emph{Tiên
+        tiến}) uses three main terms capped at 10--22 credits rather than Vision v2's 14--25/12 \emph{đại trà} assumption.
+        The rule engine and test plan were updated accordingly.
+  \item \textbf{Unrecorded prerequisites in APCS PDFs.} The printed APCS tables list no prerequisites; ADR 0011 was amended so
+        prerequisite and offering-term storage ships in F12 without inventing academic rules.
+\end{itemize}
+\end{ocnote}
+
+\section{Next week's goals}
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.8cm}p{3.0cm}@{}}
+\hcell{No.} & \hcell{Goal} & \hcell{Due date} & \hcell{Responsibility}\\\hdrline
+\endhead
+1 & Ship pure rule engine (\texttt{src/rules/}) and degree audit API + screens (F3) & 12/11/2026 & Lâm, Hoà\\
+2 & Ship curriculum explorer (F4) and multi-plan editor with drag-and-drop (F5) & 14/11/2026 & Hoà, Lâm\\
+3 & Complete Software Architecture Document, class model and sequence diagrams for PA3 & 15/11/2026 & Lâm, Triết, All\\
+4 & Tag build \texttt{B1} and execute B1 acceptance test suite (\texttt{report-b1.md}) & 15/11/2026 & Dũng, Thắng, Lâm\\
+\end{xltabular}}
+
+\end{document}

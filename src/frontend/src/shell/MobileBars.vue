@@ -90,7 +90,7 @@ function backdrop(event: MouseEvent): void {
   </template>
 </template>
 
-<style>
+<style scoped>
 .mobile-top, .tabbar { display: none; }
 @media (max-width: 960px) {
   .mobile-top {
@@ -98,10 +98,17 @@ function backdrop(event: MouseEvent): void {
     background: var(--surface); border-bottom: 1px solid var(--edge); position: sticky; top: 0; z-index: 30;
   }
   .mobile-top .end { display: flex; align-items: center; gap: 6px; }
+  .mobile-top :deep(.ico) { display: grid; place-items: center; }
+  .mobile-top :deep(.ico .icon) { width: 16px; height: 16px; }
   .mobile-top .bell { position: relative; }
-  .mobile-top .bell .badge { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10.5px; }
+  .mobile-top .bell :deep(.badge) { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10.5px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none;
+    background: var(--surface-3); color: var(--ink); font-weight: 650; font-size: 13px; text-decoration: none;
+  }
   .tabbar {
-    display: grid; grid-template-columns: repeat(var(--tabs), minmax(0, 1fr)); position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 50;
+    display: grid; grid-template-columns: repeat(var(--tabs), minmax(0, 1fr)); position: fixed; left: 10px; right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 50;
     background: var(--surface); border: 1px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow-lg); padding: 6px;
   }
   .tabbar a, .tabbar button {
@@ -110,14 +117,14 @@ function backdrop(event: MouseEvent): void {
   }
   .tabbar a.router-link-active, .tabbar button.router-link-active { background: var(--c); color: var(--on); }
 }
-dialog.modal.more-sheet { margin: auto 10px 10px; width: auto; max-width: none; padding: 0; border-radius: 16px; }
+dialog.modal.more-sheet { margin: auto 10px calc(10px + env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; padding: 0; border-radius: 16px; }
 .more-body { display: grid; gap: 8px; padding: 16px; }
 .more-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 dialog.modal.more-sheet h2 { font-size: 18px; }
 .more-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .more-list a { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; text-decoration: none; color: var(--ink); font-weight: 600; }
-.more-list a .icon { color: var(--c); }
-.more-list a .badge { margin-left: auto; }
+.more-list a :deep(.icon) { color: var(--c); }
+.more-list a :deep(.badge) { margin-left: auto; }
 .more-list a.router-link-active { background: var(--c); color: var(--on); }
-.more-list a.router-link-active .icon { color: inherit; }
+.more-list a.router-link-active :deep(.icon) { color: inherit; }
 </style>

@@ -1,6 +1,9 @@
 import { segment } from '../api.js';
 import { requestAsUser } from '../auth/store.js';
-import type { Course, RequirementGroupKind } from '../curriculum/api.js';
+import { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarEventKind, type CalendarProgram } from '../calendar/api.js';
+import type { Course, RequirementGroupKind, TrainingType } from '../curriculum/api.js';
+
+export { CALENDAR_EVENT_KINDS, type AcademicCalendar, type CalendarEvent, type CalendarEventKind, type CalendarProgram };
 
 export const GLOBAL_PERMISSIONS = ['catalog_maintainer', 'access_manager'] as const;
 export type GlobalPermission = (typeof GLOBAL_PERMISSIONS)[number];
@@ -67,7 +70,7 @@ export interface ProgramDetails {
   nameVi: string;
   nameEn: string | null;
   faculty: string | null;
-  trainingType: string | null;
+  trainingType: TrainingType | null;
   updatedAt: string;
 }
 
@@ -288,10 +291,37 @@ export interface ImpactConfirmationBody extends AdminErrorBody {
   reviewVersion: string;
 }
 
+export type CalendarTerm = 1 | 2 | 3;
+
+export interface CreateCalendarEventBody {
+  academicYear: number;
+  term?: CalendarTerm | null;
+  kind: CalendarEventKind;
+  startsOn: string;
+  endsOn?: string;
+  title: string;
+  titleEn?: string | null;
+  sourceUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateCalendarEventBody {
+  academicYear?: number;
+  term?: CalendarTerm | null;
+  kind?: CalendarEventKind;
+  startsOn?: string;
+  endsOn?: string;
+  title?: string;
+  titleEn?: string | null;
+  sourceUrl?: string | null;
+  notes?: string | null;
+}
+
 const cohortPath = (cohort: CohortRef) => `/admin/programs/${segment(cohort.programId)}/cohorts/${segment(cohort.curriculumId)}`;
 const groupPath = (cohort: CohortRef, groupId: string) => `${cohortPath(cohort)}/requirement-groups/${segment(groupId)}`;
 const rulePath = (cohort: CohortRef, courseCode: string) => `${cohortPath(cohort)}/courses/${segment(courseCode)}`;
 const userPath = (userId: string) => `/admin/access/users/${segment(userId)}`;
+const calendarEventsPath = (programId: string) => `/admin/programs/${segment(programId)}/calendar-events`;
 
 export const fetchOwnGrants = () => requestAsUser<UserGrants>('GET', '/admin/grants');
 
@@ -351,3 +381,12 @@ export const previewLinkImport = (cohort: CohortRef, csv: string) =>
   requestAsUser<GroupLinkImportPreview>('POST', `${cohortPath(cohort)}/imports/preview`, { body: { csv } satisfies ImportPreviewBody });
 export const confirmLinkImport = (cohort: CohortRef, csv: string, reviewVersion: string) =>
   requestAsUser<ImportResult>('POST', `${cohortPath(cohort)}/imports/confirm`, { body: { csv, reviewVersion } satisfies ImportConfirmBody });
+
+export const fetchProgramCalendar = (programCode: string) =>
+  requestAsUser<AcademicCalendar>('GET', `/academic-calendar?program=${encodeURIComponent(programCode)}`);
+export const createCalendarEvent = (programId: string, body: Entered<CreateCalendarEventBody>) =>
+  requestAsUser<CalendarEvent>('POST', calendarEventsPath(programId), { body });
+export const updateCalendarEvent = (programId: string, eventId: string, body: Entered<UpdateCalendarEventBody>) =>
+  requestAsUser<CalendarEvent>('PATCH', `${calendarEventsPath(programId)}/${segment(eventId)}`, { body });
+export const deleteCalendarEvent = (programId: string, eventId: string) =>
+  requestAsUser<void>('DELETE', `${calendarEventsPath(programId)}/${segment(eventId)}`);

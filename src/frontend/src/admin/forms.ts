@@ -2,12 +2,17 @@ import { reactive, watch } from 'vue';
 import type { Course, CurriculumCourse, Curriculum, RequirementGroup, RequirementGroupKind } from '../curriculum/api.js';
 import type {
   AffectedCurriculum,
+  CalendarEvent,
+  CalendarEventKind,
+  CalendarTerm,
   CohortDetails,
+  CreateCalendarEventBody,
   CreateCohortBody,
   CreateCourseBody,
   CreateGroupBody,
   CreateProgramBody,
   Entered,
+  UpdateCalendarEventBody,
   UpdateCohortBody,
   UpdateCourseBody,
   UpdateGroupBody,
@@ -196,3 +201,81 @@ export const cohortChanges = (saved: CohortDetails, values: CohortValues): Enter
 
 export const cohortMatches = (saved: CohortDetails, values: CohortValues, withIdentity = false): boolean =>
   (!withIdentity || (String(saved.cohortYear) === values.cohortYear.trim() && saved.code === storedCode(values.code))) && textMatches(saved, values, COHORT_TEXT);
+
+export const CALENDAR_EVENT_FIELDS = ['academicYear', 'term', 'kind', 'startsOn', 'endsOn', 'title', 'titleEn', 'sourceUrl', 'notes'] as const;
+export type CalendarEventField = (typeof CALENDAR_EVENT_FIELDS)[number];
+export interface CalendarEventValues {
+  academicYear: string;
+  term: '' | '1' | '2' | '3';
+  kind: CalendarEventKind | '';
+  startsOn: string;
+  endsOn: string;
+  title: string;
+  titleEn: string;
+  sourceUrl: string;
+  notes: string;
+}
+
+const enteredTerm = (term: CalendarEventValues['term']): CalendarTerm | null => (term === '' ? null : (Number(term) as CalendarTerm));
+
+export const calendarEventValues = (saved: CalendarEvent | null): CalendarEventValues => ({
+  academicYear: saved ? String(saved.academicYear) : '',
+  term: saved?.term ? (String(saved.term) as '1' | '2' | '3') : '',
+  kind: saved?.kind ?? '',
+  startsOn: saved?.startsOn ?? '',
+  endsOn: saved?.endsOn ?? '',
+  title: saved?.title ?? '',
+  titleEn: saved?.titleEn ?? '',
+  sourceUrl: saved?.sourceUrl ?? '',
+  notes: saved?.notes ?? '',
+});
+
+export function newCalendarEventBody(values: CalendarEventValues): Entered<CreateCalendarEventBody> {
+  const endsOn = values.endsOn.trim();
+  return {
+    academicYear: enteredNumber(values.academicYear),
+    term: enteredTerm(values.term),
+    kind: values.kind || null,
+    startsOn: values.startsOn.trim(),
+    ...(endsOn !== '' && { endsOn }),
+    title: values.title,
+    titleEn: blankToNull(values.titleEn),
+    sourceUrl: blankToNull(values.sourceUrl),
+    notes: blankToNull(values.notes),
+  };
+}
+
+export function calendarEventChanges(saved: CalendarEvent, values: CalendarEventValues): Entered<UpdateCalendarEventBody> {
+  const body: Entered<UpdateCalendarEventBody> = {};
+  const academicYear = enteredNumber(values.academicYear);
+  if (academicYear !== saved.academicYear) body.academicYear = academicYear;
+  const term = enteredTerm(values.term);
+  if (term !== saved.term) body.term = term;
+  const kind = values.kind || null;
+  if (kind !== saved.kind) body.kind = kind;
+  const startsOn = values.startsOn.trim();
+  if (startsOn !== saved.startsOn) body.startsOn = startsOn;
+  const endsOn = values.endsOn.trim() || startsOn;
+  if (endsOn !== saved.endsOn) body.endsOn = endsOn;
+  if (values.title.trim() !== saved.title) body.title = values.title;
+  if (blankToNull(values.titleEn) !== saved.titleEn) body.titleEn = blankToNull(values.titleEn);
+  if (blankToNull(values.sourceUrl) !== saved.sourceUrl) body.sourceUrl = blankToNull(values.sourceUrl);
+  if (blankToNull(values.notes) !== saved.notes) body.notes = blankToNull(values.notes);
+  return body;
+}
+
+export function calendarEventMatches(saved: CalendarEvent, values: CalendarEventValues): boolean {
+  const startsOn = values.startsOn.trim();
+  const endsOn = values.endsOn.trim() || startsOn;
+  return (
+    saved.academicYear === enteredNumber(values.academicYear) &&
+    saved.term === enteredTerm(values.term) &&
+    saved.kind === values.kind &&
+    saved.startsOn === startsOn &&
+    saved.endsOn === endsOn &&
+    saved.title === values.title.trim() &&
+    saved.titleEn === blankToNull(values.titleEn) &&
+    saved.sourceUrl === blankToNull(values.sourceUrl) &&
+    saved.notes === blankToNull(values.notes)
+  );
+}

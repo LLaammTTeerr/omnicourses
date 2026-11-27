@@ -1,8 +1,9 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../users/user.entity.js';
 import { CODE_MAX_LENGTH } from '../common/column-limits.js';
 
 @Entity({ name: 'onboarding_answers' })
+@Index('idx_onboarding_answers_program_code', ['programCode'])
 export class OnboardingAnswers {
   @PrimaryColumn({ name: 'user_id', type: 'uuid' })
   userId!: string;

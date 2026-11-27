@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,8 +18,11 @@ describe('HealthController', () => {
     await expect(controller.check()).resolves.toEqual({ status: 'ok', database: 'up' });
   });
 
-  it('reports degraded instead of throwing when the database is down', async () => {
+  it('throws 503 ServiceUnavailableException with degraded status when the database is down', async () => {
     const controller = await controllerWith(vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
-    await expect(controller.check()).resolves.toEqual({ status: 'degraded', database: 'down' });
+    const error = await controller.check().catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ServiceUnavailableException);
+    expect((error as ServiceUnavailableException).getStatus()).toBe(503);
+    expect((error as ServiceUnavailableException).getResponse()).toEqual({ status: 'degraded', database: 'down' });
   });
 });

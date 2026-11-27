@@ -1,0 +1,76 @@
+\documentclass{article}
+\usepackage{../shared/omnicourse}
+\input{../shared/meta.tex}
+
+\renewcommand{\docshortname}{Weekly Report -- Week 7}
+\hypersetup{pdftitle={OmniCourse -- Weekly Report Week 7}}
+
+\begin{document}
+
+\weeklycover{Weekly Report \textbullet{} Week 7}{16 November -- 22 November 2026 \textbullet{} Sprint 4, Construction}
+             {Phan Bình Nguyên Lâm (Project Lead)}{ESE-PA4-WR-07}
+
+\pagestyle{fancy}
+\ocompact
+
+{\footnotesize\sffamily\color{ocGray}\bfseries SPRINT 4 \textbullet{} CONSTRUCTION \textbullet{} WEEK 1 OF 2 (PA4
+PREPARATION)}\par\vspace{4pt}
+
+\noindent\hspace*{\tabcolsep}\begin{tabularx}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}XXXX@{}}
+  \kpi{18}{tasks worked on} & \kpi{15}{tasks finished} & \kpi{19}{pull requests merged} & \kpi{2}{live environments}
+\end{tabularx}
+\par\vspace{0.45cm}
+
+\section{Team}
+The five members of the group, as registered in PA0. Sprint 4 focused on Construction of F12 curriculum administration, F10
+school-date calendar, and staging regression runs.
+
+\par\vspace{5pt}
+{\color{ocRule}\rule{\textwidth}{0.4pt}}\par\vspace{4pt}
+\OmniCourseTeamShort
+
+\section{Achievements since last week}
+Rows summarise merged pull requests and staging verification runs during 16--22 November 2026.
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.5cm}p{2.0cm}p{1.3cm}@{}}
+\hcell{No.} & \hcell{Task} & \hcell{Due date} & \hcell{Responsibility} & \hcell{Complete}\\\hdrline
+\endhead
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Phan Bình Nguyên Lâm}\\
+1 & Extracted QĐ 1175/QĐ-KHTN clause corpus and APCS course descriptions with byte-level SHA-256 verification (\#75) & 19/11/2026 & Lâm & 100\%\\
+2 & Seeded APCS 2024/2025 explicit prerequisite lists including \texttt{CS469 -> CS470} (\#111) & 21/11/2026 & Lâm & 100\%\\
+3 & Hardened production/staging systemd units, forced-command SSH deploy script and biennial staging reset workflow & 21/11/2026 & Lâm & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Võ Nguyễn Minh Triết}\\
+4 & Group credit-total and \texttt{trainingType} validation interface handoff for F12 & 22/11/2026 & Triết & 20\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Hữu Quốc Thắng}\\
+5 & Shipped F12 administration screens (\texttt{/admin/curriculum}, \texttt{catalog}, \texttt{access}, \#146, \#148) with Chromium responsive tests & 21/11/2026 & Thắng & 100\%\\
+6 & Implemented permission-gated 7 MiB CSV bulk import preview/confirm API (\#147) & 22/11/2026 & Thắng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Nguyễn Anh Dũng}\\
+7 & Shipped academic calendar API (\#108, ADR 0017) and ran first B2 staging waves (\texttt{ADM-01/02/05/06}, \texttt{TRN-02}, \texttt{PLAN-02}) & 22/11/2026 & Dũng & 100\%\\
+8 & Uncovered planner save defects \#137 (401 state) and \#138 (lost save response) during staging testing & 22/11/2026 & Dũng & 100\%\\
+\multicolumn{5}{@{}l}{\headingfont\color{ocNavy} Lê Hữu Hoà}\\
+9 & Built \texttt{CalendarView.vue} week/month school-date views (\#99) and responsive phone shell bars & 21/11/2026 & Hoà & 100\%\\
+\end{xltabular}}
+
+\section{Issues and impacts}
+\begin{ocnote}{Issues of the week}
+\begin{itemize}
+  \item \textbf{Planner save edge cases (\#137, \#138).} Staging fault-injection testing exposed misleading save badges on 401
+        session expiry and dropped network responses; scheduled for Sprint 4 Week 2 fix.
+  \item \textbf{F12 credit-total handoff delayed.} Program/cohort creation and CSV group-link import will ship with structural
+        checks first (ADR 0011 amendment), keeping credit totals read-only until the validation interface lands.
+\end{itemize}
+\end{ocnote}
+
+\section{Next week's goals}
+
+{\small
+\begin{xltabular}{\dimexpr\textwidth-2\tabcolsep\relax}{@{}p{0.6cm}Yp{1.8cm}p{3.0cm}@{}}
+\hcell{No.} & \hcell{Goal} & \hcell{Due date} & \hcell{Responsibility}\\\hdrline
+\endhead
+1 & Ship F9 plan sharing API + UI/PDF, F10 notification inbox + bell, and F2 deterministic paste parser & 27/11/2026 & Dũng, Lâm, Hoà\\
+2 & Ship F12 program/cohort routes, CSV import screen (\texttt{/admin/import}) and calendar admin (\texttt{/admin/calendar}) & 27/11/2026 & Thắng, Lâm\\
+3 & Resolve B1/B2 security, WCAG AA contrast, rule-engine, DB index and deploy-rollback findings; prepare B2 \& PA4 & 29/11/2026 & All, led by Lâm\\
+\end{xltabular}}
+
+\end{document}

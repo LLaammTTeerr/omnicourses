@@ -132,8 +132,9 @@ describe('failureKind', () => {
     expect(failureKind(new HttpError('/x', status))).toBe(kind);
   });
 
-  it('tells a timeout from a request that never reached the API', () => {
+  it('tells a timeout and a caller abort from a request that never reached the API', () => {
     expect(failureKind(new DOMException('The operation timed out.', 'TimeoutError'))).toBe('timed_out');
+    expect(failureKind(new DOMException('Left the page', 'AbortError'))).toBe('aborted');
     expect(failureKind(new TypeError('Failed to fetch'))).toBe('unreachable');
   });
 });

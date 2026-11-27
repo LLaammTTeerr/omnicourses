@@ -55,8 +55,8 @@ describe('PlansView (F5, UC-05 A6)', () => {
     await card(w, 0).get('[data-test="rename"]').trigger('click');
     expect(router.currentRoute.value.name).toBe('plan-list');
     await card(w, 0).get('[data-test="plan-counts"]').trigger('click');
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe(`/plans/${PLAN_ID}`));
     await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe(`/plans/${PLAN_ID}`);
   });
 
   it('says so when there is no plan yet', async () => {
@@ -85,9 +85,9 @@ describe('PlansView (F5, UC-05 A6)', () => {
     expect(dialog.text()).toContain('Hãy nhập tên, tối đa 100 ký tự.');
     await dialog.get('input').setValue('  Tốt nghiệp thử  ');
     await dialog.get('form').trigger('submit');
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe(`/plans/${OTHER_ID}`));
     await flushPromises();
     expect(body).toEqual({ name: 'Tốt nghiệp thử', programCode: 'APCS', cohortYear: 2024 });
-    expect(router.currentRoute.value.fullPath).toBe(`/plans/${OTHER_ID}`);
     expect(useToast().message).toBe('Đã tạo Tốt nghiệp thử.');
   });
 

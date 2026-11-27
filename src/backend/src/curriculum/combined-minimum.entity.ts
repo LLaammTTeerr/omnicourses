@@ -62,7 +62,7 @@ export class CombinedMinimumGroup {
   @JoinColumn({ name: 'combined_minimum_id', foreignKeyConstraintName: 'combined_minimum_groups_combined_minimum_id_fkey' })
   combinedMinimum!: CombinedMinimum;
 
-  @ManyToOne(() => RequirementGroup, { onDelete: 'CASCADE' })
+  @ManyToOne(() => RequirementGroup, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'requirement_group_id', foreignKeyConstraintName: 'combined_minimum_groups_requirement_group_id_fkey' })
   requirementGroup!: RequirementGroup;
 

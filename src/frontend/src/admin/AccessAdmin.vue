@@ -328,16 +328,17 @@ async function recheckDialog(): Promise<void> {
             <Icon name="alert" size="sm" /><span>{{ text.programsFailed }} <button class="btn sm" type="button" @click="programs.reload">{{ m.retry }}</button></span>
           </p>
           <form v-else class="link-form" novalidate @submit.prevent="giveProgram">
-            <label class="field">
-              <span>{{ text.program }}</span>
+            <div class="field">
+              <span class="label">{{ text.program }}</span>
               <SelectMenu
                 id="access-program-select"
                 v-model="programId"
+                :aria-label="text.program"
                 :options="(programs.data.value ?? []).map((item) => ({ value: item.id, label: `${item.code} · ${item.nameVi}` }))"
                 :placeholder="text.pickProgram"
                 data-test="access-program"
               />
-            </label>
+            </div>
             <button class="btn" type="submit" :disabled="!programId || inlineWrites.busy.value || held" data-test="access-grant-program"><Icon name="key" size="sm" />{{ text.grantProgram }}</button>
           </form>
         </section>
@@ -420,7 +421,7 @@ async function recheckDialog(): Promise<void> {
   </section>
 </template>
 
-<style>
+<style scoped>
 .link-form.access-lookup .field { flex: 1 1 360px; max-width: 420px; }
 .access-user { border-top: 1px solid var(--edge); padding: 18px 22px 22px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .access-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -431,12 +432,12 @@ async function recheckDialog(): Promise<void> {
 .access-table .about { display: block; font-weight: 400; max-width: 56ch; margin-top: 2px; }
 .access-table .granter { overflow-wrap: anywhere; }
 @media (max-width: 760px) {
-  .access-table tr { grid-template-columns: minmax(0, 1fr); }
-  .access-table td[data-label]::before { font-family: var(--font); }
+  .admin-cards.access-table tr { grid-template-columns: minmax(0, 1fr); }
+  .admin-cards.access-table td[data-label]::before { font-family: var(--font); }
 }
 .access-user .link-form .field { flex: 0 1 320px; }
-.admin-section .ui-select-list { max-width: min(420px, calc(100vw - 72px)); }
-.admin-section .ui-select-list li { white-space: normal; overflow-wrap: anywhere; }
+.admin-section :deep(.ui-select-list) { max-width: min(420px, calc(100vw - 72px)); }
+.admin-section :deep(.ui-select-list li) { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 620px) {
   .access-user { padding: 16px; }
 }

@@ -22,7 +22,7 @@ export const AdminErrors = ({ notFound = true }: { notFound?: boolean } = {}) =>
     ...(notFound ? [ApiNotFoundResponse({ type: AdminErrorDto, description: '`not_found`: nothing with this ID or code within the authorised scope' })] : []),
   );
 
-const ADMIN_WRITE_LOCK = 11_012_001;
+export const ADMIN_WRITE_LOCK = 11_012_001;
 
 export async function lockAdminWrite(em: EntityManager, userIds: string[]): Promise<{ id: string; deletionRequestedAt: Date | null }[]> {
   await em.query('SELECT pg_advisory_xact_lock($1)', [ADMIN_WRITE_LOCK]);

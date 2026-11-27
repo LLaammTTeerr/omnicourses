@@ -1,5 +1,7 @@
 import { readdirSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import type { QueryRunner } from 'typeorm';
+import { describe, expect, it, vi } from 'vitest';
+import { HardenConstraintsAndIndexes1795600000000 } from './1795600000000-harden-constraints-and-indexes.js';
 import { MIGRATIONS } from './index.js';
 
 describe('MIGRATIONS', () => {
@@ -24,5 +26,34 @@ describe('MIGRATIONS', () => {
       expect(MIGRATIONS.some((Migration) => exported.includes(Migration)), name).toBe(true);
     }
     expect(files).toHaveLength(MIGRATIONS.length);
+  });
+});
+
+describe('HardenConstraintsAndIndexes1795600000000', () => {
+  it('hardens group rule FKs to ON DELETE RESTRICT, adds the five missing indexes without UNIQUE(curriculums.code), and reverses cleanly', async () => {
+    const upSql: string[] = [];
+    const downSql: string[] = [];
+    const migration = new HardenConstraintsAndIndexes1795600000000();
+
+    await migration.up({ query: vi.fn(async (sql: string) => upSql.push(sql)) } as unknown as QueryRunner);
+    await migration.down({ query: vi.fn(async (sql: string) => downSql.push(sql)) } as unknown as QueryRunner);
+
+    const joinedUp = upSql.join('\n');
+    expect(joinedUp).toContain('requirement_group_overflows_from_group_id_fkey');
+    expect(joinedUp).toContain('requirement_group_overflows_to_group_id_fkey');
+    expect(joinedUp).toContain('combined_minimum_groups_requirement_group_id_fkey');
+    expect(joinedUp).toContain('ON DELETE RESTRICT');
+    expect(joinedUp).not.toContain('curriculums');
+    for (const indexName of [
+      'idx_transcript_rows_course_code',
+      'idx_plan_placements_course_code',
+      'idx_onboarding_answers_program_code',
+      'idx_academic_calendar_starts_on_kind',
+      'idx_notifications_unread',
+    ]) {
+      expect(joinedUp).toContain(`CREATE INDEX IF NOT EXISTS "${indexName}"`);
+      expect(downSql.join('\n')).toContain(`DROP INDEX IF EXISTS "${indexName}"`);
+    }
+    expect(downSql.join('\n')).toContain('ON DELETE CASCADE');
   });
 });

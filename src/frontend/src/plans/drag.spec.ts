@@ -157,4 +157,32 @@ describe('pointerDrag', () => {
     window.dispatchEvent(at('pointermove', 40, 40));
     expect(calls).toEqual([]);
   });
+
+  it('never scrolls the window when hovering over the bottom trash bin', () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (f: FrameRequestCallback) => frames.push(f));
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
+    const bin = document.createElement('div');
+    bin.className = 'drop-bin';
+    bin.dataset.drop = 'bin';
+    const binIcon = document.createElement('span');
+    bin.append(binIcon);
+    document.body.append(bin);
+
+    const drag = setup();
+    drag.down(at('pointerdown', 10, 10), source, 'ZZ101');
+    under = binIcon;
+    window.dispatchEvent(at('pointermove', 200, window.innerHeight - 10));
+    frames.shift()?.(0);
+    expect(scroll).not.toHaveBeenCalled();
+
+    under = row;
+    window.dispatchEvent(at('pointermove', 200, window.innerHeight - 10));
+    frames.shift()?.(0);
+    expect(scroll).toHaveBeenCalled();
+
+    drag.stop();
+    vi.unstubAllGlobals();
+  });
 });

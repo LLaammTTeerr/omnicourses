@@ -13,7 +13,7 @@ class ScriptedModel extends ModelClient {
   completions: Array<string | Error> = [];
   turns: Array<{ text?: string; toolCalls?: ModelToolCall[] } | Error> = [];
   completeCalls: Array<Parameters<ModelClient['complete']>[0]> = [];
-  streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[]; toolChoice?: 'auto' | 'none' }> = [];
+  streamCalls: Array<{ messages: ModelMessage[]; tools: ModelTool[]; toolChoice?: 'auto' | 'none'; signal?: AbortSignal }> = [];
 
   async complete(request: Parameters<ModelClient['complete']>[0]) {
     this.completeCalls.push(request);
@@ -23,7 +23,7 @@ class ScriptedModel extends ModelClient {
   }
 
   async *stream(request: Parameters<ModelClient['stream']>[0]): AsyncIterable<ModelStreamEvent> {
-    this.streamCalls.push({ messages: [...request.messages], tools: request.tools, toolChoice: request.toolChoice });
+    this.streamCalls.push({ messages: [...request.messages], tools: request.tools, toolChoice: request.toolChoice, signal: request.signal });
     const turn = this.turns.shift() ?? { text: '' };
     if (turn instanceof Error) {
       yield { type: 'text', delta: 'partial ' };
@@ -133,6 +133,13 @@ describe('GatewayLlmService', () => {
       await expect(llm.structured(request)).rejects.toThrow(new AiUnavailableError('Daily AI limit reached, try again tomorrow'));
       expect(model.completeCalls).toHaveLength(0);
       expect(guard.reserve).toHaveBeenCalledWith(context, 'small-model');
+    });
+
+    it('threads AbortSignal through structured model calls', async () => {
+      const controller = new AbortController();
+      model.completions = ['{"targetGraduationTerm":null,"creditsPerTerm":18}'];
+      await llm.structured({ ...request, signal: controller.signal });
+      expect(model.completeCalls[0].signal).toBe(controller.signal);
     });
   });
 
@@ -283,6 +290,14 @@ describe('GatewayLlmService', () => {
       llm = new GatewayLlmService(null, guard, config, new Clock());
       await expect(collect(llm.chat(request))).rejects.toThrow(new AiUnavailableError(AI_REASONS.notConfigured));
       expect(guard.reserve).not.toHaveBeenCalled();
+    });
+
+    it('threads AbortSignal through every chat turn', async () => {
+      const controller = new AbortController();
+      model.turns = [{ toolCalls: [{ id: 'call-1', name: 'search_regulations', arguments: '{"query":"cap"}' }] }, { text: 'Up to 25.' }];
+      await collect(llm.chat({ ...request, signal: controller.signal }));
+      expect(model.streamCalls[0].signal).toBe(controller.signal);
+      expect(model.streamCalls[1].signal).toBe(controller.signal);
     });
   });
 });

@@ -31,4 +31,18 @@ describe('FakeLlmService', () => {
     const llm = new FakeLlmService().failWith('The AI provider timed out');
     await expect(llm.structured({ context, instructions: '', input: '', schema: z.object({}) })).rejects.toThrow(new AiUnavailableError('The AI provider timed out'));
   });
+
+  it('aborts with streamEndedEarly when AbortSignal is aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const llm = new FakeLlmService().replyStructured({}).replyChat({ text: 'Hi' });
+    await expect(llm.structured({ context, instructions: '', input: '', schema: z.object({}), signal: controller.signal })).rejects.toThrow(
+      new AiUnavailableError('The model stream ended early'),
+    );
+    await expect(async () => {
+      for await (const _event of llm.chat({ context, instructions: '', messages: [], signal: controller.signal })) {
+        // consume
+      }
+    }).rejects.toThrow(new AiUnavailableError('The model stream ended early'));
+  });
 });
