@@ -1,0 +1,45 @@
+[2026-11-27T09:29:32.983Z] signed up b1-run-r27b-p01@example.com
+OK   setup | S1 stand-in onboarded to APCS 2024 and S1 transcript saved | observed: 200, 200
+[2026-11-27T09:29:33.914Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-27T09:29:39.093Z] first open of Plans: plan "Kế hoạch mặc định", tabs: ["Kế hoạch mặc định"]
+[2026-11-27T09:29:39.926Z] PLAN-01b: new-plan dialog body: "Kế hoạch dùng CTĐT APCS 2024 và giữ nguyên CTĐT này kể cả khi bạn đổi chương trình sau này."
+[2026-11-27T09:29:40.288Z] PLAN-01b rows: ["HK1 2026–2027","HK2 2026–2027"]
+OK   PLAN-01b | chip says Đã lưu after both adds | observed: Đã lưu
+OK   PLAN-01b | after the first reload CS160 is in row 1 and CS163 in row 2 | observed: HK1 2026–2027: CS160 | HK2 2026–2027: CS163
+OK   PLAN-01b | after the second reload only CS163 is placed, in the second row | observed: HK1 2026–2027: - | HK2 2026–2027: CS163
+OK   PLAN-01b | the API holds the same: only CS163 | observed: 2026-2: CS163
+[2026-11-27T09:29:47.433Z] signed in b1-run-r27b-p01@example.com: 200
+NOTE PLAN-01c | B before A's change (note) | observed: HK1 2026–2027: - | HK2 2026–2027: CS163
+OK   PLAN-01c | after a reload, B shows exactly the placements saved in A | observed: A: HK1 2026–2027: CS201 | HK2 2026–2027: CS163 || B: HK1 2026–2027: CS201 | HK2 2026–2027: CS163
+OK   PLAN-01l | the copy "What-if: Screen 01b" opens at once | observed: What-if: Screen 01b
+OK   PLAN-01l | toast "Đã tạo What-if: Screen 01b." | observed: Đã tạo What-if: Screen 01b.
+DIFF PLAN-01l | the copy has a tab of its own | observed: []
+OK   PLAN-01l | the copy has the same courses in the same rows | observed: original: HK1 2026–2027: CS201 | HK2 2026–2027: CS163 || copy: HK1 2026–2027: CS201 | HK2 2026–2027: CS163
+OK   PLAN-01l | the course added to the copy (CS202) is not in "Screen 01b", which is unchanged | observed: original now: HK1 2026–2027: CS201 | HK2 2026–2027: CS163 || copy: HK1 2026–2027: CS201 | HK2 2026–2027: CS163 CS202
+NOTE PLAN-01l | the button reads "What-if" in Vietnamese (note for A11Y-01d) | observed: What-if
+[2026-11-27T09:30:01.091Z] PLAN-01k: rows ["HK1 2026–2027","HK2 2026–2027"]; after move: HK1 2026–2027: - | HK2 2026–2027: CS160; after remove: HK1 2026–2027: - | HK2 2026–2027: -
+OK   PLAN-01k | Undo 1: toast "Đã hoàn tác: Đã bỏ CS160 khỏi kế hoạch." | observed: Đã hoàn tác: Đã bỏ CS160 khỏi kế hoạch.
+OK   PLAN-01k | Undo 1: the board is back as before that change, and saved (a PUT went out, chip Đã lưu) | observed: HK1 2026–2027: - | HK2 2026–2027: CS160; PUTs 1; chip Đã lưu
+OK   PLAN-01k | Undo 2: toast "Đã hoàn tác: Đã chuyển CS160 tới HK2 2026–2027." | observed: Đã hoàn tác: Đã chuyển CS160 tới HK2 2026–2027.
+OK   PLAN-01k | Undo 2: the board is back as before that change, and saved (a PUT went out, chip Đã lưu) | observed: HK1 2026–2027: CS160 | HK2 2026–2027: -; PUTs 1; chip Đã lưu
+OK   PLAN-01k | Undo 3: toast "Đã hoàn tác: Đã thêm CS160 vào HK1 2026–2027." | observed: Đã hoàn tác: Đã thêm CS160 vào HK1 2026–2027.
+OK   PLAN-01k | Undo 3: the board is back as before that change, and saved (a PUT went out, chip Đã lưu) | observed: HK1 2026–2027: - | HK2 2026–2027: -; PUTs 1; chip Đã lưu
+OK   PLAN-01k | after the third Undo, Hoàn tác is disabled | observed: true
+OK   PLAN-01k | Ctrl+Z outside a text box says "Không còn gì để hoàn tác." | observed: Không còn gì để hoàn tác.
+OK   PLAN-01k | Ctrl+Z in the search box undoes only the typing; the board stays | observed: board: HK1 2026–2027: CS160 | HK2 2026–2027: -; search box now "cs"; PUTs 0
+OK   PLAN-01k | a reload starts with nothing to undo | observed: true
+OK   PLAN-01k | a switch to another plan and back starts with nothing to undo | observed: true
+OK   PLAN-01k | English: "Undone: Removed CS160 from the plan." | observed: Undone: Removed CS160 from the plan.
+OK   PLAN-01j | the button reads Mở khóa | observed: Mở khóa
+OK   PLAN-01j | the note | observed: Kế hoạch đang khóa: không kéo, thêm hay bỏ môn được. Bấm Mở khóa để sửa.
+OK   PLAN-01j | hidden while locked: the + buttons, the placed course's arrows and ×, and Thêm HK… | observed: {"plus":false,"arrows":false,"x":false,"addRow":false}
+OK   PLAN-01j | dragging, Space, Delete and Ctrl+Z do nothing; no PUT goes out | observed: after drag: HK1 2026–2027: CS160; after keys: HK1 2026–2027: CS160; lifted by Space: false; PUTs: 0; toast: "Đã tạo Lock 01j."
+OK   PLAN-01j | Hoàn tác is disabled | observed: true
+OK   PLAN-01j | Kế hoạch mới, What-if and the tabs still work while locked | observed: new-plan dialog opened: true; What-if copy opened: true; back by tab: Lock 01j
+OK   PLAN-01j | after a reload the plan is still locked in A | observed: Mở khóa
+[2026-11-27T09:30:37.429Z] signed in b1-run-r27b-p01@example.com: 200
+OK   PLAN-01j | B has not locked it, and B's removal is saved (PUT 200) | observed: locked in B: false; PUT 200; B board: HK1 2026–2027: -
+OK   PLAN-01j | after A's reload CS160 is gone (and A is still locked) | observed: HK1 2026–2027: -
+OK   PLAN-01j | after Mở khóa the button reads Khóa and the note is gone | observed: Khóa
+OK   PLAN-01j | after Mở khóa, adding works again | observed: HK1 2026–2027: CS163
+SUMMARY {"setup":{"ok":1,"diff":0},"PLAN-01b":{"ok":4,"diff":0},"PLAN-01c":{"ok":1,"diff":0},"PLAN-01l":{"ok":4,"diff":1},"PLAN-01k":{"ok":12,"diff":0},"PLAN-01j":{"ok":11,"diff":0}} elapsed 104s

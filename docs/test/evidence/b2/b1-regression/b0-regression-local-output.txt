@@ -1,0 +1,127 @@
+# AUTH-01a-p, SESS-01a-k, SESS-01l stand-in, DB-01b, d, e: node b0-regression-local.mjs (CONTAINER_CLI=docker), API node dist/main.js on :3055 (pid 28092), freshly seeded database, tree 1bde552 (main), Node v24.19.0 (repo pins 22.22.1; no Node 22 on this machine), npm 11.21.1, PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) in a disposable docker container (omni-b1r-db, port 55432)
+2026-11-27T09:52:22Z
+09:52:22 AUTH-01a
+09:52:22   ok   201 -> 201
+09:52:22   ok   token present -> token length 43
+09:52:22   ok   expiresAt about 7 days ahead -> 2026-12-04T09:52:22.519Z
+09:52:22   ok   user email and display name -> {"id":"15596e3a-a72f-4112-bb5b-4bb045d84428","email":"b0-01@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-27T09:52:22.501Z"}
+09:52:22   ok   accountRestored false -> false
+09:52:22   ok   no password field anywhere -> keys: token, expiresAt, user, accountRestored; user keys: id, email, displayName, emailVerifiedAt, createdAt
+09:52:22 AUTH-01b
+09:52:22   ok   201 -> 201
+09:52:22   ok   stored email lowercased and trimmed -> b0-02@example.com
+09:52:22   ok   sign-in 200 -> 200
+09:52:22 AUTH-01c
+09:52:22   ok   400 "acceptedTerms must be true" -> 400 "acceptedTerms must be true"
+09:52:22   ok   sign-in 401 -> 401 "Invalid email or password"
+09:52:23   ok   no account in users -> 0 rows
+09:52:23 AUTH-01d
+09:52:23   ok   400, password too short -> 400 "password must be longer than or equal to 10 characters"
+09:52:23   ok   no account in users -> 0 rows
+09:52:23 AUTH-01e
+09:52:23   ok   201 with 10 characters -> 201
+09:52:23 AUTH-01f
+09:52:23   ok   129 characters: 400 -> 400 "password must be shorter than or equal to 128 characters"
+09:52:24   ok   129: no account -> 0 rows
+09:52:24   ok   128 characters: 201 -> 201
+09:52:24 AUTH-01g
+09:52:24   ok   empty name: 400 -> 400 "displayName should not be empty"
+09:52:24   ok   spaces-only name: 400 -> 400 "displayName should not be empty"
+09:52:24   ok   no account for either -> 0 rows
+09:52:24 AUTH-01h
+09:52:24   ok   101 characters: 400 -> 400 "displayName must be shorter than or equal to 100 characters"
+09:52:24   (waiting 61 s for the sign-up limit)
+09:53:25   ok   100 characters: 201 -> 201
+09:53:25 AUTH-01i
+09:53:25   ok   400, email invalid -> 400 "email must be an email"
+09:53:25 AUTH-01j
+09:53:25   ok   409 "An account with this email already exists" -> 409 "An account with this email already exists"
+09:53:25   ok   still exactly one account -> 1 rows
+09:53:25 AUTH-01k
+09:53:25   ok   200 -> 200
+09:53:25   ok   new token -> differs from AUTH-01a token
+09:53:25   ok   accountRestored false -> false
+09:53:25 AUTH-01l
+09:53:25   ok   200 -> 200
+09:53:25 AUTH-01m
+09:53:25   ok   401 "Invalid email or password" -> 401 "Invalid email or password"
+09:53:25 AUTH-01n
+09:53:26   ok   401 -> 401 "Invalid email or password"
+09:53:26   ok   body identical to AUTH-01m -> {"message":"Invalid email or password","error":"Unauthorized","statusCode":401}
+09:53:26 AUTH-01o
+09:53:26   (waiting 63 s: "wait a minute" before the 11 sign-ins)
+09:54:29   ok   requests 1-10: 401 -> 401,401,401,401,401,401,401,401,401,401
+09:54:29   ok   request 11: 429 -> 429
+09:54:29   (waiting 63 s: "wait a minute" before the correct sign-in)
+09:55:32   ok   after the minute: 200 -> 200
+09:55:32 AUTH-01p
+09:55:32   (waiting 63 s: "wait a minute" before the 11 sign-ups)
+09:56:36   ok   requests 1-10 answered normally (201) -> 201,201,201,201,201,201,201,201,201,201
+09:56:36   ok   request 11: 429 -> 429
+09:56:36 setup: sign up S2 b0-04@example.com
+09:56:36   (waiting 63 s for the sign-up limit)
+09:57:39 SESS-01a
+09:57:39   ok   401 -> 401 "Unauthorized"
+09:57:39 SESS-01b
+09:57:39   ok   401 -> 401 "Unauthorized"
+09:57:39 SESS-01c
+09:57:39   ok   200 -> 200
+09:57:39   ok   S1's email and display name -> {"id":"15596e3a-a72f-4112-bb5b-4bb045d84428","email":"b0-01@example.com","displayName":"Test Student","emailVerifiedAt":null,"createdAt":"2026-11-27T09:52:22.501Z"}
+09:57:39   ok   no password field -> keys: id, email, displayName, emailVerifiedAt, createdAt
+09:57:39 SESS-01d
+09:57:39   ok   200 -> 200
+09:57:39   ok   lists T1's and T2's sessions -> 6 sessions
+09:57:39   ok   exactly one current: true, T2's -> current count 1
+09:57:39   ok   each has a browser description and an expiry -> userAgent "B1 run, B0 regression (Node 22 fetch)"
+09:57:39 SESS-01e
+09:57:39   ok   refresh 200 -> 200
+09:57:39   ok   expiresAt about 7 days ahead -> 2026-12-04T09:57:39.846Z
+09:57:39   ok   old token T1: 401 -> 401 "Unauthorized"
+09:57:39   ok   new token T1b: 200 -> 200
+09:57:39   ok   same session id kept -> current id unchanged
+09:57:39 SESS-01f
+09:57:39   ok   delete 204 -> 204
+09:57:39   ok   T2: 401 -> 401 "Unauthorized"
+09:57:39   ok   T2's session gone from the list -> 5 sessions left
+09:57:39 SESS-01g
+09:57:40   ok   delete 404 "Session not found" -> 404 "Session not found"
+09:57:40   ok   same answer as an id that does not exist -> {"message":"Session not found","error":"Not Found","statusCode":404}
+09:57:40   ok   T3 still 200 -> 200
+09:57:40 SESS-01h
+09:57:40   ok   404, already revoked -> 404 "Session not found"
+09:57:40 SESS-01i
+09:57:40   ok   400, not a UUID -> 400 "Validation failed (uuid is expected)"
+09:57:40 SESS-01j
+09:57:40   ok   sign-out 204 -> 204
+09:57:40   ok   T1b: 401 -> 401 "Unauthorized"
+09:57:40   ok   T3 (S2): still 200 -> 200
+09:57:40 SESS-01k
+09:57:40   ok   200 without sign-in -> 200
+09:57:40 SESS-01l (check in its place)
+09:57:40   ok   SESS-01c sign-in: expiresAt about 7 days ahead -> 2026-12-04T09:57:39.256Z
+09:57:40   ok   SESS-01d sign-in: expiresAt about 7 days ahead -> 2026-12-04T09:57:39.775Z
+09:57:40   ok   SESS-01e refresh: expiresAt about 7 days ahead -> 2026-12-04T09:57:39.846Z
+09:57:40 DB-01b
+09:57:40   ok   body is {"status":"ok","database":"up"} -> {"status":"ok","database":"up"}
+09:57:40 DB-01d
+09:57:40   ok   docs page loads (200, HTML, Swagger UI) -> 200 text/html; charset=utf-8
+09:57:40   ok   groups health, auth and users listed -> health, users, auth, guides, curriculum, plans, curriculum-admin, academic-calendar, sharing, notifications
+09:57:40   ok   bearer scheme defined (Authorize button) -> {"bearer":{"scheme":"bearer","bearerFormat":"opaque","type":"http"}}
+09:57:40   ok   JSON starts with "openapi": "3.2.0" -> {"openapi":"3.2.0","pa
+09:57:40 DB-01e
+09:57:41   FAIL every other documented route answers 401 (67 routes) -> GET /api/users/me 401 | DELETE /api/users/me 401 | POST /api/auth/refresh 401 | POST /api/auth/sign-out 401 | GET /api/auth/sessions 401 | DELETE /api/auth/sessions/{id} 401 | GET /api/users/me/transcript 401 | PUT /api/users/me/transcript 401 | GET /api/programs 401 | GET /api/programs/{program}/curricula/{cohort} 401 | GET /api/courses/{code} 401 | GET /api/users/me/onboarding 401 | PUT /api/users/me/onboarding 401 | GET /api/users/me/audit 401 | GET /api/plans 401 | POST /api/plans 401 | GET /api/plans/{id} 401 | PATCH /api/plans/{id} 401 | DELETE /api/plans/{id} 401 | GET /api/plans/{id}/issues 401 | POST /api/plans/{id}/issues 401 | POST /api/plans/{id}/issues/drops 401 | POST /api/plans/{id}/duplicate 401 | PUT /api/plans/{id}/placements 401 | GET /api/admin/programs 401 | POST /api/admin/programs 401 | GET /api/admin/grants 401 | POST /api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups 401 | PATCH /api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId} 401 | DELETE /api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId} 401 | PUT /api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}/courses/{courseCode} 401 | DELETE /api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}/courses/{courseCode} 401 | PUT /api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/prerequisites 401 | DELETE /api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/prerequisites 401 | PUT /api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/offering-terms 401 | DELETE /api/admin/programs/{programId}/cohorts/{curriculumId}/courses/{courseCode}/offering-terms 401 | PATCH /api/admin/programs/{programId} 401 | GET /api/admin/programs/{programId}/cohorts 401 | POST /api/admin/programs/{programId}/cohorts 401 | GET /api/admin/programs/{programId}/cohorts/{curriculumId} 401 | PATCH /api/admin/programs/{programId}/cohorts/{curriculumId} 401 | POST /api/admin/catalog/courses 401 | PATCH /api/admin/catalog/courses/{courseCode} 401 | DELETE /api/admin/catalog/courses/{courseCode} 401 | GET /api/admin/access/programs 401 | GET /api/admin/access/users/{userId}/grants 401 | PUT /api/admin/access/users/{userId}/programs/{programId} 401 | DELETE /api/admin/access/users/{userId}/programs/{programId} 401 | PUT /api/admin/access/users/{userId}/global/{permission} 401 | DELETE /api/admin/access/users/{userId}/global/{permission} 401 | POST /api/admin/catalog/imports/preview 401 | POST /api/admin/catalog/imports/confirm 401 | POST /api/admin/programs/{programId}/cohorts/{curriculumId}/imports/preview 401 | POST /api/admin/programs/{programId}/cohorts/{curriculumId}/imports/confirm 401 | GET /api/academic-calendar 401 | POST /api/admin/programs/{programId}/calendar-events 401 | PATCH /api/admin/programs/{programId}/calendar-events/{eventId} 401 | DELETE /api/admin/programs/{programId}/calendar-events/{eventId} 401 | GET /api/plans/{id}/share 401 | PUT /api/plans/{id}/share 401 | DELETE /api/plans/{id}/share 401 | GET /api/shared-plans/{token} 404 | GET /api/notifications 401 | GET /api/notifications/unread-count 401 | POST /api/notifications/read-all 401 | POST /api/notifications/{id}/read 401 | GET /api/users/me/export 401
+09:57:41   ok   the two public guide routes are GET and answer 200, or 404 for an unknown guide (GUIDE-01n) -> GET /api/guides 200 | GET /api/guides/{id} 404
+09:57:41   ok   the document has no write route for guides -> none
+09:57:41 SUMMARY AUTH-01a:passed AUTH-01b:passed AUTH-01c:passed AUTH-01d:passed AUTH-01e:passed AUTH-01f:passed AUTH-01g:passed AUTH-01h:passed AUTH-01i:passed AUTH-01j:passed AUTH-01k:passed AUTH-01l:passed AUTH-01m:passed AUTH-01n:passed AUTH-01o:passed AUTH-01p:passed SESS-01a:passed SESS-01b:passed SESS-01c:passed SESS-01d:passed SESS-01e:passed SESS-01f:passed SESS-01g:passed SESS-01h:passed SESS-01i:passed SESS-01j:passed SESS-01k:passed DB-01b:passed DB-01d:passed DB-01e:failed
+exit 0
+
+--- note on DB-01e (added after the run)
+    Of the 67 routes the script calls without a token, 66 answer 401. The one that does not is GET /api/shared-plans/{token}: 404.
+    It is public on purpose since B1: F9 shared plan links, @Public() in src/backend/src/sharing/sharing.controller.ts, listed in
+    PUBLIC_ROUTES of test/public-routes.e2e-spec.ts (which passes, local-ci-named-tests.txt), ADR 0010 amendment of 25 Nov 2026.
+    The script, written for B1, knows only the guide routes as public. The same route asked directly, without a token:
+2026-11-27T09:57:52Z
+HTTP/1.1 404 Not Found
+X-Robots-Tag: noindex, nofollow
+Cache-Control: no-store
+{"message":"This plan is not shared","error":"Not Found","statusCode":404}

@@ -1,0 +1,42 @@
+09:20:06 USER-01m
+09:20:06   ok   GET /api/users/me/onboarding without a token: 401 -> 401
+09:20:06   ok   PUT /api/users/me/onboarding without a token: 401 -> 401
+09:20:06   ok   with S2’s token: only S2’s own answers -> {"program":"APCS","cohort":2025,"targetGraduationTerm":null,"creditsPerTerm":15,"internshipTerm":"none","finished":true}
+09:20:06   note neither onboarding route takes a user id in its path or body (OpenAPI: /api/users/me/onboarding, OnboardingDto); the next call sends S1’s id as extra fields
+09:20:07   note PUT with S2’s token and S1’s id as userId, user_id and id: 200 {"program":"APCS","cohort":2025,"targetGraduationTerm":null,"creditsPerTerm":16,"internshipTerm":"none","finished":true}
+09:20:07   ok   S1’s answers are unchanged when read with S1’s token -> {"program":"APCS","cohort":2024,"targetGraduationTerm":{"year":2027,"number":2},"creditsPerTerm":18,"internshipTerm":{"year":2027,"number":1},"finished":true}
+09:20:07   ok   the call was refused, or changed only S2’s own answers -> S2 creditsPerTerm now 16
+09:20:07 USER-01o
+09:20:29   note sign-up 201, refresh 200
+09:20:29   ok   PUT /users/me/onboarding: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 8 distinct keys
+09:20:29   ok   POST /auth/sign-in: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 9 distinct keys
+09:20:29   ok   GET /users/me/onboarding: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 8 distinct keys
+09:20:29   ok   POST /auth/sign-up: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 9 distinct keys
+09:20:29   ok   POST /auth/refresh: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 9 distinct keys
+09:20:29   ok   GET /users/me: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 5 distinct keys
+09:20:29   ok   GET /auth/sessions: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 5 distinct keys
+09:20:29   ok   GET /users/me/export: no key named password, passwordHash or password_hash; no argon2 hash, no test password -> 45 distinct keys
+09:20:29   note The hash itself (USER-01n) cannot be read on staging without database access. An argon2 hash always starts with "$argon2", so its absence from every body is what was checked.
+09:20:29 USER-01r (API side only)
+09:20:29   ok   200, sent as a download named omnicourse-account.json -> 200 attachment; filename="omnicourse-account.json"
+09:20:29   note user keys: id, email, display_name, email_verified_at, consent_at, created_at, updated_at, deletion_requested_at, purge_after
+09:20:29   ok   user holds S1’s id, email, display name and consent_at -> {"email":"b1-run-r27a-us1@example.com","display_name":"Test Student","consent_at":"2026-11-27T09:19:20.950Z"}
+09:20:29   note tables: ai_usage (0), global_admin_grants (0), notifications (0), onboarding_answers (1), plan_placements (0), plan_shares (0), plans (1), program_admin_grants (0), sessions (2), transcript_rows (3)
+09:20:29   note onboarding_answers row: {"program_code":"APCS","cohort_year":2024,"target_graduation_term_year":2027,"target_graduation_term_number":2,"credits_per_term":18,"internship_term_year":2027,"internship_term_number":1,"no_internship_planned":false,"finished_at":"2026-11-27T09:19:41.590Z","created_at":"2026-11-27T09:19:41.590Z","updated_at":"2026-11-27T09:19:41.590Z"}
+09:20:29   ok   the onboarding answers appear with the values from Prepare -> see the row above
+09:20:29   ok   3 transcript rows and at least 2 sessions -> 3 transcript rows, 2 sessions
+09:20:29   ok   at least one plan -> 1
+09:20:29   note NOT DONE: the user-table query of §1 (psql) to compare the table list and row counts. It needs database access on staging.
+09:20:29 USER-01s
+09:20:29   ok   no key at any depth ends in _hash, _token, _secret, _key, _password, _sub or a camelCase form -> 45 distinct keys: exportedAt, user, id, email, display_name, email_verified_at, consent_at, created_at, updated_at, deletion_requested_at, purge_after, tables, ai_usage, global_admin_grants, notifications, onboarding_answers, user_id, program_code, cohort_year, target_graduation_term_year, target_graduation_term_number, credits_per_term, internship_term_year, internship_term_number, no_internship_planned, finished_at, plan_placements, plan_shares, plans, curriculum_id, name, program_admin_grants, sessions, user_agent, rotated_at, expires_at, revoked_at, transcript_rows, course_code, course_name, credits, result, grade, term_year, term_number
+09:20:29   ok   the file holds neither bearer token of S1’s two sessions -> neither token found
+09:20:29   ok   the file holds no session token hash (SHA-256 of each token, hashToken in auth.service.ts) -> neither hash found
+09:20:29   ok   the file holds no argon2 hash and not the test password -> no "$argon2", no password
+09:20:29 USER-01t
+09:20:29   ok   S2’s id, email and ZZ201 appear nowhere in S1’s file -> none of the three found
+09:20:29   ok   control: the same search does find S1’s own id, email and ZZ101 -> all three found
+09:20:29 USER-01v
+09:20:29   ok   403 "Wrong password" -> 403 {"message":"Wrong password","error":"Forbidden","statusCode":403}
+09:20:29   ok   S1 is still signed in: GET /api/users/me 200 -> 200
+09:20:29   ok   deletion_requested_at is still null (read from the export’s user row) -> {"deletion_requested_at":null,"purge_after":null}
+SUMMARY (checks of this script only; the report gives each case its result) USER-01m:all checks ok USER-01o:all checks ok USER-01r (API side only):all checks ok USER-01s:all checks ok USER-01t:all checks ok USER-01v:all checks ok

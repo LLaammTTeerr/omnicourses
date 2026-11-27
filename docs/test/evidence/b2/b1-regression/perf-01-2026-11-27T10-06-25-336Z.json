@@ -1,0 +1,4150 @@
+{
+  "startedAt": "2026-11-27T10:06:25.336Z",
+  "base": "https://stag-omnicourses.lamter.cc",
+  "profile": {
+    "offline": false,
+    "latency": 50,
+    "downloadThroughput": 1250000,
+    "uploadThroughput": 250000
+  },
+  "limitMs": 2000,
+  "series": {
+    "PERF-01b": {
+      "health": [
+        248.5,
+        177.8,
+        166.3,
+        125.3,
+        106.7,
+        109,
+        93.1,
+        95.5,
+        123.6,
+        109.6
+      ],
+      "js": {
+        "url": "/assets/index-CAWT2Yk5.js",
+        "encodedBytes": 170172,
+        "decodedBytes": 537801,
+        "ms": 227.1,
+        "expectedMs": 186
+      },
+      "healthAllAtLeast50": true
+    },
+    "PERF-01c": {
+      "label": "/dashboard cold cache",
+      "warmups": [],
+      "runs": [
+        {
+          "ms": 1095.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 135.7
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 168
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 135.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 144.7
+            }
+          ]
+        },
+        {
+          "ms": 1072.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 133.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 111
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 116.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.5
+            }
+          ]
+        },
+        {
+          "ms": 881.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 112.4
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 111.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 121
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 123.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133.7
+            }
+          ]
+        },
+        {
+          "ms": 818.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 114.7
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 92.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 96.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 100.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 126.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 150.7
+            }
+          ]
+        },
+        {
+          "ms": 995.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 171.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 135.3
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 92.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 119.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.4
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 5,
+        "median": 995.3,
+        "p95": 1095.2,
+        "max": 1095.2,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01d": {
+      "label": "/dashboard warm cache",
+      "warmups": [
+        {
+          "ms": 597.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 105.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 106.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 167.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129.8
+            }
+          ]
+        },
+        {
+          "ms": 490.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 92.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 138.3
+            }
+          ]
+        },
+        {
+          "ms": 947.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 129.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 101.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.8
+            }
+          ]
+        },
+        {
+          "ms": 552.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 97.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 93.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 142.8
+            }
+          ]
+        },
+        {
+          "ms": 488.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 89.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 94.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.6
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 491.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 109.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 101.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.7
+            }
+          ]
+        },
+        {
+          "ms": 460.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 94.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 96.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.9
+            }
+          ]
+        },
+        {
+          "ms": 458.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 96.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 121
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.8
+            }
+          ]
+        },
+        {
+          "ms": 845.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 97.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 99.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 112.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.5
+            }
+          ]
+        },
+        {
+          "ms": 454.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 96.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.7
+            }
+          ]
+        },
+        {
+          "ms": 472.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 90.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124
+            }
+          ]
+        },
+        {
+          "ms": 463.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 94.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 95
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 110
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.9
+            }
+          ]
+        },
+        {
+          "ms": 459.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 95.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 96.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.4
+            }
+          ]
+        },
+        {
+          "ms": 455.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 94
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.4
+            }
+          ]
+        },
+        {
+          "ms": 816.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 92.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.2
+            }
+          ]
+        },
+        {
+          "ms": 491.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 109.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 95.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.8
+            }
+          ]
+        },
+        {
+          "ms": 458.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 91
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 111
+            }
+          ]
+        },
+        {
+          "ms": 503.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 109.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 89.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.6
+            }
+          ]
+        },
+        {
+          "ms": 442.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 93.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 97.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.8
+            }
+          ]
+        },
+        {
+          "ms": 443.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 93
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.5
+            }
+          ]
+        },
+        {
+          "ms": 712.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 105.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 95.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 95.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 111.9
+            }
+          ]
+        },
+        {
+          "ms": 460.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 96
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 92.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.5
+            }
+          ]
+        },
+        {
+          "ms": 471.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 105
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 91.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 110.3
+            }
+          ]
+        },
+        {
+          "ms": 460.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 91.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 110.1
+            }
+          ]
+        },
+        {
+          "ms": 440.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 89.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 91.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.1
+            }
+          ]
+        },
+        {
+          "ms": 442.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 94.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 98.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112
+            }
+          ]
+        },
+        {
+          "ms": 774.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 105.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 90.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.2
+            }
+          ]
+        },
+        {
+          "ms": 465,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 91.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.9
+            }
+          ]
+        },
+        {
+          "ms": 490.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 92.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.5
+            }
+          ]
+        },
+        {
+          "ms": 445.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 89.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 94.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.1
+            }
+          ]
+        },
+        {
+          "ms": 471.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128
+            }
+          ]
+        },
+        {
+          "ms": 561.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 94.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 94.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.4
+            }
+          ]
+        },
+        {
+          "ms": 527.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 106.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 95.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 100.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 100.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125
+            }
+          ]
+        },
+        {
+          "ms": 459.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 114.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 95
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.9
+            }
+          ]
+        },
+        {
+          "ms": 505.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 102.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 103.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 119
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.1
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 463.7,
+        "p95": 816.2,
+        "max": 845.2,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01e": {
+      "label": "/dashboard in-app from Guides (Tổng quan)",
+      "warmups": [
+        {
+          "ms": 254.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 87.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 88.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 88.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/guides",
+              "waitingMs": 158.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 150.1
+            }
+          ]
+        },
+        {
+          "ms": 125.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 135
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 95.6
+            }
+          ]
+        },
+        {
+          "ms": 133.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.9
+            }
+          ]
+        },
+        {
+          "ms": 133.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.8
+            }
+          ]
+        },
+        {
+          "ms": 125,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.1
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 129.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.3
+            }
+          ]
+        },
+        {
+          "ms": 128.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.7
+            }
+          ]
+        },
+        {
+          "ms": 135.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.3
+            }
+          ]
+        },
+        {
+          "ms": 120.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 97
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 111
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 95.2
+            }
+          ]
+        },
+        {
+          "ms": 129.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.5
+            }
+          ]
+        },
+        {
+          "ms": 131.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.4
+            }
+          ]
+        },
+        {
+          "ms": 133.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 182.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.6
+            }
+          ]
+        },
+        {
+          "ms": 119.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 109.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.5
+            }
+          ]
+        },
+        {
+          "ms": 123.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.1
+            }
+          ]
+        },
+        {
+          "ms": 131.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 96.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.5
+            }
+          ]
+        },
+        {
+          "ms": 189.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 180.6
+            }
+          ]
+        },
+        {
+          "ms": 134.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.8
+            }
+          ]
+        },
+        {
+          "ms": 123.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 100.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.6
+            }
+          ]
+        },
+        {
+          "ms": 140.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 95.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105
+            }
+          ]
+        },
+        {
+          "ms": 122.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 111.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.7
+            }
+          ]
+        },
+        {
+          "ms": 122.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111.3
+            }
+          ]
+        },
+        {
+          "ms": 134.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89.9
+            }
+          ]
+        },
+        {
+          "ms": 123.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 120.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.2
+            }
+          ]
+        },
+        {
+          "ms": 122.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.8
+            }
+          ]
+        },
+        {
+          "ms": 123,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 113.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.6
+            }
+          ]
+        },
+        {
+          "ms": 119.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 109.8
+            }
+          ]
+        },
+        {
+          "ms": 129.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.4
+            }
+          ]
+        },
+        {
+          "ms": 128.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 125.9
+            }
+          ]
+        },
+        {
+          "ms": 122.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 96.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 111.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.7
+            }
+          ]
+        },
+        {
+          "ms": 127.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.3
+            }
+          ]
+        },
+        {
+          "ms": 122,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 110
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.8
+            }
+          ]
+        },
+        {
+          "ms": 117.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 108.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.3
+            }
+          ]
+        },
+        {
+          "ms": 116.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 113
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 106.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.8
+            }
+          ]
+        },
+        {
+          "ms": 129.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.3
+            }
+          ]
+        },
+        {
+          "ms": 129.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.4
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 127.9,
+        "p95": 140.5,
+        "max": 189.7,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01f": {
+      "label": "/audit cold cache",
+      "warmups": [],
+      "runs": [
+        {
+          "ms": 1227.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 134.6
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 114
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 125.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 128.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 119.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 142.5
+            }
+          ]
+        },
+        {
+          "ms": 1398.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 118.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 141.4
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 142.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 89.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 102.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 107.3
+            }
+          ]
+        },
+        {
+          "ms": 806.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 119.1
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 97.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 123.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.8
+            }
+          ]
+        },
+        {
+          "ms": 1239.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 99.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 152.5
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 124.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 109.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 159.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 114.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 145.4
+            }
+          ]
+        },
+        {
+          "ms": 795.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 133.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 104
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 103.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 147.9
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 5,
+        "median": 1227.7,
+        "p95": 1398.2,
+        "max": 1398.2,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01g": {
+      "label": "/audit warm cache",
+      "warmups": [
+        {
+          "ms": 620.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.1
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 198.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 218.4
+            }
+          ]
+        },
+        {
+          "ms": 586.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 108.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 225
+            }
+          ]
+        },
+        {
+          "ms": 863,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 115
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 100.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.9
+            }
+          ]
+        },
+        {
+          "ms": 492.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 96.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 106.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.9
+            }
+          ]
+        },
+        {
+          "ms": 491.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 87.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 110.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 109
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 509.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 94.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 109.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 109
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126
+            }
+          ]
+        },
+        {
+          "ms": 495.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.9
+            }
+          ]
+        },
+        {
+          "ms": 852.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 111.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 123.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 144.9
+            }
+          ]
+        },
+        {
+          "ms": 524.5,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 94.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 112.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.2
+            }
+          ]
+        },
+        {
+          "ms": 483,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.8
+            }
+          ]
+        },
+        {
+          "ms": 494.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.1
+            }
+          ]
+        },
+        {
+          "ms": 491,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 108.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.9
+            }
+          ]
+        },
+        {
+          "ms": 491.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 97.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 99.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133
+            }
+          ]
+        },
+        {
+          "ms": 880,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 105.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 108
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129
+            }
+          ]
+        },
+        {
+          "ms": 479.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 103.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 95.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120
+            }
+          ]
+        },
+        {
+          "ms": 510.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 101.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.7
+            }
+          ]
+        },
+        {
+          "ms": 540.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 96.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 102.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 98.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.6
+            }
+          ]
+        },
+        {
+          "ms": 494.4,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 137.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.7
+            }
+          ]
+        },
+        {
+          "ms": 494.2,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.1
+            }
+          ]
+        },
+        {
+          "ms": 774,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 93.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 100.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 100.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129.9
+            }
+          ]
+        },
+        {
+          "ms": 491.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 106.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130
+            }
+          ]
+        },
+        {
+          "ms": 496.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 89.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 108.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.4
+            }
+          ]
+        },
+        {
+          "ms": 490,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 94.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 106
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.4
+            }
+          ]
+        },
+        {
+          "ms": 488.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129.7
+            }
+          ]
+        },
+        {
+          "ms": 585.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 101
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 97
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 101
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.6
+            }
+          ]
+        },
+        {
+          "ms": 551.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.7
+            }
+          ]
+        },
+        {
+          "ms": 492.9,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129.6
+            }
+          ]
+        },
+        {
+          "ms": 495.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 90.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.1
+            }
+          ]
+        },
+        {
+          "ms": 494,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 95.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 101.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 100.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.3
+            }
+          ]
+        },
+        {
+          "ms": 464.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 88.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 103.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 104.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.1
+            }
+          ]
+        },
+        {
+          "ms": 599.8,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 99
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 109.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 97.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 142.3
+            }
+          ]
+        },
+        {
+          "ms": 500.7,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 100.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 97.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 101.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 99.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.7
+            }
+          ]
+        },
+        {
+          "ms": 478.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 100.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 104.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 113.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.1
+            }
+          ]
+        },
+        {
+          "ms": 496.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 103
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 96.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 101.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 100.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.2
+            }
+          ]
+        },
+        {
+          "ms": 477.1,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 96.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 99.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 98.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 96.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.3
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 494.6,
+        "p95": 852.2,
+        "max": 880,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01h": {
+      "label": "/audit in-app from Guides (Xét tốt nghiệp)",
+      "warmups": [
+        {
+          "ms": 309.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/guides",
+              "waitingMs": 92.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 119.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 154.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 121.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.6
+            }
+          ]
+        },
+        {
+          "ms": 145.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.1
+            }
+          ]
+        },
+        {
+          "ms": 143,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110
+            }
+          ]
+        },
+        {
+          "ms": 129.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 122.2
+            }
+          ]
+        },
+        {
+          "ms": 127,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 95.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.8
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 123.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 113.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.4
+            }
+          ]
+        },
+        {
+          "ms": 227.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 140.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111.2
+            }
+          ]
+        },
+        {
+          "ms": 127.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 133.7
+            }
+          ]
+        },
+        {
+          "ms": 139,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.8
+            }
+          ]
+        },
+        {
+          "ms": 131.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 121.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.6
+            }
+          ]
+        },
+        {
+          "ms": 141.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 131.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.7
+            }
+          ]
+        },
+        {
+          "ms": 140.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.4
+            }
+          ]
+        },
+        {
+          "ms": 129.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 128
+            }
+          ]
+        },
+        {
+          "ms": 125.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.6
+            }
+          ]
+        },
+        {
+          "ms": 130.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 96
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94
+            }
+          ]
+        },
+        {
+          "ms": 122.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.1
+            }
+          ]
+        },
+        {
+          "ms": 137.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 100.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.9
+            }
+          ]
+        },
+        {
+          "ms": 124.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.5
+            }
+          ]
+        },
+        {
+          "ms": 138.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.6
+            }
+          ]
+        },
+        {
+          "ms": 134.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 96.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 100.7
+            }
+          ]
+        },
+        {
+          "ms": 141.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.4
+            }
+          ]
+        },
+        {
+          "ms": 124.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94
+            }
+          ]
+        },
+        {
+          "ms": 124.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.9
+            }
+          ]
+        },
+        {
+          "ms": 205.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 141.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 113.8
+            }
+          ]
+        },
+        {
+          "ms": 125.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108
+            }
+          ]
+        },
+        {
+          "ms": 122.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 113.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.6
+            }
+          ]
+        },
+        {
+          "ms": 129.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.3
+            }
+          ]
+        },
+        {
+          "ms": 140.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.2
+            }
+          ]
+        },
+        {
+          "ms": 134.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 116.2
+            }
+          ]
+        },
+        {
+          "ms": 132.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 97.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.1
+            }
+          ]
+        },
+        {
+          "ms": 126.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.6
+            }
+          ]
+        },
+        {
+          "ms": 135.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103.5
+            }
+          ]
+        },
+        {
+          "ms": 127.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 112
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.6
+            }
+          ]
+        },
+        {
+          "ms": 123.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 112.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.3
+            }
+          ]
+        },
+        {
+          "ms": 129.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 91.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 98.8
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 129.6,
+        "p95": 205.2,
+        "max": 227.4,
+        "over": 0
+      },
+      "pass": true
+    }
+  },
+  "chrome": "144.0.7559.110",
+  "finishedAt": "2026-11-27T10:09:30.229Z"
+}

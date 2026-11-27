@@ -1,0 +1,69 @@
+Chrome 144.0.7559.110, axe-core 4.10.2, base https://stag-omnicourses.lamter.cc
+CSS breakpoints: 420, 600, 620, 760, 860, 900, 960, 1100, 1180 -> widths tested: 360, 419, 420, 421, 599, 600, 601, 619, 620, 621, 759, 760, 761, 768, 859, 860, 861, 899, 900, 901, 959, 960, 961, 1099, 1100, 1101, 1179, 1180, 1181, 1280, 1920
+home | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+sign-up empty | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+sign-up field errors | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+sign-in empty | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+privacy signed out | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+guides list | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+guides no results | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+guide not found | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+dashboard fixture | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+audit fixture | light | vi: sideways scroll at [] · color-contrast 2 · other axe [scrollable-region-focusable]
+audit opened at a group | light | vi: sideways scroll at [] · color-contrast 2 · other axe [scrollable-region-focusable]
+explorer groups | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+explorer no results | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+explorer course drawer | light | vi: sideways scroll at [] · color-contrast 0 · other axe []
+plan list | light | vi: sideways scroll at [] · color-contrast 1 · other axe []
+plan editor | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+plan editor new-plan dialog | light | vi: sideways scroll at [] · color-contrast 0 · other axe []
+transcript | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+settings | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+settings delete dialog | light | vi: sideways scroll at [] · color-contrast 0 · other axe []
+privacy signed in | light | vi: sideways scroll at [] · color-contrast 2 · other axe []
+Esc explorer course drawer: {"openBefore":true,"openAfterEsc":false,"focusBackOnOpener":true,"focusAfter":"button \"CS1604 TCNhập môn Tin họcTrong bảng điểm\""}
+Esc settings delete dialog: {"openBefore":true,"openAfterEsc":false,"focusBackOnOpener":true,"focusAfter":"button \"Xóa tài khoản\""}
+Esc plan editor new-plan dialog: {"openBefore":true,"openAfterEsc":false,"focusBackOnOpener":true,"focusAfter":"button \"Kế hoạch mới\""}
+home | dark | vi:  · color-contrast 2 · other axe []
+sign-up empty | dark | vi:  · color-contrast 2 · other axe []
+sign-up field errors | dark | vi:  · color-contrast 2 · other axe []
+sign-in empty | dark | vi:  · color-contrast 2 · other axe []
+privacy signed out | dark | vi:  · color-contrast 2 · other axe []
+guides list | dark | vi:  · color-contrast 2 · other axe []
+guides no results | dark | vi:  · color-contrast 2 · other axe []
+guide not found | dark | vi:  · color-contrast 2 · other axe []
+dashboard fixture | dark | vi:  · color-contrast 0 · other axe []
+audit fixture | dark | vi:  · color-contrast 2 · other axe [scrollable-region-focusable]
+audit opened at a group | dark | vi:  · color-contrast 2 · other axe [scrollable-region-focusable]
+explorer groups | dark | vi:  · color-contrast 0 · other axe []
+explorer no results | dark | vi:  · color-contrast 1 · other axe []
+explorer course drawer | dark | vi:  · color-contrast 0 · other axe []
+plan list | dark | vi:  · color-contrast 2 · other axe []
+plan editor | dark | vi:  · color-contrast 2 · other axe []
+plan editor new-plan dialog | dark | vi:  · color-contrast 2 · other axe []
+transcript | dark | vi:  · color-contrast 1 · other axe []
+settings | dark | vi:  · color-contrast 2 · other axe []
+settings delete dialog | dark | vi:  · color-contrast 0 · other axe []
+privacy signed in | dark | vi:  · color-contrast 0 · other axe []
+home | light | en: lang=en, 2 Vietnamese strings
+sign-up empty | light | en: lang=en, 2 Vietnamese strings
+sign-up field errors | light | en: lang=en, 2 Vietnamese strings
+sign-in empty | light | en: lang=en, 2 Vietnamese strings
+privacy signed out | light | en: lang=en, 2 Vietnamese strings
+guides list | light | en: lang=en, 4 Vietnamese strings
+guides no results | light | en: lang=en, 2 Vietnamese strings
+guide not found | light | en: lang=en, 2 Vietnamese strings
+dashboard fixture | light | en: lang=en, 17 Vietnamese strings
+audit fixture | light | en: lang=en, 41 Vietnamese strings
+audit opened at a group | light | en: lang=en, 41 Vietnamese strings
+explorer groups | light | en: lang=en, 21 Vietnamese strings
+explorer no results | light | en: lang=en, 5 Vietnamese strings
+explorer course drawer | light | en: lang=en, 24 Vietnamese strings
+plan list | light | en: lang=en, 6 Vietnamese strings
+plan editor | light | en: lang=en, 34 Vietnamese strings
+plan editor new-plan dialog | light | en: lang=en, 34 Vietnamese strings
+transcript | light | en: lang=en, 3 Vietnamese strings
+settings | light | en: lang=en, 4 Vietnamese strings
+settings delete dialog | light | en: lang=en, 4 Vietnamese strings
+privacy signed in | light | en: lang=en, 3 Vietnamese strings
+Results and screenshots: E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\a11y-01-2026-11-27T10-10-35-868Z

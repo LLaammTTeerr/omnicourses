@@ -1,0 +1,10 @@
+round 1 done 10:28:37Z: guides 5 x 429, sign-in 1 x 429
+round 2 done 10:29:07Z: guides 125 x 429, sign-in 11 x 429
+round 3 done 10:29:36Z: guides 124 x 429, sign-in 11 x 429
+round 4 done 10:30:06Z: guides 6 x 429, sign-in 1 x 429
+round 5 done 10:30:35Z: guides 125 x 429, sign-in 11 x 429
+round 6 done 10:31:05Z: guides 125 x 429, sign-in 11 x 429
+round 7 done 10:31:34Z: guides 5 x 429, sign-in 1 x 429
+round 8 done 10:32:04Z: guides 125 x 429, sign-in 11 x 429
+round 9 done 10:32:34Z: guides 116 x 429, sign-in 11 x 429
+finished 10:32:54Z

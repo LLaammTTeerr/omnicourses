@@ -1,0 +1,10 @@
+[2026-11-27T09:39:50.040Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-27T09:39:50.877Z] signed in b1-run-r27b-p01@example.com: 200
+[2026-11-27T09:40:00.886Z] row 2 before hovering: {"classes":"trow warn-drop","box":{"y":1277,"height":87}}
+[2026-11-27T09:40:01.874Z] pointer at (0.6, 0.5) of row 2: {"classes":"trow warn-drop","box":{"y":1373,"height":87}}; element under pointer li.tile-ph.g-core
+[2026-11-27T09:40:02.801Z] pointer at (0.5, 0.3) of row 2: {"classes":"trow warn-drop over","box":{"y":1277,"height":194}}; element under pointer section.trow.warn-drop.over
+[2026-11-27T09:40:04.419Z] pointer at (0.3, 0.7) of row 2: {"classes":"trow warn-drop over","box":{"y":1277,"height":194}}; element under pointer p.drop-reason
+[2026-11-27T09:40:05.301Z] pointer at (0.8, 0.5) of row 2: {"classes":"trow warn-drop over","box":{"y":1277,"height":194}}; element under pointer li.tile-ph.g-core
+[2026-11-27T09:40:06.471Z] pointer at (0.5, 0.9) of row 2: {"classes":"trow warn-drop","box":{"y":1261,"height":87}}; element under pointer main.
+[2026-11-27T09:40:10.243Z] held over row 2: {"held":{"classes":"trow warn-drop over","reason":"Chưa kiểm tra được: CS160: chưa ghi nhận học kỳ mở môn.","load":"4 / 22 TC · 10–22 TC+4","delta":"+4","meter":"cap under preview"},"preview":"Xem trước: CS160 → HK2 2026–2027 ·  ố vi phạm không đổi","cards":[{"term":"HK1 2026–2027","tag":"","title":"Dưới mức tín chỉ tối thiểu"},{"term":"HK2 2026–2027","tag":"Mới","title":"Dưới mức tín chỉ tối thiểu"}]}
+[2026-11-27T09:40:10.928Z] after release: HK1 2026–2027: CS163 | HK2 2026–2027: CS160

@@ -1,0 +1,20 @@
+2026-11-27T09:42:28.922Z ---- Prepare S1 (a06): onboarding with three goals, the S1 transcript, one plan
+2026-11-27T09:42:29.821Z onboarding PUT 200
+2026-11-27T09:42:29.951Z transcript PUT 200
+2026-11-27T09:42:30.089Z plan POST 201
+2026-11-27T09:42:30.201Z E1 tables {"ai_usage":0,"global_admin_grants":0,"notifications":0,"onboarding_answers":1,"plan_placements":0,"plan_shares":0,"plans":1,"program_admin_grants":0,"sessions":1,"transcript_rows":3}
+2026-11-27T09:42:30.771Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+ok   USER-01w: S1 signs in on browser A
+ok   USER-01w: S1 signs in on browser B
+2026-11-27T09:42:36.698Z ---- USER-01w: delete in A
+ok   USER-01w: the dialog explains the 30-day grace period before asking for the password | observed: Mọi phiên đăng nhập bị thu hồi ngay. Dữ liệu của bạn bị xóa vĩnh viễn sau 30 ngày. Đăng nhập lại trước hạn đó sẽ hủy việc xóa. Nên xuất dữ liệu trước nếu bạn muốn giữ một bản.
+ok   USER-01w: the API answers 202 with purgeAfter 30 days after the request, to the minute | observed: {"status":202,"purgeAfter":"2026-12-27T09:42:35.977Z","minutesAfterRequest":43200}
+ok   USER-01w: A shows the public home page /, signed out, with the deletion toast naming the purgeAfter time | observed: {"url":"/","toast":"Tài khoản sẽ bị xóa vĩnh viễn sau 16:42 27/12/2026. Đăng nhập lại trước đó để hủy.","expectedTimeParts":{"hm":"16:42","year":"2026","day":"27"},"tokenGone":true}
+2026-11-27T09:42:40.181Z ---- USER-01w: then use B
+ok   USER-01w: B's next request gets 401 and B shows the sign-in screen | observed: {"firstApi":["POST /api/auth/refresh 401"],"url":"/sign-in?redirect=/settings"}
+ok   USER-01w: signing up again with the same email: 409 | observed: 409
+ok   USER-01w: S2 is still signed in: GET /api/users/me 200 | observed: 200
+2026-11-27T09:42:42.157Z ---- USER-01x: sign in again before the deadline
+ok   USER-01x: sign-in 200 with accountRestored true, and the screen says the account was restored | observed: {"status":200,"accountRestored":true,"toast":"Chào mừng trở lại. Việc xóa tài khoản đã được hủy, dữ liệu của bạn vẫn còn nguyên."}
+ok   USER-01x: deletion_requested_at and purge_after are in the export user row and null again | observed: {"deletion_requested_at":null,"purge_after":null}
+ok   USER-01x: E2 matches E1 except exportedAt, user.updated_at and the sessions rows | observed: {"e1":{"ai_usage":0,"global_admin_grants":0,"notifications":0,"onboarding_answers":1,"plan_placements":0,"plan_shares":0,"plans":1,"program_admin_grants":0,"sessions":1,"transcript_rows":3},"e2":{"ai_usage":0,"global_admin_grants":0,"notifications":0,"onboarding_answers":1,"plan_placements":0,"plan_shares":0,"plans":1,"program_admin_grants":0,"sessions":4,"transcript_rows":3}}
