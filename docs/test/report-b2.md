@@ -12,11 +12,11 @@
 
 | Result | Cases |
 | --- | --- |
-| Passed | 107. TRN-01a–g, TRN-02a–h, PLAN-01a, c, d, e, f, PLAN-02a–e, ADM-01a–e, ADM-02a–l, ADM-03a–f, ADM-04a–f, ADM-05a–g, ADM-06a–g, ADM-07a–i, SHARE-01a–l, NOTIF-01a–j, PERF-01a, b, A11Y-01a, b, c, d, g, h |
+| Passed | 108. TRN-01a–g, TRN-02a–h, PLAN-01a, c, d, e, f, PLAN-02a–e, ADM-01a–e, ADM-02a–l, ADM-03a–g, ADM-04a–f, ADM-05a–g, ADM-06a–g, ADM-07a–i, SHARE-01a–l, NOTIF-01a–j, PERF-01a, b, A11Y-01a, b, c, d, g, h |
 | Failed | 7, all on staging `778d120` (28 Nov). PLAN-01b: during a keyboard lift the arrow keys never announce the target term ([#247](https://github.com/LLaammTTeerr/omnicourses/issues/247)). PERF-01c–f: a planner edit takes about 300 ms (medians 298–307 ms; 15, 28, 16 and 19 of 30 runs at or over 300 ms; [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248)). A11Y-01e and f: contrast, [#119](https://github.com/LLaammTTeerr/omnicourses/issues/119) (a light hover at 4.47:1, a light field border on a tinted panel at 2.79:1, card separators at 1.18 / 1.20:1) |
 | Blocked | 2. Staging's proxy: ADM-07j (nginx answered 413 in HTML on 25 Nov; Lâm runs `deploy/server/setup.sh` for `client_max_body_size 8m`). Streamed advisor updates (B3): A11Y-01i (dragging and Print/PDF layout are built; streamed updates wait for F8) |
 | Not applicable | 2. ADM-04g, ADM-07k (Lâm, 28 Nov: no total check; [ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)) |
-| Not run yet | 4. ADM-03g (rewritten on 28 November 2026 for the credit-total routes of #245; ADM-03c (5) and ADM-03d (3) changed with it and need a rerun; staging `778d120` does not have #245 yet). OPS-01a–c, on the host after `deploy/server/setup.sh` (Lâm) |
+| Not run yet | 3. OPS-01a–c, on the host after `deploy/server/setup.sh` (Lâm) |
 | **Total** | **122** |
 
 What matters so far:
@@ -34,7 +34,7 @@ By parent check. A parent passes only when all its required detailed outcomes pa
 | TC-B2-TRN-02 | passed | `a–h` passed. |
 | TC-B2-ADM-01 | passed | `a–e` passed. |
 | TC-B2-ADM-02 | passed | `a–l` passed. |
-| TC-B2-ADM-03 | not passed yet | `a–f` passed. `g` rewritten on 28 November 2026 for the credit-total routes; it runs once they are deployed. |
+| TC-B2-ADM-03 | passed | `a–f` passed (`e7bd617`); `g`, and the reruns of `c` (5) and `d` (3) with #245's bodies, passed on `4b038fe`. |
 | TC-B2-ADM-04 | not passed yet | `a–f` passed. `g` not applicable (Lâm, 28 Nov: no total check). |
 | TC-B2-ADM-05 | passed | `a–g` passed. |
 | TC-B2-ADM-06 | passed | `a–g` passed. |
@@ -56,8 +56,9 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. St
 | 22 Nov, 02:31–04:52 | `7f7974f` | ADM-01a–c, ADM-05a–d, ADM-06a–f | [`results-2026-11-22-adm.md`](evidence/b2/results-2026-11-22-adm.md) | #139 |
 | 25 Nov, 06:02–06:35 | `5a5b9d5` | ADM-01d–e, ADM-02i–l, ADM-05e–g, ADM-06g, ADM-07a–k, TRN-01a–g, A11Y-01a–i (administration) | [`results-2026-11-25.md`](evidence/b2/results-2026-11-25.md) | #167 |
 | 25 Nov, 13:17–13:51 | `e7bd617` | NOTIF-01a–j, SHARE-01a–l, ADM-04a–g | [`results-2026-11-25-notif-share-adm04.md`](evidence/b2/results-2026-11-25-notif-share-adm04.md) | #173 |
-| 25 Nov, 14:35 | `e7bd617` | ADM-03a–g | the same file, ADM-03 section | #176 |
+| 25 Nov, 14:35 | `e7bd617` | ADM-03a–f | the same file, ADM-03 section | #176 |
 | 28 Nov, 05:51–06:30 | `778d120` | NOTIF-01d(2), NOTIF-01j, SHARE-01l, TRN-01a–g, PLAN-01a–f, PLAN-02a and c (retests), A11Y-01d–f (retests), export and text-limit retests (#174, #163), PERF-01a–f | [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md) | #246 |
+| 28 Nov, 07:44 | `4b038fe` | ADM-03g, ADM-03c (5) and ADM-03d (3) (reruns) | [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md) | this PR |
 
 | Item | Used |
 | --- | --- |
@@ -107,7 +108,7 @@ One line per group of cases from the same run with the same result. The results 
 | ADM-02a–h | passed | Signed-out 401, no-role 403, own-program writes, another program refused with nothing of it leaked, catalog and access roles kept apart, a revoked grant refused at once with the old token, the last access manager kept. |
 | ADM-02i–l | passed | Each role sees only its sections; a grant revoked while a form is open is refused and the form is kept; group writes in the own program, refused in another. |
 | ADM-03a–f | passed | A second cohort, APCS2099, with its groups and links, leaves the first cohort's plans, audit and curriculum unchanged; duplicates, bad values and other programs are refused. |
-| ADM-03g | not run | Rewritten on 28 November 2026: the administration routes accept a cohort's and a group's credit totals, and the access manager sets a program's `trainingType` when creating it (Lâm, 28 Nov 2026; [ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)). Run once deployed; step (14) creates a program that stays, so it needs Lâm's agreement first. |
+| ADM-03g | passed (28 Nov, `4b038fe`) | A cohort's `totalCreditsMin` and a group's `creditsTotal` / `creditsTotalMin` save as whole numbers ≥ 0, clear with `null`, and a negative or decimal value answers 400; a group keeps the total of its kind (compulsory: `creditsTotal`, elective: `creditsTotalMin`); another program's administrator gets 403. The access manager sets `trainingType` when creating a program, and a later `PATCH` of it answers 400. The test program `ZZ-ADM03G` stays (§7). The degree audit with the new total is not checked on staging: no student can be on the test cohort (onboarding offers APCS 2024 and 2025); asked in the PR thread. [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md) |
 | ADM-04g, ADM-07k | not applicable | Lâm, 28 Nov: no total check. A link removal or a group-link file may leave a group off its credit total, and the audit shows the gap. |
 | ADM-04a–f | passed | Unlinking, a course a rule still names (409), a linked course (409), a group a saved plan uses (409, fixed by #172 before the run), catalog deletion by role, codes that cannot change. |
 | ADM-05a–d | passed | Field validation, duplicate codes, an impact list that changed during the review, deletions refused while a transcript or plan names the course, and edits that leave saved transcripts and plans unchanged. |
@@ -179,8 +180,8 @@ Each item updates this report when it runs on the B2 candidate.
 | --- | --- | --- | --- |
 | 1 | Carry the results to the B2 candidate | Dũng, Lâm | When B2 is tagged: list the `src/` changes since each run's build (§2), and rerun the cases they touch. The 28 November runs were on `778d120`; `main` has since taken #220–#227 (clean-ups, no new feature). |
 | 2 | Host `setup.sh`, `OPS-01a–c` and `ADM-07j` (4)–(5) | Lâm, then Dũng | Lâm runs `deploy/server/setup.sh` on the host, executes `OPS-01a–c` (`omnicourse-backup.timer`, `omnicourse_rehearsal` restore, `/api/health` 503 rollback), and Dũng reruns `ADM-07j` (4)–(5) against `client_max_body_size 8m`. |
-| 3 | CSV import and `/admin/calendar` screen checks | Dũng, Thắng | At 360 and 1280 px: no overflow, the keyboard reaches every control, readable errors. Dũng and Thắng are splitting the two screens. |
-| 4 | `ADM-03g`, with `ADM-03c` (5) and `ADM-03d` (3) | Dũng | #245 merged on 28 November; run them once it is on staging (Lâm says when), and ask Lâm before step (14), which leaves a program. `ADM-04g` and `ADM-07k` are not applicable (Lâm, 28 Nov: no total check). |
+| 3 | CSV import and `/admin/calendar` screen checks | Thắng | At 360 and 1280 px: no overflow, the keyboard reaches every control, readable errors. Thắng runs both screens (28 November). |
+| 4 | ADM-03g's degree-audit check | Lâm, then Dũng | The audit with a new total needs a student on the test cohort, which onboarding does not offer; asked whether Lâm's bot can set one up with `psql`. `ADM-04g` and `ADM-07k` are not applicable (Lâm, 28 Nov: no total check). |
 | 5 | B1 regression on B2 (cases §12) | Dũng | Rerun on the current staging build; the B1 cases were updated in #209 (B1 cases 0.10). |
 | 6 | Retests of B1 defects (cases §13) | Dũng | For each of #101, #114, #115, #117 and #119 once its fix is merged. #119 still fails (A11Y-01e, f on `778d120`). |
 | 7 | New defects of 28 November | Hoà, Triết; Dũng retests | [#247](https://github.com/LLaammTTeerr/omnicourses/issues/247) (PLAN-01b, keyboard lift announcement), [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248) (PERF-01c–f, edit validation about 300 ms) and [#249](https://github.com/LLaammTTeerr/omnicourses/issues/249) (transcript buttons over the result counts). Retest after the fixes. |
@@ -194,7 +195,8 @@ From the 21–28 November runs, as each results file's "State after the run" or 
 
 - Accounts `b2-s1`, `b2-s3` to `b2-s15` and `b2-a1` to `b2-a4`, with the transcripts and plans their files list. `b2-s2`, `b2-a5` and `b2-a6` are deleted and purged. Q (`b2-s7`) and L (`b2-s15`) were signed up on 28 November: Q keeps the plan "PERF-01" with the fixture's board; L keeps "Default plan" and "What-if: Default plan".
 - A1 to A4 hold the grants of cases §1; A4 is the only active access manager.
-- APCS has an empty third cohort, APCS2099 (`c11cd85d-6ab8-4902-8146-eba313b46b05`), which no route deletes (Lâm's bot agreed, 25 November).
+- APCS has an empty third cohort, APCS2099 (`c11cd85d-6ab8-4902-8146-eba313b46b05`), which no route deletes (Lâm's bot agreed, 25 November); ADM-03g left it with no group and `totalCreditsMin` `null`.
+- A test program, **ZZ-ADM03G** "Chương trình thử ADM-03g" (`478bc0e5-0ba7-4e82-9875-b71210a683bd`, `trainingType` `standard`, no cohort), made by ADM-03g (14), which no route deletes (Lâm's bot agreed, 28 November).
 - No NOTIF-01 test date is left: `E-d` was deleted on 28 November after NOTIF-01d(2). The notifications that NOTIF-01's dates made stay in every APCS inbox on staging (ADR 0018, decision 7).
 - O (`b2-s12`) keeps "SHARE-01 plan (renamed)" with **no** live share link: SHARE-01l stopped the 25 November link and its own.
 - CS420's offering terms are `null` again (PLAN-01c and PERF-01f set and cleared them).

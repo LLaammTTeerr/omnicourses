@@ -1,0 +1,73 @@
+2026-11-28T07:44:02.914Z a-adm-03g
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T07:43:55.283Z","user":{"id":"32addfef-209b-4eba-b728-dfacb9856ead","email":"b2-a1@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:47.737Z"},"accountRestored":false}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T07:44:02.244Z","user":{"id":"46054d9c-2960-42c7-a80c-53a520e0cb65","email":"b2-a2@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:49.137Z"},"accountRestored":false}
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T07:44:09.363Z","user":{"id":"925cb9c8-86de-4427-a8c8-72cf442dd074","email":"b2-a4@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:51.896Z"},"accountRestored":false}
+  GET /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts → 200 [[2024,"APCS2024",163],[2025,"APCS2025",163],[2099,"APCS2099",null]]
+  {Y} = 2099, {CY} = c11cd85d-6ab8-4902-8146-eba313b46b05
+ok   ADM-03g: setup: APCS has the test cohort APCS2099 with no total, and no cohort 2098 | observed: [2024,2025,2099]
+  GET /api/programs/APCS/curricula/2099 → 200
+ok   ADM-03g: setup: APCS2099 has no requirement group (after ADM-03f)
+--- TC-B2-ADM-03c (5), rerun
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts → 400 {"statusCode":400,"code":"validation_failed","message":["totalCreditsMin must not be less than 0"]}
+ok   ADM-03c: (5) 400, "totalCreditsMin must not be less than 0" | observed: {"statusCode":400,"code":"validation_failed","message":["totalCreditsMin must not be less than 0"]}
+  GET /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts → 200
+ok   ADM-03c: (5) nothing saved: no cohort 2098 | observed: [2024,2025,2099]
+--- TC-B2-ADM-03d (3), rerun
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups → 400 {"statusCode":400,"code":"validation_failed","message":"creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)"}
+ok   ADM-03d: (3) 400 validation_failed, "creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)" | observed: {"statusCode":400,"code":"validation_failed","message":"creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)"}
+  GET /api/programs/APCS/curricula/2099 → 200
+ok   ADM-03d: (3) no group "Nhóm thử ADM-03 B"
+--- TC-B2-ADM-03g
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05 → 200 {"id":"c11cd85d-6ab8-4902-8146-eba313b46b05","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","cohortYear":2099,"code":"APCS2099","nameVi":"Khóa thử ADM-03","nameEn":"ADM-03 test cohort (edited)","language":null,"totalCreditsMin":130,"updatedAt":"2026-11-28T07:44:10.430Z"}
+ok   ADM-03g: (1) 200 with totalCreditsMin 130 and a later updatedAt | observed: ["2026-11-25T14:35:44.189Z","2026-11-28T07:44:10.430Z"]
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05 → 200 {"id":"c11cd85d-6ab8-4902-8146-eba313b46b05","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","cohortYear":2099,"code":"APCS2099","nameVi":"Khóa thử ADM-03","nameEn":"ADM-03 test cohort (edited)","language":null,"totalCreditsMin":130,"updatedAt":"2026-11-28T07:44:10.430Z"}
+ok   ADM-03g: (2) 200 with the same updatedAt | observed: 2026-11-28T07:44:10.430Z
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups → 201 {"id":"e0517faf-4c7b-4642-876a-8f3843743be7","curriculumId":"c11cd85d-6ab8-4902-8146-eba313b46b05","name":"Nhóm thử ADM-03g bắt buộc","kind":"compulsory","officialNotes":null,"creditsTotal":4,"creditsTotalMin":null,"updatedAt":"2026-11-28T07:44:10.710Z"}
+ok   ADM-03g: (3) 201 compulsory, creditsTotal 4, creditsTotalMin null | observed: {"id":"e0517faf-4c7b-4642-876a-8f3843743be7","curriculumId":"c11cd85d-6ab8-4902-8146-eba313b46b05","name":"Nhóm thử ADM-03g bắt buộc","kind":"compulsory","officialNotes":null,"creditsTotal":4,"creditsTotalMin":null,"updatedAt":"2026-11-28T07:44:10.710Z"}
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups → 201 {"id":"3ed0364b-1e7f-451f-85c2-9a18ab6f3339","curriculumId":"c11cd85d-6ab8-4902-8146-eba313b46b05","name":"Nhóm thử ADM-03g tự chọn","kind":"elective","officialNotes":null,"creditsTotal":null,"creditsTotalMin":8,"updatedAt":"2026-11-28T07:44:10.828Z"}
+ok   ADM-03g: (4) 201 elective, creditsTotal null, creditsTotalMin 8 | observed: {"id":"3ed0364b-1e7f-451f-85c2-9a18ab6f3339","curriculumId":"c11cd85d-6ab8-4902-8146-eba313b46b05","name":"Nhóm thử ADM-03g tự chọn","kind":"elective","officialNotes":null,"creditsTotal":null,"creditsTotalMin":8,"updatedAt":"2026-11-28T07:44:10.828Z"}
+  {G3} = e0517faf-4c7b-4642-876a-8f3843743be7, {G4} = 3ed0364b-1e7f-451f-85c2-9a18ab6f3339
+  POST /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups → 400 {"statusCode":400,"code":"validation_failed","message":"creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)"}
+  GET /api/programs/APCS/curricula/2099 → 200
+ok   ADM-03g: (5) 400 validation_failed, the elective message; no group "… sai" | observed: {"statusCode":400,"code":"validation_failed","message":"creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)"}
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups/e0517faf-4c7b-4642-876a-8f3843743be7 → 400 {"statusCode":400,"code":"validation_failed","message":"creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)"}
+ok   ADM-03g: (6) 400, the compulsory message | observed: {"statusCode":400,"code":"validation_failed","message":"creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)"}
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups/3ed0364b-1e7f-451f-85c2-9a18ab6f3339 → 400 {"statusCode":400,"code":"validation_failed","message":"creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)"}
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups/3ed0364b-1e7f-451f-85c2-9a18ab6f3339 → 200 {"id":"3ed0364b-1e7f-451f-85c2-9a18ab6f3339","curriculumId":"c11cd85d-6ab8-4902-8146-eba313b46b05","name":"Nhóm thử ADM-03g tự chọn","kind":"compulsory","officialNotes":null,"creditsTotal":8,"creditsTotalMin":null,"updatedAt":"2026-11-28T07:44:11.449Z"}
+ok   ADM-03g: (7) 400 with the compulsory message, then 200 compulsory, creditsTotal 8, creditsTotalMin null | observed: [{"statusCode":400,"code":"validation_failed","message":"creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)"},{"id":"3ed0364b-1e7f-451f-85c2-9a18ab6f3339","curriculumId":"c11cd85d-6ab8-4902-8146-eba313b46b05","name":"Nhóm thử ADM-03g tự chọn","kind":"compulsory","officialNotes":null,"creditsTotal":8,"creditsTotalMin":null,"updatedAt":"2026-11-28T07:44:11.449Z"}]
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05 → 400 {"statusCode":400,"code":"validation_failed","message":["totalCreditsMin must not be less than 0"]}
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05 → 400 {"statusCode":400,"code":"validation_failed","message":["totalCreditsMin must be an integer number"]}
+ok   ADM-03g: (8) 400 "totalCreditsMin must not be less than 0", then 400 "totalCreditsMin must be an integer number" | observed: [{"statusCode":400,"code":"validation_failed","message":["totalCreditsMin must not be less than 0"]},{"statusCode":400,"code":"validation_failed","message":["totalCreditsMin must be an integer number"]}]
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033 → 400 {"statusCode":400,"code":"validation_failed","message":["trainingType: property trainingType should not exist"]}
+ok   ADM-03g: (9) 400, "trainingType: property trainingType should not exist" | observed: {"statusCode":400,"code":"validation_failed","message":["trainingType: property trainingType should not exist"]}
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05 → 403 {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+ok   ADM-03g: (10) A2: 403 permission_required, program_admin | observed: {"statusCode":403,"code":"permission_required","permission":"program_admin","message":"This needs the program_admin permission"}
+  GET /api/programs/APCS/curricula/2099 → 200
+ok   ADM-03g: the read route: APCS2099 totalCreditsMin 130; "… bắt buộc" creditsTotal 4; "… tự chọn" compulsory with creditsTotal 8 | observed: {"totalCreditsMin":130,"groups":[["Nhóm thử ADM-03g bắt buộc","compulsory",4,null],["Nhóm thử ADM-03g tự chọn","compulsory",8,null]]}
+  GET /api/programs/APCS/curricula/2099/standing → 200 {"courses":[]}
+  standing of APCS2099 (for information): 200
+--- TC-B2-ADM-03g clean-up (11)
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups/e0517faf-4c7b-4642-876a-8f3843743be7 → 204
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05/requirement-groups/3ed0364b-1e7f-451f-85c2-9a18ab6f3339 → 204
+  PATCH /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/c11cd85d-6ab8-4902-8146-eba313b46b05 → 200 {"id":"c11cd85d-6ab8-4902-8146-eba313b46b05","programId":"d3f524f8-e51b-42dd-91ac-013b15d5e033","cohortYear":2099,"code":"APCS2099","nameVi":"Khóa thử ADM-03","nameEn":"ADM-03 test cohort (edited)","language":null,"totalCreditsMin":null,"updatedAt":"2026-11-28T07:44:12.606Z"}
+ok   ADM-03g: (11) 204, 204, then 200 with totalCreditsMin null | observed: [204,204,200,null]
+--- TC-B2-ADM-03g, the training type (A4)
+  POST /api/admin/programs → 409 {"statusCode":409,"code":"duplicate_code","message":"A program already has the code APCS"}
+ok   ADM-03g: (12) 409 duplicate_code "A program already has the code APCS" | observed: {"statusCode":409,"code":"duplicate_code","message":"A program already has the code APCS"}
+  GET /api/programs → 200
+ok   ADM-03g: before (13): no program ZZ-ADM03G yet | observed: []
+  POST /api/admin/programs → 400 {"statusCode":400,"code":"validation_failed","message":["trainingType must be one of the following values: advanced, joint, high_quality, standard"]}
+  GET /api/programs → 200
+ok   ADM-03g: (13) 400 validation_failed, "trainingType must be one of the following values: advanced, joint, high_quality, standard"; no ZZ-ADM03G | observed: {"statusCode":400,"code":"validation_failed","message":["trainingType must be one of the following values: advanced, joint, high_quality, standard"]}
+  POST /api/admin/programs → 201 {"id":"478bc0e5-0ba7-4e82-9875-b71210a683bd","code":"ZZ-ADM03G","nameVi":"Chương trình thử ADM-03g","nameEn":null,"faculty":null,"trainingType":"standard","updatedAt":"2026-11-28T07:44:13.180Z"}
+  {ZP} = 478bc0e5-0ba7-4e82-9875-b71210a683bd (stays: no route deletes a program)
+  GET /api/admin/access/users/925cb9c8-86de-4427-a8c8-72cf442dd074/grants → 200 {"userId":"925cb9c8-86de-4427-a8c8-72cf442dd074","programs":[],"permissions":[{"permission":"access_manager","grantedAt":"2026-11-21T09:28:52.950Z","grantedBy":null}]}
+ok   ADM-03g: (14) 201 with trainingType standard, and no grant for A4 on it | observed: {"status":201,"trainingType":"standard"}
+  PATCH /api/admin/programs/478bc0e5-0ba7-4e82-9875-b71210a683bd → 400 {"statusCode":400,"code":"validation_failed","message":["trainingType: property trainingType should not exist"]}
+ok   ADM-03g: (14) the PATCH: 400 validation_failed, "trainingType: property trainingType should not exist" | observed: {"statusCode":400,"code":"validation_failed","message":["trainingType: property trainingType should not exist"]}
+  GET /api/programs → 200
+ok   ADM-03g: (14) GET /api/programs lists ZZ-ADM03G with trainingType standard | observed: [{"code":"ZZ-ADM03G","nameVi":"Chương trình thử ADM-03g","nameEn":null,"faculty":null,"trainingType":"standard","cohortYears":[]}]
+  GET /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts → 200
+  GET /api/programs/APCS/curricula/2099 → 200
+ok   ADM-03g: after the run: APCS2099 has no group and totalCreditsMin null
+2026-11-28T07:44:21.716Z All checks ok
