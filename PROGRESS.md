@@ -11,7 +11,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 5. A batch is done when: full verify passes on the stack branch, `src/backend/openapi.json` is byte-identical, an independent reviewer has read the diff, every commit is signed, and it carries a changeset (empty when nothing user-facing changes).
 6. A new batch branches from the current stack tip. Brief, review brief and fix brief of every batch are in `converge/briefs/`; every independent review and each workflow's results are in `converge/reviews/`; the surveys are in `converge/survey/` (the seven first ones, `dashboard.md`, `config-deploy-ci.md`); `converge/final-read.md`, `converge/tests-scan.md` and `converge/goal-audit.md` are the three whole-stack checks.
 
-## Merging the stack (needs one approval per PR; #220 merged on 28 Nov, #221 is the bottom now)
+## Merging the stack (one approval per PR; the table below marks what is merged and which PR is the bottom)
 
 - Only the bottom PR is ready for review and has auto-merge on. Every PR above it is a draft.
 - When the bottom PR is squash-merged: in `cv-stack`, merge `origin/main` into the next branch (never rebase a pushed branch, never force-push), run the verify script, push, check on GitHub that its base is now `main` and that its diff shows only its own files and exactly one changeset, mark it ready, request the four teammates as reviewers (`gh api repos/LLaammTTeerr/omnicourses/pulls/<n>/requested_reviewers`), and turn on auto-merge. Then merge that branch into the one above it, and so on up, so every layer contains `main`.
@@ -29,8 +29,8 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | Stack | Branch | Batch | PR | Title |
 | --- | --- | --- | --- | --- |
 | 01 | `refactor/cv-01-verify-and-lint-rules` | 01 | #220 (merged 28 Nov as 3f29068, approved by Dũng) | chore(lint): add npm run verify and structural lint rules |
-| 02 | `refactor/cv-02-plan-view` | 10 | #221 (ready, auto-merge on) | refactor(plans): split the pure issue view out of the planner loaders |
-| 03 | `refactor/cv-03-locks-and-seeds` | 02 | #222 (draft) | refactor(backend): one lock-key registry, curriculum seeds in curriculum |
+| 02 | `refactor/cv-02-plan-view` | 10 | #221 (merged 28 Nov as fc0c34d, approved by Dũng) | refactor(plans): split the pure issue view out of the planner loaders |
+| 03 | `refactor/cv-03-locks-and-seeds` | 02 | #222 (ready, auto-merge on) | refactor(backend): one lock-key registry, curriculum seeds in curriculum |
 | 04 | `refactor/cv-04-engine-vocabulary` | 03 | #223 (draft) | refactor(rules): move engine input types into pure curriculum-rules.ts |
 | 05 | `refactor/cv-05-fe-kernel` | 09 | #224 (draft) | refactor(frontend): give sign-out keys, grants and busy text one owner |
 | 06 | `refactor/cv-06-rules-one-derivation` | 04 | #225 (draft) | refactor(rules): derive course status and prerequisite sets once |
@@ -51,7 +51,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 21 | `refactor/cv-21-structure-adr` | 21 | #243 (draft) | docs(adr): record module boundaries, owners and their enforcement |
 | 22 | `refactor/cv-22-config-and-pins` | 22 | #244 (draft) | test(config): check settings, pinned versions and exact pins |
 
-Base of the stack: `main` at 3f29068 (#220, merged 28 Nov), merged into every remaining layer the same day. Every layer passed the full verify when it was stacked; stack 02 passed it again on `main` (backend 1132 unit / 364 e2e, frontend 1279 unit / 68 browser), and the tip (stack 22) passes after the restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
+Base of the stack: `main` at fc0c34d (#221, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
 ## State of the structure at the stack tip
 
@@ -71,7 +71,7 @@ Base of the stack: `main` at 3f29068 (#220, merged 28 Nov), merged into every re
 - Lâm, in the session, 27 Nov 2026 at 20:07 UTC (28 Nov, 03:07 in Vietnam), answer to the prompt "How should the refactor reach main?": **"A PR per area (Recommended)"**, whose text was: "I open one small PR per area once it passes every check, with auto-merge on. A teammate approves. Each merge deploys production. I post one heads-up in the team channel first."
 - Lâm, same session: "do this task as a bunch of pull request stack on each other to prevent disruption", and "create new sprite in discord and occasionally report progress for me there".
 - Standing rules: the user's global instructions ("When work is done and checks pass, commit and push without asking, but only on a non-default branch"; never push to main, never force-push) and AGENTS.md ("Agents have full authority over the branch → PR → merge cycle"; merge only with green CI and a human approval; never the admin override).
-- Done under it: 22 pull requests opened (21 as drafts), auto-merge turned on for the bottom PR only (#220, then #221 once #220 had merged), reviewers requested on those two, one heads-up in the main team channel before the first pull request (27 Nov, 20:12 UTC), one thread per PR and a progress thread in the sprite forum, three issues (#240 to #242). Merged so far: #220, by GitHub's auto-merge after Dũng's approval on 28 Nov; production deployed by itself after that merge, as the chosen option says. No admin override, no manual deploy, no push to `main`, no force-push.
+- Done under it: 22 pull requests opened (21 as drafts), auto-merge turned on and reviewers requested for the bottom PR only, one at a time as each PR below it merged, one heads-up in the main team channel before the first pull request (27 Nov, 20:12 UTC), one thread per PR and a progress thread in the sprite forum, three issues (#240 to #242). Merged PRs (marked in the stack table) were each merged by GitHub's auto-merge after a teammate's approval; production deploys by itself after each merge, as the chosen option says. No admin override, no manual deploy, no push to `main`, no force-push.
 
 ### Needs a decision (none blocks the stack; tracked in issues #240 and #241)
 
@@ -121,13 +121,13 @@ Base of the stack: `main` at 3f29068 (#220, merged 28 Nov), merged into every re
 
 ## Next
 
-All 22 batches are pushed as PRs #220 to #239, #243 and #244 (merge order: that order). #220 is merged; 21 are open. Nothing is building.
+All 22 batches are pushed as PRs #220 to #239, #243 and #244 (merge order: that order). The stack table marks the merged ones. Nothing is building.
 
 Where the mission stands against `goal.txt`: an independent audit of every section of the goal (`converge/goal-audit.md`, 28 Nov) found the code converged, the contract preserved, and two things still actionable without a decision. Both are done: the two stale doc facts (and one imprecise ADR sentence) are corrected at the layers they belong to, and these records, the issues and the saved reviews now match the repository. The audit also judged an earlier "stopping conditions reached" line premature: at that time configuration, dependencies and deploy had not been surveyed. They have been since (`converge/survey/config-deploy-ci.md`); what an agent could do became stack 22 (#244), the rest is the Project Lead's and is in #240.
 
 As of this commit there is no known item an agent can do without a person. What is left:
 
-- **Approvals.** #220 was approved by Dũng and merged by auto-merge on 28 Nov (3f29068); CI, release and deploy on `main` are green and `npm run lint` passes on `main`. #221 is restacked on `main`, ready, with auto-merge on and the four reviewers requested; every layer above it contains `main`. When #221 merges, follow "Merging the stack" for #222, and so on. When a teammate asks for a change on a PR: fix it on that PR's branch in `cv-stack`, then merge that branch into each branch above it and push them all.
+- **Approvals.** One per PR. The stack table marks each merged PR (date, commit, approver) and the current bottom (ready, auto-merge on, reviewers requested); every layer above the bottom contains `main`. Each merged PR was approved by a teammate and merged by GitHub's auto-merge. When the bottom merges, follow "Merging the stack" for the next one. In the session of 28 Nov a script did exactly those steps after each merge and stopped on any conflict, failed check or failed run on `main`. When a teammate asks for a change on a PR: fix it on that PR's branch in `cv-stack`, then merge that branch into each branch above it and push them all.
 - **#240**, decisions for the Project Lead: error codes on every 4xx, graduation-condition ids in the contract, a stale contract sentence, limits without a contract number, the session cap, notifications created on read, `class-model.md`, ADR statuses (0019, 0020), an unused CI step, the deploy and CI points (AI settings on the host, a migration error printed into the public deploy log, environment facts in four files, the repeated CI setup), and five questions from the first surveys (purge date, offered cohorts, "unlocks" in the browser, a figure the dashboard sums, test guides in the build). Four of these (error codes on every 4xx, the two ADR statuses, the contract sentence with the limits, the session cap) were also put to Lâm as a prompt in the session on 28 Nov. The prompt was withdrawn with no answer; each of the four carries its recommended answer in #240, which is now the only place they are asked.
 - **#241**, points for the frontend owner: shared page against editor, the import screen and grant changes, three reference wordings, menu labels, the strict test mock, the dashboard findings and questions, four weak dashboard-spec assertions, two helpers the dashboard borrows, indexing of the shared page. Nothing in `dashboard/` is changed without Hoà's word.
 - **#242**, follow-ups blocked by #166 and #77, or by an answer in #241.
