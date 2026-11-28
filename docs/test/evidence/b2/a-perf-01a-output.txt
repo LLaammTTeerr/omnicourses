@@ -1,0 +1,31 @@
+2026-11-28T06:01:51.972Z Chrome 144.0.7559.110 (headed, playwright-core 1.64.1), profile off
+  UI sign-in b2-s7@example.com → 200
+  GET /api/plans → 200
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: V: before the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+2026-11-28T06:02:02.505Z board as saved: {"counts":"0 violations0 worth a look46 not recorded yet","violations":0,"flags":0}
+  V run 1: 340.5 ms; server PUT 152.9, GET 132; undo back to saved: true
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: V: after the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+V: 1 measured runs, median 340.5 ms, p95 340.5 ms, max 340.5 ms, 1 at or over 300 ms
+ok   PERF-01a V: the edit drew its expected result and Ctrl+Z brought back the saved board (time not judged: no profile) | observed: [340.5]
+2026-11-28T06:02:06.841Z saved a-perf-01-v-2026-11-28T06-02-06-840Z.json
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: P: before the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+2026-11-28T06:02:06.972Z board as saved: {"counts":"0 violations0 worth a look46 not recorded yet","violations":0,"flags":0}
+  P run 1: 331.8 ms; server PUT 149.5, GET 124; undo back to saved: true
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: P: after the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+P: 1 measured runs, median 331.8 ms, p95 331.8 ms, max 331.8 ms, 1 at or over 300 ms
+ok   PERF-01a P: the edit drew its expected result and Ctrl+Z brought back the saved board (time not judged: no profile) | observed: [331.8]
+2026-11-28T06:02:11.304Z saved a-perf-01-p-2026-11-28T06-02-11-303Z.json
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: C: before the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+2026-11-28T06:02:11.628Z board as saved: {"counts":"0 violations0 worth a look46 not recorded yet","violations":0,"flags":0}
+  C run 1: 312.5 ms; server PUT 130.9, GET 126.2; undo back to saved: true
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: C: after the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+C: 1 measured runs, median 312.5 ms, p95 312.5 ms, max 312.5 ms, 1 at or over 300 ms
+ok   PERF-01a C: the edit drew its expected result and Ctrl+Z brought back the saved board (time not judged: no profile) | observed: [312.5]
+2026-11-28T06:02:15.864Z saved a-perf-01-c-2026-11-28T06-02-15-863Z.json
+2026-11-28T06:02:16.045Z All checks ok
