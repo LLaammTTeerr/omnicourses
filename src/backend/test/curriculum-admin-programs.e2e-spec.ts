@@ -148,7 +148,7 @@ describe('Program and cohort administration API (e2e)', () => {
       await as(adminA).patch(programPath(programA), { nameVi: null }),
       await as(adminA).patch(programPath(programA), { faculty: 'x'.repeat(101) }),
       await as(adminA).patch(programPath('not-a-uuid'), { nameVi: 'x' }),
-      await as(manager).post(programsPath, { code: `${P}-C`, nameVi: 'x', trainingType: 'standard' }),
+      await as(manager).post(programsPath, { code: `${P}-C`, nameVi: 'x', trainingType: 'dai_tra' }),
       await as(manager).post(programsPath, { code: `${P} C`, nameVi: 'x' }),
       await as(manager).post(programsPath, { code: `${P}_C`, nameVi: 'x' }),
       await as(manager).post(programsPath, { code: `${P}-${'C'.repeat(50)}`, nameVi: 'x' }),
@@ -157,6 +157,7 @@ describe('Program and cohort administration API (e2e)', () => {
     for (const response of bad) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
     expect(bad[0].body.message).toContain('code: property code should not exist');
     expect(bad[3].body.message).toContain('trainingType: property trainingType should not exist');
+    expect(bad[8].body.message).toContain('trainingType must be one of the following values: advanced, joint, high_quality, standard');
     expect(await programRows()).toEqual(before);
 
     expect((await as(adminA).patch(programPath(programA), {}).expect(200)).body).toMatchObject({ id: programA, nameEn: 'Trial Program A' });
@@ -165,6 +166,21 @@ describe('Program and cohort administration API (e2e)', () => {
     const cleared = await as(adminA).patch(programPath(programA), { nameVi: 'Chương trình thử A (sửa)', nameEn: ' ', faculty: null }).expect(200);
     expect(cleared.body).toMatchObject({ code: codeA, nameVi: 'Chương trình thử A (sửa)', nameEn: null, faculty: null, trainingType: null });
     expect(await programRows()).toMatchObject([{ code: codeA, name_vi: 'Chương trình thử A (sửa)', name_en: null, faculty: null, training_type: null }, { code: codeB }]);
+  });
+
+  it('lets the access manager set the training type once, when creating a program, and no one change it later', async () => {
+    const code = `${P}-T`;
+    const created = await as(manager).post(programsPath, { code, nameVi: 'Chương trình thử T', trainingType: 'joint' }).expect(201);
+    expect(created.body).toMatchObject({ code, trainingType: 'joint' });
+    expect(await db.query('SELECT training_type FROM programs WHERE id = $1', [created.body.id])).toEqual([{ training_type: 'joint' }]);
+    expect(refusal(await as(adminA).post(programsPath, { code: `${P}-U`, nameVi: 'x', trainingType: 'standard' }))).toEqual([403, 'permission_required', 'access_manager']);
+    const byManager = await as(manager).patch(programPath(created.body.id), { trainingType: 'standard' });
+    expect([byManager.status, byManager.body.code]).toEqual([400, 'validation_failed']);
+    await grantProgram(db, adminA.userId, created.body.id);
+    const changed = await as(adminA).patch(programPath(created.body.id), { trainingType: 'standard' });
+    expect([changed.status, changed.body.code]).toEqual([400, 'validation_failed']);
+    expect(changed.body.message).toContain('trainingType: property trainingType should not exist');
+    expect(await db.query('SELECT training_type FROM programs WHERE id = $1', [created.body.id])).toEqual([{ training_type: 'joint' }]);
   });
 
   it('adds cohorts to a program, each one empty, and lists and reads them', async () => {

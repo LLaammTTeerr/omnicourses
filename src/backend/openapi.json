@@ -5764,6 +5764,20 @@
             ],
             "maxLength": 100,
             "description": "The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null."
+          },
+          "trainingType": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "advanced",
+              "joint",
+              "high_quality",
+              "standard",
+              null
+            ],
+            "description": "Sets the credit caps and the kind of term 3 (ADR 0012). Set once, on creation (Lâm, 28 November 2026); no route changes it later. Left out or null: not recorded, so the rule engine checks no credit cap."
           }
         },
         "required": [
@@ -8280,7 +8294,7 @@
               "standard",
               null
             ],
-            "description": "Read-only here: no F12 route sets it. null: not recorded, so the rule engine checks no credit cap (ADR 0013)."
+            "description": "Set only when the program is created. null: not recorded, so the rule engine checks no credit cap (ADR 0013)."
           },
           "updatedAt": {
             "type": "string",

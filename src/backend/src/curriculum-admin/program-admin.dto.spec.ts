@@ -40,8 +40,18 @@ describe('CreateProgramDto', () => {
     expect(await errorsOf(CreateProgramDto, { ...PROGRAM, faculty: 'x'.repeat(100) })).toEqual([]);
   });
 
-  it('refuses a training type, a grant and any other undeclared field', async () => {
-    for (const field of ['trainingType', 'id', 'grantTo', 'curricula', 'updatedAt']) {
+  it('accepts each training type of ADR 0012, or null', async () => {
+    for (const trainingType of ['advanced', 'joint', 'high_quality', 'standard', null]) expect(await valueOf(CreateProgramDto, { ...PROGRAM, trainingType })).toEqual({ ...PROGRAM, trainingType });
+  });
+
+  it('refuses a training type outside ADR 0012', async () => {
+    for (const trainingType of ['Advanced', 'dai_tra', '', 3]) {
+      expect([trainingType, await errorsOf(CreateProgramDto, { ...PROGRAM, trainingType })]).toEqual([trainingType, ['trainingType must be one of the following values: advanced, joint, high_quality, standard']]);
+    }
+  });
+
+  it('refuses a grant and any other undeclared field', async () => {
+    for (const field of ['id', 'grantTo', 'curricula', 'updatedAt']) {
       expect(await errorsOf(CreateProgramDto, { ...PROGRAM, [field]: 'standard' })).toEqual([`${field}: property ${field} should not exist`]);
     }
   });

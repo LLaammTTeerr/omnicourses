@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsString, Matches, Max, Min } from 'class-validator';
-import { ifPresent, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
+import { IsIn, IsInt, IsString, Matches, Max, Min } from 'class-validator';
+import { ifPresent, ifSet, MaxCodePoints, NullableTextField, RequiredTextField } from '../common/field-validators.js';
 import { LANGUAGE_MAX_LENGTH } from '../curriculum/curriculum.entity.js';
 import { TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rules.js';
 import { FACULTY_MAX_LENGTH } from '../curriculum/program.entity.js';
@@ -38,6 +38,16 @@ export class CreateProgramDto {
 
   @NullableTextField({ maxLength: FACULTY_MAX_LENGTH, description: 'The faculty that owns the program, as text. It is not a permission boundary (ADR 0011). Blank is stored as null.' })
   faculty?: string | null;
+
+  @ApiProperty({
+    enum: TRAINING_TYPES,
+    nullable: true,
+    required: false,
+    description: 'Sets the credit caps and the kind of term 3 (ADR 0012). Set once, on creation (Lâm, 28 November 2026); no route changes it later. Left out or null: not recorded, so the rule engine checks no credit cap.',
+  })
+  @ifSet
+  @IsIn(TRAINING_TYPES)
+  trainingType?: TrainingType | null;
 }
 
 export const PROGRAM_FIELDS = ['nameVi', 'nameEn', 'faculty'] as const;
@@ -70,7 +80,7 @@ export class ProgramDetailsDto {
   @ApiProperty({ type: String, nullable: true })
   faculty!: string | null;
 
-  @ApiProperty({ enum: TRAINING_TYPES, nullable: true, description: 'Read-only here: no F12 route sets it. null: not recorded, so the rule engine checks no credit cap (ADR 0013).' })
+  @ApiProperty({ enum: TRAINING_TYPES, nullable: true, description: 'Set only when the program is created. null: not recorded, so the rule engine checks no credit cap (ADR 0013).' })
   trainingType!: TrainingType | null;
 
   @ApiProperty({ type: String, format: 'date-time' })

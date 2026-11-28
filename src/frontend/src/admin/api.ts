@@ -33,6 +33,7 @@ export interface CreateProgramBody {
   nameVi: string;
   nameEn?: string | null;
   faculty?: string | null;
+  trainingType?: TrainingType | null;
 }
 
 export interface UpdateProgramBody {
