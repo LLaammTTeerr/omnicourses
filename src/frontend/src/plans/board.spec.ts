@@ -45,7 +45,7 @@ describe('terms on the board', () => {
     expect(rowsFor([], t(2026, 1), null)).toEqual([t(2026, 1)]);
     expect(rowsFor([], t(2026, 2), t(2025, 1))).toEqual([t(2026, 2)]);
     const terms = [{ term: t(2025, 3), placements: [course('ZZ101')] }, { term: t(2027, 1), placements: [course('ZZ102')] }];
-    expect(rowsFor(terms, t(2026, 1), t(2026, 2))).toEqual([t(2025, 3), t(2026, 1), t(2026, 2), t(2026, 3), t(2027, 1)]);
+    expect(rowsFor(terms, t(2026, 1), t(2026, 2))).toEqual(termsBetween(t(2025, 3), t(2027, 1)));
   });
 });
 

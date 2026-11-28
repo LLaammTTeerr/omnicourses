@@ -5,6 +5,7 @@ import { setup } from '../testing/signed-in.js';
 import AppSidebar from './AppSidebar.vue';
 import PublicHeader from './PublicHeader.vue';
 import PublicHeaderRaw from './PublicHeader.vue?raw';
+import { SHELL_MESSAGES } from './messages.js';
 import { useSidebar } from './sidebar.js';
 import { useTheme } from './theme.js';
 
@@ -42,7 +43,7 @@ describe('AppSidebar accessibility', () => {
     expect(useSidebar().mini).toBe(true);
     expect(collapse().attributes('aria-label')).toBe('Thu gọn');
     expect(collapse().attributes('title')).toBe('Mở rộng');
-    expect(themeBtn().attributes('title')).toBe('Giao diện tối');
+    expect(themeBtn().attributes('title')).toBe(SHELL_MESSAGES.vi.toDark);
     expect(langBtn().attributes('title')).toBe('English');
   });
 });
