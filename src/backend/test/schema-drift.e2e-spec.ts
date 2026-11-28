@@ -20,8 +20,8 @@ describe('Entities against migrations (e2e)', () => {
 
   it('maps every table exactly as its migration creates it', async () => {
     const { upQueries } = await db.driver.createSchemaBuilder().log();
-    const tables = db.entityMetadatas.map((m) => m.tableName).filter((t) => !TABLES_OF_THE_AI_GATEWAY_OWNED_BY_AN_OPEN_PULL_REQUEST.includes(t));
-    const touching = upQueries.map((q) => q.query).filter((q) => tables.some((t) => q.includes(`"${t}"`)));
-    expect(touching).toEqual([]);
+    const excluded = TABLES_OF_THE_AI_GATEWAY_OWNED_BY_AN_OPEN_PULL_REQUEST;
+    const wanted = upQueries.map((q) => q.query).filter((q) => !excluded.some((t) => q.includes(`"${t}"`)));
+    expect(wanted).toEqual([]);
   });
 });

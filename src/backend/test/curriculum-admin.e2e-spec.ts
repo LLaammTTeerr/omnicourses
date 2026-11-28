@@ -12,7 +12,6 @@ import { bootApp } from './support/app.js';
 import { privateSchema } from './support/schema.js';
 import { signedInUser } from './support/users.js';
 
-
 interface ReadCourse {
   code: string;
   credits: number;
