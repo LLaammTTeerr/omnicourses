@@ -14,8 +14,9 @@
 | --- | --- |
 | Passed | 107. TRN-01a–g, TRN-02a–h, PLAN-01a, c, d, e, f, PLAN-02a–e, ADM-01a–e, ADM-02a–l, ADM-03a–f, ADM-04a–f, ADM-05a–g, ADM-06a–g, ADM-07a–i, SHARE-01a–l, NOTIF-01a–j, PERF-01a, b, A11Y-01a, b, c, d, g, h |
 | Failed | 7, all on staging `778d120` (28 Nov). PLAN-01b: during a keyboard lift the arrow keys never announce the target term (new defect, to file). PERF-01c–f: a planner edit takes about 300 ms (medians 295–307 ms; 15, 28, 16 and 19 of 30 runs at or over 300 ms; new defect, to file). A11Y-01e and f: contrast, [#119](https://github.com/LLaammTTeerr/omnicourses/issues/119) (a light hover at 4.47:1, a light field border on a tinted panel at 2.79:1, card separators at 1.18 / 1.20:1) |
-| Blocked | 5. Group credit totals and `trainingType` (Triết): ADM-03g, ADM-04g, ADM-07k. Staging's proxy: ADM-07j (nginx answered 413 in HTML on 25 Nov; Lâm runs `deploy/server/setup.sh` for `client_max_body_size 8m`). Streamed advisor updates (B3): A11Y-01i (dragging and Print/PDF layout are now built on the branch; streamed updates wait for F8) |
-| Not run yet | 3. OPS-01a–c, on the host after `deploy/server/setup.sh` (Lâm) |
+| Blocked | 2. Staging's proxy: ADM-07j (nginx answered 413 in HTML on 25 Nov; Lâm runs `deploy/server/setup.sh` for `client_max_body_size 8m`). Streamed advisor updates (B3): A11Y-01i (dragging and Print/PDF layout are built; streamed updates wait for F8) |
+| Not applicable | 2. ADM-04g, ADM-07k (Lâm, 28 Nov: no total check; [ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)) |
+| Not run yet | 4. ADM-03g (rewritten on 28 November 2026 for the credit-total routes of #245; ADM-03c (5) and ADM-03d (3) changed with it and need a rerun; staging `778d120` does not have #245 yet). OPS-01a–c, on the host after `deploy/server/setup.sh` (Lâm) |
 | **Total** | **122** |
 
 What matters so far:
@@ -33,11 +34,11 @@ By parent check. A parent passes only when all its required detailed outcomes pa
 | TC-B2-TRN-02 | passed | `a–h` passed. |
 | TC-B2-ADM-01 | passed | `a–e` passed. |
 | TC-B2-ADM-02 | passed | `a–l` passed. |
-| TC-B2-ADM-03 | not passed yet | `a–f` passed. `g` blocked on group credit totals and `trainingType`. |
-| TC-B2-ADM-04 | not passed yet | `a–f` passed. `g` blocked on group credit totals. |
+| TC-B2-ADM-03 | not passed yet | `a–f` passed. `g` rewritten on 28 November 2026 for the credit-total routes; it runs once they are deployed. |
+| TC-B2-ADM-04 | not passed yet | `a–f` passed. `g` not applicable (Lâm, 28 Nov: no total check). |
 | TC-B2-ADM-05 | passed | `a–g` passed. |
 | TC-B2-ADM-06 | passed | `a–g` passed. |
-| TC-B2-ADM-07 | not passed yet | `a–i` passed. `j` blocked on running `setup.sh` on staging's nginx, `k` on group credit totals. |
+| TC-B2-ADM-07 | not passed yet | `a–i` passed. `j` blocked on running `setup.sh` on staging's nginx, `k` not applicable (Lâm, 28 Nov: no total check). |
 | TC-B2-SHARE-01 | passed | `a–k` passed through the API (`e7bd617`); `l` passed on `778d120`. |
 | TC-B2-NOTIF-01 | passed | `a–c, e–i` and `d(1)` passed (`e7bd617`); `d(2)` and `j` passed on `778d120`. |
 | TC-B2-PERF-01 | **failed** | `a, b` passed; `c–f` failed on `778d120`: every edit type has runs at or over 300 ms. |
@@ -106,7 +107,8 @@ One line per group of cases from the same run with the same result. The results 
 | ADM-02a–h | passed | Signed-out 401, no-role 403, own-program writes, another program refused with nothing of it leaked, catalog and access roles kept apart, a revoked grant refused at once with the old token, the last access manager kept. |
 | ADM-02i–l | passed | Each role sees only its sections; a grant revoked while a form is open is refused and the form is kept; group writes in the own program, refused in another. |
 | ADM-03a–f | passed | A second cohort, APCS2099, with its groups and links, leaves the first cohort's plans, audit and curriculum unchanged; duplicates, bad values and other programs are refused. |
-| ADM-03g, ADM-04g, ADM-07k | blocked | Group credit totals and `trainingType` wait for the final-state validation interface (Triết). |
+| ADM-03g | not run | Rewritten on 28 November 2026: the administration routes accept a cohort's and a group's credit totals, and the access manager sets a program's `trainingType` when creating it (Lâm, 28 Nov 2026; [ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)). Run once deployed; step (14) creates a program that stays, so it needs Lâm's agreement first. |
+| ADM-04g, ADM-07k | not applicable | Lâm, 28 Nov: no total check. A link removal or a group-link file may leave a group off its credit total, and the audit shows the gap. |
 | ADM-04a–f | passed | Unlinking, a course a rule still names (409), a linked course (409), a group a saved plan uses (409, fixed by #172 before the run), catalog deletion by role, codes that cannot change. |
 | ADM-05a–d | passed | Field validation, duplicate codes, an impact list that changed during the review, deletions refused while a transcript or plan names the course, and edits that leave saved transcripts and plans unchanged. |
 | ADM-05e–g | passed | The same on the screens: field errors, Cancel, the three lost-answer outcomes, and the review after `impact_changed`. |
@@ -177,7 +179,7 @@ Each item updates this report when it runs on the B2 candidate.
 | 1 | Carry the results to the B2 candidate | Dũng, Lâm | When B2 is tagged: list the `src/` changes since each run's build (§2), and rerun the cases they touch. The 28 November runs were on `778d120`; `main` has since taken #220–#227 (clean-ups, no new feature). |
 | 2 | Host `setup.sh`, `OPS-01a–c` and `ADM-07j` (4)–(5) | Lâm, then Dũng | Lâm runs `deploy/server/setup.sh` on the host, executes `OPS-01a–c` (`omnicourse-backup.timer`, `omnicourse_rehearsal` restore, `/api/health` 503 rollback), and Dũng reruns `ADM-07j` (4)–(5) against `client_max_body_size 8m`. |
 | 3 | CSV import and `/admin/calendar` screen checks | Dũng, Thắng | At 360 and 1280 px: no overflow, the keyboard reaches every control, readable errors. Dũng and Thắng are splitting the two screens. |
-| 4 | `ADM-03g`, `ADM-04g`, `ADM-07k` | Triết, then Dũng | `ADM-03g` waits for #245 to merge and reach staging (Lâm says when). `ADM-04g` and `ADM-07k` wait for group credit totals. |
+| 4 | `ADM-03g`, with `ADM-03c` (5) and `ADM-03d` (3) | Dũng | #245 merged on 28 November; run them once it is on staging (Lâm says when), and ask Lâm before step (14), which leaves a program. `ADM-04g` and `ADM-07k` are not applicable (Lâm, 28 Nov: no total check). |
 | 5 | B1 regression on B2 (cases §12) | Dũng | Rerun on the current staging build; the B1 cases were updated in #209 (B1 cases 0.10). |
 | 6 | Retests of B1 defects (cases §13) | Dũng | For each of #101, #114, #115, #117 and #119 once its fix is merged. #119 still fails (A11Y-01e, f on `778d120`). |
 | 7 | New defects of 28 November | Dũng files; Hoà, Triết | PLAN-01b(2) (keyboard lift announcement) and PERF-01c–f (edit validation about 300 ms). Retest after the fixes. |
