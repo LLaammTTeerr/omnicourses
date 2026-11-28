@@ -1,12 +1,12 @@
-import { clc2025AtttRows } from './clc-2025-attt.rows.js';
-import { clc2025CnttinRows } from './clc-2025-cnttin.rows.js';
-import { clc2025CntthucRows } from './clc-2025-cntthuc.rows.js';
-import { clc2025HtttRows } from './clc-2025-httt.rows.js';
-import { clc2025KhdlRows } from './clc-2025-khdl.rows.js';
-import { clc2025KhmtRows } from './clc-2025-khmt.rows.js';
-import { clc2025KtpmRows } from './clc-2025-ktpm.rows.js';
-import { clc2025MmtRows } from './clc-2025-mmt.rows.js';
-import { clc2025TgmtRows } from './clc-2025-tgmt.rows.js';
+import { clc2025AtttGroups } from './clc-2025-attt.groups.js';
+import { clc2025CnttinGroups } from './clc-2025-cnttin.groups.js';
+import { clc2025CntthucGroups } from './clc-2025-cntthuc.groups.js';
+import { clc2025HtttGroups } from './clc-2025-httt.groups.js';
+import { clc2025KhdlGroups } from './clc-2025-khdl.groups.js';
+import { clc2025KhmtGroups } from './clc-2025-khmt.groups.js';
+import { clc2025KtpmGroups } from './clc-2025-ktpm.groups.js';
+import { clc2025MmtGroups } from './clc-2025-mmt.groups.js';
+import { clc2025TgmtGroups } from './clc-2025-tgmt.groups.js';
 import {
   ALL_SPECIALISATIONS,
   clc2025Seed,
@@ -35,7 +35,7 @@ const clc2025Mmt: CurriculumSeed = clc2025Seed({
     note: graduationNote(['CSC11111', 'CSC11112', 'CSC11119', 'CSC15010']),
     options: graduationOptions(['CSC11111', 'CSC11112', 'CSC11119', 'CSC15010']),
   },
-  rows: clc2025MmtRows,
+  groups: clc2025MmtGroups,
 });
 
 const clc2025Httt: CurriculumSeed = clc2025Seed({
@@ -54,7 +54,7 @@ const clc2025Httt: CurriculumSeed = clc2025Seed({
     note: graduationNote(['CSC12107', 'CSC12108', 'CSC12111']),
     options: graduationOptions(['CSC12107', 'CSC12108', 'CSC12111']),
   },
-  rows: clc2025HtttRows,
+  groups: clc2025HtttGroups,
 });
 
 const clc2025Ktpm: CurriculumSeed = clc2025Seed({
@@ -73,7 +73,7 @@ const clc2025Ktpm: CurriculumSeed = clc2025Seed({
     note: graduationNote(['CSC13114', 'CSC13115', 'CSC13116', 'CSC13118']),
     options: graduationOptions(['CSC13114', 'CSC13115', 'CSC13116', 'CSC13118']),
   },
-  rows: clc2025KtpmRows,
+  groups: clc2025KtpmGroups,
 });
 
 const clc2025Khmt: CurriculumSeed = clc2025Seed({
@@ -92,7 +92,7 @@ const clc2025Khmt: CurriculumSeed = clc2025Seed({
     note: graduationNote(['CSC14114', 'CSC14115', 'CSC14116', 'CSC16107', 'CSC18105']),
     options: graduationOptions(['CSC14114', 'CSC14115', 'CSC14116', 'CSC16107', 'CSC18105']),
   },
-  rows: clc2025KhmtRows,
+  groups: clc2025KhmtGroups,
 });
 
 const CNTTHUC_SIX = ['CSC10204', 'CSC15201', 'CSC15202'];
@@ -121,7 +121,7 @@ const clc2025Cntthuc: CurriculumSeed = clc2025Seed({
       ...CNTTHUC_SIX.flatMap((six) => CNTTHUC_FOUR.map((four) => ({ codes: [six, four] }))),
     ],
   },
-  rows: clc2025CntthucRows,
+  groups: clc2025CntthucGroups,
 });
 
 const clc2025Tgmt: CurriculumSeed = clc2025Seed({
@@ -140,7 +140,7 @@ const clc2025Tgmt: CurriculumSeed = clc2025Seed({
     note: graduationNote(['CSC16110', 'CSC16111', 'CSC16112']),
     options: graduationOptions(['CSC16110', 'CSC16111', 'CSC16112']),
   },
-  rows: clc2025TgmtRows,
+  groups: clc2025TgmtGroups,
 });
 
 const clc2025Attt: CurriculumSeed = clc2025Seed({
@@ -167,7 +167,7 @@ const clc2025Attt: CurriculumSeed = clc2025Seed({
       { codes: ['CSC15201', 'CSC15104'] },
     ],
   },
-  rows: clc2025AtttRows,
+  groups: clc2025AtttGroups,
 });
 
 const clc2025Khdl: CurriculumSeed = clc2025Seed({
@@ -186,7 +186,7 @@ const clc2025Khdl: CurriculumSeed = clc2025Seed({
     note: graduationNote(['CSC14115', 'CSC14116', 'CSC17107']),
     options: graduationOptions(['CSC14115', 'CSC14116', 'CSC17107']),
   },
-  rows: clc2025KhdlRows,
+  groups: clc2025KhdlGroups,
   known_discrepancies: [
     {
       pages: [22],
@@ -237,7 +237,7 @@ const clc2025Cnttin: CurriculumSeed = clc2025Seed({
       'another specialisation may replace the 6-credit pick. The table PDF links those 23 courses to this group; only ' +
       'the three printed pairs are listed as options. Phụ lục 3 is not bound into the booklet.',
   },
-  rows: clc2025CnttinRows,
+  groups: clc2025CnttinGroups,
 });
 
 export const CLC_2025_SEEDS: CurriculumSeed[] = [

@@ -1,3 +1,4 @@
+import { CLC_2025_COMMON_GROUPS, clcPrintedRow, type ClcMember, type ClcOwnGroups } from './clc-2025-courses.js';
 import type { CurriculumSeed, KnownDiscrepancy, Page, PrintedGroup, PrintedRow } from './seed-types.js';
 
 const CLC_2025_BOOKLET = { file: 'TCTA_CTDT_2025_Khoa-2025-all.pdf', pages: 73 };
@@ -29,7 +30,7 @@ interface ClcSpecialisation {
   tccn: { page: Page; credits_pages: Page[]; overflow_note: string };
   free: { page: Page; note: string };
   tn: { page: Page; credits_pages: Page[]; note: string; options: { codes: string[]; at_least?: boolean }[]; needs_check?: string };
-  rows: ClcRows;
+  groups: ClcOwnGroups;
   known_discrepancies?: KnownDiscrepancy[];
 }
 
@@ -89,8 +90,7 @@ function outsideTotalGroups(rows: ClcRows): PrintedGroup[] {
   ];
 }
 
-function majorGroups(spec: ClcSpecialisation): PrintedGroup[] {
-  const { rows } = spec;
+function majorGroups(spec: ClcSpecialisation, rows: ClcRows): PrintedGroup[] {
   return [
     group('Kiến thức cơ sở ngành', 'compulsory', 38, null, 10, [7, 10], rows.csn),
     group(
@@ -157,16 +157,21 @@ function clcSubtotals(mathScience: string[], generalEducation: string[]): Curric
   ];
 }
 
+function printedRowsOf<Key extends string>(members: Record<Key, ClcMember[]>): Record<Key, PrintedRow[]> {
+  return Object.fromEntries(Object.entries<ClcMember[]>(members).map(([key, list]) => [key, list.map(clcPrintedRow)])) as Record<Key, PrintedRow[]>;
+}
+
 export function clc2025Seed(spec: ClcSpecialisation): CurriculumSeed {
-  const mathScience = mathScienceGroups(spec.rows);
-  const generalEducation = generalEducationGroups(spec.rows, mathScience);
+  const rows: ClcRows = { ...printedRowsOf(CLC_2025_COMMON_GROUPS), ...printedRowsOf(spec.groups) };
+  const mathScience = mathScienceGroups(rows);
+  const generalEducation = generalEducationGroups(rows, mathScience);
   return {
     source: { file: spec.file, pages: spec.pages, structure: CLC_2025_BOOKLET },
     program: clcProgram(spec),
     curriculum: clcCurriculum(spec),
     blocks: clcBlocks(namesOf(generalEducation)),
     subtotals: clcSubtotals(namesOf(mathScience), namesOf(generalEducation)),
-    groups: [...generalEducation, ...outsideTotalGroups(spec.rows), ...majorGroups(spec)],
+    groups: [...generalEducation, ...outsideTotalGroups(rows), ...majorGroups(spec, rows)],
     appendix: [],
     known_discrepancies: spec.known_discrepancies ?? [],
   };
