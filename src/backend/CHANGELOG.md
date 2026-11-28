@@ -1,5 +1,27 @@
 # @omnicourse/backend
 
+## 0.7.0
+
+### Minor Changes
+
+- [#245](https://github.com/LLaammTTeerr/omnicourses/pull/245) [`74f8e3b`](https://github.com/LLaammTTeerr/omnicourses/commit/74f8e3bc8e01e6901b79fa356e5e5ff4fb4af420) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Curriculum administrators can set a cohort's minimum credit total and a requirement group's credit total through the administration API, and the access manager sets a program's training type when creating it; the degree audit and credit caps then use them.
+
+- [#207](https://github.com/LLaammTTeerr/omnicourses/pull/207) [`3c4da22`](https://github.com/LLaammTTeerr/omnicourses/commit/3c4da22d6c715e57b15dc255d9a9bebf410266ab) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Harden security headers, auth session limits, rule-engine edge cases, database constraints/indexes, AI gateway billing/abort handling, WCAG 2.1 AA contrast, scoped CSS, route code splitting, and deploy rollback/nightly backups; ship deterministic transcript paste with diff review (F2), explorer readiness states and unlocks (F4), plan sharing and print-to-PDF screens (F9), and the school-date calendar administration screen (F10).
+
+- [#215](https://github.com/LLaammTTeerr/omnicourses/pull/215) [`495e0db`](https://github.com/LLaammTTeerr/omnicourses/commit/495e0db5dd928cdcfc4f78fdb937ab0c86ce9989) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The degree audit API can now give the audit as it stood at the end of a past term, and lists each term's courses, the credits to date and the change in the cumulative GPA, ready for the new dashboard.
+
+- [#218](https://github.com/LLaammTTeerr/omnicourses/pull/218) [`e55aa65`](https://github.com/LLaammTTeerr/omnicourses/commit/e55aa65d76727f929d9b8a0c9f15d156b0b51e62) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The degree audit API now gives, for each term, the year of study and the classification of the cumulative GPA at the end of that term.
+
+- [#217](https://github.com/LLaammTTeerr/omnicourses/pull/217) [`effb788`](https://github.com/LLaammTTeerr/omnicourses/commit/effb788fd82b9fd9f1a4c1e720c0e6c1a2f7bea3) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Settings: add your student ID (MSSV) and class name, both optional, for the dashboard header. They are in your data export, deleted with your account, and never sent to an AI.
+
+### Patch Changes
+
+- [#166](https://github.com/LLaammTTeerr/omnicourses/pull/166) [`9574502`](https://github.com/LLaammTTeerr/omnicourses/commit/9574502a74bd3fd98fac458fc2c10110f265f685) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The CSV catalog import now saves an empty period cell as blank, as the course form does, instead of 0.
+
+- [#258](https://github.com/LLaammTTeerr/omnicourses/pull/258) [`713b7e2`](https://github.com/LLaammTTeerr/omnicourses/commit/713b7e28abe21f83f0b74b5e68c47821c42e1c49) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The dashboard now loads the degree audit once, however many terms the record has, so reloading it no longer runs into the request limit. The audit API gives, for each term, the requirement groups, combined minimums and remaining credits as they stood at its end.
+
+- [#257](https://github.com/LLaammTTeerr/omnicourses/pull/257) [`613f9f9`](https://github.com/LLaammTTeerr/omnicourses/commit/613f9f9b339d4157fdbafd273e665ff7e15727af) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - A reload while the app is renewing your session no longer signs you out.
+
 ## 0.6.0
 
 No changes in this release.
