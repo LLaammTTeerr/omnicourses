@@ -9299,6 +9299,69 @@
           "requirementGroupId"
         ]
       },
+      "TermCombinedMinimumCoverageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "credits": {
+            "type": "number"
+          },
+          "inProgressCredits": {
+            "type": "number"
+          },
+          "remainingCredits": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "credits",
+          "inProgressCredits",
+          "remainingCredits"
+        ]
+      },
+      "TermCourseCoverageDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "CS160"
+          },
+          "credits": {
+            "type": "number",
+            "example": 4,
+            "description": "Catalog credits"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "in_progress",
+              "failed",
+              "not_taken",
+              "counted_in_other_group"
+            ],
+            "description": "CourseCoverage.status as it stood at the end of the term"
+          },
+          "grade": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 8.5,
+            "description": "CourseCoverage.grade as it stood at the end of the term"
+          }
+        },
+        "required": [
+          "code",
+          "credits",
+          "status",
+          "grade"
+        ]
+      },
       "TermDto": {
         "type": "object",
         "properties": {
@@ -9320,6 +9383,45 @@
         "required": [
           "year",
           "number"
+        ]
+      },
+      "TermGroupCoverageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "passedCredits": {
+            "type": "number"
+          },
+          "inProgressCredits": {
+            "type": "number"
+          },
+          "overflowInCredits": {
+            "type": "number"
+          },
+          "remainingCredits": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "courses": {
+            "description": "Every course of the group, by code",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermCourseCoverageDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "passedCredits",
+          "inProgressCredits",
+          "overflowInCredits",
+          "remainingCredits",
+          "courses"
         ]
       },
       "TermSummaryDto": {
@@ -9411,6 +9513,27 @@
             ],
             "description": "Điều 15.2.b, from cumulativeAccumulatedAverage: the classification as it stood at the end of this term. A term is never classified by its own average (Project Lead, 27 November 2026)"
           },
+          "cumulativeRemaining": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "CreditSummary.remaining as it stood at the end of this term"
+          },
+          "cumulativeGroups": {
+            "description": "DegreeAudit.groups as they stood at the end of this term, the figures the dashboard draws, in the same order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermGroupCoverageDto"
+            }
+          },
+          "cumulativeCombinedMinimums": {
+            "description": "DegreeAudit.combinedMinimums as they stood at the end of this term, in the same order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TermCombinedMinimumCoverageDto"
+            }
+          },
           "failedCourseCodes": {
             "type": "array",
             "items": {
@@ -9460,6 +9583,9 @@
           "cumulativeTowardTotal",
           "cumulativeYearLevel",
           "cumulativeClassification",
+          "cumulativeRemaining",
+          "cumulativeGroups",
+          "cumulativeCombinedMinimums",
           "failedCourseCodes",
           "inProgressCourseCodes",
           "caps",

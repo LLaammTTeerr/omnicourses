@@ -104,6 +104,7 @@ describe('degree audit', () => {
       ungraded('ZZT1', 10, 'in_progress', term(2024, 3)),
     ];
     const full = degreeAudit(zzCurriculum(), transcript);
+    const sameTermRetake = [graded('ZZA1', 4, 6, term(2024, 1)), graded('ZZA1', 4, 4, term(2024, 1)), graded('ZZA1', 4, 9, term(2024, 2))];
 
     it('lists every sitting of the term with its result, by course code, and the group it counts in', () => {
       expect(full.terms[0].attempts).toEqual([
@@ -181,6 +182,33 @@ describe('degree audit', () => {
       });
       expect(full.asOfTerm).toBeNull();
       expect({ ...degreeAudit(zzCurriculum(), transcript, term(2024, 3)), asOfTerm: null }).toEqual(full);
+    });
+
+    it('gives the groups, combined minimums and remaining credits at the end of each term, as the audit of that term does', () => {
+      for (const rows of [transcript, zzGraduatingTranscript(), sameTermRetake]) {
+        for (const t of degreeAudit(zzCurriculum(), rows).terms) {
+          const asOf = degreeAudit(zzCurriculum(), rows, t.term);
+          expect(t.cumulativeRemaining).toBe(asOf.credits.remaining);
+          expect(t.cumulativeGroups).toEqual(
+            asOf.groups.map((g) => ({
+              id: g.id,
+              passedCredits: g.passedCredits,
+              inProgressCredits: g.inProgressCredits,
+              overflowInCredits: g.overflowInCredits,
+              remainingCredits: g.remainingCredits,
+              courses: g.courses.map((c) => ({ code: c.code, credits: c.credits, status: c.status, grade: c.grade })),
+            })),
+          );
+          expect(t.cumulativeCombinedMinimums).toEqual(
+            asOf.combinedMinimums.map((c) => ({ id: c.id, credits: c.credits, inProgressCredits: c.inProgressCredits, remainingCredits: c.remainingCredits })),
+          );
+        }
+      }
+      const first = full.terms[0];
+      expect(first.cumulativeGroups.find((g) => g.id === 'a-bb')).toMatchObject({ passedCredits: 4, remainingCredits: 4 });
+      expect(first.cumulativeGroups.find((g) => g.id === 'a-bb')!.courses.find((c) => c.code === 'ZZA1')).toEqual({ code: 'ZZA1', credits: 4, status: 'failed', grade: 3 });
+      expect(full.terms[1].cumulativeGroups.find((g) => g.id === 'a-bb')!.courses.find((c) => c.code === 'ZZA1')).toMatchObject({ status: 'passed', grade: 8 });
+      expect(full.terms[2].cumulativeGroups.find((g) => g.id === 'tn')!.courses.find((c) => c.code === 'ZZT1')!.status).toBe('in_progress');
     });
 
     it('reads a course failed by then as failed, though a later term passes it', () => {

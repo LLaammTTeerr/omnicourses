@@ -25,6 +25,9 @@ import {
   type GraduationStatus,
   type GroupCoverage,
   type TermAttempt,
+  type TermCombinedMinimumCoverage,
+  type TermCourseCoverage,
+  type TermGroupCoverage,
   type TermSummary,
   type UnmatchedCourse,
 } from './api.js';
@@ -79,6 +82,9 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
         'cumulativeTowardTotal',
         'cumulativeYearLevel',
         'cumulativeClassification',
+        'cumulativeRemaining',
+        'cumulativeGroups',
+        'cumulativeCombinedMinimums',
         'failedCourseCodes',
         'inProgressCourseCodes',
         'caps',
@@ -86,6 +92,9 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
         'attempts',
       ]) satisfies Shape<TermSummary>,
     ],
+    ['TermCourseCoverageDto', all(['code', 'credits', 'status', 'grade']) satisfies Shape<TermCourseCoverage>],
+    ['TermGroupCoverageDto', all(['id', 'passedCredits', 'inProgressCredits', 'overflowInCredits', 'remainingCredits', 'courses']) satisfies Shape<TermGroupCoverage>],
+    ['TermCombinedMinimumCoverageDto', all(['id', 'credits', 'inProgressCredits', 'remainingCredits']) satisfies Shape<TermCombinedMinimumCoverage>],
     ['TermAttemptDto', all(['code', 'name', 'credits', 'result', 'grade', 'passed', 'inProgress', 'requirementGroupId']) satisfies Shape<TermAttempt>],
     ['GraduationConditionDto', all(['id', 'description', 'citation', 'status']) satisfies Shape<GraduationCondition>],
     ['GraduationStatusDto', all(['status', 'met', 'unmet', 'notChecked']) satisfies Shape<GraduationStatus>],
@@ -115,6 +124,7 @@ describe('degree audit types against the contract (F3, ADR 0013)', () => {
 
   it.each([
     ['CourseCoverageDto', 'status', COURSE_STATUSES],
+    ['TermCourseCoverageDto', 'status', COURSE_STATUSES],
     ['GraduationConditionDto', 'status', CONDITION_STATUSES],
     ['GpaSummaryDto', 'classification', [...CLASSIFICATIONS, null]],
     ['TermSummaryDto', 'kind', [...TERM_KINDS, null]],

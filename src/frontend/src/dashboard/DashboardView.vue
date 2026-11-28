@@ -13,11 +13,10 @@ import { reducedMotion } from '../plans/flip.js';
 import { readLastPlan } from '../plans/last-plan.js';
 import Icon from '../shell/Icon.vue';
 import type { IconName } from '../shell/icons.js';
-import { currentTermNow, termKey } from '../terms.js';
+import { currentTermNow } from '../terms.js';
 import { useAuth } from '../auth/store.js';
 import AuditGate from '../audit/AuditGate.vue';
-import { fetchAuditAsOf, type DegreeAudit } from '../audit/api.js';
-import { calendarEnd, Dashboard, DONUT, scaleOf, segments, SPARK, sparkPoints, termShort, type RowState, type Snapshot } from './dashboard.js';
+import { calendarEnd, Dashboard, DONUT, scaleOf, segments, SPARK, sparkPoints, termShort, type RowState } from './dashboard.js';
 import { DASHBOARD_MESSAGES } from './messages.js';
 import { AUDIT_MESSAGES } from '../audit/messages.js';
 import { conditionAnchor, conditionLabel, useAudit } from '../audit/present.js';
@@ -87,21 +86,9 @@ async function loadExtras(): Promise<void> {
   };
 }
 
-const past = shallowRef(new Map<string, DegreeAudit>());
-const asked = new Set<string>();
-
-async function loadPast(i: number): Promise<void> {
-  const term = dash.value?.history[i]?.term;
-  if (!term || asked.has(termKey(term))) return;
-  asked.add(termKey(term));
-  const answer = await settled(fetchAuditAsOf(term));
-  if (answer) past.value = new Map(past.value).set(termKey(term), answer);
-  else asked.delete(termKey(term));
-}
-
 const dash = computed(() =>
   audit.value
-    ? new Dashboard({ audit: audit.value, past: past.value, plan: extras.value?.plan ?? null, today: currentTermNow() })
+    ? new Dashboard({ audit: audit.value, plan: extras.value?.plan ?? null, today: currentTermNow() })
     : null,
 );
 
@@ -118,13 +105,7 @@ watch(
 );
 
 const lang = computed(() => locale.lang);
-const held = shallowRef<Snapshot | null>(null);
-const snap = computed(() => {
-  const next = dash.value?.snapshot(Math.min(view.value, dash.value.nowIndex), lang.value) ?? null;
-  return next ?? (dash.value ? held.value : null);
-});
-watch(snap, (s) => (held.value = s));
-watch(view, (i) => void loadPast(i));
+const snap = computed(() => dash.value?.snapshot(Math.min(view.value, dash.value.nowIndex), lang.value) ?? null);
 const segs = computed(() => (snap.value ? segments(snap.value.rows) : []));
 const strip = computed(() => dash.value?.strip(lang.value) ?? []);
 const colours = computed(() => [...new Set(dash.value?.rows.map((r) => r.colour) ?? [])]);
@@ -320,7 +301,7 @@ const spark = computed(() => {
 
 const target = computed(() => extras.value?.targetGraduationTerm ?? null);
 const targetEnd = computed(() => (target.value && extras.value ? calendarEnd(extras.value.calendar, target.value) : null));
-const remaining = computed(() => (snap.value ? dash.value?.auditAt(snap.value.index)?.credits.remaining ?? null : null));
+const remaining = computed(() => (snap.value ? dash.value?.standingAt(snap.value.index).remaining ?? null : null));
 
 interface AttentionItem {
   tone: 'bad' | 'warn' | 'info';
@@ -377,7 +358,6 @@ const ready = computed(() => dash.value !== null && extras.value !== null);
 watch(ready, (on) => {
   if (!on) return;
   void nextTick(playIntro);
-  history.value.forEach((_, i) => void loadPast(i));
 });
 
 onMounted(() => {

@@ -22,6 +22,9 @@ import {
   type GraduationStatus,
   type GroupCoverage,
   type TermAttempt,
+  type TermCombinedMinimumCoverage,
+  type TermCourseCoverage,
+  type TermGroupCoverage,
   type TermSummary,
   type UnmatchedCourse,
 } from '../rules/types.js';
@@ -261,6 +264,54 @@ class TermAttemptDto implements TermAttempt {
   requirementGroupId!: string | null;
 }
 
+class TermCourseCoverageDto implements TermCourseCoverage {
+  @ApiProperty({ example: 'CS160' })
+  code!: string;
+
+  @ApiProperty({ example: 4, description: 'Catalog credits' })
+  credits!: number;
+
+  @ApiProperty({ enum: COURSE_STATUSES, description: 'CourseCoverage.status as it stood at the end of the term' })
+  status!: CourseStatus;
+
+  @ApiProperty({ type: Number, nullable: true, example: 8.5, description: 'CourseCoverage.grade as it stood at the end of the term' })
+  grade!: number | null;
+}
+
+class TermGroupCoverageDto implements TermGroupCoverage {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  passedCredits!: number;
+
+  @ApiProperty()
+  inProgressCredits!: number;
+
+  @ApiProperty()
+  overflowInCredits!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  remainingCredits!: number | null;
+
+  @ApiProperty({ type: [TermCourseCoverageDto], description: 'Every course of the group, by code' })
+  courses!: TermCourseCoverageDto[];
+}
+
+class TermCombinedMinimumCoverageDto implements TermCombinedMinimumCoverage {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  credits!: number;
+
+  @ApiProperty()
+  inProgressCredits!: number;
+
+  @ApiProperty()
+  remainingCredits!: number;
+}
+
 class TermSummaryDto implements TermSummary {
   @ApiProperty({ type: TermDto })
   term!: TermDto;
@@ -306,6 +357,15 @@ class TermSummaryDto implements TermSummary {
     description: 'Điều 15.2.b, from cumulativeAccumulatedAverage: the classification as it stood at the end of this term. A term is never classified by its own average (Project Lead, 27 November 2026)',
   })
   cumulativeClassification!: Classification | null;
+
+  @ApiProperty({ type: Number, nullable: true, description: 'CreditSummary.remaining as it stood at the end of this term' })
+  cumulativeRemaining!: number | null;
+
+  @ApiProperty({ type: [TermGroupCoverageDto], description: 'DegreeAudit.groups as they stood at the end of this term, the figures the dashboard draws, in the same order' })
+  cumulativeGroups!: TermGroupCoverageDto[];
+
+  @ApiProperty({ type: [TermCombinedMinimumCoverageDto], description: 'DegreeAudit.combinedMinimums as they stood at the end of this term, in the same order' })
+  cumulativeCombinedMinimums!: TermCombinedMinimumCoverageDto[];
 
   @ApiProperty({ type: [String] })
   failedCourseCodes!: string[];

@@ -3,7 +3,7 @@ import { GROUP_IDS, type GroupId } from '../groups.js';
 import type { Lang } from '../locale.js';
 import type { Plan } from '../plans/api.js';
 import { sameTerm, termKey, type Term } from '../terms.js';
-import type { CourseCoverage, DegreeAudit, TermAttempt, TermSummary } from '../audit/api.js';
+import type { DegreeAudit, TermAttempt, TermCombinedMinimumCoverage, TermCourseCoverage, TermGroupCoverage, TermSummary } from '../audit/api.js';
 import { shownGroups } from '../audit/present.js';
 
 export type Colour = GroupId | 'none';
@@ -83,9 +83,15 @@ export interface StripTerm {
   credits: number;
 }
 
+export interface Standing {
+  towardTotal: number;
+  remaining: number | null;
+  groups: readonly TermGroupCoverage[];
+  combinedMinimums: readonly TermCombinedMinimumCoverage[];
+}
+
 export interface DashboardInput {
   audit: DegreeAudit;
-  past: ReadonlyMap<string, DegreeAudit>;
   plan: Plan | null;
   today: Term;
 }
@@ -116,8 +122,13 @@ export class Dashboard {
     return index === this.nowIndex ? this.liveTerm : this.history[index]!.term;
   }
 
-  auditAt(index: number): DegreeAudit | null {
-    return index === this.nowIndex ? this.input.audit : (this.input.past.get(termKey(this.history[index]!.term)) ?? null);
+  standingAt(index: number): Standing {
+    if (index === this.nowIndex) {
+      const { credits, groups, combinedMinimums } = this.input.audit;
+      return { towardTotal: credits.towardTotal, remaining: credits.remaining, groups, combinedMinimums };
+    }
+    const t = this.history[index]!;
+    return { towardTotal: t.cumulativeTowardTotal, remaining: t.cumulativeRemaining, groups: t.cumulativeGroups, combinedMinimums: t.cumulativeCombinedMinimums };
   }
 
   name(code: string, lang: Lang): string {
@@ -134,13 +145,12 @@ export class Dashboard {
     return this.input.audit.terms.some((t) => t.attempts.some((a) => a.code === code && !a.passed && !a.inProgress));
   }
 
-  private line(audit: DegreeAudit, code: string, lang: Lang, grade: number | null): CourseLine {
-    return { code, name: this.name(code, lang), credits: coverageOf(audit, code)?.credits ?? 0, grade, retaken: this.retaken(code) };
+  private line(standing: Standing, code: string, lang: Lang, grade: number | null): CourseLine {
+    return { code, name: this.name(code, lang), credits: coverageOf(standing, code)?.credits ?? 0, grade, retaken: this.retaken(code) };
   }
 
-  snapshot(index: number, lang: Lang): Snapshot | null {
-    const audit = this.auditAt(index);
-    if (!audit) return null;
+  snapshot(index: number, lang: Lang): Snapshot {
+    const standing = this.standingAt(index);
     const live = index === this.nowIndex;
     const summary = live ? this.live : this.history[index]!;
     return {
@@ -148,29 +158,29 @@ export class Dashboard {
       live,
       term: this.termAt(index),
       summary: live ? null : summary,
-      rows: this.rows.map((row) => this.rowState(audit, row, live, lang)),
-      passed: audit.credits.towardTotal,
+      rows: this.rows.map((row) => this.rowState(standing, row, live, lang)),
+      passed: standing.towardTotal,
       courses: (summary?.attempts ?? []).map((a) => this.termCourse(a, lang)),
     };
   }
 
-  private rowState(audit: DegreeAudit, row: Row, live: boolean, lang: Lang): RowState {
-    const groups = audit.groups.filter((g) => row.groupIds.includes(g.id));
-    const combined = audit.combinedMinimums.find((c) => c.id === row.key);
+  private rowState(standing: Standing, row: Row, live: boolean, lang: Lang): RowState {
+    const groups = standing.groups.filter((g) => row.groupIds.includes(g.id));
+    const combined = standing.combinedMinimums.find((c) => c.id === row.key);
     const d = combined ? combined.credits : groups.reduce((t, g) => t + g.passedCredits + g.overflowInCredits, 0);
     const c = combined ? combined.inProgressCredits : groups.reduce((t, g) => t + g.inProgressCredits, 0);
     const left = combined ? combined.remainingCredits : (groups[0]?.remainingCredits ?? null);
-    const of = (status: string) => row.codes.filter((code) => coverageOf(audit, code)?.status === status);
+    const of = (status: string) => row.codes.filter((code) => coverageOf(standing, code)?.status === status);
     const retry = (code: string) => live && this.placed.has(code);
-    const graded = (code: string) => this.line(audit, code, lang, coverageOf(audit, code)?.grade ?? null);
+    const graded = (code: string) => this.line(standing, code, lang, coverageOf(standing, code)?.grade ?? null);
     return this.withTodo(row, {
       d,
       c,
       left,
-      cur: of('in_progress').map((code) => this.line(audit, code, lang, null)),
+      cur: of('in_progress').map((code) => this.line(standing, code, lang, null)),
       fail: of('failed').filter((code) => !retry(code)).map(graded),
       done: of('passed').map(graded),
-      pending: [...of('not_taken'), ...of('failed').filter(retry)].map((code) => this.line(audit, code, lang, null)),
+      pending: [...of('not_taken'), ...of('failed').filter(retry)].map((code) => this.line(standing, code, lang, null)),
     });
   }
 
@@ -240,8 +250,8 @@ export class Dashboard {
   }
 }
 
-function coverageOf(audit: DegreeAudit, code: string): CourseCoverage | null {
-  for (const g of audit.groups) for (const c of g.courses) if (c.code === code && c.status !== 'counted_in_other_group') return c;
+function coverageOf<C extends TermCourseCoverage>(standing: { groups: readonly { courses: readonly C[] }[] }, code: string): C | null {
+  for (const g of standing.groups) for (const c of g.courses) if (c.code === code && c.status !== 'counted_in_other_group') return c;
   return null;
 }
 
