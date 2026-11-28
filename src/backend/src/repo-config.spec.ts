@@ -16,6 +16,18 @@ const FRONTEND_SOURCE = 'src/frontend/src';
 const FRONTEND_SOURCE_FILE = /\.(ts|vue)$/;
 const NOT_PRODUCTION = /\.spec\.ts$|(^|\/)testing\//;
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
+const BACKEND_PACKAGE = 'src/backend/package.json';
+const FRONTEND_PACKAGE = 'src/frontend/package.json';
+const STACK_PACKAGES: Record<string, [string, string[]]> = {
+  NestJS: ['@nestjs/core', [BACKEND_PACKAGE]],
+  'Nest CLI': ['@nestjs/cli', [BACKEND_PACKAGE]],
+  Swagger: ['@nestjs/swagger', [BACKEND_PACKAGE]],
+  TypeORM: ['typeorm', [BACKEND_PACKAGE]],
+  TypeScript: ['typescript', [BACKEND_PACKAGE]],
+  Vue: ['vue', [FRONTEND_PACKAGE]],
+  Vite: ['vite', [FRONTEND_PACKAGE]],
+  Vitest: ['vitest', [BACKEND_PACKAGE, FRONTEND_PACKAGE]],
+};
 
 const namesIn = (text: string, pattern: RegExp): string[] => [...new Set([...text.matchAll(pattern)].map((m) => m[1]!))].sort();
 const isFrontendSetting = (name: string): boolean => name.startsWith(FRONTEND_SETTING_PREFIX);
@@ -91,6 +103,29 @@ describe('pinned runtimes', () => {
       ...versionsIn('README.md', /PostgreSQL (\d+\.\d+)/),
       ...versionsIn('deploy/README.md', /PostgreSQL (\d+\.\d+)/),
     });
+  });
+});
+
+describe('AGENTS.md stack line', () => {
+  const packageVersion = (manifest: string, name: string): string => {
+    const parsed = JSON.parse(read(manifest)) as Record<string, Record<string, string> | undefined>;
+    return DEPENDENCY_SECTIONS.map((section) => parsed[section]?.[name]).find((version) => version !== undefined) ?? 'missing';
+  };
+
+  it('states for each package the version its package.json pins', () => {
+    const stated = Object.fromEntries(Object.keys(STACK_PACKAGES).map((entry) => [entry, versionIn('AGENTS.md', new RegExp(`\\b${entry} (\\d+\\.\\d+(?:\\.\\d+)?)`))]));
+    const pinned = Object.fromEntries(
+      Object.entries(STACK_PACKAGES).map(([entry, [name, manifests]]) => {
+        const versions = [...new Set(manifests.map((manifest) => packageVersion(manifest, name)))];
+        return [entry, versions.length === 1 ? versions[0] : `${versions.join(' vs ')} (manifests disagree)`];
+      }),
+    );
+    expect(stated).toEqual(pinned);
+  });
+
+  it('states the OpenAPI specification version the contract uses', () => {
+    const contract = JSON.parse(read('src/backend/openapi.json')) as { openapi: string };
+    expect({ OpenAPI: versionIn('AGENTS.md', /OpenAPI (\d+\.\d+\.\d+)/) }).toEqual({ OpenAPI: contract.openapi });
   });
 });
 
