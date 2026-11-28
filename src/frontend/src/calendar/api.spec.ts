@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import contract from '../../../backend/openapi.json';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import { CALENDAR_EVENT_KINDS, fetchAcademicCalendar, type AcademicCalendar, type CalendarEvent, type CalendarProgram } from './api.js';
+
+const NULLABLE: Record<string, string[]> = {
+  AcademicCalendarDto: nullableKeys<AcademicCalendar>({ program: true }),
+  CalendarProgramDto: nullableKeys<CalendarProgram>({ nameEn: true }),
+  AcademicCalendarEventDto: nullableKeys<CalendarEvent>({ notes: true, sourceUrl: true, term: true, titleEn: true }),
+};
 
 describe('academic calendar types against the contract (ADR 0017)', () => {
   it.each([
@@ -27,6 +33,7 @@ describe('academic calendar types against the contract (ADR 0017)', () => {
     ],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('has the kinds and terms of the contract', () => {

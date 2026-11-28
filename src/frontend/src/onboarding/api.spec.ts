@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import contract from '../../../backend/openapi.json';
 import { GOAL_YEARS_AHEAD } from '../terms.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { NO_INTERNSHIP, OFFERED_COHORTS, type Onboarding } from './api.js';
 
 const onboardingDto = contract.components.schemas.OnboardingDto;
+
+const NULLABLE: Record<string, string[]> = {
+  OnboardingDto: nullableKeys<Onboarding>({ cohort: true, creditsPerTerm: true, internshipTerm: true, program: true, targetGraduationTerm: true }),
+};
 
 describe('onboarding types against the contract (UC-01)', () => {
   it('has the fields of OnboardingDto, every one required: PUT replaces them all', () => {
@@ -16,6 +20,10 @@ describe('onboarding types against the contract (UC-01)', () => {
       internshipTerm: 'required',
       finished: 'required',
     } satisfies Shape<Onboarding>);
+  });
+
+  it('has the nullable fields of OnboardingDto: every answer, until the student gives it', () => {
+    expect(contractNullable('OnboardingDto')).toEqual(NULLABLE.OnboardingDto);
   });
 
   it('offers the programs and cohorts the API accepts (B1 §6 item 1)', () => {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import {
   COURSE_READINESS_STATES,
@@ -33,6 +33,17 @@ const course = {
   exercisePeriods: 'required',
   projectPeriods: 'required',
 } as const;
+
+const NULLABLE: Record<string, string[]> = {
+  ProgramSummaryDto: nullableKeys<ProgramSummary>({ faculty: true, nameEn: true, trainingType: true }),
+  ProgramDto: nullableKeys<Program>({ faculty: true, nameEn: true, trainingType: true }),
+  CourseDto: nullableKeys<Course>({ exercisePeriods: true, labPeriods: true, nameEn: true, projectPeriods: true, theoryPeriods: true }),
+  CurriculumCourseDto: nullableKeys<CurriculumCourse>({ exercisePeriods: true, labPeriods: true, nameEn: true, offeringTerms: true, prerequisites: true, projectPeriods: true, theoryPeriods: true }),
+  CourseDetailDto: nullableKeys<CourseDetail>({ exercisePeriods: true, labPeriods: true, nameEn: true, projectPeriods: true, theoryPeriods: true }),
+  RequirementGroupDto: nullableKeys<RequirementGroup>({ creditsTotal: true, creditsTotalMin: true, officialNotes: true }),
+  CurriculumDto: nullableKeys<Curriculum>({ language: true, nameEn: true, totalCreditsMin: true }),
+  CourseStandingDto: nullableKeys<CourseStanding>({ readiness: true, transcriptStatus: true }),
+};
 
 describe('curriculum types against the contract (F4, ADR 0005)', () => {
   it.each([
@@ -97,6 +108,7 @@ describe('curriculum types against the contract (F4, ADR 0005)', () => {
     ['CurriculumStandingDto', { courses: 'required' } satisfies Shape<CurriculumStanding>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('has the group kinds of the contract', () => {

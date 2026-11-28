@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import contract from '../../../backend/openapi.json';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import * as api from './api.js';
 import { COURSE_CODE_PATTERN as API_COURSE_CODE_PATTERN } from '../../../backend/src/common/course-code.js';
@@ -60,6 +60,33 @@ import * as grants from './grants.js';
 
 const error = { statusCode: 'required', code: 'required', message: 'required' } as const;
 const periods = { theoryPeriods: 'optional', labPeriods: 'optional', exercisePeriods: 'optional', projectPeriods: 'optional' } as const;
+
+const NULLABLE: Record<string, string[]> = {
+  ProgramGrantDto: nullableKeys<grants.ProgramGrant>({ grantedBy: true }),
+  GlobalGrantDto: nullableKeys<grants.GlobalGrant>({ grantedBy: true }),
+  CreateRequirementGroupDto: nullableKeys<CreateGroupBody>({ creditsTotal: true, creditsTotalMin: true, officialNotes: true }),
+  UpdateRequirementGroupDto: nullableKeys<UpdateGroupBody>({ creditsTotal: true, creditsTotalMin: true, officialNotes: true }),
+  RequirementGroupAdminDto: nullableKeys<AdminGroup>({ creditsTotal: true, creditsTotalMin: true, officialNotes: true }),
+  PrerequisitesDto: nullableKeys<Prerequisites>({ prerequisites: true }),
+  OfferingTermsDto: nullableKeys<OfferingTerms>({ terms: true }),
+  CreateCourseDto: nullableKeys<CreateCourseBody>({ exercisePeriods: true, labPeriods: true, nameEn: true, projectPeriods: true, theoryPeriods: true }),
+  UpdateCourseDto: nullableKeys<UpdateCourseBody>({ exercisePeriods: true, labPeriods: true, nameEn: true, projectPeriods: true, theoryPeriods: true }),
+  CreateProgramDto: nullableKeys<CreateProgramBody>({ faculty: true, nameEn: true, trainingType: true }),
+  UpdateProgramDto: nullableKeys<UpdateProgramBody>({ faculty: true, nameEn: true }),
+  ProgramDetailsDto: nullableKeys<ProgramDetails>({ faculty: true, nameEn: true, trainingType: true }),
+  CreateCohortDto: nullableKeys<CreateCohortBody>({ language: true, nameEn: true, totalCreditsMin: true }),
+  UpdateCohortDto: nullableKeys<UpdateCohortBody>({ language: true, nameEn: true, totalCreditsMin: true }),
+  CohortDetailsDto: nullableKeys<CohortDetails>({ language: true, nameEn: true, totalCreditsMin: true }),
+  ImportRowErrorDto: nullableKeys<ImportRowError>({ field: true }),
+  CatalogImportRowDto: nullableKeys<CatalogImportRow>({ current: true, exercisePeriods: true, labPeriods: true, nameEn: true, projectPeriods: true, theoryPeriods: true }),
+  CatalogImportPreviewDto: nullableKeys<CatalogImportPreview>({ reviewVersion: true }),
+  GroupLinkImportPreviewDto: nullableKeys<GroupLinkImportPreview>({ reviewVersion: true }),
+  AcademicCalendarDto: nullableKeys<AcademicCalendar>({ program: true }),
+  CalendarProgramDto: nullableKeys<CalendarProgram>({ nameEn: true }),
+  AcademicCalendarEventDto: nullableKeys<CalendarEvent>({ notes: true, sourceUrl: true, term: true, titleEn: true }),
+  CreateCalendarEventDto: nullableKeys<CreateCalendarEventBody>({ notes: true, sourceUrl: true, term: true, titleEn: true }),
+  UpdateCalendarEventDto: nullableKeys<UpdateCalendarEventBody>({ notes: true, sourceUrl: true, term: true, titleEn: true }),
+};
 
 describe('administration types against the contract (F12, ADR 0011)', () => {
   it.each([
@@ -210,6 +237,7 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     ],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('offers the exact header of each file type, as each preview route names it', () => {

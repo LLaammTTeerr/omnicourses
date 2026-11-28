@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
 import { PLACEMENT_KINDS, PLAN_ISSUE_CODES, PLAN_ISSUE_KINDS, TERM_KINDS } from '../plans/api.js';
 import { PLAN_ID } from '../plans/testing/fixtures.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import {
   fetchPlanShare,
@@ -24,6 +24,18 @@ import {
   type SharedPlanTerm,
   type SharedProgram,
 } from './api.js';
+
+const NULLABLE: Record<string, string[]> = {
+  PlanShareStateDto: nullableKeys<PlanShareState>({ share: true }),
+  SharedProgramDto: nullableKeys<SharedProgram>({ nameEn: true }),
+  SharedCurriculumDto: nullableKeys<SharedCurriculum>({ nameEn: true }),
+  SharedPlacementDto: nullableKeys<SharedPlacement>({ courseCode: true, credits: true, nameEn: true, nameVi: true, requirementGroupName: true }),
+  SharedPlanTermDto: nullableKeys<SharedPlanTerm>({ caps: true, kind: true }),
+  SharedPlanIssueDto: nullableKeys<SharedPlanIssue>({ combinedMinimumName: true, courseCode: true, credits: true, limit: true, position: true, requirementGroupName: true, term: true }),
+  SharedGroupCoverageDto: nullableKeys<SharedGroupCoverage>({ remainingCredits: true, requiredCredits: true }),
+  SharedPlanCoverageDto: nullableKeys<SharedPlanCoverage>({ totalRemaining: true, totalRequired: true }),
+  SharedPlanDto: nullableKeys<SharedPlan>({ ownerName: true }),
+};
 
 describe('sharing types against the contract (F9, ADR 0010)', () => {
   it.each([
@@ -116,6 +128,7 @@ describe('sharing types against the contract (F9, ADR 0010)', () => {
     ['NotSharedDto', { statusCode: 'required', message: 'required', error: 'required' } satisfies Shape<{ statusCode: number; message: string; error: string }>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('matches the enums of the sharing contract', () => {

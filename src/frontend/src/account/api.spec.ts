@@ -2,9 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
 import contract from '../../../backend/openapi.json';
 import { user } from '../auth/testing/fixtures.js';
-import { contractShape, type Shape } from '../testing/contract.js';
+import { contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import { CLASS_NAME_MAX_LENGTH, exportAccount, revokeSession, saveFile, STUDENT_ID_PATTERN, updateProfile, type AccountExport, type DeleteAccountBody, type DeletionScheduled, type ProfileBody } from './api.js';
+
+const NULLABLE: Record<string, string[]> = {
+  UpdateProfileDto: nullableKeys<ProfileBody>({ className: true, studentId: true }),
+};
 
 describe('account types against the contract', () => {
   it.each([
@@ -14,6 +18,7 @@ describe('account types against the contract', () => {
     ['UpdateProfileDto', { studentId: 'optional', className: 'optional' } satisfies Shape<ProfileBody>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('checks the student ID and the class name as the API does', () => {

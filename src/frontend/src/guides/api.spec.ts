@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_URL } from '../api.js';
-import { contractEnum, contractShape, type Shape } from '../testing/contract.js';
+import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import {
   fetchGuide,
   GUIDE_GROUPS,
@@ -18,6 +18,10 @@ import {
 
 type RegulationSource = Extract<GuideNoteSource, { kind: 'regulation' }>;
 
+const NULLABLE: Record<string, string[]> = {
+  GuideTextDto: nullableKeys<GuideText>({ ifPortalDown: true }),
+};
+
 describe('guide types against the contract', () => {
   it('lists every guide group of the contract', () => {
     expect([...GUIDE_GROUPS].sort()).toEqual(contractEnum('GuideListItemDto', 'group'));
@@ -28,6 +32,8 @@ describe('guide types against the contract', () => {
     const texts = Object.fromEntries(GUIDE_LANGS.map((lang) => [lang, 'optional']));
     expect(contractShape('GuideListTextsDto')).toEqual(texts);
     expect(contractShape('GuideTextsDto')).toEqual(texts);
+    expect(contractNullable('GuideListTextsDto')).toEqual([]);
+    expect(contractNullable('GuideTextsDto')).toEqual([]);
   });
 
   it.each([
@@ -70,6 +76,7 @@ describe('guide types against the contract', () => {
     ['GuideBoardPortalDto', { name: 'required', url: 'required', account: 'required', purpose: 'required' } satisfies Shape<GuideText['portals'][number]>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
+    expect(contractNullable(schema)).toEqual(NULLABLE[schema] ?? []);
   });
 
   it('has the note sources of the contract', () => {
@@ -77,6 +84,7 @@ describe('guide types against the contract', () => {
     const regulation: Record<keyof RegulationSource, true> = { kind: true, document: true, clause: true, url: true };
     expect(Object.keys(kinds).sort()).toEqual(contractEnum('GuideNoteSourceDto', 'kind'));
     expect(Object.keys(contractShape('GuideNoteSourceDto')).sort()).toEqual(Object.keys(regulation).sort());
+    expect(contractNullable('GuideNoteSourceDto')).toEqual([]);
   });
 });
 
