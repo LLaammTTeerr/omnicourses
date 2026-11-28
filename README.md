@@ -31,7 +31,7 @@ This table is the one place that says what is built. It describes `main` as of 2
 | F10 Notifications: school dates | `academic-calendar`, `admin/programs/:programId/calendar-events` | Calendar page, `/admin/calendar` administration screen | none |
 | F10 Notifications: inbox | `notifications`, `notifications/unread-count`, `notifications/read-all`, `notifications/:id/read` | Inbox page, bell with the unread count | Popover, filters |
 | F11 Quicklinks and guides | `guides`, `guides/:id` (public) | Guide list and guide pages, open without signing in | Values from the student's own data, problem reports. The first guides stay drafts until they are checked on the school portals |
-| F12 Curriculum administration | `admin/*`: programs, cohorts, requirement groups, course links, prerequisites, offering terms, catalog courses, CSV import, access grants | `/admin`: curriculum, catalog, CSV import, access | Entry of a program's training type and of credit totals, the change-history log |
+| F12 Curriculum administration | `admin/*`: programs, cohorts, requirement groups, course links, prerequisites, offering terms, catalog courses, CSV import, access grants | `/admin`: curriculum, catalog, CSV import, access | Screens that enter credit totals or a training type (the API accepts them), the change-history log |
 
 The exact routes and their fields are in the OpenAPI contract, [`src/backend/openapi.json`](src/backend/openapi.json).
 

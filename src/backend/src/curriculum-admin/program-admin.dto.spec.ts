@@ -2,6 +2,7 @@ import type { Type } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import { flattenErrors, validateStrict } from '../common/api-requests.js';
 import { CURRICULUM_SEEDS } from '../curriculum/seeds/index.js';
+import { MAX_INTEGER } from './curriculum-admin.dto.js';
 import { ADMIN_CODE_PATTERN, canonicalAdminCode, CreateCohortDto, CreateProgramDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 
 const errorsOf = async (dto: Type<object>, body: unknown): Promise<string[]> => {
@@ -39,8 +40,18 @@ describe('CreateProgramDto', () => {
     expect(await errorsOf(CreateProgramDto, { ...PROGRAM, faculty: 'x'.repeat(100) })).toEqual([]);
   });
 
-  it('refuses a training type, a grant and any other undeclared field', async () => {
-    for (const field of ['trainingType', 'id', 'grantTo', 'curricula', 'updatedAt']) {
+  it('accepts each training type of ADR 0012, or null', async () => {
+    for (const trainingType of ['advanced', 'joint', 'high_quality', 'standard', null]) expect(await valueOf(CreateProgramDto, { ...PROGRAM, trainingType })).toEqual({ ...PROGRAM, trainingType });
+  });
+
+  it('refuses a training type outside ADR 0012', async () => {
+    for (const trainingType of ['Advanced', 'dai_tra', '', 3]) {
+      expect([trainingType, await errorsOf(CreateProgramDto, { ...PROGRAM, trainingType })]).toEqual([trainingType, ['trainingType must be one of the following values: advanced, joint, high_quality, standard']]);
+    }
+  });
+
+  it('refuses a grant and any other undeclared field', async () => {
+    for (const field of ['id', 'grantTo', 'curricula', 'updatedAt']) {
       expect(await errorsOf(CreateProgramDto, { ...PROGRAM, [field]: 'standard' })).toEqual([`${field}: property ${field} should not exist`]);
     }
   });
@@ -78,8 +89,18 @@ describe('CreateCohortDto', () => {
     }
   });
 
-  it('refuses the gated credit total, a program ID and any other undeclared field', async () => {
-    for (const [field, value] of [['totalCreditsMin', 120], ['totalCreditsMin', null], ['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['copyFrom', 2024], ['requirementGroups', []]] as const) {
+  it('accepts a credit total of a whole number from 0, or null', async () => {
+    for (const totalCreditsMin of [0, 120, MAX_INTEGER, null]) expect(await valueOf(CreateCohortDto, { ...COHORT, totalCreditsMin })).toEqual({ ...COHORT, totalCreditsMin });
+  });
+
+  it('refuses a credit total that is negative, a fraction, text or above what the database stores', async () => {
+    for (const totalCreditsMin of [-1, 120.5, '120', MAX_INTEGER + 1]) {
+      expect([totalCreditsMin, (await errorsOf(CreateCohortDto, { ...COHORT, totalCreditsMin })).some((e) => e.startsWith('totalCreditsMin'))]).toEqual([totalCreditsMin, true]);
+    }
+  });
+
+  it('refuses a program ID and any other undeclared field', async () => {
+    for (const [field, value] of [['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['copyFrom', 2024], ['requirementGroups', []]] as const) {
       expect(await errorsOf(CreateCohortDto, { ...COHORT, [field]: value })).toEqual([`${field}: property ${field} should not exist`]);
     }
   });
@@ -91,13 +112,21 @@ describe('CreateCohortDto', () => {
 });
 
 describe('UpdateCohortDto', () => {
-  it('accepts any subset of the details and an empty body', async () => {
+  it('accepts any subset of the details, the credit total included, and an empty body', async () => {
     expect(await valueOf(UpdateCohortDto, {})).toEqual({});
     expect(await valueOf(UpdateCohortDto, { nameVi: ' Khóa thử ', nameEn: null, language: 'vi' })).toEqual({ nameVi: 'Khóa thử', nameEn: null, language: 'vi' });
+    expect(await valueOf(UpdateCohortDto, { totalCreditsMin: 163 })).toEqual({ totalCreditsMin: 163 });
+    expect(await valueOf(UpdateCohortDto, { totalCreditsMin: null })).toEqual({ totalCreditsMin: null });
   });
 
-  it('refuses each identifier and the gated credit total, instead of ignoring them', async () => {
-    for (const [field, value] of [['cohortYear', 2025], ['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['code', 'ZZ-PROG-2025'], ['id', 'x'], ['totalCreditsMin', 120], ['totalCreditsMin', null]] as const) {
+  it('refuses a credit total that is not a whole number from 0', async () => {
+    for (const totalCreditsMin of [-1, 1.5, '163', MAX_INTEGER + 1]) {
+      expect([totalCreditsMin, (await errorsOf(UpdateCohortDto, { totalCreditsMin })).some((e) => e.startsWith('totalCreditsMin'))]).toEqual([totalCreditsMin, true]);
+    }
+  });
+
+  it('refuses each identifier instead of ignoring it', async () => {
+    for (const [field, value] of [['cohortYear', 2025], ['programId', '1b0d2a4c-0000-4000-8000-000000000000'], ['code', 'ZZ-PROG-2025'], ['id', 'x']] as const) {
       expect(await errorsOf(UpdateCohortDto, { nameVi: 'Khóa thử', [field]: value })).toEqual([`${field}: property ${field} should not exist`]);
     }
   });
