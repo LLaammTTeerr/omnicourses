@@ -40,7 +40,7 @@ describe('AppSidebar accessibility', () => {
     expect(useSidebar().mini).toBe(true);
     expect(collapse().attributes('aria-label')).toBe('Thu gọn');
     expect(collapse().attributes('title')).toBe('Mở rộng');
-    expect(themeBtn().attributes('title')).toBeTruthy();
+    expect(themeBtn().attributes('title')).toBe('Giao diện tối');
     expect(langBtn().attributes('title')).toBe('English');
   });
 });

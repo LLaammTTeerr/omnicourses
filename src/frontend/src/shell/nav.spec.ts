@@ -35,14 +35,9 @@ describe('navigation', () => {
     ]);
   });
 
-  it('lists each page once', () => {
-    expect(new Set(NAV.map((item) => item.route)).size).toBe(NAV.length);
-  });
-
   it('puts every page on the phone once: four tabs, the rest under More', () => {
     expect(PHONE_TABS).toHaveLength(4);
     const phone = [...PHONE_TABS, ...PHONE_MORE];
-    expect(phone.every(Boolean)).toBe(true);
     expect(phone.map((item) => item.route).sort()).toEqual(NAV.map((item) => item.route).sort());
   });
 

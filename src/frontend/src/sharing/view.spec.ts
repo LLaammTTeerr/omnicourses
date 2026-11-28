@@ -158,7 +158,7 @@ describe('curriculumMeta', () => {
 
 describe('withheldTitles', () => {
   it('names each withheld check by its issue title', () => {
-    expect(withheldTitles(sharedPlan({ issueCodesNotShown: ['not_offered', 'placed_twice'] }), planner)).toEqual([planner.issueTitle.not_offered, planner.issueTitle.placed_twice]);
+    expect(withheldTitles(sharedPlan({ issueCodesNotShown: ['not_offered', 'placed_twice'] }), planner)).toEqual(['Not taught this term', 'Placed twice']);
   });
 });
 

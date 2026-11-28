@@ -7,11 +7,11 @@ import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
 import type { PlanIssues, PlanTerm } from './api.js';
-import { MAX_PLAN_TERMS } from './board.js';
 import { FLIP_MS } from './flip.js';
 import { course, CURRICULUM, ELECTIVE_GROUP, issue, listItem, OTHER_ID, plan, PLAN_ID, report, summary } from './testing/fixtures.js';
 
 const LONG_INTERACTION_TIMEOUT_MS = 60_000;
+const PLAN_TERM_CAP = 30;
 const FIRST_OCTOBER_2026_IN_VIETNAM = new Date('2026-10-01T03:00:00Z');
 
 const SAVED: PlanTerm[] = [{ term: { year: 2026, number: 1 }, placements: [course('ZZ101'), course('ZZ102')] }];
@@ -1202,15 +1202,15 @@ describe('PlanEditorView (F5, UC-05)', () => {
       expect(router.currentRoute.value.fullPath).toBe('/plans/all');
     });
 
-    it('caps + Add Term at MAX_PLAN_TERMS (30) and slices previewAll targets to 30', async () => {
+    it('caps + Add Term at 30 terms and slices previewAll targets to 30', async () => {
       const { w } = await render();
-      while (w.findAll('.trow').length < MAX_PLAN_TERMS) {
+      while (w.findAll('.trow').length < PLAN_TERM_CAP) {
         await w.get('[data-test="add-row"]').trigger('click');
       }
-      expect(w.findAll('.trow')).toHaveLength(MAX_PLAN_TERMS);
+      expect(w.findAll('.trow')).toHaveLength(PLAN_TERM_CAP);
       expect(w.get('[data-test="add-row"]').attributes('disabled')).toBeDefined();
       await w.get('[data-test="add-row"]').trigger('click');
-      expect(w.findAll('.trow')).toHaveLength(MAX_PLAN_TERMS);
+      expect(w.findAll('.trow')).toHaveLength(PLAN_TERM_CAP);
       wrapper!.unmount();
 
       let sentTargets: PlanTerm['term'][] = [];
@@ -1228,11 +1228,11 @@ describe('PlanEditorView (F5, UC-05)', () => {
           },
         },
       });
-      expect(wide.w.findAll('.trow').length).toBeGreaterThan(MAX_PLAN_TERMS);
+      expect(wide.w.findAll('.trow').length).toBeGreaterThan(PLAN_TERM_CAP);
       expect(wide.w.get('[data-test="add-row"]').attributes('disabled')).toBeDefined();
       await press(wide.w.get('[data-test="pool-ZZ201"]'));
       await hover(null);
-      expect(sentTargets).toHaveLength(MAX_PLAN_TERMS);
+      expect(sentTargets).toHaveLength(PLAN_TERM_CAP);
       await release();
     }, LONG_INTERACTION_TIMEOUT_MS);
 

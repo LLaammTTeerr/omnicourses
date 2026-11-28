@@ -5,7 +5,9 @@ import { RouterView } from 'vue-router';
 import { authResult } from '../auth/testing/fixtures.js';
 import { mockApi } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import { UNREAD_POLL_MS, useUnreadPolling } from './store.js';
+import { useUnreadPolling } from './store.js';
+
+const ONE_MINUTE_MS = 60_000;
 
 let wrapper: VueWrapper | undefined;
 
@@ -42,11 +44,14 @@ describe('polling the unread count', () => {
     await router.push('/privacy');
     await flushPromises();
     expect(unreadReads()).toBe(first + 1);
-    vi.advanceTimersByTime(UNREAD_POLL_MS);
+    vi.advanceTimersByTime(ONE_MINUTE_MS - 1);
+    await flushPromises();
+    expect(unreadReads()).toBe(first + 1);
+    vi.advanceTimersByTime(1);
     await flushPromises();
     expect(unreadReads()).toBe(first + 2);
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
-    vi.advanceTimersByTime(UNREAD_POLL_MS);
+    vi.advanceTimersByTime(ONE_MINUTE_MS);
     await flushPromises();
     expect(unreadReads()).toBe(first + 2);
     wrapper!.unmount();
@@ -54,7 +59,7 @@ describe('polling the unread count', () => {
     vi.restoreAllMocks();
 
     await render('/guides', false);
-    vi.advanceTimersByTime(UNREAD_POLL_MS);
+    vi.advanceTimersByTime(ONE_MINUTE_MS);
     await flushPromises();
     expect(unreadReads()).toBe(0);
   });
