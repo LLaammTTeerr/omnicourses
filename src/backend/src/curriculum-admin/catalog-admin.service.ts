@@ -6,10 +6,11 @@ import { changedFields, trimmedOrNull } from '../common/field-validators.js';
 import { Course } from '../curriculum/course.entity.js';
 import type { CourseDto } from '../curriculum/curriculum.dto.js';
 import { courseDto } from '../curriculum/curriculum.service.js';
-import { AffectedCurriculumDto, type CountedReference, REFERENCES, referencedItem } from './admin-errors.js';
+import { AffectedCurriculumDto, referencedItem } from './admin-errors.js';
 import { courseCodeOr400, noCatalogCode } from './admin-lookups.js';
 import { AdminWriteService } from '../admin-access/admin-write.service.js';
 import { COURSE_FIELDS, type CourseField, CreateCourseDto, UpdateCourseDto } from './curriculum-admin.dto.js';
+import { type CountedReference, REFERENCES } from './references.js';
 
 export type CourseValues = Pick<Course, CourseField>;
 

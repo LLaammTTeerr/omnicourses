@@ -30,7 +30,7 @@ This ADR records what the stack of pull requests #220 to #239 decided, so the ne
 
 The three import exceptions are lines in `scripts/layers.mjs`, so they cannot spread without an edit there. The others are design choices that no check enforces.
 
-- **`auth <-> users` (backend).** The users controller uses the auth decorators, and those name the `User` type. There is no cycle between files and none at run time. Moving the decorators would touch about twenty importers for no change in behaviour.
+- **`auth <-> users` (backend).** The users controller uses the auth decorators, and `auth` uses the users service and the `User` entity. Each folder imports the other, but no two files import each other. Moving the decorators would touch about twenty importers for no change in behaviour.
 - **`curriculum.entity.ts` and the `program` and `requirement-group` entity files import each other in pairs.** TypeORM relations need both ends. Lint checks imports across folders only, so nothing lists this one.
 - **`plans <-> sharing` (frontend).** The plan editor opens the share dialog, and the shared page reuses the plan components.
 - **`audit -> plans` (backend).** `CreditCapsDto` (used by `audit` and `sharing`) lives in `plans/plan-issues.dto.ts`. In `rules/` its Swagger decorators would need a special case in the engine's purity check, which allows framework imports only in `rules.module.ts` and `rules.service.ts`.

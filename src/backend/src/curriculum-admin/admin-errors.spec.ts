@@ -2,7 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importRejected, prerequisiteCycle, REFERENCES } from './admin-errors.js';
+import { importRejected, prerequisiteCycle } from './admin-errors.js';
+import { REFERENCES } from './references.js';
 
 const body = (error: { getResponse(): string | object }) => JSON.stringify(error.getResponse());
 
