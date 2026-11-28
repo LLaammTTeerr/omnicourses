@@ -1,0 +1,36 @@
+{
+ "edit": "C",
+ "code": "CS163",
+ "from": "2026-2",
+ "to": "2026-1",
+ "keys": [
+  "ArrowUp"
+ ],
+ "expect": "flag",
+ "profile": null,
+ "limitMs": 300,
+ "baseline": {
+  "counts": "0 violations0 worth a look46 not recorded yet",
+  "violations": 0,
+  "flags": 0
+ },
+ "runs": [
+  {
+   "kind": "run 1",
+   "ms": 312.5,
+   "error": null,
+   "server": [
+    "PUT 130.9",
+    "GET 126.2"
+   ],
+   "undone": true
+  }
+ ],
+ "summary": {
+  "n": 1,
+  "median": 312.5,
+  "p95": 312.5,
+  "max": 312.5,
+  "atOrOver": 1
+ }
+}

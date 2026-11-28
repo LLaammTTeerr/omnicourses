@@ -1,0 +1,46 @@
+2026-11-28T05:54:59.352Z a-trn-01fg
+2026-11-28T05:54:59.602Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s8@example.com → 200
+--- starting state
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":9,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}}]}
+  T's saved transcript: [["CM102","Tư duy độc lập",4,"graded",9,2024,1],["MTH251","Vi tích phân I",4,"fail",null,2024,1],["PH211","Vật lý đại cương I",4,"graded",6.5,2024,1]]
+  screen: [["Term 1 2024–2025","CM102","Tư duy độc lập","4","Graded","9.0","Valid"],["Term 1 2024–2025","MTH251","Vi tích phân I","4","Fail","No grade","Valid"],["Term 1 2024–2025","PH211","Vật lý đại cương I","4","Graded","6.5","Valid"]]; summary "3 rows · no changes\nSaving replaces your whole saved transcript."; diff null; cancel-edits shown false
+ok   TRN-01 start: T holds TRN-01e's transcript: CM102 graded 9, MTH251 fail, PH211 graded 6.5, all 2024/1 | observed: [["CM102","Tư duy độc lập",4,"graded",9,2024,1],["MTH251","Vi tích phân I",4,"fail",null,2024,1],["PH211","Vật lý đại cương I",4,"graded",6.5,2024,1]]
+--- TRN-01f (1)
+ok   TRN-01f: (1) Paste grades table opens the dialog with an empty box | observed: {"open":true,"text":""}
+  preview: [["Term 1 2024–2025","CS160","Nhập môn Tin học","4","Graded","8.5"],["Term 2 2024–2025","CS163","Cấu trúc dữ liệu","4","Graded","8.0"],["Term 2 2024–2025","BAA00030","GDQP-AN","4","Pass","No grade"]]; chips "3 parsed rows"; errors []
+ok   TRN-01f: (1) the header line is skipped and the preview shows the 3 normalized rows (CS160 graded 8.5 in 2024-1, CS163 graded 8.0 in 2024-2, BAA00030 pass, no grade, in 2024-2); no error | observed: [["Term 1 2024–2025","CS160","Nhập môn Tin học","4","Graded","8.5"],["Term 2 2024–2025","CS163","Cấu trúc dữ liệu","4","Graded","8.0"],["Term 2 2024–2025","BAA00030","GDQP-AN","4","Pass","No grade"]]
+ok   TRN-01f: (1) closing with Cancel leaves the table as it was
+ok   TRN-01f: (1) the same text pasted again: the box started empty, and the same 3 rows | observed: [["Term 1 2024–2025","CS160","Nhập môn Tin học","4","Graded","8.5"],["Term 2 2024–2025","CS163","Cấu trúc dữ liệu","4","Graded","8.0"],["Term 2 2024–2025","BAA00030","GDQP-AN","4","Pass","No grade"]]
+FAIL TRN-01f: (1) no request at all while pasting and previewing (no model, no network) | observed: GET /api/notifications/unread-count 200
+--- TRN-01f (2)
+  errors: ["Line 5: invalid course code (2–20 letters or digits)\n— 2024-2 bad_code! Broken 4 8.0","Line 6: invalid grade (0–10, one decimal)\n— 2024-2 CS201 Lập trình hệ thống 4 11.5"]; chips "3 parsed rows\n2 line errors"; preview rows 3
+ok   TRN-01f: (2) paste-errors lists line 5 (invalid code) and line 6 (invalid grade), by line number | observed: ["Line 5: invalid course code (2–20 letters or digits)\n— 2024-2 bad_code! Broken 4 8.0","Line 6: invalid grade (0–10, one decimal)\n— 2024-2 CS201 Lập trình hệ thống 4 11.5"]
+ok   TRN-01f: (2) Replace and Add are both disabled
+ok   TRN-01f: (2) Cancel closes the dialog and leaves the review table open and unchanged
+--- TRN-01f (3)
+ok   TRN-01f: (3) with the two bad lines removed: no error, Replace enabled | observed: 3 parsed rows
+  table: [["Term 1 2024–2025","CS160","Nhập môn Tin học","4","Graded","8.5","Valid"],["Term 2 2024–2025","CS163","Cấu trúc dữ liệu","4","Graded","8.0","Valid"],["Term 2 2024–2025","BAA00030","GDQP-AN","4","Pass","No grade","Valid"]]; summary "3 rows · ready to save\nSaving replaces your whole saved transcript.\n+3 added / ~0 changed / -3 removed"; diff "+3 added / ~0 changed / -3 removed"; toast "Replaced draft rows with 3 rows. Your saved transcript changes only when you save."
+ok   TRN-01f: (3) Replace closes the dialog and loads the 3 rows into the review table, each Valid | observed: [["Term 1 2024–2025","CS160","Nhập môn Tin học","4","Graded","8.5","Valid"],["Term 2 2024–2025","CS163","Cấu trúc dữ liệu","4","Graded","8.0","Valid"],["Term 2 2024–2025","BAA00030","GDQP-AN","4","Pass","No grade","Valid"]]
+ok   TRN-01f: (3) toast "Replaced draft rows with 3 rows. Your saved transcript changes only when you save." | observed: Replaced draft rows with 3 rows. Your saved transcript changes only when you save.
+ok   TRN-01f: (3) the diff summary against the saved transcript shows (3 added, 3 removed: no code in common) | observed: +3 added / ~0 changed / -3 removed
+ok   TRN-01f: (3) summary "3 rows · ready to save"; Save transcript enabled; Cancel changes shown | observed: 3 rows · ready to save
+Saving replaces your whole saved transcript.
++3 added / ~0 changed / -3 removed
+ok   TRN-01f: (3) Add row and the row inputs stay editable
+FAIL TRN-01f: (3) no PUT (nothing saved), no request at all since (1) | observed: GET /api/notifications/unread-count 200; GET /api/notifications/unread-count 200
+--- TRN-01f, the same rows with | and ; columns
+ok   TRN-01f: (extra) pipe columns: the header skipped, the same 3 rows as the TSV, no error | observed: {"preview":[["Term 1 2024–2025","CS160","Nhập môn Tin học","4","Graded","8.5"],["Term 2 2024–2025","CS163","Cấu trúc dữ liệu","4","Graded","8.0"],["Term 2 2024–2025","BAA00030","GDQP-AN","4","Pass","No grade"]],"errors":[]}
+ok   TRN-01f: (extra) semicolon columns: the header skipped, the same 3 rows as the TSV, no error | observed: {"preview":[["Term 1 2024–2025","CS160","Nhập môn Tin học","4","Graded","8.5"],["Term 2 2024–2025","CS163","Cấu trúc dữ liệu","4","Graded","8.0"],["Term 2 2024–2025","BAA00030","GDQP-AN","4","Pass","No grade"]],"errors":[]}
+FAIL TRN-01f: (extra) the table still holds the replaced rows; no request | observed: GET /api/notifications/unread-count 200; GET /api/notifications/unread-count 200
+--- TRN-01g
+ok   TRN-01g: a valid row in the paste dialog previews as one row | observed: [["Term 3 2024–2025","CS202","Các hệ thống lập trình","4","Graded","9.0"]]
+ok   TRN-01g: paste-cancel closes the dialog without altering the table
+  table: [["Term 1 2024–2025","CM102","Tư duy độc lập","4","Graded","9.0","Valid"],["Term 1 2024–2025","MTH251","Vi tích phân I","4","Fail","No grade","Valid"],["Term 1 2024–2025","PH211","Vật lý đại cương I","4","Graded","6.5","Valid"]]; summary "3 rows · no changes\nSaving replaces your whole saved transcript."; diff null; toasts []
+ok   TRN-01g: Cancel changes restores TRN-01e's saved rows (CM102 9.0, MTH251 Fail, PH211 6.5), as on load | observed: [["Term 1 2024–2025","CM102","Tư duy độc lập","4","Graded","9.0","Valid"],["Term 1 2024–2025","MTH251","Vi tích phân I","4","Fail","No grade","Valid"],["Term 1 2024–2025","PH211","Vật lý đại cương I","4","Graded","6.5","Valid"]]
+ok   TRN-01g: diff summary cleared, Save transcript disabled, "3 rows · no changes", Cancel changes gone | observed: 3 rows · no changes
+Saving replaces your whole saved transcript.
+FAIL TRN-01g: zero PUT requests (no request at all) from TRN-01f (1) to here | observed: GET /api/notifications/unread-count 200; GET /api/notifications/unread-count 200; GET /api/notifications/unread-count 200
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":9,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}}]}
+ok   TRN-01g: GET /api/users/me/transcript unchanged | observed: [["CM102","Tư duy độc lập",4,"graded",9,2024,1],["MTH251","Vi tích phân I",4,"fail",null,2024,1],["PH211","Vật lý đại cương I",4,"graded",6.5,2024,1]]
+2026-11-28T05:58:45.366Z 4 FAIL(S)

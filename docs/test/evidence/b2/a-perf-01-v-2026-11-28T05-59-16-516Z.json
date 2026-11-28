@@ -1,0 +1,36 @@
+{
+ "edit": "V",
+ "code": "MTH346",
+ "from": "2028-1",
+ "to": "2028-2",
+ "keys": [
+  "ArrowDown"
+ ],
+ "expect": "valid",
+ "profile": null,
+ "limitMs": 300,
+ "baseline": {
+  "counts": "0 violations0 worth a look46 not recorded yet",
+  "violations": 0,
+  "flags": 0
+ },
+ "runs": [
+  {
+   "kind": "run 1",
+   "ms": 319.5,
+   "error": null,
+   "server": [
+    "PUT 134.9",
+    "GET 131.4"
+   ],
+   "undone": true
+  }
+ ],
+ "summary": {
+  "n": 1,
+  "median": 319.5,
+  "p95": 319.5,
+  "max": 319.5,
+  "atOrOver": 1
+ }
+}

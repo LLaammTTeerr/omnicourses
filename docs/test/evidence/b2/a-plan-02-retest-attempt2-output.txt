@@ -1,0 +1,15 @@
+2026-11-28T06:12:32.542Z a-plan-02-retest
+--- before: P's plan reset to CS160 only (the 22 November run of PLAN-02c left CS160 and CS163)
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T06:12:24.663Z","user":{"id":"a7f61759-7834-4a6d-bb39-250040de057d","email":"b2-s5@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T17:16:44.546Z"},"accountRestored":false}
+  GET /api/plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3 → 200 [["2026-1",["CS160"]]]
+  PUT /api/plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3/placements → 200 [["2026-1",["CS160"]]]
+2026-11-28T06:12:33.379Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+--- PLAN-02a (#137)
+  UI sign-in b2-s5@example.com → 200
+  A: /plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3, chip Saved, board ["CS160"]
+  UI sign-in b2-s5@example.com → 200
+  B: Settings → Devices signed in: ["Chrome · Windows This device 28 Nov 2026, 13:12 5 Dec 2026, 13:12","Chrome · Windows 28 Nov 2026, 13:12 5 Dec 2026, 13:12 Revoke","Unknown device 28 Nov 2026, 13:12 5 Dec 2026, 13:12 Revoke","Chrome · Windows 28 Nov 2026, 13:12 5 Dec 2026, 13:12 Revoke","Chrome · Windows 28 Nov 2026, 13:12 5 Dec 2026, 13:12 Revoke","Unknown device 28 Nov 2026, 13:11 5 Dec 2026, 13:11 Revoke","Unknown device 28 Nov 2026, 12:54 5 Dec 2026, 12:54 Revoke","Unknown device 22 Nov 2026, 00:25 29 Nov 2026, 00:25 Revoke","Unknown device 22 Nov 2026, 00:23 29 Nov 2026, 00:23 Revoke","Unknown device 22 Nov 2026, 00:22 29 Nov 2026, 00:22 Revoke","Unknown device 22 Nov 2026, 00:16 29 Nov 2026, 00:16 Revoke"]
+  B: revoke dialog "Revoke this session? Chrome · Windows is signed out at once and has to sign in again. Cancel Revoke" confirmed; toasts ["Session revoked."]; rows now 10
+  A: requests PUT /api/plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3/placements 401; states ["Saving…","(no chip) /sign-in?redirect=/plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3"]; toasts ["Your session has ended. Please sign in again.","Your session has ended — your last change was not saved. Please sign in again."]; now at /sign-in?redirect=/plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3
+ok   PLAN-02a: the 401 save never shows "Saved" for the CS163 change, and A says that the change was not saved | observed: {"states":["Saving…","(no chip) /sign-in?redirect=/plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3"],"toasts":["Your session has ended. Please sign in again.","Your session has ended — your last change was not saved. Please sign in again."]}
+  UI sign-in b2-s5@example.com → 200

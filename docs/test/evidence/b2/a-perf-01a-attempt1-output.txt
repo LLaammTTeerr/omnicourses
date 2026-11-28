@@ -1,0 +1,17 @@
+2026-11-28T05:58:54.946Z Chrome 144.0.7559.110 (headed, playwright-core 1.64.1), profile off
+  UI sign-in b2-s7@example.com → 200
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T05:59:01.178Z","user":{"id":"80e1a854-268a-403f-a835-415d8985ba9e","email":"b2-s7@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-28T05:58:04.790Z"},"accountRestored":false}
+  GET /api/plans → 200
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: V: before the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+2026-11-28T05:59:12.123Z board as saved: {"counts":"0 violations0 worth a look46 not recorded yet","violations":0,"flags":0}
+  V run 1: 319.5 ms; server PUT 134.9, GET 131.4; undo back to saved: true
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: V: after the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+V: 1 measured runs, median 319.5 ms, p95 319.5 ms, max 319.5 ms, 1 at or over 300 ms
+FAIL PERF-01 V: 1 measured runs, each under 300 ms with the expected result | observed: {"n":1,"median":319.5,"p95":319.5,"max":319.5,"atOrOver":1}
+2026-11-28T05:59:16.516Z saved a-perf-01-v-2026-11-28T05-59-16-516Z.json
+2026-11-28T05:59:16.778Z Chrome 144.0.7559.110 (headed, playwright-core 1.64.1), profile off
+  UI sign-in b2-s7@example.com → 200
+  POST /api/auth/sign-in (no token) → 429 {"statusCode":429,"message":"ThrottlerException: Too Many Requests"}
+STOPPED: sign-in as b2-s7@example.com answered 429
