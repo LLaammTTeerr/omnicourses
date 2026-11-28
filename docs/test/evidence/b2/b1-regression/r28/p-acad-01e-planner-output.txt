@@ -1,0 +1,101 @@
+[2026-11-28T07:57:56.688Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-28T07:57:59.155Z] transcript of the account: ZZ101 ZZ102 ZZ103
+OK   ACAD-01e | plan "Caps 01e" created on APCS 2024 (201) | observed: 201 APCS2024
+OK   ACAD-01e | 9 credits: PUT placements answers 200 (nothing blocks saving) | observed: 200
+[2026-11-28T07:57:59.462Z] 9 credits: GET issues 200; term 2024-1: {"kind":"main","credits":9,"caps":{"min":10,"max":22}}; load issues: none; top-level keys: planId,trainingType,terms,issues,coverage
+OK   ACAD-01e | 9 credits: GET issues gives the term caps { min: 10, max: 22 } | observed: {"min":10,"max":22}
+DIFF ACAD-01e | 9 credits: one load_below_minimum, kind flag, credits 9, limit 10, citation QĐ 1175/QĐ-KHTN Điều 7.2 | observed: []
+OK   ACAD-01e | 9 cr, vi: count chip "1 cần xem lại" | observed: ["0 vi phạm","1 cần xem lại","3 chưa ghi nhận"]
+OK   ACAD-01e | 9 cr, vi: panel title "Kiểm tra kế hoạch", a flat list with no heading per kind | observed: Kiểm tra kế hoạch
+OK   ACAD-01e | 9 cr, vi: one card, titled "Dưới mức tín chỉ tối thiểu" | observed: ["Dưới mức tín chỉ tối thiểu"]
+OK   ACAD-01e | 9 cr, vi: card text "9 TC, dưới mức tối thiểu 10 TC. Được phép nếu có đơn được duyệt." | observed: 9 TC, dưới mức tối thiểu 10 TC. Được phép nếu có đơn được duyệt.
+OK   ACAD-01e | 9 cr, vi: the card is the amber "flag" kind with the info (i) icon, not a warning triangle | observed: {"dataTest":"issue-flag","class":"vitem flag in-editor","iconColour":"rgb(255, 255, 255)","warnToken":"rgb(197, 106, 6)","sameIconAsTheFlagChipInfoIcon":true,"icon":"<circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 11v5M12 8h.01\"></path>"}
+OK   ACAD-01e | 9 cr, vi: under the text: the term chip "HK1 2024–2025" | observed: HK1 2024–2025
+OK   ACAD-01e | 9 cr, vi: a link labelled "Điều 7.2", opening the regulation PDF in a new tab, tooltip "Mở quy chế: QĐ 1175/QĐ-KHTN Điều 7.2" | observed: {"shown":"Điều 7.2","href":"https://www.ctda.hcmus.edu.vn/wp-content/uploads/2023/03/Quy-che-dao-tao-2021.pdf","target":"_blank","rel":"noopener noreferrer","title":"Mở quy chế: QĐ 1175/QĐ-KHTN Điều 7.2"}
+OK   ACAD-01e | 9 cr, vi: the term row "HK1 2024–2025" shows "9 / 22 TC" | observed: HK1 2024–2025: "9 / 22 TC"
+OK   ACAD-01e | 9 cr, vi: the range "10–22 TC" is only in the tooltip and the screen-reader text | observed: tooltip "10–22 TC"; sr-only "· 10–22 TC"
+OK   ACAD-01e | 9 cr, vi: meter amber, ticks at 10 and 22 | observed: {"cls":"cap under in-editor","fill":"rgb(197, 106, 6)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 9 cr, vi: the row shows no words of its own for the load issue | observed: [{"cls":"ri flag sr-only","visibleWords":""}]
+DIFF ACAD-01e | 9 cr, vi: collapsed "Chưa ghi nhận (n)" and "Khi hoàn thành kế hoạch" sections; no "Đã đạt trước đó / Already passed" | observed: "Chưa ghi nhận (3)" open=false; "Khi hoàn thành kế hoạch · 9/163 TC8 nhóm còn thiếu" open=false
+OK   ACAD-01e | 9 cr, en: count chip "1 worth a look" | observed: ["0 violations","1 worth a look","3 not recorded yet"]
+OK   ACAD-01e | 9 cr, en: panel title "Plan check", a flat list with no heading per kind | observed: Plan check
+OK   ACAD-01e | 9 cr, en: one card, titled "Below the minimum load" | observed: ["Below the minimum load"]
+OK   ACAD-01e | 9 cr, en: card text "9 credits, below the minimum of 10. A petition can allow it." | observed: 9 credits, below the minimum of 10. A petition can allow it.
+OK   ACAD-01e | 9 cr, en: the card is the amber "flag" kind with the info (i) icon, not a warning triangle | observed: {"dataTest":"issue-flag","class":"vitem flag in-editor","iconColour":"rgb(255, 255, 255)","warnToken":"rgb(197, 106, 6)","sameIconAsTheFlagChipInfoIcon":true,"icon":"<circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 11v5M12 8h.01\"></path>"}
+OK   ACAD-01e | 9 cr, en: under the text: the term chip "Term 1 2024–2025" | observed: Term 1 2024–2025
+OK   ACAD-01e | 9 cr, en: a link labelled "Điều 7.2", opening the regulation PDF in a new tab, tooltip "Open the regulation: QĐ 1175/QĐ-KHTN Điều 7.2" | observed: {"shown":"Điều 7.2","href":"https://www.ctda.hcmus.edu.vn/wp-content/uploads/2023/03/Quy-che-dao-tao-2021.pdf","target":"_blank","rel":"noopener noreferrer","title":"Open the regulation: QĐ 1175/QĐ-KHTN Điều 7.2"}
+OK   ACAD-01e | 9 cr, en: the term row "Term 1 2024–2025" shows "9 / 22 credits" | observed: Term 1 2024–2025: "9 / 22 credits"
+DIFF ACAD-01e | 9 cr, en: the range "10–22 credits" is only in the tooltip and the screen-reader text | observed: tooltip "10–22"; sr-only "· 10–22"
+OK   ACAD-01e | 9 cr, en: meter amber, ticks at 10 and 22 | observed: {"cls":"cap under in-editor","fill":"rgb(197, 106, 6)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 9 cr, en: the row shows no words of its own for the load issue | observed: [{"cls":"ri flag sr-only","visibleWords":""}]
+DIFF ACAD-01e | 9 cr, en: collapsed "Not recorded yet (n)" and "With the plan completed" sections; no "Đã đạt trước đó / Already passed" | observed: "Not recorded yet (3)" open=false; "With the plan completed · 9/163 credits8 groups still short" open=false
+OK   ACAD-01e | 10 credits: PUT placements answers 200 (nothing blocks saving) | observed: 200
+[2026-11-28T07:58:03.996Z] 10 credits: GET issues 200; term 2024-1: {"kind":"main","credits":10,"caps":{"min":10,"max":22}}; load issues: none; top-level keys: planId,trainingType,terms,issues,coverage
+OK   ACAD-01e | 10 credits: GET issues gives the term caps { min: 10, max: 22 } | observed: {"min":10,"max":22}
+OK   ACAD-01e | 10 credits: no load issue | observed: none
+OK   ACAD-01e | 10 cr, vi: count chip "0 cần xem lại" | observed: ["0 vi phạm","0 cần xem lại","3 chưa ghi nhận"]
+OK   ACAD-01e | 10 cr, vi: panel title "Kiểm tra kế hoạch", a flat list with no heading per kind | observed: Kiểm tra kế hoạch
+OK   ACAD-01e | 10 cr, vi: no load card | observed: []
+OK   ACAD-01e | 10 cr, vi: the term row "HK1 2024–2025" shows "10 / 22 TC" | observed: HK1 2024–2025: "10 / 22 TC"
+OK   ACAD-01e | 10 cr, vi: the range "10–22 TC" is only in the tooltip and the screen-reader text | observed: tooltip "10–22 TC"; sr-only "· 10–22 TC"
+OK   ACAD-01e | 10 cr, vi: meter green, ticks at 10 and 22 | observed: {"cls":"cap ok in-editor","fill":"rgb(14, 125, 77)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 10 cr, vi: the row shows no words of its own for the load issue | observed: []
+DIFF ACAD-01e | 10 cr, vi: collapsed "Chưa ghi nhận (n)" and "Khi hoàn thành kế hoạch" sections; no "Đã đạt trước đó / Already passed" | observed: "Chưa ghi nhận (3)" open=false; "Khi hoàn thành kế hoạch · 10/163 TC8 nhóm còn thiếu" open=false
+OK   ACAD-01e | 10 cr, en: count chip "0 worth a look" | observed: ["0 violations","0 worth a look","3 not recorded yet"]
+OK   ACAD-01e | 10 cr, en: panel title "Plan check", a flat list with no heading per kind | observed: Plan check
+OK   ACAD-01e | 10 cr, en: no load card | observed: []
+OK   ACAD-01e | 10 cr, en: the term row "Term 1 2024–2025" shows "10 / 22 credits" | observed: Term 1 2024–2025: "10 / 22 credits"
+DIFF ACAD-01e | 10 cr, en: the range "10–22 credits" is only in the tooltip and the screen-reader text | observed: tooltip "10–22"; sr-only "· 10–22"
+OK   ACAD-01e | 10 cr, en: meter green, ticks at 10 and 22 | observed: {"cls":"cap ok in-editor","fill":"rgb(14, 125, 77)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 10 cr, en: the row shows no words of its own for the load issue | observed: []
+DIFF ACAD-01e | 10 cr, en: collapsed "Not recorded yet (n)" and "With the plan completed" sections; no "Đã đạt trước đó / Already passed" | observed: "Not recorded yet (3)" open=false; "With the plan completed · 10/163 credits8 groups still short" open=false
+OK   ACAD-01e | 22 credits: PUT placements answers 200 (nothing blocks saving) | observed: 200
+[2026-11-28T07:58:08.279Z] 22 credits: GET issues 200; term 2024-1: {"kind":"main","credits":22,"caps":{"min":10,"max":22}}; load issues: none; top-level keys: planId,trainingType,terms,issues,coverage
+OK   ACAD-01e | 22 credits: GET issues gives the term caps { min: 10, max: 22 } | observed: {"min":10,"max":22}
+OK   ACAD-01e | 22 credits: no load issue | observed: none
+OK   ACAD-01e | 22 cr, vi: count chip "0 cần xem lại" | observed: ["0 vi phạm","0 cần xem lại","6 chưa ghi nhận"]
+OK   ACAD-01e | 22 cr, vi: panel title "Kiểm tra kế hoạch", a flat list with no heading per kind | observed: Kiểm tra kế hoạch
+OK   ACAD-01e | 22 cr, vi: no load card | observed: []
+OK   ACAD-01e | 22 cr, vi: the term row "HK1 2024–2025" shows "22 / 22 TC" | observed: HK1 2024–2025: "22 / 22 TC"
+OK   ACAD-01e | 22 cr, vi: the range "10–22 TC" is only in the tooltip and the screen-reader text | observed: tooltip "10–22 TC"; sr-only "· 10–22 TC"
+OK   ACAD-01e | 22 cr, vi: meter green, ticks at 10 and 22 | observed: {"cls":"cap ok in-editor","fill":"rgb(14, 125, 77)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 22 cr, vi: the row shows no words of its own for the load issue | observed: []
+DIFF ACAD-01e | 22 cr, vi: collapsed "Chưa ghi nhận (n)" and "Khi hoàn thành kế hoạch" sections; no "Đã đạt trước đó / Already passed" | observed: "Chưa ghi nhận (6)" open=false; "Khi hoàn thành kế hoạch · 22/163 TC8 nhóm còn thiếu" open=false
+OK   ACAD-01e | 22 cr, en: count chip "0 worth a look" | observed: ["0 violations","0 worth a look","6 not recorded yet"]
+OK   ACAD-01e | 22 cr, en: panel title "Plan check", a flat list with no heading per kind | observed: Plan check
+OK   ACAD-01e | 22 cr, en: no load card | observed: []
+OK   ACAD-01e | 22 cr, en: the term row "Term 1 2024–2025" shows "22 / 22 credits" | observed: Term 1 2024–2025: "22 / 22 credits"
+DIFF ACAD-01e | 22 cr, en: the range "10–22 credits" is only in the tooltip and the screen-reader text | observed: tooltip "10–22"; sr-only "· 10–22"
+OK   ACAD-01e | 22 cr, en: meter green, ticks at 10 and 22 | observed: {"cls":"cap ok in-editor","fill":"rgb(14, 125, 77)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 22 cr, en: the row shows no words of its own for the load issue | observed: []
+DIFF ACAD-01e | 22 cr, en: collapsed "Not recorded yet (n)" and "With the plan completed" sections; no "Đã đạt trước đó / Already passed" | observed: "Not recorded yet (6)" open=false; "With the plan completed · 22/163 credits8 groups still short" open=false
+OK   ACAD-01e | 23 credits: PUT placements answers 200 (nothing blocks saving) | observed: 200
+[2026-11-28T07:58:12.568Z] 23 credits: GET issues 200; term 2024-1: {"kind":"main","credits":23,"caps":{"min":10,"max":22}}; load issues: none; top-level keys: planId,trainingType,terms,issues,coverage
+OK   ACAD-01e | 23 credits: GET issues gives the term caps { min: 10, max: 22 } | observed: {"min":10,"max":22}
+DIFF ACAD-01e | 23 credits: one load_above_maximum, kind flag, credits 23, limit 22, citation QĐ 1175/QĐ-KHTN Điều 7.2 | observed: []
+OK   ACAD-01e | 23 cr, vi: count chip "1 cần xem lại" | observed: ["0 vi phạm","1 cần xem lại","7 chưa ghi nhận"]
+OK   ACAD-01e | 23 cr, vi: panel title "Kiểm tra kế hoạch", a flat list with no heading per kind | observed: Kiểm tra kế hoạch
+OK   ACAD-01e | 23 cr, vi: one card, titled "Vượt mức tín chỉ tối đa" | observed: ["Vượt mức tín chỉ tối đa"]
+OK   ACAD-01e | 23 cr, vi: card text "23 TC, vượt mức tối đa 22 TC. Được phép nếu có đơn được duyệt." | observed: 23 TC, vượt mức tối đa 22 TC. Được phép nếu có đơn được duyệt.
+OK   ACAD-01e | 23 cr, vi: the card is the amber "flag" kind with the info (i) icon, not a warning triangle | observed: {"dataTest":"issue-flag","class":"vitem flag in-editor","iconColour":"rgb(255, 255, 255)","warnToken":"rgb(197, 106, 6)","sameIconAsTheFlagChipInfoIcon":true,"icon":"<circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 11v5M12 8h.01\"></path>"}
+OK   ACAD-01e | 23 cr, vi: under the text: the term chip "HK1 2024–2025" | observed: HK1 2024–2025
+OK   ACAD-01e | 23 cr, vi: a link labelled "Điều 7.2", opening the regulation PDF in a new tab, tooltip "Mở quy chế: QĐ 1175/QĐ-KHTN Điều 7.2" | observed: {"shown":"Điều 7.2","href":"https://www.ctda.hcmus.edu.vn/wp-content/uploads/2023/03/Quy-che-dao-tao-2021.pdf","target":"_blank","rel":"noopener noreferrer","title":"Mở quy chế: QĐ 1175/QĐ-KHTN Điều 7.2"}
+OK   ACAD-01e | 23 cr, vi: the term row "HK1 2024–2025" shows "23 / 22 TC" | observed: HK1 2024–2025: "23 / 22 TC"
+OK   ACAD-01e | 23 cr, vi: the range "10–22 TC" is only in the tooltip and the screen-reader text | observed: tooltip "10–22 TC"; sr-only "· 10–22 TC"
+OK   ACAD-01e | 23 cr, vi: meter red, ticks at 10 and 22 | observed: {"cls":"cap over in-editor","fill":"rgb(216, 58, 58)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 23 cr, vi: the row shows no words of its own for the load issue | observed: [{"cls":"ri flag sr-only","visibleWords":""}]
+DIFF ACAD-01e | 23 cr, vi: collapsed "Chưa ghi nhận (n)" and "Khi hoàn thành kế hoạch" sections; no "Đã đạt trước đó / Already passed" | observed: "Chưa ghi nhận (7)" open=false; "Khi hoàn thành kế hoạch · 23/163 TC8 nhóm còn thiếu" open=false
+OK   ACAD-01e | 23 cr, en: count chip "1 worth a look" | observed: ["0 violations","1 worth a look","7 not recorded yet"]
+OK   ACAD-01e | 23 cr, en: panel title "Plan check", a flat list with no heading per kind | observed: Plan check
+OK   ACAD-01e | 23 cr, en: one card, titled "Above the maximum load" | observed: ["Above the maximum load"]
+OK   ACAD-01e | 23 cr, en: card text "23 credits, above the maximum of 22. A petition can allow it." | observed: 23 credits, above the maximum of 22. A petition can allow it.
+OK   ACAD-01e | 23 cr, en: the card is the amber "flag" kind with the info (i) icon, not a warning triangle | observed: {"dataTest":"issue-flag","class":"vitem flag in-editor","iconColour":"rgb(255, 255, 255)","warnToken":"rgb(197, 106, 6)","sameIconAsTheFlagChipInfoIcon":true,"icon":"<circle cx=\"12\" cy=\"12\" r=\"9\"></circle><path d=\"M12 11v5M12 8h.01\"></path>"}
+OK   ACAD-01e | 23 cr, en: under the text: the term chip "Term 1 2024–2025" | observed: Term 1 2024–2025
+OK   ACAD-01e | 23 cr, en: a link labelled "Điều 7.2", opening the regulation PDF in a new tab, tooltip "Open the regulation: QĐ 1175/QĐ-KHTN Điều 7.2" | observed: {"shown":"Điều 7.2","href":"https://www.ctda.hcmus.edu.vn/wp-content/uploads/2023/03/Quy-che-dao-tao-2021.pdf","target":"_blank","rel":"noopener noreferrer","title":"Open the regulation: QĐ 1175/QĐ-KHTN Điều 7.2"}
+OK   ACAD-01e | 23 cr, en: the term row "Term 1 2024–2025" shows "23 / 22 credits" | observed: Term 1 2024–2025: "23 / 22 credits"
+DIFF ACAD-01e | 23 cr, en: the range "10–22 credits" is only in the tooltip and the screen-reader text | observed: tooltip "10–22"; sr-only "· 10–22"
+OK   ACAD-01e | 23 cr, en: meter red, ticks at 10 and 22 | observed: {"cls":"cap over in-editor","fill":"rgb(216, 58, 58)","ticks":["10","22"],"tokens":{"ok":"rgb(14, 125, 77)","warn":"rgb(197, 106, 6)","bad":"rgb(216, 58, 58)"}}
+OK   ACAD-01e | 23 cr, en: the row shows no words of its own for the load issue | observed: [{"cls":"ri flag sr-only","visibleWords":""}]
+DIFF ACAD-01e | 23 cr, en: collapsed "Not recorded yet (n)" and "With the plan completed" sections; no "Đã đạt trước đó / Already passed" | observed: "Not recorded yet (7)" open=false; "With the plan completed · 23/163 credits8 groups still short" open=false
+OK   PLAN-01l | follow-up: "What-if: Screen 01b" and "Screen 01b" each have a tab | observed: ["Kế hoạch mặc định","Screen 01b","What-if: Screen 01b","Undo 01k","Lock 01j","What-if: Lock 01j","Caps 01e"]
+SUMMARY {"ACAD-01e":{"ok":79,"diff":14},"PLAN-01l":{"ok":1,"diff":0}} elapsed 22s

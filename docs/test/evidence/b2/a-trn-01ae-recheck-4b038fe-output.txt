@@ -1,0 +1,72 @@
+2026-11-28T09:01:46.518Z a-trn-01ae-recheck
+2026-11-28T09:01:46.754Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+--- setup (not a case): T onboarded to APCS 2024, transcript emptied
+  API POST /auth/sign-in (b2-s8@example.com) → 200
+  API GET /users/me/onboarding → 200 {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+ok   TRN-01 setup: T is onboarded to APCS 2024 | observed: {"program":"APCS","cohort":2024,"targetGraduationTerm":null,"creditsPerTerm":null,"internshipTerm":null,"finished":true}
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":9,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}}]}
+  transcript before the setup: 3 rows
+  API PUT /users/me/transcript → 200 {"rows":[]}
+  API GET /users/me/transcript → 200 {"rows":[]}
+ok   TRN-01 setup: T has no transcript | observed: {"rows":[]}
+  UI sign-in b2-s8@example.com → 200
+--- TRN-01a
+ok   TRN-01a: before Add row: "No courses yet. Add the first row to start.", "0 rows · no changes", Save transcript disabled | observed: 0 rows · no changes
+Saving replaces your whole saved transcript.
+ok   TRN-01a: focus in the new row's Code box; term "Term 1 2026–2027" | observed: {"focus":"input #code-0 \"Code, row 1\"","term":"Term 1 2026–2027"}
+FAIL TRN-01a: Check "Needs fixing", "Fix: code (2–20 letters or digits), course name, credits (0–30), result", summary "1 row · 1 to fix" + "An incomplete row cannot be saved.", save disabled | observed: {"check":"Needs fixing","fix":"Fix: code (2–20 letters or digits), course name (at most 255 characters), credits (0–30), result","summary":"1 row · 1 to fix\nAn incomplete row cannot be saved."}
+ok   TRN-01a: leaving the Code box shows "CS160" | observed: CS160
+ok   TRN-01a: Graded and no grade yet: "Fix: grade (0–10, one decimal)" | observed: Fix: grade (0–10, one decimal)
+ok   TRN-01a: the second row starts in "Term 1 2024–2025" | observed: Term 1 2024–2025
+ok   TRN-01a: the third row starts in "Term 1 2024–2025" | observed: Term 1 2024–2025
+ok   TRN-01a: each Check "Valid", summary "3 rows · ready to save" | observed: 3 rows · ready to save
+Saving replaces your whole saved transcript.
+ok   TRN-01a: nothing sent while typing
+ok   TRN-01a: the save sends one PUT, 200; toast "Saved 3 rows."; "3 rows · no changes"; save disabled again | observed: {"w":"PUT /api/users/me/transcript 200","toast":"Saved 3 rows.","summary":"3 rows · no changes\nSaving replaces your whole saved transcript."}
+ok   TRN-01a: GET returns exactly T-A's 3 rows: capitals, 4 credits, graded, grades 7.5, 8.5 and 7 (a JSON number), term 2024/1 | observed: [["CM102","Tư duy độc lập",4,"graded",7.5,2024,1],["CS160","Nhập môn Tin học",4,"graded",8.5,2024,1],["MTH251","Vi tích phân I",4,"graded",7,2024,1]]
+ok   TRN-01a: after the reload: CM102, CS160, MTH251 with "7.5", "8.5", "7.0" | observed: [["CM102","7.5"],["CS160","8.5"],["MTH251","7.0"]]
+--- TRN-01b
+ok   TRN-01b: the new row starts in "Term 1 2024–2025" | observed: Term 1 2024–2025
+  {"step":"(1)","fix":"Fix: code (2–20 letters or digits), course name (at most 255 characters), credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.\n+1 added / ~0 changed / -0 removed","saveDisabled":true}
+  {"step":"(2)","fix":"Fix: code (2–20 letters or digits), course name (at most 255 characters), credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.\n+1 added / ~0 changed / -0 removed","saveDisabled":true}
+  {"step":"(3)","fix":"Fix: credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.\n+1 added / ~0 changed / -0 removed","saveDisabled":true}
+  {"step":"(4)","fix":"Fix: credits (0–30), result","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.\n+1 added / ~0 changed / -0 removed","saveDisabled":true}
+  {"step":"(5)","fix":"Fix: grade (0–10, one decimal)","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.\n+1 added / ~0 changed / -0 removed","saveDisabled":true}
+  {"step":"(6)","fix":"Fix: grade (0–10, one decimal)","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.\n+1 added / ~0 changed / -0 removed","saveDisabled":true}
+  {"step":"(7)","fix":"Fix: grade (0–10, one decimal)","check":"Needs fixing","summary":"4 rows · 1 to fix\nAn incomplete row cannot be saved.\n+1 added / ~0 changed / -0 removed","saveDisabled":true}
+  {"step":"(8)","fix":null,"check":"Valid","summary":"4 rows · ready to save\nSaving replaces your whole saved transcript.\n+1 added / ~0 changed / -0 removed","saveDisabled":false}
+FAIL TRN-01b: the line under the row, step by step, as the case says | observed: ["Fix: code (2–20 letters or digits), course name (at most 255 characters), credits (0–30), result","Fix: code (2–20 letters or digits), course name (at most 255 characters), credits (0–30), result","Fix: credits (0–30), result","Fix: credits (0–30), result","Fix: grade (0–10, one decimal)","Fix: grade (0–10, one decimal)","Fix: grade (0–10, one decimal)",null]
+ok   TRN-01b: through (7): "Needs fixing", "4 rows · 1 to fix", save disabled
+ok   TRN-01b: at (8): "Valid", "4 rows · ready to save", save enabled | observed: {"step":"(8)","fix":null,"check":"Valid","summary":"4 rows · ready to save\nSaving replaces your whole saved transcript.\n+1 added / ~0 changed / -0 removed","saveDisabled":false}
+ok   TRN-01b: Network shows no PUT
+ok   TRN-01b: the bin is named "Remove row 4 (ZZ902)" | observed: Remove row 4 (ZZ902)
+ok   TRN-01b: the bin sends nothing; toast "Removed row 4 (ZZ902) from the table. Your saved transcript changes only when you save."; focus on Add row; "3 rows · no changes" | observed: {"toast":"Removed row 4 (ZZ902) from the table. Your saved transcript changes only when you save.","focus":"button #add-row Add row","summary":"3 rows · no changes\nSaving replaces your whole saved transcript."}
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":7.5,"term":{"year":2024,"number":1}},{"courseCode":"CS160","courseName":"Nhập môn Tin học","credits":4,"result":"graded","grade":8.5,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"graded","grade":7,"term":{"year":2024,"number":1}}]}
+ok   TRN-01b: GET still returns T-A's 3 rows
+--- TRN-01c
+ok   TRN-01c: picking Fail replaces MTH251's grade box with "No grade" | observed: No grade
+ok   TRN-01c: CS160's bin is "Remove row 2 (CS160)"
+ok   TRN-01c: before the save "3 rows · ready to save" | observed: 3 rows · ready to save
+Saving replaces your whole saved transcript.
++1 added / ~2 changed / -1 removed
+ok   TRN-01c: one PUT, "Saved 3 rows." | observed: {"w":"PUT /api/users/me/transcript 200","toast":"Saved 3 rows."}
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":8,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}}]}
+ok   TRN-01c: GET: exactly CM102 graded 8, MTH251 fail null, PH211 graded 6.5, all 2024/1; no CS160 | observed: [["CM102","Tư duy độc lập",4,"graded",8,2024,1],["MTH251","Vi tích phân I",4,"fail",null,2024,1],["PH211","Vật lý đại cương I",4,"graded",6.5,2024,1]]
+ok   TRN-01c: the reloaded screen lists the same 3 rows | observed: [["CM102","8.0"],["MTH251","No grade"],["PH211","6.5"]]
+--- TRN-01d
+  browser dialog "Your transcript has unsaved changes. Leave the page and discard them?" → dismiss
+ok   TRN-01d: the browser asks "Your transcript has unsaved changes. Leave the page and discard them?"; Cancel keeps Transcript with the edits (no PH211, ZZ903 Valid) | observed: {"d1":"Your transcript has unsaved changes. Leave the page and discard them?","url":"/transcript","codesNow":["CM102","MTH251","ZZ903"]}
+  browser dialog "Your transcript has unsaved changes. Leave the page and discard them?" → accept
+ok   TRN-01d: the second time the same question; OK opens the degree audit | observed: {"dialog":"Your transcript has unsaved changes. Leave the page and discard them?","url":"/audit"}
+ok   TRN-01d: no PUT at any point | observed: none
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":8,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}}]}
+ok   TRN-01d: back on Transcript: CM102, MTH251, PH211 with "3 rows · no changes"; GET unchanged | observed: 3 rows · no changes
+Saving replaces your whole saved transcript.
+--- TRN-01e
+ok   TRN-01e: the blocked save shows "Could not save. Your rows are still here; try again in a moment."; CM102 still 9; save enabled | observed: {"alert":"Could not save. Your rows are still here; try again in a moment.","sent":"PUT /api/users/me/transcript failed: net::ERR_BLOCKED_BY_CLIENT.Inspector"}
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":8,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}}]}
+ok   TRN-01e: the API (as Swagger would) still has CM102 grade 8
+ok   TRN-01e: the second save "Saved 3 rows.", the alert goes | observed: Saved 3 rows.
+  API GET /users/me/transcript → 200 {"rows":[{"courseCode":"CM102","courseName":"Tư duy độc lập","credits":4,"result":"graded","grade":9,"term":{"year":2024,"number":1}},{"courseCode":"MTH251","courseName":"Vi tích phân I","credits":4,"result":"fail","grade":null,"term":{"year":2024,"number":1}},{"courseCode":"PH211","courseName":"Vật lý đại cương I","credits":4,"result":"graded","grade":6.5,"term":{"year":2024,"number":1}}]}
+ok   TRN-01e: GET has CM102 grade 9; the screen shows "9.0" | observed: 9.0
+2026-11-28T09:03:43.178Z 2 FAIL(S)

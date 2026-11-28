@@ -1,0 +1,171 @@
+07:50:56 DB-01b / DEP-01b (health on staging)
+07:50:56   ok   200 and exactly {"status":"ok","database":"up"} -> 200 {"status":"ok","database":"up"}
+07:50:56 DB-01d (docs page and OpenAPI JSON)
+07:50:57   ok   GET /api/docs answers 200 with HTML -> 200 text/html; charset=utf-8
+07:50:57   ok   JSON starts with "openapi":"3.2.0" -> {"openapi":"3.2.0","
+07:50:57   ok   groups include health, auth and users -> health, users, auth, guides, curriculum, plans, curriculum-admin, academic-calendar, sharing, notifications
+07:50:57   ok   a bearer scheme is declared -> bearer
+07:50:57   FAIL identical to src/backend/openapi.json of the tested commit -> 53 paths
+07:50:57 DB-01e / GUIDE-01n (every route without a token)
+07:50:57   note published guides: accounts-and-portals, grades-and-transcript
+07:51:03   FAIL every route outside the five public ones answers 401 -> 68 routes answered 401; NOT 401: GET /api/shared-plans/{token} answered 404
+07:51:03   ok   the guide routes in the document are exactly two, both GET -> GET /api/guides, GET /api/guides/{id}
+07:51:03   ok   GET /api/guides without a token: 200 -> 200
+07:51:04   ok   GET /api/guides/accounts-and-portals without a token: 200 -> 200
+07:51:04   ok   GET /api/guides/grades-and-transcript without a token: 200 -> 200
+07:51:04   ok   GET /api/guides/no-such-guide: 404 -> 404 {"message":"Guide not found","error":"Not Found","statusCode":404}
+07:51:04   note GET /api/guides/zz-draft on staging: 404 (the zz-* test guides are not loaded on staging, §6 item 12)
+07:51:04   note GET /api/guides/zz-withdrawn on staging: 404 (the zz-* test guides are not loaded on staging, §6 item 12)
+07:51:04   note GET /api/guides/zz-fresh on staging: 404 (the zz-* test guides are not loaded on staging, §6 item 12)
+07:51:04   note POST /api/guides without a token: 404
+07:51:04   note PUT /api/guides without a token: 404
+07:51:04   note PATCH /api/guides without a token: 404
+07:51:04   note DELETE /api/guides without a token: 404
+07:51:04 DEP-01d (AUTH-01a and AUTH-01k on staging)
+07:51:26   ok   sign-up 201 with token, expiresAt, user, accountRestored false -> 201 keys: token, expiresAt, user, accountRestored; user keys: id, email, displayName, studentId, className, emailVerifiedAt, createdAt
+07:51:26   ok   user has the email and display name -> {"email":"b1-run-r28c-dep01d@example.com","displayName":"Test Student"}
+07:51:26   ok   expiresAt about 7 days ahead (SESS-01l stand-in) -> 2026-12-05T07:51:18.298Z
+07:51:26   ok   no password field in the body -> no "password" in the response text
+07:51:26   ok   sign-in 200 with a different token, accountRestored false -> 200
+07:51:48 ACAD-01a (API part)
+07:51:48   ok   account onboarded to APCS 2024, no transcript saved -> onboarding 200; transcript rows 0
+07:51:48   ok   200 -> 200
+07:51:48   ok   credits -> {"accumulated":0,"towardTotal":0,"inProgressTowardTotal":0,"totalRequired":163,"remaining":163,"yearLevel":1}
+07:51:48   ok   gpa.average and accumulatedAverage null -> {"average":null,"accumulatedAverage":null,"accumulatedAverageFourPoint":null,"classification":null,"gradedCredits":0}
+07:51:48   ok   terms and unmatchedCourses empty -> 0, 0
+07:51:48   note groups: Kiến thức Computer Science (A): bắt buộc [required 40, passed 0, remaining 40, met false] | Kiến thức Computer Science (A): tự chọn [required 16, passed 0, remaining 16, met false] | Kiến thức Math [required 16, passed 0, remaining 16, met false] | Kiến thức Non Computer Science [required 26, passed 0, remaining 26, met false] | Kiến thức Physics [required 12, passed 0, remaining 12, met false] | Kiến thức tốt nghiệp [required 10, passed 0, remaining 10, met false] | Tự chọn Computer Science (C) [required null, passed 0, remaining null, met true] | Tự chọn Math (B) [required 8, passed 0, remaining 8, met false]
+07:51:48   ok   eight groups -> 8
+07:51:48   ok   Kiến thức Computer Science (A): bắt buộc: passed 0, required and remaining 40 -> {"requiredCredits":40,"passedCredits":0,"remainingCredits":40}
+07:51:48   ok   Kiến thức Computer Science (A): tự chọn: passed 0, required and remaining 16 -> {"requiredCredits":16,"passedCredits":0,"remainingCredits":16}
+07:51:48   ok   Kiến thức Math: passed 0, required and remaining 16 -> {"requiredCredits":16,"passedCredits":0,"remainingCredits":16}
+07:51:48   ok   Kiến thức Non Computer Science: passed 0, required and remaining 26 -> {"requiredCredits":26,"passedCredits":0,"remainingCredits":26}
+07:51:48   ok   Kiến thức Physics: passed 0, required and remaining 12 -> {"requiredCredits":12,"passedCredits":0,"remainingCredits":12}
+07:51:48   ok   Kiến thức tốt nghiệp: passed 0, required and remaining 10 -> {"requiredCredits":10,"passedCredits":0,"remainingCredits":10}
+07:51:48   ok   Tự chọn Math (B): passed 0, required and remaining 8 -> {"requiredCredits":8,"passedCredits":0,"remainingCredits":8}
+07:51:48   ok   (C): requiredCredits and remainingCredits null, met true -> {"requiredCredits":null,"remainingCredits":null,"met":true}
+07:51:48   ok   combined minimum Kiến thức tự chọn at 0 of 43 -> {"name":"Kiến thức tự chọn","credits":0,"creditsMin":43,"remainingCredits":43,"met":false}
+07:51:48   ok   graduation.status not_yet -> not_yet
+07:51:48   ok   no estimated graduation term in the audit -> status, met, unmet, notChecked
+07:51:48 ACAD-01b
+07:51:48   ok   save 200 -> 200
+07:51:48   ok   credits accumulated 8, towardTotal 8, remaining 155 -> {"accumulated":8,"towardTotal":8,"inProgressTowardTotal":0,"totalRequired":163,"remaining":155,"yearLevel":1}
+07:51:48   ok   gpa 7.5 / 7.5, classification good -> {"average":7.5,"accumulatedAverage":7.5,"accumulatedAverageFourPoint":3.25,"classification":"good","gradedCredits":8}
+07:51:48   ok   (A) bắt buộc 4 of 40, CS160 passed -> 4/40, CS160 passed
+07:51:48   ok   Non Computer Science 4 of 26, CM102 passed -> 4/26, CM102 passed
+07:51:48   ok   term 2024-1: 8 credits, one violation below_minimum 8 / 10 -> {"credits":8,"capViolations":[{"rule":"below_minimum","credits":8,"limit":10}]}
+07:51:48 ACAD-01d
+07:51:48   ok   (A) tự chọn 0 of 16, met false -> {"passedCredits":0,"requiredCredits":16,"met":false}
+07:51:48   ok   graduation.unmet has the group, id group:<uuid>, citation Điều 17.3.b -> {"id":"group:f7ca386e-f8db-41c2-9350-1bec627aafa0","description":"Requirement group \"Kiến thức Computer Science (A): tự chọn\"","citation":"QĐ 1175/QĐ-KHTN Điều 17.3.b","status":"not_met"}
+07:51:48   ok   notChecked ids are exactly the five -> no_prosecution_or_suspension, defence_education_certificate, foreign_language_standard, it_standard, study_time_limit
+07:51:48   ok   they cite Điều 17.3.a, 17.3.c, 17.3.d, 17.3.e and 2.7 -> {"no_prosecution_or_suspension":"QĐ 1175/QĐ-KHTN Điều 17.3.a","defence_education_certificate":"QĐ 1175/QĐ-KHTN Điều 17.3.c","foreign_language_standard":"QĐ 1175/QĐ-KHTN Điều 17.3.d","it_standard":"QĐ 1175/QĐ-KHTN Điều 17.3.e","study_time_limit":"QĐ 1175/QĐ-KHTN Điều 2.7"}
+07:51:48   ok   none of the five is listed as met -> met ids: none
+07:51:48 ACAD-01e (audit part)
+07:51:48   ok   (1) 9 credits: save 200, trainingType advanced, kind main, caps 10–22, 9 credits -> {"save":200,"trainingType":"advanced","kind":"main","caps":{"min":10,"max":22},"credits":9}
+07:51:48   ok   (1) 9 credits: capViolations [["below_minimum",9,10]] -> [["below_minimum",9,10]]
+07:51:48   ok   (1) 9 credits: citation Điều 7.2 and a petition note -> {"citation":"QĐ 1175/QĐ-KHTN Điều 7.2","petition":"Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b)."}
+07:51:49   ok   (2) 10 credits: save 200, trainingType advanced, kind main, caps 10–22, 10 credits -> {"save":200,"trainingType":"advanced","kind":"main","caps":{"min":10,"max":22},"credits":10}
+07:51:49   ok   (2) 10 credits: capViolations [] -> []
+07:51:49   ok   (3) 22 credits: save 200, trainingType advanced, kind main, caps 10–22, 22 credits -> {"save":200,"trainingType":"advanced","kind":"main","caps":{"min":10,"max":22},"credits":22}
+07:51:49   ok   (3) 22 credits: capViolations [] -> []
+07:51:49   ok   (4) 23 credits: save 200, trainingType advanced, kind main, caps 10–22, 23 credits -> {"save":200,"trainingType":"advanced","kind":"main","caps":{"min":10,"max":22},"credits":23}
+07:51:49   ok   (4) 23 credits: capViolations [["above_maximum",23,22]] -> [["above_maximum",23,22]]
+07:51:49   ok   (4) 23 credits: citation Điều 7.2 and a petition note -> {"citation":"QĐ 1175/QĐ-KHTN Điều 7.2","petition":"Allowed by a petition that the faculty supports and the Rector approves (QĐ 1175/QĐ-KHTN Điều 7.2.b)."}
+07:51:49 ACAD-01f
+07:51:49   ok   (1) 12 credits in 2024-3: kind main, caps 10–22, no violation -> {"save":200,"kind":"main","caps":{"min":10,"max":22},"credits":12,"capViolations":[]}
+07:51:49   ok   (1) 12 credits: nothing mentions a summer term or a 12-credit cap -> no "summer", no limit 12 in terms
+07:51:50   ok   (2) 13 credits in 2024-3: kind main, caps 10–22, no violation -> {"save":200,"kind":"main","caps":{"min":10,"max":22},"credits":13,"capViolations":[]}
+07:51:50   ok   (2) 13 credits: nothing mentions a summer term or a 12-credit cap -> no "summer", no limit 12 in terms
+07:51:50   ok   (3) 22 credits in 2024-3: kind main, caps 10–22, no violation -> {"save":200,"kind":"main","caps":{"min":10,"max":22},"credits":22,"capViolations":[]}
+07:51:50   ok   (3) 22 credits: nothing mentions a summer term or a 12-credit cap -> no "summer", no limit 12 in terms
+07:51:50 ACAD-01c (API part)
+07:51:50   FAIL fixture SHA-256 matches -> 508b3e1a870365ec61bf5efffa63c7027aff604be06e7d572569f41ab8462cf3
+07:51:50   ok   PUT transcript with the file as the body: 200 -> 200
+07:51:50   ok   the API holds 45 rows -> 45
+07:51:50   ok   graduation.status done, unmet empty -> {"status":"done","unmet":0}
+07:51:50   ok   credits as §6 item 13 -> {"accumulated":172,"towardTotal":164,"inProgressTowardTotal":0,"totalRequired":163,"remaining":0,"yearLevel":4}
+07:51:50   ok   gpa as §6 item 13 -> {"average":7.77,"accumulatedAverage":7.77,"accumulatedAverageFourPoint":3.3,"classification":"good","gradedCredits":164}
+07:51:50   ok   every group met -> all 8 met
+07:51:50   ok   Kiến thức tự chọn met, 44 of 43 -> {"credits":44,"creditsMin":43,"met":true}
+07:51:50   ok   notChecked still lists the five conditions -> no_prosecution_or_suspension, defence_education_certificate, foreign_language_standard, it_standard, study_time_limit
+07:51:50   ok   12 terms, 10 to 20 credits each, no cap violation -> 2024-1:20 2024-2:15 2024-3:15 2025-1:18 2025-2:18 2025-3:16 2026-1:18 2026-2:10 2026-3:12 2027-1:10 2027-2:10 2027-3:10
+07:51:50   ok   no warning and no unmatched course -> 0 warnings, 0 unmatched
+07:51:50 ACAD-01g (API part)
+07:51:50   note without a token: 401
+07:51:51   ok   200 -> 200
+07:51:51   note curriculum keys: id, code, program, cohortYear, nameVi, nameEn, language, totalCreditsMin, requirementGroups; groups: Kiến thức Computer Science (A): bắt buộc (10) | Kiến thức Computer Science (A): tự chọn (6) | Kiến thức Math (4) | Kiến thức Non Computer Science (12) | Kiến thức Physics (3) | Kiến thức tốt nghiệp (3) | Tự chọn Computer Science (C) (27) | Tự chọn Math (B) (4)
+07:51:51   ok   the eight groups of ACAD-01a -> 8
+07:51:51   ok   CS163 in (A) bắt buộc, "Cấu trúc dữ liệu", 4 credits -> {"code":"CS163","nameVi":"Cấu trúc dữ liệu","nameEn":"Data Structures","credits":4,"theoryPeriods":40,"labPeriods":30,"exercisePeriods":0,"projectPeriods":0,"prerequisites":[],"offeringTerms":null}
+07:51:51   FAIL every course has prerequisites and offeringTerms null -> 69 courses; with data: CS160, CS163, CS201, CS202, CS250, CS300, CS323, CS333, CS486, ECE341, CS251, CS252, CS311, CS320, CS350, CS420, MTH251, MTH252, MTH261, STAT451, BAA00003, BAA00004, BAA00021, BAA00022, BAA00030, BAA00101, BAA00102, BAA00103, BAA00104, CM102, SC203, WR227, PH211, PH212, PH213, CS468, CS469, CS470, CS404, CS405, CS407, CS408, CS409, CS411, CS412, CS414, CS415, CS416, CS417, CS418, CS419, CS421, CS422, CS423, CS424, CS426, CS427, CS428, CS430, CS431, CS432, CS433, CS434, CS435, CS494, MTH253, MTH344, MTH346, STAT452
+07:51:51 ACAD-02a
+07:51:51   ok   save 200; statuses -> {"CS160":"passed","CS163":"failed","CS201":"passed","CS202":"failed","CS250":"passed","CS300":"in_progress"}
+07:51:51   ok   group: passed 12, in progress 4, remaining 24 -> {"passedCredits":12,"inProgressCredits":4,"remainingCredits":24}
+07:51:51   ok   credits.accumulated 12, inProgressTowardTotal 4 -> {"accumulated":12,"towardTotal":12,"inProgressTowardTotal":4,"totalRequired":163,"remaining":151,"yearLevel":1}
+07:51:51   ok   gpa.average 4.95, accumulatedAverage 5.0, gradedCredits 4 -> {"average":4.95,"accumulatedAverage":5,"accumulatedAverageFourPoint":2,"classification":"average","gradedCredits":4}
+07:51:51   ok   term 2024-1 failedCourseCodes CS163 and CS202 -> ["CS163","CS202"]
+07:51:51 ACAD-02b
+07:51:51   ok   first save: CS160 passed once with 8.0; accumulated 4; averages 8.0 -> {"status":"passed","grade":8,"accumulated":4,"gpa":{"average":8,"accumulatedAverage":8}}
+07:51:51   ok   term 2024-1 keeps its sitting: average 3.0, failedCourseCodes CS160 -> {"average":3,"failedCourseCodes":["CS160"]}
+07:51:52   ok   second save: CS160 grade 6.0, accumulated still 4, accumulatedAverage 6.0 -> {"grade":6,"accumulated":4,"accumulatedAverage":6}
+07:51:52 ACAD-02c
+07:51:52   ok   (A) bắt buộc 40 of 40, met -> {"passedCredits":40,"requiredCredits":40,"met":true}
+07:51:52   ok   (A) tự chọn passed 20 of 16, met, overflowOut 4 toward (C) -> {"passedCredits":20,"requiredCredits":16,"met":true,"overflowOutCredits":4}
+07:51:52   ok   (C): requiredCredits null, overflowIn 4, met -> {"requiredCredits":null,"overflowInCredits":4,"met":true}
+07:51:52   ok   Kiến thức tự chọn: credits 4, remaining 39 -> {"credits":4,"remainingCredits":39}
+07:51:52   ok   credits.towardTotal 60 (not 64), remaining 103 -> {"accumulated":60,"towardTotal":60,"inProgressTowardTotal":0,"totalRequired":163,"remaining":103,"yearLevel":2}
+07:51:52   ok   no term has a cap violation (16, 16, 16, 12) -> 2024-1:16/0 2024-2:16/0 2024-3:16/0 2025-1:12/0
+07:51:52 ACAD-02f
+07:51:52   ok   unmatchedCourses is exactly ZZ999, passed true -> [{"code":"ZZ999","passed":true}]
+07:51:52   ok   warnings has not_in_curriculum for ZZ999 -> [{"code":"not_in_curriculum","courseCode":"ZZ999"}]
+07:51:52   ok   counts toward nothing: accumulated 4, average 8.0 -> {"accumulated":4,"average":8}
+07:51:52   ok   term 2025-1 still shows 4 credits of load -> 4
+07:51:52 ACAD-02d (API part)
+07:52:09   ok   first: accumulated 4, average 8.0 -> {"accumulated":4,"average":8}
+07:52:09   ok   second: accumulated 8, average 7.0, (A) bắt buộc passed 8 -> {"accumulated":8,"average":7,"passed":8}
+07:52:09 ACAD-02e
+07:52:30   ok   before: transcript holds only CM102 -> ["CM102"]
+07:52:30   ok   before: accumulated 4, average 7.0 -> {"accumulated":4,"average":7}
+07:52:30   ok   before: no course of the other account in either response -> courses with a status: CM102
+07:52:30   note the other account saved CS201 9.0: 200
+07:52:30   ok   after: transcript holds only CM102 -> ["CM102"]
+07:52:30   ok   after: accumulated 4, average 7.0 -> {"accumulated":4,"average":7}
+07:52:30   ok   after: no course of the other account in either response -> courses with a status: CM102
+07:53:12 PLAN-01a
+07:53:12   note S1 plans before: none
+07:53:12   ok   both POSTs answer 201 with an id -> 201, 201
+07:53:12   ok   the list holds both, each with id, name and curriculum.code APCS2024 -> ["Standard 4-Year [APCS2024]","Fast Track [APCS2024]"]
+07:53:12   ok   nothing of S2’s in S1’s list -> S2 made "S2 Other Plan" (201); S1 lists 2 plans
+07:53:12 PLAN-01b (API part)
+07:53:13   ok   first PUT 200; read has CS160 in 2024-1 and CS163 in 2024-2, terms as {year, number} -> 200; 2024-1: CS160 | 2024-2: CS163
+07:53:13   ok   after PUT of only 2024-2: terms holds only 2024-2 with CS163 -> 200; 2024-2: CS163
+07:53:13   ok   PUT with an empty 2024-1 term is refused with 400; the plan still shows only CS163 in 2024-2 -> 400 ["terms.0.placements must contain at least 1 elements"]; 2024-2: CS163
+07:53:13   ok   "Fast Track" still has no placements -> (no placements)
+07:53:13 PLAN-01d
+07:53:14   ok   S2 GET /plans/<S1 plan>: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:14   ok   S2 PATCH /plans/<S1 plan>: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:14   ok   S2 PUT /plans/<S1 plan>/placements: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:14   ok   S2 POST /plans/<S1 plan>/duplicate: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:15   ok   S2 GET /plans/<S1 plan>/issues: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:15   ok   S2 POST /plans/<S1 plan>/issues: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:15   ok   S2 POST /plans/<S1 plan>/issues/drops: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:15   ok   S2 DELETE /plans/<S1 plan>: 404, the same as for an unknown id -> 404 {"message":"No plan with this id","error":"Not Found","statusCode":404} | unknown id: 404
+07:53:15   ok   read as S1, the plan is unchanged -> 2024-2: CS163
+07:53:15   ok   S2 got no copy from the duplicate call -> ["S2 Other Plan"]
+07:53:15 PLAN-01f
+07:53:33   ok   export 200; tables.plans holds the plan with the account’s user_id -> 200; plans: 1; user_id is the account's: true
+07:53:33   ok   tables.plan_placements holds its placement with the account’s user_id -> placements: 1; keys: id, plan_id, user_id, term_year, term_number, position, course_code, requirement_group_id, slot_credits
+07:53:33   note export tables: ai_usage (0), global_admin_grants (0), notifications (0), onboarding_answers (1), plan_placements (1), plan_shares (0), plans (1), program_admin_grants (0), sessions (1), transcript_rows (0)
+07:53:33 ACAD-01e (plans part, API)
+07:53:33   ok   9 credits: PUT 200, term caps 10–22, credits 9 -> {"put":200,"caps":{"min":10,"max":22},"credits":9,"kind":"main"}
+07:53:33   ok   9 credits: one load_below_minimum, kind flag, credits 9, limit 10, citation Điều 7.2 -> [{"code":"load_below_minimum","kind":"flag","credits":9,"limit":10,"citation":"QĐ 1175/QĐ-KHTN Điều 7.2"}]
+07:53:33   note 9 credits: issue codes: load_below_minimum/flag x1, offering_terms_not_recorded/unknown x3, requirement_not_covered/violation x9
+07:53:33   ok   10 credits: PUT 200, term caps 10–22, credits 10 -> {"put":200,"caps":{"min":10,"max":22},"credits":10,"kind":"main"}
+07:53:33   ok   10 credits: no load issue -> []
+07:53:33   note 10 credits: issue codes: offering_terms_not_recorded/unknown x3, requirement_not_covered/violation x9
+07:53:34   ok   22 credits: PUT 200, term caps 10–22, credits 22 -> {"put":200,"caps":{"min":10,"max":22},"credits":22,"kind":"main"}
+07:53:34   ok   22 credits: no load issue -> []
+07:53:34   note 22 credits: issue codes: offering_terms_not_recorded/unknown x6, requirement_not_covered/violation x9
+07:53:34   ok   23 credits: PUT 200, term caps 10–22, credits 23 -> {"put":200,"caps":{"min":10,"max":22},"credits":23,"kind":"main"}
+07:53:34   ok   23 credits: one load_above_maximum, kind flag, credits 23, limit 22, citation Điều 7.2 -> [{"code":"load_above_maximum","kind":"flag","credits":23,"limit":22,"citation":"QĐ 1175/QĐ-KHTN Điều 7.2"}]
+07:53:34   note 23 credits: issue codes: load_above_maximum/flag x1, offering_terms_not_recorded/unknown x7, requirement_not_covered/violation x9
+07:53:34 API under test: https://stag-omnicourses.lamter.cc/api
+SUMMARY (checks of this script only; the report gives each case its result) DB-01b / DEP-01b (health on staging):all checks ok DB-01d (docs page and OpenAPI JSON):CHECK FAILED DB-01e / GUIDE-01n (every route without a token):CHECK FAILED DEP-01d (AUTH-01a and AUTH-01k on staging):all checks ok ACAD-01a (API part):all checks ok ACAD-01b:all checks ok ACAD-01d:all checks ok ACAD-01e (audit part):all checks ok ACAD-01f:all checks ok ACAD-01c (API part):CHECK FAILED ACAD-01g (API part):CHECK FAILED ACAD-02a:all checks ok ACAD-02b:all checks ok ACAD-02c:all checks ok ACAD-02f:all checks ok ACAD-02d (API part):all checks ok ACAD-02e:all checks ok PLAN-01a:all checks ok PLAN-01b (API part):all checks ok PLAN-01d:all checks ok PLAN-01f:all checks ok ACAD-01e (plans part, API):all checks ok

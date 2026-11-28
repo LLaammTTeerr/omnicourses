@@ -1,0 +1,8 @@
+Chrome 144.0.7559.110, reducedMotion: reduce
+dashboard | light | 360: animations still running 0; color-contrast 1; other axe []
+  .delta: #0e7d4d on #e5efe8, 4.39:1 (needs 4.5:1), 9.0pt (12px) normal
+dashboard | light | 1280: animations still running 0; color-contrast 1; other axe []
+  .delta: #0e7d4d on #e5efe8, 4.39:1 (needs 4.5:1), 9.0pt (12px) normal
+dashboard | dark | 360: animations still running 0; color-contrast 0; other axe []
+dashboard | dark | 1280: animations still running 0; color-contrast 0; other axe []
+2 of 4 theme/width runs with a color-contrast violation
