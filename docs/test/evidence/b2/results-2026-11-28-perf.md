@@ -31,19 +31,27 @@ Every run drew its expected result; none was void (no 429, no `issues-failed`, e
 
 ### TC-B1-PERF-01b–h, 10:16:51–10:58:21Z
 
-`b1-regression/r28/perf-01-r28.mjs` (B1 cases 0.12: 4 s between dashboard loads; the dashboard's expected values are the figures it still shows), with `B1_EMAIL=b1-run-r28c-perf@example.com`, the P account the B1 regression made on 28 November (`b1-regression/r28/p-setup-perf-output.txt`). Output `b1-regression/r28/perf-01-r28-rerun-output.txt`, every duration in `b1-regression/r28/perf-01-2026-11-28T10-16-51-993Z.json`. PERF-01a passed earlier the same day ([results-b1-regression-2026-11-28.md](results-b1-regression-2026-11-28.md#4-tc-b1-perf-01-dashboard-and-audit-load-time)).
+`b1-regression/r28/perf-01-r28.mjs` (B1 cases 0.12: the dashboard's expected values are the figures it still shows; on pacing, see below), with `B1_EMAIL=b1-run-r28c-perf@example.com`, the P account the B1 regression made on 28 November (`b1-regression/r28/p-setup-perf-output.txt`). Output `b1-regression/r28/perf-01-r28-rerun-output.txt`, every duration in `b1-regression/r28/perf-01-2026-11-28T10-16-51-993Z.json`. PERF-01a passed earlier the same day ([results-b1-regression-2026-11-28.md](results-b1-regression-2026-11-28.md#4-tc-b1-perf-01-dashboard-and-audit-load-time)).
 
 | ID | Result | What happened |
 | --- | --- | --- |
 | PERF-01b | passed | `/api/health` ×10: 108–170 ms, each at least 50 ms; the largest JavaScript file 31,860 bytes, 157 ms. |
 | PERF-01c | passed | Dashboard, cold cache: 5 runs, median 795 ms, max 897 ms. |
-| PERF-01d | **failed: blocked by [#255](https://github.com/LLaammTTeerr/omnicourses/issues/255)** | Dashboard, warm cache: all 5 warm-ups and 30 runs timed out at 30 s. Not a slow page: the series signs in, opens the dashboard and reloads at once, while the first page's session refresh is still in flight; that reload signs the student out (#255), and every later reload stays on `/sign-in`. `warm-start-probe-r28.mjs` repeated that start 3 times per page under the profile: 2 of 6 reloads landed on `/sign-in` after `POST /api/auth/refresh` **failed `net::ERR_ABORTED`**, then **401** (`b1-regression/r28/warm-start-probe-r28-output.txt`). Without such an immediate reload, dashboard reloads draw every time (`perf-01-timeout-probe-settled-r28-output.txt`, until the 429 that #254 explains). |
+| PERF-01d | **blocked by [#255](https://github.com/LLaammTTeerr/omnicourses/issues/255)** | Dashboard, warm cache: all 5 warm-ups and 30 runs timed out at 30 s. Not a slow page: the series signs in, opens the dashboard and reloads at once, while the first page's session refresh is still in flight; that reload signs the student out (#255), and every later reload stays on `/sign-in`. `warm-start-probe-r28.mjs` repeated that start 3 times per page under the profile, in headless Chrome (it measures no time): 2 of 6 reloads landed on `/sign-in` after `POST /api/auth/refresh` **failed `net::ERR_ABORTED`**, then **401** (`b1-regression/r28/warm-start-probe-r28-output.txt`). Without such an immediate reload, dashboard reloads draw every time (`perf-01-timeout-probe-settled-r28-output.txt`, until the 429 that #254 explains). |
 | PERF-01e | passed | Dashboard in-app from **Guides**: 30 runs, median 147 ms, max 169 ms. |
-| PERF-01f | **failed** | Audit, cold cache: 5 runs, median 1,343 ms, max **2,636 ms**; **2 of 5** at or over 2 s. Each cold run is a new context with an empty cache under the profile; the morning's attempt (below) had all 5 under 2 s (max 939 ms). A run of 2 s or more fails the case and stays in the report (performance procedure, step 4). |
-| PERF-01g | **failed: blocked by #255** | Audit, warm cache: all 35 timed out, as in d. |
+| PERF-01f | **failed** | Audit, cold cache: 5 runs, median 1,343 ms, max **2,636 ms**; **2 of 5** at or over 2 s. Each cold run is a new context with an empty cache under the profile; the morning's attempt (below) had all 5 under 2 s (max 939 ms). The connection was slower during this series than at B2's PERF-01b: this series' own PERF-01b read health 108–170 ms, and its largest JavaScript file took 157 ms against about 75 ms predicted. Each timed load also started right after the sign-in's landing dashboard, whose 7 audit requests (#254) may still have been on the server (see pacing below). A run of 2 s or more fails the case and stays in the report (performance procedure, step 4). Filed as [#261](https://github.com/LLaammTTeerr/omnicourses/issues/261); it is rerun once #258 (one audit request per dashboard load) is on staging. |
+| PERF-01g | **blocked by #255** | Audit, warm cache: all 35 timed out, as in d. |
 | PERF-01h | passed | Audit in-app from **Guides**: 30 runs, median 144 ms, max 152 ms. |
 
-**For Lâm.** d and g measure nothing about speed while #255 is open. Either they stay "blocked by #255" and are retested with its fix, or the warm series waits for the first draw before its first reload (a case change), which avoids the race and times the reloads.
+**Decision (Lâm, 28 November).** d and g stay **blocked by #255** and are retested once its fix, #257 (`613f9f9`, on `main`), reaches staging; staging still served `4b038fe` after the run. The case does not change.
+
+**Pacing: a deviation from the case.** B1 cases 0.12 ask for at least 4 s between any two dashboard loads. The script's `PACE_MS` spaces only the timed runs:
+
+- Sign-in lands on `/dashboard`, and `signIn()` returns as soon as the address leaves `/sign-in`. In c, each cold timed dashboard load starts right after that landing load: two dashboard loads less than 4 s apart, 14 audit requests. In f, the timed `/audit` load starts while the landing dashboard's 7 audit requests may still be on the server.
+- `warm()` opens the page and reloads at once, which is the pair that meets #255.
+- The JSON has no per-run timestamps or HTTP status codes, so neither the pacing nor "no 429, none void" can be checked from it.
+
+The c pass stands: every run drew every value in under 2 s, and a 429 could only void a run, not make it pass. For the retest, `signIn()` waits for the landing dashboard to draw and starts the 4 s from there, `warm()` starts it after its opening page load, and the script records each API request's status code.
 
 ### Attempts not kept
 
