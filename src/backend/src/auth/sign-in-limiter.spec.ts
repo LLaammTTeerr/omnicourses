@@ -6,7 +6,6 @@ import { MINUTE_MS } from '../config/time.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 import { ARGON2_OPTIONS, AuthService, signInAttemptKey } from './auth.service.js';
-import { SignInAttempt } from './sign-in-attempt.entity.js';
 import { SignInLimiter } from './sign-in-limiter.js';
 
 function makeSignInAttemptRepo() {
@@ -227,7 +226,6 @@ describe('SignInLimiter', () => {
     await expect(
       secondInstance.signIn({ email: 'student@example.com', password: 'correct horse battery' }, 'vitest', '203.0.113.10'),
     ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
-    expect(SignInAttempt.name).toBe('SignInAttempt');
   });
 
   it('prunes only its own key under the advisory lock and purges other expired keys in small SKIP LOCKED batches outside it', async () => {
