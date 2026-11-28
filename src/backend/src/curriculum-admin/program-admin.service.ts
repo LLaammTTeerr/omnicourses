@@ -62,6 +62,7 @@ export class ProgramAdminService {
         nameVi: dto.nameVi,
         nameEn: trimmedOrNull(dto.nameEn),
         language: trimmedOrNull(dto.language),
+        totalCreditsMin: dto.totalCreditsMin ?? null,
       });
       return cohortDto(await curriculums.findOneByOrFail({ id: identifiers[0].id as string }));
     });

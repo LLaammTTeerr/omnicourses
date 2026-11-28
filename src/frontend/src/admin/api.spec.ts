@@ -69,8 +69,8 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
     ['AdminProgramListDto', { programs: 'required' } satisfies Shape<AdminProgramList>],
     ['AdminProgramDto', { id: 'required', code: 'required', nameVi: 'required', curricula: 'required' } satisfies Shape<AdminProgram>],
     ['AdminCurriculumDto', { id: 'required', code: 'required', cohortYear: 'required' } satisfies Shape<AdminCurriculum>],
-    ['CreateRequirementGroupDto', { name: 'required', kind: 'required', officialNotes: 'optional' } satisfies Shape<CreateGroupBody>],
-    ['UpdateRequirementGroupDto', { name: 'optional', kind: 'optional', officialNotes: 'optional' } satisfies Shape<UpdateGroupBody>],
+    ['CreateRequirementGroupDto', { name: 'required', kind: 'required', officialNotes: 'optional', creditsTotal: 'optional', creditsTotalMin: 'optional' } satisfies Shape<CreateGroupBody>],
+    ['UpdateRequirementGroupDto', { name: 'optional', kind: 'optional', officialNotes: 'optional', creditsTotal: 'optional', creditsTotalMin: 'optional' } satisfies Shape<UpdateGroupBody>],
     [
       'RequirementGroupAdminDto',
       {
@@ -96,8 +96,8 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
       'ProgramDetailsDto',
       { id: 'required', code: 'required', nameVi: 'required', nameEn: 'required', faculty: 'required', trainingType: 'required', updatedAt: 'required' } satisfies Shape<ProgramDetails>,
     ],
-    ['CreateCohortDto', { cohortYear: 'required', code: 'required', nameVi: 'required', nameEn: 'optional', language: 'optional' } satisfies Shape<CreateCohortBody>],
-    ['UpdateCohortDto', { nameVi: 'optional', nameEn: 'optional', language: 'optional' } satisfies Shape<UpdateCohortBody>],
+    ['CreateCohortDto', { cohortYear: 'required', code: 'required', nameVi: 'required', nameEn: 'optional', language: 'optional', totalCreditsMin: 'optional' } satisfies Shape<CreateCohortBody>],
+    ['UpdateCohortDto', { nameVi: 'optional', nameEn: 'optional', language: 'optional', totalCreditsMin: 'optional' } satisfies Shape<UpdateCohortBody>],
     [
       'CohortDetailsDto',
       {

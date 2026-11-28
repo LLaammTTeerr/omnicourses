@@ -5102,7 +5102,7 @@
               "number",
               "null"
             ],
-            "description": "Read-only here until the rule-engine handoff (ADR 0011). null for a cohort created through F12."
+            "description": "null: not recorded"
           },
           "updatedAt": {
             "type": "string",
@@ -5617,6 +5617,15 @@
             "maxLength": 10,
             "example": "en",
             "description": "Language of instruction, as text. Blank is stored as null."
+          },
+          "totalCreditsMin": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013)."
           }
         },
         "required": [
@@ -5785,6 +5794,24 @@
             ],
             "maxLength": 2000,
             "description": "The printed rule text"
+          },
+          "creditsTotal": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "A compulsory group only: the fixed credit total it prints (ADR 0005). null clears it."
+          },
+          "creditsTotalMin": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "An elective group only: the minimum credits a student takes from it (ADR 0005). null clears it."
           }
         },
         "required": [
@@ -8498,14 +8525,14 @@
               "number",
               "null"
             ],
-            "description": "Read-only here until the rule-engine handoff (ADR 0011)"
+            "description": "Set on a compulsory group only; null: not recorded"
           },
           "creditsTotalMin": {
             "type": [
               "number",
               "null"
             ],
-            "description": "Read-only here until the rule-engine handoff (ADR 0011)"
+            "description": "Set on an elective group only; null: no minimum recorded"
           },
           "updatedAt": {
             "type": "string",
@@ -9644,6 +9671,15 @@
               "null"
             ],
             "maxLength": 10
+          },
+          "totalCreditsMin": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013)."
           }
         }
       },
@@ -9764,7 +9800,7 @@
               "compulsory",
               "elective"
             ],
-            "description": "Refused while the group stores a credit total"
+            "description": "Refused when the group would then store the other kind's credit total; clear it in the same request"
           },
           "officialNotes": {
             "type": [
@@ -9772,6 +9808,24 @@
               "null"
             ],
             "maxLength": 2000
+          },
+          "creditsTotal": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "A compulsory group only: the fixed credit total it prints (ADR 0005). null clears it."
+          },
+          "creditsTotalMin": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "An elective group only: the minimum credits a student takes from it (ADR 0005). null clears it."
           }
         }
       },

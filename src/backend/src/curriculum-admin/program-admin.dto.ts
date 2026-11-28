@@ -7,6 +7,7 @@ import { TRAINING_TYPES, type TrainingType } from '../curriculum/curriculum-rule
 import { FACULTY_MAX_LENGTH } from '../curriculum/program.entity.js';
 import { MAX_ACADEMIC_YEAR, MIN_ACADEMIC_YEAR } from '../terms/term.js';
 import { CODE_MAX_LENGTH, NAME_MAX_LENGTH } from '../common/column-limits.js';
+import { CreditTotalField } from './curriculum-admin.dto.js';
 
 export const ADMIN_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const ADMIN_CODE_MESSAGE = 'code must be letters A-Z and digits, in parts joined by single hyphens (for example ZZ-PROG-2024)';
@@ -103,9 +104,12 @@ export class CreateCohortDto {
 
   @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH, example: 'en', description: 'Language of instruction, as text. Blank is stored as null.' })
   language?: string | null;
+
+  @CreditTotalField('The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013).')
+  totalCreditsMin?: number | null;
 }
 
-export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language'] as const;
+export const COHORT_FIELDS = ['nameVi', 'nameEn', 'language', 'totalCreditsMin'] as const;
 
 export class UpdateCohortDto {
   @ifPresent
@@ -117,6 +121,9 @@ export class UpdateCohortDto {
 
   @NullableTextField({ maxLength: LANGUAGE_MAX_LENGTH })
   language?: string | null;
+
+  @CreditTotalField('The minimum credits the cohort needs to graduate. null: not recorded, so the audit checks no cohort total (ADR 0013).')
+  totalCreditsMin?: number | null;
 }
 
 export class CohortDetailsDto {
@@ -141,7 +148,7 @@ export class CohortDetailsDto {
   @ApiProperty({ type: String, nullable: true })
   language!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Read-only here until the rule-engine handoff (ADR 0011). null for a cohort created through F12.' })
+  @ApiProperty({ type: Number, nullable: true, description: 'null: not recorded' })
   totalCreditsMin!: number | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
