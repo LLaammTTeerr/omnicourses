@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { graduationStatus } from './graduation.js';
+import { graduationStatus, NOT_CHECKED_CONDITIONS } from './graduation.js';
 import type { CombinedMinimumCoverage, CreditSummary, GroupCoverage } from './types.js';
 
 const makeCredits = (overrides: Partial<CreditSummary> = {}): CreditSummary => ({
@@ -68,6 +68,7 @@ describe('graduationStatus (ADR 0011, ADR 0013)', () => {
       'it_standard',
       'study_time_limit',
     ]);
+    expect(verdict.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
   });
 
   it('records total_credits as not_checked when totalRequired is null (ADR 0011 unrecorded cohort total)', () => {

@@ -154,11 +154,14 @@ describe('NotificationsView (F10, UC-12)', () => {
       [`POST /notifications/${TRANSCRIPT.id}/read`]: () =>
         new Promise<Response>((resolve) => (answer = () => resolve(Response.json({ ...TRANSCRIPT, readAt: '2026-12-02T04:00:00.000Z' })))),
     });
+    const push = vi.spyOn(router, 'push');
     await items(w)[2]!.get('[data-test="link-audit"]').trigger('click');
     await flushPromises();
+    expect(push).not.toHaveBeenCalled();
     expect(router.currentRoute.value.name).toBe('notifications');
     answer();
     await flushPromises();
+    expect(push).toHaveBeenCalledTimes(1);
     expect(router.currentRoute.value.name).toBe('audit');
   });
 
