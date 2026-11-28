@@ -1,5 +1,21 @@
 # @omnicourse/frontend
 
+## 0.7.0
+
+### Minor Changes
+
+- [#207](https://github.com/LLaammTTeerr/omnicourses/pull/207) [`3c4da22`](https://github.com/LLaammTTeerr/omnicourses/commit/3c4da22d6c715e57b15dc255d9a9bebf410266ab) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Harden security headers, auth session limits, rule-engine edge cases, database constraints/indexes, AI gateway billing/abort handling, WCAG 2.1 AA contrast, scoped CSS, route code splitting, and deploy rollback/nightly backups; ship deterministic transcript paste with diff review (F2), explorer readiness states and unlocks (F4), plan sharing and print-to-PDF screens (F9), and the school-date calendar administration screen (F10).
+
+- [#214](https://github.com/LLaammTTeerr/omnicourses/pull/214) [`778d120`](https://github.com/LLaammTTeerr/omnicourses/commit/778d1201c84ae769aefea2ce6ab80211ec6bc094) Thanks [@rakun68](https://github.com/rakun68)! - The dashboard now matches its prototype: a donut of every requirement group with hatched in-progress arcs, linked hover between the donut, the key and the group rows, a term scrubber with a picker that previews past terms, group spoilers grouped by planned term, a needs-attention list, and a strip with one cell per credit for each term.
+
+- [#217](https://github.com/LLaammTTeerr/omnicourses/pull/217) [`effb788`](https://github.com/LLaammTTeerr/omnicourses/commit/effb788fd82b9fd9f1a4c1e720c0e6c1a2f7bea3) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - Settings: add your student ID (MSSV) and class name, both optional, for the dashboard header. They are in your data export, deleted with your account, and never sent to an AI.
+
+### Patch Changes
+
+- [#210](https://github.com/LLaammTTeerr/omnicourses/pull/210) [`f9034ae`](https://github.com/LLaammTTeerr/omnicourses/commit/f9034ae51c01e0140385f6643a74fbf27622d34d) Thanks [@Rookie001MC](https://github.com/Rookie001MC)! - The admin "saved after all" notice now follows the language switch.
+
+- [#258](https://github.com/LLaammTTeerr/omnicourses/pull/258) [`713b7e2`](https://github.com/LLaammTTeerr/omnicourses/commit/713b7e28abe21f83f0b74b5e68c47821c42e1c49) Thanks [@LLaammTTeerr](https://github.com/LLaammTTeerr)! - The dashboard now loads the degree audit once, however many terms the record has, so reloading it no longer runs into the request limit. The audit API gives, for each term, the requirement groups, combined minimums and remaining credits as they stood at its end.
+
 ## 0.6.0
 
 ### Minor Changes
