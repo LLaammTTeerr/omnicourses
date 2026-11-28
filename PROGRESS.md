@@ -48,14 +48,14 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 16 | `refactor/cv-16-clc-seeds` | 08 | #235 (merged 28 Nov as 89d088f, approved by Dũng) | refactor(curriculum): write each CLC 2025 course once |
 | 17 | `refactor/cv-17-docs-and-extras` | 17 | #236 (merged 28 Nov as 69917fa, approved by Dũng) | docs: match decision records and architecture map to the code |
 | 18 | `refactor/cv-18-dashboard-folder` | 18 | #237 (merged 28 Nov as 07c0220, approved by Dũng) | refactor(dashboard): move the dashboard screen into its own folder |
-| 19 | `refactor/cv-19-route-contract` | 19 | #238 (ready, auto-merge on) | test(frontend): make mockApi refuse routes outside openapi.json |
-| 20 | `refactor/cv-20-tests-that-can-fail` | 20 | #239 (draft) | test: make weak tests able to fail and drop assertions that cannot |
+| 19 | `refactor/cv-19-route-contract` | 19 | #238 (merged 28 Nov as 3b0c704, approved by Dũng) | test(frontend): make mockApi refuse routes outside openapi.json |
+| 20 | `refactor/cv-20-tests-that-can-fail` | 20 | #239 (ready, auto-merge on) | test: make weak tests able to fail and drop assertions that cannot |
 | 21 | `refactor/cv-21-structure-adr` | 21 | #243 (draft) | docs(adr): record module boundaries, owners and their enforcement |
 | 22 | `refactor/cv-22-config-and-pins` | 22 | #244 (draft) | test(config): check settings, pinned versions and exact pins |
 | 23 | `refactor/cv-23-checks-that-can-fail` | 23 | #252 (draft) | test: fail on an unmatched coverage glob or an off-contract fetch |
 | 24 | `refactor/cv-24-entities-declare-constraints` | 24 | #253 (draft) | refactor(database): declare every migrated constraint on the entities |
 
-Base of the stack: `main` at 07c0220 (#237, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
+Base of the stack: `main` at 3b0c704 (#238, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
 ## State of the structure at the stack tip
 
