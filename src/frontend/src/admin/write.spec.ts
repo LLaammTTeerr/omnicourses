@@ -184,8 +184,8 @@ describe('useWrites', () => {
 
   it('signs the user out on a 401 and shows no problem: the shell takes them to sign in', async () => {
     const writes = useWrites();
-    mockApi({ 'PUT /admin/x': status(401) });
-    const result = await writes.send(() => requestAsUser('PUT', '/admin/x'), async () => false);
+    mockApi({ 'PUT /admin/access/users/u/programs/p': status(401) });
+    const result = await writes.send(() => requestAsUser('PUT', '/admin/access/users/u/programs/p'), async () => false);
     expect(result).toEqual({ outcome: 'refused', failure: { kind: 'signed_out' } });
     expect(writes.problem.value).toBeNull();
     expect(useAuth().signedIn).toBe(false);

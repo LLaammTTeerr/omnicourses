@@ -1,9 +1,18 @@
 import { vi } from 'vitest';
 import { API_URL } from '../api.js';
+import { contractHasRoute } from './contract.js';
 
 type Answer = unknown | ((init: RequestInit | undefined, url: string) => Response | Promise<Response>);
 
+function refuseRoutesOutsideContract(routes: Record<string, Answer>): void {
+  for (const key of Object.keys(routes)) {
+    const [method, path] = key.split(' ');
+    if (path === undefined || !contractHasRoute(method, path)) throw new Error(`Route is not in openapi.json: ${key}`);
+  }
+}
+
 export function mockApi(routes: Record<string, Answer>) {
+  refuseRoutesOutsideContract(routes);
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const path = String(input).slice(API_URL.length).split('?')[0];
     const key = `${init?.method ?? 'GET'} ${path}`;
