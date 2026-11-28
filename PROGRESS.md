@@ -66,6 +66,13 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 - Extras from the untangle skill, both, done last: remove comments that only restate the code; remove tests that could not catch a real bug and fix the ones that fail without one. Every removed test is listed in its PR with the reason it could not fail (AGENTS.md forbids weakening tests to pass CI).
 - Subagents: set model and effort on every call. Sonnet/medium for repetitive surveys, mechanical refactors and chores; Opus/medium for design judgment and reviews; more only for one named hard step.
 
+## Authorization for pushing, pull requests and Discord posts (goal section 9)
+
+- Lâm, in the session, 28 Nov 2026, answer to "How should the refactor reach main?": **"A PR per area (Recommended)"**, whose text was: "I open one small PR per area once it passes every check, with auto-merge on. A teammate approves. Each merge deploys production. I post one heads-up in the team channel first."
+- Lâm, same session: "do this task as a bunch of pull request stack on each other to prevent disruption", and "create new sprite in discord and occasionally report progress for me there".
+- Standing rules: the user's global instructions ("When work is done and checks pass, commit and push without asking, but only on a non-default branch"; never push to main, never force-push) and AGENTS.md ("Agents have full authority over the branch → PR → merge cycle"; merge only with green CI and a human approval; never the admin override).
+- Done under it: 22 pull requests opened (21 as drafts), auto-merge turned on for #220 only, reviewers requested on #220, one thread per PR and a progress thread in the sprite forum, three issues (#240 to #242). Nothing was merged, nothing was deployed, nothing was pushed to `main`, no force-push.
+
 ### Needs a decision (none blocks the stack; tracked in issues #240 and #241)
 
 1. BP-3a: should every 4xx carry a `code` (auth, account, plans, curriculum, guides, sharing answer with Nest's default body today)? Changes response bodies. And rename `AdminErrorDto` to `ApiErrorDto` (changes openapi.json)?
