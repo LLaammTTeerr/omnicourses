@@ -80,10 +80,7 @@ npm run dev:frontend     # http://localhost:5173
 Checks (the same ones CI runs):
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
+npm run verify                     # lint, typecheck, unit tests, build
 npm run test:e2e -w src/backend    # needs the database
 ```
 

@@ -15,20 +15,21 @@ PostgreSQL 18.6 · NestJS 12.1.3, Nest CLI 12.0.8, Swagger 12.0.2 · Vue 3.5.44 
 ```bash
 npm install                         # npm 11
 npm run db:up                       # PostgreSQL 18.6 via podman/docker compose
-npm run typecheck && npm test && npm run build
+npm run verify                      # lint, typecheck, unit tests and build: what CI runs without the database and browser jobs
 npm run test:e2e -w src/backend     # needs the database (DATABASE_URL)
 npm run openapi -w src/backend      # after build; rewrites the committed openapi.json
 ```
 
-Run typecheck, tests and build before every push. Run e2e when you touch the backend.
+Run `npm run verify` before every push. Run e2e when you touch the backend.
 
 ## Conventions
 
 - **English everywhere**: code, commits, PR descriptions, docs.
 - **Code style**: one job per function, short functions, meaningful names, no magic numbers (name a constant), no repeated logic, and no needless splitting across files. **No comments**: the code is the source of truth. A fact the code cannot show goes into a name, a constant, an ADR or a doc.
+- A new import across backend folders, frontend feature folders or frontend layers must be added to `scripts/layers.mjs` on purpose, or `npm run lint` fails.
 - Backend: one Nest module per feature folder (`src/backend/src/<feature>/`), listed in `src/features.ts` (the app and the OpenAPI contract both load that list). The module registers its own entities with `TypeOrmModule.forFeature`. DTOs with `@ApiProperty` so the OpenAPI contract stays complete, relative imports with `.js` suffix (NodeNext). Schema changes via TypeORM migrations, each added to `src/database/migrations/index.ts`; `synchronize` stays `false`. Read settings through the getters in `src/config/env.ts`, not `process.env`. Seed data: export `seed(dataSource, options)` from your feature and call it from `src/database/seed.ts`.
 - `src/backend/openapi.json` is committed: after an API change, run `npm run build && npm run openapi -w src/backend` and commit the result, or a unit test fails.
-- Frontend: `<script setup lang="ts">` SFCs, Pinia for shared state, API calls in `src/frontend/src/api.ts` (or a sibling module), not inside components.
+- Frontend: `<script setup lang="ts">` SFCs, Pinia for shared state, API calls in a feature's api module, which builds on `src/frontend/src/api.ts`, not inside components. `fetch(` itself appears only in `api.ts` (lint enforces it).
 - Tests sit next to the code as `*.spec.ts`; backend e2e in `src/backend/test/*.e2e-spec.ts`, booting the app and users through `src/backend/test/support/`.
 - Guides (F11) may be drafted or translated with an AI tool. Every portal address, label and step still comes from the school's pages or the portal, checked by a person who records "Last checked".
 
