@@ -1,0 +1,11 @@
+2026-11-28T06:08:12.961Z a-plan-01 d
+2026-11-28T06:08:13.227Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s15@example.com → 200
+2026-11-28T06:08:18.333Z plan a1e740c8-7b68-4766-85ad-7f6c7231b528; board {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":["CS420"],"2026-3":["slot"]}
+--- PLAN-01d (2)
+  requests POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops 200; wrapper ["drops delayed at 1795","drops sent at 3168 (not delayed)"]
+  row placeholders/reasons seen during the CS163 drag: ["2026-1:|Not checked: CS163: offering terms not recorded yet.","2026-2:|Not checked: CS163: offering terms not recorded yet.","2026-3:CS163+4 cr|Not checked: CS163: offering terms not recorded yet."]; issues-preview "Preview: CS163 → Term 3 2026–2027 · same number of violations"
+ok   PLAN-01d: (2) after the CS420 drag is cancelled, its late preview never shows: no row names CS420 during or after the CS163 drag; no PUT | observed: {"writes":"none"}
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+  reloaded to clear the wrapper; API: 2026-1: CS160,CS201,CS202,MTH251,CS469 | 2026-2: CS420 | 2026-3: slot(4)
+2026-11-28T06:08:30.374Z All checks ok

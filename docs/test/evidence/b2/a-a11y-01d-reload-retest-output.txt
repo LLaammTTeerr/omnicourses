@@ -1,0 +1,14 @@
+2026-11-28T06:03:00.360Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-a3@example.com → 200
+ok   A11Y-01d reload: /admin/catalog: English stays after the reload | observed: {"lang":"en","title":"Administration · OmniCourse","h1":"Administration","tabs":["Course catalog","CSV import"]}
+ok   A11Y-01d reload: /admin/catalog: Vietnamese again after switching back and reloading | observed: {"lang":"vi","h1":"Quản trị"}
+  UI sign-in b2-a1@example.com → 200
+ok   A11Y-01d reload: /admin/curriculum: English stays after the reload | observed: {"lang":"en","title":"Administration · OmniCourse","h1":"Administration","tabs":["Requirement groups","School calendar","CSV import"]}
+ok   A11Y-01d reload: /admin/curriculum: Vietnamese again after switching back and reloading | observed: {"lang":"vi","h1":"Quản trị"}
+  UI sign-in b2-a4@example.com → 200
+ok   A11Y-01d reload: /admin/access: English stays after the reload | observed: {"lang":"en","title":"Administration · OmniCourse","h1":"Administration","tabs":["Access"]}
+ok   A11Y-01d reload: /admin/access: Vietnamese again after switching back and reloading | observed: {"lang":"vi","h1":"Quản trị"}
+  UI sign-in b2-s1@example.com → 200
+ok   A11Y-01d reload: /admin: English stays after the reload | observed: {"lang":"en","title":"Administration · OmniCourse","h1":"Administration","tabs":[]}
+ok   A11Y-01d reload: /admin: Vietnamese again after switching back and reloading | observed: {"lang":"vi","h1":"Quản trị"}
+2026-11-28T06:03:29.169Z All checks ok
