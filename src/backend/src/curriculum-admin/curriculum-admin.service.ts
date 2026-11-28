@@ -4,7 +4,7 @@ import { conflict, notFound, validationFailed } from '../common/api-errors.js';
 import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { sentFields, trimmedOrNull } from '../common/field-validators.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
-import { prerequisiteCycle, REFERENCES, referencedItem } from './admin-errors.js';
+import { prerequisiteCycle, referencedItem } from './admin-errors.js';
 import { catalogHas, cohortIn, courseCodeOr400, groupIn, noCatalogCourse } from './admin-lookups.js';
 import { AdminWriteService } from '../admin-access/admin-write.service.js';
 import {
@@ -20,6 +20,7 @@ import {
 } from './curriculum-admin.dto.js';
 import { userGrants } from './user-grants.js';
 import { findPrerequisiteCycle } from './prerequisite-cycle.js';
+import { REFERENCES } from './references.js';
 
 const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
