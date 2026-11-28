@@ -335,6 +335,7 @@ Each ADR file states its own status; this table does not copy it. Number 0016 is
 | [0017 Academic calendar](adr/0017-academic-calendar.md) | `academic-calendar`; the calendar page |
 | [0018 Notification inbox](adr/0018-notification-inbox.md) | `notifications`; the inbox and what creates a notification |
 | [0019 Storing the student ID and the class name](adr/0019-student-id-and-class-name.md) | `users`; the Settings profile form; the dashboard header |
+| [0020 Module boundaries, their owners and how they are enforced](adr/0020-module-boundaries-and-their-enforcement.md) | `scripts/layers.mjs` and `scripts/lint.mjs`; `common`, `config`, `users/account-state.ts`, `admin-access`, `curriculum/curriculum-rules.ts`; the frontend layers, each feature's `routes.ts`, `dashboard`; the contract checks of the frontend specs |
 
 ### Revisions in this version
 

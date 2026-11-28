@@ -1,0 +1,51 @@
+# ADR 0020: Module boundaries, their owners and how they are enforced
+
+- Status: proposed
+- Date: 2026-11-28
+- Deciders: Lâm (Project Lead) asked for the work (28 November 2026: converge the codebase so that one change lands in one place and people and agents can work in parallel). The decisions below are the builder's proposal, so the status stays **proposed** until Lâm accepts it.
+- Reviewers: Triết (backend, architecture document), Hoà (frontend)
+
+## Context
+
+AGENTS.md asks for an ADR when a decision outlives one pull request, and names a new module boundary as an example. Until now the boundaries of this codebase were prose: "one Nest module per feature folder", "API calls in `api.ts`", "read settings through `config/env.ts`". Two untangle passes (9 and 26 November 2026) cleaned the structure by hand, and the next large pull request (#207) added two cross-module imports that nobody had to decide on (`notifications` to `academic-calendar`, `sharing` to `plans`). The backend had the folder cycles `curriculum <-> curriculum-admin <-> database` and `auth <-> users`. On the frontend the root folder held both the shared leaves and the composition root, so every feature folder was in one cycle with every other.
+
+Several concepts also had no single owner. "This account is waiting for deletion" was read in nine places in five modules, mostly inside raw SQL. Database lock keys were numbers in three modules. The coded error body `{ statusCode, code, message }` was built by helpers and also by hand. The rule engine took its input types from a Nest injectable and from TypeORM entity files.
+
+This ADR records what the stack of pull requests #220 to #239 decided, so the next change follows it without reading twenty pull requests. The lists themselves are not copied here: `scripts/layers.mjs` is their only home.
+
+## Decisions
+
+| Decision | Alternatives rejected | Evidence |
+| --- | --- | --- |
+| **An import across folders is a line in a list.** `scripts/layers.mjs` lists every allowed import between backend folders (`backendEdges`) and between frontend feature folders (`frontendFeatureEdges`). `npm run lint` fails on an import whose edge is not listed, and on a listed edge that no code uses any more, so the lists change only on purpose and a reviewer sees the line. Files directly in `src/backend/src` are the composition root and may import anything. | A dependency checker such as dependency-cruiser or eslint-plugin-boundaries: a new dependency and a second configuration language, in a repo that has no ESLint and already runs `scripts/lint.mjs`. Prose only: it held for neither untangle pass. Forbidding the existing cycles at once: they needed code changes first; listed, they could not grow meanwhile. | Rules `backend-import-direction` and `frontend-feature-edges` in `scripts/lint.mjs`, each with a failing and a passing case in `scripts/lint.test.mjs`; #220 |
+| **The frontend has three layers, over the files where they are.** Kernel files (`frontendKernel`: the HTTP client, the session store, locale, shared components, the shell kit) import only kernel files. Composition files (`frontendComposition`: `main.ts`, `App.vue`, `router.ts`, the shell frame) may import anything and are imported only by each other. Every other file is a feature file: it may import kernel and feature files, never composition. | Moving the kernel files into a folder of their own: about a hundred import lines would change in every open branch for the same guarantee. | Rule `frontend-layers`; `frontendLayerExceptions` is empty since #224 |
+| **`common/` and `config/` import no feature folder.** A DTO class that names a domain value lives with that value (`TermDto` in `terms/`). | Keeping shared DTO classes in `common/`: fifteen folders then depend on every domain folder `common/` reaches. | No `common -> ...` or `config -> ...` edge in `backendEdges`; #223 |
+| **The rule engine's input vocabulary is a plain file**, `curriculum/curriculum-rules.ts`, with no Nest or TypeORM import, and the purity check of the engine also follows type-only imports. | Leaving the types in the reader class and the entity files: the engine was pure at run time only, which blocks the shared package of [ADR 0015](0015-rule-engine-in-the-browser.md). Putting them in `rules/types.ts`: entities would import `rules` while `rules` imports `curriculum`. | `rules/rules.service.spec.ts` fails on a planted `import type` from `typeorm`; #223 |
+| **One owner for each of these, and the others call it:** database lock keys (`common/advisory-locks.ts`); "account waiting for deletion" and the lock on the student's `users` row (`users/account-state.ts`); the coded error body (`common/api-errors.ts`); "may this caller write" for administration (`admin-access/`, its own module, used by `curriculum-admin` and `academic-calendar`); a feature's seed data (inside the feature: `curriculum/seeds/`); a course's status, the record before a term and the two prerequisite policies (`rules/attempts.ts`, `rules/prerequisites.ts`). | Leaving each copy where it was: a change to what "waiting for deletion" means needed nine edits, three of them inside SQL strings; a new lock meant searching for every number in use. An event bus for account deletion: the work must share the caller's transaction. | Rules `identifier-home` (the column name stays inside `users/` and the migrations) and `coded-error-home`; the uniqueness spec of the lock keys; SQL pinned byte for byte in `admin-access/admin-write.service.spec.ts` and the plans, transcript and sharing specs; #222, #225, #229, #231, #234 |
+| **A feature owns its route records and its app-wide effects.** Each frontend feature folder has `routes.ts`; `router.ts` keeps the guards and one ordered list. Effects that follow the session (loading the administration grants, polling the unread count) are composables of their feature that `App.vue` calls. A screen that composes several features is a feature of its own (`dashboard/`). | Discovering routes by glob: the menu order would hide in a number field. The dashboard inside `audit/`: the degree audit then imports four features and `audit` and `plans` import each other. | The route table is byte-identical before and after (#233, #237); `shell/nav.spec.ts` |
+| **The frontend's hand-written API types are checked against `openapi.json` mechanically.** Every schema needs a contract check or a place on a named list; nullable fields are compared; the test API mock refuses a route the contract does not have. A spec that finds files does so with `node:fs` when it runs. | Generated API types: rejected in architecture.md (the generator needs TypeScript 5). `import.meta.glob` in specs: Vitest caches transformed modules, so the file list goes stale on a developer's machine. | `contract-coverage.spec.ts`, `testing/contract.ts`, `testing/fetch.ts`; #232, #238 |
+
+## Accepted exceptions
+
+Each is listed where the rule lives, so it cannot spread without an edit there.
+
+- **`auth <-> users` (backend).** The users controller uses the auth decorators, and those name the `User` type. There is no cycle between files and none at run time. Moving the decorators would touch about twenty importers for no change in behaviour.
+- **The three curriculum entity files import each other.** TypeORM relations need both ends.
+- **`plans <-> sharing` (frontend).** The plan editor opens the share dialog, and the shared page reuses the plan components.
+- **`audit -> plans` (backend).** `CreditCapsDto` lives in `plans/plan-issues.dto.ts`. `rules/` would be the closer home, but the purity check of the engine exempts only its loader files.
+- **`CapMeter` and `IssueCard` take a `variant`.** The plan editor and the shared plan page differ in nine small style details. They are kept until the frontend owner says whether the two should look the same.
+- **`codedError` takes fields before or after the message.** It keeps the key order of the bodies the API already sends.
+
+## Consequences
+
+- A pull request that adds an import across backend folders, across frontend feature folders or against the frontend layers also adds one line to `scripts/layers.mjs`, or `npm run lint` fails. The ruleset does not require a branch to be up to date, so a pull request that was green can still turn `main` red when another one lands first; the fix is that one line.
+- A new backend module must be reachable from `features.ts` and named in the module table of architecture.md, or lint fails.
+- A write that must stop for an account waiting for deletion calls `users/account-state.ts`; it does not read the column.
+- A frontend test cannot mock a route before the route is in `openapi.json`.
+
+## When to look at this again
+
+- When the shared rules package of ADR 0015 is built: the engine vocabulary moves into it and the purity check becomes the package boundary.
+- When the open pull request for the advisor (#77) lands: `ai/` should own the shape of its settings, which `config/env.ts` holds today.
+- If the repo adopts ESLint: an import-boundary plugin could then replace the import rules of `scripts/lint.mjs`.
+- If `frontendFeatureEdges` stops shrinking and most features import most others: the feature folders no longer match how the screens change together.
