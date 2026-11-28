@@ -1,11 +1,13 @@
 import type { Lang } from '../locale.js';
 import type { PlanIssue, PlanIssueCode, PlanIssueKind } from './api.js';
 
+export type WordedIssue = Pick<PlanIssue, 'code' | 'term' | 'courseCode' | 'offeredTermNumbers' | 'credits' | 'limit'> & Partial<Pick<PlanIssue, 'missingCourseCodes' | 'requirementGroupId' | 'combinedMinimumId'>>;
+
 export interface IssueContext {
-  requirementName: (issue: PlanIssue) => string | null;
+  requirementName: (issue: WordedIssue) => string | null;
 }
 
-type Worder = (issue: PlanIssue, ctx: IssueContext) => string;
+type Worder = (issue: WordedIssue, ctx: IssueContext) => string;
 
 interface PlannerMessages {
   title: string;
@@ -170,7 +172,8 @@ interface PlannerMessages {
 }
 
 const list = (codes: readonly (string | number)[]) => codes.join(', ');
-const code = (issue: PlanIssue) => issue.courseCode ?? '?';
+const code = (issue: WordedIssue) => issue.courseCode ?? '?';
+const missing = (issue: WordedIssue) => issue.missingCourseCodes ?? [];
 const UNKNOWN_WHAT: Record<Lang, Partial<Record<PlanIssueCode, string>>> = {
   vi: { prerequisites_not_recorded: 'môn tiên quyết', offering_terms_not_recorded: 'học kỳ mở môn', credits_not_recorded: 'số tín chỉ', caps_not_checked: 'giới hạn tín chỉ', load_not_checked: 'số tín chỉ của học kỳ' },
   en: { prerequisites_not_recorded: 'prerequisites', offering_terms_not_recorded: 'offering terms', credits_not_recorded: 'credits', caps_not_checked: 'credit caps', load_not_checked: 'term load' },
@@ -359,7 +362,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     met: 'Đủ',
     short: (n) => `Thiếu ${n} TC`,
     issue: {
-      prerequisite_not_met: (i) => `${code(i)} cần học xong ${list(i.missingCourseCodes)} ở một học kỳ trước.`,
+      prerequisite_not_met: (i) => `${code(i)} cần học xong ${list(missing(i))} ở một học kỳ trước.`,
       prerequisites_not_recorded: (i) => `${code(i)}: chưa ghi nhận môn tiên quyết.`,
       not_offered: (i) => `${code(i)} không mở ở HK${i.term?.number ?? '?'}; chỉ mở HK${list(i.offeredTermNumbers)}.`,
       offering_terms_not_recorded: (i) => `${code(i)}: chưa ghi nhận học kỳ mở môn.`,
@@ -375,7 +378,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
       requirement_not_covered: (i, ctx) =>
         `${ctx.requirementName(i) ?? 'Tổng số tín chỉ'} còn thiếu` +
         (i.limit === null ? '' : `: ${i.credits ?? 0}/${i.limit} TC`) +
-        (i.missingCourseCodes.length ? `; chưa xếp ${list(i.missingCourseCodes)}.` : '.'),
+        (missing(i).length ? `; chưa xếp ${list(missing(i))}.` : '.'),
     },
   },
   en: {
@@ -562,7 +565,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
     met: 'Met',
     short: (n) => `${n} cr short`,
     issue: {
-      prerequisite_not_met: (i) => `${code(i)} needs ${list(i.missingCourseCodes)} passed or placed in an earlier term.`,
+      prerequisite_not_met: (i) => `${code(i)} needs ${list(missing(i))} passed or placed in an earlier term.`,
       prerequisites_not_recorded: (i) => `${code(i)}: prerequisites not recorded yet.`,
       not_offered: (i) => `${code(i)} is not taught in term ${i.term?.number ?? '?'}; it is taught in term ${list(i.offeredTermNumbers)}.`,
       offering_terms_not_recorded: (i) => `${code(i)}: offering terms not recorded yet.`,
@@ -578,7 +581,7 @@ export const PLANNER_MESSAGES: Record<Lang, PlannerMessages> = {
       requirement_not_covered: (i, ctx) =>
         `${ctx.requirementName(i) ?? 'Total credits'} still short` +
         (i.limit === null ? '' : `: ${i.credits ?? 0}/${i.limit} credits`) +
-        (i.missingCourseCodes.length ? `; not placed: ${list(i.missingCourseCodes)}.` : '.'),
+        (missing(i).length ? `; not placed: ${list(missing(i))}.` : '.'),
     },
   },
 };

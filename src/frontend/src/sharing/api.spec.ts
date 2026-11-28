@@ -11,7 +11,6 @@ import {
   sharedPlanUrl,
   stopPlanShare,
   updatePlanShare,
-  type NotShared,
   type PlanShare,
   type PlanShareState,
   type SharePlanBody,
@@ -114,7 +113,7 @@ describe('sharing types against the contract (F9, ADR 0010)', () => {
         coverage: 'optional',
       } satisfies Shape<SharedPlan>,
     ],
-    ['NotSharedDto', { statusCode: 'required', message: 'required', error: 'required' } satisfies Shape<NotShared>],
+    ['NotSharedDto', { statusCode: 'required', message: 'required', error: 'required' } satisfies Shape<{ statusCode: number; message: string; error: string }>],
   ])('has the fields of %s', (schema, shape) => {
     expect(contractShape(schema)).toEqual(shape);
   });

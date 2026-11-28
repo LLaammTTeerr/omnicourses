@@ -6,30 +6,13 @@ import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '.
 import { courseName, groupColour, orderGroups } from '../curriculum/present.js';
 import { GROUPS, groupClass, type GroupId } from '../groups.js';
 import { LANGUAGES, useLocale, useMessages } from '../locale.js';
-import type { IconName } from '../shell/icons.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import { currentTermNow, termKey, termName, type Term } from '../terms.js';
 import type { Plan, PlanIssue, PlanIssueCode, PlanIssueKind, PlanTermLoad } from './api.js';
 import { compareTerms, findTile, isHome, type AttachedIssues, type Board, type Moving, type Row, type Tile } from './board.js';
-import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
+import { BAR_CODES, capOf, meter, toneOf, type CapState, type Meter } from './issue-view.js';
+import { PLANNER_MESSAGES, type IssueContext, type WordedIssue } from './messages.js';
 import type { RowPreview } from './session.js';
-
-export const ISSUE_KINDS_SHOWN = ['violation', 'flag', 'unknown'] as const satisfies readonly PlanIssueKind[];
-
-export const KIND_STYLE: Record<PlanIssueKind, { icon: IconName; tone: 'bad' | 'warn' | 'line' }> = {
-  violation: { icon: 'alert', tone: 'bad' },
-  flag: { icon: 'info', tone: 'warn' },
-  unknown: { icon: 'info', tone: 'line' },
-};
-
-export function strongest(issues: readonly PlanIssue[] | undefined): PlanIssueKind | null {
-  for (const kind of ISSUE_KINDS_SHOWN) if (issues?.some((issue) => issue.kind === kind)) return kind;
-  return null;
-}
-
-export const BAR_CODES: ReadonlySet<PlanIssueCode> = new Set(['load_above_maximum', 'load_below_minimum']);
-
-export const METER_HEADROOM_CREDITS = 6;
 
 const GRADE_DECIMALS = 1;
 
@@ -69,39 +52,13 @@ export interface RowView {
   now: boolean;
   when: string;
   load: { atLeast: boolean; caps: string; credits: number; max: number | null; delta: number } | null;
-  meter: { fill: number; from: number; to: number; min: number | null; minLabel: number | null; max: number; maxLabel: number } | null;
-  cap: 'under' | 'over' | 'ok' | '';
+  meter: Meter | null;
+  cap: CapState;
   tone: string;
   drop: { tone: string; reason: string } | null;
   placeholder: Placeholder | null;
   issues: PlanIssue[];
   tiles: TileView[];
-}
-
-export function capOf(issues: readonly PlanIssue[], credits: number): RowView['cap'] {
-  if (issues.some((i) => i.code === 'load_above_maximum')) return 'over';
-  if (issues.some((i) => i.code === 'load_below_minimum')) return 'under';
-  return credits > 0 ? 'ok' : '';
-}
-
-export function toneOf(issues: readonly PlanIssue[]): string {
-  const kind = strongest(issues.filter((i) => i.kind !== 'unknown'));
-  return kind ? `has-${kind}` : '';
-}
-
-export function meter(load: PlanTermLoad | null, base: number): RowView['meter'] {
-  if (!load?.caps) return null;
-  const scale = load.caps.max + METER_HEADROOM_CREDITS;
-  const pct = (n: number) => Math.max(0, Math.min(100, (n / scale) * 100));
-  return {
-    fill: pct(Math.min(base, load.credits)),
-    from: pct(Math.min(base, load.credits)),
-    to: pct(Math.max(base, load.credits)),
-    min: load.caps.min === null ? null : pct(load.caps.min),
-    minLabel: load.caps.min,
-    max: pct(load.caps.max),
-    maxLabel: load.caps.max,
-  };
 }
 
 export function commonestCredits(group: RequirementGroup): number {
@@ -210,7 +167,7 @@ export function usePlanView({ board, issues, courses, moving, previews, lifted, 
   }
 
   const ctx = computed<IssueContext>(() => ({
-    requirementName: (issue: PlanIssue) => {
+    requirementName: (issue: WordedIssue) => {
       const coverage = issues.value?.report.coverage;
       if (issue.requirementGroupId) return coverage?.groups.find((g) => g.id === issue.requirementGroupId)?.name ?? null;
       if (issue.combinedMinimumId) return coverage?.combinedMinimums.find((c) => c.id === issue.combinedMinimumId)?.name ?? null;

@@ -6,8 +6,8 @@ import { REGULATION_URL } from '../shell/messages.js';
 import { termKey, termName } from '../terms.js';
 import type { PlanIssue, PlanIssueKind } from './api.js';
 import type { AttachedIssues } from './board.js';
+import { clause, ISSUE_KINDS_SHOWN, KIND_STYLE } from './issue-view.js';
 import { PLANNER_MESSAGES, type IssueContext } from './messages.js';
-import { ISSUE_KINDS_SHOWN, KIND_STYLE } from './present.js';
 
 const props = defineProps<{
   attached: AttachedIssues | null;
@@ -47,7 +47,6 @@ const previewNew = computed(() => cards.value.filter((c) => c.state === 'new' &&
 const previewDelta = computed(() => (props.preview?.attached ? violationsOf(props.preview.attached).length - violationsOf(props.attached).length : null));
 const count = computed(() => violationsOf(props.preview?.attached ?? props.attached).length);
 
-const clause = (citation: string) => /Điều\s+[\w.]+/.exec(citation)?.[0] ?? null;
 function onRailClick(e: MouseEvent): void {
   if (props.collapsed && !(e.target as Element).closest('[data-test="issues-toggle"]')) emit('toggle');
 }
