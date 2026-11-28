@@ -58,7 +58,7 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. St
 | 25 Nov, 13:17–13:51 | `e7bd617` | NOTIF-01a–j, SHARE-01a–l, ADM-04a–g | [`results-2026-11-25-notif-share-adm04.md`](evidence/b2/results-2026-11-25-notif-share-adm04.md) | #173 |
 | 25 Nov, 14:35 | `e7bd617` | ADM-03a–f | the same file, ADM-03 section | #176 |
 | 28 Nov, 05:51–06:30 | `778d120` | NOTIF-01d(2), NOTIF-01j, SHARE-01l, TRN-01a–g, PLAN-01a–f, PLAN-02a and c (retests), A11Y-01d–f (retests), export and text-limit retests (#174, #163), PERF-01a–f | [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md) | #246 |
-| 28 Nov, 07:44 | `4b038fe` | ADM-03g, ADM-03c (5) and ADM-03d (3) (reruns) | [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md) | this PR |
+| 28 Nov, 07:44 | `4b038fe` | ADM-03g, ADM-03c (5) and ADM-03d (3) (reruns) | [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md) | #251 |
 
 | Item | Used |
 | --- | --- |
