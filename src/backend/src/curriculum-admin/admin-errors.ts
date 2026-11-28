@@ -62,4 +62,3 @@ export const compressedBody = () =>
 
 export const referencedItem = (message: string, references: string[]) => conflict('referenced_item', message, { references });
 
-export { type CountedReference, REFERENCES } from './references.js';
