@@ -187,7 +187,7 @@ C4Component
   Container_Boundary(spa, "Single-page app") {
     Component(shell, "App shell", "App.vue, app.ts, shell/", "Header, sidebar, language and theme, toasts, global styles")
     Component(router, "Router", "vue-router, router.ts", "Routes, sign-in and onboarding guards, scroll position")
-    Component(features, "Feature folders", "auth/, onboarding/, transcript/, audit/, explorer/, plans/, sharing/, calendar/, notifications/, guides/, account/, privacy/, admin/", "One folder per feature: views, api.ts, messages")
+    Component(features, "Feature folders", "auth/, onboarding/, transcript/, audit/, dashboard/, explorer/, plans/, sharing/, calendar/, notifications/, guides/, account/, privacy/, admin/", "One folder per feature: views, api.ts, messages")
     Component(session, "Session store", "auth/store.ts, Pinia", "Bearer token, refresh, sign-out")
     Component(apiclient, "API client", "api.ts", "API base URL, request helpers")
     Component(types, "API types", "TypeScript", "Hand-written, checked against src/backend/openapi.json")
@@ -214,7 +214,7 @@ Which frontend files may import which is in `scripts/layers.mjs` (`frontendKerne
 | Shared view blocks | `async-load.ts`, `page-title.ts`, `components/` | `useAsyncLoad` (loading, failure, retry, ignoring a stale response), `useAttempt` and `reportFailure` (run a user action, stay silent on 401, report anything else), `usePageTitle` (tab title, aware of KeepAlive), `ExternalLink.vue` (new tab with safe `rel`), `ModalDialog.vue`, `SelectMenu.vue`. |
 | API client | `api.ts` | `API_URL` from `VITE_API_URL` and the request helpers. Each feature's `api.ts` builds its calls on it. Components never call `fetch` directly (AGENTS.md). |
 | API types | each feature's `api.ts`, `testing/contract.ts` | Request and response types are written by hand beside each API module. Specs check them against the committed contract `src/backend/openapi.json` through `testing/contract.ts`, so a renamed or missing field, a field that becomes nullable, or a schema with no check (`contract-coverage.spec.ts`) fails a test. `openapi-typescript` is not used: it requires TypeScript 5 and the repo pins 6.0.3 (decided 9 November 2026; revisit when it supports TypeScript 6). A backend test fails when `npm run openapi` output differs from the committed file, so the contract cannot drift. Specs that discover files (`messages.spec.ts`, `contract-coverage.spec.ts`) do so at run time with `node:fs` (`testing/files.ts`), because Vitest caches transformed modules and `import.meta.glob` would freeze the file list. |
-| Feature folders | `auth/`, `onboarding/`, `transcript/`, `audit/`, `explorer/`, `curriculum/`, `plans/`, `sharing/`, `calendar/`, `notifications/`, `guides/`, `account/`, `privacy/`, `admin/` | One folder per feature. Which feature has a screen is in the [README feature table](../../README.md#what-is-built). |
+| Feature folders | `auth/`, `onboarding/`, `transcript/`, `audit/`, `dashboard/`, `explorer/`, `curriculum/`, `plans/`, `sharing/`, `calendar/`, `notifications/`, `guides/`, `account/`, `privacy/`, `admin/` | One folder per feature. Which feature has a screen is in the [README feature table](../../README.md#what-is-built). |
 | Home | `views/HomeView.vue`, `components/ApiStatus.vue` | Landing page and API health. |
 
 ### Browser behaviour the screens rely on

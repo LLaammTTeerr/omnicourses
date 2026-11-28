@@ -11,11 +11,12 @@ import {
 } from 'vue-router';
 import { accountRoutes } from './account/routes.js';
 import { adminRoutes } from './admin/routes.js';
-import { auditRoutes, dashboardRoutes } from './audit/routes.js';
+import { auditRoutes } from './audit/routes.js';
 import { afterSignIn, HOME_SIGNED_IN } from './auth/redirect.js';
 import { authRoutes } from './auth/routes.js';
 import { useAuth } from './auth/store.js';
 import { calendarRoutes } from './calendar/routes.js';
+import { dashboardRoutes } from './dashboard/routes.js';
 import { explorerRoutes } from './explorer/routes.js';
 import { guideRoutes } from './guides/routes.js';
 import { notificationRoutes } from './notifications/routes.js';

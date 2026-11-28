@@ -15,12 +15,12 @@ import Icon from '../shell/Icon.vue';
 import type { IconName } from '../shell/icons.js';
 import { currentTermNow, termKey } from '../terms.js';
 import { useAuth } from '../auth/store.js';
-import AuditGate from './AuditGate.vue';
-import { fetchAuditAsOf, type DegreeAudit } from './api.js';
+import AuditGate from '../audit/AuditGate.vue';
+import { fetchAuditAsOf, type DegreeAudit } from '../audit/api.js';
 import { calendarEnd, Dashboard, DONUT, scaleOf, segments, SPARK, sparkPoints, termShort, type RowState, type Snapshot } from './dashboard.js';
-import { DASHBOARD_MESSAGES } from './dashboard-messages.js';
-import { AUDIT_MESSAGES } from './messages.js';
-import { conditionAnchor, conditionLabel, useAudit } from './present.js';
+import { DASHBOARD_MESSAGES } from './messages.js';
+import { AUDIT_MESSAGES } from '../audit/messages.js';
+import { conditionAnchor, conditionLabel, useAudit } from '../audit/present.js';
 
 const locale = useLocale();
 const m = useMessages(DASHBOARD_MESSAGES);

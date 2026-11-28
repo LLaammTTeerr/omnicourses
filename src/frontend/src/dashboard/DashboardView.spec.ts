@@ -7,10 +7,10 @@ import { NOT_STARTED } from '../onboarding/api.js';
 import type { Plan, PlanIssues } from '../plans/api.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import type { DegreeAudit, TermAttempt } from './api.js';
+import type { DegreeAudit, TermAttempt } from '../audit/api.js';
 import DashboardView from './DashboardView.vue';
-import { COMBINED, degreeAudit, GROUP_A, GROUP_C, GROUP_MATH } from './testing/fixtures.js';
-import { AUDIT_MESSAGES } from './messages.js';
+import { COMBINED, degreeAudit, GROUP_A, GROUP_C, GROUP_MATH } from '../audit/testing/fixtures.js';
+import { AUDIT_MESSAGES } from '../audit/messages.js';
 
 const PLAN_ID = '00000000-0000-4000-8000-0000000000c1';
 const INTRO_KEY = 'oc-dashboard-intro';
