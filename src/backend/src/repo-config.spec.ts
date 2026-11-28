@@ -1,8 +1,11 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { globSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import vitestConfig from '../vitest.config.mjs';
 
 const ROOT = join(__dirname, '../../..');
+const BACKEND_ROOT = join(__dirname, '..');
+const RULE_ENGINE_FOLDER = 'src/rules';
 const read = (path: string): string => readFileSync(join(ROOT, path), 'utf8');
 
 const HOST_SET_SETTINGS = ['NODE_ENV'];
@@ -56,6 +59,29 @@ describe('compose.yaml', () => {
     const ports = [...read('compose.yaml').matchAll(/^\s*-\s*"?([\d.:]+)"?\s*$/gm)].map((m) => m[1]!);
     expect(ports.length).toBeGreaterThan(0);
     for (const port of ports) expect(port).toMatch(/^127\.0\.0\.1:\d+:\d+$/);
+  });
+});
+
+describe('coverage gate', () => {
+  const productionFilesMatching = (glob: string): string[] =>
+    globSync(glob, { cwd: BACKEND_ROOT }).filter((path) => path.endsWith('.ts') && !NOT_PRODUCTION.test(path));
+  const globs = Object.keys(vitestConfig.test?.coverage?.thresholds ?? {}).filter((key) => key.includes('*'));
+
+  it('sets a threshold on at least one glob', () => {
+    expect(globs.length).toBeGreaterThan(0);
+  });
+
+  it.each(globs)('matches at least one production file with the threshold glob %s, or Vitest passes it unchecked', (glob) => {
+    expect(productionFilesMatching(glob).length).toBeGreaterThan(0);
+  });
+
+  it('covers every production file of the rule engine with a threshold', () => {
+    const covered = new Set(globs.flatMap(productionFilesMatching));
+    const engineFiles = readdirSync(join(BACKEND_ROOT, RULE_ENGINE_FOLDER))
+      .filter((file) => file.endsWith('.ts') && !NOT_PRODUCTION.test(file))
+      .map((file) => `${RULE_ENGINE_FOLDER}/${file}`);
+    expect(engineFiles.length).toBeGreaterThan(0);
+    expect(engineFiles.filter((file) => !covered.has(file))).toEqual([]);
   });
 });
 
