@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { graduationStatus, NOT_CHECKED_CONDITIONS } from './graduation.js';
+import { graduationStatus } from './graduation.js';
 import type { CombinedMinimumCoverage, CreditSummary, GroupCoverage } from './types.js';
 
 const makeCredits = (overrides: Partial<CreditSummary> = {}): CreditSummary => ({
@@ -61,7 +61,13 @@ describe('graduationStatus (ADR 0011, ADR 0013)', () => {
       'combined:00000000-0000-4000-8000-0000000000c1',
       'total_credits',
     ]);
-    expect(verdict.notChecked).toEqual(NOT_CHECKED_CONDITIONS);
+    expect(verdict.notChecked.map((c) => c.id)).toEqual([
+      'no_prosecution_or_suspension',
+      'defence_education_certificate',
+      'foreign_language_standard',
+      'it_standard',
+      'study_time_limit',
+    ]);
   });
 
   it('records total_credits as not_checked when totalRequired is null (ADR 0011 unrecorded cohort total)', () => {

@@ -51,7 +51,9 @@ describe('UsersService', () => {
   });
 
   it('findByEmail queries lowercase email without selecting passwordHash', async () => {
-    await service.findByEmail('Student@Example.com');
+    const found = { id: 'u1', email: 'student@example.com' } as User;
+    repo.findOneBy.mockResolvedValueOnce(found);
+    await expect(service.findByEmail('Student@Example.com')).resolves.toBe(found);
     expect(repo.findOneBy).toHaveBeenCalledWith({ email: 'student@example.com' });
     expect(repo.createQueryBuilder).not.toHaveBeenCalled();
   });
@@ -82,7 +84,9 @@ describe('UsersService', () => {
 
   it('normalizes email to lowercase on create', async () => {
     const consentAt = new Date('2026-11-27T00:00:00Z');
-    await service.create({
+    const saved = { id: 'u1' } as User;
+    repo.save.mockResolvedValueOnce(saved);
+    const result = await service.create({
       email: 'Student@Example.com',
       passwordHash: '$argon2id$hash',
       displayName: 'Test Student',
@@ -94,6 +98,8 @@ describe('UsersService', () => {
       displayName: 'Test Student',
       consentAt,
     });
-    expect(repo.save).toHaveBeenCalledOnce();
+    const created = repo.create.mock.results[0]!.value;
+    expect(repo.save).toHaveBeenCalledExactlyOnceWith(created);
+    expect(result).toBe(saved);
   });
 });

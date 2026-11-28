@@ -6,6 +6,7 @@ import type { PlanDto } from '../plans/plans.dto.js';
 import type { PlansService } from '../plans/plans.service.js';
 import type { RulesService } from '../rules/rules.service.js';
 import type { PlanIssuesReport } from '../rules/types.js';
+import { PlanShare } from './plan-share.entity.js';
 import { isShareToken, newShareToken, SharingService } from './sharing.service.js';
 
 const NOT_SHARED = new NotFoundException('This plan is not shared');
@@ -184,7 +185,7 @@ describe('SharingService, the owner’s side', () => {
   it('stops every link of an account inside the transaction it is given', async () => {
     const manager = { delete: vi.fn() };
     await service().svc.stopAllWithin(manager as never, 'u1');
-    expect(manager.delete).toHaveBeenCalledExactlyOnceWith(expect.anything(), { userId: 'u1' });
+    expect(manager.delete).toHaveBeenCalledExactlyOnceWith(PlanShare, { userId: 'u1' });
   });
 });
 
