@@ -1,6 +1,6 @@
 import { BadRequestException, PayloadTooLargeException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { AdminErrorDto, conflict } from '../common/api-errors.js';
+import { AdminErrorDto, codedError, conflict } from '../common/api-errors.js';
 
 export class PrerequisiteCycleDto extends AdminErrorDto {
   @ApiProperty({ type: [String], example: ['ZZ101', 'ZZ201', 'ZZ101'], description: 'The cycle, from the edited course back to it: each code requires the next' })
@@ -51,35 +51,14 @@ export class ImportRejectedDto extends AdminErrorDto {
 }
 
 export const prerequisiteCycle = (cycle: string[]) =>
-  new BadRequestException({ statusCode: 400, code: 'prerequisite_cycle', cycle, message: `Prerequisite cycle: ${cycle.join(' → ')}` });
+  codedError(BadRequestException, 400, 'prerequisite_cycle', `Prerequisite cycle: ${cycle.join(' → ')}`, { before: { cycle } });
 
-export const importRejected = (message: string, errors: ImportRowErrorDto[]) => new BadRequestException({ statusCode: 400, code: 'validation_failed', message, errors });
+export const importRejected = (message: string, errors: ImportRowErrorDto[]) => codedError(BadRequestException, 400, 'validation_failed', message, { after: { errors } });
 
-export const payloadTooLarge = (message: string) => new PayloadTooLargeException({ statusCode: 413, code: 'payload_too_large', message });
+export const payloadTooLarge = (message: string) => codedError(PayloadTooLargeException, 413, 'payload_too_large', message);
 
 export const compressedBody = () =>
-  new UnsupportedMediaTypeException({ statusCode: 415, code: 'unsupported_content_encoding', message: 'The import routes do not accept a compressed request body' });
+  codedError(UnsupportedMediaTypeException, 415, 'unsupported_content_encoding', 'The import routes do not accept a compressed request body');
 
 export const referencedItem = (message: string, references: string[]) => conflict('referenced_item', message, { references });
 
-const COUNTED_REFERENCES = {
-  prerequisiteLists: 'curricula record its prerequisites',
-  requiredBy: 'courses require it',
-  offeringTerms: 'offering-term rows name it',
-  transcriptRows: 'transcript rows name it',
-  plans: 'saved plans place it',
-} as const;
-export type CountedReference = keyof typeof COUNTED_REFERENCES;
-
-export const REFERENCES = {
-  links: (code: string) => `links ${code}`,
-  requires: (course: string, code: string) => `${course} requires ${code}`,
-  ownPrerequisites: (code: string) => `prerequisites of ${code} are recorded`,
-  ownTerms: (code: string) => `offering terms of ${code} are recorded`,
-  linkedIn: (curriculumCode: string) => `linked in ${curriculumCode}`,
-  groupPlans: (count: number | null) => (count === null ? 'saved plans use it' : `${count} saved plans use it`),
-  groupOverflows: (count: number | null) => (count === null ? 'overflow rules name it' : `${count} overflow rules name it`),
-  groupCombinedMinimums: (count: number | null) => (count === null ? 'combined-minimum rules name it' : `${count} combined-minimum rules name it`),
-  countingRule: (code: string) => `counting_rule:${code}`,
-  counted: (count: number, what: CountedReference) => `${count} ${COUNTED_REFERENCES[what]}`,
-} as const;

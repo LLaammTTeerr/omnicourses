@@ -15,6 +15,7 @@ const BASE_LAYERS = {
   frontendLayerExceptions: [],
   frontendFeatureEdges: [],
   identifierHomes: [],
+  codedErrorHomes: [`${BACKEND}/common/api-errors.ts`, `${BACKEND}/ai/`],
 };
 
 const BASE_FILES = {
@@ -265,6 +266,33 @@ describe('identifier-home', () => {
         },
         homes,
       ),
+      [],
+    );
+  });
+});
+
+describe('coded-error-home', () => {
+  const coded = "throw new ConflictException({ statusCode: 409, code: 'x', message: m });\n";
+
+  it('reports a coded body built in an exception outside its homes, also over several lines', () => {
+    const [error, ...rest] = problems({
+      [`${BACKEND}/other/a.service.ts`]: `export const a = 1;\nexport const b = new ForbiddenException({\n  statusCode: 403,\n  code: "y",\n  message: f(),\n});\n`,
+    });
+    assert.deepEqual(rest, []);
+    assert.equal(error.rule, 'coded-error-home');
+    assert.equal(error.file, `${BACKEND}/other/a.service.ts`);
+    assert.equal(error.line, 2);
+  });
+
+  it('allows it in the homes, in specs, and for an exception without a code', () => {
+    assert.deepEqual(
+      problems({
+        [`${BACKEND}/common/api-errors.ts`]: coded,
+        [`${BACKEND}/ai/a.ts`]: coded,
+        [`${BACKEND}/other/a.spec.ts`]: coded,
+        [`${BACKEND}/other/b.ts`]: "throw new HttpException({ statusCode: 500, message: 'x (code: y)' }, 500);\nconst c = { code: 'z' };\n",
+        [`${BACKEND}/other/c.ts`]: "// new ConflictException({ code: 'x' })\nthrow new NotFoundException('code: none');\n",
+      }),
       [],
     );
   });

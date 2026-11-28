@@ -1,8 +1,8 @@
-import { applyDecorators, ForbiddenException, Injectable } from '@nestjs/common';
+import { applyDecorators, Injectable } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiProperty } from '@nestjs/swagger';
 import { DataSource, EntityManager } from 'typeorm';
 import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
-import { AdminErrorDto } from '../common/api-errors.js';
+import { AdminErrorDto, forbidden } from '../common/api-errors.js';
 import { type AccountState, type DeletionState, deletionStateOf, isWaitingForDeletion, lockAccountStates, ROW_LOCK } from '../users/account-state.js';
 import { grantsOf, missingPermission, type Need, type PermissionKind } from './grants.js';
 
@@ -12,10 +12,10 @@ class PermissionRequiredDto extends AdminErrorDto {
 }
 
 const permissionRequired = (permission: PermissionKind) =>
-  new ForbiddenException({ statusCode: 403, code: 'permission_required', permission, message: `This needs the ${permission} permission` });
+  forbidden('permission_required', `This needs the ${permission} permission`, { permission });
 
 const accountDeletionPending = () =>
-  new ForbiddenException({ statusCode: 403, code: 'account_deletion_pending', message: 'An account waiting for deletion cannot administer curricula' });
+  forbidden('account_deletion_pending', 'An account waiting for deletion cannot administer curricula');
 
 export const AdminErrors = ({ notFound = true }: { notFound?: boolean } = {}) =>
   applyDecorators(
