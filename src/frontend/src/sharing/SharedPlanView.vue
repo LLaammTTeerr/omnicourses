@@ -9,9 +9,12 @@ import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
 import type { PlanIssueKind } from '../plans/api.js';
 import { PLANNER_MESSAGES } from '../plans/messages.js';
-import { BAR_CODES, clause, ISSUE_KINDS_SHOWN, KIND_STYLE } from '../plans/issue-view.js';
+import CapMeter from '../plans/CapMeter.vue';
+import IssueCard from '../plans/IssueCard.vue';
+import IssueCounts from '../plans/IssueCounts.vue';
+import UnknownIssueList from '../plans/UnknownIssueList.vue';
+import { BAR_CODES, KIND_STYLE } from '../plans/issue-view.js';
 import Icon from '../shell/Icon.vue';
-import { REGULATION_URL } from '../shell/messages.js';
 import { termName } from '../terms.js';
 import { fetchSharedPlan, type SharedPlanIssue } from './api.js';
 import { SHARING_MESSAGES } from './messages.js';
@@ -71,6 +74,9 @@ const lists = computed(() => issueLists(shared.value?.issues ?? []));
 const issuesOfKind = (kind: PlanIssueKind) => lists.value.byKind[kind];
 const listedIssues = computed(() => lists.value.listed);
 const unknownIssues = computed(() => lists.value.byKind.unknown);
+const unknownItems = computed(() =>
+  unknownIssues.value.map((issue) => ({ text: wordSharedIssue(issue), place: issue.term ? termName(issue.term, locale.lang) : planner.value.wholePlan })),
+);
 const violationCount = computed(() => lists.value.violationCount);
 
 const orderedCoverageGroups = computed(() => (shared.value?.coverage ? orderedGroups(shared.value.coverage) : []));
@@ -204,13 +210,7 @@ function printPlan(): void {
                   <b>{{ row.credits }}</b>{{ planner.ofCap(row.maxCap) }}
                   <span class="caps-text"> · {{ row.capsLabel }}</span>
                 </div>
-                <div v-if="row.meter" :class="['cap', row.cap]" aria-hidden="true">
-                  <span class="track">
-                    <i class="fill" :style="{ width: `${row.meter.fill}%` }" />
-                  </span>
-                  <span v-if="row.meter.min !== null" class="tick" :style="{ left: `${row.meter.min}%` }"><em>{{ row.meter.minLabel }}</em></span>
-                  <span class="tick max" :style="{ left: `${row.meter.max}%` }"><em>{{ row.meter.maxLabel }}</em></span>
-                </div>
+                <CapMeter v-if="row.meter" :meter="row.meter" :cap="row.cap" variant="shared" />
                 <ul v-if="row.rowIssues.length" class="row-issues">
                   <li
                     v-for="(issue, idx) in row.rowIssues"
@@ -265,42 +265,18 @@ function printPlan(): void {
           </div>
           <p class="rail-sub">{{ m.issuesLead }}</p>
 
-          <div class="issue-counts" data-test="issue-counts">
-            <span v-for="kind in ISSUE_KINDS_SHOWN" :key="kind" :class="['chip', KIND_STYLE[kind].tone]">
-              <Icon :name="KIND_STYLE[kind].icon" size="sm" />{{ planner.kindsPlural[kind](issuesOfKind(kind).length) }}
-            </span>
-          </div>
+          <IssueCounts :count="(kind) => issuesOfKind(kind).length" />
 
           <ul v-if="listedIssues.length" class="rail-list">
-            <li
+            <IssueCard
               v-for="(issue, idx) in listedIssues"
               :key="idx"
-              :class="['vitem', issue.kind]"
+              :issue="issue"
+              :text="wordSharedIssue(issue)"
+              :place="issue.term ? termName(issue.term, locale.lang) : planner.wholePlan"
+              variant="shared"
               :data-test="`issue-${issue.kind}`"
-            >
-              <span class="ic" aria-hidden="true"><Icon :name="KIND_STYLE[issue.kind].icon" size="sm" /></span>
-              <div>
-                <b><span class="sr-only">{{ planner.kinds[issue.kind] }}: </span>{{ planner.issueTitle[issue.code] }}</b>
-                <p data-test="issue-text">{{ wordSharedIssue(issue) }}</p>
-                <div class="vfoot">
-                  <span class="chip line">{{ issue.term ? termName(issue.term, locale.lang) : planner.wholePlan }}</span>
-                  <a
-                    v-if="clause(issue.citation)"
-                    class="ref"
-                    :href="REGULATION_URL"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    :title="planner.sourceTitle(issue.citation)"
-                    data-test="citation"
-                  >
-                    <Icon name="book" size="sm" />
-                    <span class="sr-only">{{ planner.source }}: {{ issue.citation }}</span>
-                    <span aria-hidden="true">{{ clause(issue.citation) }}</span>
-                  </a>
-                  <span v-else class="chip line" data-test="citation">{{ issue.citation }}</span>
-                </div>
-              </div>
-            </li>
+            />
           </ul>
 
           <div v-else class="rail-empty" :class="{ partial: withheldTitles.length > 0 || shortGroupsCount > 0 }" data-test="no-issues">
@@ -322,15 +298,7 @@ function printPlan(): void {
           <div v-if="unknownIssues.length" class="unknowns-block" data-test="shared-unknowns">
             <h3 class="small">{{ planner.kindHeadings.unknown }} ({{ unknownIssues.length }})</h3>
             <p class="xs t2">{{ planner.notRecordedYet }}</p>
-            <ul class="unknown-list">
-              <li v-for="(issue, idx) in unknownIssues" :key="idx" data-test="issue-unknown">
-                <Icon name="info" size="sm" />
-                <span>
-                  {{ wordSharedIssue(issue) }}
-                  <span class="t3"> · {{ issue.term ? termName(issue.term, locale.lang) : planner.wholePlan }}</span>
-                </span>
-              </li>
-            </ul>
+            <UnknownIssueList :items="unknownItems" />
           </div>
         </aside>
       </div>
@@ -529,51 +497,6 @@ function printPlan(): void {
   font-size: 12px;
   color: var(--ink-3);
 }
-.cap {
-  position: relative;
-  padding-bottom: 14px;
-}
-.cap .track {
-  display: block;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--surface-3);
-  overflow: hidden;
-}
-.cap .fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--info);
-}
-.cap.ok .fill {
-  background: var(--ok);
-}
-.cap.under .fill {
-  background: var(--warn);
-}
-.cap.over .fill {
-  background: var(--bad);
-}
-.cap .tick {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-}
-.cap .tick::before {
-  content: '';
-  display: block;
-  width: 2px;
-  height: 8px;
-  background: var(--ink-3);
-  margin: -1px auto 0;
-}
-.cap .tick em {
-  display: block;
-  font: 600 10.5px var(--mono);
-  color: var(--ink-3);
-  margin-top: 1px;
-}
 .row-issues {
   list-style: none;
   margin: 2px 0 0;
@@ -734,84 +657,12 @@ function printPlan(): void {
   font-size: 12.5px;
   color: var(--ink-3);
 }
-.issue-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.chip.line {
-  background: transparent;
-  border: 1px dashed var(--edge-strong);
-  color: var(--ink-2);
-  min-height: 20px;
-  font-size: 12px;
-}
 .rail-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
   gap: 8px;
-}
-.vitem {
-  display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--bad) 5%, var(--surface));
-  border: 1px solid color-mix(in oklab, var(--bad) 24%, var(--edge));
-}
-.vitem .ic {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  background: var(--bad);
-  color: #fff;
-}
-.vitem.flag {
-  background: color-mix(in oklab, var(--warn) 6%, var(--surface));
-  border-color: color-mix(in oklab, var(--warn) 28%, var(--edge));
-}
-.vitem.flag .ic {
-  background: var(--warn);
-}
-.vitem b {
-  display: block;
-  font-size: 13.5px;
-  line-height: 1.35;
-}
-.vitem p {
-  font-size: 12.5px;
-  color: var(--ink-2);
-  margin-top: 2px;
-  overflow-wrap: anywhere;
-}
-.vfoot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-}
-.ref {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: none;
-  padding: 1px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--edge-strong);
-  color: var(--ink-2);
-  background: var(--surface);
-}
-.ref .icon {
-  width: 13px;
-  height: 13px;
 }
 .rail-empty {
   display: grid;
@@ -838,27 +689,6 @@ function printPlan(): void {
   gap: 6px;
   border-top: 1px solid var(--line);
   padding-top: 10px;
-}
-.unknown-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--ink-2);
-}
-.unknown-list li {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-}
-.unknown-list .icon {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin-top: 2px;
-  color: var(--ink-3);
 }
 .privacy-note {
   margin-top: 4px;
