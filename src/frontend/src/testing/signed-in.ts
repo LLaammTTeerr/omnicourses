@@ -1,3 +1,4 @@
+import { beforeAll } from 'vitest';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { user } from '../auth/testing/fixtures.js';
@@ -6,6 +7,9 @@ import type { Onboarding } from '../onboarding/api.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { onboarding } from '../onboarding/testing/fixtures.js';
 import { createAppRouter } from '../router.js';
+import { warmRoutes } from './routes.js';
+
+beforeAll(() => warmRoutes());
 
 interface Options {
   signedIn?: boolean;

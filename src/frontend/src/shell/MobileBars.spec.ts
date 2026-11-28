@@ -1,7 +1,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Router } from 'vue-router';
-import { useAdminAccess } from '../admin/store.js';
+import { useAdminAccess } from '../admin/access.js';
 import { PROGRAM_ADMIN } from '../admin/testing/fixtures.js';
 import { useLocale } from '../locale.js';
 import { setup } from '../testing/signed-in.js';

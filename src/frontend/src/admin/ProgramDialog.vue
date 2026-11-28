@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
 import { programValues, useValuesOnOpen, type ProgramField, type ProgramValues, type SavedProgram } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
@@ -12,7 +11,6 @@ import ProblemNote from './ProblemNote.vue';
 const props = defineProps<{ open: boolean; program: SavedProgram | null; busy: boolean; problem: ProblemView<ProgramField> | null }>();
 const emit = defineEmits<{ close: []; save: [values: ProgramValues]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 const text = computed(() => m.value.programs);
 
 const values = useValuesOnOpen(() => props.open, () => programValues(props.program));
@@ -24,7 +22,7 @@ const invalid = (field: ProgramField) => fieldInvalid(props.problem, field);
 </script>
 
 <template>
-  <ModalDialog :open="open" labelledby="program-dialog-title" :busy="busy" :busy-text="shell.working" data-test="program-dialog" @close="emit('close')">
+  <ModalDialog :open="open" labelledby="program-dialog-title" :busy="busy" data-test="program-dialog" @close="emit('close')">
     <h2 id="program-dialog-title">{{ program ? text.programEdit(program.code) : text.programNew }}</h2>
     <form class="admin-form" novalidate @submit.prevent="emit('save', { ...values })">
       <div class="field">

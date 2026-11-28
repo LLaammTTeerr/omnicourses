@@ -11,24 +11,21 @@ import {
   createProgram,
   fetchAccessPrograms,
   fetchUserGrants,
-  GLOBAL_PERMISSIONS,
   grantGlobal,
   grantProgram,
   revokeGlobal,
   revokeProgram,
-  type GlobalPermission,
-  type ProgramGrant,
-  type UserGrants,
 } from './api.js';
 import ConfirmDialog from './ConfirmDialog.vue';
 import { readFailure, type Failure } from './errors.js';
 import FieldErrors from './FieldErrors.vue';
 import { newProgramBody, PROGRAM_FIELDS, storedCode, type ProgramValues } from './forms.js';
+import { GLOBAL_PERMISSIONS, type GlobalPermission, type ProgramGrant, type UserGrants } from './grants.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
 import ProgramDialog from './ProgramDialog.vue';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
 const auth = useAuth();

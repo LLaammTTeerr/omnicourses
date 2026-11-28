@@ -4,7 +4,7 @@ import { RouterView, type Router } from 'vue-router';
 import { useLocale } from '../locale.js';
 import { mockApi, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 import { ACCESS_MANAGER, EVERY_GRANT, NO_GRANTS, PROGRAM_ADMIN } from './testing/fixtures.js';
 import { ADMIN_MESSAGES } from './messages.js';
 

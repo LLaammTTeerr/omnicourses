@@ -1,6 +1,7 @@
 import { user } from '../../auth/testing/fixtures.js';
 import type { CourseDetail, Curriculum, CurriculumCourse, RequirementGroup } from '../../curriculum/api.js';
-import type { AccessProgramList, AdminProgramList, AffectedCurriculum, GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../api.js';
+import type { AccessProgramList, AdminProgramList, AffectedCurriculum } from '../api.js';
+import type { GlobalGrant, GlobalPermission, ProgramGrant, UserGrants } from '../grants.js';
 
 export const PROGRAM_ID = '00000000-0000-4000-8000-0000000000a1';
 export const OTHER_PROGRAM_ID = '00000000-0000-4000-8000-0000000000a2';

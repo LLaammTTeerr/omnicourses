@@ -6,7 +6,8 @@ import { useToast } from '../shell/toast.js';
 import { mockApi, sentBody, status } from '../testing/fetch.js';
 import { chooseOption } from '../testing/select.js';
 import { setup } from '../testing/signed-in.js';
-import type { CatalogImportPreview, GroupLinkImportPreview, UserGrants } from './api.js';
+import type { CatalogImportPreview, GroupLinkImportPreview } from './api.js';
+import type { UserGrants } from './grants.js';
 import { AFFECTED_2024, AFFECTED_2025, adminPrograms, CATALOG_MAINTAINER, CURRICULUM_2025_ID, CURRICULUM_ID, EVERY_GRANT, GROUP_BASE_ID, PROGRAM_ADMIN, PROGRAM_ID } from './testing/fixtures.js';
 import { ADMIN_MESSAGES } from './messages.js';
 

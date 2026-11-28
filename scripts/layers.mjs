@@ -81,6 +81,7 @@ export const backendEdges = [
   'users -> common',
 ];
 export const frontendKernel = [
+  'account-storage.ts',
   'api.ts',
   'async-load.ts',
   'auth/api.ts',
@@ -115,10 +116,7 @@ export const frontendComposition = [
   'shell/nav.ts',
   'shell/sidebar.ts',
 ];
-export const frontendLayerExceptions = [
-  'auth/store.ts -> plans/last-plan.ts',
-  'auth/store.ts -> plans/lock.ts',
-];
+export const frontendLayerExceptions = [];
 export const frontendFeatureEdges = [
   'account -> onboarding',
   'admin -> calendar',

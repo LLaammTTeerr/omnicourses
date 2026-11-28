@@ -3,7 +3,6 @@ import { ref, watch } from 'vue';
 import ModalDialog from '../components/ModalDialog.vue';
 import type { CurriculumCourse } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
 import type { PrerequisiteChoice } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
@@ -15,7 +14,6 @@ const STATES = ['not_recorded', 'none', 'list'] as const;
 const props = defineProps<{ open: boolean; course: CurriculumCourse | null; busy: boolean; problem: ProblemView<'prerequisites'> | null }>();
 const emit = defineEmits<{ close: []; save: [choice: PrerequisiteChoice]; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 
 const state = ref<(typeof STATES)[number]>('not_recorded');
 const text = ref('');
@@ -43,7 +41,7 @@ function save(): void {
 </script>
 
 <template>
-  <ModalDialog :open="open" labelledby="prerequisites-title" describedby="prerequisites-lead" :busy="busy" :busy-text="shell.working" data-test="prerequisites-dialog" @close="emit('close')">
+  <ModalDialog :open="open" labelledby="prerequisites-title" describedby="prerequisites-lead" :busy="busy" data-test="prerequisites-dialog" @close="emit('close')">
     <h2 id="prerequisites-title">{{ course ? m.curriculum.prerequisitesTitle(course.code) : '' }}</h2>
     <p id="prerequisites-lead" class="t2 small">{{ m.curriculum.prerequisitesLead }}</p>
     <form class="admin-form" novalidate @submit.prevent="save">

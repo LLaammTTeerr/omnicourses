@@ -1,4 +1,6 @@
-const KEY = 'oc-last-plan';
+import { ACCOUNT_STORAGE_KEYS } from '../account-storage.js';
+
+const KEY = ACCOUNT_STORAGE_KEYS.lastPlan;
 
 export function readLastPlan(): string | null {
   try {
@@ -6,12 +8,6 @@ export function readLastPlan(): string | null {
   } catch {
     return null;
   }
-}
-
-export function forgetLastPlan(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {}
 }
 
 export function rememberLastPlan(id: string): void {

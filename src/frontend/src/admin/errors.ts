@@ -1,5 +1,6 @@
 import { failureKind, HttpError } from '../api.js';
-import { PERMISSION_KINDS, type AffectedCurriculum, type ImportRowError, type PermissionKind } from './api.js';
+import type { AffectedCurriculum, ImportRowError } from './api.js';
+import { PERMISSION_KINDS, type PermissionKind } from './grants.js';
 
 const CONFLICT_CODES = ['duplicate_name', 'duplicate_code', 'duplicate_cohort', 'referenced_item', 'last_access_manager', 'recipient_deletion_pending'] as const;
 export type ConflictCode = (typeof CONFLICT_CODES)[number];

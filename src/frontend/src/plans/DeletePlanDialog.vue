@@ -2,13 +2,11 @@
 import ModalDialog from '../components/ModalDialog.vue';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import { PLANNER_MESSAGES } from './messages.js';
 
 defineProps<{ open: boolean; name: string; busy: boolean; error: string | null }>();
 const emit = defineEmits<{ close: []; confirm: [] }>();
 const m = useMessages(PLANNER_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 </script>
 
 <template>
@@ -18,7 +16,6 @@ const shell = useMessages(SHELL_MESSAGES);
     labelledby="delete-plan-title"
     describedby="delete-plan-body"
     :busy="busy"
-    :busy-text="shell.working"
     @close="emit('close')"
   >
     <span class="ic" aria-hidden="true"><Icon name="trash" /></span>

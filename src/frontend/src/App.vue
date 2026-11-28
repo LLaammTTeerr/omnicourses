@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
-import { useAdminAccess } from './admin/store.js';
+import { useAdminAccess } from './admin/access.js';
 import { useAuth } from './auth/store.js';
 import { useMessages } from './locale.js';
 import { UNREAD_POLL_MS, useUnread } from './notifications/store.js';

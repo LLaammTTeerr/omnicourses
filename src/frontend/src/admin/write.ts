@@ -5,7 +5,7 @@ import { useMessages } from '../locale.js';
 import { useToast } from '../shell/toast.js';
 import { readFailure, type Failure } from './errors.js';
 import { ADMIN_MESSAGES } from './messages.js';
-import { useAdminAccess } from './store.js';
+import { useAdminAccess } from './access.js';
 
 type Refusal = Exclude<Failure, { kind: 'no_answer' }>;
 

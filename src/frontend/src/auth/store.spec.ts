@@ -3,8 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, HttpError } from '../api.js';
 import { requestAsUser, sendAsUser, SESSION_STORAGE_KEY, useAccountCache, useAuth } from './store.js';
 import { authResult, user } from './testing/fixtures.js';
-import { readLastPlan, rememberLastPlan } from '../plans/last-plan.js';
-import { isLocked, setLocked } from '../plans/lock.js';
+import { ACCOUNT_STORAGE_KEYS } from '../account-storage.js';
 
 const fetchMock = () => vi.spyOn(globalThis, 'fetch');
 
@@ -96,18 +95,18 @@ describe('auth store (ADR 0002)', () => {
 
   const PLAN_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
   const leaveAccountData = () => {
-    rememberLastPlan(PLAN_ID);
-    setLocked(PLAN_ID, true);
+    localStorage.setItem(ACCOUNT_STORAGE_KEYS.lastPlan, PLAN_ID);
+    localStorage.setItem(ACCOUNT_STORAGE_KEYS.planLocks, JSON.stringify([PLAN_ID]));
   };
-  const accountData = () => [readLastPlan(), isLocked(PLAN_ID)];
+  const accountData = () => [localStorage.getItem(ACCOUNT_STORAGE_KEYS.lastPlan), localStorage.getItem(ACCOUNT_STORAGE_KEYS.planLocks)];
 
   it('forgets the student’s last plan and plan locks on this browser when they sign out', async () => {
     fetchMock().mockResolvedValueOnce(Response.json(authResult({ token: 'zz-live' }))).mockResolvedValueOnce(new Response(null, { status: 204 }));
     await useAuth().signIn({ email: 'zz@example.com', password: 'zz-password-1' });
     leaveAccountData();
-    expect(accountData()).toEqual([PLAN_ID, true]);
+    expect(accountData()).toEqual([PLAN_ID, JSON.stringify([PLAN_ID])]);
     await useAuth().signOut();
-    expect(accountData()).toEqual([null, false]);
+    expect(accountData()).toEqual([null, null]);
   });
 
   it('forgets them too when the session ends on a 401, during a call or at page load', async () => {
@@ -116,14 +115,14 @@ describe('auth store (ADR 0002)', () => {
     await auth.signIn({ email: 'zz@example.com', password: 'zz-password-1' });
     leaveAccountData();
     await expect(auth.authed(async () => Promise.reject(new HttpError('/x', 401)))).rejects.toThrow('401');
-    expect(accountData()).toEqual([null, false]);
+    expect(accountData()).toEqual([null, null]);
 
     setActivePinia(createPinia());
     sessionStorage.setItem(SESSION_STORAGE_KEY, 'zz-old');
     leaveAccountData();
     fetchMock().mockResolvedValue(new Response(null, { status: 401 }));
     await useAuth().start();
-    expect(accountData()).toEqual([null, false]);
+    expect(accountData()).toEqual([null, null]);
   });
 
   it('signs the student out here when a call answers 401, and passes other errors on', async () => {

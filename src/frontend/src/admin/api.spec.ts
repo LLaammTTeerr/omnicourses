@@ -10,10 +10,8 @@ import { TRAINING_TYPES } from '../curriculum/api.js';
 import {
   BYTES_PER_MIB,
   CALENDAR_EVENT_KINDS,
-  GLOBAL_PERMISSIONS,
   IMPORT_MAX_BYTES,
   IMPORT_MAX_RECORDS,
-  PERMISSION_KINDS,
   IMPORT_HEADERS,
   type AcademicCalendar,
   type AccessProgram,
@@ -47,29 +45,27 @@ import {
   type AffectedCurriculum,
   type CreateCourseBody,
   type CreateGroupBody,
-  type GlobalGrant,
   type ImpactConfirmationBody,
   type OfferingTerms,
   type PermissionRequiredBody,
   type PrerequisiteCycleBody,
   type Prerequisites,
-  type ProgramGrant,
   type ReferencedItemBody,
   type SetOfferingTermsBody,
   type SetPrerequisitesBody,
   type UpdateCourseBody,
   type UpdateGroupBody,
-  type UserGrants,
 } from './api.js';
+import * as grants from './grants.js';
 
 const error = { statusCode: 'required', code: 'required', message: 'required' } as const;
 const periods = { theoryPeriods: 'optional', labPeriods: 'optional', exercisePeriods: 'optional', projectPeriods: 'optional' } as const;
 
 describe('administration types against the contract (F12, ADR 0011)', () => {
   it.each([
-    ['UserGrantsDto', { userId: 'required', programs: 'required', permissions: 'required' } satisfies Shape<UserGrants>],
-    ['ProgramGrantDto', { programId: 'required', programCode: 'required', grantedAt: 'required', grantedBy: 'required' } satisfies Shape<ProgramGrant>],
-    ['GlobalGrantDto', { permission: 'required', grantedAt: 'required', grantedBy: 'required' } satisfies Shape<GlobalGrant>],
+    ['UserGrantsDto', { userId: 'required', programs: 'required', permissions: 'required' } satisfies Shape<grants.UserGrants>],
+    ['ProgramGrantDto', { programId: 'required', programCode: 'required', grantedAt: 'required', grantedBy: 'required' } satisfies Shape<grants.ProgramGrant>],
+    ['GlobalGrantDto', { permission: 'required', grantedAt: 'required', grantedBy: 'required' } satisfies Shape<grants.GlobalGrant>],
     ['AdminProgramListDto', { programs: 'required' } satisfies Shape<AdminProgramList>],
     ['AdminProgramDto', { id: 'required', code: 'required', nameVi: 'required', curricula: 'required' } satisfies Shape<AdminProgram>],
     ['AdminCurriculumDto', { id: 'required', code: 'required', cohortYear: 'required' } satisfies Shape<AdminCurriculum>],
@@ -235,8 +231,8 @@ describe('administration types against the contract (F12, ADR 0011)', () => {
   });
 
   it('has the permissions and training types of the contract', () => {
-    expect([...GLOBAL_PERMISSIONS].sort()).toEqual(contractEnum('GlobalGrantDto', 'permission'));
-    expect([...PERMISSION_KINDS].sort()).toEqual(contractEnum('PermissionRequiredDto', 'permission'));
+    expect([...grants.GLOBAL_PERMISSIONS].sort()).toEqual(contractEnum('GlobalGrantDto', 'permission'));
+    expect([...grants.PERMISSION_KINDS].sort()).toEqual(contractEnum('PermissionRequiredDto', 'permission'));
     expect([...TRAINING_TYPES, null].sort()).toEqual(contractEnum('ProgramDetailsDto', 'trainingType'));
   });
 
@@ -258,7 +254,7 @@ const USER = '00000000-0000-4000-8000-000000000002';
 const EVENT = '00000000-0000-4000-8000-000000000e01';
 
 const CALLS: [name: string, call: () => Promise<unknown>, method: string, path: string][] = [
-  ['fetchOwnGrants', () => api.fetchOwnGrants(), 'get', '/api/admin/grants'],
+  ['fetchOwnGrants', () => grants.fetchOwnGrants(), 'get', '/api/admin/grants'],
   ['fetchAdminPrograms', () => api.fetchAdminPrograms(), 'get', '/api/admin/programs'],
   ['createGroup', () => api.createGroup(COHORT, { name: 'Nhóm thử', kind: 'elective' }), 'post', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups'],
   ['updateGroup', () => api.updateGroup(COHORT, GROUP, { name: 'Nhóm thử' }), 'patch', '/api/admin/programs/{programId}/cohorts/{curriculumId}/requirement-groups/{groupId}'],
@@ -319,8 +315,8 @@ describe('administration addresses against the contract', () => {
     expect(Object.keys(paths).filter((other) => matches(other, sent) && Object.hasOwn(paths[other]!, method))).toEqual([path]);
   });
 
-  it('calls every function this module exports', () => {
-    const functions = Object.entries(api).filter(([, value]) => typeof value === 'function').map(([name]) => name);
+  it('calls every function that api.ts and grants.ts export', () => {
+    const functions = Object.entries({ ...api, ...grants }).filter(([, value]) => typeof value === 'function').map(([name]) => name);
     expect(functions.sort()).toEqual(CALLS.map(([name]) => name).sort());
   });
 

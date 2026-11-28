@@ -25,7 +25,8 @@ import { readFailure, type Failure } from './errors.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
 import ProblemNote from './ProblemNote.vue';
-import { useAdminAccess, useProgramPicker } from './store.js';
+import { useAdminAccess } from './access.js';
+import { useProgramPicker } from './store.js';
 import { stayWhileBusy, useWrites } from './write.js';
 
 const access = useAdminAccess();

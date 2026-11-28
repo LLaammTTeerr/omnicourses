@@ -4,7 +4,6 @@ import ModalDialog from '../components/ModalDialog.vue';
 import type { CourseDetail } from '../curriculum/api.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
-import { SHELL_MESSAGES } from '../shell/messages.js';
 import FieldErrors from './FieldErrors.vue';
 import { courseValues, EDITABLE_COURSE_FIELDS, type CourseField, type CourseValues, type ImpactReview } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
@@ -21,7 +20,6 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ close: []; save: [values: CourseValues]; confirm: []; back: []; reload: [] }>();
 const m = useMessages(ADMIN_MESSAGES);
-const shell = useMessages(SHELL_MESSAGES);
 const text = computed(() => m.value.catalog);
 
 const values = reactive<CourseValues>(courseValues(null));
@@ -68,7 +66,7 @@ const changes = computed(() =>
 </script>
 
 <template>
-  <ModalDialog :open="open" class="course-dialog" labelledby="course-dialog-title" :busy="busy" :busy-text="shell.working" data-test="course-dialog" @close="emit('close')">
+  <ModalDialog :open="open" class="course-dialog" labelledby="course-dialog-title" :busy="busy" data-test="course-dialog" @close="emit('close')">
     <h2 id="course-dialog-title" ref="title" tabindex="-1">{{ review ? text.reviewTitle : course ? text.dialogEdit(course.code) : text.dialogNew }}</h2>
 
     <div v-if="review && course" class="admin-form" data-test="impact-review">

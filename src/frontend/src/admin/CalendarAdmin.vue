@@ -27,7 +27,8 @@ import {
 } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
-import { useAdminAccess, useProgramPicker } from './store.js';
+import { useAdminAccess } from './access.js';
+import { useProgramPicker } from './store.js';
 import { useAdminDialog, type WriteOutcome } from './write.js';
 
 const KIND_GROUP: Record<CalendarEventKind, string> = {

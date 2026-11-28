@@ -1,4 +1,5 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
+import { createPinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
 import { defineComponent, h, nextTick, reactive } from 'vue';
@@ -30,7 +31,7 @@ describe('ModalDialog in a real browser', () => {
   let showModal: ReturnType<typeof vi.spyOn>;
 
   async function render(errorHandler?: (e: unknown) => void): Promise<HTMLDialogElement> {
-    wrapper = mount(Parent, { attachTo: host, global: { config: { errorHandler } } });
+    wrapper = mount(Parent, { attachTo: host, global: { plugins: [createPinia()], config: { errorHandler } } });
     await expect.element(page.getByRole('dialog', { name: 'Xóa thử?' })).toBeVisible();
     const el = host.querySelector('dialog')!;
     el.addEventListener('cancel', (e) => events.push(`cancel:${e.cancelable}`));
