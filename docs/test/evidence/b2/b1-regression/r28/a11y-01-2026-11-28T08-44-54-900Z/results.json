@@ -1,0 +1,3150 @@
+{
+  "startedAt": "2026-11-28T08:44:54.901Z",
+  "base": "https://stag-omnicourses.lamter.cc",
+  "axeVersion": "4.10.2",
+  "axeTags": [
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa"
+  ],
+  "states": {
+    "home | light | vi": {
+      "state": "home",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "sign-up empty | light | vi": {
+      "state": "sign-up empty",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/sign-up",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "nodes": 2,
+            "targets": [
+              ".quote > b",
+              ".quote > p"
+            ]
+          }
+        ]
+      }
+    },
+    "sign-up field errors | light | vi": {
+      "state": "sign-up field errors",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/sign-up",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "nodes": 2,
+            "targets": [
+              ".quote > b",
+              ".quote > p"
+            ]
+          }
+        ]
+      }
+    },
+    "sign-in empty | light | vi": {
+      "state": "sign-in empty",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/sign-in",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "privacy signed out | light | vi": {
+      "state": "privacy signed out",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/privacy",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "guides list | light | vi": {
+      "state": "guides list",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/guides",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "guides no results | light | vi": {
+      "state": "guides no results",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/guides",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "guide not found | light | vi": {
+      "state": "guide not found",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/guides/no-such-guide",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "dashboard fixture | light | vi": {
+      "state": "dashboard fixture",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/dashboard",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "nodes": 1,
+            "targets": [
+              ".delta"
+            ]
+          }
+        ],
+        "1280": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "nodes": 21,
+            "targets": [
+              ".delta",
+              "details:nth-child(1) > summary > .nm",
+              "details:nth-child(1) > summary > .cnt[data-test=\"group-credits\"]",
+              "details:nth-child(1) > summary > .cnt[data-test=\"group-credits\"] > b",
+              "details:nth-child(3) > summary > .nm"
+            ]
+          }
+        ]
+      }
+    },
+    "audit fixture | light | vi": {
+      "state": "audit fixture",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/audit",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "audit opened at a group | light | vi": {
+      "state": "audit opened at a group",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/audit#group-0807a8fa-8825-44de-86ad-b59500e84480",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "explorer groups | light | vi": {
+      "state": "explorer groups",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/explorer",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "explorer no results | light | vi": {
+      "state": "explorer no results",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/explorer",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "explorer course drawer | light | vi": {
+      "state": "explorer course drawer",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/explorer",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "plan list | light | vi": {
+      "state": "plan list",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/plans/all",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "plan editor | light | vi": {
+      "state": "plan editor",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "plan editor new-plan dialog | light | vi": {
+      "state": "plan editor new-plan dialog",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "transcript | light | vi": {
+      "state": "transcript",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/transcript",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "settings | light | vi": {
+      "state": "settings",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/settings",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "settings delete dialog | light | vi": {
+      "state": "settings delete dialog",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/settings",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "privacy signed in | light | vi": {
+      "state": "privacy signed in",
+      "theme": "light",
+      "lang": "vi",
+      "url": "/privacy",
+      "widths": [
+        {
+          "width": 360,
+          "scrollWidth": 360,
+          "innerWidth": 360,
+          "ok": true
+        },
+        {
+          "width": 419,
+          "scrollWidth": 419,
+          "innerWidth": 419,
+          "ok": true
+        },
+        {
+          "width": 420,
+          "scrollWidth": 420,
+          "innerWidth": 420,
+          "ok": true
+        },
+        {
+          "width": 421,
+          "scrollWidth": 421,
+          "innerWidth": 421,
+          "ok": true
+        },
+        {
+          "width": 619,
+          "scrollWidth": 619,
+          "innerWidth": 619,
+          "ok": true
+        },
+        {
+          "width": 620,
+          "scrollWidth": 620,
+          "innerWidth": 620,
+          "ok": true
+        },
+        {
+          "width": 621,
+          "scrollWidth": 621,
+          "innerWidth": 621,
+          "ok": true
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "innerWidth": 768,
+          "ok": true
+        },
+        {
+          "width": 959,
+          "scrollWidth": 959,
+          "innerWidth": 959,
+          "ok": true
+        },
+        {
+          "width": 960,
+          "scrollWidth": 960,
+          "innerWidth": 960,
+          "ok": true
+        },
+        {
+          "width": 961,
+          "scrollWidth": 961,
+          "innerWidth": 961,
+          "ok": true
+        },
+        {
+          "width": 1179,
+          "scrollWidth": 1179,
+          "innerWidth": 1179,
+          "ok": true
+        },
+        {
+          "width": 1180,
+          "scrollWidth": 1180,
+          "innerWidth": 1180,
+          "ok": true
+        },
+        {
+          "width": 1181,
+          "scrollWidth": 1181,
+          "innerWidth": 1181,
+          "ok": true
+        },
+        {
+          "width": 1280,
+          "scrollWidth": 1280,
+          "innerWidth": 1280,
+          "ok": true
+        },
+        {
+          "width": 1920,
+          "scrollWidth": 1920,
+          "innerWidth": 1920,
+          "ok": true
+        }
+      ],
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "home | dark | vi": {
+      "state": "home",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "sign-up empty | dark | vi": {
+      "state": "sign-up empty",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/sign-up",
+      "axe": {
+        "360": [],
+        "1280": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "nodes": 2,
+            "targets": [
+              ".quote > b",
+              ".quote > p"
+            ]
+          }
+        ]
+      }
+    },
+    "sign-up field errors | dark | vi": {
+      "state": "sign-up field errors",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/sign-up",
+      "axe": {
+        "360": [],
+        "1280": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "nodes": 2,
+            "targets": [
+              ".quote > b",
+              ".quote > p"
+            ]
+          }
+        ]
+      }
+    },
+    "sign-in empty | dark | vi": {
+      "state": "sign-in empty",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/sign-in",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "privacy signed out | dark | vi": {
+      "state": "privacy signed out",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/privacy",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "guides list | dark | vi": {
+      "state": "guides list",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/guides",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "guides no results | dark | vi": {
+      "state": "guides no results",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/guides",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "guide not found | dark | vi": {
+      "state": "guide not found",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/guides/no-such-guide",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "dashboard fixture | dark | vi": {
+      "state": "dashboard fixture",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/dashboard",
+      "axe": {
+        "360": [],
+        "1280": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "help": "Elements must meet minimum color contrast ratio thresholds",
+            "nodes": 20,
+            "targets": [
+              "details:nth-child(1) > summary > .nm",
+              "details:nth-child(1) > summary > .cnt[data-test=\"group-credits\"]",
+              "details:nth-child(1) > summary > .cnt[data-test=\"group-credits\"] > b",
+              "details:nth-child(3) > summary > .nm",
+              "details:nth-child(3) > summary > .cnt[data-test=\"group-credits\"]"
+            ]
+          }
+        ]
+      }
+    },
+    "audit fixture | dark | vi": {
+      "state": "audit fixture",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/audit",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "audit opened at a group | dark | vi": {
+      "state": "audit opened at a group",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/audit#group-0807a8fa-8825-44de-86ad-b59500e84480",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "explorer groups | dark | vi": {
+      "state": "explorer groups",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/explorer",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "explorer no results | dark | vi": {
+      "state": "explorer no results",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/explorer",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "explorer course drawer | dark | vi": {
+      "state": "explorer course drawer",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/explorer",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "plan list | dark | vi": {
+      "state": "plan list",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/plans/all",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "plan editor | dark | vi": {
+      "state": "plan editor",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "plan editor new-plan dialog | dark | vi": {
+      "state": "plan editor new-plan dialog",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "transcript | dark | vi": {
+      "state": "transcript",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/transcript",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "settings | dark | vi": {
+      "state": "settings",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/settings",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "settings delete dialog | dark | vi": {
+      "state": "settings delete dialog",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/settings",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "privacy signed in | dark | vi": {
+      "state": "privacy signed in",
+      "theme": "dark",
+      "lang": "vi",
+      "url": "/privacy",
+      "axe": {
+        "360": [],
+        "1280": []
+      }
+    },
+    "home | light | en": {
+      "state": "home",
+      "theme": "light",
+      "lang": "en",
+      "url": "/",
+      "language": {
+        "htmlLang": "en",
+        "title": "OmniCourse",
+        "hits": [
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 2
+      }
+    },
+    "sign-up empty | light | en": {
+      "state": "sign-up empty",
+      "theme": "light",
+      "lang": "en",
+      "url": "/sign-up",
+      "language": {
+        "htmlLang": "en",
+        "title": "Create account · OmniCourse",
+        "hits": [
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 2
+      }
+    },
+    "sign-up field errors | light | en": {
+      "state": "sign-up field errors",
+      "theme": "light",
+      "lang": "en",
+      "url": "/sign-up",
+      "language": {
+        "htmlLang": "en",
+        "title": "Create account · OmniCourse",
+        "hits": [
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 2
+      }
+    },
+    "sign-in empty | light | en": {
+      "state": "sign-in empty",
+      "theme": "light",
+      "lang": "en",
+      "url": "/sign-in",
+      "language": {
+        "htmlLang": "en",
+        "title": "Sign in · OmniCourse",
+        "hits": [
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 2
+      }
+    },
+    "privacy signed out | light | en": {
+      "state": "privacy signed out",
+      "theme": "light",
+      "lang": "en",
+      "url": "/privacy",
+      "language": {
+        "htmlLang": "en",
+        "title": "Privacy notice · OmniCourse",
+        "hits": [
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 2
+      }
+    },
+    "guides list | light | en": {
+      "state": "guides list",
+      "theme": "light",
+      "lang": "en",
+      "url": "/guides",
+      "language": {
+        "htmlLang": "en",
+        "title": "School task guides · OmniCourse",
+        "hits": [
+          "text: Portal Chương trình đề án (special programs portal) · Account: Your student ID and your sp",
+          "text: Open Portal Chương trình đề án (special programs portal)",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 4
+      }
+    },
+    "guides no results | light | en": {
+      "state": "guides no results",
+      "theme": "light",
+      "lang": "en",
+      "url": "/guides",
+      "language": {
+        "htmlLang": "en",
+        "title": "School task guides · OmniCourse",
+        "hits": [
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 2
+      }
+    },
+    "guide not found | light | en": {
+      "state": "guide not found",
+      "theme": "light",
+      "lang": "en",
+      "url": "/guides/no-such-guide",
+      "language": {
+        "htmlLang": "en",
+        "title": "Guide not found · OmniCourse",
+        "hits": [
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 2
+      }
+    },
+    "dashboard fixture | light | en": {
+      "state": "dashboard fixture",
+      "theme": "light",
+      "lang": "en",
+      "url": "/dashboard",
+      "language": {
+        "htmlLang": "en",
+        "title": "Dashboard · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Kiến thức Math",
+          "text: Tự chọn Math (B)",
+          "text: Kiến thức tự chọn",
+          "text: Kiến thức Computer Science (A): bắt buộc",
+          "text: Kiến thức Physics",
+          "text: Kiến thức Non Computer Science",
+          "text: Kiến thức Computer Science (A): tự chọn",
+          "text: Kiến thức tốt nghiệp",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt",
+          "aria-label: 164 of 163 credits earned. Kiến thức Computer Science (A): bắt buộc 40 of 40, Kiến thức Ma",
+          "title: Kiến thức Computer Science (A): bắt buộc",
+          "title: Kiến thức Math",
+          "title: Tự chọn Math (B)",
+          "title: Kiến thức tự chọn",
+          "title: Kiến thức Physics",
+          "title: Kiến thức Non Computer Science",
+          "title: Kiến thức Computer Science (A): tự chọn",
+          "title: Kiến thức tốt nghiệp"
+        ],
+        "hitCount": 20
+      }
+    },
+    "audit fixture | light | en": {
+      "state": "audit fixture",
+      "theme": "light",
+      "lang": "en",
+      "url": "/audit",
+      "language": {
+        "htmlLang": "en",
+        "title": "Degree audit · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Average (Điều 15.1.a)",
+          "text: Accumulated average (Điều 15.1.b)",
+          "text: ✓ Kiến thức Computer Science (A): bắt buộc QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Computer Science (A): tự chọn QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Math QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Non Computer Science QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Physics QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức tốt nghiệp QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Tự chọn Math (B) QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức tự chọn: at least 43 credits QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ At least 163 credits toward the cohort total QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ? Not prosecuted, and not serving a suspension QĐ 1175/QĐ-KHTN Điều 17.3.a",
+          "text: ? The national defence and security education certificate QĐ 1175/QĐ-KHTN Điều 17.3.c",
+          "text: ? The school's foreign-language standard QĐ 1175/QĐ-KHTN Điều 17.3.d",
+          "text: ? The IT standard of the curriculum QĐ 1175/QĐ-KHTN Điều 17.3.e",
+          "text: ? Finishing within the maximum study time QĐ 1175/QĐ-KHTN Điều 2.7",
+          "text: Kiến thức Computer Science (A): bắt buộc",
+          "text: Basis: QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: Kiến thức Math",
+          "text: Tự chọn Math (B)",
+          "text: Kiến thức Physics",
+          "text: Kiến thức Non Computer Science",
+          "text: Kiến thức Computer Science (A): tự chọn",
+          "text: Tự chọn Computer Science (C)",
+          "text: Elective · No minimum of its own · counts in Kiến thức tự chọn",
+          "text: Still missing: see Kiến thức tự chọn",
+          "text: Kiến thức tốt nghiệp",
+          "text: Kiến thức tự chọn",
+          "text: Adds up: Tự chọn Math (B), Tự chọn Computer Science (C)",
+          "text: Every figure is worked out by the rule engine from the transcript you saved, under QĐ 1175",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt",
+          "aria-label: Courses of Kiến thức Computer Science (A): bắt buộc",
+          "aria-label: Courses of Kiến thức Math",
+          "aria-label: Courses of Tự chọn Math (B)",
+          "aria-label: Courses of Kiến thức Physics",
+          "aria-label: Courses of Kiến thức Non Computer Science",
+          "aria-label: Courses of Kiến thức Computer Science (A): tự chọn",
+          "aria-label: Courses of Tự chọn Computer Science (C)",
+          "aria-label: Courses of Kiến thức tốt nghiệp"
+        ],
+        "hitCount": 41
+      }
+    },
+    "audit opened at a group | light | en": {
+      "state": "audit opened at a group",
+      "theme": "light",
+      "lang": "en",
+      "url": "/audit#group-0807a8fa-8825-44de-86ad-b59500e84480",
+      "language": {
+        "htmlLang": "en",
+        "title": "Degree audit · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Average (Điều 15.1.a)",
+          "text: Accumulated average (Điều 15.1.b)",
+          "text: ✓ Kiến thức Computer Science (A): bắt buộc QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Computer Science (A): tự chọn QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Math QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Non Computer Science QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức Physics QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức tốt nghiệp QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Tự chọn Math (B) QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ Kiến thức tự chọn: at least 43 credits QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ✓ At least 163 credits toward the cohort total QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: ? Not prosecuted, and not serving a suspension QĐ 1175/QĐ-KHTN Điều 17.3.a",
+          "text: ? The national defence and security education certificate QĐ 1175/QĐ-KHTN Điều 17.3.c",
+          "text: ? The school's foreign-language standard QĐ 1175/QĐ-KHTN Điều 17.3.d",
+          "text: ? The IT standard of the curriculum QĐ 1175/QĐ-KHTN Điều 17.3.e",
+          "text: ? Finishing within the maximum study time QĐ 1175/QĐ-KHTN Điều 2.7",
+          "text: Kiến thức Computer Science (A): bắt buộc",
+          "text: Basis: QĐ 1175/QĐ-KHTN Điều 17.3.b",
+          "text: Kiến thức Math",
+          "text: Tự chọn Math (B)",
+          "text: Kiến thức Physics",
+          "text: Kiến thức Non Computer Science",
+          "text: Kiến thức Computer Science (A): tự chọn",
+          "text: Tự chọn Computer Science (C)",
+          "text: Elective · No minimum of its own · counts in Kiến thức tự chọn",
+          "text: Still missing: see Kiến thức tự chọn",
+          "text: Kiến thức tốt nghiệp",
+          "text: Kiến thức tự chọn",
+          "text: Adds up: Tự chọn Math (B), Tự chọn Computer Science (C)",
+          "text: Every figure is worked out by the rule engine from the transcript you saved, under QĐ 1175",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt",
+          "aria-label: Courses of Kiến thức Computer Science (A): bắt buộc",
+          "aria-label: Courses of Kiến thức Math",
+          "aria-label: Courses of Tự chọn Math (B)",
+          "aria-label: Courses of Kiến thức Physics",
+          "aria-label: Courses of Kiến thức Non Computer Science",
+          "aria-label: Courses of Kiến thức Computer Science (A): tự chọn",
+          "aria-label: Courses of Tự chọn Computer Science (C)",
+          "aria-label: Courses of Kiến thức tốt nghiệp"
+        ],
+        "hitCount": 41
+      }
+    },
+    "explorer groups | light | en": {
+      "state": "explorer groups",
+      "theme": "light",
+      "lang": "en",
+      "url": "/explorer",
+      "language": {
+        "htmlLang": "en",
+        "title": "Curriculum · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Chương trình đào tạo - Chương trình Tiên tiến ngành Khoa học máy tính - Khóa tuyển 2024 · ",
+          "text: Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến",
+          "text: Kiến thức Computer Science (A): bắt buộc",
+          "text: Các học phần BB của khối Computer Science (A) (tổng khối (A): 56 tín chỉ). Sinh viên cần t",
+          "text: Kiến thức Math",
+          "text: 4 học phần",
+          "text: Tự chọn Math (B)",
+          "text: Sinh viên cần tích lũy ít nhất 8 tín chỉ tự chọn Math (B) (tương đương với 02 học phần). S",
+          "text: Kiến thức Physics",
+          "text: 3 học phần",
+          "text: Kiến thức Non Computer Science",
+          "text: Không kể các học phần Thể dục và Giáo dục quốc phòng – An ninh. Các học phần BAA00021, BAA",
+          "text: Kiến thức Computer Science (A): tự chọn",
+          "text: Các học phần TC của khối Computer Science (A) (tổng khối (A): 56 tín chỉ). Sinh viên cần t",
+          "text: Tự chọn Computer Science (C)",
+          "text: Sinh viên cần tích lũy tín chỉ tự chọn Computer Science (C) để tổng số tín chỉ thuộc (B) v",
+          "text: Kiến thức tốt nghiệp",
+          "text: Kiến thức tốt nghiệp chiếm 10 tín chỉ. Sinh viên có thể hoàn tất kiến thức tốt nghiệp theo",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 21
+      }
+    },
+    "explorer no results | light | en": {
+      "state": "explorer no results",
+      "theme": "light",
+      "lang": "en",
+      "url": "/explorer",
+      "language": {
+        "htmlLang": "en",
+        "title": "Curriculum · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Chương trình đào tạo - Chương trình Tiên tiến ngành Khoa học máy tính - Khóa tuyển 2024 · ",
+          "text: Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 5
+      }
+    },
+    "explorer course drawer | light | en": {
+      "state": "explorer course drawer",
+      "theme": "light",
+      "lang": "en",
+      "url": "/explorer",
+      "language": {
+        "htmlLang": "en",
+        "title": "Curriculum · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Chương trình đào tạo - Chương trình Tiên tiến ngành Khoa học máy tính - Khóa tuyển 2024 · ",
+          "text: Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến",
+          "text: Kiến thức Computer Science (A): bắt buộc",
+          "text: Các học phần BB của khối Computer Science (A) (tổng khối (A): 56 tín chỉ). Sinh viên cần t",
+          "text: Kiến thức Math",
+          "text: 4 học phần",
+          "text: Tự chọn Math (B)",
+          "text: Sinh viên cần tích lũy ít nhất 8 tín chỉ tự chọn Math (B) (tương đương với 02 học phần). S",
+          "text: Kiến thức Physics",
+          "text: 3 học phần",
+          "text: Kiến thức Non Computer Science",
+          "text: Không kể các học phần Thể dục và Giáo dục quốc phòng – An ninh. Các học phần BAA00021, BAA",
+          "text: Kiến thức Computer Science (A): tự chọn",
+          "text: Các học phần TC của khối Computer Science (A) (tổng khối (A): 56 tín chỉ). Sinh viên cần t",
+          "text: Tự chọn Computer Science (C)",
+          "text: Sinh viên cần tích lũy tín chỉ tự chọn Computer Science (C) để tổng số tín chỉ thuộc (B) v",
+          "text: Kiến thức tốt nghiệp",
+          "text: Kiến thức tốt nghiệp chiếm 10 tín chỉ. Sinh viên có thể hoàn tất kiến thức tốt nghiệp theo",
+          "text: Nhập môn Tin học",
+          "text: APCS2024 Kiến thức Computer Science (A): bắt buộc · compulsory",
+          "text: APCS2025 Kiến thức Computer Science (A): bắt buộc · compulsory",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 24
+      }
+    },
+    "plan list | light | en": {
+      "state": "plan list",
+      "theme": "light",
+      "lang": "en",
+      "url": "/plans/all",
+      "language": {
+        "htmlLang": "en",
+        "title": "Plans · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Kế hoạch mặc định",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt",
+          "title: Kế hoạch mặc định",
+          "aria-label: Actions for Kế hoạch mặc định"
+        ],
+        "hitCount": 6
+      }
+    },
+    "plan editor | light | en": {
+      "state": "plan editor",
+      "theme": "light",
+      "lang": "en",
+      "url": "/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+      "language": {
+        "htmlLang": "en",
+        "title": "Kế hoạch mặc định · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Kế hoạch mặc định",
+          "text: Kiến thức Computer Science (A): bắt buộc: 40/40 credits",
+          "text: Kiến thức Computer Science (A): tự chọn: 16/16 credits",
+          "text: Kiến thức Math: 16/16 credits",
+          "text: Kiến thức Non Computer Science: 26/26 credits",
+          "text: Kiến thức Physics: 12/12 credits",
+          "text: Kiến thức tốt nghiệp: 10/10 credits",
+          "text: Tự chọn Computer Science (C): 36 credits",
+          "text: Tự chọn Math (B): 8/8 credits",
+          "text: Kiến thức Computer Science (A): tự chọn",
+          "text: Kiến thức tốt nghiệp",
+          "text: Tự chọn Computer Science (C)",
+          "text: Tự chọn Math (B)",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt",
+          "title: Kế hoạch mặc định",
+          "title: Kiến thức Computer Science (A): bắt buộc: 40/40 credits",
+          "title: Kiến thức Computer Science (A): tự chọn: 16/16 credits",
+          "title: Kiến thức Math: 16/16 credits",
+          "title: Kiến thức Non Computer Science: 26/26 credits",
+          "title: Kiến thức Physics: 12/12 credits",
+          "title: Kiến thức tốt nghiệp: 10/10 credits",
+          "title: Tự chọn Computer Science (C): 36 credits",
+          "title: Tự chọn Math (B): 8/8 credits",
+          "aria-label: Hold a slot for Kiến thức Computer Science (A): tự chọn in Term 1 2026–2027",
+          "title: Hold a slot for Kiến thức Computer Science (A): tự chọn in Term 1 2026–2027",
+          "aria-label: Hold a slot for Kiến thức tốt nghiệp in Term 1 2026–2027",
+          "title: Hold a slot for Kiến thức tốt nghiệp in Term 1 2026–2027",
+          "aria-label: Hold a slot for Tự chọn Computer Science (C) in Term 1 2026–2027",
+          "title: Hold a slot for Tự chọn Computer Science (C) in Term 1 2026–2027",
+          "aria-label: Hold a slot for Tự chọn Math (B) in Term 1 2026–2027",
+          "title: Hold a slot for Tự chọn Math (B) in Term 1 2026–2027",
+          "title: Kế hoạch mặc định · OmniCourse"
+        ],
+        "hitCount": 34
+      }
+    },
+    "plan editor new-plan dialog | light | en": {
+      "state": "plan editor new-plan dialog",
+      "theme": "light",
+      "lang": "en",
+      "url": "/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+      "language": {
+        "htmlLang": "en",
+        "title": "Kế hoạch mặc định · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Kế hoạch mặc định",
+          "text: Kiến thức Computer Science (A): bắt buộc: 40/40 credits",
+          "text: Kiến thức Computer Science (A): tự chọn: 16/16 credits",
+          "text: Kiến thức Math: 16/16 credits",
+          "text: Kiến thức Non Computer Science: 26/26 credits",
+          "text: Kiến thức Physics: 12/12 credits",
+          "text: Kiến thức tốt nghiệp: 10/10 credits",
+          "text: Tự chọn Computer Science (C): 36 credits",
+          "text: Tự chọn Math (B): 8/8 credits",
+          "text: Kiến thức Computer Science (A): tự chọn",
+          "text: Kiến thức tốt nghiệp",
+          "text: Tự chọn Computer Science (C)",
+          "text: Tự chọn Math (B)",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt",
+          "title: Kế hoạch mặc định",
+          "title: Kiến thức Computer Science (A): bắt buộc: 40/40 credits",
+          "title: Kiến thức Computer Science (A): tự chọn: 16/16 credits",
+          "title: Kiến thức Math: 16/16 credits",
+          "title: Kiến thức Non Computer Science: 26/26 credits",
+          "title: Kiến thức Physics: 12/12 credits",
+          "title: Kiến thức tốt nghiệp: 10/10 credits",
+          "title: Tự chọn Computer Science (C): 36 credits",
+          "title: Tự chọn Math (B): 8/8 credits",
+          "aria-label: Hold a slot for Kiến thức Computer Science (A): tự chọn in Term 1 2026–2027",
+          "title: Hold a slot for Kiến thức Computer Science (A): tự chọn in Term 1 2026–2027",
+          "aria-label: Hold a slot for Kiến thức tốt nghiệp in Term 1 2026–2027",
+          "title: Hold a slot for Kiến thức tốt nghiệp in Term 1 2026–2027",
+          "aria-label: Hold a slot for Tự chọn Computer Science (C) in Term 1 2026–2027",
+          "title: Hold a slot for Tự chọn Computer Science (C) in Term 1 2026–2027",
+          "aria-label: Hold a slot for Tự chọn Math (B) in Term 1 2026–2027",
+          "title: Hold a slot for Tự chọn Math (B) in Term 1 2026–2027",
+          "title: Kế hoạch mặc định · OmniCourse"
+        ],
+        "hitCount": 34
+      }
+    },
+    "transcript | light | en": {
+      "state": "transcript",
+      "theme": "light",
+      "lang": "en",
+      "url": "/transcript",
+      "language": {
+        "htmlLang": "en",
+        "title": "Transcript · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 3
+      }
+    },
+    "settings | light | en": {
+      "state": "settings",
+      "theme": "light",
+      "lang": "en",
+      "url": "/settings",
+      "language": {
+        "htmlLang": "en",
+        "title": "Settings · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 4
+      }
+    },
+    "settings delete dialog | light | en": {
+      "state": "settings delete dialog",
+      "theme": "light",
+      "lang": "en",
+      "url": "/settings",
+      "language": {
+        "htmlLang": "en",
+        "title": "Settings · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "text: Cử nhân ngành Khoa học máy tính - Chương trình Tiên tiến",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 4
+      }
+    },
+    "privacy signed in | light | en": {
+      "state": "privacy signed in",
+      "theme": "light",
+      "lang": "en",
+      "url": "/privacy",
+      "language": {
+        "htmlLang": "en",
+        "title": "Privacy notice · OmniCourse",
+        "hits": [
+          "text: Tiếng Việt",
+          "aria-label: Tiếng Việt",
+          "title: Tiếng Việt"
+        ],
+        "hitCount": 3
+      }
+    }
+  },
+  "esc": {
+    "explorer course drawer": {
+      "openBefore": true,
+      "openAfterEsc": false,
+      "focusBackOnOpener": true,
+      "focusAfter": "button \"CS1604 TCNhập môn Tin họcĐã đạt\""
+    },
+    "settings delete dialog": {
+      "openBefore": true,
+      "openAfterEsc": false,
+      "focusBackOnOpener": true,
+      "focusAfter": "button \"Xóa tài khoản\""
+    },
+    "plan editor new-plan dialog": {
+      "openBefore": true,
+      "openAfterEsc": false,
+      "focusBackOnOpener": true,
+      "focusAfter": "button \"Kế hoạch mới\""
+    }
+  },
+  "chrome": "144.0.7559.110",
+  "breakpoints": [
+    420,
+    620,
+    960,
+    1180
+  ],
+  "widths": [
+    360,
+    419,
+    420,
+    421,
+    619,
+    620,
+    621,
+    768,
+    959,
+    960,
+    961,
+    1179,
+    1180,
+    1181,
+    1280,
+    1920
+  ],
+  "finishedAt": "2026-11-28T08:49:02.178Z"
+}

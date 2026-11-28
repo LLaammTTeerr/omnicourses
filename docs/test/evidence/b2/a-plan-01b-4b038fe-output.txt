@@ -1,0 +1,30 @@
+2026-11-28T08:59:08.231Z a-plan-01 b
+2026-11-28T08:59:08.478Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s15@example.com → 200
+2026-11-28T08:59:13.610Z plan a1e740c8-7b68-4766-85ad-7f6c7231b528; board {"2026-1":["CS160","CS163","CS201","CS202","MTH251"]}
+--- PLAN-01b (1)
+  setup: Add Term pressed so that Term 2 2026–2027 exists (an empty row is not saved, so the reload of part b dropped it)
+  search cs469 showed ["pool-CS469"]; announcer "Added CS469 to Term 1 2026–2027." then "Added CS470 to Term 2 2026–2027."; requests PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200
+ok   PLAN-01b: (1) search filters; CS469 → 2026-1 and CS470 → 2026-2 each saved and announced | observed: {"2026-1":["CS160","CS163","CS201","CS202","MTH251","CS469"],"2026-2":["CS470"]}
+--- PLAN-01b (2)
+  setup: Add Term pressed once so that Term 3 2026–2027 exists (the board ended at 2026-2); requests none
+FAIL PLAN-01b: (2) Space lifts (class lifted, one batched POST …/issues/drops, announced); ArrowDown targets 2026-3 and announces it; Escape cancels with no PUT | observed: {"liftCls":"ptile g-thesis lifted","drops":1,"liftSaid":"Lifted CS470 in Term 2 2026–2027. Use the arrow keys to pick a term, Enter to drop, Escape to cancel.","target":"term-2026-3","targetSaid":"Not checked: CS470: offering terms not recorded yet.","escSaid":"Cancelled moving CS470."}
+ok   PLAN-01b: (2) Space, ArrowDown, Enter moves CS470 to 2026-3, saves once, focus stays on CS470 | observed: {"writes":"PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200","focus":"li #tile-6 [data-test=tile-CS470] \"CS470, Term 3 2026–2027\" CS470\n5 cr\nCapstone Project II\nThesis\nNo"}
+--- PLAN-01b (3)
+ok   PLAN-01b: (3) "earlier" moves CS470 to 2026-2 and keeps focus on it | observed: {"focus":"li #tile-6 [data-test=tile-CS470] \"CS470, Term 2 2026–2027\" CS470\n5 cr\nCapstone Project II\nThesis\nNo"}
+ok   PLAN-01b: (3) Ctrl+Z puts CS470 back in 2026-3 and saves | observed: {"writes":"PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200"}
+  2026-1 before Delete: ["CS160","CS163","CS201","CS202","MTH251","CS469"]; focus after: li #tile-2 [data-test=tile-CS201] "CS201, Term 1 2026–2027" CS201
+4 cr
+Computer Systems Programming
+
+ok   PLAN-01b: (3) Delete removes CS163, saves once, focus moves to an adjacent tile of 2026-1 | observed: {"focus":"li #tile-2 [data-test=tile-CS201] \"CS201, Term 1 2026–2027\" CS201\n4 cr\nComputer Systems Programming\n","scrollY":1299}
+--- PLAN-01b (4)
+  POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/duplicate 201; GET /api/notifications/unread-count 200; GET /api/plans/6693deeb-3c9b-4bed-b51c-3e6311e00dc9 200; GET /api/plans/6693deeb-3c9b-4bed-b51c-3e6311e00dc9/issues 200; GET /api/plans 200; now on 6693deeb-3c9b-4bed-b51c-3e6311e00dc9 "What-if: Default plan"
+  GET /api/plans → 200
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+  GET /api/plans/6693deeb-3c9b-4bed-b51c-3e6311e00dc9 → 200
+  copy board {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":[],"2026-3":[]}; original board {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":[],"2026-3":["CS470"]}; after reload {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":[],"2026-3":["CS470"]}
+  GET /api/plans: ["Default plan a1e740c8-7b68-4766-85ad-7f6c7231b528 courses=6","What-if: Default plan 6693deeb-3c9b-4bed-b51c-3e6311e00dc9 courses=5"]
+  API original: 2026-1: CS160,CS201,CS202,MTH251,CS469 | 2026-3: CS470; copy: 2026-1: CS160,CS201,CS202,MTH251,CS469
+ok   PLAN-01b: (4) POST …/duplicate made "What-if: Default plan" in its own tab; CS470 removed only in the copy; the original keeps CS470 before and after reload | observed: {"h1":"What-if: Default plan"}
+2026-11-28T08:59:24.088Z 1 FAIL(S)

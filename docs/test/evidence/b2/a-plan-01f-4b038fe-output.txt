@@ -1,0 +1,40 @@
+2026-11-28T09:04:15.114Z a-plan-01 f
+2026-11-28T09:04:15.372Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s15@example.com → 200
+2026-11-28T09:04:20.566Z plan a1e740c8-7b68-4766-85ad-7f6c7231b528; board {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":["CS420"],"2026-3":["slot"]}
+--- PLAN-01f (1)
+  while saving: {"chip":"Saving…","otherTab":"true","newPlan":true,"deletePlan":true,"whatIf":true,"beforeunload":true}; after tab click /plans/a1e740c8-7b68-4766-85ad-7f6c7231b528; after Plan list /plans/a1e740c8-7b68-4766-85ad-7f6c7231b528; toasts ["Saving your plan — please wait a moment."]
+ok   PLAN-01f: (1) while Saving…: leaving blocked, other tab aria-disabled, New plan/Delete/What-if disabled, beforeunload prevented; after the PUT settles, leaving works | observed: {"url3":"/plans/all"}
+--- PLAN-01f (2) retest #137
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T09:04:18.850Z","user":{"id":"5cea9f38-2229-4579-92be-56bc5a7d2d12","email":"b2-s15@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-28T05:54:49.081Z"},"accountRestored":false}
+  GET /api/auth/sessions → 200 [{"current":true,"createdAt":"2026-11-28T09:04:18.850Z","ua":"node"},{"current":false,"createdAt":"2026-11-28T09:04:09.610Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T09:03:37.543Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T09:01:42.400Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T09:01:33.882Z","ua":"node"},{"current":false,"createdAt":"2026-11-28T09:00:44.193Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T09:00:35.814Z","ua":"node"},{"current":false,"createdAt":"2026-11-28T08:59:53.314Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T08:59:44.921Z","ua":"node"},{"current":false,"createdAt":"2026-11-28T08:59:30.772Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T08:59:02.676Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T08:58:20.500Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T08:58:05.065Z","ua":"node"},{"current":false,"createdAt":"2026-11-28T06:17:21.702Z","ua":"node"},{"current":false,"createdAt":"2026-11-28T06:10:28.919Z","ua":"Mozilla/5.0 (Windows NT 10.0; "},{"current":false,"createdAt":"2026-11-28T06:09:56.319Z","ua":"node"}]
+  DELETE /api/auth/sessions/c4334ca4-a9ad-4283-99a3-336d11b07cb6 → 204
+  DELETE /api/auth/sessions/cfae5114-24b2-45e9-bc11-10627620dfa1 → 204
+  DELETE /api/auth/sessions/4bde961c-0560-4851-b3dd-35b8c5a7f42b → 204
+  DELETE /api/auth/sessions/d6dc1864-ca29-4f06-86b4-8521e45d76e0 → 204
+  DELETE /api/auth/sessions/657a9953-a5b6-49b0-b8b1-2d8a543d8654 → 204
+  DELETE /api/auth/sessions/a5268454-2378-42e5-830f-35dca4e37945 → 204
+  DELETE /api/auth/sessions/1ca78be8-9c2a-442b-83f6-4775d482ece6 → 204
+  DELETE /api/auth/sessions/39992b7f-ddd4-4785-86eb-546c4f87f2c4 → 204
+  DELETE /api/auth/sessions/a9d666ef-4472-4381-8410-ed473ae7b22b → 204
+  DELETE /api/auth/sessions/17eee617-2846-495d-ae8f-95921e12d860 → 204
+  DELETE /api/auth/sessions/e93661b3-93b2-4020-9dc8-43c2ac4c3f16 → 204
+  DELETE /api/auth/sessions/9b471111-fa40-4fb8-9229-b495f340d679 → 204
+  DELETE /api/auth/sessions/9358c93c-8124-4f2c-b309-987aa84e4ed5 → 204
+  DELETE /api/auth/sessions/84afb55e-d384-4975-97dc-29b06d758c19 → 204
+  DELETE /api/auth/sessions/f2b1934f-ca37-4878-a0d3-127eeddd042a → 204
+  every other session of L revoked from a second client (the API session), the page's included
+  requests PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 401; chip states ["Saving…","/sign-in?redirect=/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528"]; toasts ["Your session has ended. Please sign in again.","Your session has ended — your last change was not saved. Please sign in again."]; save-error 0; now at /sign-in?redirect=/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 (no token) → 401
+FAIL PLAN-01f: (2) #137: PUT 401 → chip "Session expired · not saved", never "Saved"; no save-failed banner; toast says the session ended and the change was not saved | observed: {"states":["Saving…","/sign-in?redirect=/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528"]}
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+ok   PLAN-01f: (2) the API holds the plan as before the refused change | observed: ["2026-1: CS160,CS201,CS202,MTH251,CS469,CS420","2026-3: slot(4)"]
+--- PLAN-01f (3) retest #138
+  UI sign-in b2-s15@example.com → 200
+  signed in again; at /plans/a1e740c8-7b68-4766-85ad-7f6c7231b528; board {"2026-1":["CS160","CS201","CS202","MTH251","CS469","CS420"],"2026-2":[],"2026-3":["slot"]}
+  chip sequence [{"t":5,"chip":"Saving…"},{"t":29964,"chip":"Saved"}]; requests PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 200; GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues 200; toasts []; save-error 0
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+  after reload: 2026-1: CS160,CS201,CS202,MTH251,CS469,CS420 | 2026-3: slot(4),CS250
+ok   PLAN-01f: (3) #138: chip stays "Saving…" until the outcome is known; after the lost PUT a GET /api/plans/{id} re-reads the plan; chip Saved, CS250 kept, no false alert; GET …/issues refreshed | observed: [{"t":5,"chip":"Saving…"},{"t":29964,"chip":"Saved"}]
+2026-11-28T09:05:49.170Z 1 FAIL(S)

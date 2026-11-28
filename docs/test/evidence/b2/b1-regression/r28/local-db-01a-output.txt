@@ -1,0 +1,12 @@
+# DB-01a, local disposable PostgreSQL (docker, port 55432), empty database, tree 4b038fe (git archive of the commit staging serves, built in a scratch folder with npm ci), Node v24.19.0 (repo pins 22.22.1), npm 11.17.0, postgres (PostgreSQL) 18.6 (Debian 18.6-1.pgdg13+2) (omni-b1r28-db, port 55432)
+2026-11-28T07:44:37Z
+--- migrate run 1
+> @omnicourse/backend@0.6.0 db:migrate
+> node dist/database/migrate.js
+Applied: CreateUsersAndSessions1761696000000, CreateAiUsage1792800000000, AddUsersDeletionRequestedAt1792886400000, CreateCurriculumCourseSchema1792912952302, CreateTranscriptRows1793159431000, CreateGuides1793872582380, CreateOnboardingAnswers1794216390492, CreatePlans1794218005469, CreateCurriculumAdmin1794230000000, AddAuditRulesToCurriculum1794300000000, CreateAcademicCalendar1794500000000, CreatePlanShares1795564800000, CreateNotifications1795575059760, HardenConstraintsAndIndexes1795600000000, CreateSignInAttempts1795600000001, AddUsersStudentIdAndClassName1795700000000
+exit 0
+--- migrate run 2
+> @omnicourse/backend@0.6.0 db:migrate
+> node dist/database/migrate.js
+Database is up to date.
+exit 0

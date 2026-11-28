@@ -1,0 +1,5 @@
+2026-11-28T07:48:27.054Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+2026-11-28T07:48:30.441Z button: Xuất dữ liệu
+ok   USER-01u: Export my data saves a JSON file with the same tables and row counts as the API export | observed: {"file":"omnicourse-account.json","fileTables":{"ai_usage":0,"global_admin_grants":0,"notifications":0,"onboarding_answers":1,"plan_placements":0,"plan_shares":0,"plans":0,"program_admin_grants":0,"sessions":8,"transcript_rows":0},"apiTables":{"ai_usage":0,"global_admin_grants":0,"notifications":0,"onboarding_answers":1,"plan_placements":0,"plan_shares":0,"plans":0,"program_admin_grants":0,"sessions":8,"transcript_rows":0},"topKeys":["exportedAt","user","tables"],"userKeys":["id","email","display_name","email_verified_at","consent_at","created_at","updated_at","deletion_requested_at","purge_after","student_id","class_name"]}
+ok   USER-01u: no credential-like key in the saved file | observed: []
+2026-11-28T07:48:31.084Z console errors: []

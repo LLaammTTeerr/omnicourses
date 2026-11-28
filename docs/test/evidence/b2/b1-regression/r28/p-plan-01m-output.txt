@@ -1,0 +1,20 @@
+[2026-11-28T07:59:17.947Z] Chromium 156.0.8078.4 headless, Playwright 1.64.1, viewport 1280x800
+[2026-11-28T07:59:21.385Z] plan "Retry 01m" made, board: HK1 2026–2027: -; waiting 65 s so no earlier save counts toward the minute
+[2026-11-28T08:00:37.184Z] every answer as status:x-ratelimit-remaining, in order: 200:119 200:118 200:117 200:116 200:115 200:114 200:113 200:112 200:111 200:110 200:109 200:108 200:107 200:106 200:105 200:104 200:103 200:102 200:101 200:100 200:99 200:98 200:97 200:96 200:95 200:94 200:93 200:92 200:91 200:90 200:89 200:88 200:87 200:86 200:85 200:84 200:83 200:82 200:81 200:80 200:79 200:78 200:77 200:76 200:75 200:74 200:73 200:72 200:71 200:70 200:69 200:68 200:67 200:66 200:65 200:64 200:63 200:62 200:61 200:60 200:59 200:58 200:57 200:56 200:55 200:54 200:53 200:52 200:51 200:50 200:49 200:48 200:47 200:46 200:45 200:44 200:43 200:42 200:41 200:40 200:39 200:38 200:37 200:36 200:35 200:34 200:33 200:32 200:31 200:30 200:29 200:28 200:27 200:26 200:25 200:24 200:23 200:22 200:21 200:20 200:19 200:18 200:17 200:16 200:15 200:14 200:13 200:12 200:11 200:10 200:9 200:8 200:7 200:6 200:5 200:4 200:3 200:2 200:1 200:0
+[2026-11-28T08:00:37.184Z] saves sent from page; x-ratelimit-remaining of the first, 60th and last answer: 200:119, 200:60, 200:0
+[2026-11-28T08:00:37.184Z] script: 120 PUT …/placements of the empty board in 10.8 s; status counts {"200":120}
+OK   PLAN-01m | the script prints 120 200 | observed: {"200":120}
+[2026-11-28T08:00:37.286Z] CS160 added in the browser 0.0 s after the script ended
+[2026-11-28T08:00:37.289Z] browser PUT …/placements answered 429 at +0.1 s
+[2026-11-28T08:00:37.298Z] +0.1 s chip "Đang lưu…" | error "" | board HK1 2026–2027: CS160
+[2026-11-28T08:00:39.360Z] browser PUT …/placements answered 429 at +2.2 s
+[2026-11-28T08:00:44.447Z] browser PUT …/placements answered 429 at +7.3 s
+[2026-11-28T08:00:54.524Z] browser PUT …/placements answered 429 at +17.3 s
+[2026-11-28T08:00:54.759Z] +17.6 s chip "Chưa lưu" | error "Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất." | board HK1 2026–2027: -
+OK   PLAN-01m | the browser's PUT is answered 429 | observed: [{"at":"0.1","status":429},{"at":"2.2","status":429},{"at":"7.3","status":429},{"at":"17.3","status":429}]
+OK   PLAN-01m | it is sent again after 2, 5 and 10 seconds | observed: PUTs [{"at":"0.1","status":429},{"at":"2.2","status":429},{"at":"7.3","status":429},{"at":"17.3","status":429}]; gaps 2.1, 5.1, 10.0 s
+OK   PLAN-01m | CS160 stays on the board and the chip says Đang lưu… while the save is resent; the board never goes back at the first 429 | observed: ["+0.1 s chip \"Đang lưu…\" | error \"\" | board HK1 2026–2027: CS160","+17.6 s chip \"Chưa lưu\" | error \"Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất.\" | board HK1 2026–2027: -"]
+NOTE PLAN-01m | how long the chip said Đang lưu… (note; the case says about 17 s) | observed: 17.5 s
+OK   PLAN-01m | ending 2: the last resend also got 429; the board goes back, with the message and chip Chưa lưu | observed: error "Chưa lưu được thay đổi. Kế hoạch đã trở về lần lưu gần nhất."; chip "Chưa lưu"; HK1 2026–2027: -
+OK   PLAN-01m | after a reload CS160 is not saved (screen and API agree with the ending) | observed: ending: went back; screen HK1 2026–2027: -; API placements [] (GET 200)
+SUMMARY {"PLAN-01m":{"ok":6,"diff":0}} elapsed 111s

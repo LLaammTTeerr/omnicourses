@@ -2,7 +2,7 @@
 
 - **Status: partial, in progress.** This report collects the B2 staging runs recorded on 21–28 November 2026 and updates the case inventory as of **28 November 2026**. It is updated as each open item in §6 runs on the B2 candidate, and it has no acceptance decision yet.
 - Owner: Dũng. Drafted with Claude Code from Dũng's staging runs of 21–28 November 2026. The raw results and notes of each run are in its results file under [`evidence/b2/`](evidence/b2/) (§2); this report summarises them and does not repeat them.
-- Build: B2 is due on 29 November 2026 ([test plan §8](test-plan.md#8-schedule-and-remaining-work)) and is not tagged yet. Every manual/scripted run so far was on staging, on the commit staging served that day (§2). The 28 November runs were on staging `778d120` (#214), which holds every B2 feature and the fixes of #137, #138, #170, #174 and #163. After it, `main` took #220–#227, code clean-ups with no new feature (Lâm, 28 November), so the 28 November runs count toward the B2 candidate; before the tag, §6 item 1 re-checks which runs need repeating.
+- Build: B2 is due on 29 November 2026 ([test plan §8](test-plan.md#8-schedule-and-remaining-work)) and is not tagged yet. Every manual/scripted run so far was on staging, on the commit staging served that day (§2). The 28 November runs were on staging `778d120` (#214), which holds every B2 feature and the fixes of #137, #138, #170, #174 and #163. After it, `main` took #220–#227, code clean-ups with no new feature (Lâm, 28 November), so the 28 November runs count toward the B2 candidate. Staging then moved to `4b038fe` (#246, at 07:37Z), with #245 and the clean-ups #228–#232: ADM-03g ran there, and the 28 November cases whose screens or routes changed were rerun there with the same results (§6 item 1), except PERF-01, which waits for a normal test connection. The B1 regression on B2 also ran on `4b038fe`.
 - Cases: [B2 test cases](test-cases-b2.md) v0.14. Parent checks: [test plan §5](test-plan.md#5-required-checks).
 - Decision: **not made.** Lâm decides once the candidate is tagged and the open items in §6 are run or explained.
 
@@ -58,7 +58,8 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. St
 | 25 Nov, 13:17–13:51 | `e7bd617` | NOTIF-01a–j, SHARE-01a–l, ADM-04a–g | [`results-2026-11-25-notif-share-adm04.md`](evidence/b2/results-2026-11-25-notif-share-adm04.md) | #173 |
 | 25 Nov, 14:35 | `e7bd617` | ADM-03a–f | the same file, ADM-03 section | #176 |
 | 28 Nov, 05:51–06:30 | `778d120` | NOTIF-01d(2), NOTIF-01j, SHARE-01l, TRN-01a–g, PLAN-01a–f, PLAN-02a and c (retests), A11Y-01d–f (retests), export and text-limit retests (#174, #163), PERF-01a–f | [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md) | #246 |
-| 28 Nov, 07:44 | `4b038fe` | ADM-03g, ADM-03c (5) and ADM-03d (3) (reruns) | [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md) | #251 |
+| 28 Nov, 07:44–09:20 | `4b038fe` | ADM-03g, ADM-03c (5) and ADM-03d (3) (reruns); carry-over of TRN-01a–g, PLAN-01a–f, PLAN-02a and c, SHARE-01l, NOTIF-01j, A11Y-01d–f and the text-limit retest (#163) | [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md) | #251 |
+| 28 Nov, 07:43–09:18 | `4b038fe` | B1 regression on B2 (cases §12) | [`results-b1-regression-2026-11-28.md`](evidence/b2/results-b1-regression-2026-11-28.md) | #251 |
 
 | Item | Used |
 | --- | --- |
@@ -170,6 +171,8 @@ One line per group of cases from the same run with the same result. The results 
 | [#163](https://github.com/LLaammTTeerr/omnicourses/issues/163) Text fields with a null character or a variation selector answer 500 | review | fixed by #179; retest passed on `778d120` (RETEST-179a, b) |
 | [#247](https://github.com/LLaammTTeerr/omnicourses/issues/247) The keyboard lift never announces the target term | PLAN-01b | new on `778d120`, open |
 | [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248) An edit takes about 300 ms because the save and the check run one after the other | PERF-01c–f | new on `778d120`, open (Hoà, Triết) |
+| [#254](https://github.com/LLaammTTeerr/omnicourses/issues/254) One dashboard load sends one audit request per past term | B1 regression (PERF-01) | new on `4b038fe`, open (Lâm); B1 PERF-01 leaves 4 s between dashboard loads meanwhile |
+| [#255](https://github.com/LLaammTTeerr/omnicourses/issues/255) A reload during the session refresh signs the student out | B1 regression (PERF-01 probe) | new on `4b038fe`, open (Lâm) |
 | [#249](https://github.com/LLaammTTeerr/omnicourses/issues/249) Transcript summary buttons overlap the result counts at 1280 px | TRN-01 screenshots | new on `778d120`, open; outside TRN-01's expected results, so TRN-01 stays passed |
 
 ## 6. Open items
@@ -178,11 +181,11 @@ Each item updates this report when it runs on the B2 candidate.
 
 | # | Item | Owner | Next |
 | --- | --- | --- | --- |
-| 1 | Carry the results to the B2 candidate | Dũng, Lâm | When B2 is tagged: list the `src/` changes since each run's build (§2), and rerun the cases they touch. The 28 November runs were on `778d120`; `main` has since taken #220–#227 (clean-ups, no new feature). |
+| 1 | Carry the results to the B2 candidate | Dũng, Lâm | Done for staging `4b038fe` (28 November, [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md)): the 28 November cases whose screens or routes changed since `778d120` were rerun with the same results; RETEST-175 and NOTIF-01d(2) keep their `778d120` result (no change to the export; #229 only moved the same SQL, pinned by `account-state.spec.ts`). PERF-01c–f is not rerun yet: the test connection was slow (health 185–199 ms against 109–123 ms); rerun tonight or on the morning of 29 November. When B2 is tagged, repeat for the `src/` changes after `4b038fe`. |
 | 2 | Host `setup.sh`, `OPS-01a–c` and `ADM-07j` (4)–(5) | Lâm, then Dũng | Lâm runs `deploy/server/setup.sh` on the host, executes `OPS-01a–c` (`omnicourse-backup.timer`, `omnicourse_rehearsal` restore, `/api/health` 503 rollback), and Dũng reruns `ADM-07j` (4)–(5) against `client_max_body_size 8m`. |
 | 3 | CSV import and `/admin/calendar` screen checks | Thắng | At 360 and 1280 px: no overflow, the keyboard reaches every control, readable errors. Thắng runs both screens (28 November). |
-| 4 | B1 regression on B2 (cases §12) | Dũng | Rerun on the current staging build; the B1 cases were updated in #209 (B1 cases 0.10). |
-| 5 | Retests of B1 defects (cases §13) | Dũng | For each of #101, #114, #115, #117 and #119 once its fix is merged. #119 still fails (A11Y-01e, f on `778d120`). |
+| 4 | B1 regression on B2 (cases §12) | Dũng | Ran on `4b038fe` on 28 November ([`results-b1-regression-2026-11-28.md`](evidence/b2/results-b1-regression-2026-11-28.md)): as expected, with the cases updated for the dashboard rebuilt in #214 (B1 cases 0.12) and for #207's 503 (B0 cases 0.3); new defects #254 and #255; the light `.delta` chip of the dashboard added to #119. Left: B1 PERF-01b–h (rerun on a normal connection; if still slow by midday 29 November, "not run: slow tester connection", carried to B3), the phone checks (DEP-01e, GUIDE-01o second reader) and DEP-01f (waits for the tag). |
+| 5 | Retests of B1 defects (cases §13) | Dũng | For each of #101, #114, #115, #117 and #119 once its fix is merged. #119 still fails (A11Y-01e, f on `778d120` and `4b038fe`; on the B1 screens, the sign-up quote block and the light dashboard `.delta` chip). |
 | 6 | New defects of 28 November | Hoà, Triết; Dũng retests | [#247](https://github.com/LLaammTTeerr/omnicourses/issues/247) (PLAN-01b, keyboard lift announcement), [#248](https://github.com/LLaammTTeerr/omnicourses/issues/248) (PERF-01c–f, edit validation about 300 ms) and [#249](https://github.com/LLaammTTeerr/omnicourses/issues/249) (transcript buttons over the result counts). Retest after the fixes. |
 | 7 | Planner, transcript, sharing and notification screens in A11Y-01 | Dũng | Add them, and `/admin/calendar` and `/admin/import`, to §10's table of screens (A11Y-01a), then run A11Y-01 on them. |
 | 8 | Case wording | Dũng | Update TRN-01a, b, f, SHARE-01l, PLAN-01a, b, d, f and PLAN-02a to the screens as built (each listed in [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md)). |

@@ -1,0 +1,160 @@
+2026-11-28T07:43:51.157Z Chrome 144.0.7559.110 (headless) through Playwright 1.64.1; server https://stag-omnicourses.lamter.cc
+2026-11-28T07:43:51.157Z ---- API, no token
+2026-11-28T07:43:51.440Z GET /api/guides: 200 ["accounts-and-portals","grades-and-transcript"] 1702 bytes
+2026-11-28T07:43:51.535Z GET /api/guides/accounts-and-portals: 200 langs en,vi; vi: "Tài khoản và cổng thông tin" v1 checked 2026-11-15 by Dũng; en: "Your school accounts and portals" v1 checked 2026-11-15 by Dũng
+2026-11-28T07:43:51.627Z GET /api/guides/grades-and-transcript: 200 langs en,vi; vi: "Xem điểm" v1 checked 2026-11-15 by Dũng; en: "View your grades" v1 checked 2026-11-15 by Dũng
+2026-11-28T07:43:51.717Z GET /api/guides/register-courses: 404 {"message":"Guide not found","error":"Not Found","statusCode":404}
+2026-11-28T07:43:51.812Z GET /api/guides/pay-tuition: 404 {"message":"Guide not found","error":"Not Found","statusCode":404}
+2026-11-28T07:43:51.897Z GET /api/guides/no-such-guide: 404 {"message":"Guide not found","error":"Not Found","statusCode":404}
+ok   GUIDE-01n: GET /api/guides answers 200 without a token and lists exactly G01 and G07 (G02 and G06 are drafts) | observed: 200 ["accounts-and-portals","grades-and-transcript"]
+2026-11-28T07:43:51.898Z ---- GUIDE-01b
+2026-11-28T07:43:53.663Z list [Tài khoản và cổng thông tin] G01: "Tài khoản và cổng thông tin" | Portal Chương trình đề án · Tài khoản: Mã số sinh viên và mật khẩu Portal Chương trình đề án | Kiểm tra ngày 15/11/2026 | link {"href":"https://portal.ctdb.hcmus.edu.vn","text":"Mở Portal Chương trình đề án (mở ở tab mới)","target":"_blank","rel":"noopener noreferrer"}
+2026-11-28T07:43:53.664Z list [Bảng điểm và giấy xác nhận] G07: "Xem điểm" | Portal Chương trình đề án · Tài khoản: Mã số sinh viên và mật khẩu Portal Chương trình đề án | Kiểm tra ngày 15/11/2026 | link {"href":"https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan","text":"Mở Portal Chương trình đề án (mở ở tab mới)","target":"_blank","rel":"noopener noreferrer"}
+ok   GUIDE-01b: G01 is listed under "Tài khoản và cổng" (Accounts and portals) and G07 under the records group, with task, portal, account and direct link | observed: {"accounts-and-portals":"Tài khoản và cổng thông tin","grades-and-transcript":"Bảng điểm và giấy xác nhận"}
+BLOCKED GUIDE-01b: the list shows the four B1 guides (G02 under Registration, G06 under Tuition and fees) | observed: 2 listed: G01, G07; G02 and G06 are drafts
+2026-11-28T07:43:53.820Z ---- GUIDE-01c, screen in vi
+  ok   [vi] "học phí" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [vi] "hoc phi" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [vi] "HỌC PHÍ" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [vi] "spaces around and between" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [vi] "học phí as decomposed Unicode (NFD)" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [vi] "hoc ph" -> G07 | case expects G02, G06, G07; with G02/G06 drafts: G07
+  ok   [vi] "tuition" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [vi] "đăng ký học phần" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [vi] "dang ky hoc phan" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [vi] "ĐĂNG KÝ" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [vi] "dkhp" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [vi] "register" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [vi] "bảng điểm" -> G07 | case expects G07; with G02/G06 drafts: G07
+  ok   [vi] "bang diem" -> G07 | case expects G07; with G02/G06 drafts: G07
+  ok   [vi] "transcript" -> G07 | case expects G07; with G02/G06 drafts: G07
+  ok   [vi] "tài khoản" -> G01 | case expects G01; with G02/G06 drafts: G01
+  ok   [vi] "tai khoan" -> G01 | case expects G01; with G02/G06 drafts: G01
+  ok   [vi] "%" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [vi] "_" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [vi] "'" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [vi] "\\" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [vi] "500 letters a" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [vi] "empty" -> G01, G07 | case expects G01, G02, G06, G07; with G02/G06 drafts: G01, G07
+ok   GUIDE-01c: [vi] every query lists exactly its expected guides among G01 and G07, or the A2 message
+ok   GUIDE-01c: [vi] typing "tai khoan" one key at a time narrows the list and never widens it | observed: 2 → 2 → 2 → 1 → 1 → 1 → 1 → 1 → 1 → 1
+ok   GUIDE-01c: [vi] no error while searching | observed: []
+2026-11-28T07:44:05.160Z ---- GUIDE-01c, screen in en
+2026-11-28T07:44:05.616Z switched with the language button; html lang = en | address unchanged: true
+  ok   [en] "học phí" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [en] "hoc phi" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [en] "HỌC PHÍ" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [en] "spaces around and between" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [en] "học phí as decomposed Unicode (NFD)" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [en] "hoc ph" -> G07 | case expects G02, G06, G07; with G02/G06 drafts: G07
+  ok   [en] "tuition" -> no-match message | case expects G06; with G02/G06 drafts: none + message
+  ok   [en] "đăng ký học phần" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [en] "dang ky hoc phan" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [en] "ĐĂNG KÝ" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [en] "dkhp" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [en] "register" -> no-match message | case expects G02; with G02/G06 drafts: none + message
+  ok   [en] "bảng điểm" -> G07 | case expects G07; with G02/G06 drafts: G07
+  ok   [en] "bang diem" -> G07 | case expects G07; with G02/G06 drafts: G07
+  ok   [en] "transcript" -> G07 | case expects G07; with G02/G06 drafts: G07
+  ok   [en] "tài khoản" -> G01 | case expects G01; with G02/G06 drafts: G01
+  ok   [en] "tai khoan" -> G01 | case expects G01; with G02/G06 drafts: G01
+  ok   [en] "%" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [en] "_" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [en] "'" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [en] "\\" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [en] "500 letters a" -> no-match message | case expects none; with G02/G06 drafts: none + message
+  ok   [en] "empty" -> G01, G07 | case expects G01, G02, G06, G07; with G02/G06 drafts: G01, G07
+ok   GUIDE-01c: [en] every query lists exactly its expected guides among G01 and G07, or the A2 message
+ok   GUIDE-01c: [en] typing "tai khoan" one key at a time narrows the list and never widens it | observed: 2 → 2 → 2 → 1 → 1 → 1 → 1 → 1 → 1 → 1
+ok   GUIDE-01c: [en] no error while searching | observed: []
+2026-11-28T07:44:16.923Z ---- GUIDE-01d, screen in en
+2026-11-28T07:44:17.306Z xyzzy [en]: No guide covers this yet. Browse by task group: Accounts and portals Records and certificates | group items 2 | links on page []
+ok   GUIDE-01d: [en] "xyzzy": the page says no guide covers it yet and shows the task groups | observed: {"groupsShown":2,"groupsWithAGuide":2}
+ok   GUIDE-01d: [en] no Suggest a guide and no advisor link (B3)
+ok   GUIDE-01d: [en] once cleared, every published guide is back | observed: G01, G07
+2026-11-28T07:44:17.671Z ---- GUIDE-01d, screen in vi
+2026-11-28T07:44:18.477Z xyzzy [vi]: Chưa có hướng dẫn cho việc này. Xem theo nhóm việc: Tài khoản và cổng thông tin Bảng điểm và giấy xác nhận | group items 2 | links on page []
+ok   GUIDE-01d: [vi] "xyzzy": the page says no guide covers it yet and shows the task groups | observed: {"groupsShown":2,"groupsWithAGuide":2}
+ok   GUIDE-01d: [vi] no Suggest a guide and no advisor link (B3)
+ok   GUIDE-01d: [vi] once cleared, every published guide is back | observed: G01, G07
+2026-11-28T07:44:18.919Z ---- GUIDE-01h, list
+2026-11-28T07:44:20.965Z vi: ["Tài khoản và cổng thông tin: Tài khoản và cổng thông tin [Kiểm tra ngày 15/11/2026]","Bảng điểm và giấy xác nhận: Xem điểm [Kiểm tra ngày 15/11/2026]"]
+2026-11-28T07:44:20.965Z en: ["Accounts and portals: Your school accounts and portals [Checked on 15 Nov 2026]","Records and certificates: View your grades [Checked on 15 Nov 2026]"]
+ok   GUIDE-01h: list: titles, group names and the checked-on chip change language; the address does not change | observed: {"urlVi":"https://stag-omnicourses.lamter.cc/guides","urlEn":"https://stag-omnicourses.lamter.cc/guides"}
+2026-11-28T07:44:20.965Z ---- G01 (accounts-and-portals)
+2026-11-28T07:44:22.764Z G01 page: {"h1":"Tài khoản và cổng thông tin","headings":["Các bước","Các cổng của trường","Lưu ý","Làm ở đâu","Khi nào","Áp dụng cho","Cần chuẩn bị","Xem thêm"],"steps":5,"board":7,"version":"Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng / Thay đổi: Bản đầu tiên.","outOfDate":false}
+2026-11-28T07:44:22.770Z   link https://portal.ctdb.hcmus.edu.vn/forget-password | target=_blank rel="noopener noreferrer" | in content file: true | "Trang “Forget Password” của Portal (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://portal.ctdb.hcmus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Portal Chương trình đề án (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://hocphi.hcmus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Thu học phí online (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://courses.ctda.hcmus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Moodle CTDA (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://mail.google.com/a/apcs.fitus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Email sinh viên APCS (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://www.ctda.hcmus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Trang Chương trình đề án (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://portal.hcmus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Portal của Trường (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://glib.hcmus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Thư viện (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://portal.ctdb.hcmus.edu.vn | target=_blank rel="noopener noreferrer" | in content file: true | "Mở Portal Chương trình đề án (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://www.ctda.hcmus.edu.vn/vi/category/thong-bao/tb-giao-vu/ | target=_blank rel="noopener noreferrer" | in content file: true | "Thông báo Giáo vụ, Chương trình đề án (mở ở tab mới)"
+2026-11-28T07:44:22.771Z   link https://www.ctda.hcmus.edu.vn/vi/2023/09/chuong-trinh-tien-tien_thong-bao-ve-viec-su-dung-tai-khoan-hoc-vu-khoa-2023/ | target=_blank rel="noopener noreferrer" | in content file: true | "Ví dụ: thông báo tài khoản học vụ Khóa 2023, chương trình Tiên tiến (m"
+2026-11-28T07:44:22.771Z   in-app link /guides | "Hướng dẫn"
+2026-11-28T07:44:22.771Z   in-app link /guides/grades-and-transcript | "Xem điểm"
+ok   GUIDE-01f: G01: every outside link is an <a href> equal to an address of the content file, opening in a new tab with rel noopener | observed: 11 outside links
+2026-11-28T07:44:25.533Z   Open portal: href https://portal.ctdb.hcmus.edu.vn; the new tab is at https://portal.ctdb.hcmus.edu.vn/Login?returnurl=%2f ("User Log In")
+ok   GUIDE-01f: G01: "Mở …" opens https://portal.ctdb.hcmus.edu.vn in a new tab, with no query added, and the OmniCourse tab stays where it was | observed: {"openHref":"https://portal.ctdb.hcmus.edu.vn","newTab":"https://portal.ctdb.hcmus.edu.vn/Login?returnurl=%2f","omnicourseTab":"https://stag-omnicourses.lamter.cc/guides/accounts-and-portals"}
+2026-11-28T07:44:25.553Z   requests from the OmniCourse tab to other hosts: ["fonts.googleapis.com","static.cloudflareinsights.com","fonts.gstatic.com"]
+ok   GUIDE-01m: G01: no password field and no form on the page | observed: {"password":0,"forms":0}
+ok   GUIDE-01m: G01: the OmniCourse tab sends no request to a portal address, before or after pressing its link
+ok   GUIDE-01m: G01 tells the student never to give their portal password to anyone, OmniCourse included | observed:  Mật khẩu được thư viện gửi qua email hoặc báo trong buổi tập huấn Lưu ý Không đưa mật khẩu của các trang này cho bất kỳ ai, kể cả OmniCourse.
+2026-11-28T07:44:25.556Z   guide API requests: ["/api/guides/accounts-and-portals 200 auth:no"]
+ok   GUIDE-01l: G01: signed out, no guide request carries Authorization, and the bodies hold no personal field | observed: {"requests":1,"personalKeys":[]}
+ok   GUIDE-01l: G01: the page's guide response is byte-for-byte the API's answer to a plain request
+2026-11-28T07:44:26.374Z   vi: {"h1":"Tài khoản và cổng thông tin","crumb":"Hướng dẫn / Tài khoản và cổng thông tin","firstStep":"Mở Portal Chương trình đề án. Nhập mã số sinh viên vào “Username:” và mật khẩu v","version":"Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng / Thay đổi: Bản đầu tiên.","lang":"vi"}
+2026-11-28T07:44:26.375Z   en: {"h1":"Your school accounts and portals","crumb":"Guides / Accounts and portals","firstStep":"Open the special programs portal. Enter your student ID in “Username:” and your ","version":"Version 1 · checked on the portal on 15 Nov 2026 by Dũng / What changed: First version.","lang":"en"}
+ok   GUIDE-01h: G01: title, group and text change language; the version number stays; the address does not change | observed: {"urlVi":"https://stag-omnicourses.lamter.cc/guides/accounts-and-portals","urlEn":"https://stag-omnicourses.lamter.cc/guides/accounts-and-portals"}
+2026-11-28T07:44:26.375Z   GUIDE-01h G01 dates: vi "Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng / Thay đổi: Bản đầu tiên." | en "Version 1 · checked on the portal on 15 Nov 2026 by Dũng / What changed: First version." (judged by eye: same day, each in its language's format)
+ok   GUIDE-01: G01: no console error on the page | observed: []
+2026-11-28T07:44:26.375Z ---- G07 (grades-and-transcript)
+2026-11-28T07:44:28.086Z G07 page: {"h1":"Xem điểm","headings":["Các bước","Lưu ý","Làm ở đâu","Khi nào","Áp dụng cho","Cần chuẩn bị"],"steps":4,"board":0,"version":"Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng / Thay đổi: Bản đầu tiên.","outOfDate":false}
+2026-11-28T07:44:28.092Z   link https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan | target=_blank rel="noopener noreferrer" | in content file: true | "Mở Portal Chương trình đề án (mở ở tab mới)"
+2026-11-28T07:44:28.092Z   link https://www.ctda.hcmus.edu.vn/vi/category/thong-bao/tb-giao-vu/ | target=_blank rel="noopener noreferrer" | in content file: true | "Thông báo Giáo vụ, Chương trình đề án (mở ở tab mới)"
+2026-11-28T07:44:28.093Z   in-app link /guides | "Hướng dẫn"
+2026-11-28T07:44:28.093Z   in-app link /guides/accounts-and-portals | "Tài khoản và cổng thông tin"
+ok   GUIDE-01f: G07: every outside link is an <a href> equal to an address of the content file, opening in a new tab with rel noopener | observed: 2 outside links
+2026-11-28T07:44:30.250Z   Open portal: href https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan; the new tab is at https://portal.ctdb.hcmus.edu.vn/Login?returnurl=%2fsinh-vien%2fket-qua-hoc-phan ("User Log In")
+ok   GUIDE-01f: G07: "Mở …" opens https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan in a new tab, with no query added, and the OmniCourse tab stays where it was | observed: {"openHref":"https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan","newTab":"https://portal.ctdb.hcmus.edu.vn/Login?returnurl=%2fsinh-vien%2fket-qua-hoc-phan","omnicourseTab":"https://stag-omnicourses.lamter.cc/guides/grades-and-transcript"}
+2026-11-28T07:44:30.275Z   requests from the OmniCourse tab to other hosts: ["fonts.googleapis.com","static.cloudflareinsights.com","fonts.gstatic.com"]
+ok   GUIDE-01m: G07: no password field and no form on the page | observed: {"password":0,"forms":0}
+ok   GUIDE-01m: G07: the OmniCourse tab sends no request to a portal address, before or after pressing its link
+2026-11-28T07:44:30.275Z   guide API requests: ["/api/guides/grades-and-transcript 200 auth:no"]
+ok   GUIDE-01l: G07: signed out, no guide request carries Authorization, and the bodies hold no personal field | observed: {"requests":1,"personalKeys":[]}
+ok   GUIDE-01l: G07: the page's guide response is byte-for-byte the API's answer to a plain request
+2026-11-28T07:44:31.016Z   vi: {"h1":"Xem điểm","crumb":"Hướng dẫn / Bảng điểm và giấy xác nhận","firstStep":"Mở Portal Chương trình đề án. Nhập mã số sinh viên vào “Username:” và mật khẩu v","version":"Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng / Thay đổi: Bản đầu tiên.","lang":"vi"}
+2026-11-28T07:44:31.016Z   en: {"h1":"View your grades","crumb":"Guides / Records and certificates","firstStep":"Open the special programs portal. Enter your student ID in “Username:” and your ","version":"Version 1 · checked on the portal on 15 Nov 2026 by Dũng / What changed: First version.","lang":"en"}
+ok   GUIDE-01h: G07: title, group and text change language; the version number stays; the address does not change | observed: {"urlVi":"https://stag-omnicourses.lamter.cc/guides/grades-and-transcript","urlEn":"https://stag-omnicourses.lamter.cc/guides/grades-and-transcript"}
+2026-11-28T07:44:31.016Z   GUIDE-01h G07 dates: vi "Phiên bản 1 · kiểm tra trên cổng ngày 15/11/2026 bởi Dũng / Thay đổi: Bản đầu tiên." | en "Version 1 · checked on the portal on 15 Nov 2026 by Dũng / What changed: First version." (judged by eye: same day, each in its language's format)
+ok   GUIDE-01: G07: no console error on the page | observed: []
+2026-11-28T07:44:31.016Z ---- GUIDE-01g
+ok   GUIDE-01g: G01: /guides/accounts-and-portals opens directly in a new private context, signed out, and again after a reload | observed: {"first":"Tài khoản và cổng thông tin","afterReload":"Tài khoản và cổng thông tin"}
+ok   GUIDE-01g: G07: /guides/grades-and-transcript opens directly in a new private context, signed out, and again after a reload | observed: {"first":"Xem điểm","afterReload":"Xem điểm"}
+ok   GUIDE-01g: the unknown address shows "guide not found" with a link to Guides, and its API request answers 404 | observed: {"shown":1,"link":"/guides","apiStatus":404,"text":"Không tìm thấy hướng dẫn Hướng dẫn này không tồn tại hoặc đã được gỡ. Xem tất cả hướng dẫn"}
+ok   GUIDE-01g (info): G02 (draft) at /guides/register-courses shows "guide not found" with a link to Guides, and its API request answers 404 | observed: {"shown":1,"link":"/guides","apiStatus":404,"text":"Không tìm thấy hướng dẫn Hướng dẫn này không tồn tại hoặc đã được gỡ. Xem tất cả hướng dẫn"}
+ok   GUIDE-01g (info): G06 (draft) at /guides/pay-tuition shows "guide not found" with a link to Guides, and its API request answers 404 | observed: {"shown":1,"link":"/guides","apiStatus":404,"text":"Không tìm thấy hướng dẫn Hướng dẫn này không tồn tại hoặc đã được gỡ. Xem tất cả hướng dẫn"}
+2026-11-28T07:44:41.000Z ---- GUIDE-01n
+2026-11-28T07:44:50.335Z   POST /api/auth/sign-in -> 400
+2026-11-28T07:44:50.768Z   POST /api/auth/sign-up -> 400
+2026-11-28T07:44:51.189Z   GET /api/guides -> 200
+2026-11-28T07:44:51.411Z   GET /api/guides/{id} -> 200
+2026-11-28T07:44:51.642Z   GET /api/health -> 200
+2026-11-28T07:44:58.487Z   every operation: {"200":3,"400":2,"401":68,"404":1}; guide operations in the document: ["GET /api/guides","GET /api/guides/{id}"]
+FAIL GUIDE-01n: guide routes answer 200 (404 for an unknown guide) and are GET only; every other route answers 401 except health, sign-up and sign-in | observed: ["GET /api/shared-plans/{token} -> 404"]
+2026-11-28T07:44:58.487Z ---- outside addresses of G01 and G07 (information: status of a plain GET, no cookie)
+2026-11-28T07:44:59.107Z   200 https://www.ctda.hcmus.edu.vn/vi/category/thong-bao/tb-giao-vu/
+2026-11-28T07:44:59.244Z   200 https://portal.ctdb.hcmus.edu.vn -> https://portal.ctdb.hcmus.edu.vn/Login?returnurl=%2f
+2026-11-28T07:44:59.808Z   200 https://www.ctda.hcmus.edu.vn/vi/2023/09/chuong-trinh-tien-tien_thong-bao-ve-viec-su-dung-tai-khoan-hoc-vu-khoa-2023/
+2026-11-28T07:44:59.863Z   200 https://portal.ctdb.hcmus.edu.vn/forget-password
+2026-11-28T07:44:59.942Z   200 https://hocphi.hcmus.edu.vn -> https://hocphi.hcmus.edu.vn/dang-nhap?ReturnUrl=%2F
+2026-11-28T07:45:00.290Z   200 https://courses.ctda.hcmus.edu.vn -> https://courses.ctda.hcmus.edu.vn/login/index.php
+2026-11-28T07:45:00.970Z   200 https://mail.google.com/a/apcs.fitus.edu.vn -> https://www.google.com/a/apcs.fitus.edu.vn/ServiceLogin?service=mail&passive=true&continue=https://mail.google.com/mail/&ss=1&ltmpl=default&ltmplcache=2&emr=1&osid=1
+2026-11-28T07:45:01.639Z   200 https://www.ctda.hcmus.edu.vn -> https://www.ctda.hcmus.edu.vn/en/
+2026-11-28T07:45:01.735Z   200 https://portal.hcmus.edu.vn -> https://new-portal3.hcmus.edu.vn/Login.aspx?ReturnUrl=%2f
+2026-11-28T07:45:01.798Z   200 https://glib.hcmus.edu.vn -> https://glib.hcmus.edu.vn/
+2026-11-28T07:45:01.895Z   200 https://portal.ctdb.hcmus.edu.vn/sinh-vien/ket-qua-hoc-phan -> https://portal.ctdb.hcmus.edu.vn/Login?returnurl=%2fsinh-vien%2fket-qua-hoc-phan
+2026-11-28T07:45:02.239Z done: 37 ok, 1 FAIL, 1 BLOCKED (G02 and G06 are drafts)

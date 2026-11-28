@@ -89,7 +89,7 @@ const p1 = await preview();
 console.log(`  preview: ${JSON.stringify(p1)}; chips ${JSON.stringify(await chips())}; errors ${JSON.stringify(await pasteErrors())}`);
 check('TRN-01f', '(1) the header line is skipped and the preview shows the 3 normalized rows (CS160 graded 8.5 in 2024-1, CS163 graded 8.0 in 2024-2, BAA00030 pass, no grade, in 2024-2); no error',
   isDeepStrictEqual(p1, WANT_PREVIEW) && (await pasteErrors()).length === 0 && !(await disabled('paste-replace')) && !(await disabled('paste-append')), p1);
-await shot(page, 'a-trn-01f-preview.png');
+await shot(page, `a-trn-01f-preview${process.env.SHOT_TAG ?? ''}.png`);
 check('TRN-01f', '(1) closing with Cancel leaves the table as it was', (await cancelPaste()) && isDeepStrictEqual(await listed(), startScreen));
 o = await openPaste();
 await paste(TSV);
@@ -106,7 +106,7 @@ check('TRN-01f', '(2) paste-errors lists line 5 (invalid code) and line 6 (inval
   errs[0].startsWith('Line 5: invalid course code (2–20 letters or digits)') && errs[0].includes('bad_code!') &&
   errs[1].startsWith('Line 6: invalid grade (0–10, one decimal)') && errs[1].includes('11.5'), errs);
 check('TRN-01f', '(2) Replace and Add are both disabled', (await disabled('paste-replace')) && (await disabled('paste-append')));
-await shot(page, 'a-trn-01f-errors.png');
+await shot(page, `a-trn-01f-errors${process.env.SHOT_TAG ?? ''}.png`);
 check('TRN-01f', '(2) Cancel closes the dialog and leaves the review table open and unchanged', (await cancelPaste()) && isDeepStrictEqual(await listed(), startScreen) && (await diffText()) === null);
 
 console.log('--- TRN-01f (3)');
@@ -128,7 +128,7 @@ check('TRN-01f', '(3) summary "3 rows · ready to save"; Save transcript enabled
 const editable = await page.evaluate(() => [...document.querySelectorAll('[data-test^="row-"] input')].every((e) => !e.disabled && !e.readOnly) && !document.getElementById('add-row').disabled);
 check('TRN-01f', '(3) Add row and the row inputs stay editable', editable);
 check('TRN-01f', '(3) no PUT (nothing saved), no request at all since (1)', own(m).length === 0, fmt(own(m)) + ` (bell polls left out: ${bell(m)})`);
-await shot(page, 'a-trn-01f-review.png');
+await shot(page, `a-trn-01f-review${process.env.SHOT_TAG ?? ''}.png`);
 
 console.log('--- TRN-01f, the same rows with | and ; columns');
 for (const [name, text] of [['pipe', PIPE], ['semicolon', SEMI]]) {
@@ -156,7 +156,7 @@ check('TRN-01g', 'Cancel changes restores TRN-01e\'s saved rows (CM102 9.0, MTH2
 check('TRN-01g', 'diff summary cleared, Save transcript disabled, "3 rows · no changes", Cancel changes gone',
   (await diffText()) === null && (await saveBtn.isDisabled()) && (await summary())?.startsWith('3 rows · no changes') && !(await visible(page.locator('[data-test="cancel-edits"]'))), await summary());
 check('TRN-01g', 'zero PUT requests (no request at all) from TRN-01f (1) to here', own(m, { writes: true }).length === 0 && own(m).length === 0, fmt(own(m)) + ` (bell polls left out: ${bell(m)})`);
-await shot(page, 'a-trn-01g-cancelled.png');
+await shot(page, `a-trn-01g-cancelled${process.env.SHOT_TAG ?? ''}.png`);
 const end = await transcript();
 check('TRN-01g', 'GET /api/users/me/transcript unchanged', isDeepStrictEqual(end, start), simple(end));
 if (page.consoleErrors.length) console.log(`  page errors: ${JSON.stringify(page.consoleErrors)}`);

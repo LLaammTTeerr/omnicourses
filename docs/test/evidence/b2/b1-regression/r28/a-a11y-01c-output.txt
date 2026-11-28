@@ -1,0 +1,24 @@
+2026-11-28T07:53:50.827Z CSS files: ["/assets/index-wmw00LVJ.css"]
+2026-11-28T07:53:50.828Z @media queries in the deployed CSS: ["@media (prefers-reduced-motion:reduce)","@media (width<=420px)","@media (width<=620px)","@media (width<=960px)"]
+2026-11-28T07:53:50.828Z widths tested: [360,419,420,421,619,620,621,768,959,960,961,1280,1920]
+2026-11-28T07:53:50.934Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+ok   A11Y-01c Home, signed out, API ok (/): no sideways scroll at 13 widths
+ok   A11Y-01c Sign in, empty (/sign-in): no sideways scroll at 13 widths
+ok   A11Y-01c Sign up, empty (/sign-up): no sideways scroll at 13 widths
+ok   A11Y-01c Privacy notice, signed out (/privacy): no sideways scroll at 13 widths
+ok   A11Y-01c Guides list, signed out (no guide published on staging) (/guides): no sideways scroll at 13 widths
+ok   A11Y-01c Guide not found (/guides/no-such-guide): no sideways scroll at 13 widths
+ok   A11Y-01c Sign up, each field error (/sign-up): no sideways scroll at 13 widths
+2026-11-28T07:54:09.410Z 429 on /auth/sign-in: waiting 65 s and retrying once
+ok   A11Y-01c Onboarding, program question (/onboarding): no sideways scroll at 13 widths
+ok   A11Y-01c Settings, onboarding unfinished (/settings): no sideways scroll at 13 widths
+ok   A11Y-01c Dashboard, the completion fixture (/dashboard): no sideways scroll at 13 widths
+ok   A11Y-01c Audit, the completion fixture (/audit): no sideways scroll at 13 widths
+ok   A11Y-01c Explorer, groups (/explorer): no sideways scroll at 13 widths
+ok   A11Y-01c Transcript, 45 rows (/transcript): no sideways scroll at 13 widths
+ok   A11Y-01c Settings, profile and goal (/settings): no sideways scroll at 13 widths
+ok   A11Y-01c Privacy notice, signed in (/privacy): no sideways scroll at 13 widths
+ok   A11Y-01c Explorer, search with no results (/explorer): no sideways scroll at 13 widths
+ok   A11Y-01c Explorer, course drawer open (/explorer): no sideways scroll at 13 widths
+ok   A11Y-01c: no sideways scroll on the 17 screen states covered | observed: []
+2026-11-28T07:55:45.438Z console errors: []

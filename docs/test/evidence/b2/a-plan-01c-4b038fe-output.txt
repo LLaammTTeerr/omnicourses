@@ -1,0 +1,38 @@
+2026-11-28T08:59:53.462Z a-plan-01 c
+2026-11-28T08:59:53.717Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s15@example.com → 200
+2026-11-28T09:00:04.240Z plan a1e740c8-7b68-4766-85ad-7f6c7231b528; board {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":["CS470"]}
+--- PLAN-01c setup: CS470 back to 2026-2
+  none; board {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":["CS470"]}; panel counts "0 violations 1 worth a look 6 not recorded yet"
+--- PLAN-01c (1)
+  setup: Add Term pressed so that 2026-3 exists
+  hover 2026-3: {"key":"2026-3","cls":"trow bad-drop over","load":"5 / 22 credits · 10–22+5","delta":"+5","placeholder":"CS469+5 cr","reason":"CS470 needs CS469 passed or placed in an earlier term.","flags":[]}; issues-preview "Preview: CS469 → Term 3 2026–2027 · 1 more violation
+Prerequisite missingCS470 needs CS469 passed or placed in an earlier term."; preview-new ["Prerequisite missingCS470 needs CS469 passed or placed in an earlier term."]
+ok   PLAN-01c: (1) while over 2026-3: bad-drop, and the preview warns CS470 in 2026-2 would lose its prerequisite | observed: {"reason":"CS470 needs CS469 passed or placed in an earlier term.","prevNew":["Prerequisite missingCS470 needs CS469 passed or placed in an earlier term."]}
+  requests POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops 200; PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues 200; CS470 class "ptile g-thesis has-violation"; badge 1; panel: Plan check 1 Computed by the rule engine from the training regulation, not by AI. 1 violation 2 worth a look 6 not recorded yet Worth a look: Below the minimum load 5 credits, below the minimum of 10. A petition can allow it. Term 2 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 7.2 Điều 7.2 Violation: Prerequisite missing CS470 needs CS469 passed or placed in an earlier term. Term 2 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 3.1.c Điều 3.1.c Go to course Worth a look: Below the minimum load 5 credits, below the minimum of 10. A petition can allow it. Term 3 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 7.2 Điều 7.2 Not recorded yet (6) With the plan completed · 26/163 credits7 groups still short
+ok   PLAN-01c: (1) drop saves (one PUT 200), CS469 shakes, CS470 has-violation with "!", prerequisite_not_met text and citation Điều 3.1.c | observed: {"shook":true}
+--- PLAN-01c (2)
+  live violation cards: ["Violation: Prerequisite missingCS470 needs CS469 passed or placed in an earlier term.Term 2 2026–2027Source: QĐ 1175/QĐ-KHTN Điều 3.1.cĐiều 3.1.cGo to course"]
+FAIL PLAN-01c: (2) CS469 back in 2026-1 clears prerequisite_not_met | observed: {"writes":"PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200","board":{"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":["CS470"],"2026-3":[]}}
+--- PLAN-01c (3)
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T09:00:02.016Z","user":{"id":"32addfef-209b-4eba-b728-dfacb9856ead","email":"b2-a1@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:47.737Z"},"accountRestored":false}
+  PUT /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 200 {"courseCode":"CS420","terms":[1,2]}
+ok   PLAN-01c: (3) setup: A1 sets CS420 offering terms [1, 2] | observed: 200
+  setup: Add Term pressed (row 2026-3 needed; empty rows are not saved)
+  CS420 in 2026-3: class "ptile g-elec has-violation"; panel: Plan check 1 Computed by the rule engine from the training regulation, not by AI. 1 violation 2 worth a look 6 not recorded yet Worth a look: Below the minimum load 5 credits, below the minimum of 10. A petition can allow it. Term 2 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 7.2 Điều 7.2 Worth a look: Below the minimum load 4 credits, below the minimum of 10. A petition can allow it. Term 3 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 7.2 Điều 7.2 Violation: Not taught this term CS420 is not taught in term 3; it is taught in term 1, 2. Term 3 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.a Điều 6.5 Go to course Not recorded yet (6) With the plan completed · 30/163 credits7 groups still short
+ok   PLAN-01c: (3) CS420 in 2026-3 shows not_offered "CS420 is not taught in term 3; it is taught in term 1, 2." | observed: ptile g-elec has-violation
+  live violation cards: ["Violation: Not taught this termCS420 is not taught in term 3; it is taught in term 1, 2.Term 3 2026–2027Source: QĐ 1175/QĐ-KHTN Điều 6.5, 7.1.aĐiều 6.5Go to course"]
+FAIL PLAN-01c: (3) moved to 2026-2, not_offered clears | observed: {"writes":"PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200"}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 200 {"courseCode":"CS420","terms":null}
+  GET /api/programs/APCS/curricula/2024 → 200
+ok   PLAN-01c: (3) clean-up: DELETE offering terms, CS420 reads offeringTerms null | observed: {"status":200,"offeringTerms":null}
+--- PLAN-01c (4)
+  setup: Add Term pressed (row 2026-3 needed; empty rows are not saved)
+  PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; slot tile "Slot for Kiến thức Computer Science (A): tự chọn 4 cr No course chosen Electives"
+  strip before ["Kiến thức Computer Science (A): bắt buộc: 12/40 credits","Kiến thức Computer Science (A): tự chọn: 4/16 credits","Kiến thức Math: 4/16 credits","Kiến thức Non Computer Science: 0/26 credits","Kiến thức Physics: 0/12 credits","Kiến thức tốt nghiệp: 10/10 credits","Tự chọn Computer Science (C): 0 credits","Tự chọn Math (B): 0/8 credits"]
+  strip after  ["Kiến thức Computer Science (A): bắt buộc: 12/40 credits","Kiến thức Computer Science (A): tự chọn: 8/16 credits","Kiến thức Math: 4/16 credits","Kiến thức Non Computer Science: 0/26 credits","Kiến thức Physics: 0/12 credits","Kiến thức tốt nghiệp: 10/10 credits","Tự chọn Computer Science (C): 0 credits","Tự chọn Math (B): 0/8 credits"]
+  coverage after: With the plan completed · 34/163 credits7 groups still short Not enough to graduate yet Kiến thức Computer Science (A): bắt buộc 12/40 cr · 28 cr short Kiến thức Computer Science (A): tự chọn 8/16 cr · 8 cr short Kiến thức Math 4/16 cr · 12 cr short Kiến thức Non Computer Science 0/26 cr · 26 cr short Kiến thức Physics 0/12 cr · 12 cr short Kiến thức tốt nghiệp 10/10 cr · Met Tự chọn Computer Science (C) 0 cr · Met Tự chọn Math (B) 0/8 cr · 8 cr short Kiến thức tự chọn 0/43 cr · 43 cr short
+ok   PLAN-01c: (4) the 4-credit slot ("No course chosen") adds 4 planned credits to the elective group in the strip and coverage | observed: {"before":"Kiến thức Computer Science (A): tự chọn: 4/16 credits","after":"Kiến thức Computer Science (A): tự chọn: 8/16 credits"}
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+  API: 2026-1: CS160,CS201,CS202,MTH251,CS469 | 2026-2: CS470,CS420 | 2026-3: slot(4)
+2026-11-28T09:00:17.991Z 2 FAIL(S)

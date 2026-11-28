@@ -1,0 +1,18 @@
+2026-11-28T07:49:05.988Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+FAIL ACAD-01c: fixture SHA-256 matches the case | observed: 508b3e1a870365ec61bf5efffa63c7027aff604be06e7d572569f41ab8462cf3
+2026-11-28T07:49:08.431Z a04 onboarding PUT: 200
+2026-11-28T07:49:08.745Z a04 fixture PUT: 200 | rows held: 45
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.innerText: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('[data-test="graduation"]')[22m
+
+    at E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\a-acad-01c.mjs:30:64 {
+  log: [ `  - waiting for locator('[data-test="graduation"]')` ],
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0

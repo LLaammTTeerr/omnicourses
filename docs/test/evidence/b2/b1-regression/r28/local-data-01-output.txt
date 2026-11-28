@@ -1,0 +1,166 @@
+# DATA-01a, b, c, e and AI-01f, local disposable PostgreSQL (docker), migrated by DB-01a, tree 4b038fe (git archive, built in a scratch folder), Node v24.19.0, npm 11.17.0, postgres (PostgreSQL) 18.6 (Debian 18.6-1.pgdg13+2) (omni-b1r28-db, port 55432)
+2026-11-28T07:45:02Z
+=== DATA-01a: seed run 1
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+Guides: {"inserted":4,"updated":0,"rechecked":0,"unchanged":0,"withdrawn":0,"drafts":4}
+Inserted: {"programs":10,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+Already present, left untouched: {"programs":1,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+exit 0
+--- shared-data counts after run 1
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+=== DATA-01a: seed run 2
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+exit 0
+--- shared-data counts after run 2
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+=== DATA-01e
+   code   | cohort_year | total_credits_min 
+----------+-------------+-------------------
+ APCS2024 |        2024 |               163
+ APCS2025 |        2025 |               163
+(2 rows)
+
+ courses | codes_breaking_format 
+---------+-----------------------
+     249 |                     0
+(1 row)
+
+ curriculum |                   name                   |    kind    | credits_total | credits_total_min | courses | listed_credits 
+------------+------------------------------------------+------------+---------------+-------------------+---------+----------------
+ APCS2024   | Kiến thức Computer Science (A): bắt buộc | compulsory |            40 |                   |      10 |             40
+ APCS2024   | Kiến thức Computer Science (A): tự chọn  | elective   |               |                16 |       6 |             24
+ APCS2024   | Kiến thức Math                           | compulsory |            16 |                   |       4 |             16
+ APCS2024   | Kiến thức Non Computer Science           | compulsory |            26 |                   |      12 |             34
+ APCS2024   | Kiến thức Physics                        | compulsory |            12 |                   |       3 |             12
+ APCS2024   | Kiến thức tốt nghiệp                     | elective   |               |                10 |       3 |             20
+ APCS2024   | Tự chọn Computer Science (C)             | elective   |               |                   |      27 |            108
+ APCS2024   | Tự chọn Math (B)                         | elective   |               |                 8 |       4 |             16
+ APCS2025   | Kiến thức Computer Science (A): bắt buộc | compulsory |            40 |                   |      10 |             40
+ APCS2025   | Kiến thức Computer Science (A): tự chọn  | elective   |               |                16 |       6 |             24
+ APCS2025   | Kiến thức Math                           | compulsory |            16 |                   |       4 |             16
+ APCS2025   | Kiến thức Non Computer Science           | compulsory |            26 |                   |      12 |             34
+ APCS2025   | Kiến thức Physics                        | compulsory |            12 |                   |       3 |             12
+ APCS2025   | Kiến thức tốt nghiệp                     | elective   |               |                10 |       3 |             20
+ APCS2025   | Tự chọn Computer Science (C)             | elective   |               |                   |      29 |            116
+ APCS2025   | Tự chọn Math (B)                         | elective   |               |                 8 |       4 |             16
+(16 rows)
+
+--- prerequisites and offering terms recorded
+ prerequisite_lists | prerequisites | offering_terms 
+--------------------+---------------+----------------
+                140 |             2 |              0
+(1 row)
+
+ curriculum | course_code | prerequisite_code 
+------------+-------------+-------------------
+ APCS2024   | CS470       | CS469
+ APCS2025   | CS470       | CS469
+(2 rows)
+
+=== DATA-01b (official_notes of the group 'Kiến thức Math')
+   code   |      name      | official_notes 
+----------+----------------+----------------
+ APCS2024 | Kiến thức Math | 4 học phần
+ APCS2025 | Kiến thức Math | 4 học phần
+(2 rows)
+
+UPDATE 1
+--- seed after the edit
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+exit 0
+   code   |      name      | official_notes 
+----------+----------------+----------------
+ APCS2024 | Kiến thức Math | admin note
+ APCS2025 | Kiến thức Math | 4 học phần
+(2 rows)
+
+--- restore
+UPDATE 1
+   code   |      name      | official_notes 
+----------+----------------+----------------
+ APCS2024 | Kiến thức Math | 4 học phần
+ APCS2025 | Kiến thức Math | 4 học phần
+(2 rows)
+
+=== DATA-01c (by hand)
+--- shared counts before
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+UPDATE 1
+--- seed with the conflict
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Course catalog conflict: 1 value(s) differ for the same course code. Resolve each in the seed data or with an explicit catalog decision; the seed never lets the last write win.
+  CS160.name_vi: "Renamed" (database) vs "Nhập môn Tin học" (seed)
+npm error Lifecycle script `db:seed` failed with error:
+npm error code 1
+npm error path C:\Users\dungliem\AppData\Local\Temp\claude\1ba4914f1ad23faa\***\scratchpad\tree-4b038fe\src\backend
+npm error workspace @omnicourse/backend@0.6.0
+npm error location C:\Users\dungliem\AppData\Local\Temp\claude\1ba4914f1ad23faa\***\scratchpad\tree-4b038fe\src\backend
+npm error command failed
+npm error command C:\Windows\system32\cmd.exe /d /s /c node dist/database/seed.js
+exit 1
+ code  | name_vi 
+-------+---------
+ CS160 | Renamed
+(1 row)
+
+--- shared counts after the aborted seed
+ programs | curriculums | groups | courses | links 
+----------+-------------+--------+---------+-------
+       10 |          11 |    133 |     249 |  1823
+(1 row)
+
+--- restore
+UPDATE 1
+> @omnicourse/backend@0.6.0 db:seed
+> node dist/database/seed.js
+Guides: {"inserted":0,"updated":0,"rechecked":0,"unchanged":4,"withdrawn":0,"drafts":4}
+Inserted: {"programs":0,"curriculums":0,"requirement_groups":0,"courses":0,"links":0,"combined_minimums":0,"overflows":0,"prerequisite_lists":0,"prerequisites":0}
+Already present, left untouched: {"programs":11,"curriculums":11,"requirement_groups":133,"courses":249,"links":1823,"combined_minimums":2,"overflows":2,"prerequisite_lists":140,"prerequisites":2}
+exit 0
+ code  |     name_vi      
+-------+------------------
+ CS160 | Nhập môn Tin học
+(1 row)
+
+=== AI-01f: \d ai_usage
+                               Table "public.ai_usage"
+    Column     |           Type           | Collation | Nullable |      Default      
+---------------+--------------------------+-----------+----------+-------------------
+ id            | uuid                     |           | not null | gen_random_uuid()
+ user_id       | uuid                     |           | not null | 
+ feature       | character varying(50)    |           | not null | 
+ model         | character varying(100)   |           | not null | 
+ input_tokens  | integer                  |           | not null | 0
+ output_tokens | integer                  |           | not null | 0
+ latency_ms    | integer                  |           | not null | 0
+ succeeded     | boolean                  |           | not null | false
+ created_at    | timestamp with time zone |           | not null | now()
+Indexes:
+    "ai_usage_pkey" PRIMARY KEY, btree (id)
+    "ix_ai_usage_user_id_created_at" btree (user_id, created_at)
+Foreign-key constraints:
+    "ai_usage_user_id_fkey" FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+

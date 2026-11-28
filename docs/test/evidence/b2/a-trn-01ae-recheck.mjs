@@ -106,7 +106,7 @@ function API_BASE() { return 'https://stag-omnicourses.lamter.cc/api'; }
   await page.reload({ waitUntil: 'networkidle' });
   await settle(page);
   check('TRN-01a', 'after the reload: CM102, CS160, MTH251 with "7.5", "8.5", "7.0"', isDeepStrictEqual(await listed(), [['CM102', '7.5'], ['CS160', '8.5'], ['MTH251', '7.0']]), await listed());
-  await shot(page, 'a-trn-01ae-r28-a-saved.png');
+  await shot(page, `a-trn-01ae-r28-a-saved${process.env.SHOT_TAG ?? ''}.png`);
 
   console.log('--- TRN-01b');
   m = mark(page);
@@ -197,7 +197,7 @@ function API_BASE() { return 'https://stag-omnicourses.lamter.cc/api'; }
   const alert = await tt(page.locator('[data-test="save-error"]'));
   check('TRN-01e', 'the blocked save shows "Could not save. Your rows are still here; try again in a moment."; CM102 still 9; save enabled',
     alert === 'Could not save. Your rows are still here; try again in a moment.' && (await cell(0, 6).locator('input').inputValue()) === '9' && (await saveBtn.isEnabled()), { alert, sent: fmt(sent(page, m)) });
-  await shot(page, 'a-trn-01ae-r28-e-blocked.png');
+  await shot(page, `a-trn-01ae-r28-e-blocked${process.env.SHOT_TAG ?? ''}.png`);
   check('TRN-01e', 'the API (as Swagger would) still has CM102 grade 8', (await transcript()).find((r) => r.courseCode === 'CM102')?.grade === 8);
   await unblock();
   await clearToasts(page);

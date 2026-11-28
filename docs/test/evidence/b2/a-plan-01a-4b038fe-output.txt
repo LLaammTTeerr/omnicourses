@@ -1,0 +1,35 @@
+2026-11-28T08:58:20.371Z a-plan-01 a
+2026-11-28T08:58:20.608Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s15@example.com → 200
+2026-11-28T08:58:31.388Z plan a1e740c8-7b68-4766-85ad-7f6c7231b528; board {"2026-1":[]}
+--- PLAN-01a (1)
+  setup: Add Term pressed once so that Term 2 2026–2027 exists; requests none
+  hover 2026-1: [{"key":"2026-1","cls":"trow warn-drop over","load":"4 / 22 credits · 10–22+4","delta":"+4","placeholder":"CS160+4 cr","reason":"Not checked: CS160: offering terms not recorded yet.","flags":[]},{"key":"2026-2","cls":"trow warn-drop","load":null,"delta":null,"placeholder":null,"reason":"Not checked: CS160: offering terms not recorded yet.","flags":[]}]; issues-preview "Preview: CS160 → Term 1 2026–2027 · same number of violations"
+  hover 2026-2: [{"key":"2026-1","cls":"trow warn-drop","load":null,"delta":null,"placeholder":null,"reason":"Not checked: CS160: offering terms not recorded yet.","flags":[]},{"key":"2026-2","cls":"trow warn-drop over","load":"4 / 22 credits · 10–22+4","delta":"+4","placeholder":"CS160+4 cr","reason":"Not checked: CS160: offering terms not recorded yet.","flags":[]}]; issues-preview "Preview: CS160 → Term 2 2026–2027 · same number of violations"
+  drop preview requests: POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops 200; body targets [{"year":2026,"number":1},{"year":2026,"number":2}]
+ok   PLAN-01a: (1) one batched POST …/issues/drops for the eligible rows and no PUT; rows show drop tone, placeholder CS160 +4 cr, load-delta +4, issues-preview | observed: {"drops":1,"writes":"none"}
+ok   PLAN-01a: (1) Escape: ghost gone, preview classes and placeholder cleared, no PUT | observed: [{"key":"2026-1","cls":"trow","load":null,"delta":null,"placeholder":null,"reason":null,"flags":[]},{"key":"2026-2","cls":"trow","load":null,"delta":null,"placeholder":null,"reason":null,"flags":[]}]
+--- PLAN-01a (2)
+  requests POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops 200; PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues 200
+  rows [{"key":"2026-1","cls":"trow has-flag","load":"4 / 22 credits · 10–22","delta":null,"placeholder":null,"reason":null,"flags":["Below the minimum loadWorth a look: 4 credits, below the minimum of 10. A petition can allow it. QĐ 1175/QĐ-KHTN Điều 7.2"]},{"key":"2026-2","cls":"trow","load":null,"delta":null,"placeholder":null,"reason":null,"flags":[]}]
+  issues panel: Plan check 0 Computed by the rule engine from the training regulation, not by AI. 0 violations 1 worth a look 1 not recorded yet Worth a look: Below the minimum load 4 credits, below the minimum of 10. A petition can allow it. Term 1 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 7.2 Điều 7.2 Not recorded yet (1) With the plan completed · 4/163 credits8 groups still short
+ok   PLAN-01a: (2) one PUT …/placements 200, then GET …/issues 200; chip Saved; 4 / 22 credits; load_below_minimum flag citing Điều 7.2; requirement short counts | observed: {"chip":"Saved","load":"4 / 22 credits · 10–22"}
+--- PLAN-01a (3)
+  CS163: PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; row 2026-1 ["CS160","CS163"]
+  CS201: PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; row 2026-1 ["CS160","CS163","CS201"]
+  CS202: PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; row 2026-1 ["CS160","CS163","CS201","CS202"]
+  MTH251: PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; row 2026-1 ["CS160","CS163","CS201","CS202","MTH251"]
+  PH211: PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; row 2026-1 ["CS160","CS163","CS201","CS202","MTH251","PH211"]
+  rows [{"key":"2026-1","cls":"trow has-flag","load":"24 / 22 credits · 10–22","delta":null,"placeholder":null,"reason":null,"flags":["Above the maximum loadWorth a look: 24 credits, above the maximum of 22. A petition can allow it. QĐ 1175/QĐ-KHTN Điều 7.2"]},{"key":"2026-2","cls":"trow","load":null,"delta":null,"placeholder":null,"reason":null,"flags":[]}]
+  issues panel: Plan check 0 Computed by the rule engine from the training regulation, not by AI. 0 violations 1 worth a look 6 not recorded yet Worth a look: Above the maximum load 24 credits, above the maximum of 22. A petition can allow it. Term 1 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 7.2 Điều 7.2 Not recorded yet (6) With the plan completed · 24/163 credits8 groups still short
+ok   PLAN-01a: (3) 24 credits in 2026-1: row has-flag and load_above_maximum "24 credits, above the maximum of 22. A petition can allow it." citing Điều 7.2 | observed: {"key":"2026-1","cls":"trow has-flag","load":"24 / 22 credits · 10–22","delta":null,"placeholder":null,"reason":null,"flags":["Above the maximum loadWorth a look: 24 credits, above the maximum of 22. A petition can allow it. QĐ 1175/QĐ-KHTN Điều 7.2"]}
+--- PLAN-01a (4)
+  requests POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops 200; PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues 200; rows [{"key":"2026-1","cls":"trow","load":"20 / 22 credits · 10–22","delta":null,"placeholder":null,"reason":null,"flags":[]},{"key":"2026-2","cls":"trow has-flag","load":"4 / 22 credits · 10–22","delta":null,"placeholder":null,"reason":null,"flags":["Below the minimum loadWorth a look: 4 credits, below the minimum of 10. A petition can allow it. QĐ 1175/QĐ-KHTN Điều 7.2"]}]
+  issues panel: Plan check 0 Computed by the rule engine from the training regulation, not by AI. 0 violations 1 worth a look 6 not recorded yet Worth a look: Below the minimum load 4 credits, below the minimum of 10. A petition can allow it. Term 2 2026–2027 Source: QĐ 1175/QĐ-KHTN Điều 7.2 Điều 7.2 Not recorded yet (6) With the plan completed · 24/163 credits8 groups still short
+ok   PLAN-01a: (4) PH211 moved: 2026-1 at 20 credits with no cap flag, 2026-2 at 4 credits flagged | observed: {"row1":{"key":"2026-1","cls":"trow","load":"20 / 22 credits · 10–22","delta":null,"placeholder":null,"reason":null,"flags":[]},"row2":{"key":"2026-2","cls":"trow has-flag","load":"4 / 22 credits · 10–22","delta":null,"placeholder":null,"reason":null,"flags":["Below the minimum loadWorth a look: 4 credits, below the minimum of 10. A petition can allow it. QĐ 1175/QĐ-KHTN Điều 7.2"]}}
+  drop bin shown during the drag: {"x":437.45654296875,"y":802.8270263671875,"width":405.0869140625,"height":72.1937255859375}
+  requests POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops 200; PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200; GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues 200; board {"2026-1":["CS160","CS163","CS201","CS202","MTH251"],"2026-2":[]}
+ok   PLAN-01a: (4) dropping on the drop bin removes PH211, saves once, PH211 back in the pool | observed: {"writes":"PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements 200","back":1}
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+  API: 2026-1: CS160,CS163,CS201,CS202,MTH251
+2026-11-28T08:59:02.987Z All checks ok

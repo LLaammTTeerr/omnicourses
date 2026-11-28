@@ -1,0 +1,22 @@
+2026-11-28T07:48:31.848Z Chromium 156.0.8078.4 (headless, playwright-core 1.64.1)
+2026-11-28T07:48:35.031Z ACAD-01a API credits: {"accumulated":0,"towardTotal":0,"inProgressTowardTotal":0,"totalRequired":163,"remaining":163,"yearLevel":1} gpa: {"average":null,"accumulatedAverage":null,"accumulatedAverageFourPoint":null,"classification":null,"gradedCredits":0} graduation: not_yet
+2026-11-28T07:48:35.031Z ACAD-01a dashboard figures: {"graduation-status":null,"credits-toward-total":"0","credits-remaining":"163","credits-in-progress":"0 TC đang học","credits-accumulated":null,"gpa-accumulated-average":"—/10","gpa-average":null,"gpa-classification":null,"gpa-four-point":null}
+2026-11-28T07:48:35.031Z ACAD-01a dashboard groups: ["Kiến thức Computer Science (A): bắt buộc 0/40","Kiến thức Math 0/16","Tự chọn Math (B) 0/8","Kiến thức tự chọn 0/43","Kiến thức Physics 0/12","Kiến thức Non Computer Science 0/26","Kiến thức Computer Science (A): tự chọn 0/16","Kiến thức tốt nghiệp 0/10"]
+FAIL ACAD-01a: the dashboard shows 0 / 163, 163 remaining and "not yet", like the API | observed: {"graduation-status":null,"credits-toward-total":"0","credits-remaining":"163","credits-in-progress":"0 TC đang học","credits-accumulated":null,"gpa-accumulated-average":"—/10","gpa-average":null,"gpa-classification":null,"gpa-four-point":null}
+FAIL ACAD-01a: each group with a minimum shows 0 of its requirement; the combined minimum 0 of 43 | observed: {"missing":[["(A): bắt buộc","0 / 40"],["(A): tự chọn","0 / 16"],["Kiến thức Math","0 / 16"],["Non Computer Science","0 / 26"],["Physics","0 / 12"],["Kiến thức tốt nghiệp","0 / 10"],["Tự chọn Math (B)","0 / 8"],["Kiến thức tự chọn","0 / 43"]]}
+FAIL ACAD-01a: group (C) is shown without a minimum, never as "0 / 0" | observed: (not shown)
+ok   ACAD-01a: the page says the audit assumes no course is passed, with a link to enter a transcript | observed: {"notice":"Chưa có bảng điểm. | Kết quả dưới đây coi như bạn chưa đạt học phần nào. Nhập bảng điểm để xét đúng tiến độ của bạn. | Nhập bảng điểm","link":"/transcript"}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.innerText: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('[data-test="graduation"]')[22m
+
+    at E:\Project\omnicourses\docs\test\evidence\b2\b1-regression\a-acad-screens.mjs:34:155 {
+  log: [ `  - waiting for locator('[data-test="graduation"]')` ],
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0
