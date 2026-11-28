@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue';
-import { newestOnly } from '../async-load.js';
+import { computed, ref, watch } from 'vue';
+import { EVENT_KIND_GROUP, eventTitle, otherEventTitle, spanIn } from '../calendar/present.js';
 import ExternalLink from '../components/ExternalLink.vue';
 import SelectMenu from '../components/SelectMenu.vue';
-import { formatDate, formatSpan, useLocale, useMessages } from '../locale.js';
+import { formatDate, useLocale, useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
 import {
@@ -11,13 +11,10 @@ import {
   deleteCalendarEvent,
   fetchProgramCalendar,
   updateCalendarEvent,
-  type AcademicCalendar,
   type CalendarEvent,
-  type CalendarEventKind,
 } from './api.js';
 import CalendarEventDialog from './CalendarEventDialog.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
-import { readFailure } from './errors.js';
 import {
   CALENDAR_EVENT_FIELDS,
   calendarEventChanges,
@@ -27,27 +24,18 @@ import {
 } from './forms.js';
 import { ADMIN_MESSAGES } from './messages.js';
 import { describeProblem } from './problem.js';
-import { useAdminAccess } from './access.js';
-import { useProgramPicker } from './store.js';
+import { useSavedDocument } from './saved-document.js';
+import { reloadProgramsOnGrantChange, useProgramPicker } from './store.js';
 import { useAdminDialog, type WriteOutcome } from './write.js';
 
-const KIND_GROUP: Record<CalendarEventKind, string> = {
-  term_start: 'g-core',
-  term_end: 'g-core',
-  registration: 'g-elec',
-  add_drop: 'g-elec',
-  exam_period: 'g-pol',
-  holiday: 'g-gen',
-  other: 'g-thesis',
-};
-
-const access = useAdminAccess();
 const locale = useLocale();
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.calendar);
 
-const { programList, programsStatus, loadPrograms, picked, program } = useProgramPicker('the programs to administer');
+const picker = useProgramPicker('the programs to administer');
+const { programList, programsStatus, loadPrograms, picked, program } = picker;
+reloadProgramsOnGrantChange(picker);
 void loadPrograms();
 
 interface Scope {
@@ -55,70 +43,25 @@ interface Scope {
   programCode: string;
 }
 const scope = computed<Scope | null>(() => (program.value ? { programId: program.value.id, programCode: program.value.code } : null));
-const onScreen = (of: Scope): boolean => scope.value?.programId === of.programId;
-
-const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
-const listedIds = computed(() => (programList.value ?? []).map((item) => item.id).sort().join());
-watch([grantedIds, () => access.refusal], () => {
-  if (!access.refusal && access.grants && programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void loadPrograms(true);
+const { document: calendar, status, stale, staleness, onScreen, readSaved, load, showSaved } = useSavedDocument({
+  scope,
+  scopeKey: (of: Scope) => of.programId,
+  read: (of: Scope) => fetchProgramCalendar(of.programCode),
+  what: 'the academic calendar',
+  reloadId: 'calendar-reload',
 });
 
-const calendar = shallowRef<AcademicCalendar | null>(null);
-const status = ref<'loading' | 'loaded' | 'failed'>('loading');
-const stale = ref(false);
-const newest = newestOnly();
-
-async function readSaved(of: Scope): Promise<AcademicCalendar> {
-  const isNewest = onScreen(of) ? newest.start() : null;
-  const fresh = await fetchProgramCalendar(of.programCode);
-  if (isNewest?.() && onScreen(of)) {
-    calendar.value = fresh;
-    status.value = 'loaded';
-    stale.value = false;
-  }
-  return fresh;
-}
-
-async function load(): Promise<void> {
-  calendar.value = null;
-  stale.value = false;
-  status.value = 'loading';
-  const of = scope.value;
-  if (!of) return;
-  const isNewest = newest.upcoming();
-  try {
-    await readSaved(of);
-  } catch (e) {
-    if (!isNewest()) return;
-    if (readFailure(e).kind === 'signed_out') return;
-    console.error('Loading the academic calendar to administer failed:', e);
-    status.value = 'failed';
-  }
-}
-
-async function showSaved(): Promise<void> {
-  const of = scope.value;
-  if (!of) return;
-  try {
-    await readSaved(of);
-  } catch (e) {
-    if (readFailure(e).kind === 'signed_out') return;
-    console.error('Reloading the academic calendar failed:', e);
-    stale.value = true;
-  }
-}
-
 const events = computed(() => calendar.value?.events ?? []);
-const titleIn = (event: CalendarEvent) => (locale.lang === 'en' && event.titleEn ? event.titleEn : event.title);
-const otherTitle = (event: CalendarEvent) => (locale.lang === 'en' ? (event.titleEn ? event.title : null) : event.titleEn);
-const datesOf = (event: CalendarEvent) => formatSpan(event.startsOn, event.endsOn, (iso) => formatDate(iso, locale.lang));
+const titleIn = (event: CalendarEvent) => eventTitle(event, locale.lang);
+const otherTitle = (event: CalendarEvent) => otherEventTitle(event, locale.lang);
+const datesOf = (event: CalendarEvent) => spanIn(event, (iso) => formatDate(iso, locale.lang));
 
 type Ask = { type: 'event'; event: CalendarEvent | null } | { type: 'delete-event'; event: CalendarEvent };
 const notice = ref(false);
 const asking = useAdminDialog<Ask & { at: Scope }>({
   fallback: 'add-event',
   notice,
-  stale: { reloadId: 'calendar-reload', is: () => stale.value, mark: () => (stale.value = true) },
+  stale: staleness,
 });
 const { dialog, writes: dialogWrites, busy, cancel, close } = asking;
 
@@ -266,7 +209,7 @@ watch(
                     <ExternalLink v-if="event.sourceUrl" class="link small source" :href="event.sourceUrl" data-test="event-source">{{ text.sourceLink }}</ExternalLink>
                   </th>
                   <td data-test="event-kind" :data-kind="event.kind" :data-label="text.columns.kind">
-                    <span :class="['chip', 'soft', KIND_GROUP[event.kind]]">{{ text.kinds[event.kind] }}</span>
+                    <span :class="['chip', 'soft', EVENT_KIND_GROUP[event.kind]]">{{ text.kinds[event.kind] }}</span>
                   </td>
                   <td data-test="event-term" :data-label="text.columns.term">
                     {{ event.term === null ? text.wholeYear(event.academicYear) : text.term(event.term, event.academicYear) }}

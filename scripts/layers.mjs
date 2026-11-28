@@ -129,6 +129,7 @@ export const frontendFeatureEdges = [
   'audit -> transcript',
   'explorer -> curriculum',
   'explorer -> onboarding',
+  'notifications -> calendar',
   'onboarding -> curriculum',
   'plans -> audit',
   'plans -> curriculum',

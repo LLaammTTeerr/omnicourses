@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 import { RouterLink } from 'vue-router';
-import { newestOnly } from '../async-load.js';
 import SelectMenu from '../components/SelectMenu.vue';
-import { fetchCurriculum, fetchPrograms, type Curriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
+import { fetchCurriculum, fetchPrograms, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour } from '../curriculum/present.js';
 import { GROUPS, groupClass } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
@@ -64,17 +63,18 @@ import PrerequisitesDialog from './PrerequisitesDialog.vue';
 import { describeProblem, type ProblemView } from './problem.js';
 import ProgramDialog from './ProgramDialog.vue';
 import ProblemNote from './ProblemNote.vue';
-import { useAdminAccess } from './access.js';
-import { useProgramPicker } from './store.js';
+import { useSavedDocument } from './saved-document.js';
+import { reloadProgramsOnGrantChange, useProgramPicker } from './store.js';
 import { stayWhileBusy, useAdminDialog, useWrites, type WriteOutcome } from './write.js';
 
-const access = useAdminAccess();
 const locale = useLocale();
 const toast = useToast();
 const m = useMessages(ADMIN_MESSAGES);
 const text = computed(() => m.value.curriculum);
 
-const { programList, programsStatus, loadPrograms, picked, program, cohort } = useProgramPicker('the programs to administer');
+const picker = useProgramPicker('the programs to administer');
+const { programList, programsStatus, loadPrograms, picked, program, cohort } = picker;
+reloadProgramsOnGrantChange(picker);
 void loadPrograms();
 
 interface Scope {
@@ -85,59 +85,14 @@ interface Scope {
 const scope = computed<Scope | null>(() =>
   program.value && cohort.value ? { ref: { programId: program.value.id, curriculumId: cohort.value.id }, programCode: program.value.code, cohortYear: cohort.value.cohortYear } : null,
 );
-const onScreen = (of: Scope): boolean => scope.value?.ref.curriculumId === of.ref.curriculumId;
-
-const grantedIds = computed(() => (access.grants?.programs ?? []).map((grant) => grant.programId).sort().join());
-const listedIds = computed(() => (programList.value ?? []).map((item) => item.id).sort().join());
-watch([grantedIds, () => access.refusal], () => {
-  if (!access.refusal && access.grants && programsStatus.value === 'loaded' && grantedIds.value !== listedIds.value) void loadPrograms(true);
+const { document: curriculum, status, stale, staleness, onScreen, readSaved, load, showSaved } = useSavedDocument({
+  scope,
+  scopeKey: (of: Scope) => of.ref.curriculumId,
+  read: (of: Scope) => fetchCurriculum(of.programCode, of.cohortYear),
+  what: 'the curriculum',
+  reloadId: 'curriculum-reload',
+  failedAs: (failure) => (failure.kind === 'not_found' ? 'missing' : null),
 });
-
-const curriculum = shallowRef<Curriculum | null>(null);
-const status = ref<'loading' | 'loaded' | 'failed' | 'missing'>('loading');
-const stale = ref(false);
-const newest = newestOnly();
-
-async function readSaved(of: Scope): Promise<Curriculum> {
-  const isNewest = onScreen(of) ? newest.start() : null;
-  const fresh = await fetchCurriculum(of.programCode, of.cohortYear);
-  if (isNewest?.() && onScreen(of)) {
-    curriculum.value = fresh;
-    status.value = 'loaded';
-    stale.value = false;
-  }
-  return fresh;
-}
-
-async function load(): Promise<void> {
-  curriculum.value = null;
-  stale.value = false;
-  status.value = 'loading';
-  const of = scope.value;
-  if (!of) return;
-  const isNewest = newest.upcoming();
-  try {
-    await readSaved(of);
-  } catch (e) {
-    if (!isNewest()) return;
-    const failure = readFailure(e);
-    if (failure.kind === 'signed_out') return;
-    if (failure.kind !== 'not_found') console.error('Loading the curriculum to administer failed:', e);
-    status.value = failure.kind === 'not_found' ? 'missing' : 'failed';
-  }
-}
-
-async function showSaved(): Promise<void> {
-  const of = scope.value;
-  if (!of) return;
-  try {
-    await readSaved(of);
-  } catch (e) {
-    if (readFailure(e).kind === 'signed_out') return;
-    console.error('Reloading the curriculum failed:', e);
-    stale.value = true;
-  }
-}
 
 const groups = computed(() => curriculum.value?.requirementGroups ?? []);
 const openId = ref<string | null>(null);
@@ -170,7 +125,7 @@ const notice = ref(false);
 const asking = useAdminDialog<Ask & { at: Scope }>({
   fallback: 'add-group',
   notice,
-  stale: { reloadId: 'curriculum-reload', is: () => stale.value, mark: () => (stale.value = true) },
+  stale: staleness,
 });
 const { dialog, writes: dialogWrites, busy } = asking;
 const linkWrites = useWrites();

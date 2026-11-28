@@ -1,4 +1,5 @@
-import { formatDate, formatSpan, type Lang } from '../locale.js';
+import { eventTitle, spanIn } from '../calendar/present.js';
+import { formatDate, type Lang } from '../locale.js';
 import type { NotificationEvent, NotificationKind, NotificationLink } from './api.js';
 
 interface NotificationMessages {
@@ -24,7 +25,7 @@ interface NotificationMessages {
   badge: (unread: number) => string;
 }
 
-export const eventLine = (event: NotificationEvent, lang: Lang) => `${lang === 'en' ? (event.titleEn ?? event.title) : event.title} · ${formatSpan(event.startsOn, event.endsOn, (iso) => formatDate(iso, lang))}`;
+export const eventLine = (event: NotificationEvent, lang: Lang) => `${eventTitle(event, lang)} · ${spanIn(event, (iso) => formatDate(iso, lang))}`;
 
 export const NOTIFICATION_MESSAGES: Record<Lang, NotificationMessages> = {
   vi: {
