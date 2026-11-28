@@ -169,7 +169,7 @@ Choices ADR 0011 left open:
 
 Differences that reach manual entry or the rest of the app:
 
-- **A blank period count is 0, also over a stored `NULL`.** The period columns allow `NULL` ("the official table leaves the cell blank"), and a seeded course can hold one. A file row for such a course with a blank period cell is an update from `NULL` to 0, shown in the preview like any other change.
+- **A blank period count is `NULL` (amended 25 Nov 2026, #164).** The period columns allow `NULL` ("the official table leaves the cell blank"), and an emptied period box of the course form saves `NULL`. A blank period cell saves `NULL` too, so a stored `NULL` with a blank cell is a no-op, and a stored 0 with a blank cell is an update from 0 to `NULL`, shown in the preview like any other change. A written 0 stays 0. The manual `POST /admin/catalog/courses` is unchanged: a period it leaves out is saved as 0 (`newCourseValues`). This first read "a blank period count is 0, also over a stored `NULL`".
 - **A whole number above 2,147,483,647 as a credit or period count is a `400`** in manual entry too (`StorableInteger` on `CreateCourseDto` and `UpdateCourseDto`). Before, the manual routes answered `500` from the database. A value that is not a whole number gets the same messages as before.
 - **`express` `5.2.1` is a declared dependency of the backend.** The import body parser is `express.json`. The version is the one `@nestjs/platform-express` already installed.
 - **Who gets the 7 MiB parser.** A body parser runs before every guard, so before authentication and before the rate limit: the rate limit does not protect a parser. Two rules do (`import-body-limit.ts`, `import-body-gate.ts`):

@@ -80,21 +80,30 @@ export async function checkCatalogRow(row: CsvRow<CatalogColumn>): Promise<{ cod
   const code = parseCourseCode(row.values.code);
   const checked = await validateStrict(CreateCourseDto, catalogBody(row.values));
   const errors: RowError[] = [...(code.error !== null ? [at('code', code.error)] : []), ...(checked.errors ?? []).map((failed) => at(columnOf(failed.property), messagesOf(failed)))];
-  return { code: code.code, values: errors.length || !checked.value ? null : newCourseValues(checked.value), errors };
+  return { code: code.code, values: errors.length || !checked.value ? null : withBlankPeriodsKept(checked.value), errors };
 }
 
 function catalogBody(cell: Record<CatalogColumn, string>): Record<'code' | CourseField, unknown> {
   const count = (text: string) => (text === '' ? undefined : wholeNumberOrText(text));
+  const period = (text: string) => (text === '' ? null : wholeNumberOrText(text));
   return {
     code: cell.code,
     nameVi: cell.name_vi,
     nameEn: cell.name_en === '' ? null : cell.name_en,
     credits: count(cell.credits),
-    theoryPeriods: count(cell.theory_periods),
-    labPeriods: count(cell.lab_periods),
-    exercisePeriods: count(cell.exercise_periods),
-    projectPeriods: count(cell.project_periods),
+    theoryPeriods: period(cell.theory_periods),
+    labPeriods: period(cell.lab_periods),
+    exercisePeriods: period(cell.exercise_periods),
+    projectPeriods: period(cell.project_periods),
   };
+}
+
+const PERIOD_FIELDS = ['theoryPeriods', 'labPeriods', 'exercisePeriods', 'projectPeriods'] as const;
+
+function withBlankPeriodsKept(dto: CreateCourseDto): CourseValues {
+  const values = newCourseValues(dto);
+  for (const field of PERIOD_FIELDS) if (dto[field] === null) values[field] = null;
+  return values;
 }
 
 const columnOf = (property: string): string => CATALOG_COLUMNS[property as 'code' | CourseField] ?? property;
