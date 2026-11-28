@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -12,16 +12,27 @@ const ENV_EXAMPLE_NAME = /^#?\s*([A-Z][A-Z0-9_]*)=/gm;
 const VITE_READ = /import\.meta\.env\.(VITE_[A-Z0-9_]+)/g;
 const PACKAGE_FILES = ['package.json', 'src/backend/package.json', 'src/frontend/package.json'];
 const DEPENDENCY_SECTIONS = ['dependencies', 'devDependencies'];
+const FRONTEND_SOURCE = 'src/frontend/src';
+const FRONTEND_SOURCE_FILE = /\.(ts|vue)$/;
+const NOT_PRODUCTION = /\.spec\.ts$|(^|\/)testing\//;
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 
 const namesIn = (text: string, pattern: RegExp): string[] => [...new Set([...text.matchAll(pattern)].map((m) => m[1]!))].sort();
 const isFrontendSetting = (name: string): boolean => name.startsWith(FRONTEND_SETTING_PREFIX);
 
-function versionIn(path: string, pattern: RegExp): string {
-  const match = pattern.exec(read(path));
-  if (!match) throw new Error(`${path} does not state the version matched by ${pattern}`);
-  return match[1]!;
+const frontendProductionText = (): string =>
+  readdirSync(join(ROOT, FRONTEND_SOURCE), { recursive: true, encoding: 'utf8' })
+    .filter((path) => FRONTEND_SOURCE_FILE.test(path) && !NOT_PRODUCTION.test(path))
+    .map((path) => read(join(FRONTEND_SOURCE, path)))
+    .join('\n');
+
+function versionsIn(path: string, pattern: RegExp): Record<string, string> {
+  const versions = [...read(path).matchAll(new RegExp(pattern, 'gm'))].map((m) => m[1]!);
+  if (versions.length === 0) throw new Error(`${path} does not state the version matched by ${pattern}`);
+  return Object.fromEntries(versions.map((version, index) => [`${path}#${index + 1}`, version]));
 }
+
+const versionIn = (path: string, pattern: RegExp): string => Object.values(versionsIn(path, pattern))[0]!;
 
 function expectOneVersion(versions: Record<string, string>): void {
   const [first] = Object.values(versions);
@@ -37,7 +48,7 @@ describe('compose.yaml', () => {
 });
 
 describe('settings', () => {
-  const documented = namesIn(read('.env.example'), ENV_EXAMPLE_NAME);
+  const documented = namesIn(read('.env.example'), ENV_EXAMPLE_NAME).filter((name) => !HOST_SET_SETTINGS.includes(name));
 
   it('documents in .env.example every setting the backend reads, and only those', () => {
     const readNames = namesIn(read('src/backend/src/config/env.ts'), ENV_READ).filter((name) => !HOST_SET_SETTINGS.includes(name));
@@ -46,7 +57,7 @@ describe('settings', () => {
   });
 
   it('documents in .env.example every VITE_ setting the frontend reads, and only those', () => {
-    const frontendRead = namesIn(read('src/frontend/src/api.ts'), VITE_READ);
+    const frontendRead = namesIn(frontendProductionText(), VITE_READ);
     expect(documented.filter(isFrontendSetting)).toEqual(frontendRead);
   });
 });
@@ -56,7 +67,8 @@ describe('pinned runtimes', () => {
     expectOneVersion({
       '.nvmrc': read('.nvmrc').trim(),
       'deploy/server/setup.sh': versionIn('deploy/server/setup.sh', /^NODE_VERSION=(\S+)$/m),
-      'AGENTS.md': versionIn('AGENTS.md', /Node (\d+\.\d+\.\d+)/),
+      ...versionsIn('AGENTS.md', /Node (\d+\.\d+\.\d+)/),
+      ...versionsIn('deploy/README.md', /Node (\d+\.\d+\.\d+)/),
     });
   });
 
@@ -65,7 +77,8 @@ describe('pinned runtimes', () => {
       '.github/workflows/ci.yml': versionIn('.github/workflows/ci.yml', /^\s*NPM_VERSION:\s*(\S+)$/m),
       '.github/workflows/release.yml': versionIn('.github/workflows/release.yml', /^\s*NPM_VERSION:\s*(\S+)$/m),
       'deploy/server/setup.sh': versionIn('deploy/server/setup.sh', /^NPM_VERSION=(\S+)$/m),
-      'AGENTS.md': versionIn('AGENTS.md', /\*\*npm (\d+\.\d+\.\d+)\*\*/),
+      ...versionsIn('AGENTS.md', /\bnpm (\d+\.\d+\.\d+)\b/),
+      ...versionsIn('deploy/README.md', /\bnpm (\d+\.\d+\.\d+)\b/),
     });
   });
 
@@ -74,7 +87,9 @@ describe('pinned runtimes', () => {
       'compose.yaml': versionIn('compose.yaml', /image:\s*\S*postgres:(\S+)/),
       '.github/workflows/ci.yml': versionIn('.github/workflows/ci.yml', /image:\s*postgres:(\S+)/),
       'deploy/server/setup.sh': versionIn('deploy/server/setup.sh', /^PG_IMAGE=\S*postgres:(\S+)$/m),
-      'AGENTS.md': versionIn('AGENTS.md', /PostgreSQL (\d+\.\d+)/),
+      ...versionsIn('AGENTS.md', /PostgreSQL (\d+\.\d+)/),
+      ...versionsIn('README.md', /PostgreSQL (\d+\.\d+)/),
+      ...versionsIn('deploy/README.md', /PostgreSQL (\d+\.\d+)/),
     });
   });
 });
