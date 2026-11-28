@@ -38,8 +38,8 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 07 | `refactor/cv-07-admin-screens` | 13 | #226 (merged 28 Nov as 8f71e41, approved by Dũng) | refactor(admin): share the saved-document and calendar-event code |
 | 08 | `refactor/cv-08-plan-components` | 11 | #227 (merged 28 Nov as 931d809, approved by Dũng) | refactor(plans): share issue cards and credit meter with the shared page |
 | 09 | `refactor/cv-09-admin-messages` | 16 | #228 (merged 28 Nov as 0098f92, approved by Dũng) | refactor(admin): split the admin message catalogue by screen |
-| 10 | `refactor/cv-10-account-state` | 05 | #229 (ready, auto-merge on) | refactor(users): own the account deletion check and student row lock |
-| 11 | `refactor/cv-11-actions-and-drafts` | 14 | #230 (draft) | refactor(frontend): share one action helper, move the transcript draft |
+| 10 | `refactor/cv-10-account-state` | 05 | #229 (merged 28 Nov as f9ddfa4, approved by Dũng) | refactor(users): own the account deletion check and student row lock |
+| 11 | `refactor/cv-11-actions-and-drafts` | 14 | #230 (ready, auto-merge on) | refactor(frontend): share one action helper, move the transcript draft |
 | 12 | `refactor/cv-12-errors-and-limiter` | 06 | #231 (draft) | refactor(backend): build coded errors in one place, move sign-in limiter |
 | 13 | `refactor/cv-13-contract-checks` | 15 | #232 (draft) | test(frontend): fail when a contract schema or limit goes unchecked |
 | 14 | `refactor/cv-14-routes-and-effects` | 12 | #233 (draft) | refactor(frontend): let each feature own its routes and effects |
@@ -52,7 +52,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 21 | `refactor/cv-21-structure-adr` | 21 | #243 (draft) | docs(adr): record module boundaries, owners and their enforcement |
 | 22 | `refactor/cv-22-config-and-pins` | 22 | #244 (draft) | test(config): check settings, pinned versions and exact pins |
 
-Base of the stack: `main` at 0098f92 (#228, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
+Base of the stack: `main` at f9ddfa4 (#229, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
 ## State of the structure at the stack tip
 
