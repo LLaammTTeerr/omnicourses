@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../auth/store.js';
 import { user } from '../auth/testing/fixtures.js';
-import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { mockApi, sentBody, status, restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 import { NOT_STARTED } from './api.js';
 import { useOnboarding } from './store.js';
 import { onboarding } from './testing/fixtures.js';
@@ -18,7 +18,7 @@ describe('useOnboarding', () => {
     setActivePinia(createPinia());
     sessionStorage.clear();
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('loads the answers once per account', async () => {
     const fetch = mockApi({ 'GET /users/me/onboarding': NOT_STARTED });

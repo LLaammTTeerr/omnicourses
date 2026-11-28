@@ -6,6 +6,7 @@ import { createOmniCourseApp } from '../app.js';
 import { createAppRouter } from '../router.js';
 import type { Guide, GuideListItem } from './api.js';
 import { guideText } from './testing/guide-fixtures.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const LONG = 'ĐăngkýhọcphầntrongthờigianmởcổngtheothôngbáocủaPhòngĐàotạo';
 const URL_LONG = `https://portal.example.com/${'DangKyHocPhan'.repeat(6)}`;
@@ -34,7 +35,7 @@ let host: HTMLDivElement | undefined;
 afterEach(() => {
   app?.unmount();
   host?.remove();
-  vi.restoreAllMocks();
+  restoreMocksAfterCheckingCalls();
 });
 
 async function expectNoSidewaysScroll(path: string) {

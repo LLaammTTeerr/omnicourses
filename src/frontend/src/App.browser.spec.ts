@@ -3,6 +3,7 @@ import { page } from 'vitest/browser';
 import { render } from 'vue';
 import indexHtml from '../index.html?raw';
 import { HEALTHY } from './testing/health.js';
+import { restoreMocksAfterCheckingCalls } from './testing/fetch.js';
 
 const originalUrl = window.location.href;
 const originalHistoryState = window.history.state;
@@ -15,7 +16,7 @@ afterEach(() => {
   }
   window.history.replaceState(originalHistoryState, '', originalUrl);
   localStorage.clear();
-  vi.restoreAllMocks();
+  restoreMocksAfterCheckingCalls();
 });
 
 it('boots the app entry and renders the home route inside the app shell', async () => {

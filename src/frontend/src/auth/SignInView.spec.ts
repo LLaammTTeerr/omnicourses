@@ -1,6 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockApi, sentBody, status } from '../testing/fetch.js';
+import { mockApi, sentBody, status, restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import SignInView from './SignInView.vue';
 import { useAuth } from './store.js';
@@ -30,7 +30,7 @@ describe('SignInView (F1, issue #13)', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   it('checks the fields before calling the API, and says what is wrong next to each', async () => {

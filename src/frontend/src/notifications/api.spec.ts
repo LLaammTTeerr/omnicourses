@@ -15,6 +15,7 @@ import {
   type UnreadCount,
 } from './api.js';
 import { SOON } from './testing/fixtures.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const NULLABLE: Record<string, string[]> = {
   NotificationListDto: nullableKeys<NotificationList>({ nextBefore: true }),
@@ -53,7 +54,7 @@ describe('notification types against the contract (ADR 0018)', () => {
 
 describe('the notification calls', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   const answering = (body: unknown) => vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json(body));
   const asStudent = (method: string) => expect.objectContaining({ method, headers: { Authorization: 'Bearer zz-token' } });

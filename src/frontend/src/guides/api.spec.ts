@@ -15,6 +15,7 @@ import {
   type GuidePortal,
   type GuideText,
 } from './api.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 type RegulationSource = Extract<GuideNoteSource, { kind: 'regulation' }>;
 
@@ -89,7 +90,7 @@ describe('guide types against the contract', () => {
 });
 
 describe('fetchGuide', () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('asks for the id escaped and gives the guide', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ id: 'a b' }));

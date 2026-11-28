@@ -22,6 +22,23 @@ export function mockApi(routes: Record<string, Answer>) {
   });
 }
 
+function refuseCallsOutsideContract(): void {
+  if (!vi.isMockFunction(globalThis.fetch)) return;
+  for (const [input, init] of vi.mocked(globalThis.fetch).mock.calls) {
+    const method = init?.method ?? 'GET';
+    const path = String(input).slice(API_URL.length);
+    if (!contractHasRoute(method, path)) throw new Error(`Call is not a route of openapi.json: ${method} ${path}`);
+  }
+}
+
+export function restoreMocksAfterCheckingCalls(): void {
+  try {
+    refuseCallsOutsideContract();
+  } finally {
+    vi.restoreAllMocks();
+  }
+}
+
 export const sentBody = (init: RequestInit | undefined): unknown => JSON.parse(String(init?.body));
 
 export const hung = (init: RequestInit | undefined) =>
