@@ -85,7 +85,7 @@ describe('Curriculum administration API (e2e)', () => {
       const codes = [A, B, C, D, E, F];
       await db.query('DELETE FROM course_prerequisite_lists WHERE course_code = ANY($1)', [codes]);
       await db.query('DELETE FROM course_offering_terms WHERE course_code = ANY($1)', [codes]);
-      await db.query('DELETE FROM requirement_groups WHERE name = ANY($1)', [[groupName, `${groupName} slot`]]);
+      await db.query('DELETE FROM requirement_groups WHERE name = ANY($1)', [[groupName, `${groupName} slot`, `${groupName} totals`, `${groupName} totals 2`]]);
       await db.query('DELETE FROM courses WHERE code = ANY($1)', [codes]);
       await db.query('DELETE FROM program_admin_grants WHERE user_id = ANY($1)', [[admin, stranger, manager, maintainer].map((u) => u.userId)]);
       await db.query('DELETE FROM global_admin_grants WHERE user_id = ANY($1)', [[admin, stranger, manager, maintainer].map((u) => u.userId)]);
@@ -166,12 +166,12 @@ describe('Curriculum administration API (e2e)', () => {
     expect((await as(admin.token).post('/api/admin/catalog/courses', { code: `${A}X`, nameVi: 'x', credits: 1 })).body.permission).toBe('catalog_maintainer');
   });
 
-  it('rejects malformed codes, unknown fields and a gated credit total with 400 validation_failed', async () => {
+  it('rejects malformed codes, unknown fields and a negative credit total with 400 validation_failed', async () => {
     const bad = [
       await as(admin.token).put(prereqs('cs.101'), { prerequisites: [] }),
       await as(admin.token).put(prereqs(B), { prerequisites: ['not a code'] }),
       await as(admin.token).put(prereqs(B), { prerequisites: [], curriculumId: clcCurriculum }),
-      await as(admin.token).patch(groupPath(), { creditsTotalMin: 4 }),
+      await as(admin.token).patch(groupPath(), { creditsTotalMin: -4 }),
       await as(admin.token).patch(groupPath(), { curriculumId: clcCurriculum }),
       await as(maintainer.token).patch(`/api/admin/catalog/courses/${E}`, { code: 'ZZ0' }),
       await as(maintainer.token).post('/api/admin/catalog/courses', { code: 'Z', nameVi: 'x', credits: 1 }),
@@ -302,6 +302,35 @@ describe('Curriculum administration API (e2e)', () => {
     } finally {
       await db.query('DELETE FROM users WHERE id = $1', [student.userId]);
     }
+    await as(admin.token).delete(path).expect(204);
+  });
+
+  it("stores the credit total a group's kind uses, and refuses the other kind's total", async () => {
+    const groups = `${cohort(apcs, apcs2025)}/requirement-groups`;
+    const name = `${groupName} totals`;
+    const created = await as(admin.token).post(groups, { name, kind: 'compulsory', creditsTotal: 12 }).expect(201);
+    expect(created.body).toMatchObject({ name, kind: 'compulsory', creditsTotal: 12, creditsTotalMin: null });
+    const path = `${groups}/${created.body.id}`;
+    const stored = () => db.query('SELECT kind, credits_total, credits_total_min FROM requirement_groups WHERE id = $1', [created.body.id]);
+    const refused = [
+      await as(admin.token).post(groups, { name: `${name} 2`, kind: 'compulsory', creditsTotalMin: 8 }),
+      await as(admin.token).post(groups, { name: `${name} 2`, kind: 'elective', creditsTotal: 8 }),
+      await as(admin.token).patch(path, { kind: 'elective' }),
+      await as(admin.token).patch(path, { creditsTotalMin: 8 }),
+      await as(admin.token).patch(path, { creditsTotal: 1.5 }),
+    ];
+    for (const response of refused) expect([response.status, response.body.code]).toEqual([400, 'validation_failed']);
+    expect(refused[0].body.message).toContain('creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)');
+    expect(refused[2].body.message).toContain('creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)');
+    expect(await stored()).toEqual([{ kind: 'compulsory', credits_total: 12, credits_total_min: null }]);
+    expect(await db.query('SELECT 1 FROM requirement_groups WHERE name = $1', [`${name} 2`])).toEqual([]);
+
+    const switched = await as(admin.token).patch(path, { kind: 'elective', creditsTotal: null, creditsTotalMin: 8 }).expect(200);
+    expect(switched.body).toMatchObject({ kind: 'elective', creditsTotal: null, creditsTotalMin: 8 });
+    const { body } = await as(stranger.token).get('/api/programs/APCS/curricula/2025').expect(200);
+    expect((body.requirementGroups as { name: string }[]).find((g) => g.name === name)).toMatchObject({ kind: 'elective', creditsTotal: null, creditsTotalMin: 8 });
+    expect((await as(admin.token).patch(path, { officialNotes: 'synthetic' }).expect(200)).body).toMatchObject({ creditsTotalMin: 8 });
+    expect((await as(admin.token).patch(path, { creditsTotalMin: null }).expect(200)).body).toMatchObject({ creditsTotal: null, creditsTotalMin: null });
     await as(admin.token).delete(path).expect(204);
   });
 

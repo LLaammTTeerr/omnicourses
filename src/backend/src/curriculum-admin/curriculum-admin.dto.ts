@@ -1,3 +1,4 @@
+import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayMaxSize, ArrayNotEmpty, ArrayUnique, buildMessage, IsArray, IsIn, IsInt, IsNotEmpty, IsString, Min, ValidateBy } from 'class-validator';
 import { ifPresent, ifSet, MaxCodePoints, NoNullCharacter, NullableTextField, RequiredTextField } from '../common/field-validators.js';
@@ -9,6 +10,26 @@ import { NAME_MAX_LENGTH } from '../common/column-limits.js';
 const MAX_PREREQUISITES = 50;
 export const OFFICIAL_NOTES_MAX_LENGTH = 2000;
 export const CONFIRM_IMPACT_MAX_LENGTH = 128;
+
+export const MAX_INTEGER = 2_147_483_647;
+
+const StorableInteger = () =>
+  ValidateBy({
+    name: 'storableInteger',
+    validator: {
+      validate: (value: unknown) => !Number.isInteger(value) || (value as number) <= MAX_INTEGER,
+      defaultMessage: buildMessage((eachPrefix) => `${eachPrefix}$property must not be greater than ${MAX_INTEGER}`),
+    },
+  });
+
+export const CreditTotalField = (description: string) =>
+  applyDecorators(
+    ApiProperty({ type: 'integer', nullable: true, required: false, minimum: 0, maximum: MAX_INTEGER, description }),
+    ifSet,
+    IsInt(),
+    Min(0),
+    StorableInteger(),
+  );
 
 class AdminCurriculumDto {
   @ApiProperty({ format: 'uuid' })
@@ -54,6 +75,12 @@ export class CreateRequirementGroupDto {
   @NoNullCharacter
   @MaxCodePoints(OFFICIAL_NOTES_MAX_LENGTH)
   officialNotes?: string | null;
+
+  @CreditTotalField('A compulsory group only: the fixed credit total it prints (ADR 0005). null clears it.')
+  creditsTotal?: number | null;
+
+  @CreditTotalField('An elective group only: the minimum credits a student takes from it (ADR 0005). null clears it.')
+  creditsTotalMin?: number | null;
 }
 
 export class UpdateRequirementGroupDto {
@@ -61,7 +88,7 @@ export class UpdateRequirementGroupDto {
   @RequiredTextField({ required: false, maxLength: NAME_MAX_LENGTH })
   name?: string;
 
-  @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS, required: false, description: 'Refused while the group stores a credit total' })
+  @ApiProperty({ enum: REQUIREMENT_GROUP_KINDS, required: false, description: 'Refused when the group would then store the other kind\'s credit total; clear it in the same request' })
   @ifPresent
   @IsIn(REQUIREMENT_GROUP_KINDS)
   kind?: RequirementGroupKind;
@@ -72,6 +99,12 @@ export class UpdateRequirementGroupDto {
   @NoNullCharacter
   @MaxCodePoints(OFFICIAL_NOTES_MAX_LENGTH)
   officialNotes?: string | null;
+
+  @CreditTotalField('A compulsory group only: the fixed credit total it prints (ADR 0005). null clears it.')
+  creditsTotal?: number | null;
+
+  @CreditTotalField('An elective group only: the minimum credits a student takes from it (ADR 0005). null clears it.')
+  creditsTotalMin?: number | null;
 }
 
 export class RequirementGroupAdminDto {
@@ -90,10 +123,10 @@ export class RequirementGroupAdminDto {
   @ApiProperty({ type: String, nullable: true })
   officialNotes!: string | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Read-only here until the rule-engine handoff (ADR 0011)' })
+  @ApiProperty({ type: Number, nullable: true, description: 'Set on a compulsory group only; null: not recorded' })
   creditsTotal!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true, description: 'Read-only here until the rule-engine handoff (ADR 0011)' })
+  @ApiProperty({ type: Number, nullable: true, description: 'Set on an elective group only; null: no minimum recorded' })
   creditsTotalMin!: number | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
@@ -137,17 +170,6 @@ export class OfferingTermsDto {
   @ApiProperty({ type: [Number], nullable: true, description: 'Ascending; null once cleared (not recorded)' })
   terms!: number[] | null;
 }
-
-export const MAX_INTEGER = 2_147_483_647;
-
-const StorableInteger = () =>
-  ValidateBy({
-    name: 'storableInteger',
-    validator: {
-      validate: (value: unknown) => !Number.isInteger(value) || (value as number) <= MAX_INTEGER,
-      defaultMessage: buildMessage((eachPrefix) => `${eachPrefix}$property must not be greater than ${MAX_INTEGER}`),
-    },
-  });
 
 export const wholeNumberOrText = (text: string): number | string => (/^[0-9]+$/.test(text) ? Number(text) : text);
 
