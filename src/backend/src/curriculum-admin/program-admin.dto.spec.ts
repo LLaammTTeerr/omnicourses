@@ -1,7 +1,7 @@
 import type { Type } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import { flattenErrors, validateStrict } from '../common/api-requests.js';
-import { CURRICULUM_SEEDS } from '../database/seeds/index.js';
+import { CURRICULUM_SEEDS } from '../curriculum/seeds/index.js';
 import { ADMIN_CODE_PATTERN, canonicalAdminCode, CreateCohortDto, CreateProgramDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 
 const errorsOf = async (dto: Type<object>, body: unknown): Promise<string[]> => {

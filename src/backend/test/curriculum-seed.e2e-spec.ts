@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DataSource } from 'typeorm';
-import { CatalogConflictError } from '../src/database/seeds/catalog.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
+import { CatalogConflictError } from '../src/curriculum/seeds/catalog.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
 import { AddAuditRulesToCurriculum1794300000000 } from '../src/database/migrations/1794300000000-add-audit-rules-to-curriculum.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { privateSchema } from './support/schema.js';

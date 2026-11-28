@@ -4,7 +4,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { CsvImportService } from '../src/curriculum-admin/csv-import.service.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/database/seeds/index.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { type Account, authed, grantGlobal, grantProgram, runSuffix } from './support/admin.js';
 import { bootApp } from './support/app.js';

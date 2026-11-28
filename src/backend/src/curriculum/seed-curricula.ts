@@ -1,8 +1,8 @@
 import type { DataSource, EntityManager } from 'typeorm';
-import { ADMIN_WRITE_LOCK } from '../curriculum-admin/admin-write.service.js';
-import { buildCatalog, CatalogConflictError, type CatalogConflict } from '../database/seeds/catalog.js';
-import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../database/seeds/index.js';
-import type { CatalogCourse, CatalogDecision, CurriculumSeed } from '../database/seeds/seed-types.js';
+import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
+import { buildCatalog, CatalogConflictError, type CatalogConflict } from './seeds/catalog.js';
+import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from './seeds/index.js';
+import type { CatalogCourse, CatalogDecision, CurriculumSeed } from './seeds/seed-types.js';
 
 const SEEDED_TABLES = ['programs', 'curriculums', 'requirement_groups', 'courses', 'links', 'combined_minimums', 'overflows', 'prerequisite_lists', 'prerequisites'] as const;
 type SeededTable = (typeof SEEDED_TABLES)[number];
@@ -29,7 +29,7 @@ export async function seedCurricula(
   const catalog = buildCatalog(seeds, decisions);
   const report: SeedReport = { inserted: noRows(), skipped: noRows() };
   await dataSource.transaction(async (em) => {
-    await em.query('SELECT pg_advisory_xact_lock($1)', [ADMIN_WRITE_LOCK]);
+    await em.query('SELECT pg_advisory_xact_lock($1)', [SINGLE_KEY_LOCKS.adminWrite]);
     await assertNoCatalogConflictsWithDatabase(em, catalog);
     const writer = new SeedWriter(em, report);
     await insertCourses(writer, catalog);

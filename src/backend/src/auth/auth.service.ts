@@ -10,6 +10,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Algorithm, hash, verify } from '@node-rs/argon2';
 import { EntityManager, IsNull, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { NAMESPACED_LOCKS } from '../common/advisory-locks.js';
 import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { sessionTtlDays } from '../config/env.js';
@@ -25,7 +26,6 @@ const SESSION_TOKEN_BYTES = 32;
 export const MAX_SESSION_LIFETIME_DAYS = 30;
 const MAX_FAILED_SIGN_INS = 10;
 const FAILED_SIGN_IN_WINDOW_MS = MINUTE_MS;
-const SIGN_IN_ATTEMPT_LOCK_NAMESPACE = 11_012_003;
 const SIGN_IN_ATTEMPT_PURGE_BATCH = 100;
 
 export const ARGON2_OPTIONS = {
@@ -174,7 +174,7 @@ export class AuthService {
     const cutoff = new Date(now.getTime() - FAILED_SIGN_IN_WINDOW_MS);
     await this.signInAttempts.manager.transaction(async (manager) => {
       await manager.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [
-        SIGN_IN_ATTEMPT_LOCK_NAMESPACE,
+        NAMESPACED_LOCKS.signInAttempt,
         attemptKey,
       ]);
       await manager.delete(SignInAttempt, { attemptKey, attemptedAt: LessThanOrEqual(cutoff) });

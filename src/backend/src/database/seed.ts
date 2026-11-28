@@ -1,12 +1,15 @@
+import type { Seeder } from '../common/seed-options.js';
 import { seed as seedCurricula } from '../curriculum/seed-curricula.js';
 import { seed as seedGuides } from '../guides/seed-guides.js';
 import { withDatabase } from './data-source.js';
+import { parseSeedOptions } from './seed-options.js';
+
+const SEEDERS: Seeder[] = [seedGuides, seedCurricula];
 
 async function main(): Promise<void> {
-  const options = { guideFixtures: process.argv.includes('--guide-fixtures') };
+  const options = parseSeedOptions(process.argv);
   await withDatabase(async (dataSource) => {
-    for (const line of await seedGuides(dataSource, options)) console.log(line);
-    for (const line of await seedCurricula(dataSource)) console.log(line);
+    for (const seeder of SEEDERS) for (const line of await seeder(dataSource, options)) console.log(line);
   });
 }
 

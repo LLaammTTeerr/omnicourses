@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
+import { NAMESPACED_LOCKS } from '../common/advisory-locks.js';
 import { failureKind } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { AI_CONFIG, type AiConfig } from '../config/env.js';
@@ -8,8 +9,6 @@ import { DAY_MS } from '../config/time.js';
 import { AI_REASONS, AiUnavailableError } from './ai-unavailable.error.js';
 import { AiUsage } from './ai-usage.entity.js';
 import type { AiCallContext } from './llm.service.js';
-
-const AI_QUOTA_LOCK_NAMESPACE = 3003;
 
 type AiUsageResult = Pick<AiUsage, 'inputTokens' | 'outputTokens' | 'latencyMs' | 'succeeded'>;
 
@@ -26,7 +25,7 @@ export class AiCostGuard {
   async reserve(context: AiCallContext, model: string): Promise<string> {
     const cap = this.config.dailyCallsPerUser;
     return this.usage.manager.transaction(async (em) => {
-      await em.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [AI_QUOTA_LOCK_NAMESPACE, context.userId]);
+      await em.query('SELECT pg_advisory_xact_lock($1, hashtext($2))', [NAMESPACED_LOCKS.aiQuota, context.userId]);
       const now = this.clock.now();
       const used = await em.count(AiUsage, { where: { userId: context.userId, createdAt: MoreThan(new Date(now.getTime() - DAY_MS)) } });
       if (used >= cap) throw new AiUnavailableError(AI_REASONS.dailyLimit);

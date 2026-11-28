@@ -1,6 +1,7 @@
 import { applyDecorators, ForbiddenException, Injectable } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiProperty } from '@nestjs/swagger';
 import { DataSource, EntityManager } from 'typeorm';
+import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
 import { AdminErrorDto } from '../common/api-errors.js';
 import { grantsOf, missingPermission, type Need, type PermissionKind } from './grants.js';
 
@@ -22,17 +23,14 @@ export const AdminErrors = ({ notFound = true }: { notFound?: boolean } = {}) =>
     ...(notFound ? [ApiNotFoundResponse({ type: AdminErrorDto, description: '`not_found`: nothing with this ID or code within the authorised scope' })] : []),
   );
 
-export const ADMIN_WRITE_LOCK = 11_012_001;
-export const ACCESS_MANAGER_LOCK = 11_012_002;
-
 export async function lockAdminWrite(
   em: EntityManager,
   userIds: string[],
   options: { lockAccessManagers?: boolean } = {},
 ): Promise<{ id: string; deletionRequestedAt: Date | null }[]> {
-  await em.query('SELECT pg_advisory_xact_lock($1)', [ADMIN_WRITE_LOCK]);
+  await em.query('SELECT pg_advisory_xact_lock($1)', [SINGLE_KEY_LOCKS.adminWrite]);
   if (options.lockAccessManagers) {
-    await em.query('SELECT pg_advisory_xact_lock($1)', [ACCESS_MANAGER_LOCK]);
+    await em.query('SELECT pg_advisory_xact_lock($1)', [SINGLE_KEY_LOCKS.accessManager]);
   }
   const ids = [...new Set(userIds)].sort();
   return em.query(`SELECT "id", "deletion_requested_at" AS "deletionRequestedAt" FROM "users" WHERE "id" = ANY($1::uuid[]) ORDER BY "id" FOR NO KEY UPDATE`, [ids]);

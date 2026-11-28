@@ -1,10 +1,10 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuthService } from '../auth/auth.service.js';
+import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
 import { Clock } from '../config/clock.js';
 import { accountDeletionGraceDays } from '../config/env.js';
 import { DAY_MS } from '../config/time.js';
-import { ACCESS_MANAGER_LOCK } from '../curriculum-admin/admin-write.service.js';
 import { SharingService } from '../sharing/sharing.service.js';
 import { User } from '../users/user.entity.js';
 import { UsersService } from '../users/users.service.js';
@@ -38,7 +38,7 @@ export class AccountService {
     const requestedAt = this.clock.now();
     const purgeAfter = new Date(requestedAt.getTime() + accountDeletionGraceDays() * DAY_MS);
     await this.db.transaction(async (manager) => {
-      await manager.query('SELECT pg_advisory_xact_lock($1)', [ACCESS_MANAGER_LOCK]);
+      await manager.query('SELECT pg_advisory_xact_lock($1)', [SINGLE_KEY_LOCKS.accessManager]);
       await this.users.markDeletionRequestedWithin(manager, user.id, requestedAt, purgeAfter);
       await this.auth.revokeAllWithin(manager, user.id);
       await this.sharing.stopAllWithin(manager, user.id);
