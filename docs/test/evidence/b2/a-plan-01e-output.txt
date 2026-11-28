@@ -1,0 +1,19 @@
+2026-11-28T06:08:36.284Z a-plan-01 e
+2026-11-28T06:08:36.532Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s15@example.com → 200
+2026-11-28T06:08:41.457Z plan a1e740c8-7b68-4766-85ad-7f6c7231b528; board {"2026-1":["CS160","CS201","CS202","MTH251","CS469"],"2026-2":["CS420"],"2026-3":["slot"]}
+--- PLAN-01e (1)
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+  rows 30 (then 30 after one more click); add-row disabled true; requests while adding: none
+  drop preview POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops 200; targets 30
+ok   PLAN-01e: (1) at 30 rows add-row is disabled and adds no 31st; the drop preview sends at most 30 targets | observed: {"count":30,"count2":30,"disabled":true,"targets":30}
+--- PLAN-01e (2)
+  GET /api/programs/APCS/curricula/2024 → 200
+  PUT /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/placements → 400 {"message":["terms must contain no more than 30 elements"],"error":"Bad Request","statusCode":400}
+  POST /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528/issues/drops → 400 {"message":["targets must contain no more than 30 elements"],"error":"Bad Request","statusCode":400}
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200
+ok   PLAN-01e: (2) PUT with 31 terms → 400 "terms must contain no more than 30 elements" | observed: 400
+ok   PLAN-01e: (2) POST …/issues/drops with 31 targets → 400 "targets must contain no more than 30 elements" | observed: 400
+ok   PLAN-01e: (2) L's saved plan unchanged (updatedAt included) | observed: {"before":"2026-11-28T06:06:44.704Z","after":"2026-11-28T06:06:44.704Z"}
+  after reload: 3 rows
+2026-11-28T06:08:50.809Z All checks ok
