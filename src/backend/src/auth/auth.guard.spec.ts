@@ -1,7 +1,7 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthenticatedRequest } from './auth.decorators.js';
+import { ACCEPTS_PREVIOUS_TOKEN, AuthenticatedRequest, IS_PUBLIC } from './auth.decorators.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 
@@ -13,11 +13,15 @@ function contextFor(request: AuthenticatedRequest): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-function guard(isPublic: boolean, found: unknown = null): AuthGuard {
-  const reflector = { getAllAndOverride: vi.fn(() => isPublic) } as unknown as Reflector;
-  const auth = Object.assign(Object.create(AuthService.prototype), { authenticate: vi.fn(async () => found) }) as AuthService;
+function guard(isPublic: boolean, found: unknown = null, acceptsPrevious = false): AuthGuard {
+  const metadata: Record<string, boolean> = { [IS_PUBLIC]: isPublic, [ACCEPTS_PREVIOUS_TOKEN]: acceptsPrevious };
+  const reflector = { getAllAndOverride: vi.fn((key: string) => metadata[key]) } as unknown as Reflector;
+  authenticate = vi.fn(async () => found);
+  const auth = Object.assign(Object.create(AuthService.prototype), { authenticate }) as AuthService;
   return new AuthGuard(reflector, auth);
 }
+
+let authenticate: ReturnType<typeof vi.fn>;
 
 describe('AuthGuard', () => {
   it('lets @Public() routes through without a token', async () => {
@@ -46,5 +50,12 @@ describe('AuthGuard', () => {
     await expect(guard(false, found).canActivate(contextFor(request))).resolves.toBe(true);
     expect(request.user).toBe(found.user);
     expect(request.session).toBe(found.session);
+    expect(authenticate).toHaveBeenCalledWith('good', false);
+  });
+
+  it('accepts the previous token only on a route marked with @AcceptsPreviousToken()', async () => {
+    const found = { user: { id: 'u1' }, session: { id: 's1' } };
+    await guard(false, found, true).canActivate(contextFor({ headers: { authorization: 'Bearer previous' } }));
+    expect(authenticate).toHaveBeenCalledWith('previous', true);
   });
 });

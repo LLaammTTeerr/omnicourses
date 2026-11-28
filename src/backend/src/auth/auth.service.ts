@@ -6,7 +6,7 @@ import { EntityManager, IsNull, LessThanOrEqual, MoreThan, Repository } from 'ty
 import { isRefusal, SQLSTATE } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { sessionTtlDays } from '../config/env.js';
-import { DAY_MS } from '../config/time.js';
+import { DAY_MS, SECOND_MS } from '../config/time.js';
 import { isWaitingForDeletion } from '../users/account-state.js';
 import { UserDto } from '../users/user.dto.js';
 import { User } from '../users/user.entity.js';
@@ -17,6 +17,7 @@ import { SignInLimiter } from './sign-in-limiter.js';
 
 const SESSION_TOKEN_BYTES = 32;
 export const MAX_SESSION_LIFETIME_DAYS = 30;
+export const REFRESH_GRACE_MS = 30 * SECOND_MS;
 
 export const ARGON2_OPTIONS = {
   algorithm: Algorithm.Argon2id,
@@ -90,30 +91,32 @@ export class AuthService {
     await manager.update(Session, { userId, revokedAt: IsNull() }, { revokedAt: this.clock.now() });
   }
 
-  async authenticate(token: string): Promise<{ user: User; session: Session } | null> {
-    const session = await this.sessions.findOne({
-      where: { tokenHash: hashToken(token) },
-      relations: { user: true },
-    });
+  async authenticate(token: string, acceptsPrevious = false): Promise<{ user: User; session: Session } | null> {
+    const tokenHash = hashToken(token);
     const now = this.clock.now();
+    const session =
+      (await this.sessions.findOne({ where: { tokenHash }, relations: { user: true } })) ??
+      (acceptsPrevious ? await this.findWithinRefreshGrace(tokenHash, now) : null);
     if (!session || session.revokedAt || session.expiresAt.getTime() <= now.getTime()) return null;
     if (session.createdAt && session.createdAt.getTime() + maxSessionLifetimeMs() <= now.getTime()) return null;
     if (isWaitingForDeletion(session.user)) return null;
     return { user: session.user, session };
   }
 
-  async authenticateHeader(authorization: string | string[] | undefined): Promise<{ user: User; session: Session } | null> {
+  async authenticateHeader(authorization: string | string[] | undefined, acceptsPrevious = false): Promise<{ user: User; session: Session } | null> {
     const token = bearerToken(authorization);
-    return token ? this.authenticate(token) : null;
+    return token ? this.authenticate(token, acceptsPrevious) : null;
   }
 
-  async refresh(session: Session): Promise<AuthResultDto> {
+  async refresh(session: Session, authorization: string | string[] | undefined): Promise<AuthResultDto> {
     const now = this.clock.now();
     const maxExpiresAt = session.createdAt ? session.createdAt.getTime() + maxSessionLifetimeMs() : Infinity;
     const expiresAt = new Date(Math.min(sessionExpiry(now).getTime(), maxExpiresAt));
     if (expiresAt.getTime() <= now.getTime()) throw new UnauthorizedException('Session expired');
     const token = newToken();
-    await this.sessions.update(session.id, { tokenHash: hashToken(token), rotatedAt: now, expiresAt });
+    const presentedPrevious = session.previousTokenHash === hashToken(bearerToken(authorization) ?? '');
+    const rotation = presentedPrevious ? {} : { previousTokenHash: session.tokenHash, rotatedAt: now };
+    await this.sessions.update(session.id, { tokenHash: hashToken(token), expiresAt, ...rotation });
     return { token, expiresAt, user: UserDto.from(session.user), accountRestored: false };
   }
 
@@ -142,6 +145,13 @@ export class AuthService {
   async revoke(userId: string, sessionId: string): Promise<void> {
     const result = await this.sessions.update({ id: sessionId, userId, revokedAt: IsNull() }, { revokedAt: this.clock.now() });
     if (!result.affected) throw new NotFoundException('Session not found');
+  }
+
+  private findWithinRefreshGrace(previousTokenHash: string, now: Date): Promise<Session | null> {
+    return this.sessions.findOne({
+      where: { previousTokenHash, rotatedAt: MoreThan(new Date(now.getTime() - REFRESH_GRACE_MS)) },
+      relations: { user: true },
+    });
   }
 
   private async issue(user: User, userAgent?: string, now = this.clock.now()): Promise<Omit<AuthResultDto, 'accountRestored'>> {

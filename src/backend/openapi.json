@@ -2779,7 +2779,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "New token; the one used for this request stops working.",
+            "description": "New token. The token sent with this request stops working at once on every other route; this route still accepts it for 30 seconds, so a reload during a refresh keeps the session.",
             "content": {
               "application/json": {
                 "schema": {
