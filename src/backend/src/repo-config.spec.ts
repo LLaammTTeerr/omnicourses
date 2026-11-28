@@ -65,7 +65,7 @@ describe('compose.yaml', () => {
 describe('coverage gate', () => {
   const productionFilesMatching = (glob: string): string[] =>
     globSync(glob, { cwd: BACKEND_ROOT }).filter((path) => path.endsWith('.ts') && !NOT_PRODUCTION.test(path));
-  const globs = Object.keys(vitestConfig.test?.coverage?.thresholds ?? {}).filter((key) => key.includes('*'));
+  const globs = Object.entries(vitestConfig.test?.coverage?.thresholds ?? {}).filter(([, threshold]) => typeof threshold === 'object').map(([key]) => key);
 
   it('sets a threshold on at least one glob', () => {
     expect(globs.length).toBeGreaterThan(0);

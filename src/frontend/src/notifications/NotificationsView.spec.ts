@@ -2,7 +2,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLocale } from '../locale.js';
 import { useToast } from '../shell/toast.js';
-import { hang, mockApi, status } from '../testing/fetch.js';
+import { hang, mockApi, restoreMocksAfterCheckingCalls, status } from '../testing/fetch.js';
 import { setup } from '../testing/signed-in.js';
 import NotificationsView from './NotificationsView.vue';
 import { useUnread } from './store.js';
@@ -30,7 +30,7 @@ describe('NotificationsView (F10, UC-12)', () => {
   afterEach(() => {
     wrapper?.unmount();
     wrapper = undefined;
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   it('words each kind in Vietnamese, with the date it announces, and marks the unread ones', async () => {

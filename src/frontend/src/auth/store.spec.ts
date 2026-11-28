@@ -8,12 +8,14 @@ import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const fetchMock = () => vi.spyOn(globalThis, 'fetch');
 
+function resetAuthState(): void {
+  sessionStorage.clear();
+  localStorage.clear();
+  setActivePinia(createPinia());
+}
+
 describe('auth store (ADR 0002)', () => {
-  beforeEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
-    setActivePinia(createPinia());
-  });
+  beforeEach(resetAuthState);
   afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('keeps the token in sessionStorage, never localStorage', async () => {
@@ -142,12 +144,8 @@ describe('auth store (ADR 0002)', () => {
   });
 });
 
-describe('calls outside the contract', () => {
-  beforeEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
-    setActivePinia(createPinia());
-  });
+describe('auth store: calls outside the contract', () => {
+  beforeEach(resetAuthState);
   afterEach(() => vi.restoreAllMocks());
 
   it('sends a call as the signed-in student with their token, and signs them out on a 401', async () => {
