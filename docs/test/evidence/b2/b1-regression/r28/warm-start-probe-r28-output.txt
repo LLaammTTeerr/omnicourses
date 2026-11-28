@@ -1,0 +1,6 @@
+/dashboard try 1: after the reload at /dashboard; POST /api/auth/refresh 200; POST /api/auth/refresh 200
+/dashboard try 2: after the reload at /sign-in?redirect=/dashboard; POST /api/auth/refresh failed net::ERR_ABORTED; POST /api/auth/refresh 401
+/dashboard try 3: after the reload at /dashboard; POST /api/auth/refresh 200; POST /api/auth/refresh 200
+/audit try 1: after the reload at /audit; POST /api/auth/refresh 200; POST /api/auth/refresh 200
+/audit try 2: after the reload at /audit; POST /api/auth/refresh 200; POST /api/auth/refresh 200
+/audit try 3: after the reload at /sign-in?redirect=/audit; POST /api/auth/refresh failed net::ERR_ABORTED; POST /api/auth/refresh 401

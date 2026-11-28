@@ -1,0 +1,4007 @@
+{
+  "startedAt": "2026-11-28T10:16:51.993Z",
+  "base": "https://stag-omnicourses.lamter.cc",
+  "profile": {
+    "offline": false,
+    "latency": 50,
+    "downloadThroughput": 1250000,
+    "uploadThroughput": 250000
+  },
+  "limitMs": 2000,
+  "series": {
+    "PERF-01b": {
+      "health": [
+        144.3,
+        123.6,
+        141.7,
+        124.5,
+        169.8,
+        109,
+        110.6,
+        139.7,
+        108.1,
+        109.4
+      ],
+      "js": {
+        "url": "/assets/locale-pn9dbZBI.js",
+        "encodedBytes": 31860,
+        "decodedBytes": 78048,
+        "ms": 157.1,
+        "expectedMs": 75
+      },
+      "healthAllAtLeast50": true
+    },
+    "PERF-01c": {
+      "label": "/dashboard cold cache",
+      "warmups": [],
+      "runs": [
+        {
+          "ms": 896.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 100.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 115.1
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 93.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 100
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 103.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 99.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 100.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 111.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 143.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 217.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 226.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 151.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 177.4
+            }
+          ]
+        },
+        {
+          "ms": 839.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 124.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 99.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 101.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 112.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 124.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 140
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 142.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 111.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 142.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 150.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 196.6
+            }
+          ]
+        },
+        {
+          "ms": 795,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 133
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 92.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 97.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 111.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 111.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 112.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 126.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 159.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 110.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 119
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 163.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 165.3
+            }
+          ]
+        },
+        {
+          "ms": 780,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.2
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 105.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 96
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 96.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 93.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 160.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 165.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 177
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 97.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 129
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 177.9
+            }
+          ]
+        },
+        {
+          "ms": 775.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 100.9
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 98.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 102
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 103.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 126.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 128.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 129.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 142.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 119.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 121.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 154.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 172
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 196.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 209.4
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 5,
+        "median": 795,
+        "p95": 896.6,
+        "max": 896.6,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01d": {
+      "label": "/dashboard warm cache",
+      "warmups": [
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 85.2
+            }
+          ]
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        }
+      ],
+      "runs": [
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": null,
+        "p95": null,
+        "max": null,
+        "over": 30
+      },
+      "pass": false
+    },
+    "PERF-01e": {
+      "label": "/dashboard in-app from Guides (Tổng quan)",
+      "warmups": [
+        {
+          "ms": 293,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 90.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/guides",
+              "waitingMs": 95.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 91.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 93.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 113.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 171
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 169.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 185.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 217.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 109.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 124
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 137.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 148.9
+            }
+          ]
+        },
+        {
+          "ms": 134,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 96.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 98
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 116.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 113.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 132.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 111.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 143
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 184.7
+            }
+          ]
+        },
+        {
+          "ms": 151.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 106.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 122
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 122.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 104.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 119.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 187.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 202.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 217.4
+            }
+          ]
+        },
+        {
+          "ms": 151.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 100.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 101.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 116.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 117.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 136.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 109.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 125.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 155.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 186.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 193.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 201.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 217.9
+            }
+          ]
+        },
+        {
+          "ms": 163.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 111.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 111.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 112.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 119.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 137.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 149.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 101.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 116.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 154.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 185.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 198.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 231
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 137.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 116.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 117.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 121.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 139.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 116.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 147
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 168.9
+            }
+          ]
+        },
+        {
+          "ms": 156,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 102.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 103.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 122.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 119.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 134.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 141.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 93.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 123.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 129.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 184.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 186.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 218.4
+            }
+          ]
+        },
+        {
+          "ms": 168.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 103.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 119
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 130.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 135.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 152.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 104
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 119.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 154.8
+            }
+          ]
+        },
+        {
+          "ms": 152.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 106.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 113.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 114.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 113.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 128.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 136
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 168.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 183.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 199.5
+            }
+          ]
+        },
+        {
+          "ms": 156,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 113.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 117.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 121.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 136.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 153.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 101.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 116.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 137.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 165.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 167.3
+            }
+          ]
+        },
+        {
+          "ms": 153.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 106.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 122
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 92.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 123.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 136.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 158.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 161.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 166.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 167.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 183.1
+            }
+          ]
+        },
+        {
+          "ms": 154.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 114.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 123.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 127.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 137.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 138.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 110.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 125.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 137.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 170.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 179.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 178.4
+            }
+          ]
+        },
+        {
+          "ms": 139.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 117.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 132.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 134.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 134.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 103.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 134.7
+            }
+          ]
+        },
+        {
+          "ms": 134,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 101.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 104
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 105.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 116.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 109.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 125.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 166.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 166.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 170.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 185.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 184.6
+            }
+          ]
+        },
+        {
+          "ms": 147.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 104.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 121
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 126.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 129.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 133.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 103
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 103.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 130.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 163
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 171.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 204
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 202.7
+            }
+          ]
+        },
+        {
+          "ms": 148.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 109.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 112.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 115.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 114.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 133
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 103.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 118.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 137.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 151.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 199.6
+            }
+          ]
+        },
+        {
+          "ms": 155.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 108.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 109.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 120.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 132.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 138.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 97.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 129
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 161.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.5
+            }
+          ]
+        },
+        {
+          "ms": 159.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 106.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 119.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 129.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 141.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 142.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 146.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 105.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 106.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 154.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 179.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 183.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 199.4
+            }
+          ]
+        },
+        {
+          "ms": 167,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 122.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 122
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 131.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 136.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 154.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 105.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 121.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 164.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 164.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 175
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 183.5
+            }
+          ]
+        },
+        {
+          "ms": 137.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 106.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 115
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 114.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 117.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 117.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 163.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 163.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 145.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 147.8
+            }
+          ]
+        },
+        {
+          "ms": 154.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 93.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 101.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 101.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 107.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 140.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 93.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 108.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 136.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 163.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 168.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 168.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 185.1
+            }
+          ]
+        },
+        {
+          "ms": 129.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 107
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 107.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 108.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 114.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 112.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 94.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 109.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 182.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 184.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 201.1
+            }
+          ]
+        },
+        {
+          "ms": 146,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 91.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 123.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 126.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 130.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 132.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 141.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 92.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 121.8
+            }
+          ]
+        },
+        {
+          "ms": 138.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 100.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 103.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 104.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 118.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 96.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 127.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 140.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 152.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 165.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 197.4
+            }
+          ]
+        },
+        {
+          "ms": 131.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 99.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 105.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 115.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 117.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 98.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 113.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 137.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 151.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 167.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 178.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 181.8
+            }
+          ]
+        },
+        {
+          "ms": 152.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 87.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 88.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 106.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 122.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 137.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 92.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 107.8
+            }
+          ]
+        },
+        {
+          "ms": 129.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 103.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 104.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 108
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 112.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 110.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 125.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 192.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 193.3
+            }
+          ]
+        },
+        {
+          "ms": 152,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 103.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 101.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 103.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 105.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 121.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 92.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 124
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 137.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 167.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 167.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 183.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 199.1
+            }
+          ]
+        },
+        {
+          "ms": 139,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 93.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 101.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 103
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 110.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 114.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 100
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 131
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 136.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 165.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 167
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 182.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 199
+            }
+          ]
+        },
+        {
+          "ms": 146.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 95.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 96.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 99.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 105.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 98.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 99.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 196.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 199.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 217
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 215.9
+            }
+          ]
+        },
+        {
+          "ms": 136.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 113.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 112.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 116
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 121.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 100.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 115
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 153.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 170.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 169.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 185.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 200.5
+            }
+          ]
+        },
+        {
+          "ms": 138.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 90.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 114.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 115.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 119.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 107
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 111.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 122.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 175.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 177.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 182.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 184.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 201.4
+            }
+          ]
+        },
+        {
+          "ms": 152.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 92.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 106.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 106
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 120.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 121.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 93.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 123.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 120.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 168.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 178
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 184.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 199
+            }
+          ]
+        },
+        {
+          "ms": 142.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 99.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 101
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 121.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 126.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 128.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 149.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 123.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 154.5
+            }
+          ]
+        },
+        {
+          "ms": 135.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 101.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/academic-calendar",
+              "waitingMs": 103.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 116.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans",
+              "waitingMs": 117.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 121
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 123.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31",
+              "waitingMs": 92.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/plans/75620dee-9260-4119-a0d2-a74aca2e4b31/issues",
+              "waitingMs": 124.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 160.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 159.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 166.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 168.3
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 146.8,
+        "p95": 167,
+        "max": 168.7,
+        "over": 0
+      },
+      "pass": true
+    },
+    "PERF-01f": {
+      "label": "/audit cold cache",
+      "warmups": [],
+      "runs": [
+        {
+          "ms": 1230.3,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 136
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 136
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 144.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 148.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 167.7
+            }
+          ]
+        },
+        {
+          "ms": 738.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 99.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications",
+              "waitingMs": 85.1
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 107.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 80.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 86.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 98.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 121.6
+            }
+          ]
+        },
+        {
+          "ms": 1343.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 386.7
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 203.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 187.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 358.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 184.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 208.6
+            }
+          ]
+        },
+        {
+          "ms": 2109.6,
+          "error": null,
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 186.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 176.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 184.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 185.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 1025.7
+            }
+          ]
+        },
+        {
+          "ms": 2635.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 411.5
+            },
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 395
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 953.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 954.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 483.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 506.8
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 5,
+        "median": 1343.4,
+        "p95": 2635.5,
+        "max": 2635.5,
+        "over": 2
+      },
+      "pass": false
+    },
+    "PERF-01g": {
+      "label": "/audit warm cache",
+      "warmups": [
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": [
+            {
+              "method": "POST",
+              "path": "/api/auth/refresh",
+              "waitingMs": 147
+            }
+          ]
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        }
+      ],
+      "runs": [
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        },
+        {
+          "ms": null,
+          "error": "page.waitForFunction: Timeout 30000ms exceeded.",
+          "api": []
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": null,
+        "p95": null,
+        "max": null,
+        "over": 30
+      },
+      "pass": false
+    },
+    "PERF-01h": {
+      "label": "/audit in-app from Guides (Xét tốt nghiệp)",
+      "warmups": [
+        {
+          "ms": 369.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/admin/grants",
+              "waitingMs": 107.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/guides",
+              "waitingMs": 102.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/onboarding",
+              "waitingMs": 102.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 149
+            }
+          ]
+        },
+        {
+          "ms": 134.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123.7
+            }
+          ]
+        },
+        {
+          "ms": 150,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.6
+            }
+          ]
+        },
+        {
+          "ms": 135.5,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 124.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 140.6
+            }
+          ]
+        },
+        {
+          "ms": 147.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 120.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.8
+            }
+          ]
+        }
+      ],
+      "runs": [
+        {
+          "ms": 125.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 115.5
+            }
+          ]
+        },
+        {
+          "ms": 135.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 95.5
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.6
+            }
+          ]
+        },
+        {
+          "ms": 148.9,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 96.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.4
+            }
+          ]
+        },
+        {
+          "ms": 147.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 136.4
+            }
+          ]
+        },
+        {
+          "ms": 136.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.6
+            }
+          ]
+        },
+        {
+          "ms": 150.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 140.4
+            }
+          ]
+        },
+        {
+          "ms": 148,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 107.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 138.6
+            }
+          ]
+        },
+        {
+          "ms": 137.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 111.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126.7
+            }
+          ]
+        },
+        {
+          "ms": 151.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.8
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 140.7
+            }
+          ]
+        },
+        {
+          "ms": 146.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.7
+            }
+          ]
+        },
+        {
+          "ms": 149,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.8
+            }
+          ]
+        },
+        {
+          "ms": 149.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 124.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.4
+            }
+          ]
+        },
+        {
+          "ms": 127.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 116.3
+            }
+          ]
+        },
+        {
+          "ms": 135.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.6
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125.5
+            }
+          ]
+        },
+        {
+          "ms": 135.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 93.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125
+            }
+          ]
+        },
+        {
+          "ms": 137.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 127.1
+            }
+          ]
+        },
+        {
+          "ms": 135.3,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 126
+            }
+          ]
+        },
+        {
+          "ms": 145.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 104.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 134.3
+            }
+          ]
+        },
+        {
+          "ms": 133.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 106.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 125
+            }
+          ]
+        },
+        {
+          "ms": 120.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 95.4
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 110.6
+            }
+          ]
+        },
+        {
+          "ms": 150.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 141.2
+            }
+          ]
+        },
+        {
+          "ms": 127.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 89
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 118.6
+            }
+          ]
+        },
+        {
+          "ms": 148.7,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.3
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.7
+            }
+          ]
+        },
+        {
+          "ms": 132.2,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 123
+            }
+          ]
+        },
+        {
+          "ms": 144.4,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 102.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 133.5
+            }
+          ]
+        },
+        {
+          "ms": 146.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 631.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 135.7
+            },
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 109.7
+            }
+          ]
+        },
+        {
+          "ms": 149.8,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 94.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 140.4
+            }
+          ]
+        },
+        {
+          "ms": 148.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 108.1
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 139.1
+            }
+          ]
+        },
+        {
+          "ms": 128.6,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 105.2
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 119.8
+            }
+          ]
+        },
+        {
+          "ms": 152.1,
+          "error": null,
+          "api": [
+            {
+              "method": "GET",
+              "path": "/api/notifications/unread-count",
+              "waitingMs": 110.9
+            },
+            {
+              "method": "GET",
+              "path": "/api/users/me/audit",
+              "waitingMs": 141.9
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "n": 30,
+        "median": 144.4,
+        "p95": 151.8,
+        "max": 152.1,
+        "over": 0
+      },
+      "pass": true
+    }
+  },
+  "chrome": "144.0.7559.110",
+  "finishedAt": "2026-11-28T10:58:21.543Z"
+}

@@ -1,0 +1,47 @@
+2026-11-28T11:04:56.340Z Chrome 144.0.7559.110 (headed, playwright-core 1.64.1), profile {"offline":false,"latency":50,"downloadThroughput":1250000,"uploadThroughput":250000}
+  UI sign-in b2-s7@example.com → 200
+  GET /api/plans → 200
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: C: before the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+2026-11-28T11:05:01.720Z board as saved: {"counts":"0 violations0 worth a look46 not recorded yet","violations":0,"flags":0}
+  C warm-up 1: 325.3 ms; server PUT 158.5, GET 121.6; undo back to saved: true
+  C warm-up 2: 341.2 ms; server PUT 152.6, GET 139.6; undo back to saved: true
+  C warm-up 3: 324.4 ms; server PUT 150.2, GET 137.3; undo back to saved: true
+  C warm-up 4: 318.4 ms; server PUT 150.8, GET 121.2; undo back to saved: true
+  C warm-up 5: 343.9 ms; server PUT 174, GET 136.6; undo back to saved: true
+  C run 1: 325.7 ms; server PUT 142.6, GET 138.7; undo back to saved: true
+  C run 2: 321.5 ms; server PUT 162.4, GET 123.1; undo back to saved: true
+  C run 3: 329.6 ms; server PUT 145.9, GET 136.9; undo back to saved: true
+  C run 4: 330.1 ms; server PUT 156.7, GET 136.4; undo back to saved: true
+  C run 5: 330 ms; server PUT 164.3, GET 122.3; undo back to saved: true
+  C run 6: 323.5 ms; server PUT 155.4, GET 135.4; undo back to saved: true
+  C run 7: 319.7 ms; server PUT 143.5, GET 121.5; undo back to saved: true
+  C run 8: 335.7 ms; server PUT 172, GET 123.5; undo back to saved: true
+  C run 9: 329.3 ms; server PUT 147.7, GET 136.9; undo back to saved: true
+  C run 10: 321.9 ms; server PUT 152.1, GET 136; undo back to saved: true
+  C run 11: 315.7 ms; server PUT 150.4, GET 122.6; undo back to saved: true
+  C run 12: 316.5 ms; server PUT 152.6, GET 120.8; undo back to saved: true
+  C run 13: 329.2 ms; server PUT 159.6, GET 137.1; undo back to saved: true
+  C run 14: 336.6 ms; server PUT 157.6, GET 138.2; undo back to saved: true
+  C run 15: 331.7 ms; server PUT 172.1, GET 123.3; undo back to saved: true
+  C run 16: 351.9 ms; server PUT 167, GET 139.2; undo back to saved: true
+  C run 17: 315.7 ms; server PUT 146.1, GET 138.3; undo back to saved: true
+  C run 18: 304.4 ms; server PUT 141.6, GET 123.4; undo back to saved: true
+  C run 19: 343.1 ms; server PUT 166.3, GET 138.3; undo back to saved: true
+  C run 20: 338.2 ms; server PUT 153.5, GET 137.9; undo back to saved: true
+  C run 21: 331.8 ms; server PUT 169.8, GET 121.2; undo back to saved: true
+  C run 22: 339.6 ms; server PUT 151.2, GET 137.4; undo back to saved: true
+  C run 23: 338.7 ms; server PUT 169.1, GET 123.1; undo back to saved: true
+  C run 24: 332.6 ms; server PUT 165.8, GET 121; undo back to saved: true
+  C run 25: 323.7 ms; server PUT 158.2, GET 122.8; undo back to saved: true
+  C run 26: 344.1 ms; server PUT 164.8, GET 138.5; undo back to saved: true
+  C run 27: 339.1 ms; server PUT 158.5, GET 139.1; undo back to saved: true
+  C run 28: 343.8 ms; server PUT 160.3, GET 138.7; undo back to saved: true
+  C run 29: 335.9 ms; server PUT 150.8, GET 140.3; undo back to saved: true
+  C run 30: 314.7 ms; server PUT 145.7, GET 122.6; undo back to saved: true
+  GET /api/plans/22345876-2a6d-48d5-9cf5-f39af795d2da → 200
+ok   PERF-01: C: after the series: GET /api/plans/{id} holds the fixture's terms and placements in order | observed: {"terms":11,"placements":46}
+C: 30 measured runs, median 330 ms, p95 344.1 ms, max 351.9 ms, 30 at or over 300 ms
+FAIL PERF-01 C: 30 measured runs, each under 300 ms with the expected result | observed: {"n":30,"median":330,"p95":344.1,"max":351.9,"atOrOver":30}
+2026-11-28T11:07:22.413Z saved a-perf-01-c-2026-11-28T11-07-22-413Z.json
+2026-11-28T11:07:22.414Z 1 FAIL(S)

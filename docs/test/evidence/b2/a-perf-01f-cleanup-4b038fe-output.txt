@@ -1,0 +1,6 @@
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T11:09:49.654Z","user":{"id":"32addfef-209b-4eba-b728-dfacb9856ead","email":"b2-a1@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T09:18:47.737Z"},"accountRestored":false}
+  DELETE /api/admin/programs/d3f524f8-e51b-42dd-91ac-013b15d5e033/cohorts/4a941965-834b-4d5a-a9c3-91a0607c3cbc/courses/CS420/offering-terms → 200 {"courseCode":"CS420","terms":null}
+ok   PERF-01f: o-cleanup: 200 with terms null | observed: {"courseCode":"CS420","terms":null}
+  GET /api/programs/APCS/curricula/2024 → 200
+2026-11-28T11:09:57.316Z CS420 in the curriculum: offeringTerms null
+2026-11-28T11:09:57.317Z All checks ok

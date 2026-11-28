@@ -1,0 +1,7 @@
+2026-11-28T10:59:55.366Z Chrome 144.0.7559.110 (headed, playwright-core 1.64.1), profile {"offline":false,"latency":50,"downloadThroughput":1250000,"uploadThroughput":250000}
+  UI sign-in b2-s7@example.com → 200
+  GET /api/plans → 200
+  /api/health ×10 (ms): 107.8, 111.2, 111, 94.2, 95.5, 109.5, 110.6, 109.7, 94.2, 94.4
+  largest JS /assets/locale-pn9dbZBI.js: 31860 bytes on the wire (78048 decoded, zstd encoding), 94.1 ms; size / 1.25 MB/s = 25 ms
+ok   PERF-01b: every health request at least 50 ms | observed: [107.8,111.2,111,94.2,95.5,109.5,110.6,109.7,94.2,94.4]
+2026-11-28T11:00:01.846Z All checks ok
