@@ -53,9 +53,9 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 21 | `refactor/cv-21-structure-adr` | 21 | #243 (merged 28 Nov as ff6a5bf, approved by Dũng) | docs(adr): record module boundaries, owners and their enforcement |
 | 22 | `refactor/cv-22-config-and-pins` | 22 | #244 (merged 28 Nov as 689b034, approved by Dũng) | test(config): check settings, pinned versions and exact pins |
 | 23 | `refactor/cv-23-checks-that-can-fail` | 23 | #252 (merged 28 Nov as 53d426a, approved by Dũng) | test: fail on an unmatched coverage glob or an off-contract fetch |
-| 24 | `refactor/cv-24-entities-declare-constraints` | 24 | #253 (ready, auto-merge on) | refactor(database): declare every migrated constraint on the entities |
+| 24 | `refactor/cv-24-entities-declare-constraints` | 24 | #253 (merged 28 Nov as 7df67b1, approved by Dũng) | refactor(database): declare every migrated constraint on the entities |
 
-Base of the stack: `main` at 53d426a (#252, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
+Base of the stack: `main` at 7df67b1 (#253, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
 ## State of the structure at the stack tip
 
