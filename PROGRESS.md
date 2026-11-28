@@ -48,6 +48,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 18 | `refactor/cv-18-dashboard-folder` | 18 | #237 (draft) | refactor(dashboard): move the dashboard screen into its own folder |
 | 19 | `refactor/cv-19-route-contract` | 19 | #238 (draft) | test(frontend): make mockApi refuse routes outside openapi.json |
 | 20 | `refactor/cv-20-tests-that-can-fail` | 20 | #239 (draft) | test: make weak tests able to fail and drop assertions that cannot |
+| 21 | `refactor/cv-21-structure-adr` | 21 | #243 (draft) | docs(adr): record module boundaries, owners and their enforcement |
 
 Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. Every layer passed the full verify when it was stacked; the tip (stack 20) passes with backend 1205 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
@@ -64,7 +65,7 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 - Extras from the untangle skill, both, done last: remove comments that only restate the code; remove tests that could not catch a real bug and fix the ones that fail without one. Every removed test is listed in its PR with the reason it could not fail (AGENTS.md forbids weakening tests to pass CI).
 - Subagents: set model and effort on every call. Sonnet/medium for repetitive surveys, mechanical refactors and chores; Opus/medium for design judgment and reviews; more only for one named hard step.
 
-### Needs a decision (none blocks the stack)
+### Needs a decision (none blocks the stack; tracked in issues #240 and #241)
 
 1. BP-3a: should every 4xx carry a `code` (auth, account, plans, curriculum, guides, sharing answer with Nest's default body today)? Changes response bodies. And rename `AdminErrorDto` to `ApiErrorDto` (changes openapi.json)?
 2. BD-5: make graduation-condition ids a contract (`kind` enum + `subjectId`) so the frontend parser is checked? Changes openapi.json.
@@ -80,7 +81,7 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 10. BD-3: `class-model.md` now has the two standing types it lacked, but it is still a hand copy of `rules/types.ts`. Keep the field lists (course deliverable?) or point at the file?
 11. Hoà: three server "reference" sentences have no Vietnamese or English wording in the admin screens (overflow rules, combined-minimum rules, counting rule). `admin/references.spec.ts` lists them as known gaps; wording them is a small fix PR with a real changeset.
 
-## Deferred
+## Deferred (tracked in issue #242)
 
 - BA-4 split `curriculum-admin.dto.ts` by service: after PR #166 merges (it imports from that file).
 - BP-8 `ai/` owns its config shape: after PR #77 (all files are its).
@@ -112,13 +113,19 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 
 ## Next
 
-All 20 batches are pushed as PRs #220 to #239. Nothing is building. The mission now waits on people:
+All 21 batches are pushed as PRs #220 to #239 and #243. Nothing is building. The mission has reached the stopping conditions of the goal (section 14): what is left needs a decision or an approval, or has too little benefit (see "Deferred" and "Rejected").
 
-1. **Approvals**, starting with #220 (ready, auto-merge on, CI green). When it merges, follow "Merging the stack". When a teammate asks for a change on a PR: fix it on that PR's branch in `cv-stack`, then merge that branch into each branch above it and push them all.
-2. **Hoà** has, in the #237, #238 and #239 threads: a question whether the route check in the test mock should have an opt-out (#238); seven findings and five questions on the dashboard code (`converge/survey/dashboard.md`; nothing is changed there without his word), four weak assertions in the dashboard specs (`converge/tests-scan.md`, chunk 5), and the earlier questions (8, 8a, 11 under "Needs a decision").
-3. **Lâm** has the decisions under "Needs a decision".
+Everything that waits on a person is in the repo's backlog as issues:
 
-What was checked last: an independent read of the stack through layer 16 (`converge/final-read.md`) found one remaining structural item, the dashboard folder (now stack 18), and for every other area nothing more worth a pull request. Since then: the route check in the test mock (stack 19, a gap that was blocked until #214 merged) and the complete "Tests" extra (stack 20: all 139 specs changed since the last test clean-up were read; 25 tests rewritten in 25 spec files, 23 of them after a mutation of the code showed the old test still passing, 2 by adding an assertion without such proof; two rewrites that could not be proven were undone; 5 removals are listed in the PR).
+- **#240** decisions for the Project Lead (error codes on every 4xx, graduation-condition ids in the contract, a stale contract sentence, limits without a contract number, the session cap, notifications created on read, `class-model.md`, ADR statuses, an unused CI step).
+- **#241** points for the frontend owner (shared page against editor, the import screen and grant changes, three reference wordings, menu labels, the strict test mock, the dashboard findings and questions, four weak dashboard-spec assertions). Nothing in `dashboard/` is changed without Hoà's word.
+- **#242** follow-ups blocked by #166 and #77, or by an answer in #241.
+
+Approvals: start with #220 (ready, auto-merge on, CI green). When it merges, follow "Merging the stack". When a teammate asks for a change on a PR: fix it on that PR's branch in `cv-stack`, then merge that branch into each branch above it and push them all.
+
+The structural decisions of the stack, with alternatives and accepted exceptions, are in ADR 0020 (PR #243; an independent check corrected nine statements before it was opened). Its status is "proposed" until the Project Lead accepts it.
+
+What was checked last: an independent read of the stack through layer 16 (`converge/final-read.md`) found one remaining structural item, the dashboard folder (stack 18). Since then: the route check in the test mock (stack 19), the complete "Tests" extra (stack 20: all 139 specs changed since the last test clean-up were read; 25 tests rewritten in 25 spec files, 23 of them after a mutation of the code showed the old test still passing, 2 by adding an assertion without such proof; two rewrites that could not be proven were undone; 5 removals are listed in the PR), a read-only survey of the dashboard (`converge/survey/dashboard.md`), and ADR 0020 (stack 21).
 
 The "Comments" extra removed one line (an eslint directive); the 76 comment lines in migrations stay, because applied migrations are never edited.
 
