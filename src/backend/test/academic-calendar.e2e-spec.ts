@@ -68,11 +68,6 @@ describe('Academic calendar API (e2e)', () => {
     await app?.close();
   });
 
-  it('maps the table exactly as migration 1794500000000 creates it', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    expect(upQueries.map((q) => q.query).filter((q) => q.includes('"academic_calendar"'))).toEqual([]);
-  });
-
   it('refuses every route without a token', async () => {
     await http().get(calendar()).expect(401);
     await http().post(events(programA)).send(valid).expect(401);

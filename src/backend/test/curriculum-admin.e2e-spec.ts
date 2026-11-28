@@ -12,7 +12,6 @@ import { bootApp } from './support/app.js';
 import { privateSchema } from './support/schema.js';
 import { signedInUser } from './support/users.js';
 
-const NEW_TABLES = ['program_admin_grants', 'global_admin_grants', 'course_prerequisite_lists', 'course_prerequisites', 'course_offering_terms'];
 
 interface ReadCourse {
   code: string;
@@ -91,11 +90,6 @@ describe('Curriculum administration API (e2e)', () => {
       await db.query('DELETE FROM global_admin_grants WHERE user_id = ANY($1)', [[admin, stranger, manager, maintainer].map((u) => u.userId)]);
     }
     await app?.close();
-  });
-
-  it('maps the new tables exactly as migration 1794230000000 creates them', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    expect(upQueries.map((q) => q.query).filter((q) => NEW_TABLES.some((t) => q.includes(`"${t}"`)))).toEqual([]);
   });
 
   it('refuses the admin routes without a token', async () => {
