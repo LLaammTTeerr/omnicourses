@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+import { Check, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 
 export const EMAIL_MAX_LENGTH = 254;
 export const DISPLAY_NAME_MAX_LENGTH = 100;
@@ -8,6 +8,10 @@ export const CLASS_NAME_MAX_LENGTH = 32;
 @Entity({ name: 'users' })
 @Unique('uq_users_email', ['email'])
 @Unique('uq_users_google_sub', ['googleSub'])
+@Check('ck_users_email_lowercase', `"email" = lower("email")`)
+@Check('ck_users_has_credential', `"password_hash" IS NOT NULL OR "google_sub" IS NOT NULL`)
+@Check('ck_users_deletion_pending', `("deletion_requested_at" IS NULL) = ("purge_after" IS NULL)`)
+@Check('ck_users_student_id', `"student_id" ~ '^[0-9]{8}$'`)
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

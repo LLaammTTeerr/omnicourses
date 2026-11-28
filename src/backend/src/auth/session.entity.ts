@@ -14,7 +14,7 @@ export class Session {
   userId!: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_id', foreignKeyConstraintName: 'sessions_user_id_fkey' })
   user!: User;
 
   @Column({ name: 'token_hash', type: 'char', length: 64 })
