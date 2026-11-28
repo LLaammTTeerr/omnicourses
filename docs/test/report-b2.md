@@ -56,7 +56,7 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. St
 | 25 Nov, 06:02–06:35 | `5a5b9d5` | ADM-01d–e, ADM-02i–l, ADM-05e–g, ADM-06g, ADM-07a–k, TRN-01a–g, A11Y-01a–i (administration) | [`results-2026-11-25.md`](evidence/b2/results-2026-11-25.md) | #167 |
 | 25 Nov, 13:17–13:51 | `e7bd617` | NOTIF-01a–j, SHARE-01a–l, ADM-04a–g | [`results-2026-11-25-notif-share-adm04.md`](evidence/b2/results-2026-11-25-notif-share-adm04.md) | #173 |
 | 25 Nov, 14:35 | `e7bd617` | ADM-03a–g | the same file, ADM-03 section | #176 |
-| 28 Nov, 05:51–06:30 | `778d120` | NOTIF-01d(2), NOTIF-01j, SHARE-01l, TRN-01a–g, PLAN-01a–f, PLAN-02a and c (retests), A11Y-01d–f (retests), export and text-limit retests (#174, #163), PERF-01a–f | [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md) | this PR |
+| 28 Nov, 05:51–06:30 | `778d120` | NOTIF-01d(2), NOTIF-01j, SHARE-01l, TRN-01a–g, PLAN-01a–f, PLAN-02a and c (retests), A11Y-01d–f (retests), export and text-limit retests (#174, #163), PERF-01a–f | [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md) | #246 |
 
 | Item | Used |
 | --- | --- |
