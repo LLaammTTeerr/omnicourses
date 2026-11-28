@@ -42,6 +42,28 @@ describe('credit and period counts', () => {
   });
 });
 
+describe('requirement-group credit totals', () => {
+  const group = { name: 'Nhóm thử', kind: 'elective' };
+
+  it('accepts a whole number from 0, or null, on create and update', async () => {
+    for (const value of [0, 16, MAX_INTEGER, null]) {
+      expect(await messages(CreateRequirementGroupDto, { ...group, creditsTotal: value, creditsTotalMin: value })).toEqual([]);
+      expect(await messages(UpdateRequirementGroupDto, { creditsTotal: value, creditsTotalMin: value })).toEqual([]);
+    }
+  });
+
+  it('refuses a negative number, a fraction, text and a number above what the database stores', async () => {
+    for (const [dto, base] of [[CreateRequirementGroupDto, group], [UpdateRequirementGroupDto, {}]] as const) {
+      for (const field of ['creditsTotal', 'creditsTotalMin']) {
+        expect(await messages(dto, { ...base, [field]: -1 })).toEqual([`${field} must not be less than 0`]);
+        expect(await messages(dto, { ...base, [field]: 2.5 })).toEqual([`${field} must be an integer number`]);
+        expect(await messages(dto, { ...base, [field]: '16' })).toEqual(expect.arrayContaining([`${field} must be an integer number`]));
+        expect(await messages(dto, { ...base, [field]: MAX_INTEGER + 1 })).toEqual([`${field} must not be greater than ${MAX_INTEGER}`]);
+      }
+    }
+  });
+});
+
 describe('code-point length bounds on notes and review tokens', () => {
   const FIELDS: [Type<object>, object, string, number][] = [
     [CreateRequirementGroupDto, { name: 'Nhóm thử', kind: 'elective' }, 'officialNotes', OFFICIAL_NOTES_LIMIT],
