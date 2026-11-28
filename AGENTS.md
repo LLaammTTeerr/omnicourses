@@ -16,7 +16,7 @@ PostgreSQL 18.6 · NestJS 12.1.3, Nest CLI 12.0.8, Swagger 12.0.2 · Vue 3.5.44 
 npm install                         # npm 11
 npm run db:up                       # PostgreSQL 18.6 via podman/docker compose
 npm run verify                      # lint, typecheck, unit tests and build: what CI runs without the database and browser jobs
-npm run test:e2e -w src/backend     # needs the database (DATABASE_URL)
+npm run test:e2e                    # needs the database (DATABASE_URL)
 npm run openapi -w src/backend      # after build; rewrites the committed openapi.json
 ```
 

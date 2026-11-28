@@ -81,7 +81,7 @@ Checks (the same ones CI runs):
 
 ```bash
 npm run verify                     # lint, typecheck, unit tests, build
-npm run test:e2e -w src/backend    # needs the database
+npm run test:e2e                   # needs the database
 ```
 
 ## Rules for changing `main`
