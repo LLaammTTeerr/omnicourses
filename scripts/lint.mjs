@@ -493,6 +493,32 @@ function reachableModules(rootDir, moduleFiles) {
   return reached;
 }
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function checkIdentifierHomes(rootDir, backendFiles, layers, addError) {
+  for (const fullPath of backendFiles) {
+    const relPath = toPosix(path.relative(rootDir, fullPath));
+    if (!isProductionFile(relPath)) continue;
+    const raw = fs.readFileSync(fullPath, 'utf8');
+    const code = maskComments(raw);
+    for (const { identifiers, folders } of layers.identifierHomes) {
+      if (folders.some((folder) => relPath.startsWith(folder))) continue;
+      for (const identifier of identifiers) {
+        for (const match of code.matchAll(new RegExp(`\\b${escapeRegExp(identifier)}\\b`, 'g'))) {
+          addError(
+            relPath,
+            lineAt(raw, match.index),
+            'identifier-home',
+            `"${identifier}" may appear only under ${folders.join(' or ')}: use what that folder exports, or change ${LAYERS_FILE} on purpose`,
+          );
+        }
+      }
+    }
+  }
+}
+
 function checkModulesRegistered(rootDir, backendFiles, addError) {
   const moduleFiles = backendFiles
     .map((fullPath) => toPosix(path.relative(rootDir, fullPath)))
@@ -558,6 +584,7 @@ export function lintWorkspace(rootDir = ROOT, layers = defaultLayers) {
   checkFetchOutsideApi(rootDir, frontendFiles, addError);
   checkVueSfcRules(rootDir, frontendFiles, addError);
   checkBackendImportDirection(rootDir, backendFiles, layers, addError);
+  checkIdentifierHomes(rootDir, backendFiles, layers, addError);
   const frontendGraph = frontendImports(rootDir, frontendFiles, layers);
   checkFrontendLayers(rootDir, frontendGraph, layers, addError);
   checkFrontendFeatureEdges(rootDir, frontendGraph, layers, addError);

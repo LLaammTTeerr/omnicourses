@@ -60,6 +60,12 @@ describe('SharingService.read', () => {
     expect(issues.issuesFor).not.toHaveBeenCalled();
   });
 
+  it('reads a link only of an account with no deletion waiting', async () => {
+    const { svc, db } = service({ share: null });
+    await expect(svc.read(newShareToken())).rejects.toEqual(NOT_SHARED);
+    expect(db.query.mock.calls[0][0]).toContain('WHERE s."share_token" = $1 AND u."deletion_requested_at" IS NULL');
+  });
+
   it('answers "not shared" when the plan is gone by the time it is read', async () => {
     const { svc, issues } = service({ plan: null });
     await expect(svc.read(newShareToken())).rejects.toEqual(NOT_SHARED);
@@ -155,6 +161,14 @@ describe('SharingService, the owner’s side', () => {
     tx.query.mockResolvedValueOnce([]);
     await expect(svc.share('u1', 'p1', { showTranscriptChecks: true })).rejects.toEqual(NO_PLAN);
     expect(tx.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('locks the account row FOR SHARE, only while no deletion is waiting, before it writes the link', async () => {
+    const { svc, tx } = service();
+    tx.query.mockResolvedValueOnce([{}]).mockResolvedValueOnce([row]);
+    await svc.share('u1', 'p1');
+    expect(tx.query.mock.calls[0]).toEqual(['SELECT 1 FROM "users" WHERE "id" = $1 AND "deletion_requested_at" IS NULL FOR SHARE', ['u1']]);
+    expect(tx.query).toHaveBeenCalledTimes(2);
   });
 
   it('answers 404 when the plan is deleted while it is being shared, and lets any other failure through', async () => {

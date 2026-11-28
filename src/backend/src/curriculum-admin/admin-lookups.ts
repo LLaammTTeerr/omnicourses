@@ -4,6 +4,7 @@ import { canonicalCourseCode } from '../common/course-code.js';
 import { Curriculum } from '../curriculum/curriculum.entity.js';
 import { Program } from '../curriculum/program.entity.js';
 import { RequirementGroup } from '../curriculum/requirement-group.entity.js';
+import { deletionStateOf, isWaitingForDeletion } from '../users/account-state.js';
 
 const NO_ACCOUNT = 'No account has this ID';
 const NO_PROGRAM = 'No program has this ID';
@@ -54,7 +55,7 @@ export async function assertAccountExists(em: EntityManager, userId: string): Pr
 }
 
 export async function assertActiveRecipient(em: EntityManager, userId: string): Promise<void> {
-  const [user]: { deletion_requested_at: Date | null }[] = await em.query('SELECT "deletion_requested_at" FROM "users" WHERE "id" = $1', [userId]);
+  const user = await deletionStateOf(em, userId);
   if (!user) throw notFound(NO_ACCOUNT);
-  if (user.deletion_requested_at) throw conflict('recipient_deletion_pending', 'That account is waiting for deletion');
+  if (isWaitingForDeletion(user)) throw conflict('recipient_deletion_pending', 'That account is waiting for deletion');
 }

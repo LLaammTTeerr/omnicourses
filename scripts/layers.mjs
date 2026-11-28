@@ -80,6 +80,12 @@ export const backendEdges = [
   'users -> auth',
   'users -> common',
 ];
+export const identifierHomes = [
+  {
+    identifiers: ['deletion_requested_at', 'deletionRequestedAt'],
+    folders: ['src/backend/src/users/', 'src/backend/src/database/migrations/'],
+  },
+];
 export const frontendKernel = [
   'account-storage.ts',
   'api.ts',
