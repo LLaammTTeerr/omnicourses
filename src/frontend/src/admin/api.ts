@@ -33,6 +33,7 @@ export interface CreateProgramBody {
   nameVi: string;
   nameEn?: string | null;
   faculty?: string | null;
+  trainingType?: TrainingType | null;
 }
 
 export interface UpdateProgramBody {
@@ -57,12 +58,14 @@ export interface CreateCohortBody {
   nameVi: string;
   nameEn?: string | null;
   language?: string | null;
+  totalCreditsMin?: number | null;
 }
 
 export interface UpdateCohortBody {
   nameVi?: string;
   nameEn?: string | null;
   language?: string | null;
+  totalCreditsMin?: number | null;
 }
 
 export interface CohortDetails {
@@ -85,12 +88,16 @@ export interface CreateGroupBody {
   name: string;
   kind: RequirementGroupKind;
   officialNotes?: string | null;
+  creditsTotal?: number | null;
+  creditsTotalMin?: number | null;
 }
 
 export interface UpdateGroupBody {
   name?: string;
   kind?: RequirementGroupKind;
   officialNotes?: string | null;
+  creditsTotal?: number | null;
+  creditsTotalMin?: number | null;
 }
 
 export interface AdminGroup {
