@@ -1,4 +1,5 @@
 import { ref, shallowRef, watch, type WatchSource } from 'vue';
+import { statusOf } from './api.js';
 
 export function newestOnly() {
   let latest = 0;
@@ -15,6 +16,35 @@ export function newestOnly() {
       latest++;
     },
   };
+}
+
+const SIGNED_OUT_STATUS = 401;
+
+export function reportFailure(what: string, e: unknown): boolean {
+  if (statusOf(e) === SIGNED_OUT_STATUS) return false;
+  console.error(`${what} failed:`, e);
+  return true;
+}
+
+export function useAttempt(failureText: () => string) {
+  const busy = ref(false);
+  const error = ref<string | null>(null);
+
+  async function run(what: string, action: () => Promise<void>): Promise<boolean> {
+    busy.value = true;
+    error.value = null;
+    try {
+      await action();
+      return true;
+    } catch (e) {
+      if (reportFailure(what, e)) error.value = failureText();
+      return false;
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  return { busy, error, run };
 }
 
 export function useAsyncLoad<T>(what: string, load: () => Promise<T>, key: WatchSource = () => null) {

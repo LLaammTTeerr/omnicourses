@@ -2,12 +2,11 @@
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { statusOf } from '../api.js';
-import { newestOnly, useAsyncLoad } from '../async-load.js';
+import { newestOnly, reportFailure, useAsyncLoad } from '../async-load.js';
 import SelectMenu from '../components/SelectMenu.vue';
 import {
   fetchCurriculum,
   fetchCurriculumStanding,
-  fetchPrograms,
   type Course,
   type CourseStanding,
   type CurriculumCourse,
@@ -15,9 +14,9 @@ import {
   type TranscriptCourseStatus,
 } from '../curriculum/api.js';
 import { courseName as nameIn, groupColour, matches, orderGroups } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { GROUPS, groupClass, groupGlyph, type GroupId } from '../groups.js';
 import { useLocale, useMessages } from '../locale.js';
-import { programChoices } from '../onboarding/answers.js';
+import { useProgramChoices } from '../onboarding/answers.js';
 import { useOnboarding } from '../onboarding/store.js';
 import { usePageTitle } from '../page-title.js';
 import Icon from '../shell/Icon.vue';
@@ -30,8 +29,8 @@ const onboarding = useOnboarding();
 const locale = useLocale();
 const m = useMessages(EXPLORER_MESSAGES);
 
-const programs = useAsyncLoad('the programs', () => fetchPrograms());
-const choices = computed(() => programChoices(programs.data.value?.programs ?? []).filter((choice) => choice.offered));
+const { programs, choices: allChoices, cohorts, programName } = useProgramChoices(() => selection.value?.program ?? null);
+const choices = computed(() => allChoices.value.filter((choice) => choice.offered));
 const picked = ref<{ program: string; cohort: number } | null>(null);
 const selection = computed(() => {
   if (picked.value) return picked.value;
@@ -40,8 +39,6 @@ const selection = computed(() => {
   const first = choices.value[0];
   return first?.cohorts[0] ? { program: first.code, cohort: first.cohorts[0] } : null;
 });
-const cohorts = computed(() => choices.value.find((choice) => choice.code === selection.value?.program)?.cohorts ?? []);
-const programName = (choice: (typeof choices.value)[number]) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
 
 let shownCourse: string | null = null;
 
@@ -85,7 +82,7 @@ watch(
       standings.value = new Map(courses.map((item) => [item.code, item]));
     } catch (e) {
       if (!isNewest()) return;
-      if (statusOf(e) !== 401) console.error('Loading the curriculum standing for the explorer failed:', e);
+      reportFailure('Loading the curriculum standing for the explorer', e);
     }
   },
   { immediate: true },
@@ -107,7 +104,6 @@ const shown = computed(() =>
     .filter((entry) => entry.courses.length > 0),
 );
 const courseCount = computed(() => new Set(groups.value.flatMap(({ group }) => group.courses.map((course) => course.code))).size);
-const glyph = (id: GroupId) => GROUPS.find((g) => g.id === id)!.glyph;
 
 const open = shallowRef<{ course: CurriculumCourse; group: { id: GroupId; name: string } } | null>(null);
 function openCourse(course: CurriculumCourse, group: RequirementGroup, colour: GroupId): void {
@@ -220,7 +216,7 @@ usePageTitle(() => m.value.title);
         data-test="group"
       >
         <div class="ex-group-head">
-          <span class="glyph" aria-hidden="true">{{ glyph(colour) }}</span>
+          <span class="glyph" aria-hidden="true">{{ groupGlyph(colour) }}</span>
           <div>
             <h2 :id="`group-${group.id}`">{{ group.name }}</h2>
             <p class="small t3">{{ m.rule(group.kind, group.creditsTotal, group.creditsTotalMin) }} · {{ m.courses(group.courses.length) }}</p>

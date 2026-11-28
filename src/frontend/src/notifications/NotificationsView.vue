@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { RouterLink, type RouteLocationRaw } from 'vue-router';
-import { statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
+import { reportFailure, useAsyncLoad } from '../async-load.js';
 import { groupClass, type GroupId } from '../groups.js';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
 import { usePageTitle } from '../page-title.js';
@@ -62,9 +61,7 @@ async function readOne(item: Notification): Promise<boolean> {
     replace(await markRead(item.id));
     return true;
   } catch (e) {
-    if (statusOf(e) === 401) return false;
-    console.error('Marking a notification read failed:', e);
-    toast.show(m.value.markFailed);
+    if (reportFailure('Marking a notification read', e)) toast.show(m.value.markFailed);
     return false;
   }
 }
@@ -105,9 +102,7 @@ async function readAll(): Promise<void> {
     await nextTick();
     heading.value?.focus();
   } catch (e) {
-    if (statusOf(e) === 401) return;
-    console.error('Marking every notification read failed:', e);
-    toast.show(m.value.markFailed);
+    if (reportFailure('Marking every notification read', e)) toast.show(m.value.markFailed);
   } finally {
     busy.value = false;
   }

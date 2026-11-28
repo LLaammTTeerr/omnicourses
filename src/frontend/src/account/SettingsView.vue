@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { codePoints, statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
+import { reportFailure, useAsyncLoad } from '../async-load.js';
 import type { Session } from '../auth/api.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
@@ -45,9 +45,7 @@ async function revoke(): Promise<void> {
     await sessions.reload();
   } catch (e) {
     revoking.value = null;
-    if (statusOf(e) === 401) return;
-    console.error('Revoking a session failed:', e);
-    toast.show(m.value.revokeFailed);
+    if (reportFailure('Revoking a session', e)) toast.show(m.value.revokeFailed);
   } finally {
     revokeBusy.value = false;
   }

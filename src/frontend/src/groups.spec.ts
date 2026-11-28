@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { GROUP_IDS, GROUPS, groupClass } from './groups.js';
+import { GROUP_IDS, GROUPS, groupClass, groupGlyph, groupShort } from './groups.js';
 
 const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
 
@@ -12,6 +12,12 @@ describe('requirement groups', () => {
 
   it('gives every group its own glyph, so colour is never the only cue', () => {
     expect(new Set(GROUPS.map((g) => g.glyph)).size).toBe(GROUPS.length);
+  });
+
+  it.each(GROUPS)('looks up the glyph and the short name of $id', (group) => {
+    expect(groupGlyph(group.id)).toBe(group.glyph);
+    expect(groupShort(group.id, 'vi')).toBe(group.short.vi);
+    expect(groupShort(group.id, 'en')).toBe(group.short.en);
   });
 
   it.each(GROUP_IDS)('has colour tokens for %s in the stylesheet', (id) => {

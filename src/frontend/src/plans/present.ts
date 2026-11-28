@@ -1,10 +1,9 @@
 import { computed, shallowRef, type Ref } from 'vue';
-import { statusOf } from '../api.js';
-import { useAsyncLoad } from '../async-load.js';
+import { reportFailure, useAsyncLoad } from '../async-load.js';
 import { fetchAudit, type DegreeAudit } from '../audit/api.js';
 import { fetchCurriculum, type CurriculumCourse, type RequirementGroup } from '../curriculum/api.js';
 import { courseName, groupColour, orderGroups } from '../curriculum/present.js';
-import { GROUPS, groupClass, type GroupId } from '../groups.js';
+import { groupClass, groupShort, type GroupId } from '../groups.js';
 import { LANGUAGES, useLocale, useMessages } from '../locale.js';
 import { useTranscriptCodes } from '../transcript/codes.js';
 import { currentTermNow, termKey, termName, type Term } from '../terms.js';
@@ -102,7 +101,7 @@ export function usePlanCourses(plan: Ref<Plan | null>) {
   const audit = shallowRef<DegreeAudit | null>(null);
   fetchAudit()
     .then((outcome) => (audit.value = outcome.status === 'ready' ? outcome.audit : null))
-    .catch((e) => statusOf(e) === 401 || console.error('Loading the audit for the planner failed:', e));
+    .catch((e) => reportFailure('Loading the audit for the planner', e));
   const auditCourses = computed(() => audit.value?.groups.flatMap((g) => g.courses) ?? []);
   const passed = computed(() => auditCourses.value.filter((c) => c.status === 'passed'));
   const passedCodes = computed(() => new Set(passed.value.map((c) => c.code)));
@@ -149,8 +148,7 @@ export function usePlanView({ board, issues, courses, moving, previews, lifted, 
   const { catalog, groupNames, gradeOf, inProgressNow } = courses;
 
   const nameOf = (term: Term) => termName(term, locale.lang);
-  const shortName = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.short[locale.lang];
-  const glyphOf = (colour: GroupId) => GROUPS.find((g) => g.id === colour)!.glyph;
+  const shortName = (colour: GroupId) => groupShort(colour, locale.lang);
   const gradeText = (n: number) => n.toLocaleString(LANGUAGES[locale.lang].tag, { maximumFractionDigits: GRADE_DECIMALS });
   const slotTitle = (groupId: string | null | undefined) => m.value.slot(groupNames.value.get(groupId ?? '')?.name ?? m.value.slotGroupUnknown);
 
@@ -307,5 +305,5 @@ export function usePlanView({ board, issues, courses, moving, previews, lifted, 
   }
   const rows = computed(() => board.value.map(rowView));
 
-  return { nameOf, shortName, glyphOf, tileTitle, ctx, hoverKey, panelPreview, dropOf, rows };
+  return { nameOf, shortName, tileTitle, ctx, hoverKey, panelPreview, dropOf, rows };
 }

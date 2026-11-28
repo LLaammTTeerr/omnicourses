@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 import { useAsyncLoad } from '../async-load.js';
 import { groupColour, orderGroups } from '../curriculum/present.js';
-import { GROUPS, type GroupId } from '../groups.js';
+import { groupGlyph, type GroupId } from '../groups.js';
 import { LANGUAGES, type Lang } from '../locale.js';
 import { fetchAudit, type AuditOutcome, type CourseStatus, type DegreeAudit, type GraduationCondition, type GroupCoverage } from './api.js';
 import type { AUDIT_MESSAGES } from './messages.js';
@@ -24,7 +24,7 @@ export interface ShownGroup {
 export function shownGroups(audit: DegreeAudit): ShownGroup[] {
   return orderGroups(audit.groups).map((group) => {
     const colour = groupColour(group);
-    return { group, colour, glyph: GROUPS.find((g) => g.id === colour)!.glyph };
+    return { group, colour, glyph: groupGlyph(colour) };
   });
 }
 

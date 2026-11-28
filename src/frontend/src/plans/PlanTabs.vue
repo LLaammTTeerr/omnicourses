@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { statusOf } from '../api.js';
+import { reportFailure } from '../async-load.js';
 import { useMessages } from '../locale.js';
 import Icon from '../shell/Icon.vue';
 import { useToast } from '../shell/toast.js';
@@ -27,7 +27,7 @@ async function load(): Promise<void> {
   try {
     plans.value = (await fetchPlans()).plans;
   } catch (e) {
-    if (statusOf(e) !== 401) console.error('Loading the plans for the tabs failed:', e);
+    reportFailure('Loading the plans for the tabs', e);
   }
 }
 watch(() => props.id, load, { immediate: true });

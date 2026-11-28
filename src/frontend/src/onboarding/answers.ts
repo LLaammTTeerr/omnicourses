@@ -1,4 +1,4 @@
-import { computed, reactive, ref, shallowRef, type Ref } from 'vue';
+import { computed, reactive, ref, shallowRef } from 'vue';
 import { byField, failureKind, type HttpError } from '../api.js';
 import { useAsyncLoad } from '../async-load.js';
 import { fetchPrograms, type Program } from '../curriculum/api.js';
@@ -84,11 +84,11 @@ function useAnswerErrors() {
   return { apiErrors, goalErrors, otherErrors };
 }
 
-function useProgramChoices(program: Ref<string | null>) {
+export function useProgramChoices(program: () => string | null) {
   const locale = useLocale();
   const programs = useAsyncLoad('the programs', fetchPrograms);
   const choices = computed(() => programChoices(programs.data.value?.programs ?? []));
-  const cohorts = computed(() => choices.value.find((choice) => choice.code === program.value)?.cohorts ?? []);
+  const cohorts = computed(() => choices.value.find((choice) => choice.code === program())?.cohorts ?? []);
   const programName = (choice: ProgramChoice) => (locale.lang === 'en' ? choice.program?.nameEn : null) ?? choice.program?.nameVi ?? choice.code;
   return { programs, choices, cohorts, programName };
 }
@@ -105,7 +105,7 @@ export function useAnswerForm(onLoaded: (answers: Onboarding) => void = () => {}
     Object.assign(goal, goalDraft(answers));
     onLoaded(answers);
   });
-  const { programs, choices, cohorts, programName } = useProgramChoices(program);
+  const { programs, choices, cohorts, programName } = useProgramChoices(() => program.value);
   const status = computed<'loading' | 'loaded' | 'failed'>(() => {
     if (answersLoad.status.value === 'loading' || programs.status.value === 'loading') return 'loading';
     if (answersLoad.status.value === 'failed' || programs.status.value === 'failed') return 'failed';

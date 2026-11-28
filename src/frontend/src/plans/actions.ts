@@ -1,6 +1,6 @@
-import { ref } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { statusOf } from '../api.js';
+import { useAttempt } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import { useMessages } from '../locale.js';
 import { useToast } from '../shell/toast.js';
@@ -23,25 +23,7 @@ export function usePlanActions(dialogOpen: () => boolean) {
   const auth = useAuth();
   const toast = useToast();
   const m = useMessages(PLANNER_MESSAGES);
-  const busy = ref(false);
-  const dialogError = ref<string | null>(null);
-
-  async function attempt(what: string, action: () => Promise<void>): Promise<boolean> {
-    busy.value = true;
-    dialogError.value = null;
-    try {
-      await action();
-      return true;
-    } catch (e) {
-      if (statusOf(e) !== 401) {
-        console.error(`${what} failed:`, e);
-        dialogError.value = m.value.actionFailed;
-      }
-      return false;
-    } finally {
-      busy.value = false;
-    }
-  }
+  const { busy, error: dialogError, run: attempt } = useAttempt(() => m.value.actionFailed);
 
   async function attemptOrToast(what: string, action: () => Promise<void>): Promise<void> {
     const done = await attempt(what, action);

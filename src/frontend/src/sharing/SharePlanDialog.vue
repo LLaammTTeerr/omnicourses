@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import { statusOf } from '../api.js';
-import { newestOnly } from '../async-load.js';
+import { newestOnly, reportFailure, useAttempt } from '../async-load.js';
 import { useAuth } from '../auth/store.js';
 import ModalDialog from '../components/ModalDialog.vue';
 import { formatDateTime, useLocale, useMessages } from '../locale.js';
@@ -24,8 +23,9 @@ const status = ref<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
 const share = shallowRef<PlanShare | null>(null);
 const showName = ref(false);
 const showTranscriptChecks = ref(false);
-const busy = ref<'creating' | 'updating' | 'stopping' | null>(null);
-const actionError = ref<string | null>(null);
+const pending = ref<'creating' | 'updating' | 'stopping' | null>(null);
+const { busy, error: actionError, run } = useAttempt(() => m.value.actionFailed);
+const busyWith = (kind: typeof pending.value) => busy.value && pending.value === kind;
 const copied = ref(false);
 const copyNotice = ref<string | null>(null);
 const urlInput = ref<HTMLInputElement | null>(null);
@@ -72,7 +72,7 @@ async function loadState(): Promise<void> {
     status.value = 'loaded';
   } catch (e) {
     if (!isNewest()) return;
-    if (statusOf(e) !== 401) console.error('Loading the plan share failed:', e);
+    reportFailure('Loading the plan share', e);
     status.value = 'failed';
   }
 }
@@ -82,7 +82,7 @@ watch(
   ([open]) => {
     if (!open) {
       loads.drop();
-      busy.value = null;
+      busy.value = false;
       actionError.value = null;
       clearCopyFeedback();
       return;
@@ -98,46 +98,22 @@ onBeforeUnmount(() => {
 });
 
 async function createLink(): Promise<void> {
-  if (busy.value !== null) return;
-  busy.value = 'creating';
-  actionError.value = null;
+  if (busy.value) return;
+  pending.value = 'creating';
   clearCopyFeedback();
-  try {
-    const created = await updatePlanShare(props.planId, {
-      showName: showName.value,
-      showTranscriptChecks: showTranscriptChecks.value,
-    });
-    applyShare(created);
+  await run('Creating the share link', async () => {
+    applyShare(await updatePlanShare(props.planId, { showName: showName.value, showTranscriptChecks: showTranscriptChecks.value }));
     toast.show(m.value.createdToast);
-  } catch (e) {
-    if (statusOf(e) !== 401) {
-      console.error('Creating the share link failed:', e);
-      actionError.value = m.value.actionFailed;
-    }
-  } finally {
-    busy.value = null;
-  }
+  });
 }
 
 async function saveChoices(): Promise<void> {
-  if (!share.value || busy.value !== null || !hasUnsavedChoices.value) return;
-  busy.value = 'updating';
-  actionError.value = null;
-  try {
-    const updated = await updatePlanShare(props.planId, {
-      showName: showName.value,
-      showTranscriptChecks: showTranscriptChecks.value,
-    });
-    applyShare(updated);
+  if (!share.value || busy.value || !hasUnsavedChoices.value) return;
+  pending.value = 'updating';
+  await run('Updating the share link', async () => {
+    applyShare(await updatePlanShare(props.planId, { showName: showName.value, showTranscriptChecks: showTranscriptChecks.value }));
     toast.show(m.value.savedToast);
-  } catch (e) {
-    if (statusOf(e) !== 401) {
-      console.error('Updating the share link failed:', e);
-      actionError.value = m.value.actionFailed;
-    }
-  } finally {
-    busy.value = null;
-  }
+  });
 }
 
 function scheduleCopiedReset(): void {
@@ -195,22 +171,14 @@ async function copyLink(): Promise<void> {
 }
 
 async function revokeLink(): Promise<void> {
-  if (busy.value !== null) return;
-  busy.value = 'stopping';
-  actionError.value = null;
+  if (busy.value) return;
+  pending.value = 'stopping';
   clearCopyFeedback();
-  try {
+  await run('Stopping the share link', async () => {
     await stopPlanShare(props.planId);
     applyShare(null);
     toast.show(m.value.stoppedToast);
-  } catch (e) {
-    if (statusOf(e) !== 401) {
-      console.error('Stopping the share link failed:', e);
-      actionError.value = m.value.actionFailed;
-    }
-  } finally {
-    busy.value = null;
-  }
+  });
 }
 </script>
 
@@ -220,7 +188,7 @@ async function revokeLink(): Promise<void> {
     :open="open"
     labelledby="share-plan-title"
     describedby="share-plan-lead"
-    :busy="busy !== null"
+    :busy="busy"
     data-test="share-dialog"
     @close="emit('close')"
   >
@@ -232,7 +200,7 @@ async function revokeLink(): Promise<void> {
       <button
         class="btn sm ghost icon-only"
         type="button"
-        :disabled="busy !== null"
+        :disabled="busy"
         :aria-label="m.close"
         :title="m.close"
         data-test="close-share-dialog"
@@ -267,7 +235,7 @@ async function revokeLink(): Promise<void> {
           <input
             v-model="showName"
             type="checkbox"
-            :disabled="busy !== null"
+            :disabled="busy"
             data-test="share-show-name"
           />
           <span>{{ displayNameLabel }}</span>
@@ -278,7 +246,7 @@ async function revokeLink(): Promise<void> {
             <input
               v-model="showTranscriptChecks"
               type="checkbox"
-              :disabled="busy !== null"
+              :disabled="busy"
               data-test="share-show-transcript-checks"
             />
             <span>
@@ -341,11 +309,11 @@ async function revokeLink(): Promise<void> {
           <button
             class="btn danger stop-btn"
             type="button"
-            :disabled="busy !== null"
+            :disabled="busy"
             data-test="stop-sharing"
             @click="revokeLink"
           >
-            <Icon name="lock" size="sm" />{{ busy === 'stopping' ? m.stoppingSharing : m.stopSharing }}
+            <Icon name="lock" size="sm" />{{ busyWith('stopping') ? m.stoppingSharing : m.stopSharing }}
           </button>
           <a
             class="btn"
@@ -356,27 +324,27 @@ async function revokeLink(): Promise<void> {
           >
             <Icon name="external" size="sm" />{{ m.openShared }}
           </a>
-          <button class="btn" type="button" :disabled="busy !== null" @click="emit('close')">{{ m.close }}</button>
+          <button class="btn" type="button" :disabled="busy" @click="emit('close')">{{ m.close }}</button>
           <button
             class="btn primary"
             type="button"
-            :disabled="busy !== null || !hasUnsavedChoices"
+            :disabled="busy || !hasUnsavedChoices"
             data-test="save-share-options"
             @click="saveChoices"
           >
-            {{ busy === 'updating' ? m.savingChoices : m.saveChoices }}
+            {{ busyWith('updating') ? m.savingChoices : m.saveChoices }}
           </button>
         </template>
         <template v-else>
-          <button class="btn" type="button" :disabled="busy !== null" @click="emit('close')">{{ m.close }}</button>
+          <button class="btn" type="button" :disabled="busy" @click="emit('close')">{{ m.close }}</button>
           <button
             class="btn primary"
             type="button"
-            :disabled="busy !== null"
+            :disabled="busy"
             data-test="create-share-link"
             @click="createLink"
           >
-            <Icon name="globe" size="sm" />{{ busy === 'creating' ? m.creatingLink : m.createLink }}
+            <Icon name="globe" size="sm" />{{ busyWith('creating') ? m.creatingLink : m.createLink }}
           </button>
         </template>
       </div>
