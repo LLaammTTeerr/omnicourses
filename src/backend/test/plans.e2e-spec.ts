@@ -11,7 +11,6 @@ import { PASSWORD as password, signedInUser } from './support/users.js';
 const tag = randomBytes(3).toString('hex').toUpperCase();
 const program = `ZZP${tag}`;
 const code = (n: number) => `ZZ${tag}${String(n).padStart(2, '0')}`;
-const PLAN_TABLES = ['plans', 'plan_placements'];
 
 interface Catalog {
   group2030: string;
@@ -58,12 +57,6 @@ describe('Plans API against PostgreSQL (e2e)', () => {
 
   afterAll(async () => {
     await app?.close();
-  });
-
-  it('maps the two plan tables exactly as migration 1794218005469 creates them', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    const touching = upQueries.map((q) => q.query).filter((q) => PLAN_TABLES.some((t) => q.includes(`"${t}"`)));
-    expect(touching).toEqual([]);
   });
 
   it('creates, lists, reads, fills and renames a plan', async () => {

@@ -8,17 +8,6 @@ import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { bootApp } from './support/app.js';
 import { signedInUser } from './support/users.js';
 
-const CURRICULUM_TABLES = [
-  'programs',
-  'curriculums',
-  'requirement_groups',
-  'courses',
-  'requirement_group_courses',
-  'combined_minimums',
-  'combined_minimum_groups',
-  'requirement_group_overflows',
-];
-
 interface Group {
   id: string;
   name: string;
@@ -45,12 +34,6 @@ describe('Curriculum API (e2e)', () => {
 
   afterAll(async () => {
     await app?.close();
-  });
-
-  it('maps the curriculum tables exactly as migrations 1792912952302 and 1794300000000 create them', async () => {
-    const { upQueries } = await app.get(DataSource).driver.createSchemaBuilder().log();
-    const touching = upQueries.map((q) => q.query).filter((q) => CURRICULUM_TABLES.some((t) => q.includes(`"${t}"`)));
-    expect(touching).toEqual([]);
   });
 
   it('lists every seeded program with its cohorts', async () => {

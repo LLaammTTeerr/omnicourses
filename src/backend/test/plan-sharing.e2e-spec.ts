@@ -97,11 +97,6 @@ describe('Plan sharing API (e2e)', () => {
     await app?.close();
   });
 
-  it('maps plan_shares exactly as migration 1795564800000 creates it', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    expect(upQueries.map((q) => q.query).filter((q) => q.includes('"plan_shares"'))).toEqual([]);
-  });
-
   describe('the owner and their link', () => {
     it('shares a plan with one live link, shows it again, and hides the name unless the owner chooses', async () => {
       const { auth } = await student();

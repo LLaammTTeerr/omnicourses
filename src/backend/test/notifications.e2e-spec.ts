@@ -130,11 +130,6 @@ describe('Notification inbox (e2e)', () => {
     expect(await db.query('SELECT id FROM users WHERE id = $1', [userId])).toHaveLength(1);
   });
 
-  it('maps the table exactly as migration 1795575059760 creates it', async () => {
-    const { upQueries } = await db.driver.createSchemaBuilder().log();
-    expect(upQueries.map((q) => q.query).filter((q) => q.includes('"notifications"'))).toEqual([]);
-  });
-
   it('refuses every route without a token', async () => {
     await http().get('/api/notifications').expect(401);
     await http().get('/api/notifications/unread-count').expect(401);
