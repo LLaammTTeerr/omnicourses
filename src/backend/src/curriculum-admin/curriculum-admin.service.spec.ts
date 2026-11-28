@@ -3,7 +3,7 @@ import type { DataSource, EntityManager } from 'typeorm';
 import { QueryFailedError } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
 import type { AdminWriteService } from '../admin-access/admin-write.service.js';
-import { CurriculumAdminService, isPlanSlotRefusal } from './curriculum-admin.service.js';
+import { creditTotalMismatch, CurriculumAdminService, isPlanSlotRefusal } from './curriculum-admin.service.js';
 
 const SLOT_KEY = 'plan_placements_requirement_group_id_fkey';
 const refused = (code: string, constraint = SLOT_KEY) =>
@@ -154,5 +154,20 @@ describe('isPlanSlotRefusal', () => {
   it('is true only for a restrict or foreign-key refusal on the plan-slot key', () => {
     expect([isPlanSlotRefusal(refused('23001')), isPlanSlotRefusal(refused('23503'))]).toEqual([true, true]);
     expect([isPlanSlotRefusal(refused('23505')), isPlanSlotRefusal(refused('23503', 'other')), isPlanSlotRefusal(new Error('x')), isPlanSlotRefusal(null)]).toEqual([false, false, false, false]);
+  });
+});
+
+describe('creditTotalMismatch', () => {
+  it('accepts a compulsory group with a fixed total, an elective group with a minimum, and either with none', () => {
+    expect(creditTotalMismatch({ kind: 'compulsory', creditsTotal: 40, creditsTotalMin: null })).toBeNull();
+    expect(creditTotalMismatch({ kind: 'elective', creditsTotal: null, creditsTotalMin: 16 })).toBeNull();
+    expect(creditTotalMismatch({ kind: 'compulsory', creditsTotal: null, creditsTotalMin: null })).toBeNull();
+    expect(creditTotalMismatch({ kind: 'elective', creditsTotal: null, creditsTotalMin: 0 })).toBeNull();
+  });
+
+  it("names the field that holds the other kind's total", () => {
+    expect(creditTotalMismatch({ kind: 'compulsory', creditsTotal: null, creditsTotalMin: 16 })).toBe('creditsTotalMin: a compulsory group stores creditsTotal, not a minimum (ADR 0005)');
+    expect(creditTotalMismatch({ kind: 'elective', creditsTotal: 40, creditsTotalMin: null })).toBe('creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)');
+    expect(creditTotalMismatch({ kind: 'compulsory', creditsTotal: 0, creditsTotalMin: 0 })).toContain('creditsTotalMin');
   });
 });
