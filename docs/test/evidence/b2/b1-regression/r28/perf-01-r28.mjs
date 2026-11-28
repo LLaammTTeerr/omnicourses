@@ -1,9 +1,9 @@
 // TC-B1-PERF-01b-h: dashboard and audit load time (docs/test/test-cases-b1.md §4).
 //
 // Run by the tester, who supplies P's password through the environment:
-//   PowerShell:  $env:B1_PASSWORD = '<password>'; node perf-01.mjs
-//   Git Bash:    B1_PASSWORD='<password>' node perf-01.mjs
-// Optional: B1_BASE (default https://omnicourses.lamter.cc), B1_REPO (where node_modules/playwright is).
+//   PowerShell:  $env:B1_PASSWORD = '<password>'; node perf-01-r28.mjs
+//   Git Bash:    B1_PASSWORD='<password>' node perf-01-r28.mjs
+// Optional: B1_BASE (default https://stag-omnicourses.lamter.cc, staging, where the B2 runs are recorded), B1_REPO (where node_modules/playwright is).
 //
 // Chrome runs headed; leave the computer alone until it prints the summary (about 10 minutes).
 // The password and the session token are never printed or written to the output.
@@ -17,7 +17,7 @@ const REPO = process.env.B1_REPO ?? 'E:/Project/omnicourses';
 const { chromium } = createRequire(join(REPO, 'package.json'))('playwright');
 // r28: copied to b1-regression/r28/ for the 28 Nov rerun; changes: DASHBOARD_R28, park() and PACE_MS below.
 
-const BASE = (process.env.B1_BASE ?? 'https://omnicourses.lamter.cc').replace(/\/$/, '');
+const BASE = (process.env.B1_BASE ?? 'https://stag-omnicourses.lamter.cc').replace(/\/$/, '');
 const EMAIL = process.env.B1_EMAIL ?? 'b1-perf@example.com';
 const PASSWORD = process.env.B1_PASSWORD;
 if (!PASSWORD) {
