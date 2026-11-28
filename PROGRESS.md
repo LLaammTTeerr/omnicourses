@@ -4,6 +4,8 @@
 
 ## How to resume
 
+The stack is merged; steps 2 to 6 describe how the work was set up, for whoever continues it or does the same again.
+
 1. Read this file, then `git worktree list` and `gh pr list --search "head:refactor/cv-"`.
 2. The work is one stack of small pull requests (Lâm, 28 Nov 2026). Stack branches are `refactor/cv-NN-<topic>`: 01 is based on `main`, each later one on the branch below it, and each PR's base is that branch. The stack worktree is `.claude/worktrees/cv-stack`; build worktrees are `.claude/worktrees/cv-build-{be,fa,fb}` (local branches `cvb/<batch slug>`, never pushed).
 3. Install with `npx --yes npm@11.21.1 ci` (the machine's npm is 9; it rewrites the lockfile). Never commit a lockfile change.
@@ -57,7 +59,7 @@
 
 End state: `main` at 7df67b1 (#253, merged 28 Nov) is identical to the top of the stack as it was reviewed (`git diff` empty). The full verify passes on `main`: backend 1227 unit / 363 e2e, frontend 1402 unit / 68 browser, and the 43 tests of the lint rules. At the start of the mission `main` (3c4da22) had 1132 / 364 and 1246 / 68. The e2e count: 364 at the start, one added by the stack, three by the feature PR #245, and stack 24 replaced six per-feature drift tests with one. Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason. Since 3c4da22, `src/backend/openapi.json` changed only through #245; the migrations folder and the lockfile did not change. Every layer passed the full verify when it was stacked, each new bottom passed it again on `main` before it was marked ready, and the tip passed after each restack.
 
-## State of the structure at the stack tip
+## State of the structure on `main` (after the stack)
 
 - Backend: the folder cycle `curriculum <-> curriculum-admin <-> database` is gone; `common` and `config` import no feature. One folder pair still imports both ways, `auth <-> users` (the users controller uses the auth decorators; `auth` uses the users service and entity; no two files import each other; left on purpose, see ADR 0020), and one file cycle, the curriculum entities (TypeORM relations). The import graph has 102 folder edges with the root (101 at the start); the gain is direction, not count.
 - Owners that did not exist before: lock keys (`common/advisory-locks.ts`), "account waiting for deletion" and the student row lock (`users/account-state.ts`), coded API errors (`common/api-errors.ts`), the admin write gate (`admin-access/`), the rule engine's input vocabulary (`curriculum/curriculum-rules.ts`), curriculum seed data (`curriculum/seeds/`), each CLC course (`curriculum/seeds/clc-2025-courses.ts`).
@@ -75,7 +77,7 @@ End state: `main` at 7df67b1 (#253, merged 28 Nov) is identical to the top of th
 - Lâm, in the session, 27 Nov 2026 at 20:07 UTC (28 Nov, 03:07 in Vietnam), answer to the prompt "How should the refactor reach main?": **"A PR per area (Recommended)"**, whose text was: "I open one small PR per area once it passes every check, with auto-merge on. A teammate approves. Each merge deploys production. I post one heads-up in the team channel first."
 - Lâm, same session: "do this task as a bunch of pull request stack on each other to prevent disruption", and "create new sprite in discord and occasionally report progress for me there".
 - Standing rules: the user's global instructions ("When work is done and checks pass, commit and push without asking, but only on a non-default branch"; never push to main, never force-push) and AGENTS.md ("Agents have full authority over the branch → PR → merge cycle"; merge only with green CI and a human approval; never the admin override).
-- Done under it: 22 pull requests opened (21 as drafts), auto-merge turned on and reviewers requested for the bottom PR only, one at a time as each PR below it merged, one heads-up in the main team channel before the first pull request (27 Nov, 20:12 UTC), one thread per PR and a progress thread in the sprite forum, three issues (#240 to #242). Merged PRs (marked in the stack table) were each merged by GitHub's auto-merge after a teammate's approval; production deploys by itself after each merge, as the chosen option says. No admin override, no manual deploy, no push to `main`, no force-push.
+- Done under it: 24 pull requests opened (23 as drafts; the last two, #252 and #253, came out of another session's review of the repository and were added the same day), auto-merge turned on and reviewers requested for the bottom PR only, one at a time as each PR below it merged, one heads-up in the main team channel before the first pull request (27 Nov, 20:12 UTC), one thread per PR and a progress thread in the sprite forum, three issues (#240 to #242). Merged PRs (marked in the stack table) were each merged by GitHub's auto-merge after a teammate's approval; production deploys by itself after each merge, as the chosen option says. No admin override, no manual deploy, no push to `main`, no force-push.
 
 ### Needs a decision (none blocks the stack; tracked in issues #240 and #241)
 
@@ -99,7 +101,7 @@ Another session reviewed the repository at an older commit (bd9f32c) and sent it
 
 - Done as stack 23 (#252): the rule-engine coverage gate can no longer pass when its glob matches no file, and every frontend spec that spies on `fetch` checks its calls against `openapi.json`.
 - Done as stack 24 (#253): a schema-drift check for every table. It needed the entities of eight tables to declare the constraints their migrations already create (27 checks, 4 key names, 1 index; no database change). It replaces six per-feature copies. `ai_usage` is left out until #77 merges (#242).
-- Filed for a person, at Lâm's word passed on by that session: five academic-rule questions and six other points in #240, four frontend points in #241.
+- Filed for a person, at Lâm's word as passed on by that session (a relayed yes; this session did not hear it from him directly): five academic-rule questions and six other points in #240, four frontend points in #241.
 - Kept out of this public repository: every security and deploy finding of that review. The Project Lead has them directly.
 - Not done (too little benefit): a test that compares the README feature table with the contract.
 
