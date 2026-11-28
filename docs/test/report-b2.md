@@ -60,7 +60,7 @@ Every run recorded so far was on staging, https://stag-omnicourses.lamter.cc. St
 | 28 Nov, 05:51–06:30 | `778d120` | NOTIF-01d(2), NOTIF-01j, SHARE-01l, TRN-01a–g, PLAN-01a–f, PLAN-02a and c (retests), A11Y-01d–f (retests), export and text-limit retests (#174, #163), PERF-01a–f | [`results-2026-11-28.md`](evidence/b2/results-2026-11-28.md) | #246 |
 | 28 Nov, 07:44–09:20 | `4b038fe` | ADM-03g, ADM-03c (5) and ADM-03d (3) (reruns); carry-over of TRN-01a–g, PLAN-01a–f, PLAN-02a and c, SHARE-01l, NOTIF-01j, A11Y-01d–f and the text-limit retest (#163) | [`results-2026-11-28-4b038fe.md`](evidence/b2/results-2026-11-28-4b038fe.md) | #251 |
 | 28 Nov, 07:43–09:18 | `4b038fe` | B1 regression on B2 (cases §12) | [`results-b1-regression-2026-11-28.md`](evidence/b2/results-b1-regression-2026-11-28.md) | #251 |
-| 28 Nov, 10:16–11:10 | `4b038fe` | PERF-01a–f of B2, and PERF-01b–h of B1 | [`results-2026-11-28-perf.md`](evidence/b2/results-2026-11-28-perf.md) | this PR |
+| 28 Nov, 10:16–11:10 | `4b038fe` | PERF-01a–f of B2, and PERF-01b–h of B1 | [`results-2026-11-28-perf.md`](evidence/b2/results-2026-11-28-perf.md) | #259 |
 
 | Item | Used |
 | --- | --- |
