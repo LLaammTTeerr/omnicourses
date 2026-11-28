@@ -1,0 +1,55 @@
+You are finishing one refactor batch in the OmniCourse repo after an independent review. The batch and its rules:
+
+You are implementing one batch of a whole-codebase architectural convergence of the OmniCourse repo. The aim of the mission: one change to a business concept lands in one place, and people and agents can work in parallel without colliding. The batch must leave the system simpler, with behaviour unchanged.
+
+## Where
+- Worktree: /home/lamter/omnicourses/.claude/worktrees/cv-build-fa (branch cvb/24-entities-declare-constraints is checked out; base commit 790ce3fa7e2c89397a7180d1d507dc27ec12292a). Work only there. Never touch another worktree or /home/lamter/omnicourses itself, never switch branches, never push, never open a pull request, never post to GitHub or Discord, never write a progress file. The orchestrator integrates your commits.
+- npm: the machine's npm is 9 and rewrites the lockfile. Use `npx --yes npm@11.21.1 <command>` for every npm command. node_modules is installed.
+
+## Objective: entities declare every migrated constraint; one drift check for every table
+Source: the batch before this one tried to add one schema-drift check for every table and found that it cannot pass today. Confirm each fact below in the code before you act on it.
+
+Facts:
+- `synchronize` is false. The SQL migrations in `src/backend/src/database/migrations/` create the schema; the entities describe it a second time for TypeORM.
+- The newer features keep the two in step. Twelve entity files declare the CHECK constraints and the foreign-key names their migrations create (`git grep -n -E "@Check\\(|foreignKeyConstraintName" -- src/backend/src`), and six e2e specs ask TypeORM what it would change, `db.driver.createSchemaBuilder().log()`, and expect nothing for their own tables: `academic-calendar.e2e-spec.ts` (about line 71), `curriculum-admin.e2e-spec.ts` (96), `curriculum.e2e-spec.ts` (50), `notifications.e2e-spec.ts` (133), `plan-sharing.e2e-spec.ts` (100), `plans.e2e-spec.ts` (63), all in `src/backend/test/`.
+- Eight tables have no such check, and their entities do not declare what the migrations created. For them TypeORM would run 36 up-queries: drop the CHECK constraints it does not know, and drop and re-create foreign keys under generated names. Reported: users (4 checks: ck_users_email_lowercase, has_credential, deletion_pending, student_id), onboarding_answers (11 checks and the key onboarding_answers_user_id_fkey), transcript_rows (7 checks and transcript_rows_user_id_fkey), guides (ck_guides_id, ck_guides_group), guide_texts (3 checks and guide_texts_guide_id_fkey), sessions (sessions_user_id_fkey), ai_usage (ai_usage_user_id_fkey; the entity has no relation), sign_in_attempts (nothing reported).
+
+Goal: the entities say everything the migrations say, and one test proves it for every table, in place of six copies. The database does not change: no migration is written or edited.
+
+Do, in this order:
+1. Write the general check first: `src/backend/test/schema-drift.e2e-spec.ts`, booting through `src/backend/test/support/` like its neighbours. It expects that TypeORM would run no up-query for any table in `dataSource.entityMetadatas`. Take the table list from the metadata; do not type table names, with one exception: `ai_usage`. Its entity is in `src/backend/src/ai/`, which belongs to an open pull request (#77) and is off limits: do not open or change any file under `src/backend/src/ai/` or `src/backend/src/advisor/`. Leave that one table out through a named constant whose name says why. Run the spec (`DATABASE_URL=postgres://omnicourse:omnicourse@localhost:5432/omnicourse_cv_fa`, from src/backend: `nice -n 10 npx vitest run --config vitest.e2e.config.mts test/schema-drift.e2e-spec.ts`). It fails; its output is your list.
+2. For each table on the list, declare in the entity exactly what the migration created. The migration is the source: find each constraint with `git grep -n <constraint name> -- src/backend/src/database/migrations` and copy its name and its expression. Use the decorators and the style of the twelve entity files that already do this. Add only declarations: no column, type, nullability, default, index, cascade or relation property may change, and no new property may appear on an entity (a new relation property would change what queries can load). If a constraint can only be declared by adding a property, stop on that table, leave it for the report, and go on.
+3. Run the general spec until it passes. Read how TypeORM compares constraints (`node_modules/typeorm`, RdbmsSchemaBuilder: checks, foreign keys) and say in your report what is compared (names only, or expressions too), so the reader knows what the test proves and what it does not.
+4. For each of the six filtered checks: where the general test makes the same call and the same assertion for a superset of that spec's tables, remove the filtered copy (only that `it` and any constant that only it used) and list it in your report. Where a filtered check asserts anything more, keep it and say what.
+5. Prove the general spec can fail, then restore each time: (a) remove one `@Check` you added; (b) change one column type in `src/backend/src/users/user.entity.ts`.
+6. Docs: `docs/analysis-and-design/adr/0020-module-boundaries-and-their-enforcement.md` lists the rules that are enforced and the check behind each. Add this one in the document's own style (one or two lines). Search docs/analysis-and-design and AGENTS.md for a sentence that describes the per-feature drift checks and correct it if it would now be wrong.
+
+Counts at the base of this batch (full verify): backend 1224 unit and 368 e2e. The e2e count will change by the tests you add and remove; name each in the report. Off limits besides the two folders above: `src/backend/src/curriculum-admin/csv-import.service*` and `src/backend/test/curriculum-admin-import.e2e-spec.ts` (open pull request #166).
+
+## Boundaries
+- Fixed contract: routes, DTO fields and class names, status and error codes, response bodies, database columns, existing migration files, and src/backend/openapi.json byte for byte. What the rule engine decides does not change (AGENTS.md hard rule 1).
+- Tests are the safety net: never delete, skip or weaken a test or an assertion. A test may move with the code it tests; its assertions stay. New logic gets a spec that would fail if the logic were wrong; a pure move needs none.
+- Repo rules that bite: no code comments at all, no new dependency, no lockfile change, relative imports with a .js suffix in the backend, no magic numbers, English, Conventional Commits.
+- Off limits (owned by open pull requests): src/backend/src/curriculum-admin/csv-import.service.ts and its spec, src/backend/test/curriculum-admin-import.e2e-spec.ts, docs/analysis-and-design/adr/0011-curriculum-administration.md, docs/test/test-cases-b2.md (PR #166); everything under src/backend/src/advisor/ and src/backend/src/ai/ (PR #77). If the objective needs a one-line import-path change in one of these files because a module moved, make exactly that line and list it in your result.
+- The survey findings named above are leads, not truth: confirm each claim in the code before acting on it. If a claim is wrong, or a step cannot be done without breaking a boundary, do not force it: leave that step out and say so in your result.
+- Keep the diff to the objective: no drive-by renames, reformatting or unrelated cleanup.
+- Docs: search docs/analysis-and-design, AGENTS.md, README.md, CONTRIBUTING.md and GLOSSARY.md for names or paths you moved or removed, and correct the lines that would now be wrong (not docs/test/**, not report/**: those are dated records).
+
+## Verify
+- The machine is shared with other jobs: run every test command at low priority and with few workers, like `cd src/backend && nice -n 10 npx vitest run --maxWorkers=4 <path>` or `cd src/frontend && nice -n 10 npx vitest run --maxWorkers=4 <path>`, never the whole suite in a loop. A test that fails with "Test timed out in 5000ms" while the machine is busy is load, not your change: run that file once more before you conclude anything.
+- While working, run targeted checks as above, and `npx --yes npm@11.21.1 run typecheck -w src/backend` (or `-w src/frontend`), `npx --yes npm@11.21.1 run lint`.
+- Before you finish: `/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-fa omnicourse_cv_fa typecheck lint unit-be build e2e openapi contract` must print `RESULT: ALL PASS`, and no number on its COUNTS line may be lower than the baseline it prints unless you can name the reason. It runs typecheck, lint, backend unit tests, build, e2e, and the openapi and migration diffs (a "-" on the COUNTS line is a suite it did not run; the orchestrator runs the rest); about 3 minutes, and it waits its turn if another run is active (allow up to 20 minutes). On failure, read the log path it prints and fix the cause; never the test.
+
+## Commits
+- Small commits, one coherent step each. Signing is configured: a plain `git commit` signs. Never pass --no-gpg-sign or change git config. If signing fails, stop and return status "blocked".
+- Message: a Conventional Commit subject in English (`refactor(database): ...`), a body of one or two sentences that says why, and as the last line the Co-Authored-By trailer that your own session's attribution reminder gives for your model (if you have none: `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`).
+- In the last commit add `.changeset/24-entities-declare-constraints.md`. Nothing here is visible to a user, so it is an empty changeset: the file holds exactly two lines, `---` and `---`.
+
+## Result
+- Write /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/24-entities-declare-constraints/report.md (with a shell heredoc if the Write tool refuses a path outside the worktree; if that fails too, put the content in your result): what changed and why, commit by commit; every step of the objective you left out and why; what a reviewer should look at twice; the last lines of the verify output.
+- Return the structured result: status "done" only when verify printed RESULT: ALL PASS on your final commit and `git status --short` is empty.
+
+## Now
+The batch is already implemented on this branch (see `git log --oneline 790ce3fa7e2c89397a7180d1d507dc27ec12292a..HEAD` and /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/24-entities-declare-constraints/report.md). An independent reviewer found the problems listed below. For each blocking finding: check it against the code; if it is right, fix it in a new commit (do not amend or rebase); if it is wrong, say why in the report with evidence. Take a non-blocking finding only when it is cheap and clearly right. Then run the full verify again, append a "Review round" section to the report, and return the structured result (commits: only the new ones).
+
+Findings:

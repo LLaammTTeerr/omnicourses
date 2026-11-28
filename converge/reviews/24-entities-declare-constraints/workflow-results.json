@@ -1,0 +1,80 @@
+[
+ {
+  "status": "done",
+  "summary": "Seven entities now declare every migrated CHECK constraint and foreign-key name, and one drift spec covers every entity table. verify.sh printed RESULT: ALL PASS on the final commit, and `git status --short` is empty. Four things differ from the plan or need a reader's eye:\n- **What the test proves.** TypeORM compares CHECK constraints by name only, not by expression. A CHECK whose expression differs from the migration's would not fail the test, and I copied every expression by hand. Foreign keys are compared by name, referenced table, onDelete and onUpdate.\n- **Old failures.** Before my edits the new spec listed 35 up-queries (36 minus the ai_usage key). sign_in_attempts needed nothing.\n- **Proof it can fail.** Removing the ck_users_student_id @Check produced a DROP CONSTRAINT query. Changing email_verified_at to `timestamp` produced DROP COLUMN and ADD queries. Both were restored.\n- **Removed copies.** All six per-feature drift tests made the same call and assertion for a subset of the new spec's tables. None asserted more, so all six are gone, along with the constants only they used: CURRICULUM_TABLES, NEW_TABLES and PLAN_TABLES.\n\nThe report file could not be written. The Write tool refused the path and the shell heredoc did not create it either, so its content is below.",
+  "commits": [
+   "56815ee refactor(database): declare every migrated check and key name on the entities (User 4 checks; OnboardingAnswers 11 + fk; TranscriptRow 7 + fk; Guide 2; GuideText 3 + fk; Session fk)",
+   "a2c57b5 test(database): one drift check for every entity table (adds schema-drift.e2e-spec.ts, removes the six filtered copies)",
+   "7e21c43 docs(adr): record the schema drift check in ADR 0020 (plus empty .changeset/24-entities-declare-constraints.md)"
+  ],
+  "verify": "The command was `/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-fa omnicourse_cv_fa typecheck lint unit-be build e2e openapi contract`. The last lines: `COUNTS unit-be=1224 unit-fe=1396 e2e=363 browser=68`, then `RESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract)`. E2E went from 368 to 363: one test added (the drift test in test/schema-drift.e2e-spec.ts) and six removed.",
+  "leftOut": [
+   "The ai_usage entity's foreign key ai_usage_user_id_fkey stays undeclared, because src/backend/src/ai/ belongs to open PR #77. The drift spec leaves that table out through the constant TABLES_OF_THE_AI_GATEWAY_OWNED_BY_AN_OPEN_PULL_REQUEST.",
+   "No other doc described the per-feature drift checks, so I changed none beyond the new row in ADR 0020.",
+   "The report file was not written to the scratchpad (see the summary)."
+  ],
+  "lookTwice": [
+   "The spec filters queries by quoted table name, so a query for another table that mentions `\"users\"` (for example a REFERENCES clause) also counts. That only widens the check.",
+   "CHECK expressions were copied by hand from the migrations and nothing compares them.",
+   "The new ADR 0020 row states that checks are compared by name only."
+  ]
+ },
+ {
+  "verdict": "changes_requested",
+  "blocking": [
+   {
+    "file": "src/backend/test/schema-drift.e2e-spec.ts",
+    "line": 24,
+    "problem": "The spec keeps only up-queries that contain a quoted table name. TypeORM writes `DROP INDEX \"public\".\"<index>\"` without naming the table, so index drift is never caught. I asserted on all up-queries (a temporary edit, then restored). TypeORM still wants to run `DROP INDEX \"public\".\"ix_users_purge_after\"`, besides the expected ai_usage foreign-key drop. That index comes from migration 1792886400000-add-users-deletion-requested-at.ts:13 (`ON \"users\" (\"purge_after\") WHERE \"purge_after\" IS NOT NULL`), and User does not declare it. So the test does not prove 'no up-query for any table', and the ADR 0020 row claims more than the test checks.",
+    "fix": "Invert the filter: assert on every up-query and drop only those that name the excluded ai_usage table (`upQueries.map(q => q.query).filter(q => !EXCLUDED.some(t => q.includes(`\"${t}\"`)))`). Then declare `@Index('ix_users_purge_after', ['purgeAfter'], { where: `\"purge_after\" IS NOT NULL` })` on User, in the style of notification.entity.ts:10. This declares an index that already exists and changes none; note it in the report. Re-run the spec and both proofs."
+   }
+  ],
+  "nonBlocking": [
+   "src/backend/test/curriculum-admin.e2e-spec.ts:15-16: removing NEW_TABLES left two blank lines in a row; delete one.",
+   "ADR 0020 row: after the fix, add indexes to the list of what the test catches.",
+   "docs/test/evidence/*/local-e2e-output.txt still name the removed tests. These are historical run logs, so leave them."
+  ],
+  "checked": [
+   "Commits: 3, all signed (G), Conventional subjects, one changeset (empty)",
+   "Diff of openapi.json, migrations, lockfile, src/ai and src/advisor is empty; no off-limits file touched",
+   "Entity diff adds only @Check and foreignKeyConstraintName; no column, type, nullability, default, index, cascade or relation property changed",
+   "All 27 checks match their migration in name and expression; the 4 foreign-key names are PostgreSQL defaults for the inline REFERENCES",
+   "The 6 removed checks made the same call and assertion over a subset of the tables; their constants were used only by them; remaining imports are still used",
+   "Proofs: removing a @Check, changing a users column type and removing a foreign-key name each make the spec fail; restored, git status empty",
+   "TypeORM 1.1.2 RdbmsSchemaBuilder: checks by name only; foreign keys by name, referenced table, onDelete and onUpdate; indexes by name. The report's claim is true",
+   "Typecheck and lint pass; the 7 affected e2e specs pass (137 tests)",
+   "Docs: no other drift-check sentence needs a change",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/24-entities-declare-constraints/review-1.md"
+  ]
+ },
+ {
+  "status": "done",
+  "summary": "The reviewer was right, and I fixed it in one new commit. The drift spec now checks every up-query except those that name ai_usage, so index drift is caught. That check showed TypeORM wanted to run DROP INDEX \"ix_users_purge_after\", so User now declares that index. It already exists, so the database is unchanged. I also removed the double blank line in curriculum-admin.e2e-spec.ts and added indexes to the ADR 0020 row.",
+  "commits": [
+   "e9568bc"
+  ],
+  "verify": "verify.sh printed RESULT: ALL PASS. Counts: unit-be=1224, unit-fe=1396, e2e=363, browser=68. The baseline e2e count is 364; the one fewer is the filtered-check cases removed earlier in this batch, not by this round. I re-ran three proofs on the drift spec and restored each time: removing the ix_users_purge_after index fails it with DROP INDEX, removing @Check ck_users_student_id fails it, and changing the display_name column type fails it.",
+  "leftOut": []
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "report.md still says the general spec takes its table list from db.entityMetadatas. Since commit e9568bc it checks every up-query, leaves out only the ones that name \"ai_usage\", and does not read the metadata at all. That is a stronger check, but the report sentence is now wrong and should be updated. Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/24-entities-declare-constraints/review-2.md"
+  ],
+  "checked": [
+   "Round 1 fix made in signed commit e9568bc: schema-drift.e2e-spec.ts now asserts on every up-query and leaves out only those naming \"ai_usage\", through the named constant",
+   "User @Index('ix_users_purge_after', ['purgeAfter'], { where: \"purge_after\" IS NOT NULL }) matches migration 1792886400000:13 (name, column, predicate), in the style of notification.entity.ts:10. No column, type, relation or property changed",
+   "The general spec passes on omnicourse_cv_fa",
+   "Proof: removing @Check ck_users_student_id makes the spec fail. Restored",
+   "Proof: changing the password_hash column type from text to varchar makes the spec fail. Restored",
+   "Extra proof: removing the new @Index makes the spec fail on ix_users_purge_after, so the gap round 1 found is now caught. Restored. git status is clean",
+   "Backend tsc --noEmit passes. npm run lint passes (43 of 43)",
+   "No diff in the migrations, openapi.json, package-lock.json, src/ai or src/advisor. Every commit shows G. Exactly one changeset",
+   "The six removed filtered checks are all covered by the general test (same call, same empty-list assertion, over more tables). None of them asserted more",
+   "e9568bc's change to curriculum-admin.e2e-spec.ts only removes a blank line. curriculum.e2e-spec.ts still uses its DataSource import",
+   "ADR 0020 row now mentions indexes and is accurate. It says checks are compared by name only",
+   "The implementer's report records the index declaration"
+  ]
+ }
+]

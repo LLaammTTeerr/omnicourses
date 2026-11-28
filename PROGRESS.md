@@ -17,6 +17,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 - When the bottom PR is squash-merged: in `cv-stack`, merge `origin/main` into the next branch (never rebase a pushed branch, never force-push), run the verify script, push, check on GitHub that its base is now `main` and that its diff shows only its own files and exactly one changeset, mark it ready, request the four teammates as reviewers (`gh api repos/LLaammTTeerr/omnicourses/pulls/<n>/requested_reviewers`), and turn on auto-merge. Then merge that branch into the one above it, and so on up, so every layer contains `main`.
 - The ruleset does not require a PR to be up to date with `main`. If another PR that adds a cross-folder import merges before a stack PR, `npm run lint` on `main` goes red until the edge is added to `scripts/layers.mjs`. Check lint on `main` after each merge. This already happened once: #214 merged while #220 was open; `main` was merged into every layer and the four dashboard edges were listed in #220.
 - It happened a second time on 28 Nov: #245 (credit totals and training type, a feature PR) merged while #229 was the bottom. `npm run lint` on `main` stayed green. Merging `main` up the stack gave two textual conflicts at stack 15 (an import line and a doc line; both sides kept) and two test failures that a clean merge hid: the nullable-field table of stack 13 (#232) had to list the four new nullable fields of #245, and stack 20 (#239) had removed an import that the new tests of #245 used. Each was fixed at its own layer and merged upward. So a clean merge is not enough: run the full verify at the tip after every merge of `main`.
+- A reviewer asked for a change once: on #237 Dũng found two table rows of `architecture.md` twice (my resolution of an earlier merge kept both sides). Fix on that layer, merge upward, verify the tip, push. Another session of the Project Lead's answered the same review and pushed the same fix to the branch a minute earlier, so one push here was refused; nothing was forced, the two fixes were identical. Before pushing a fix to a stack branch, fetch and look for a newer commit; the other session has been asked to send stack changes here instead.
 - Any merge to `main` updates the Version Packages PR (#211).
 
 ## Boundaries
@@ -51,6 +52,8 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 20 | `refactor/cv-20-tests-that-can-fail` | 20 | #239 (draft) | test: make weak tests able to fail and drop assertions that cannot |
 | 21 | `refactor/cv-21-structure-adr` | 21 | #243 (draft) | docs(adr): record module boundaries, owners and their enforcement |
 | 22 | `refactor/cv-22-config-and-pins` | 22 | #244 (draft) | test(config): check settings, pinned versions and exact pins |
+| 23 | `refactor/cv-23-checks-that-can-fail` | 23 | #252 (draft) | test: fail on an unmatched coverage glob or an off-contract fetch |
+| 24 | `refactor/cv-24-entities-declare-constraints` | 24 | #253 (draft) | refactor(database): declare every migrated constraint on the entities |
 
 Base of the stack: `main` at 69917fa (#236, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
@@ -90,6 +93,16 @@ Base of the stack: `main` at 69917fa (#236, merged 28 Nov), merged into every re
 10. BD-3: `class-model.md` now has the two standing types it lacked, but it is still a hand copy of `rules/types.ts`. Keep the field lists (course deliverable?) or point at the file?
 11. Hoà: three server "reference" sentences have no Vietnamese or English wording in the admin screens (overflow rules, combined-minimum rules, counting rule). `admin/references.spec.ts` lists them as known gaps; wording them is a small fix PR with a real changeset.
 
+## An outside review (28 Nov)
+
+Another session reviewed the repository at an older commit (bd9f32c) and sent its findings. `converge/review-triage.md` re-checks each against the top of the stack: most were already fixed by #207, five were agent-doable, the rest need a person.
+
+- Done as stack 23 (#252): the rule-engine coverage gate can no longer pass when its glob matches no file, and every frontend spec that spies on `fetch` checks its calls against `openapi.json`.
+- Done as stack 24 (#253): a schema-drift check for every table. It needed the entities of eight tables to declare the constraints their migrations already create (27 checks, 4 key names, 1 index; no database change). It replaces six per-feature copies. `ai_usage` is left out until #77 merges (#242).
+- Filed for a person, at Lâm's word passed on by that session: five academic-rule questions and six other points in #240, four frontend points in #241.
+- Kept out of this public repository: every security and deploy finding of that review. The Project Lead has them directly.
+- Not done (too little benefit): a test that compares the README feature table with the contract.
+
 ## Deferred (tracked in issue #242)
 
 - BA-4 split `curriculum-admin.dto.ts` by service: after PR #166 merges (it imports from that file).
@@ -122,7 +135,7 @@ Base of the stack: `main` at 69917fa (#236, merged 28 Nov), merged into every re
 
 ## Next
 
-All 22 batches are pushed as PRs #220 to #239, #243 and #244 (merge order: that order). The stack table marks the merged ones. Nothing is building.
+All 24 batches are pushed as PRs #220 to #239, #243, #244, #252 and #253 (merge order: that order). The stack table marks the merged ones. Nothing is building.
 
 Where the mission stands against `goal.txt`: an independent audit of every section of the goal (`converge/goal-audit.md`, 28 Nov) found the code converged, the contract preserved, and two things still actionable without a decision. Both are done: the two stale doc facts (and one imprecise ADR sentence) are corrected at the layers they belong to, and these records, the issues and the saved reviews now match the repository. The audit also judged an earlier "stopping conditions reached" line premature: at that time configuration, dependencies and deploy had not been surveyed. They have been since (`converge/survey/config-deploy-ci.md`); what an agent could do became stack 22 (#244), the rest is the Project Lead's and is in #240.
 
