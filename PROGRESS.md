@@ -46,6 +46,8 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 16 | `refactor/cv-16-clc-seeds` | 08 | #235 (draft) | refactor(curriculum): write each CLC 2025 course once |
 | 17 | `refactor/cv-17-docs-and-extras` | 17 | #236 (draft) | docs: match decision records and architecture map to the code |
 | 18 | `refactor/cv-18-dashboard-folder` | 18 | #237 (draft) | refactor(dashboard): move the dashboard screen into its own folder |
+| 19 | `refactor/cv-19-route-contract` | 19 | #238 (draft) | test(frontend): make mockApi refuse routes outside openapi.json |
+| 20 | `refactor/cv-20-tests-that-can-fail` | 20 | to open | tests that could not fail now can (building; source `converge/tests-scan.md`) |
 
 Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. Every layer passed the full verify when it was stacked; the tip passed again after `main` was merged in: backend 1205 unit / 365 e2e, frontend 1396 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). No test was removed; two titles were widened.
 
@@ -110,16 +112,14 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 
 ## Next
 
-All 18 batches are pushed as PRs #220 to #237 (CI was green on all 18 before the last push; layers 13 to 18 were pushed again on 28 Nov 06:13 with a fix that makes two specs find files at run time, so check their CI). An independent read (`converge/final-read.md`) found one remaining structural item, the dashboard folder, which is stack 18. The session stopped here on a usage limit.
+PRs #220 to #238 are open; CI was green on #220 to #237 at 07:22 on 28 Nov, and PR bodies #236 and #237 now quote the CI test count (1396 frontend unit tests at that layer).
 
-Open, in order:
-1. Check CI on #232 to #237 after the last push (`gh pr checks <n>`).
-2. PR bodies #236 and #237 quote 1393 frontend unit tests; the right number is 1396 (a stale local vitest cache hid one message catalogue). Correct the two bodies, and add to #232 that its specs now read the file system at run time.
-3. The "Tests" extra is not complete: the scan for tests that only repeat the implementation covered a sample (about two dozen of 142 specs changed since c7bf192); a full scan was started and stopped unfinished (brief in the session, nothing written). The two dashboard specs were never scanned; `dashboard/DashboardView.spec.ts` near line 139 has a weak `toBeTruthy` assertion. Ask Hoà before changing his fresh specs.
-4. The "Comments" extra: 76 comment lines in migrations were kept, because applied migrations are never edited.
-5. The dashboard code (about 1,900 lines from #214) was moved but never surveyed; do not call it converged.
-6. Post a final update in the progress sprite (the last one says ten PRs).
-7. The Version Packages PR (#211) holds #214's changeset and may merge mid-stack; after each restack check that a layer's diff against `main` has exactly one changeset.
-Then the mission waits on approvals, starting with #220 (ready, auto-merge on). See "Merging the stack".
+Building: stack 20, the "Tests" extra done completely. A full scan of the 139 specs changed since the last test clean-up (`converge/tests-scan.md`) listed about 38 tests that could not catch a bug; the batch confirms each by mutating production code, rewrites it so the mutation is caught, and removes only assertions with nothing of their own to check. Left by design: tests that compare text with the message catalogue (PR #199 chose behaviour over wording), the dashboard specs (Hoà's; he has the list), everything the scan marked "unsure".
+
+The dashboard code (from #214) was surveyed read-only: `converge/survey/dashboard.md`. Seven findings and five questions are with Hoà in the #237 thread; nothing is changed there without his word.
+
+After stack 20: the mission waits on approvals, starting with #220 (ready, auto-merge on). When a teammate asks for a change on a PR: fix it on that PR's branch in `cv-stack`, then merge that branch into each branch above it and push them all. When #220 merges, follow "Merging the stack". The Version Packages PR (#211) holds #214's changeset and may merge mid-stack: after each restack check that a layer's diff against `main` has exactly one changeset.
+
+Comments extra: one line removed (an eslint directive); the 76 comment lines in migrations stay, because applied migrations are never edited.
 
 Local leftovers that can be removed once the stack is merged: worktrees `.claude/worktrees/cv-build-{be,fa,fb}` and `cv-stack`, local branches `cvb/*`, databases `omnicourse_cv_*` and `omnicourse_converge` in the docker Postgres.
