@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { AcademicCalendarService, type CalendarEventStart } from '../academic-calendar/academic-calendar.service.js';
 import { notFound } from '../common/api-errors.js';
-import { failureKind, failureStack } from '../common/failure-kind.js';
+import { failureKind, failureStack, logWithStack } from '../common/failure-kind.js';
 import { Clock } from '../config/clock.js';
 import { MINUTE_MS, vietnamDate } from '../config/time.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
@@ -131,8 +131,7 @@ export class NotificationsService implements OnModuleInit {
       this.readFailureLoggedAt = now;
       this.readFailuresNotLogged = 0;
     }
-    if (stack) this.logger.error(line, stack);
-    else this.logger.error(line);
+    logWithStack(this.logger, line, stack);
   }
 
   async list(userId: string, query: NotificationsQueryDto): Promise<NotificationListDto> {
