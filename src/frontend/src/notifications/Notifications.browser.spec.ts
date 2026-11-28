@@ -5,6 +5,7 @@ import '../styles.css';
 import { setup } from '../testing/signed-in.js';
 import NotificationsView from './NotificationsView.vue';
 import { list, REGISTRATION_EVENT, SOON, TERM, TRANSCRIPT } from './testing/fixtures.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const PHONE = 360;
 const DESKTOP = 1280;
@@ -29,7 +30,7 @@ describe('NotificationsView layout in a real browser', () => {
     wrapper?.unmount();
     wrapper = undefined;
     host.remove();
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   async function render(width: number) {

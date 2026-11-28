@@ -5,6 +5,7 @@ import { user } from '../auth/testing/fixtures.js';
 import { contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import { CLASS_NAME_MAX_LENGTH, exportAccount, revokeSession, saveFile, STUDENT_ID_PATTERN, updateProfile, type AccountExport, type DeleteAccountBody, type DeletionScheduled, type ProfileBody } from './api.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const NULLABLE: Record<string, string[]> = {
   UpdateProfileDto: nullableKeys<ProfileBody>({ className: true, studentId: true }),
@@ -30,7 +31,7 @@ describe('account types against the contract', () => {
 
 describe('exportAccount', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('downloads the export with the token, as a file', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ exportedAt: '2026-11-09T00:00:00.000Z' }));
@@ -42,7 +43,7 @@ describe('exportAccount', () => {
 
 describe('updateProfile', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('patches the account with the token and returns the account', async () => {
     const saved = user({ studentId: '24120000', className: '24CTT0' });
@@ -57,7 +58,7 @@ describe('updateProfile', () => {
 
 describe('revokeSession', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('names the session in the address, escaped, and sends the token', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
@@ -69,7 +70,7 @@ describe('revokeSession', () => {
 describe('saveFile', () => {
   afterEach(() => {
     vi.useRealTimers();
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   it('clicks a download link to an object URL, then lets the URL go', () => {

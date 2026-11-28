@@ -7,6 +7,7 @@ import type { Guide, GuideListItem } from './guides/api.js';
 import { guideText, listText } from './guides/testing/guide-fixtures.js';
 import { createAppRouter } from './router.js';
 import { HEALTHY } from './testing/health.js';
+import { restoreMocksAfterCheckingCalls } from './testing/fetch.js';
 
 const title = (n: string) => `Hướng dẫn thử ${n}`;
 const LIST: GuideListItem[] = Array.from({ length: 20 }, (_, i) => {
@@ -28,7 +29,7 @@ afterEach(() => {
   window.history.replaceState(originalHistoryState, '', originalUrl);
   window.scrollTo(0, 0);
   localStorage.clear();
-  vi.restoreAllMocks();
+  restoreMocksAfterCheckingCalls();
 });
 
 async function openApp(path: string): Promise<Router> {

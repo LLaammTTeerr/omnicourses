@@ -4,6 +4,7 @@ import { API_URL } from '../api.js';
 import { contractEnum, contractNullable, contractShape, nullableKeys, type Shape } from '../testing/contract.js';
 import { signedInPinia } from '../testing/signed-in.js';
 import { CALENDAR_EVENT_KINDS, fetchAcademicCalendar, type AcademicCalendar, type CalendarEvent, type CalendarProgram } from './api.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const NULLABLE: Record<string, string[]> = {
   AcademicCalendarDto: nullableKeys<AcademicCalendar>({ program: true }),
@@ -44,7 +45,7 @@ describe('academic calendar types against the contract (ADR 0017)', () => {
 
 describe('fetchAcademicCalendar', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('asks for the school dates with the token of the signed-in student', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ program: null, events: [] }));

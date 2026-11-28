@@ -7,6 +7,7 @@ import { createAppRouter } from '../router.js';
 import { THEME_STORAGE_KEY } from '../shell/theme.js';
 import { HEALTHY } from '../testing/health.js';
 import { PRIVACY_MESSAGES } from './messages.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 let app: VueApp | undefined;
 let host: HTMLDivElement | undefined;
@@ -15,7 +16,7 @@ afterEach(() => {
   host?.remove();
   app = host = undefined;
   localStorage.clear();
-  vi.restoreAllMocks();
+  restoreMocksAfterCheckingCalls();
 });
 
 describe('privacy notice in a real browser (A11Y-01c)', () => {

@@ -4,16 +4,19 @@ import { API_URL, HttpError } from '../api.js';
 import { requestAsUser, sendAsUser, SESSION_STORAGE_KEY, useAccountCache, useAuth } from './store.js';
 import { authResult, user } from './testing/fixtures.js';
 import { ACCOUNT_STORAGE_KEYS } from '../account-storage.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const fetchMock = () => vi.spyOn(globalThis, 'fetch');
 
+function resetAuthState(): void {
+  sessionStorage.clear();
+  localStorage.clear();
+  setActivePinia(createPinia());
+}
+
 describe('auth store (ADR 0002)', () => {
-  beforeEach(() => {
-    sessionStorage.clear();
-    localStorage.clear();
-    setActivePinia(createPinia());
-  });
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(resetAuthState);
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('keeps the token in sessionStorage, never localStorage', async () => {
     fetchMock().mockResolvedValue(Response.json(authResult({ token: 'zz-new' })));
@@ -139,6 +142,11 @@ describe('auth store (ADR 0002)', () => {
     expect(auth.signedIn).toBe(false);
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull();
   });
+});
+
+describe('auth store: calls outside the contract', () => {
+  beforeEach(resetAuthState);
+  afterEach(() => vi.restoreAllMocks());
 
   it('sends a call as the signed-in student with their token, and signs them out on a 401', async () => {
     const fetch = fetchMock().mockResolvedValueOnce(Response.json(authResult({ token: 'zz-live' }))).mockResolvedValueOnce(Response.json({ ok: true }));

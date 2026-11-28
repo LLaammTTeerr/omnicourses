@@ -22,6 +22,7 @@ import {
   type ProgramSummary,
   type RequirementGroup,
 } from './api.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const course = {
   code: 'required',
@@ -124,7 +125,7 @@ describe('curriculum types against the contract (F4, ADR 0005)', () => {
 
 describe('curriculum addresses', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('escapes what goes into the path and sends the token', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));

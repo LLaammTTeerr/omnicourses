@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, codePoints, failureKind, fetchHealth, HttpError, request, REQUEST_TIMEOUT_MS, send, statusOf, type Health } from './api.js';
 import { contractEnum, contractNullable, contractShape, type Shape } from './testing/contract.js';
-import { hang } from './testing/fetch.js';
+import { hang, restoreMocksAfterCheckingCalls } from './testing/fetch.js';
 
 describe('Health against the contract', () => {
+  afterEach(() => restoreMocksAfterCheckingCalls());
+
   it('has the fields of HealthDto', () => {
     expect(contractShape('HealthDto')).toEqual({ status: 'required', database: 'required' } satisfies Shape<Health>);
   });
@@ -25,7 +27,6 @@ describe('Health against the contract', () => {
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('<html>503</html>', { status: 503 }));
     await expect(fetchHealth()).rejects.toBeInstanceOf(HttpError);
-    vi.restoreAllMocks();
   });
 });
 

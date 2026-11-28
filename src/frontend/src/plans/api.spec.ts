@@ -43,6 +43,7 @@ import {
 } from './api.js';
 import { PLANNER_MESSAGES } from './messages.js';
 import { course, PLAN_ID } from './testing/fixtures.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const summary = { id: 'required', name: 'required', curriculum: 'required', createdAt: 'required', updatedAt: 'required' } as const;
 
@@ -144,7 +145,7 @@ describe('plan types against the contract (F5, ADR 0014)', () => {
 
 describe('plan requests', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('sends each call to its route with the token and the body', async () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => (init?.method === 'DELETE' ? new Response(null, { status: 204 }) : Response.json({})));

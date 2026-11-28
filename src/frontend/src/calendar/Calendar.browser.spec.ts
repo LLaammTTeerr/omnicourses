@@ -4,6 +4,7 @@ import '../styles.css';
 import { setup } from '../testing/signed-in.js';
 import CalendarView from './CalendarView.vue';
 import { calendar, event, REGISTRATION } from './testing/fixtures.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const THURSDAY_12_NOV_10AM_IN_VIETNAM = new Date('2026-11-12T03:00:00Z');
 const SUNDAY_15_NOV_10AM_IN_VIETNAM = new Date('2026-11-15T03:00:00Z');
@@ -30,7 +31,7 @@ describe('CalendarView layout in a real browser', () => {
     wrapper = undefined;
     host.remove();
     vi.useRealTimers();
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   async function render(width: number) {

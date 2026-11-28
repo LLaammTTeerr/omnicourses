@@ -7,6 +7,7 @@ import { API_URL } from '../api.js';
 import { createAppRouter } from '../router.js';
 import { HEALTHY } from '../testing/health.js';
 import HomeView from './HomeView.vue';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 describe('HomeView in a real browser', () => {
   let host: HTMLDivElement;
@@ -23,7 +24,7 @@ describe('HomeView in a real browser', () => {
     wrapper?.unmount();
     wrapper = undefined;
     host.remove();
-    vi.restoreAllMocks();
+    restoreMocksAfterCheckingCalls();
   });
 
   it('shows the home page while loading, then the API and database status', async () => {

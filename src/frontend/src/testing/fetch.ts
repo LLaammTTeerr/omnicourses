@@ -4,6 +4,12 @@ import { contractHasRoute } from './contract.js';
 
 type Answer = unknown | ((init: RequestInit | undefined, url: string) => Response | Promise<Response>);
 
+function pathOf(input: unknown): string {
+  const url = String(input);
+  if (!url.startsWith(API_URL)) throw new Error(`Call is not to the API: ${url}`);
+  return url.slice(API_URL.length);
+}
+
 function refuseRoutesOutsideContract(routes: Record<string, Answer>): void {
   for (const key of Object.keys(routes)) {
     const [method, path] = key.split(' ');
@@ -14,12 +20,29 @@ function refuseRoutesOutsideContract(routes: Record<string, Answer>): void {
 export function mockApi(routes: Record<string, Answer>) {
   refuseRoutesOutsideContract(routes);
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-    const path = String(input).slice(API_URL.length).split('?')[0];
+    const path = pathOf(input).split('?')[0];
     const key = `${init?.method ?? 'GET'} ${path}`;
     if (!Object.hasOwn(routes, key)) throw new Error(`Unexpected API call: ${key}`);
     const answer = routes[key];
     return typeof answer === 'function' ? answer(init, String(input)) : Response.json(answer);
   });
+}
+
+function refuseCallsOutsideContract(): void {
+  if (!vi.isMockFunction(globalThis.fetch)) return;
+  for (const [input, init] of vi.mocked(globalThis.fetch).mock.calls) {
+    const method = init?.method ?? 'GET';
+    const path = pathOf(input);
+    if (!contractHasRoute(method, path)) throw new Error(`Call is not a route of openapi.json: ${method} ${path}`);
+  }
+}
+
+export function restoreMocksAfterCheckingCalls(): void {
+  try {
+    refuseCallsOutsideContract();
+  } finally {
+    vi.restoreAllMocks();
+  }
 }
 
 export const sentBody = (init: RequestInit | undefined): unknown => JSON.parse(String(init?.body));

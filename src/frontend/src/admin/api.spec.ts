@@ -57,6 +57,7 @@ import {
   type UpdateGroupBody,
 } from './api.js';
 import * as grants from './grants.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const error = { statusCode: 'required', code: 'required', message: 'required' } as const;
 const periods = { theoryPeriods: 'optional', labPeriods: 'optional', exercisePeriods: 'optional', projectPeriods: 'optional' } as const;
@@ -328,7 +329,7 @@ const matches = (template: string, url: string) => new RegExp(`^${template.repla
 
 describe('administration addresses against the contract', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it.each(CALLS)('%s calls a route the API serves, with the token', async (_name, call, method, path) => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({}));

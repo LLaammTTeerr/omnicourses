@@ -24,6 +24,7 @@ import {
   type SharedPlanTerm,
   type SharedProgram,
 } from './api.js';
+import { restoreMocksAfterCheckingCalls } from '../testing/fetch.js';
 
 const NULLABLE: Record<string, string[]> = {
   PlanShareStateDto: nullableKeys<PlanShareState>({ share: true }),
@@ -144,7 +145,7 @@ describe('sharing types against the contract (F9, ADR 0010)', () => {
 
 describe('sharing requests', () => {
   beforeEach(() => signedInPinia());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => restoreMocksAfterCheckingCalls());
 
   it('sends owner share calls with the bearer token and body', async () => {
     const fetch = vi
