@@ -14,7 +14,8 @@
 | --- | --- |
 | Passed | 92. TRN-01a–e, TRN-02a–h, PLAN-02b, d, e, ADM-01a–e, ADM-02a–l, ADM-03a–f, ADM-04a–f, ADM-05a–g, ADM-06a–g, ADM-07a–i, SHARE-01a–k, NOTIF-01a–c, e–i, A11Y-01a, b, c, g, h |
 | Failed (21–25 Nov runs) | 5. The planner's saved state on `086d49c`: PLAN-02a ([#137](https://github.com/LLaammTTeerr/omnicourses/issues/137)), PLAN-02c ([#138](https://github.com/LLaammTTeerr/omnicourses/issues/138)) — both fixed in `src/frontend/src/plans/session.ts` on this branch and awaiting staging retest. Accessibility of the administration screens on `5a5b9d5`: A11Y-01d ([#170](https://github.com/LLaammTTeerr/omnicourses/issues/170), fixed by #210 on `main`), A11Y-01e and f ([#119](https://github.com/LLaammTTeerr/omnicourses/issues/119), contrast tokens hardened in `styles.css` on this branch) — awaiting staging retest |
-| Blocked | 4. ADM-04g and ADM-07k on Lâm's answer to what "breaks" a group's credit total ([ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12), Q2). Staging's proxy: ADM-07j (nginx answered 413 in HTML on 25 Nov; Lâm runs `deploy/server/setup.sh` for `client_max_body_size 8m`). Streamed advisor updates (B3): A11Y-01i (dragging and Print/PDF layout are now built on the branch; streamed updates wait for F8) |
+| Blocked | 2. Staging's proxy: ADM-07j (nginx answered 413 in HTML on 25 Nov; Lâm runs `deploy/server/setup.sh` for `client_max_body_size 8m`). Streamed advisor updates (B3): A11Y-01i (dragging and Print/PDF layout are now built on the branch; streamed updates wait for F8) |
+| Not applicable | 2. ADM-04g, ADM-07k: not applicable (Lâm, 28 Nov: no total check; [ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)) |
 | Not run on staging yet | 21. ADM-03g (rewritten on 28 November 2026 for the credit-total routes; ADM-03c (5) and ADM-03d (3) changed with it and need a rerun). Newly written & shipped on branch: PLAN-01a–f (6), OPS-01a–c (3). Unblocked since the 25 Nov run: TRN-01f (paste parser), TRN-01g (**Cancel changes**), SHARE-01l (Share dialog, `/shared/:token`, Print/PDF), NOTIF-01j (`/notifications` inbox & unread bell, #204/#205 — #204 is already on staging `1bde552`, so it can run now). Scheduled / candidate-timed: NOTIF-01d(2) (runs 28 November 2026), PERF-01a–f (6, ready to time against shipped live validation) |
 | **Total** | **122** |
 
@@ -40,10 +41,10 @@ By parent check. A parent passes only when all its required detailed outcomes pa
 | TC-B2-ADM-01 | passed | `a–e` passed. |
 | TC-B2-ADM-02 | passed | `a–l` passed. |
 | TC-B2-ADM-03 | not passed yet | `a–f` passed. `g` rewritten on 28 November 2026 for the credit-total routes; it runs once they are deployed. |
-| TC-B2-ADM-04 | not passed yet | `a–f` passed. `g` blocked on Lâm's answer to Q2 (what "breaks" a group's credit total). |
+| TC-B2-ADM-04 | not passed yet | `a–f` passed. `g` not applicable (Lâm, 28 Nov: no total check). |
 | TC-B2-ADM-05 | passed | `a–g` passed. |
 | TC-B2-ADM-06 | passed | `a–g` passed. |
-| TC-B2-ADM-07 | not passed yet | `a–i` passed. `j` blocked on running `setup.sh` on staging's nginx, `k` on Lâm's answer to Q2 (what "breaks" a group's credit total). |
+| TC-B2-ADM-07 | not passed yet | `a–i` passed. `j` blocked on running `setup.sh` on staging's nginx, `k` not applicable (Lâm, 28 Nov: no total check). |
 | TC-B2-SHARE-01 | not passed yet | `a–k` passed through the API (`e7bd617`). `l` was blocked on 25 Nov (#178) and is now built on this branch (`SharePlanDialog.vue`, `SharedPlanView.vue` at `/shared/:token`, A4 Print/PDF layout) and unit-tested, awaiting staging run. |
 | TC-B2-NOTIF-01 | not passed yet | `a–c, e–i` passed (`e7bd617`). `d(2)` runs on 28 November. `j` was blocked on 25 Nov (#177) and is now on staging (`1bde552`, #204; #205 on `main`), ready to run now. |
 | TC-B2-PERF-01 | not run | `PERF-01a–f` written; planner live validation is shipped on this branch and ready to time on the B2 candidate. |
@@ -110,8 +111,8 @@ One line per group of cases from the same run with the same result. The results 
 | ADM-02a–h | passed | Signed-out 401, no-role 403, own-program writes, another program refused with nothing of it leaked, catalog and access roles kept apart, a revoked grant refused at once with the old token, the last access manager kept. |
 | ADM-02i–l | passed | Each role sees only its sections; a grant revoked while a form is open is refused and the form is kept; group writes in the own program, refused in another. |
 | ADM-03a–f | passed | A second cohort, APCS2099, with its groups and links, leaves the first cohort's plans, audit and curriculum unchanged; duplicates, bad values and other programs are refused. |
-| ADM-03g | not run | Rewritten on 28 November 2026: the administration routes accept a cohort's and a group's credit totals ([ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)). Run once deployed. `trainingType` stays refused (Q1, not decided). |
-| ADM-04g, ADM-07k | blocked | No document defines when a removal or a group-link file "breaks" a group's credit total. Lâm answers Q2 of the same amendment; the steps are written from the answer. No longer on Triết. |
+| ADM-03g | not run | Rewritten on 28 November 2026: the administration routes accept a cohort's and a group's credit totals, and the access manager sets a program's `trainingType` when creating it (Lâm, 28 Nov 2026; [ADR 0011, amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12)). Run once deployed; step (14) creates a program that stays, so it needs Lâm's agreement first. |
+| ADM-04g, ADM-07k | not applicable | Lâm, 28 Nov: no total check. A link removal or a group-link file may leave a group off its credit total, and the audit shows the gap. |
 | ADM-04a–f | passed | Unlinking, a course a rule still names (409), a linked course (409), a group a saved plan uses (409, fixed by #172 before the run), catalog deletion by role, codes that cannot change. |
 | ADM-05a–d | passed | Field validation, duplicate codes, an impact list that changed during the review, deletions refused while a transcript or plan names the course, and edits that leave saved transcripts and plans unchanged. |
 | ADM-05e–g | passed | The same on the screens: field errors, Cancel, the three lost-answer outcomes, and the review after `impact_changed`. |
@@ -183,7 +184,7 @@ Each item updates this report when it runs on the B2 candidate.
 | 6 | `NOTIF-01j` and `/notifications` in `A11Y-01` | Dũng | #204 is already on staging (`1bde552`); can run now (#205 on `main`). |
 | 7 | `PLAN-01a–f` and `PERF-01a–f` | Hoà, Triết; Dũng runs | Run `PLAN-01a–f` and time `PERF-01a–f` on the staging candidate. |
 | 8 | `TRN-01f, g` and `TRN-01a–e` rerun | Lâm, Dũng | Run `TRN-01f–g` (paste parser, pre-save diff, **Cancel changes**) and re-verify `TRN-01a–e` on staging. |
-| 9 | `ADM-03g`, `ADM-04g`, `ADM-07k` | Dũng runs; Lâm decides | Run `ADM-03g` once the credit-total routes (28 November 2026) are on staging. Lâm answers Q1 (who enters `trainingType`) and Q2 (what "breaks" a group's credit total) of the [ADR 0011 amendment of 28 November 2026](../analysis-and-design/adr/0011-curriculum-administration.md#amendment-28-november-2026-credit-totals-entered-through-f12); `ADM-04g` and `ADM-07k` are written from the Q2 answer. |
+| 9 | `ADM-03g` | Dũng | Run `ADM-03g` once the routes of 28 November 2026 are on staging; ask Lâm before step (14), which leaves a program. `ADM-04g` and `ADM-07k` are not applicable (Lâm, 28 Nov: no total check). |
 | 10 | B1 regression on B2 (cases §12) | Dũng | Update the cases listed in #116, then run the B1 cases on the candidate. |
 | 11 | Retests of B1 defects (cases §13) | Dũng | For each of #101, #114, #115, #117 and #119 once its fix is merged. SHARE-01k already saw the 121st request refused, where #117 had let it through. |
 | 12 | Retests of B2 defects | Dũng | Retest `PLAN-02a, c` (#137, #138) and `A11Y-01d–f` (#170 fixed by #210 on `main`; #119 on branch) on staging / the candidate. |
