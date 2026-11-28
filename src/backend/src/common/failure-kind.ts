@@ -40,9 +40,11 @@ export function failureStack(error: unknown): string | undefined {
   return frames.length ? frames.join('\n') : undefined;
 }
 
+export function logWithStack(logger: Logger, line: string, stack: string | undefined): void {
+  if (stack) logger.error(line, stack);
+  else logger.error(line);
+}
+
 export function logFailure(logger: Logger, line: string, error: unknown): void {
-  const stack = failureStack(error);
-  const text = `${line}: ${failureKind(error)}`;
-  if (stack) logger.error(text, stack);
-  else logger.error(text);
+  logWithStack(logger, `${line}: ${failureKind(error)}`, failureStack(error));
 }

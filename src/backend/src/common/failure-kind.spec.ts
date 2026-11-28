@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 import { describe, expect, it, vi } from 'vitest';
-import { failureKind, failureStack, isRefusal, logFailure, SQLSTATE } from './failure-kind.js';
+import { failureKind, failureStack, isRefusal, logFailure, logWithStack, SQLSTATE } from './failure-kind.js';
 
 describe('failureKind', () => {
   it('names the class of an error and nothing of its message', () => {
@@ -79,5 +79,15 @@ describe('logFailure', () => {
     expect(error).toHaveBeenCalledWith('Could not save: TypeError', expect.stringContaining('failure-kind.spec.ts'));
     expect(JSON.stringify(error.mock.calls)).not.toContain('synthetic-id');
     error.mockRestore();
+  });
+});
+
+describe('logWithStack', () => {
+  it('passes the stack as a second argument only when there is one', () => {
+    const logger = new Logger('Spec');
+    const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+    logWithStack(logger, 'with', '    at synthetic');
+    logWithStack(logger, 'without', undefined);
+    expect(error.mock.calls).toEqual([['with', '    at synthetic'], ['without']]);
   });
 });
