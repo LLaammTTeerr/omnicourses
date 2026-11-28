@@ -3,7 +3,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import { notFound, validationFailed } from '../common/api-errors.js';
 import { nullIfBlank, sentFields, yearOf } from '../common/field-validators.js';
 import { Program } from '../curriculum/program.entity.js';
-import { AdminWriteService } from '../curriculum-admin/admin-write.service.js';
+import { AdminWriteService } from '../admin-access/admin-write.service.js';
 import { OnboardingService } from '../onboarding/onboarding.service.js';
 import type { TermNumber } from '../terms/term.js';
 import { AcademicCalendarEvent, type CalendarEventKind } from './academic-calendar-event.entity.js';

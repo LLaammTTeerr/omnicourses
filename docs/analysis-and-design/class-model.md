@@ -199,7 +199,7 @@ classDiagram
 
 ### 1.3 Administration grants
 
-Sources: `curriculum-admin/admin-grant.entities.ts`; migration `create-curriculum-admin`.
+Sources: `admin-access/admin-grant.entities.ts`; migration `create-curriculum-admin`.
 
 ```mermaid
 classDiagram
@@ -1040,7 +1040,7 @@ Each service reaches its own tables through TypeORM repositories (left out of th
 
 ### 3.3 Curriculum administration
 
-Sources: `curriculum-admin/` ([ADR 0011](adr/0011-curriculum-administration.md)); the single-page app screens are in `src/frontend/src/admin/` (§4).
+Sources: `curriculum-admin/`, `admin-access/` ([ADR 0011](adr/0011-curriculum-administration.md)); the single-page app screens are in `src/frontend/src/admin/` (§4).
 
 ```mermaid
 classDiagram

@@ -4,7 +4,7 @@ import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AccessAdminService, bootstrapAccessManager } from '../src/curriculum-admin/access-admin.service.js';
-import { AdminWriteService } from '../src/curriculum-admin/admin-write.service.js';
+import { AdminWriteService } from '../src/admin-access/admin-write.service.js';
 import { CATALOG_DECISIONS, CURRICULUM_SEEDS } from '../src/curriculum/seeds/index.js';
 import { seedCurricula } from '../src/curriculum/seed-curricula.js';
 import { authed, grantGlobal, runSuffix } from './support/admin.js';

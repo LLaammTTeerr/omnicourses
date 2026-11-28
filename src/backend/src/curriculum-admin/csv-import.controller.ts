@@ -5,7 +5,7 @@ import { AdminErrorDto } from '../common/api-errors.js';
 import { StrictBody, uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
 import { ImportRejectedDto } from './admin-errors.js';
-import { AdminErrors } from './admin-write.service.js';
+import { AdminErrors } from '../admin-access/admin-error-responses.js';
 import { CATALOG_COURSES_HEADER, CSV_MAX_BYTES, CSV_MAX_RECORDS, GROUP_LINKS_HEADER, inMiB } from './csv-file.js';
 import { CatalogImportPreviewDto, GroupLinkImportPreviewDto, ImportConfirmRequestDto, ImportPreviewRequestDto, ImportResultDto } from './csv-import.dto.js';
 import { CsvImportService } from './csv-import.service.js';

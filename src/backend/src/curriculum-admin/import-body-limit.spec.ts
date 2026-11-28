@@ -4,7 +4,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { configureApp } from '../bootstrap.js';
-import type { Need } from './grants.js';
+import type { Need } from '../admin-access/grants.js';
 import { CATALOG_IMPORTS, COHORT_IMPORTS, IMPORT_JSON_LIMIT_BYTES, ImportBodyGate } from './import-body-limit.js';
 
 const KIB = 1024;

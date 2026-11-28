@@ -7,7 +7,7 @@ import { logFailure } from '../common/failure-kind.js';
 import { Course } from '../curriculum/course.entity.js';
 import { AffectedCurriculumDto, importRejected, ImportRowErrorDto } from './admin-errors.js';
 import { catalogHas, cohortIn, noCatalogCourse, parseCourseCode } from './admin-lookups.js';
-import { AdminWriteService } from './admin-write.service.js';
+import { AdminWriteService } from '../admin-access/admin-write.service.js';
 import { CatalogAdminService, type CourseChange, courseChange, type CourseValues, courseValuesInOrder, newCourseValues, reviewHash } from './catalog-admin.service.js';
 import { CATALOG_COLUMNS, CATALOG_COURSES_HEADER, type CatalogColumn, type CsvFile, type CsvRow, GROUP_LINKS_HEADER, type GroupLinkColumn, readCsv } from './csv-file.js';
 import {
@@ -22,7 +22,7 @@ import {
 } from './csv-import.dto.js';
 import { COURSE_FIELDS, type CourseField, CreateCourseDto, wholeNumberOrText } from './curriculum-admin.dto.js';
 import { CurriculumAdminService } from './curriculum-admin.service.js';
-import type { Need } from './grants.js';
+import type { Need } from '../admin-access/grants.js';
 
 const IMPORT_VALIDATION_REVISION = 'f12-structural-1';
 

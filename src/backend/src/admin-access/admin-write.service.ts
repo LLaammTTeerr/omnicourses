@@ -1,28 +1,15 @@
-import { applyDecorators, Injectable } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiProperty } from '@nestjs/swagger';
+import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { SINGLE_KEY_LOCKS } from '../common/advisory-locks.js';
-import { AdminErrorDto, forbidden } from '../common/api-errors.js';
+import { forbidden } from '../common/api-errors.js';
 import { type AccountState, type DeletionState, deletionStateOf, isWaitingForDeletion, lockAccountStates, ROW_LOCK } from '../users/account-state.js';
 import { grantsOf, missingPermission, type Need, type PermissionKind } from './grants.js';
-
-class PermissionRequiredDto extends AdminErrorDto {
-  @ApiProperty({ enum: ['program_admin', 'catalog_maintainer', 'access_manager'], description: 'The grant the caller lacks' })
-  permission!: PermissionKind;
-}
 
 const permissionRequired = (permission: PermissionKind) =>
   forbidden('permission_required', `This needs the ${permission} permission`, { permission });
 
 const accountDeletionPending = () =>
   forbidden('account_deletion_pending', 'An account waiting for deletion cannot administer curricula');
-
-export const AdminErrors = ({ notFound = true }: { notFound?: boolean } = {}) =>
-  applyDecorators(
-    ApiBadRequestResponse({ type: AdminErrorDto, description: '`validation_failed`: a malformed ID or code, an unknown field or an invalid value; nothing is saved' }),
-    ApiForbiddenResponse({ type: PermissionRequiredDto, description: '`permission_required`: the caller lacks the grant this needs; `account_deletion_pending`' }),
-    ...(notFound ? [ApiNotFoundResponse({ type: AdminErrorDto, description: '`not_found`: nothing with this ID or code within the authorised scope' })] : []),
-  );
 
 export async function lockAdminWrite(
   em: EntityManager,

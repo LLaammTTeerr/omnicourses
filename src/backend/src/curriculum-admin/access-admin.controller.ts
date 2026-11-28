@@ -5,8 +5,8 @@ import { AdminErrorDto, validationFailed } from '../common/api-errors.js';
 import { uuidParam } from '../common/api-requests.js';
 import { User } from '../users/user.entity.js';
 import { AccessAdminService } from './access-admin.service.js';
-import { GLOBAL_PERMISSIONS, type GlobalPermission } from './admin-grant.entities.js';
-import { AdminErrors } from './admin-write.service.js';
+import { GLOBAL_PERMISSIONS, type GlobalPermission } from '../admin-access/admin-grant.entities.js';
+import { AdminErrors } from '../admin-access/admin-error-responses.js';
 import { AccessProgramListDto, UserGrantsDto } from './curriculum-admin.dto.js';
 
 const permissionParam: PipeTransform<string, GlobalPermission> = {

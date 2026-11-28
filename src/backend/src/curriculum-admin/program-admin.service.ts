@@ -4,7 +4,7 @@ import { changedFields, trimmedOrNull } from '../common/field-validators.js';
 import { Curriculum } from '../curriculum/curriculum.entity.js';
 import { Program } from '../curriculum/program.entity.js';
 import { cohortIn, programIn } from './admin-lookups.js';
-import { AdminWriteService } from './admin-write.service.js';
+import { AdminWriteService } from '../admin-access/admin-write.service.js';
 import { COHORT_FIELDS, CohortDetailsDto, CreateCohortDto, CreateProgramDto, PROGRAM_FIELDS, ProgramDetailsDto, UpdateCohortDto, UpdateProgramDto } from './program-admin.dto.js';
 
 const NULLABLE_TEXT = { nameEn: trimmedOrNull, faculty: trimmedOrNull, language: trimmedOrNull };

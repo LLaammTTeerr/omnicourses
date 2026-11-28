@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { conflict } from '../common/api-errors.js';
 import { isWaitingForDeletion, noDeletionWaitingSql } from '../users/account-state.js';
-import type { GlobalPermission } from './admin-grant.entities.js';
+import type { GlobalPermission } from '../admin-access/admin-grant.entities.js';
 import { assertAccountExists, assertActiveRecipient, programIn } from './admin-lookups.js';
-import { AdminWriteService, lockAdminWrite } from './admin-write.service.js';
+import { AdminWriteService, lockAdminWrite } from '../admin-access/admin-write.service.js';
 import { AccessProgramDto, UserGrantsDto } from './curriculum-admin.dto.js';
-import { type Need, userGrants } from './grants.js';
+import type { Need } from '../admin-access/grants.js';
+import { userGrants } from './user-grants.js';
 
 const ACCESS_MANAGER: Need = { permission: 'access_manager' };
 

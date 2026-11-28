@@ -4,16 +4,13 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthGuard } from './auth/auth.guard.js';
 import { THROTTLERS } from './auth/rate-limits.js';
-import { ClockModule } from './config/clock.js';
 import { connectionOptions } from './database/data-source.js';
-import { FEATURE_MODULES } from './features.js';
+import { platformImports } from './features.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({ useFactory: () => ({ ...connectionOptions(), autoLoadEntities: true }) }),
     ThrottlerModule.forRoot(THROTTLERS),
-    ClockModule,
-    ...FEATURE_MODULES,
+    ...platformImports(TypeOrmModule.forRootAsync({ useFactory: () => ({ ...connectionOptions(), autoLoadEntities: true }) })),
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
