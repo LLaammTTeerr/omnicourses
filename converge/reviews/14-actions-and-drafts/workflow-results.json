@@ -1,0 +1,60 @@
+[
+ {
+  "status": "done",
+  "summary": "Steps A to D are done. Step E needed no change. verify.sh printed RESULT: ALL PASS on the final commit (2b609fd) and `git status --short` is empty. COUNTS: unit-fe=1293 against a baseline of 1246, browser=68 against 68. The report file was not written: the Write tool refused the path, so the report is in this result. Work is in /home/lamter/omnicourses/.claude/worktrees/cv-build-fa on branch cvb/14-actions-and-drafts. Commits, in order:\n1. 392a602 (C): `groupGlyph` and `groupShort` in groups.ts, with a spec. They replace the lookups in 7 files: audit/present.ts, plans/present.ts, plans/StatusStrip.vue, sharing/SharedPlanView.vue, admin/CurriculumAdmin.vue, explorer/CourseDrawer.vue and explorer/ExplorerView.vue.\n2. 4dee524 (A): `reportFailure(what, e)` and `useAttempt(failureText)` in async-load.ts. I put them there because it already holds `useAsyncLoad` and the Vue state, and api.ts stays free of Vue. plans/actions.ts and SharePlanDialog.vue now run on `useAttempt`. `reportFailure` replaces the 401 check at these sites:\n   - ExplorerView, the curriculum standing load.\n   - notifications/store.ts.\n   - transcript/codes.ts.\n   - plans/present.ts, the audit load.\n   - admin/store.ts.\n   - PlanTabs.\n   - SharePlanDialog `loadState`.\n   - The failure branch of NotificationsView `readOne` and `readAll`, SettingsView revoke, and PlannerEntry.\n   Specs for both helpers are in async-load.spec.ts.\n3. 50305aa (B): `useProgramChoices` is exported from onboarding/answers.ts and now takes a getter instead of a Ref. The explorer uses it and keeps only its offered-only filter, so no new argument was needed.\n4. f584fac (D): transcript/draft.ts has `useTranscriptDraft` and a pure `autoFill`. draft.spec.ts covers the cases empty, previously auto-filled, user-edited, and no longer matching a course. TranscriptView.vue keeps focus handling, toasts, the route-leave guard and curriculum loading. I also updated the two docs lines in docs/analysis-and-design/architecture.md and class-model.md.\n5. 2b609fd: the empty changeset `.changeset/14-actions-and-drafts.md`.",
+  "commits": [
+   "392a602 refactor(frontend): look up the group glyph and short name in groups.ts",
+   "4dee524 refactor(frontend): share one helper for a user action and for a failed background read",
+   "50305aa refactor(frontend): let the explorer use useProgramChoices",
+   "f584fac refactor(frontend): move the transcript draft out of the view into transcript/draft.ts",
+   "2b609fd chore: add the empty changeset for the actions and drafts batch"
+  ],
+  "verify": "Ran `/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-fa omnicourse_cv_fa typecheck lint unit-fe build browser contract` on the final commit.\nLast lines of its output:\nPASS lint (2s)\nPASS typecheck-be (10s)\nPASS typecheck-fe (15s)\nPASS unit-fe (35s)\nPASS build-fe (3s)\nPASS build-be (6s)\nPASS contract (0s)\nPASS browser (11s)\nCOUNTS unit-be=- unit-fe=1293 e2e=- browser=68   (baseline 3c4da22: 1132 1246 364 68)\nRESULT: ALL PASS (typecheck lint unit-fe build browser contract)\nunit-fe is 47 above the baseline of 1246 because of the new specs.",
+  "leftOut": [
+   "Left as they are because their behaviour differs from the helper:",
+   "auth/store.ts `start` (line 59) clears the stored token on 401, otherwise resets `started` and logs.",
+   "auth/store.ts `authed` (line 101) clears the session on 401 and rethrows.",
+   "SettingsView profile save (line 94) logs only the status, with no 401 check and no 'failed' text.",
+   "TranscriptView `save` and plans/session.ts (`failSave`, lines 122, 151, 286) have 400/429/signed-out branches, extra `!auth.signedIn` conditions and different log text.",
+   "NotificationsView `readAll`/`readOne`, SettingsView revoke and PlannerEntry use `reportFailure` but not `useAttempt`, because they show a toast or flag instead of the helper's error ref.",
+   "Uses of `statusOf` only in templates (404/429/401 for display) are not failure reports and were not touched.",
+   "Row-limit guard in TranscriptView: kept, not removed. The dialog disables the buttons, so the UI never reaches it. It moved into `appendPasted`/`replaceWithPasted` (return false over MAX_ROWS) and draft.spec.ts tests it, because the composable can be called without the dialog.",
+   "Step E (scripts/layers.mjs): lint passed without any change, so no edges were added.",
+   "No file owned by an open pull request was touched. That includes audit/Dashboard*, audit/api.ts, shell/icons.ts and testing/fetch.ts.",
+   "The report file was not written (Write refused the path outside the worktree). Its content is in this result."
+  ],
+  "lookTwice": [
+   "SharePlanDialog.vue: `busy` is now a boolean from `useAttempt`, and a small `pending` ref only picks the button label via `busyWith(kind)`. The close watcher sets `busy=false` and clears the error as before. `saveChoices` still does not clear the copy feedback.",
+   "`useProgramChoices` in onboarding/answers.ts now takes a getter instead of a Ref (the explorer passes `() => selection.value?.program ?? null`). The explorer's `selection` and the composable's cohorts depend on each other lazily, so check there is no evaluation-order problem.",
+   "draft.ts `autoFill`: the 'filled' record can hold an undefined name or credits key where the old code omitted the key. Behaviour is the same. The spec compares with `toEqual`.",
+   "SettingsView revoke, PlannerEntry and NotificationsView now call `reportFailure` and act on its boolean. Check the 401 path still shows nothing and the other paths log the same 'X failed:' text."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/frontend/src/sharing/SharePlanDialog.vue:28: `pending` starts as 'creating' even when nothing runs. It is only read through busyWith, so it is harmless, but a nullable ref would show the state honestly.",
+   "src/frontend/src/plans/present.ts and src/frontend/src/sharing/SharedPlanView.vue:66: `glyphOf = groupGlyph` adds a second name for one function. Use groupGlyph directly.",
+   "src/frontend/src/transcript/draft.ts:21: the local type name `Curriculum` shadows the meaning of curriculum/api's Curriculum type. Rename it, for example to FillSource.",
+   "src/frontend/src/transcript/draft.spec.ts: the append limit is tested only at 1+MAX_ROWS, so a `>=` mutation in appendPasted would pass. Add a case where rows plus pasted equals MAX_ROWS exactly and is accepted.",
+   "The implementer report (scratchpad/batches/14-actions-and-drafts/report.md) does not exist. So the sites left alone, the reason for async-load.ts over api.ts, and the layers.mjs edges (none) are not written down. The review lists the sites left alone."
+  ],
+  "checked": [
+   "Behaviour: useAttempt matches the old plans/actions.ts attempt (order, log text, silence on 401, return values)",
+   "Behaviour: reportFailure keeps the same log text and the same 401 silence at all 11 migrated sites; the toasts and failure flags are kept",
+   "Behaviour: SharePlanDialog's busy kind became busy+pending, with the same labels, disabled bindings, close reset and log texts",
+   "Sites left alone (auth/store, plans/session, TranscriptView save and curriculum load, AuditGate/PlanEditorView templates) each differ from the helper, so leaving them out is correct",
+   "ExplorerView on useProgramChoices: the cohorts are the same, because non-offered choices always have empty cohorts; programName and the programs load log are the same",
+   "groupGlyph/groupShort are the same lookup; CourseDrawer's null-group fallback is kept",
+   "autoFill/syncAutoFill match the old syncCurriculumAutoFill on every branch; snapshot, baseline, cancel and paste are the same; the MAX_ROWS guard is kept and tested",
+   "Contract: openapi.json, migrations and package-lock.json are unchanged; no backend change",
+   "Tests: only additions to async-load.spec and groups.spec, plus the new draft.spec; frontend suite passes, 82 files and 1293 tests",
+   "Completeness: no GROUPS.find copies left; the old attempt and syncCurriculumAutoFill are removed; the docs are updated",
+   "Structure: depgraph folder dependencies are the same as the base; no cycles",
+   "Repo rules: typecheck clean, npm run lint passes, no comments, no new deps, all 5 commits signed G with Conventional subjects, exactly one changeset",
+   "Scope: no off-limits files touched; scripts/layers.mjs unchanged",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/14-actions-and-drafts/review-1.md"
+  ]
+ }
+]

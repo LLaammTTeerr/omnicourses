@@ -1,0 +1,45 @@
+[
+ {
+  "status": "done",
+  "summary": "mockApi now throws \"Route is not in openapi.json: <key>\" for any route the contract lacks, checked when mockApi is called. The new helper contractHasRoute(method, path) in testing/contract.ts has a spec. Of the 94 frontend spec files, only admin/write.spec.ts was refused. It mocked the stand-in route PUT /admin/x, so I changed it to the real route PUT /admin/access/users/u/programs/p and left its assertions alone. I found no production route missing from the contract and needed no explicit escape. admin/api.spec.ts is unchanged. I added one sentence to architecture.md, which appears in two identical API-types table rows.",
+  "commits": [
+   "f508b96 test(frontend): add a contract route lookup",
+   "f0bc0fe test(frontend): make mockApi refuse routes outside the contract"
+  ],
+  "verify": "verify.sh printed RESULT: ALL PASS. COUNTS: unit-fe=1402 (baseline 1246), browser=68. git status is clean.",
+  "leftOut": [
+   "Nothing left out. No production defect found. No escape hatch added."
+  ],
+  "lookTwice": [
+   "src/frontend/src/testing/fetch.ts is edited because the brief's objective says to (PR #214 has merged).",
+   "The architecture.md sentence is in two identical API-types rows (lines ~216 and ~218), because the edit matched both.",
+   "The empty changeset .changeset/19-route-contract.md is in the second (last) commit.",
+   "The worktree named in the brief, cv-build-fb, is where I worked, not the cv-stack directory in my environment header.",
+   "The report is at /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/19-route-contract/report.md."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/frontend/src/testing/fetch.ts:9: a mockApi key with no space (for example 'GET/x') leaves the path undefined. The check then throws a TypeError from contractHasRoute instead of the named error. Fix: check that the key splits into a method and a path, and throw the same 'Route is not in openapi.json' error when it does not.",
+   "src/frontend/src/testing/contract.ts:79: contractHasRoute upper-cases the method, so a lower-case key like 'get /academic-calendar' passes the check, yet mockApi compares methods case-sensitively and would never match a call with it. Harmless, because the test still fails with 'Unexpected API call', but comparing the method exactly would keep the check and the mock in step.",
+   "src/frontend/src/testing/contract.ts:68: API_PREFIX '/api' repeats the end of API_URL's default value in src/frontend/src/api.ts. It must be changed by hand if the API prefix ever changes.",
+   "Many specs still spy on fetch directly (several api.spec.ts files and browser specs), so the route check does not cover them. That is out of scope here, and the architecture sentence correctly says only mockApi refuses such routes.",
+   "The brief lists src/frontend/src/testing/fetch.ts as off limits (PR #214), but PR #214 merged on 2026-11-27 and the objective requires editing that file, so I accepted the edit.",
+   "The implementer's report.md did not exist at the scratchpad path, so I could not compare their stated omissions. My own run found exactly one refused route (PUT /admin/x in admin/write.spec.ts) and no production route missing from the contract."
+  ],
+  "checked": [
+   "Behaviour: mockApi still matches calls exactly as before. It only adds a check when routes are registered. contractHasRoute adds the /api prefix, drops the query string, and requires the same segment count, the same method and literal segments to match; a {name} segment must be non-empty. Path items in openapi.json hold only get/put/delete/post/patch keys, and every path starts with /api/.",
+   "Contract: git diff of the batch shows no change under src/backend and none to package-lock.json.",
+   "Tests: the only changed test is admin/write.spec.ts. In it, /admin/x became /admin/access/users/u/programs/p, both in the mock key and in the path the test sends itself; no assertion changed. Unit suite: base 1396 tests in 93 files, HEAD 1402 in 94; the 6 added cases are the new contract.spec.ts. Browser suite at HEAD: 68 passed in 13 files.",
+   "Mutations of contractHasRoute: removing the method check, the length check, the query stripping or the empty-segment check each makes a contract.spec case fail.",
+   "Defeat check: renaming /academic-calendar to /academic-calendars in calendar/api.ts and in its CalendarView.spec key fails 19 tests with 'Route is not in openapi.json: GET /academic-calendars'. A path with one segment too many (/academic-calendar/extra) and the wrong method (POST /academic-calendar) are refused too. The worktree was restored to clean afterwards.",
+   "With write.spec.ts reverted to the base version, the only route refused across the unit and browser suites is PUT /admin/x, so no production api module calls a route missing from the contract.",
+   "Structure: one new import, testing/fetch.ts to testing/contract.ts, in the same folder. The depgraph edge count matches the base (845). No escape hatch was added, and none is needed.",
+   "Repo rules: no comments, no new dependency, no magic numbers. Both commits are signed (G) with Conventional subjects. Exactly one new changeset (empty, like batch 18). Frontend typecheck and npm run lint both pass.",
+   "Scope: no production frontend file and no backend file changed. architecture.md got the sentence in both of its 'API types' rows; that duplicate row predates this batch.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/19-route-contract/review-1.md"
+  ]
+ }
+]

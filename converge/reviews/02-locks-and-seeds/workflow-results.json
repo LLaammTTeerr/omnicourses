@@ -1,0 +1,50 @@
+[
+ {
+  "status": "done",
+  "summary": "Advisory-lock keys are now in one registry, and the curriculum seed data lives in curriculum/seeds. depgraph reports folderCycles [[\"auth\",\"users\"]] only. verify.sh printed RESULT: ALL PASS on the final code, and git status is clean. The report is at /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/02-locks-and-seeds/report.md.\n\nCommits (4, in /home/lamter/omnicourses/.claude/worktrees/cv-build-be):\n1. Registry: src/backend/src/common/advisory-locks.ts has SINGLE_KEY_LOCKS (adminWrite 11_012_001, accessManager 11_012_002) and NAMESPACED_LOCKS (signInAttempt 11_012_003, aiQuota 3003), plus a spec that each group's keys are unique. The five call sites import it and the local constants are gone.\n   - ai/ai-cost-guard.service.ts changed only its constant and one call-site line.\n   - I added no shared lock helper, because the statements differ.\n2. Seeds moved: git mv of src/backend/src/database/seeds to src/backend/src/curriculum/seeds. Imports are fixed in seed-curricula.ts, program-admin.dto.spec.ts and the 6 e2e specs. The one-line import change in test/curriculum-admin-import.e2e-spec.ts is the only edit to a protected file. Doc paths are fixed in ADRs 0003, 0005 and 0012 and in design-differences.md.\n3. Seeders: common/seed-options.ts holds SeedOptions, Seeder and parseSeedOptions (with a spec). database/seed.ts is now a list [seedGuides, seedCurricula], and both seeders take (dataSource, options). architecture.md is updated, and scripts/layers.mjs drops the 3 dead edges.\n4. Empty changeset: .changeset/02-locks-and-seeds.md.\n\nThe seed proof ran against omnicourse_cv_be_seed after db:migrate.\n- **Run 1:** guides inserted 4. Curriculum inserted 10 programs, 11 curriculums, 133 requirement groups, 249 courses, 1823 links, 140 prerequisite lists.\n- **Run 2:** inserted 0 of everything (guides 4 unchanged).\n- **Refusal check:** NODE_ENV=production with --guide-fixtures is still refused, exit 1.\n\nThe verify COUNTS line is unit-be=1135 and e2e=364, against baselines of 1132 and 364. The extra 3 unit tests are the two new specs.",
+  "commits": [
+   "c907841 refactor(backend): keep every advisory-lock key in one registry",
+   "7aa354c refactor(backend): keep curriculum seed data inside curriculum",
+   "373f870 refactor(backend): give db:seed a list of seeders with one signature",
+   "a950f6d chore: add empty changeset for the locks and seeds batch"
+  ],
+  "verify": "tools/verify.sh cv-build-be omnicourse_cv_be typecheck lint unit-be build e2e openapi contract printed RESULT: ALL PASS. COUNTS: unit-be=1135 (baseline 1132), e2e=364 (baseline 364), unit-fe and browser not run. Seed twice on a fresh database: the second run inserted nothing. git status --short is empty.",
+  "leftOut": [
+   "BAC-1 step 2 (moving the admin gate into its own folder): not part of this objective.",
+   "ADR 0011 still mentions seeds/apcs-prerequisites.ts: PR #166 owns that file, and docs/test/** and report/** are dated records, so I left them.",
+   "No shared lock helper: the call sites are not the same statement."
+  ],
+  "lookTwice": [
+   "scripts/layers.mjs: I added 'database -> common', which the brief did not list. seed.ts needs the shared SeedOptions and Seeder types, and lint required the edge.",
+   "curriculum/seed-curricula.ts: seed() takes an unused `_options: SeedOptions` parameter so every seeder has one signature.",
+   "ai/ai-cost-guard.service.ts: only the import line and the call site changed; the SQL string is identical."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "docs/test/test-cases-b1.md:448 links to ../../src/backend/src/database/seeds/catalog.ts, which is now a dead link. Point it at src/backend/src/curriculum/seeds/catalog.ts. The evidence record docs/test/evidence/b2/results-b1-regression-2026-11-27.md:172 also links to the old path; it is a dated record, so leaving it is acceptable.",
+   "src/backend/src/curriculum/seed-curricula.ts:20: the `_options: SeedOptions` parameter is never used. TypeScript already accepts `seed(dataSource)` as a Seeder, so the parameter could be dropped. Keeping it does match the brief's 'one signature' wording.",
+   "src/backend/src/common/seed-options.ts: parseSeedOptions and GUIDE_FIXTURES_FLAG are only used by database/seed.ts. Only the SeedOptions and Seeder types need to be in common. Optional: move the parser and its spec into database/.",
+   "scripts/layers.mjs adds 'database -> common'. The brief said to remove lines only, but the new seed.ts import needs this edge and the implementer flagged it. Mention it in the PR body.",
+   "The implementer report says 6 e2e specs were changed; the diff touches 5.",
+   "Pre-existing, not from this batch: ADR 0012 names apcs-202{4,5}.teaching-plan.ts, which did not exist before or after the batch.",
+   "The first backend unit run had 3 failures in one file while the machine was under load; two clean reruns passed all 1135 tests. This looks flaky and not caused by the batch."
+  ],
+  "checked": [
+   "Behaviour: lock values 11_012_001/002/003 and 3003 are unchanged; the SQL strings and lock order at all 5 call sites are unchanged",
+   "Seeds: all 20 files are R100 moves; seed.ts order, output, flag parsing and production refusal are unchanged",
+   "Built, then ran db:migrate and db:seed twice on a fresh database (omnicourse_cv_be_review, dropped afterwards): the second run inserted 0; NODE_ENV=production --guide-fixtures was refused with exit 1",
+   "Deploy callers (deploy/server/omnicourse-deploy, package.json db:seed) still call dist/database/seed.js",
+   "Contract: diff of openapi.json, migrations and package-lock.json is empty",
+   "Tests: changed specs differ only in import paths; the specs that pin the lock values are untouched; the new specs fail under the obvious mutations",
+   "Completeness: no old constants, re-exports or database/seeds paths left in src, test, scripts, deploy, .github, docs/analysis-and-design, AGENTS.md or README.md",
+   "depgraph folderCycles = [[auth, users]] only; three edges removed, database->common added",
+   "Repo rules: no comments, .js suffixes, no new dependency, all 4 commits signed (G) with Conventional subjects, exactly one empty changeset",
+   "Scope: ai-cost-guard.service.ts changed only the constant import and its use; curriculum-admin-import.e2e-spec.ts changed only the import line",
+   "Ran: lint pass, backend typecheck pass, backend unit tests 1135 pass, backend build, 6 e2e files (curriculum-seed, curriculum, account, curriculum-admin, audit, curriculum-admin-import) 119 pass",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/02-locks-and-seeds/review-1.md"
+  ]
+ }
+]

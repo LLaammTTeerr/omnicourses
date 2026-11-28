@@ -1,0 +1,48 @@
+[
+ {
+  "status": "done",
+  "summary": "The planner now has a pure issue-view leaf, and the shared plan page has a tested view model. verify.sh printed RESULT: ALL PASS on the final commit, and `git status --short` is empty. The report file was not written because the Write tool refused the scratchpad path, and a no-report-files rule applies here, so the report content is in this result instead. Work is in /home/lamter/omnicourses/.claude/worktrees/cv-build-fa on branch cvb/10-plan-view; your task text named this worktree, while my session's own directory was cv-stack.\n\nCommits, in order:\n1. `refactor(plans)` adds src/frontend/src/plans/issue-view.ts, which imports types only. It holds ISSUE_KINDS_SHOWN, KIND_STYLE, strongest, BAR_CODES, METER_HEADROOM_CREDITS, capOf, toneOf, meter and clause, plus new CapState and Meter types.\n   - present.ts re-exports nothing, and the callers import from the new file.\n   - The meter and capOf tests moved to issue-view.spec.ts with the same assertions.\n   - IssuesPanel's own copy of `clause` is gone.\n2. `refactor(sharing)` adds src/frontend/src/sharing/view.ts with buildRowViews, curriculumMeta, withheldTitles, issueLists, orderedGroups, shortCount and wordIssue, plus view.spec.ts (15 tests). SharedPlanView.vue now only calls these.\n   - toEngineIssue is deleted. The leaf functions take `Pick<PlanIssue, 'kind'>` or `Pick<PlanIssue, 'code'>`.\n   - plans/messages.ts has a new WordedIssue type, so the wording function no longer needs a full PlanIssue.\n   - The shared page passes the requirement name explicitly, from requirementGroupName, then combinedMinimumName, then null. The editor's behaviour is unchanged; only its parameter type changed in present.ts.\n3. `refactor(sharing)` deletes UpdatePlanShareBody, PlanShareStatus and NotShared from sharing/api.ts. A search confirmed none has a reader beyond the spec.\n4. `docs`: corrects two lines in docs/analysis-and-design/class-model.md and one in docs/analysis-and-design/sequence-diagrams/UC-05-build-and-edit-a-plan.md, and adds the empty changeset `.changeset/10-plan-view.md`.\n\nNo off-limits files were touched.\n\nLast verify lines:\nCOUNTS unit-be=- unit-fe=1261 e2e=- browser=68   (baseline 3c4da22: 1132 1246 364 68)\nRESULT: ALL PASS (typecheck lint unit-fe build browser contract)\nFrontend unit tests are up from 1246 to 1261, and no count is below its baseline.",
+  "commits": [
+   "3cefc7f refactor(plans): split the pure issue view out of present.ts",
+   "1f17597 refactor(sharing): move the shared plan view model into view.ts",
+   "7418354 refactor(sharing): drop client types nothing reads",
+   "2aa0ffe docs: describe issue-view.ts and sharing/view.ts"
+  ],
+  "verify": "/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-fa omnicourse_cv_fa typecheck lint unit-fe build browser contract printed RESULT: ALL PASS (unit-fe=1261, browser=68).",
+  "leftOut": [
+   "NotShared was not simply deleted. No production type exists for the 404 body, and deleting the spec row would remove an assertion. api.spec.ts keeps its NotSharedDto contract check with an inline shape type `{statusCode, message, error}`.",
+   "FRO-7 robots-meta composable and the copyText helper were not done. They are outside this brief's step C.",
+   "No stale edges were reported in scripts/layers.mjs, so nothing was removed there.",
+   "The report file was not written. The Write tool refused the scratchpad path, and a no-report-files rule applies here, so the report content is in this result instead."
+  ],
+  "lookTwice": [
+   "WordedIssue in src/frontend/src/plans/messages.ts: wording now reads missingCourseCodes through a `missing()` helper, and requirementGroupId and combinedMinimumId are optional in the type. The ctx callback in plans/present.ts changed only its parameter type.",
+   "SharedPlanView.vue template: only `wordIssue(issue)` became `wordSharedIssue(issue)`. The template keeps the names orderedCoverageGroups and shortGroupsCount, now computed from view.ts.",
+   "The view.spec.ts tests were written alongside the code, not shown failing first. Check that they assert real behaviour: violations before flags, the cap read from term issues, and the requirement-name fallback."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "Full review: /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/10-plan-view/review-1.md",
+   "src/frontend/src/sharing/view.spec.ts: no test checks that the group name wins over the combined-minimum name in wordIssue. If the ?? order were swapped, the tests would still pass. Fix: add a case where an issue has both names, and expect the group name.",
+   "src/frontend/src/plans/messages.ts:4: WordedIssue makes missingCourseCodes optional for the editor too, which weakens the editor's type but not its behaviour. The shared page still goes through the IssueContext callback and ignores its argument. Acceptable now; a follow-up could pass a plain requirementName string instead.",
+   "src/frontend/src/sharing/api.spec.ts:116: the satisfies check now compares against an inline type literal, so the compile-time check is circular. The runtime contract assertion is unchanged, and the client has no real NotShared type. Fine as is; optionally drop the satisfies clause.",
+   "docs/analysis-and-design/class-model.md:1419: the export list for issue-view.ts leaves out ISSUE_KINDS_SHOWN, BAR_CODES and METER_HEADROOM_CREDITS.",
+   "The implementer's report.md was not at the stated scratchpad path, so its stated omissions could not be checked."
+  ],
+  "checked": [
+   "Behaviour, line by line: the issue-view.ts constants and functions are identical to the old present.ts, IssuesPanel.vue and SharedPlanView.vue code; only the parameter types are wider (Pick<PlanIssue, 'code' | 'kind'>)",
+   "The sharing/view.ts row, tile, meta, withheld-titles, issue-list and coverage helpers give the same results and order as the old component code; the dropped null guards are covered by the required SharedPlan types and the shared.value checks",
+   "wordIssue gives the same requirement name (group, then combined minimum, then null) and the same missingCourseCodes fallback; the editor's text is unchanged; toEngineIssue is deleted",
+   "Contract: the diff of openapi.json, migrations and package-lock.json is empty",
+   "Tests: the meter and capOf tests moved unchanged to issue-view.spec.ts; the NotSharedDto runtime assertion is kept; SharedPlanView.spec.ts, the browser spec, PlanEditorView.spec.ts and the IssuesPanel tests are untouched",
+   "Ran: vue-tsc typecheck (pass), npm run lint (pass), vitest src/sharing and src/plans (187 tests pass), the sharing browser spec (pass)",
+   "Completeness: rg finds no remaining reference to toEngineIssue, NotShared, UpdatePlanShareBody or PlanShareStatus, and no import of the moved names from present.js; one clause() remains",
+   "Structure: the shared page no longer reaches audit/, curriculum/api or transcript/ through plans/present.ts; no new and no stale feature edge in scripts/layers.mjs",
+   "Repo rules: no comments added, no dependency change, 4 commits all G-signed with Conventional subjects, exactly one new changeset",
+   "Scope: no off-limits file touched; doc edits limited to class-model.md and UC-05"
+  ]
+ }
+]

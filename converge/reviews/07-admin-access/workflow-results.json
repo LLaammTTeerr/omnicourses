@@ -1,0 +1,52 @@
+[
+ {
+  "status": "done",
+  "summary": "The admin write gate now lives in src/backend/src/admin-access/, and the composition root takes one line per module and per migration. The final verify run printed RESULT: ALL PASS on commit fb32b46, and `git status --short` is empty. COUNTS were unit-be=1159 and e2e=365, against a baseline of 1132 and 364, so none is lower. The report file could not be written because the Write tool refused the scratchpad path, so the report content is in this result.\n\n**A. Admin access**\n- `admin-access/` now holds `admin-write.service.ts` (with its spec), `grants.ts` (with its spec), `admin-grant.entities.ts`, `admin-access.module.ts`, and `admin-error-responses.ts`. The last holds the `AdminErrors` decorator and its `PermissionRequiredDto`, moved out of `admin-write.service.ts`. The `AdminErrors` name is kept.\n- `userGrants`, the presenter that returns `UserGrantsDto`, moved to `curriculum-admin/user-grants.ts`, so `grants.ts` no longer imports a DTO.\n- `AdminAccessModule` registers the two grant entities and exports `AdminWriteService`. `CurriculumAdminModule` and `AcademicCalendarModule` import it. There are no re-export files at the old paths.\n- `openapi.json` is byte-identical; the openapi step passed.\n\n**B. Composition root**\n- `features.ts` has one module per line, sorted by class name, and includes `AdminAccessModule`.\n- `platformImports(typeOrmRoot, features)` in `features.ts` builds the TypeORM root, `ClockModule` and the feature list for both `app.module.ts` and `openapi-document.ts`. `ThrottlerModule` stays in `AppModule`.\n- The migration list is one `export {…}` line per migration in `src/backend/src/database/migration-list.ts`. `migrations/index.ts` builds `MIGRATIONS` by sorting those exports by timestamp. The existing `index.spec.ts` passes unchanged.\n\n**C. layers.mjs**\n- I added `admin-access -> common`, `curriculum`, `users`, plus `academic-calendar -> admin-access` and `curriculum-admin -> admin-access`. I removed `academic-calendar -> curriculum-admin`.\n\n**Docs**\n- Updated `architecture.md` (new `admin-access` module row, wiring text, migration-list references), `AGENTS.md` (migration-list path), `class-model.md` (source paths) and the UC-11 sequence doc (`admin-write.service.ts` moved to `admin-access/`).\n\n**One-line changes in off-limits files**\n- `csv-import.service.ts` lines 10 and 25 are import paths only. They point at `../admin-access/admin-write.service.js` and `../admin-access/grants.js`.",
+  "commits": [
+   "2e8b49f refactor(backend): move the admin write gate into its own admin-access module",
+   "fb32b46 refactor(backend): make the composition root append-only and single-sourced (includes .changeset/07-admin-access.md)"
+  ],
+  "verify": "/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-be omnicourse_cv_be typecheck lint unit-be build e2e openapi contract\nLast lines: PASS lint, typecheck-be, typecheck-fe, unit-be, build-fe, build-be, contract, openapi, e2e\nCOUNTS unit-be=1159 unit-fe=- e2e=365 browser=-   (baseline 3c4da22: 1132 1246 364 68)\nRESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract)",
+  "leftOut": [
+   "ADR 0011 was not edited because PR #166 owns it. It names no path that moved (only strict-body.ts and bootstrap-cli.ts, which stay put).",
+   "Removing account -> curriculum-admin from layers.mjs was not needed: that edge was already gone in the base commit. Only academic-calendar -> curriculum-admin was removed.",
+   "BAC-1 step 1 (advisory-locks.ts) was already done in the base, so I did not touch it.",
+   "The migration list is at src/backend/src/database/migration-list.ts, not inside migrations/. The verify contract step fails on any new file in the migrations folder other than index.ts.",
+   "I did not add the planned account-state.ts users-SQL wrapper (survey step 2), since the brief did not list it. users/account-state.ts already exists."
+  ],
+  "lookTwice": [
+   "The AdminErrors decorator now lives in admin-access/admin-error-responses.ts. curriculum-admin/admin-errors.ts keeps the other admin errors, so the two names sit close together.",
+   "AdminAccessModule is in FEATURE_MODULES although it has no routes. It is registered there so the module table and the module-index lint rule see it.",
+   "MIGRATIONS is now ordered by the 13-digit timestamp at the end of each class name (TIMESTAMP_LENGTH), not by list position.",
+   "Import order in a few moved files is not alphabetical, because I rewrote paths in place. Lint accepts it.",
+   "I amended the second commit once after the first verify run. The first run failed only because the new migrations/migration-list.ts tripped the contract check, so I moved the file to database/."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/backend/src/database/migrations/index.ts: the sort by timestamp is new logic, and the specs only cover it indirectly. If the sort were dropped, the CreateSignInAttempts adjacency test would fail, because namespace exports come in alphabetical order. TypeORM also sorts by timestamp on its own. Fix: add an explicit spec that MIGRATIONS is in ascending timestamp order.",
+   "src/backend/src/database/migrations/index.ts: TIMESTAMP_LENGTH and slice(-13) repeat the /(\\d{13})$/ regex in index.spec.ts. A name with no trailing timestamp gives NaN and an unstable sort. Low risk, because the spec's first test rejects such a name.",
+   "src/backend/src/features.ts:40: platformImports lives in features.ts, so that file now holds both the feature list and the platform wiring. Its features parameter is used only by buildOpenApiDocument's order test. Acceptable as is. The survey suggested putting it next to app.module.",
+   "curriculum-admin/*.ts and access-admin.*: the new ../admin-access/ imports sit among the ./ imports instead of with the other ../ imports. Cosmetic only; lint does not check import order.",
+   "Off-limits csv-import.service.ts got two import-path lines (AdminWriteService and Need), both forced by the move. They must be listed for PR #166's owner.",
+   "No implementer report exists at /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/07-admin-access/report.md, so I could not check the implementer's stated omissions against it.",
+   "BAC-1 says account imports from curriculum-admin, but that edge was not in the base layers.mjs and account has no such import. Nothing needed removing; the report should say so.",
+   "E2E not run: there is no DATABASE_URL and no database container on this machine. curriculum-admin, academic-calendar and app boot e2e should run in CI."
+  ],
+  "checked": [
+   "Behaviour, line by line. AdminErrors and PermissionRequiredDto moved byte-identical to admin-access/admin-error-responses.ts. AdminWriteService, lockAdminWrite and assertMay are unchanged: same SQL, advisory locks, ROW_LOCK.noKeyUpdate, REPEATABLE READ plus READ ONLY, and error codes and text. Need, grantsOf and missingPermission are unchanged. userGrants moved verbatim to curriculum-admin/user-grants.ts. The entities and both specs are 100% renames.",
+   "Module wiring. AdminAccessModule registers both grant entities and provides and exports AdminWriteService, whose only dependency is DataSource. Both curriculum-admin and academic-calendar import it, so academic-calendar loses nothing.",
+   "Migration run order. I built the backend and printed MIGRATIONS from dist: the order is identical to the base array, which is timestamp order.",
+   "app.module import order. The only change is that Throttler now comes before TypeORM, and nothing depends on that order.",
+   "Contract: openapi.json, the migration files and package-lock.json are untouched. openapi-document.spec.ts passes, including the reversed-module-order case.",
+   "Tests: five test files changed. Each is a pure rename or one import-path line, and no it( or expect( was lost. The full backend unit suite passes: 78 files, 1159 tests. Lint exits 0; backend typecheck and build pass.",
+   "Completeness: grepped src, test, scripts, deploy, .github, docs/analysis-and-design, AGENTS.md and README.md. Nothing still points at the old curriculum-admin paths, there are no re-export files, and no ADR names the old paths.",
+   "Structure (depgraph): admin-access depends on common, curriculum and users. academic-calendar no longer depends on curriculum-admin. The only folder cycle is auth<->users, which already existed. layers.mjs edges match.",
+   "Repo rules: both commits are signed (G) with Conventional subjects. There is exactly one new .changeset file (empty), no comments, .js import suffixes and no new dependency.",
+   "Scope: the only off-limits file touched is csv-import.service.ts, with two forced import-path lines.",
+   "My own worktree stayed clean. Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/07-admin-access/review-1.md"
+  ]
+ }
+]

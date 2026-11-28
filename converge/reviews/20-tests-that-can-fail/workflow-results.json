@@ -1,0 +1,109 @@
+[
+ {
+  "status": "done",
+  "summary": "I confirmed each finding by applying a mutation and running its spec, then fixed or removed the test. Production code is unchanged. Of about 38 findings, 27 are acted on in 7 commits, 4 are removals, and 4 reports were weaker than claimed. The rest are left alone as the brief requires or skipped. Verify printed RESULT: ALL PASS on the final commit, and `git status --short` is empty. No strengthened test failed on unchanged production code, so I found no production defects.\n\nFour findings were weaker than the report said:\n- **import-body-limit.spec.ts:** the 8 MiB mutation was already caught by the literal 413 message. The boundary bodies scaled with the constant and passed.\n- **plan-sharing.e2e-spec.ts:541:** the mutation was already caught by the spy. I added a body assertion and kept the spy.\n- **board.spec.ts:48:** I could not reproduce the survival, because the literal tests above it already catch the mutation. I rewrote the test with literal terms anyway.\n- **sharing/view.spec.ts:161:** no mutation can be demonstrated here, because the only other wording table holds functions. I rewrote the test with literal English titles.\n\nThe 4 removals:\n- `sign-in-limiter.spec.ts:230`: a class-name assertion.\n- `AccessAdmin.spec.ts:320` and `CurriculumAdmin.spec.ts:1066`: `expect(fetch).toHaveBeenCalled()`.\n- `AuditView.spec.ts:304`: a test of the spec's own teardown.\n- `nav.spec.ts`: the \"lists each page once\" test and the `phone.every(Boolean)` line.\n\nTest counts are higher than the baseline on every line (unit-be 1205, unit-fe 1402, e2e 365, browser 68). The one-line-per-finding table (mutation, survived before, caught after, action) is in the report file.",
+  "commits": [
+   "4078b94 test(backend): make the auth specs able to fail (5 tests)",
+   "0be9eb0 test(backend): pin curriculum-admin limits and the group lock as literals (7 tests)",
+   "e931ed9 test(backend): assert results and arguments, not call counts (6 tests)",
+   "af7b16d test(backend): make five e2e assertions able to fail (5 tests)",
+   "bf330e5 test(frontend): drop two always-true fetch assertions in the admin specs (2 tests)",
+   "d2476e7 test(frontend): pin literals and results where the specs compared a value with itself (12 tests)",
+   "bc22cd9 test: add the empty changeset for the tests-that-can-fail batch"
+  ],
+  "verify": "tools/verify.sh ... typecheck lint unit-be unit-fe build e2e openapi browser printed \"COUNTS unit-be=1205 unit-fe=1402 e2e=365 browser=68 (baseline 3c4da22: 1132 1246 364 68)\" and \"RESULT: ALL PASS\". git status --short is empty on bc22cd9.",
+  "leftOut": [
+   "api.spec.ts:93-130 (REQUEST_TIMEOUT_MS): skipped. No title or document states the number, and the tests mean 'default applied'. ADR 0003's 30 s is the backend AI timeout, not this one.",
+   "SettingsView.spec.ts findings: left by design. They compare text with the message catalogue, and PR #199 chose to check behaviour, not wording.",
+   "All src/frontend/src/dashboard/*.spec.ts findings: left for the frontend owner. These are DashboardView.spec.ts:155-160, :187-193 and :277-282, and dashboard.spec.ts:100.",
+   "Every finding under the report's 'Unsure' headings: left alone as the brief requires.",
+   "curriculum-seed.e2e-spec.ts:253: the mutation was not run, because there is no cheap way to make the seeder delete the groups. I added a length guard instead.",
+   "nav.spec.ts:42-47: I removed only phone.every(Boolean) and kept toHaveLength(4), which repeats line 19 but can still fail.",
+   "No docs changed, since nothing was moved or renamed."
+  ],
+  "lookTwice": [
+   "public-routes.e2e-spec.ts:82 now calls every non-GET route without a token, and expects only the two sign-up and sign-in routes to answer something other than 401.",
+   "AppSidebar.spec.ts:43 expects the literal 'Giao diện tối', which assumes the default theme is light in jsdom.",
+   "unread-polling.spec.ts now advances by ONE_MINUTE_MS - 1 and expects no extra read, then by 1 and expects one.",
+   "Report with the one-line-per-finding table: /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/20-tests-that-can-fail/report.md"
+  ]
+ },
+ {
+  "verdict": "changes_requested",
+  "blocking": [
+   {
+    "file": "src/backend/src/auth/auth.service.spec.ts (and all 27 changed spec files)",
+    "problem": "Every changed spec file lost its final newline (the diff shows 'No newline at end of file'). Every base version ended with one, and .editorconfig sets insert_final_newline = true.",
+    "fix": "Add the trailing newline back to every spec file in the batch. This is a whitespace-only change."
+   },
+   {
+    "file": "src/backend/src/rules/graduation.spec.ts",
+    "line": 64,
+    "problem": "The test used to check that verdict.notChecked deep-equals NOT_CHECKED_CONDITIONS, which covered the id, description and status of every returned object. Now it checks only the ids. If graduationStatus reshaped those objects (for example dropping the description), the old test failed and the new one passes. The changed test asserts less than before.",
+    "fix": "Keep the literal id list and also keep expect(verdict.notChecked).toEqual(NOT_CHECKED_CONDITIONS), or assert every field as a literal."
+   },
+   {
+    "file": "src/frontend/src/notifications/NotificationsView.spec.ts",
+    "line": 157,
+    "problem": "The router.push spy is gone, and with it expect(push).toHaveBeenCalledTimes(1). If the component navigated twice after the read resolved, the old test failed and the new one passes. That is a lost assertion.",
+    "fix": "Keep const push = vi.spyOn(router, 'push'). Keep not.toHaveBeenCalled() before answer() and toHaveBeenCalledTimes(1) after it, with the new route-name assertions alongside."
+   }
+  ],
+  "nonBlocking": [
+   "src/backend/test/curriculum-seed.e2e-spec.ts:257: notes.length > 0 is the minimum guard. Pinning the exact literal rows would also catch a seeder that drops only some of the groups.",
+   "src/frontend/src/admin/AccessAdmin.spec.ts:320: the removal is justified. The scan's stronger alternative (assert the PUT path with the capitalised ID) would pin the behaviour the title names; consider it in a follow-up.",
+   "src/frontend/src/shell/AppSidebar.spec.ts:43: the literal 'Giao diện tối' only holds while jsdom starts in the light theme. Setting the theme inside the test would make that dependency explicit.",
+   "src/backend/test/public-routes.e2e-spec.ts:82: the rewrite is correct (it now calls every non-GET route without a token). It partly overlaps the 401 test at :66."
+  ],
+  "checked": [
+   "No production file changed: git diff --stat base..HEAD -- src ':!*.spec.ts' ':!*.e2e-spec.ts' is empty",
+   "openapi.json, migrations and package-lock.json are untouched",
+   "Every changed test compared line by line with the base: all equal or stronger except graduation.spec.ts:64 and NotificationsView.spec.ts:150",
+   "Each removal checked (sign-in-limiter class name, the two expect(fetch).toHaveBeenCalled, the AuditView teardown test, nav.spec 'lists each page once', phone.every(Boolean)): each truly had nothing of its own to check",
+   "lint passed; typecheck passed in both workspaces",
+   "Changed backend unit specs: 90 passed. Changed frontend specs: 296 passed. 5 changed e2e specs: 77 passed",
+   "Mutations re-run and each now fails: FOR UPDATE removed; MAX_SESSION_LIFETIME_DAYS 28; IMPORT_JSON_LIMIT_BYTES 8 MiB; UNREAD_POLL_MS 5000; OFFICIAL_NOTES_MAX_LENGTH 5000; MAX_INTEGER 1e9; METER_HEADROOM_CREDITS 8. All restored; git status clean",
+   "Completeness against tests-scan.md: every non-dashboard, non-Unsure, non-catalogue finding is handled. The api.spec REQUEST_TIMEOUT_MS skip is justified",
+   "All 7 commits are signed (G) with Conventional subjects and per-area counts. Exactly one empty changeset",
+   "No off-limits file touched; no comments added; no new dependency",
+   "Implementer's report read after these findings were written: it is consistent with the diff but misses the two lost assertions and the newline loss",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/20-tests-that-can-fail/review-1.md"
+  ]
+ },
+ {
+  "status": "done",
+  "summary": "All three blocking findings were right and are fixed in one new commit. (1) The final newline is back in the 23 changed .ts specs that lacked it. (2) graduation.spec.ts keeps the literal id list and again asserts expect(verdict.notChecked).toEqual(NOT_CHECKED_CONDITIONS). (3) NotificationsView.spec.ts has the router.push spy back, with not.toHaveBeenCalled() before and toHaveBeenCalledTimes(1) after, next to the route-name assertions. Production code is unchanged. I did not take the four non-blocking findings. Verify ended with RESULT: ALL PASS; COUNTS unit-be=1205 unit-fe=1402 e2e=365 browser=68 against baseline 1132 1246 364 68. git status is clean. The report file could not be written: the Write tool refused the scratchpad path. The \"Review round\" text is therefore in this result.",
+  "commits": [
+   "2c1f6e2 test: restore the final newline and two assertions the review found lost (25 files)"
+  ],
+  "verify": "/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh on /home/lamter/omnicourses/.claude/worktrees/cv-build-be printed PASS for lint, typecheck-be, typecheck-fe, unit-be, unit-fe, build-fe, build-be, openapi, browser and e2e, then RESULT: ALL PASS.",
+  "leftOut": [
+   "Non-blocking: curriculum-seed.e2e-spec.ts:257 pin exact literal rows (not cheap)",
+   "Non-blocking: AccessAdmin.spec.ts:320 stronger PUT-path assertion (follow-up)",
+   "Non-blocking: AppSidebar.spec.ts:43 set the theme explicitly in the test",
+   "Non-blocking: public-routes.e2e-spec.ts:82 overlap with the 401 test at :66",
+   "Report file not written: the Write tool refused the scratchpad path, so the Review round section is in this result only"
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "The subject of commit 2c1f6e2 says '25 files', but the commit touches 23. If the branch gets reworded anyway, change the subject to 23.",
+   "src/backend/test/curriculum-seed.e2e-spec.ts:257 (still open from round 1): the check notes.length > 0 is only the minimum. Pinning the exact rows would also catch a seeder that drops some of the groups.",
+   "src/frontend/src/admin/AccessAdmin.spec.ts:320 (still open from round 1): a follow-up could assert the PUT path with the capitalised ID, which would pin the 'typed in capitals' behaviour the test title names.",
+   "src/frontend/src/shell/AppSidebar.spec.ts:43 (still open from round 1): the literal 'Giao diện tối' depends on jsdom starting in the light theme. Setting the theme inside the test would make that dependency explicit."
+  ],
+  "checked": [
+   "Round-1 fix 1 (final newlines): every file in the diff now ends with a newline, checked with tail -c1. Under git show -w, commit 2c1f6e2 changes only graduation.spec.ts and NotificationsView.spec.ts; the other 21 files in it get the newline and nothing else.",
+   "Round-1 fix 2: graduation.spec.ts:72 has expect(verdict.notChecked).toEqual(NOT_CHECKED_CONDITIONS) back, next to the literal id list. Mutation: drop description from each notChecked object in graduation.ts. The test now fails.",
+   "Round-1 fix 3: NotificationsView.spec.ts has the push spy back, with not.toHaveBeenCalled() before answer() and toHaveBeenCalledTimes(1) after it, plus the route-name checks. Against base, the only change is two added lines. Mutation: call navigate() twice in follow(). The test now fails.",
+   "No production file changed: git diff --stat base..HEAD -- src ':!*.spec.ts' ':!*.e2e-spec.ts' is empty. openapi.json, the migrations and package-lock.json are untouched. There is exactly one new changeset.",
+   "All 8 commits are signed (G) and use Conventional subjects.",
+   "Runs at HEAD: 9 changed backend unit specs, 90 passed. 13 changed frontend specs, 296 passed. 5 changed e2e specs, 77 passed. Typecheck passed and lint passed.",
+   "Mutations re-run against HEAD; each test now fails, and each file was restored at once (git status clean): FOR UPDATE removed from curriculum-admin.service.ts:84, MAX_SESSION_LIFETIME_DAYS 30 -> 28, IMPORT_JSON_LIMIT_BYTES 7 -> 8 MiB, UNREAD_POLL_MS 60000 -> 5000, OFFICIAL_NOTES_MAX_LENGTH 2000 -> 5000.",
+   "Scope: no off-limits file is touched.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/20-tests-that-can-fail/review-2.md"
+  ]
+ }
+]

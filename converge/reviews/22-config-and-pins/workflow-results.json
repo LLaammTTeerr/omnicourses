@@ -1,0 +1,48 @@
+[
+ {
+  "status": "done",
+  "summary": "No disagreement was found: Node 22.22.1, npm 11.21.1 and PostgreSQL 18.6 agree in every copy, so nothing in .github/ or deploy/ was touched. No .env.example line had to be added, because NODE_ENV is the only name read and not documented, and it is on a named exemption list. The brief's A, B, C and D are all done. A: repo-config.spec.ts has three new checks. (1) The names read in config/env.ts equal the names in .env.example, with commented lines counted; the VITE_* names are compared with their one reader in src/frontend/src/api.ts. (2) The Node, npm and PostgreSQL versions are the same in every copy, and a failure names the files. (3) Every dependency and devDependency in the three package.json files is an exact x.y.z. B: logWithStack is exported once from failure-kind.ts and used by logFailure and by NotificationsService.logFailure. The logged texts are unchanged, and I added a spec for it. C: the root package.json has a `test:e2e` script, and the commands block of AGENTS.md and the README line use it. D: one sentence in the configuration row of architecture.md. Each check was shown to fail and then restored. Removing SESSION_TTL_DAYS from .env.example failed the settings check. .nvmrc at 22.22.2 failed the Node check. compose.yaml at postgres 18.7 failed the PostgreSQL check. A caret on pinia in the frontend package.json failed the pin check. I wrote no report.md because the Write tool refused the path; the report text is this summary plus the other fields.",
+  "commits": [
+   "c6845ca test(backend): check settings, pinned runtimes and exact pins against the repo files",
+   "c187f6b refactor(backend): log a failure line with its stack through one helper",
+   "dfb7935 docs: add a root test:e2e script and say the settings and pins are checked",
+   "43fb006 chore: add an empty changeset for the config and pins checks"
+  ],
+  "verify": "verify.sh printed RESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract). COUNTS unit-be=1212 unit-fe=1402 e2e=365 browser=68 (baseline 1132 1246 364 68). `git status --short` is empty on the final commit 43fb006.",
+  "leftOut": [
+   "Nothing in the objective was left out.",
+   "I did not check the other copies of the versions in deploy/README.md and README.md. The brief did not list them.",
+   "I did not add the check for equal default values that survey finding 1.1 mentions. The brief did not ask for it."
+  ],
+  "lookTwice": [
+   "The runtime check finds each version with a regex per file. If someone rewords the Stack line in AGENTS.md or the NODE_VERSION, NPM_VERSION or PG_IMAGE lines in setup.sh, the spec throws that the file does not state the version.",
+   "The settings check reads names with /\\benv\\.([A-Z][A-Z0-9_]*)/ in config/env.ts. A setting read some other way, such as a destructured process.env, would not be seen.",
+   "The README.md line for test:e2e was also changed to the one-word command. The brief did not name it, but it is the same command block."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/backend/src/repo-config.spec.ts:44: HOST_SET_SETTINGS (NODE_ENV) is filtered out only on the env.ts side, not the .env.example side. Adding a commented '# NODE_ENV=production' to .env.example makes the test fail (I checked this). Fix: filter the documented list by HOST_SET_SETTINGS as well.",
+   "src/backend/src/repo-config.spec.ts:57-80: the AGENTS.md patterns take the first match anywhere in the file, not the Stack line. Other copies of the versions are not checked: AGENTS.md:17 (PostgreSQL 18.6), AGENTS.md:144 (npx npm@11.21.1), README.md:73, deploy/README.md:39-40. These are outside the brief's file list. Running matchAll over AGENTS.md would cover its own extra copies cheaply.",
+   "src/backend/src/repo-config.spec.ts:50: the VITE_ check reads only src/frontend/src/api.ts, so a second reader would go unseen. Scanning all non-spec files under src/frontend/src would be sturdier.",
+   "README.md:84 was also switched to 'npm run test:e2e'. Task C only asked for the AGENTS.md block. The change is consistent and harmless.",
+   "When the settings test fails, its message names .env.example only through the test title and never names config/env.ts. This is acceptable.",
+   "There was no implementer report.md in the batch scratchpad directory, so I could not check the implementer's stated omissions against it."
+  ],
+  "checked": [
+   "Behaviour: logWithStack matches the old if/else exactly (same truthiness test on stack, same argument order). logFailure logs the same text and stack. The NotificationsService throttle and suffix text are unchanged. The failure-kind and notifications specs pass (61 tests).",
+   "Contract: git diff base..HEAD on openapi.json, migrations, package-lock.json, .github and deploy is empty.",
+   "Tests: only failure-kind.spec.ts (one new describe) and repo-config.spec.ts (new blocks; the compose test is untouched) changed. No it( or expect( was lost or loosened.",
+   "Completeness: the duplicated stack step is gone from notifications.service.ts, and grep finds no other copy.",
+   "Structure: no new import edge. npm run lint (layer rules) passes.",
+   "Repo rules: no comments, no new dependency, .js import suffixes kept, constants named. All 4 commits show G and have Conventional subjects. Exactly one new .changeset file.",
+   "Scope: no off-limits file touched.",
+   "Defeats, each made in the worktree and restored (git status clean afterwards). Every one failed the spec with the file or name in the diff: removing SESSION_TTL_DAYS from .env.example, adding a BRAND_NEW_SETTING getter to env.ts, .nvmrc set to 22.22.2, compose.yaml set to postgres:18.7, pinia ^4.1.0, an extra VITE_EXTRA, AGENTS.md npm set to 11.21.2.",
+   "Backend typecheck is clean, npm run lint is clean, and the full backend unit suite passes (79 files, 1212 tests).",
+   "Root test:e2e runs 'npm run test:e2e -w src/backend', and that backend script exists.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/22-config-and-pins/review-1.md"
+  ]
+ }
+]

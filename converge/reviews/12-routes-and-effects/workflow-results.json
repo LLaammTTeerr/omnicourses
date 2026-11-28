@@ -1,0 +1,95 @@
+[
+ {
+  "status": "done",
+  "summary": "Each feature now owns its route records (routes.ts), router.ts is guards, chunk reload and one ordered list, and admin children come from ADMIN_SECTIONS. The admin-grant loading and unread polling moved out of App.vue into composables. The route proof is byte-identical before and after. verify.sh printed RESULT: ALL PASS on the final commit, and git status is clean. I wrote the report with a shell heredoc.",
+  "commits": [
+   "c9200a7 refactor(frontend): let each feature own its route records",
+   "48ddf94 refactor(frontend): move the grant loading and unread polling out of App.vue",
+   "0ea81cb chore: add the empty changeset for the routes and effects batch"
+  ],
+  "verify": "verify.sh: RESULT: ALL PASS (typecheck lint unit-fe build browser contract). COUNTS unit-be=- unit-fe=1317 e2e=- browser=68, against baseline 1132 1246 364 68; unit-fe rose by 71. Proof: the sorted-key JSON of routes and router.getRoutes() is identical before and after (cmp). The proof files are proof-before.json and proof-after.json in the batch scratchpad folder, not committed.",
+  "leftOut": [
+   "Step D left out: shell/nav.spec.ts pins routes, sections and icons but not the Vietnamese labels, so App.spec.ts and MobileBars.spec.ts still type the labels.",
+   "Menu labels stay as literals, as the brief says.",
+   "No new AdminView.spec assertion that router children match ADMIN_SECTIONS: it is true by construction now.",
+   "App.spec.ts badge cases (2) stay there: they test sidebar rendering, not the polling."
+  ],
+  "lookTwice": [
+   "Five App.spec cases moved: App.spec went from 17 it( blocks to 12, plus 3 in admin/access-session.spec.ts and 2 in notifications/unread-polling.spec.ts, so the total is still 17.",
+   "In the moved admin case, 'the entry appears' now asserts useAdminAccess().any, because the minimal host has no sidebar. The sidebar case in App.spec still covers the nav link.",
+   "The moved sign-in polling case calls auth.signIn() and then router.push instead of typing into the form. The assertions on the final path and one read are the same.",
+   "dashboard and audit are both in audit/ but not adjacent in menu order. audit/routes.ts exports dashboardRoutes and auditRoutes, and router.ts spreads them at the two places.",
+   "scripts/layers.mjs: the only change is 'route-meta.ts' in frontendKernel. Without it, lint reports 8 frontend-feature-edges errors for the routes.ts files.",
+   "architecture.md: four lines corrected (routes.ts per feature, menu on the feature's records, useGrantsFollowSession, sections build the admin children). ADR 0018 line 66 still says App.vue refreshes the count, which is still true, so I left it.",
+   "sections.ts load type is () => Promise<RouteComponent | { default: RouteComponent }>, because vue-router exports no Lazy type."
+  ]
+ },
+ {
+  "verdict": "changes_requested",
+  "blocking": [
+   {
+    "file": "src/frontend/src/notifications/unread-polling.spec.ts",
+    "line": 62,
+    "problem": "This sign-in case moved from App.spec.ts and lost what it tested. Before, it filled the real sign-in form and let SignInView redirect to ?redirect=/guides, then asserted the path and exactly one unread read. Now it calls useAuth().signIn() and router.push('/guides') by hand. The path assertion is true by construction, and the read count no longer covers the real sign-in navigation. If sign-in started navigating twice, there would be two reads and this test would still pass.",
+    "fix": "Have Host render h(RouterView) so SignInView mounts at /sign-in?redirect=/guides. Drive the form as before (setValue on #sign-in-email and #sign-in-password, trigger submit, flushPromises) and keep both original assertions."
+   },
+   {
+    "file": "src/frontend/src/admin/access-session.spec.ts",
+    "line": 38,
+    "problem": "The retry case ('...so the entry appears without a reload') used to assert the rendered sidebar link: [data-test=\"nav-admin\"] absent, then present with href '/admin'. It now asserts the store flag useAdminAccess().any instead, so nothing in the case checks that the entry appears. The brief requires moved cases to keep the same assertions.",
+    "fix": "Render AppSidebar inside Host next to useGrantsFollowSession() and keep the two original DOM assertions; the access.any checks can stay as extras. Or leave this one case in App.spec.ts."
+   }
+  ],
+  "nonBlocking": [
+   "access-session.spec.ts:10 redeclares const MAX_FAILED_LOADS = 3, a copy of the private constant in admin/access.ts. Export it from access.ts and import it so the two cannot drift.",
+   "docs/analysis-and-design/class-model.md:1425 (the notifications row) and the admin row list only useUnread and useAdminAccess. Add useUnreadPolling and useGrantsFollowSession.",
+   "No test checks directly that App.vue calls the two composables. Two App.spec tests would fail if either call were dropped (the grant-holder sidebar test and the unread badge tests), which is enough."
+  ],
+  "checked": [
+   "I rebuilt the route proof myself on git-archive copies of the base and HEAD in the scratchpad. It records path, name, meta, props, redirect and children in order, with each component recorded once as lazy or eager and once as the .vue file it loads. Base and HEAD are byte-identical (4802 bytes, 24 lazy components).",
+   "Compared line by line: all route records, the admin children built from ADMIN_SECTIONS (same order, paths, names and components), MenuEntry and the RouteMeta augmentation, the watchers in useGrantsFollowSession and useUnreadPolling, the interval and its unmount cleanup, and the order of the two calls in App.vue. All unchanged.",
+   "Contract: no diff in src/backend, openapi.json, migrations or package-lock.json; no new dependency.",
+   "Tests: App.spec.ts went from 17 to 12 it( blocks. 5 moved: 3 to admin/access-session.spec.ts and 2 to notifications/unread-polling.spec.ts. 3 of the moved cases keep every assertion; the 2 others lost assertions (the blocking findings). Full frontend suite: 89 files, 1317 tests pass.",
+   "D: nav.spec.ts does not pin the menu labels word for word, so leaving the label lists in App.spec.ts and MobileBars.spec.ts unchanged is correct.",
+   "vue-tsc exits 0 and npm run lint passes; route-meta.ts was added to the kernel list in layers.mjs.",
+   "Import graph (depgraph, base vs HEAD): no new folder dependency, the same single folder cycle, no file cycles.",
+   "Completeness: nothing imports MenuEntry from shell/nav.js any more, App.vue no longer holds the old watchers, and architecture.md is updated.",
+   "Repo rules: no comments added, every commit is signed (G) with a Conventional subject, exactly one changeset, no off-limits file touched.",
+   "Read the implementer's report only after writing the review. It names both changed assertions; I kept them blocking because the brief requires moved tests to keep their assertions.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/12-routes-and-effects/review-1.md"
+  ]
+ },
+ {
+  "status": "done",
+  "summary": "Both blocking findings were right. I fixed them in one new commit, and verify printed RESULT: ALL PASS. The sign-in case in unread-polling.spec.ts now fills and submits the real sign-in form again. The retry case in access-session.spec.ts again asserts the rendered admin sidebar link. Both keep their original assertions. Of the non-blocking findings, I took two: the spec now imports MAX_FAILED_LOADS from admin/access.ts, where it was already exported, and class-model.md lists useUnreadPolling and useGrantsFollowSession. I did not add a direct test that App.vue calls the two composables, since the reviewer said App.spec already covers it. The \"Review round\" section is appended to the report.",
+  "commits": [
+   "fb601d3 test(frontend): keep the moved sign-in and sidebar assertions real"
+  ],
+  "verify": "tools/verify.sh typecheck lint unit-fe build browser contract: COUNTS unit-be=- unit-fe=1317 e2e=- browser=68 (baseline 1132 1246 364 68); RESULT: ALL PASS. git status --short is empty.",
+  "leftOut": [
+   "A direct test that App.vue calls the two composables, as the reviewer said it was optional.",
+   "The Discord request in the user message: it is for the main session, not this step."
+  ],
+  "lookTwice": [
+   "unread-polling.spec.ts now renders RouterView, so the first case at /guides mounts the real guides screen; it needs the same API mocks that the shared render helper sets.",
+   "access-session.spec.ts mounts the real AppSidebar, which pulls in more of the shell than the old host did."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/frontend/src/admin/access-session.spec.ts:66-67: the #160 case in the base checked for the literal 3. It now checks against MAX_FAILED_LOADS. On its own, that would let a change to the constant pass. The value is still pinned by literals in admin/access.spec.ts:167-180, though, so nothing is lost overall. Optional: go back to the literal 3 so the moved case stays exactly the original."
+  ],
+  "checked": [
+   "Round-1 fix 1, unread-polling.spec.ts sign-in case: Host renders RouterView. The case fills in and submits the real SignInView form, then asserts path /guides and exactly one unread read, same as the base App.spec.ts. Fixed.",
+   "Round-1 fix 2, access-session.spec.ts retry case: Host renders AppSidebar. It asserts nav-admin is absent, then has href /admin, then no extra grant read, same as the base. Fixed.",
+   "Round-1 non-blocking items done: class-model.md now lists useUnreadPolling and useGrantsFollowSession; the spec imports MAX_FAILED_LOADS, which was already exported at the base.",
+   "git diff 0ea81cb..HEAD touches only class-model.md and the two specs. No route file changed, so the route proof from round 1 (base and HEAD JSON byte-identical) still holds.",
+   "All 4 commits are signed (G) with Conventional subjects. Exactly one changeset. No comments added. No off-limits, backend, openapi, migration or lockfile change.",
+   "Targeted vitest (App.spec, access-session, unread-polling, shell/): 10 files, 73 tests pass. Frontend typecheck exits 0. npm run lint exits 0.",
+   "it( counts: App.spec.ts went from 17 to 12; 3 cases moved to access-session.spec.ts and 2 to unread-polling.spec.ts. No case lost, and every moved case keeps its assertions.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/12-routes-and-effects/review-2.md"
+  ]
+ }
+]

@@ -1,0 +1,48 @@
+[
+ {
+  "status": "done",
+  "summary": "Each CLC 2025 course is now written once, in clc-2025-courses.ts. The nine rows files are deleted. The canonical JSON of the built seed list is byte-identical before and after (sha256 acd2d17169d6ab3d03fdb638cc9214ece5622f96a4e7f659005623ce68e35e4a both times, 721549 bytes, `cmp` clean, program, group and row order included). Verify printed RESULT: ALL PASS on commit 146b8b4 and `git status --short` is empty.\n\nI checked the survey claim first. All 187 courses are identical across the nine files in name, credits, periods, type and the one needs_check extra. No course is listed twice within a specialisation.\n\nWhat changed, in src/backend/src/curriculum/seeds/:\n- **clc-2025-courses.ts (new, 288 lines):**\n  - The CLC_2025_COURSES table holds code, name, credits, the four period counts, type and the needs_check extra on CSC12113.\n  - It also holds the seven groups that are identical in all nine files (llct, khxh, toan_bb, toan_math, tin, gdtc, gdqp), each with its pages.\n  - A row builder looks up a course by code and throws on an unknown code.\n- **clc-2025-<key>.groups.ts (9 new files, 181 lines each):** each lists, per group, `[code, page]` for only the six groups that differ (toan_science, csn, bbcn, tccn, tn, free). The free-elective group is listed explicitly, not computed as \"the rest\".\n- **clc-2025-shared.ts and clc-2025.ts:** the spec field `rows` became `groups`, and the seed builder merges the shared groups with the specialisation's own. clc-2025.ts changed only its imports and that field.\n- **clc-2025-courses.spec.ts (new, 71 lines):** the permanent spec for D. For each specialisation it checks that:\n  - every listed code exists in the table;\n  - no code is listed twice;\n  - the row count (187) and credit total (726) match today's data;\n  - the row count and credit total of bbcn, tccn, free and tn are fixed per specialisation;\n  - the built seed holds the same codes.\n- **docs/analysis-and-design/adr/0005-curriculum-cohort-and-course-catalog.md:** line 28 now points to `clc-2025-cnttin.groups.ts` and the new table.\n- **.changeset/08-clc-seeds.md:** the empty changeset, in the same commit.\n\nLine counts:\n- **Before:** 1962 lines in the nine rows files (218 each).\n- **After:** 1629 lines in the nine groups files plus 288 in the course table, 1917 together.\n- **Beside them:** clc-2025.ts is unchanged at 253 lines, clc-2025-shared.ts went from 213 to 218, and the spec adds 71. The per-row page is still written for every row of every specialisation, so the saving is smaller than the copy count suggests. The gain is that a course's facts now live in one place.\n\nI generated the new files from the old modules with a throwaway script, so no value was retyped. Harness and generator are in the scratchpad batch folder: harness.mjs, gen.mjs and the old.json and new.json outputs.\n\nThe report file could not be written: the Write tool refused the path for report files, so this result is the report.",
+  "commits": [
+   "146b8b4 refactor(curriculum): write each CLC 2025 course once"
+  ],
+  "verify": "The verify script printed RESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract). Its COUNTS line was unit-be=1205 unit-fe=- e2e=365 browser=-, against a baseline of 1132 1246 364 68 (unit-fe and browser were not run). No number is lower. The canonical JSON before and after is identical (sha256 acd2d17169d6ab3d03fdb638cc9214ece5622f96a4e7f659005623ce68e35e4a); harness at /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/08-clc-seeds/harness.mjs.",
+  "leftOut": [
+   "Nothing in the objective was skipped.",
+   "The conflict check in catalog.ts stays. The APCS 2024 and 2025 seeds still overlap on course codes and can trigger it, and catalog decisions are checked through it.",
+   "The group of seven shared groups holds pages that are identical in all nine files. toan_science and csn have the same codes but different pages, so they are listed per specialisation.",
+   "No file under the off-limits list was touched, and none needed an import-path change.",
+   "The report file could not be written to the scratchpad because the Write tool refused report files, so the report is in this result instead."
+  ],
+  "lookTwice": [
+   "clc-2025-courses.ts: the row builder lists the keys in the old order, which keeps the JSON byte-identical. A reordered key would change the output.",
+   "clc-2025-shared.ts: printedRowsOf has one `as Record<Key, PrintedRow[]>` cast from Object.fromEntries.",
+   "clc-2025-courses.spec.ts: the fixed row counts and credit totals come from today's data and are not rule-derived. The per-group tallies of bbcn, tccn, free and tn differ by specialisation (CNTTIN has 68 free rows and 29 graduation rows)."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/backend/src/curriculum/seeds/clc-2025-courses.ts:19-23: COMMON_GROUP_KEYS, OWN_GROUP_KEYS, ClcCommonGroups and ClcCourse are exported but nothing outside the file uses them. Drop the export, or turn the two arrays into type unions.",
+   "clc-2025-courses.ts: the course() factory and clcPrintedRow repeat the column mapping in rows.ts row(), including counts_toward_total/gpa set to true. They could build each row through row() so the mapping lives in one place.",
+   "clc-2025-courses.ts: CLC_2025_COURSES is keyed by code and repeats the code inside each entry; the spec checks the two agree. An array plus a map built from it would write each code once.",
+   "ClcMember is only [code, page], so a per-specialisation extra cannot be written. All extras are the same in all nine files today, so nothing is lost. Mention this in the PR body.",
+   "clc-2025-courses.spec.ts: swapping two courses with equal credits between tccn and free in one file passes every tally. The brief accepts this. The titles 'keeps today row count...' should read 'today's'. The tally arrays are written [8,32] without spaces.",
+   "The implementer's report.md was not in the batch folder at review time, so I could not check its stated omissions."
+  ],
+  "checked": [
+   "Rebuilt the proof myself: git archive of the seeds folder at base and HEAD, compiled each with tsc, dumped CURRICULUM_SEEDS and CATALOG_DECISIONS as JSON. Both files have sha256 fc57f3e09dac4b1dda45c86a710435333c93a9898e5b4627bd69dd1ac72a5404 and are 751740 bytes; cmp says identical and isDeepStrictEqual is true. 11 seeds; row counts are 69 and 71, then 187 for each of the nine",
+   "No group is computed as a remainder: free and every other own group are listed explicitly in all nine .groups.ts files",
+   "Shared vs own groups: the nine files hold 4 different versions of toan_science and 2 of csn, so keeping them per file is correct; the 7 common groups are written once",
+   "Behaviour: clcPrintedRow produces the same fields in the same order as rows.ts row(). The only new error text is the throw for an unknown code, which today's data cannot reach",
+   "Contract: the diff of openapi.json, migrations and package-lock.json is empty",
+   "Tests: no existing spec changed or deleted; there is a new clc-2025-courses.spec.ts. vitest src/curriculum: 311 pass. typecheck and npm run lint pass",
+   "Completeness: nothing in src, scripts, deploy, .github, docs or AGENTS.md still points at the removed *.rows.ts files or clc2025*Rows. rows.ts is still used by APCS. The catalog.ts conflict check can still fire between APCS 2024 and APCS 2025, and between APCS and CLC",
+   "Structure: no new cycle (depgraph shows only the existing auth-users and curriculum entity cycles); all imports stay inside curriculum/seeds",
+   "Line counts: 9 x 218 = 1962 before; 9 x 181 + 288 = 1917 after, plus the 71-line spec",
+   "Repo rules: no comments added; no new dependency; .js import suffixes; one commit, signed (G), Conventional subject; exactly one changeset",
+   "Scope: no off-limits file touched",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/08-clc-seeds/review-1.md"
+  ]
+ }
+]

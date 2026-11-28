@@ -1,0 +1,86 @@
+[
+ {
+  "status": "done",
+  "summary": "All four steps (A, B, C, D) are done in three commits. Verify printed RESULT: ALL PASS on the final commit and git status is clean. Every response body, status and key order is unchanged, and openapi.json is byte for byte the same.\n\nA. Coded errors now go through common/api-errors.ts. I added `codedError` (a general builder) and `forbidden`. `notFound`, `validationFailed` and `conflict` are built on `codedError`. I replaced the hand-built copies in notifications.service, audit.controller, admin-write.service and admin-errors. A new lint rule `coded-error-home` stops a `code: '...'` object inside `new <X>Exception(` outside common/api-errors.ts and ai/. It has two test cases in scripts/lint.test.mjs, and the exceptions are named in scripts/layers.mjs as `codedErrorHomes`.\n\nB. The sign-in limiter is now `auth/sign-in-limiter.ts` with `reserve`, `clear` and `purge`, registered in AuthModule. Its limit and window come from `PASSWORD_ATTEMPTS` in rate-limits.ts, which `PASSWORD_LIMIT` also uses. The three limiter test cases moved verbatim into sign-in-limiter.spec.ts. They run a real AuthService over a real limiter and the fake repository. auth.service.spec.ts now uses a stub limiter.\n\nC. REFERENCES and COUNTED_REFERENCES moved unchanged into `curriculum-admin/references.ts`, which has no Nest or TypeORM imports. admin-errors.ts re-exports them, so existing callers are untouched.\n\nLeft out: codes for errors that have none today, and the `AdminErrorDto` rename (both change the contract). I also left ai/sse.ts, the session-lifetime code and the `createdAt` guards alone. No off-limits file was touched, and no docs named anything I moved.",
+  "commits": [
+   "414a430 refactor(backend): build every coded API error through common/api-errors.ts",
+   "172977f refactor(auth): move the sign-in attempt limiter out of AuthService",
+   "9bb0fb3 refactor(curriculum-admin): move the reference sentence builders into plain TypeScript (includes .changeset/06-errors-and-limiter.md)"
+  ],
+  "verify": "tools/verify.sh on /home/lamter/omnicourses/.claude/worktrees/cv-build-be: RESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract). COUNTS unit-be=1154 unit-fe=- e2e=365 browser=-, baseline 1132 1246 364 68 (the \"-\" entries are suites verify.sh did not run). Lint tests: 43 pass. git status --short is empty.",
+  "leftOut": [
+   "Codes for errors that have none today (auth, account, plans, curriculum, guides, sharing): changes the contract, waits for a decision",
+   "Renaming AdminErrorDto: changes openapi.json, waits for a decision",
+   "ai/sse.ts: off limits (PR #77)",
+   "Session-lifetime code and createdAt null guards: open questions for the Project Lead"
+  ],
+  "lookTwice": [
+   "The four curriculum-admin builders (prerequisiteCycle, importRejected, payloadTooLarge, compressedBody) now call codedError. Their object literals had to leave admin-errors.ts or the new lint rule would flag them. Check key order: prerequisite_cycle puts `cycle` before `message`, and importRejected puts `errors` after it.",
+   "signInAttemptKey stays in auth.service.ts so the limiter does not import it back and create an import cycle.",
+   "sign-in-limiter.spec.ts builds an AuthService around the real limiter, so the moved assertions are unchanged.",
+   "The report is at /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/06-errors-and-limiter/report.md."
+  ]
+ },
+ {
+  "verdict": "changes_requested",
+  "blocking": [
+   {
+    "file": "src/backend/src/common/api-errors.ts",
+    "line": 17,
+    "problem": "The new helpers codedError and forbidden decide where `extra` goes: before the message for permission_required and prerequisite_cycle, after it for conflict and importRejected. No test pins that key order. Every existing assertion uses toMatchObject, toEqual on single fields, or body.code. So if before and after were swapped, or forbidden used {after: extra}, every test would still pass, yet the permission_required body would change from statusCode, code, permission, message to statusCode, code, message, permission. The brief treats key order as part of the contract.",
+    "fix": "Add src/backend/src/common/api-errors.spec.ts (or extend admin-errors.spec.ts) that asserts the exact JSON.stringify(e.getResponse()) strings, plus getStatus() and the exception class, for: forbidden('permission_required', msg, {permission}), conflict(code, msg, {references}), prerequisiteCycle(['A','B','A']), importRejected(msg, errors), and one helper called with no extra fields."
+   }
+  ],
+  "nonBlocking": [
+   "api-errors.ts: conflict(code, message, extra) and forbidden(code, message, extra) take the same arguments but put extra in different places (after vs before the message). Name the forbidden parameter for where it goes, or record the difference in a doc; the new spec will pin it either way.",
+   "sign-in-limiter.ts:41: purge is public but only reserve() calls it. It could be private, though the brief listed purge as part of the API.",
+   "signInAttemptKey stays in auth.service.ts. BAC-4 wanted it in the limiter, but the brief lists only reserve, clear and purge, and the implementer gives an import cycle as the reason. Acceptable.",
+   "The 429 text 'try again in a minute' is still a fixed string while the window now comes from PASSWORD_ATTEMPTS.ttl. This was already true before the batch; the risk is drift.",
+   "The lint rule matches only `new XException(`. A subclass calling super({code}) outside ai/ is not caught. This is within the brief's scope.",
+   "sign-in-limiter.spec.ts drives the limiter through a real AuthService. That is the moved test unchanged, so it is fine, but a later direct limiter test would be cleaner."
+  ],
+  "checked": [
+   "Behaviour: compared the limiter's reserve, purge and clear line by line with the old AuthService code. Same SQL, same advisory lock, same order, same 429 status and text, same purge batch of 100. PASSWORD_ATTEMPTS equals the old 10 failures in one minute, and PASSWORD_LIMIT keeps its shape.",
+   "references.ts is identical to the removed block and imports nothing. admin-errors.ts re-exports REFERENCES and CountedReference, so existing callers are unchanged.",
+   "Contract: the diff of openapi.json, migrations and package-lock.json is empty. AdminErrorDto, routes, statuses and codes are unchanged.",
+   "Tests: the three limiter cases moved unchanged (same it() and expect() calls, fake repo copied verbatim). The AuthService spec now uses a stub limiter. The lint tests catch the obvious mutations of the new rule.",
+   "Ran: 24 unit spec files and 195 tests pass for auth, curriculum-admin, notifications, audit and common; lint.mjs passes; lint.test.mjs passes 43 of 43; tsc --noEmit is clean.",
+   "Serialization: in a scratch spec, compared class, status, JSON.stringify(getResponse()) and message for the old and new construction of all 13 error sites and helpers. All are identical, key order included.",
+   "Completeness: grep finds no retired name anywhere. The only hand-built envelopes left are in ai/ (allowed) and csv-import.service.ts (no code, file off limits).",
+   "Structure: no new edges between folders and no new cycle (depgraph run, imports checked against base).",
+   "Repo rules: no comments in the added code, .js import suffixes, no magic numbers, no new dependency. All 3 commits are signed (G) with Conventional subjects. Exactly one new changeset, which is empty.",
+   "Scope: no off-limits file touched and no frontend change.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/06-errors-and-limiter/review-1.md"
+  ]
+ },
+ {
+  "status": "done",
+  "summary": "The blocking finding was right, and I fixed it. I added src/backend/src/common/api-errors.spec.ts, which pins the exact JSON key order, status and exception class of forbidden, conflict, prerequisiteCycle and importRejected, plus helpers called with no extra fields. Verify printed RESULT: ALL PASS. I appended a Review round section to the report.",
+  "commits": [
+   "96fe5d6 test(backend): pin the JSON key order of the coded error helpers"
+  ],
+  "verify": "verify.sh printed RESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract). COUNTS: unit-be=1159, e2e=365. git status --short was empty after the commit.",
+  "leftOut": [
+   "Non-blocking findings, none acted on. The brief lists purge as part of the limiter's API, so I kept it public. signInAttemptKey stays in auth.service.ts, because the implementer gave an import cycle as the reason. I left the fixed 429 text alone because changing it would alter response text. The lint rule matches only `new XException(`, which is within the brief's scope. The limiter spec still drives a real AuthService, as the moved test did. The forbidden/conflict argument naming is now covered by the new spec, so I did not rename anything."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/backend/src/common/api-errors.spec.ts:3 imports prerequisiteCycle and importRejected from ../curriculum-admin/admin-errors.js. That makes a spec in the shared common/ folder depend on a feature folder. Lint skips specs, so nothing fails, but the direction is backwards. Fix: move those two cases into src/backend/src/curriculum-admin/admin-errors.spec.ts.",
+   "api-errors.spec.ts:31: the importRejected case checks the status but not toBeInstanceOf(BadRequestException), although round 1 asked for the class too. The risk is low. Fix: add the one assertion.",
+   "The round 1 non-blocking notes still stand: forbidden and conflict take the same arguments but place extra differently, purge is public, signInAttemptKey stays in auth.service.ts, the 429 text is fixed while the window is a constant, the lint rule covers only new XException(, and the limiter spec goes through a real AuthService."
+  ],
+  "checked": [
+   "Round 1 fix made in 96fe5d6 (signed G, Conventional subject): api-errors.spec.ts asserts exact JSON.stringify bodies for forbidden with permission, conflict with references, prerequisiteCycle, importRejected, and no-extra calls, plus status and class.",
+   "Mutations caught: forbidden switched to {after}, conflict switched to {before}, before and after swapped inside codedError, and either admin builder using the wrong slot. Each makes at least one test fail.",
+   "The expected strings match the old bodies serialized in round 1, key order included.",
+   "git diff 9bb0fb3..HEAD shows only the new spec file. Every other file is unchanged since round 1.",
+   "The diff on openapi.json, migrations and package-lock.json is empty.",
+   "vitest: src/common, admin-errors.spec and src/auth pass, 10 files and 77 tests. lint.test.mjs passes 43 of 43, node scripts/lint.mjs passes, and tsc --noEmit is clean.",
+   "No comments, .js suffixes, no new dependency, one changeset.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/06-errors-and-limiter/review-2.md"
+  ]
+ }
+]

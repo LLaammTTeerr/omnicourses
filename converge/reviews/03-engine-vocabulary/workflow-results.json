@@ -1,0 +1,40 @@
+[
+ {
+  "status": "done",
+  "summary": "All four steps (A to D) are done. Verify printed RESULT: ALL PASS and `git status --short` is empty. I could not write the report file because both write routes were refused (the Write tool and the heredoc), so the report is in this result.\n\n**What changed, by commit (branch cvb/03-engine-vocabulary)**\n1. eb77650 `refactor(curriculum)`: the new pure file `curriculum/curriculum-rules.ts` holds the engine input types and the two value lists with their types.\n   - It holds `CurriculumRules`, `CurriculumRuleGroup`, `CurriculumRuleCourse`, `CurriculumRuleCombinedMinimum` and `CourseRules`, plus `TRAINING_TYPES`/`TrainingType` and `REQUIREMENT_GROUP_KINDS`/`RequirementGroupKind`.\n   - The reader class and its row mappers stay in `curriculum-rules.reader.ts`.\n   - The entities, DTOs, rules files, fixtures and specs import from the new file. The reader and entity files no longer export the moved names, and there is no re-export.\n2. 91e9cfc `test(rules)`: the purity spec now walks type-only imports as well, for the engine files and the pure leaves.\n   - `../curriculum/curriculum-rules.js` is added to the allowed pure imports.\n   - I proved the check bites. A temporary `import type { Repository } from 'typeorm'` in `rules/coverage.ts` failed the spec, and so did one in `curriculum-rules.ts`. I removed both.\n3. e27f216 `refactor(plans)`: `CreditCapsDto` now lives in `plans/plan-issues.dto.ts`, and `audit.dto.ts` imports it from there.\n   - I chose that over `common/` because the class `implements CreditCaps` from `rules/credit-caps`. In `common/` it would have given `common/` an import of `rules/`.\n   - Edges `plans -> audit` and `sharing -> audit` are gone, and `audit -> plans` is added, so the folder edges drop by one.\n4. bf29056 `refactor(terms)`: `TermDto` moved to `terms/term.dto.ts` with the same class name and decorators in the same order.\n   - Eight importers were updated: the 7 DTO and controller files plus `onboarding.dto.spec.ts`.\n   - `common/` and `config/` now import no feature folder.\n   - `scripts/layers.mjs` drops `common -> terms`, `plans -> audit` and `sharing -> audit`, and adds `audit -> plans`.\n5. 421f0b1 `docs`: the old file names are corrected in ADR 0013, `architecture.md` and `class-model.md`. `.changeset/03-engine-vocabulary.md` is the empty changeset.\n\nThe one edge added on purpose is `audit -> plans`. It points from the less stable folder to the more stable one: nothing depends on `audit` now, while `plans` is imported by `sharing` and `audit`. It creates no cycle.\n\n**Verify.** unit-be=1135 (baseline 1132), e2e=364 (baseline 364). unit-fe, browser and build-fe were not part of this run. The `openapi` and `contract` checks pass, so `openapi.json` is byte-identical.\n\n**Verify output, last lines:**\n```\nPASS e2e (88s)\nCOUNTS unit-be=1135 unit-fe=- e2e=364 browser=-   (baseline 3c4da22: 1132 1246 364 68)\nRESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract)\n```\n\n**Off-limits files.** I touched none and made no one-line path changes in any of them.",
+  "commits": [
+   "eb77650 refactor(curriculum): move the rule engine input vocabulary into curriculum-rules.ts",
+   "91e9cfc test(rules): check type-only imports in the purity spec",
+   "e27f216 refactor(plans): give CreditCapsDto a home that plans and sharing can import",
+   "bf29056 refactor(terms): move TermDto out of common into terms/term.dto.ts",
+   "421f0b1 docs: point the engine vocabulary and TermDto at their new files"
+  ],
+  "verify": "verify.sh printed RESULT: ALL PASS (typecheck lint unit-be build e2e openapi contract) on 421f0b1. COUNTS unit-be=1135 (baseline 1132), e2e=364. git status --short is empty.",
+  "leftOut": [],
+  "lookTwice": [
+   "In rules.service.spec.ts the import regex no longer skips `import type`, so it now also checks `export ... from` lines. I renamed the test title to say \"not even as a type\"; its assertions are unchanged.",
+   "audit -> plans is a new folder edge. The chosen home for CreditCapsDto is plans/plan-issues.dto.ts rather than common/.",
+   "The report file was not written to the scratchpad path because the Write tool and the heredoc were both refused. The report is in the summary above."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/backend/src/rules/types.ts lines 1-2 import types from '../curriculum/curriculum-rules.js' on two separate lines. Merge them into one import.",
+   "src/backend/src/rules/rules.service.spec.ts: the purity regex still misses inline type queries such as `type X = import('typeorm').Repository`. This gap existed before the batch. Matching `import\\('([^']+)'\\)` as well would close it.",
+   "The implementer report (/tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/03-engine-vocabulary/report.md) does not exist, so I could not check the omissions it should list. It must also list the one intended new edge, audit -> plans.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/03-engine-vocabulary/review-1.md"
+  ],
+  "checked": [
+   "Behaviour: compared the moved interfaces, TRAINING_TYPES and REQUIREMENT_GROUP_KINDS, TermDto (same decorators, same order) and CreditCapsDto line by line. They are identical. The entity files used only the types, so changing them to import type is safe. No SQL, mapper or error text changed.",
+   "Contract: the diff of openapi.json, migrations and package-lock.json is empty. After build and openapi, git status is clean, so openapi.json is byte-identical.",
+   "Tests: spec changes are import paths only, plus the purity regex. No it or expect was lost. The full backend unit suite passes (74 files, 1135 tests). Typecheck and lint, including lint.test.mjs, pass.",
+   "Purity spec bites: a planted `import type { Repository } from 'typeorm'` failed the spec in rules/coverage.ts and again in curriculum/curriculum-rules.ts (the leaf walk). Tree restored and clean.",
+   "Completeness: nothing in src, scripts, docs, AGENTS.md or README.md still imports the retired names from the reader, the entity files or common/field-validators. courseCodesOf and groupIdsOf are untouched.",
+   "Structure (depgraph, base against head): common->terms, plans->audit and sharing->audit are removed. audit->plans is added: audit has 1 user and plans has 3, so the edge points from less stable to more stable. No cycle. common and config now import no folder. common/ would have needed a new common->rules edge, so plans is the better home. layers.mjs matches the graph.",
+   "Repo rules: no comments, no new dependencies, .js suffixes, all 5 commits signed (G) with Conventional subjects, exactly one new changeset.",
+   "Scope: no off-limits file touched."
+  ]
+ }
+]

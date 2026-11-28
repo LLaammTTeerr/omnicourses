@@ -1,0 +1,93 @@
+[
+ {
+  "status": "done",
+  "summary": "All four steps (A to D) are done and committed on cvb/09-fe-kernel in /home/lamter/omnicourses/.claude/worktrees/cv-build-fb. verify.sh printed RESULT: ALL PASS and `git status --short` is empty. Its COUNTS line was unit-fe=1252 and browser=68; the baseline is 1246 and 68, so no count dropped.\n\n- **A, account storage:** `account-storage.ts` now lists the two account-scoped keys (names unchanged) and has one function that forgets them. `plans/last-plan.ts` and `plans/lock.ts` take their keys from it, and `auth/store.ts` no longer imports `plans/`. `scripts/layers.mjs` has the new kernel entry and an empty exception list.\n- **B, grants store:** `admin/access.ts` holds the grants store and `admin/grants.ts` holds the grant types and `fetchOwnGrants`. `admin/store.ts` keeps only the program picker. The shell, `App.vue` and the admin screens import `access.ts`. The entry chunk shrank from 78576 to 74790 bytes (gzip 29318 to 28176).\n- **C, busy text:** `ModalDialog` now reads the \"working\" text itself, and `busyText` stays as an optional override. The twelve dialogs dropped the prop and the import.\n- **D, router warm-up:** the test-only block is gone from `router.ts`. `testing/routes.ts` has `warmRoutes()`, which `setup()` in `testing/signed-in.ts` calls. The unit suite and the browser suite each passed three times.\n\nDocs were corrected in `architecture.md`, `class-model.md` and the UC-11 sequence diagram. The empty changeset `.changeset/09-fe-kernel.md` is in the last commit. The report is at /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/09-fe-kernel/report.md.",
+  "commits": [
+   "7f2026d refactor(frontend): list account-scoped browser keys in one kernel file",
+   "2b3d76a refactor(frontend): split the admin grants store out of admin/store.ts",
+   "82ca62d refactor(frontend): give ModalDialog its own default busy text",
+   "8fafbd8 test(frontend): give the ModalDialog browser spec the store the dialog now reads",
+   "b6b7d29 refactor(frontend): warm the route chunks in the test helper, not in router.ts"
+  ],
+  "verify": "verify.sh printed RESULT: ALL PASS for typecheck, lint, unit-fe, build, browser and contract. Its COUNTS line: unit-fe=1252 and browser=68 (baseline 1246 and 68). For step D, the unit suite and the browser suite each passed three times (1252 and 68 tests every run).",
+  "leftOut": [
+   "Nothing was left out. In step D I warm all routes in setup() and did not try warming only the matched route, because warm-all was stable and needed no extra calls in the specs that build the app router themselves."
+  ],
+  "lookTwice": [
+   "`components/ModalDialog.vue` sets `withDefaults(..., { busy: undefined })`, which turns off Vue's boolean casting. The status line renders only when `busy` is passed, so the MobileBars sheet, which never passes `busy`, still shows no status line as before.",
+   "`admin/api.ts` re-exports the grant types, `PERMISSION_KINDS` and `fetchOwnGrants` from `grants.ts`, so existing importers and `api.spec` are unchanged.",
+   "`admin/store.spec.ts` was renamed to `admin/access.spec.ts` because it only tested the grants store.",
+   "`ModalDialog.browser.spec.ts` now mounts with Pinia, because the dialog reads the screen language. This is a setup change only, with no assertion change.",
+   "`auth/store.spec.ts` now reads `localStorage` by `ACCOUNT_STORAGE_KEYS` instead of the plans helpers. The sign-out and 401 assertions mean the same."
+  ]
+ },
+ {
+  "verdict": "changes_requested",
+  "blocking": [
+   {
+    "file": "src/frontend/src/admin/api.ts",
+    "line": 8,
+    "problem": "The grant move is half done. admin/api.ts imports every grant name from grants.ts and re-exports it (fetchOwnGrants, GLOBAL_PERMISSIONS, PERMISSION_KINDS, GlobalGrant, GlobalPermission, PermissionKind, ProgramGrant, UserGrants), so the old import path stays live and the names have two homes. These files still use the old path: AccessAdmin.vue, errors.ts, messages.ts, sections.ts, testing/fixtures.ts, api.spec.ts, and the CatalogAdmin, CalendarAdmin, AccessAdmin, ImportAdmin and CurriculumAdmin specs. The report says this was on purpose. PERMISSION_KINDS, GlobalGrant and ProgramGrant are imported on line 8 but never used in api.ts. The import sits below an export line, and a double blank line is left near line 305.",
+    "fix": "Point those importers at ./grants.js. In api.spec.ts, import the grant names from ./grants.js and keep every assertion. Delete the `export { ... } from './grants.js'` line. Keep only the grant imports api.ts really uses (GlobalPermission, PermissionKind, UserGrants) and move them into the import block at the top. Remove the extra blank line. Take fetchOwnGrants out of the admin/ api column in docs/analysis-and-design/class-model.md."
+   }
+  ],
+  "nonBlocking": [
+   "Step D: warmRoutes() now runs inside setup(), so the first test in each file spends its own 5 s timeout importing every route chunk. Before, router.ts did this at module load, outside any test timeout. Solo runs: 4/4 pass. With three vitest processes at once, HEAD had 4-6 timeouts per run, always the first heavy test in a file. The base also timed out on the CurriculumAdmin first test under the same load (partial runs, cold cache), so this is not proven to be a regression. Suggestion: call warmRoutes from a beforeAll (setupFile or helper module) so it runs outside the test timeout.",
+   "Specs that call createAppRouter directly (router.spec, nav.spec, GuidesView.spec, GuideView.spec, the browser specs) no longer warm route chunks. They pass today.",
+   "ModalDialog.vue: withDefaults({ busy: undefined }) makes busy a subtle three-state prop. It is correct, and the 'has no status line for a dialog that is never busy' spec covers it.",
+   "The UC-11 sequence doc lists access.ts but not grants.ts.",
+   "auth/store.spec.ts now reads and writes localStorage by key instead of through the plans helpers. The assertions are equivalent and cover sign-out and both 401 paths, so the test is not weakened."
+  ],
+  "checked": [
+   "Behaviour A: the storage keys are still 'oc-last-plan' and 'oc-plan-locks'. forgetAccountStorage keeps the try/catch for each key. It is called at the same sign-out and 401 points.",
+   "Behaviour B: useAdminAccess in access.ts matches the old store.ts line by line. The grant types and fetchOwnGrants in grants.ts are byte-identical. useProgramPicker is unchanged.",
+   "Behaviour C: all 12 dialogs passed :busy-text=shell.working, and the rendered text is now busyText ?? shell.working. Dialogs that never pass busy (MobileBars, SettingsView, CourseDrawer, PasteTranscriptDialog) still render no status line.",
+   "Behaviour D: the warm-up code moved unchanged to testing/routes.ts. Production router.ts no longer has the top-level await.",
+   "Contract: diff of openapi.json, migrations, package-lock.json and package.json is empty. No backend changes.",
+   "Tests: store.spec was renamed to access.spec, with only the import changed. No it/expect was lost. New account-storage.spec and ModalDialog.spec would fail if the logic were wrong.",
+   "Completeness: no matches left for forgetLastPlan, forgetLocks, forgetAccountData, warmRouteChunks, or useAdminAccess imported from admin/store.js. The grant re-export is the one gap.",
+   "Structure: depgraph against the base shows the auth->plans edge gone, no new folder edges and no file cycles. Entry chunk went from 78539 to 74844 bytes (gzip 29303 to 28211).",
+   "Repo rules: npm run lint passes (layers check, empty exception list). vue-tsc is clean. All 5 commits are signed (G) with Conventional subjects. Exactly one new .changeset file. No comments, no dependency changes.",
+   "Scope: no off-limits files touched.",
+   "vitest run solo 4 times: 1252/1252 each time. One run alongside lint and typecheck had 5 timeout failures. Three runs at once had 4-6 timeouts each. test:browser once: 68/68.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/09-fe-kernel/review-1.md"
+  ]
+ },
+ {
+  "status": "done",
+  "summary": "The blocking finding was right and is fixed. The grant names now live only in admin/grants.ts. admin/api.ts no longer re-exports them. Its grants import moved into the top import block and keeps only GlobalPermission, PermissionKind and UserGrants. The stray blank line is gone. These importers now point at ./grants.js: AccessAdmin.vue, errors.ts, messages.ts, sections.ts, testing/fixtures.ts, api.spec.ts and the five admin specs. fetchOwnGrants is out of the admin/ api column in class-model.md, and the UC-11 sequence doc now lists grants.ts.\n\nThe change broke one spec, \"calls every function this module exports\". api.ts no longer exports fetchOwnGrants, so the spec now reads the exports of grants.ts as well. No assertion was removed.\n\nThe final verify printed RESULT: ALL PASS on the last commit. COUNTS: unit-fe=1252 (baseline 1246), browser=68 (baseline 68). git status is clean.\n\nI took only one non-blocking finding, the grants.ts mention in the UC-11 doc. I did not move warmRoutes into a beforeAll. The reviewer could not show a regression, because the base also timed out under load, and a beforeAll would touch many specs.\n\nThe report has a new \"Review round\" section.",
+  "commits": [
+   "8107b92 refactor(frontend): import the admin grant names from grants.ts only",
+   "12e2469 test(frontend): keep the export-coverage check over the grants functions"
+  ],
+  "verify": "/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-build-fb omnicourse_cv_fb typecheck lint unit-fe build browser contract printed RESULT: ALL PASS. Report: /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/09-fe-kernel/report.md",
+  "leftOut": [
+   "Non-blocking: warmRoutes still runs inside setup() instead of a beforeAll. A regression is not proven, and a beforeAll would touch many specs.",
+   "Non-blocking: specs that call createAppRouter directly still do not warm route chunks. They pass today.",
+   "Non-blocking: the ModalDialog busy prop and the store.spec localStorage change need no action, per the reviewer."
+  ],
+  "lookTwice": [
+   "src/frontend/src/admin/api.spec.ts: the export-coverage spec now spreads the exports of both api and grants. The file has both a namespace import and a named import from ./grants.js."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/frontend/src/admin/api.spec.ts:59-60 imports ./grants.js twice, once as `* as grants` and once with named imports. Use one of them.",
+   "src/frontend/src/admin/api.spec.ts:319: the test is still titled 'calls every function this module exports', but it now covers api.ts and grants.ts. Rename it, for example to 'calls every function the admin api and grants modules export'.",
+   "Round-1 note on step D still applies and was left on purpose: warmRoutes runs inside the first test's 5 s timeout in setup(), so it can time out when the machine is busy. Running it from a beforeAll in a setupFile would harden it."
+  ],
+  "checked": [
+   "Round-1 fix: the `export { ... } from './grants.js'` re-export is gone from admin/api.ts. The api.ts import now sits in the top block (line 5) and brings in only GlobalPermission, PermissionKind and UserGrants, and all three are used (lines 244 and 341-349). The extra blank line near the old line 305 is gone.",
+   "Importers moved to ./grants.js: AccessAdmin.vue, errors.ts, messages.ts, sections.ts, testing/fixtures.ts, api.spec.ts and the AccessAdmin, CalendarAdmin, CatalogAdmin, CurriculumAdmin and ImportAdmin specs. A grep of src/frontend finds no grant name imported from api.js and no api.fetchOwnGrants.",
+   "api.spec.ts keeps every assertion: the UserGrants, ProgramGrant and GlobalGrant shape checks, the GLOBAL_PERMISSIONS and PERMISSION_KINDS contract-enum checks, and the fetchOwnGrants CALLS row. Commit 12e2469 widens the export-coverage test to api plus grants, so it is stronger, not weaker.",
+   "class-model.md: fetchOwnGrants is out of the admin/ api column. The UC-11 sequence doc now lists grants.ts.",
+   "The new commits 8107b92 and 12e2469 touch only import lines, one test and docs. Both are signed (G) with Conventional subjects. No comments added, no dependency or lockfile change, and still exactly one .changeset file. Nothing off-limits is touched. openapi.json, migrations and package-lock.json are unchanged.",
+   "npm run typecheck -w src/frontend (vue-tsc): clean.",
+   "npm run lint: 33/33 pass, including the layers check.",
+   "cd src/frontend && npx vitest run, twice one after the other: 1252/1252 both times.",
+   "The review is written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/09-fe-kernel/review-2.md. I read report.md only after writing the review, and it matches what I found."
+  ]
+ }
+]

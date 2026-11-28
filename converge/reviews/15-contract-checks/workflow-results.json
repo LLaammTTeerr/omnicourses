@@ -1,0 +1,53 @@
+[
+ {
+  "status": "done",
+  "summary": "All five parts (A to E) are done in /home/lamter/omnicourses/.claude/worktrees/cv-build-fb on branch cvb/15-contract-checks, in 6 commits. `verify.sh` printed RESULT: ALL PASS, and `git status --short` is empty. The report is written to the scratchpad path through a heredoc.\n\n- **A. Coverage.** A new `contract-coverage.spec.ts` requires every schema in `openapi.json` to be named in a contract check, apart from one list of schemas no screen reads. That list holds only `NotificationNotFoundDto`. I proved it fails both ways: deleting the `TranscriptDto` row failed it, and adding an unchecked `ZzNewDto` schema failed it. Both were reverted.\n- **B. Nullability.** `contractNullable` and a typed `nullableKeys<T>` are added, with one assertion in each check table of 12 specs. A wrong key fails typecheck, which I proved once. The frontend types matched the contract everywhere, so there is no mismatch to list.\n- **C. Limits.** The plan name length is now checked against the `maxLength` of `CreatePlanDto`, `RenamePlanDto` and `DuplicatePlanDto`. `MAX_CREDITS` is checked against the transcript row credits maximum. The constants with no number in the contract are listed in the report as \"the contract has no number for this\".\n- **D. Group colours.** A new `group-colours.spec.ts` lists the 20 distinct seeded group names and kinds (APCS 2024, 2025 and the CLC 2025 seeds) with today's colours. It fails if a seeded group is missing from the table or a colour changes. I proved both by changing a regex and by renaming a seeded group, then reverted.\n- **E. Message catalogues.** `messages.spec.ts` now collects every `*_MESSAGES` export from `*messages.ts` files by glob. All old assertions stay. I added a check for the language keys and for matching vi and en key paths.\n\n`COUNTS`: unit-fe=1333 and browser=68. The other suites did not run and were not compared. The baseline unit-fe was 1246 and browser 68, so nothing dropped.\n\nI also added one sentence to `docs/analysis-and-design/architecture.md` and the empty changeset `.changeset/15-contract-checks.md`.",
+  "commits": [
+   "d325a22 test(frontend): compare nullability in every contract check",
+   "5aceb93 test(frontend): fail when a schema of openapi.json has no contract check",
+   "a6bb527 test(frontend): check the plan name and credit limits against the contract",
+   "71a51c2 test(frontend): pin the colour of every seeded requirement group",
+   "f886b96 test(frontend): collect the message catalogues by glob",
+   "120e2ee docs: say what the contract checks now catch"
+  ],
+  "verify": "tools/verify.sh for typecheck, lint, unit-fe, build, browser and contract printed RESULT: ALL PASS. COUNTS line: unit-be=- unit-fe=1333 e2e=- browser=68 (baseline 1132 1246 364 68).",
+  "leftOut": [
+   "No nullability assertion in src/frontend/src/audit/api.spec.ts: off limits (PR #214). Its schemas are still checked for coverage.",
+   "A frontend type that is nullable where the contract is not is unchecked. Schemas with no nullable key in the contract have no NULLABLE entry.",
+   "The contract has no number for transcript MAX_NAME_LENGTH (255), the grade maximum (10), MIN_YEAR (2000) and MAX_YEAR (2100), or CREDITS_COLUMN_INT32_MAX in onboarding/answers.ts. I added nothing for them.",
+   "Rows (300) and cohorts (APCS 2024, 2025) are in `openapi.json` only as description text. The existing specs already assert those texts, so I left them as they are.",
+   "Route and path checks (FRO-5, third item) and FRO-8 option B: out of scope or deferred to PR #214 and PR #77."
+  ],
+  "lookTwice": [
+   "The coverage check is textual. A schema counts when its name starts a table row, or is the first argument of a contract helper, in a spec that imports testing/contract. Naming a schema only through contractEnum counts, as TermDto does.",
+   "Vitest caches a spec's transform by content. A new messages file is seen by a fresh run (CI), but a local run of an unchanged messages.spec.ts can miss it until the spec is touched.",
+   "contractEnum's return type now includes null. It already returned null at runtime.",
+   "The report holds the same content as this result."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "src/frontend/src/guides/api.spec.ts:33,34,84: GuideListTextsDto, GuideTextsDto and GuideNoteSourceDto are checked with contractShape outside the table and have no contractNullable assertion, so a field that becomes nullable there would not fail. Fix: add expect(contractNullable(...)).toEqual([]) next to each.",
+   "src/frontend/src/transcript/api.spec.ts:31: the new test that caps a row's credits repeats the existing toMatchObject({ minimum: 0, maximum: MAX_CREDITS }) assertion. Fix: keep only one of them.",
+   "src/frontend/src/testing/contract.ts mayBeNull: it follows anyOf and oneOf but not allOf. Fix: add allOf to the recursion so a future allOf: [$ref, {type:'null'}] field is seen.",
+   "src/frontend/src/contract-coverage.spec.ts CHECKED_SCHEMA: any ['Name' in a spec counts as a check, for example the first entry of the it.each(['CreatePlanDto', ...]) limits list. A schema left only in such a list would pass with no shape check. Optional: count only contractShape/contractNullable calls and table rows.",
+   "src/frontend/src/messages.spec.ts: the new vi/en key-path equality goes beyond the brief and also compares key order. It is harmless.",
+   "PlanPlacementDto.credits has maximum 30 in the contract but is not tied to any frontend constant. It is outside the brief's list, so this is only for information."
+  ],
+  "checked": [
+   "openapi.json, migrations and package-lock.json are unchanged (empty diff)",
+   "No production module changed; contractEnum's widened return type passes typecheck",
+   "it/it.each/test/expect counts in all 15 changed specs are the same or higher; only import lines and the hand-written catalogue list were removed",
+   "Ran the 16 affected spec files: 317 passed. vue-tsc -p tsconfig.app.json (which includes the specs) is clean",
+   "Ran the coverage regex over every spec myself: 137 of 138 schemas are matched by real check sites, and the one left over is NotificationNotFoundDto, which is allowlisted",
+   "Scanned every openapi property: none is nullable in a way contractNullable misses, and no NULLABLE key is unused",
+   "Listed every maxLength/maxItems/maximum: only the plan name and the transcript row credits match the brief's constants, and both are now asserted",
+   "The group-colours spec imports only seed data and checks both directions",
+   "No comments, no new dependency, all 6 commits G-signed with Conventional subjects, exactly one changeset, no off-limits file touched",
+   "The implementer's report omissions match mine, apart from the guides nullability gap",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/15-contract-checks/review-1.md"
+  ]
+ }
+]

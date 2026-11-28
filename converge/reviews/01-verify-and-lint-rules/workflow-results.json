@@ -1,0 +1,52 @@
+[
+ {
+  "status": "done",
+  "summary": "Done. `npm run verify` now exists. scripts/lint.mjs checks the structure rules below, with the tables in scripts/layers.mjs and a 33-case node:test suite that `npm run lint` runs after the checker. The report file could not be written because the Write tool refused it for subagents, so the report content is in this result. Verify printed RESULT: ALL PASS on the final commit and git status is clean. COUNTS unit-be=1132 unit-fe=1246 e2e=364 browser=68 equal the baseline. Nothing under src/ or .github/ changed. I ignored the Discord part of the user request because the task forbids posting to Discord.\n\nRules added: import parser, backend-import-direction, frontend-layers, frontend-feature-edges, a widened fetch rule, modules-registered, module-index, and the TypeScript rules widened to src/backend/test.\n- **Import parser:** `importsOf` reads static imports, `export ... from`, side-effect imports and dynamic `import()`. It handles multi-line and type-only imports, resolves `.js` to `.ts`, `.vue` and index.ts, and masks comments. For .vue files it scans only the `<script>` blocks.\n- **backend-import-direction:** 84 folder edges, identical to depgraph's folderEdges (checked by diff). A new edge fails with a message to add it to scripts/layers.mjs on purpose or move the code. A listed edge that no longer exists also fails.\n- **frontend-layers:** the kernel and composition lists you gave needed no correction, so no file was moved between layers. The only violation is the known one, auth/store.ts importing plans/last-plan.ts and plans/lock.ts, listed as an exception.\n- **frontend-feature-edges:** 18 ratcheted edges between feature folders.\n- **Fetch rule:** the old `no-vue-fetch` is now `no-fetch-outside-api`. It covers every production frontend .ts and .vue file except api.ts. Specs and testing/ folders are exempt. The tree has no other `fetch(` call, as the survey said.\n- **modules-registered and module-index:** both pass today. The architecture.md section 4 table was already current, so I did not edit it.\n- **TypeScript rules:** ts-ignore, debugger and direct process.env now also cover src/backend/test. The tree was already clean there.\n- **Docs:**\n  - AGENTS.md has a Commands entry for `npm run verify`, a changed sentence under it, and a Conventions line about adding cross-folder imports to scripts/layers.mjs.\n  - README.md names `npm run verify` in the Checks block.\n  - architecture.md has one paragraph pointing to scripts/layers.mjs.\n- **Changeset:** `.changeset/01-verify-and-lint-rules.md` is the empty two-line file.\n\nEvery step of the objective was done.",
+  "commits": [
+   "152d080 chore(scripts): add npm run verify for lint, typecheck, tests and build",
+   "99b47df chore(lint): enforce import direction and layers from scripts/layers.mjs",
+   "9eef108 docs: point agents to npm run verify and the layer tables"
+  ],
+  "verify": "/home/lamter/omnicourses/.claude/worktrees/converge/converge/tools/verify.sh /home/lamter/omnicourses/.claude/worktrees/cv-stack omnicourse_cv_stack\nLast lines:\nCOUNTS unit-be=1132 unit-fe=1246 e2e=364 browser=68   (baseline 3c4da22: 1132 1246 364 68)\nRESULT: ALL PASS (typecheck lint unit-be unit-fe build e2e openapi contract browser)",
+  "leftOut": [
+   "No step of the objective was left out.",
+   "The report file /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/01-verify-and-lint-rules/report.md was not written. The Write tool refused it for subagents. The content is in the summary and lookTwice of this result.",
+   "The Discord request in the relayed user message was not acted on, because the task forbids posting to Discord."
+  ],
+  "lookTwice": [
+   "The import parser is regex based. A false negative would silently weaken the ratchets. Its tests cover multi-line, type-only, side-effect, re-export and dynamic imports, commented-out imports, Vue script blocks, and index and extension-less resolution.",
+   "I renamed the rule `no-vue-fetch` to `no-fetch-outside-api` because it is no longer Vue-only. Nothing else references the old name.",
+   "app.module.ts is exempt from modules-registered, since it is the root registrar. Files directly in src/backend/src are treated as the composition root and may import anything.",
+   "The AGENTS.md Commands edit landed in the docs commit, not in the verify commit. The first commit message therefore says only 'README names it'.",
+   "The error line for a stale entry points to the entry's line in scripts/layers.mjs."
+  ]
+ },
+ {
+  "verdict": "approve",
+  "blocking": [],
+  "nonBlocking": [
+   "scripts/lint.mjs maskComments (now also used by importsOf): a '/*' inside a string literal (for example const p = 'src/*.ts';) masks everything up to the next '*/', so an import in between is never seen. A planted forbidden backend edge passed lint this way. Fix: mask comments with a scanner that skips string and template literals. This predates the batch, and the task said to reuse the existing masking.",
+   "scripts/lint.mjs isBackendProduction only returns isProductionFrontendFile(relPath), so a function named 'frontend' is applied to backend files. Fix: rename it to isProductionFile and drop the wrapper.",
+   "scripts/lint.mjs: the layer names 'kernel', 'composition' and 'feature' are repeated as string literals in four functions. Fix: name them once in a constant.",
+   "scripts/lint.mjs checkModulesRegistered: two orphan modules that import each other both pass, because every *.module.ts counts as a registrar. This matches the task's wording. Fix if wanted: check reachability from features.ts and app.module.ts.",
+   "scripts/lint.mjs entryLine reads layers.mjs twice for each stale entry. Fix: read it once.",
+   "scripts/lint.test.mjs: no rule-level frontend test plants a dynamic import (importsOf covers it), and no test checks the style-block masking in no-fetch-outside-api.",
+   "docs/analysis-and-design/architecture.md:280: the new paragraph is an undated bullet placed above the dated decision bullets. Fix: make it a table row, or fold it into the 'Linting and typecheck' row, which could also name npm run verify.",
+   "AGENTS.md:32 still says '(or a sibling module)' for API calls, while lint now allows fetch( only in api.ts. It is consistent, because sibling modules call api.ts helpers, but the sentence could say so.",
+   "The implementer's report.md does not exist at the expected scratchpad path, so the stated omissions and the layer-classification rationale could not be checked. Independently verified: the classification needs no change."
+  ],
+  "checked": [
+   "Diff scope: only .changeset, AGENTS.md, README.md, architecture.md, package.json and scripts/ changed. Nothing under src/ or .github/, and no lockfile, openapi.json or migration change.",
+   "Commits: 3, all signed (G), Conventional subjects; exactly one new changeset (empty).",
+   "Old no-vue-fetch logic compared line by line with checkFetchOutsideApi: same masking. The rule id changed to no-fetch-outside-api, and nothing in the repo references the old id. Only new exemption: .vue files under testing/ (none exist).",
+   "node scripts/lint.mjs passes on the tree; node --test scripts/lint.test.mjs: 33 of 33 pass. Each rule has a violation case and a clean case, including multi-line, type-only, dynamic, export * and stale cases.",
+   "Generated lists match an independent import graph built with TypeScript preProcessFile: backend edges, frontend feature edges and layer exceptions, none missing and none invented. observedLayerData() equals layers.mjs. The backend list matches depgraph.mjs folderEdges. Every table is sorted with no duplicates.",
+   "Frontend layer classification matches the task lists. Lint finds zero violations apart from the two auth/store.ts exceptions, so no correction is needed.",
+   "Defeat attempts (each planted alone, tree restored, git status empty): backend edge as static, multi-line, type-only, export *, export * as, side-effect, dynamic, or default+named: all fail with backend-import-direction. Feature importing router.ts, kernel importing a feature (static, dynamic, or from Vue script setup): all fail with frontend-layers. fetch in admin/store.ts fails with no-fetch-outside-api. A new feature edge fails with frontend-feature-edges. An orphan module fails with modules-registered. process.env and debugger in src/backend/test fail.",
+   "Allowlist ratchet: removing an existing backend edge, feature edge or exception fails at the importing line. An edge made stale (health -> auth import removed) fails at layers.mjs:45. Invented backend and exception entries fail as stale.",
+   "One bypass found: a '/*' inside a string before an import hides the import (pre-existing masking).",
+   "No comments, no new dependency; CI already calls npm run lint (ci.yml:157), which now also runs the checker's test.",
+   "Review written to /tmp/claude-1000/-home-lamter-omnicourses/ee2891ec-152a-4592-ad64-6ac8f4460668/scratchpad/batches/01-verify-and-lint-rules/review-1.md"
+  ]
+ }
+]

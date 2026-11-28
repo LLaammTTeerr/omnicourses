@@ -1,0 +1,30 @@
+# Review, batch 17-docs-and-extras, round 1
+
+Verdict: approve. Nothing blocking. Non-blocking notes are listed at the end.
+
+## What I checked
+1. Behaviour. The only production change is `export` added to `COUNTED_REFERENCES` in src/backend/src/curriculum-admin/references.ts. It changes no value and no caller. No query, constant or template moved.
+2. Contract. `git diff base..HEAD -- src/backend/openapi.json src/backend/src/database/migrations package-lock.json` is empty. No route, DTO, status or error code changed.
+3. Tests. No `it(`, `test(` or `expect(` was lost.
+   - import-body-limit.spec.ts: two cases get `LONG_LOOP_TIMEOUT_MS = 60_000`. Their assertions are unchanged.
+   - PlanEditorView.spec.ts: two cases get `LONG_INTERACTION_TIMEOUT_MS`. Their assertions are unchanged.
+   - curriculum-schema-migration.e2e-spec.ts: `resolves.toBeDefined()` on the DELETE becomes an awaited DELETE (it still throws on a refusal) plus a check that the curriculum's requirement_groups are gone. That is stronger. The cascade is real: migration 1792912952302 has `curriculum_id ... ON DELETE CASCADE`. I could not run the e2e test myself because no database was up. The implementer reports e2e passing.
+   - New references.spec.ts: 11 cases pass. Its coverage check pins the sample set against Object.keys(REFERENCES). The known-unparsed list is checked both ways.
+   - Mutations I considered: adding a builder to REFERENCES fails case 1. Rewording a parsed sentence fails case 2. Teaching the client one of the three wordings fails case 3.
+4. Completeness. I ran rg for audit-types, PlanIssuesProvider, issuesWithoutTranscript and plans/plan-issues. The only hits are amendment lines, the "was ..." mentions, and docs/test/report-b1.md, a dated evidence record that is out of scope. Every new name the docs cite exists: rules/types.ts, rules/plan-issues.ts (checkPlan), RulesService.issuesFor(plan, null), seed-curricula.ts, database/seed-options.ts, common/seed-options.ts, lockAdminWrite, grantsOf, missingPermission, GLOBAL_PERMISSIONS, findDueForPurge, purgeIfDue, SINGLE_KEY_LOCKS, NAMESPACED_LOCKS, and backendEdges, identifierHomes, frontendKernel, frontendComposition and frontendFeatureEdges in scripts/layers.mjs. The module table has 16 rows, one per FEATURE_MODULES entry. "rules imported only by audit, plans, sharing" matches backendEdges. "Used by curriculum-admin and academic-calendar" matches backendEdges and the imports. The three frontend layer rules match the messages in scripts/lint.mjs.
+5. Structure. No new backend cross-folder import. The frontend spec imports backend source (../../../backend/src/curriculum-admin/references.js), which the brief asked for. Lint and the frontend typecheck pass with it. tsconfig.app.json includes specs, so the import is type-checked.
+6. Repo rules. Every commit shows G with a Conventional subject. There is exactly one new .changeset file, and it is empty. No dependency or lockfile change. Constants are named.
+   - Comments. I searched src/ and scripts/ (ts, mts, mjs, vue, css, html, sh) outside migrations. The only remaining comment is the `// @vitest-environment node` pragma (groups.spec.ts:1). The `/* ${s.userId} */` in notifications.e2e-spec.ts:568 is SQL text, not a code comment. So removing only the eslint line (sse.spec.ts:135) was complete.
+7. Scope. The only off-limits file touched is src/backend/src/ai/sse.spec.ts, one line, which the brief explicitly ordered. ADR 0011 and test-cases-b2.md are untouched.
+8. Slow cases. My idle timings: 392 ms and 69 ms (import-body-limit); 363 ms and 250 ms (PlanEditorView). The implementer reports trying a memoised body builder with no gain. So the explicit-timeout fallback the brief allows is justified. Lint (43 node tests), backend typecheck and frontend typecheck pass.
+9. Tests that cannot fail. Across the 143 specs changed since c7bf192, I found no case without an assertion (brace-matched scan) and no `expect(x).toEqual(x)`. The `.attributes(...)).toBeDefined()` hits assert presence, which can fail. The `resolves.toBeUndefined()` hits each sit beside a real assertion or test a real undefined return. This agrees with the implementer.
+
+## Non-blocking
+- architecture.md, admin-access row: "the grant entities" is listed under "Used by other modules", but no module outside admin-access imports the entity classes. Only `GLOBAL_PERMISSIONS` and the `GlobalPermission` type from admin-grant.entities.ts are imported. Fix: drop "the grant entities".
+- architecture.md, admin-access row: it says admin-access takes the write lock with SINGLE_KEY_LOCKS.adminWrite. curriculum/seed-curricula.ts:32 takes the same key directly. Fix: name the seed as a second taker, or say "the admin write paths and the curriculum seed".
+- ADR 0013 line 75 reads "`RulesService` serves the plan issues to the plans module (`RulesService`, was the `PlanIssuesProvider` interface; ...)". It repeats itself and drops the original "(ADR 0014)" link. Fix: "`RulesService` serves the plans module's plan issues (was `PlanIssuesProvider`, renamed, see the amendment below; ADR 0014)".
+- ADR 0010 line 42 says "see the amendment below", but what lies below is "*Note, 26 November 2026*", not an "Amendment" heading. Fix: "see the note of 26 November below".
+- ADR 0014 line 27 changes the decision wording from "through a `PlanIssuesProvider` interface" to "through `RulesService`". That fits the brief's "replace the name", but it now reads as if the original decision was RulesService. The "was ..." clause keeps the history, so this is acceptable.
+- BAC-3 (class-model.md lacks CurriculumStanding and CourseStandingItem) is named as a source in the brief, but tasks A to F never mention it, and the implementer left it out. Fix: record it as a follow-up. It has an open question (whether the field lists are a deliverable).
+- architecture.md §5 mermaid "Feature folders" omits `curriculum/`, though the table below lists it. This predates the batch. Fix: a one-word addition.
+- The e2e assertion could also check that the trigger-cleaned overflow and combined-minimum rows are gone. Optional.
