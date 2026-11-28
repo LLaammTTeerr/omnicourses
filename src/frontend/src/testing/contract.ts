@@ -66,7 +66,8 @@ export function contractMaximum(schema: string, property: string): number | unde
 
 export const contractSchemaNames = (): string[] => Object.keys(schemas);
 
-const API_PREFIX = new URL(API_URL).pathname;
+const ORIGIN_WHEN_API_URL_IS_A_PATH = 'http://localhost';
+const API_PREFIX = new URL(API_URL, ORIGIN_WHEN_API_URL_IS_A_PATH).pathname;
 const PARAMETER_SEGMENT = /^\{[^}]+\}$/;
 
 const routeTemplates = Object.entries(contract.paths).flatMap(([path, operations]) =>
