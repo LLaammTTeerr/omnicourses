@@ -1,0 +1,8 @@
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T06:17:21.702Z","user":{"id":"5cea9f38-2229-4579-92be-56bc5a7d2d12","email":"b2-s15@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-28T05:54:49.081Z"},"accountRestored":false}
+  GET /api/programs/APCS/curricula/2024 → 200
+  CS420 offeringTerms = null; CS470 prerequisites = ["CS469"]
+  GET /api/plans → 200 [["Default plan","a1e740c8-7b68-4766-85ad-7f6c7231b528"],["What-if: Default plan","16d5662f-6460-4df7-b5b1-ff7c65cea586"]]
+  GET /api/plans/a1e740c8-7b68-4766-85ad-7f6c7231b528 → 200 [["2026-1",["CS160","CS201","CS202","MTH251","CS469"]],["2026-2",["CS420"]],["2026-3",["slot(4)","CS250"]]]
+  GET /api/plans/16d5662f-6460-4df7-b5b1-ff7c65cea586 → 200 [["2026-1",["CS160","CS201","CS202","MTH251","CS469"]]]
+  POST /api/auth/sign-in (no token) → 200 {"token":"…","expiresAt":"2026-12-05T06:17:28.664Z","user":{"id":"a7f61759-7834-4a6d-bb39-250040de057d","email":"b2-s5@example.com","displayName":"Test Student","studentId":null,"className":null,"emailVerifiedAt":null,"createdAt":"2026-11-21T17:16:44.546Z"},"accountRestored":false}
+  GET /api/plans/e3ab2633-ac3b-4938-b374-23cfb81d0bd3 → 200 [["2026-1",["CS160","CS163"]]]

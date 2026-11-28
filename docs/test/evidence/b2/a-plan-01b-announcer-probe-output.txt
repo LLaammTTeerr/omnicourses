@@ -1,0 +1,7 @@
+2026-11-28T06:02:30.355Z Chrome 144.0.7559.110 (headless, playwright-core 1.64.1)
+  UI sign-in b2-s15@example.com → 200
+2026-11-28T06:02:38.875Z announcer texts, in order: [
+ "2824 Lifted CS470 in Term 3 2026–2027. Use the arrow keys to pick a term, Enter to drop, Escape to cancel.",
+ "4355 Not checked: CS470: offering terms not recorded yet.",
+ "5888 Cancelled moving CS470."
+]
