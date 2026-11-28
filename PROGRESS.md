@@ -16,6 +16,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 - Only the bottom PR is ready for review and has auto-merge on. Every PR above it is a draft.
 - When the bottom PR is squash-merged: in `cv-stack`, merge `origin/main` into the next branch (never rebase a pushed branch, never force-push), run the verify script, push, check on GitHub that its base is now `main` and that its diff shows only its own files and exactly one changeset, mark it ready, request the four teammates as reviewers (`gh api repos/LLaammTTeerr/omnicourses/pulls/<n>/requested_reviewers`), and turn on auto-merge. Then merge that branch into the one above it, and so on up, so every layer contains `main`.
 - The ruleset does not require a PR to be up to date with `main`. If another PR that adds a cross-folder import merges before a stack PR, `npm run lint` on `main` goes red until the edge is added to `scripts/layers.mjs`. Check lint on `main` after each merge. This already happened once: #214 merged while #220 was open; `main` was merged into every layer and the four dashboard edges were listed in #220.
+- It happened a second time on 28 Nov: #245 (credit totals and training type, a feature PR) merged while #229 was the bottom. `npm run lint` on `main` stayed green. Merging `main` up the stack gave two textual conflicts at stack 15 (an import line and a doc line; both sides kept) and two test failures that a clean merge hid: the nullable-field table of stack 13 (#232) had to list the four new nullable fields of #245, and stack 20 (#239) had removed an import that the new tests of #245 used. Each was fixed at its own layer and merged upward. So a clean merge is not enough: run the full verify at the tip after every merge of `main`.
 - Any merge to `main` updates the Version Packages PR (#211).
 
 ## Boundaries
@@ -36,8 +37,8 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 06 | `refactor/cv-06-rules-one-derivation` | 04 | #225 (merged 28 Nov as 3100de2, approved by Dũng) | refactor(rules): derive course status and prerequisite sets once |
 | 07 | `refactor/cv-07-admin-screens` | 13 | #226 (merged 28 Nov as 8f71e41, approved by Dũng) | refactor(admin): share the saved-document and calendar-event code |
 | 08 | `refactor/cv-08-plan-components` | 11 | #227 (merged 28 Nov as 931d809, approved by Dũng) | refactor(plans): share issue cards and credit meter with the shared page |
-| 09 | `refactor/cv-09-admin-messages` | 16 | #228 (ready, auto-merge on) | refactor(admin): split the admin message catalogue by screen |
-| 10 | `refactor/cv-10-account-state` | 05 | #229 (draft) | refactor(users): own the account deletion check and student row lock |
+| 09 | `refactor/cv-09-admin-messages` | 16 | #228 (merged 28 Nov as 0098f92, approved by Dũng) | refactor(admin): split the admin message catalogue by screen |
+| 10 | `refactor/cv-10-account-state` | 05 | #229 (ready, auto-merge on) | refactor(users): own the account deletion check and student row lock |
 | 11 | `refactor/cv-11-actions-and-drafts` | 14 | #230 (draft) | refactor(frontend): share one action helper, move the transcript draft |
 | 12 | `refactor/cv-12-errors-and-limiter` | 06 | #231 (draft) | refactor(backend): build coded errors in one place, move sign-in limiter |
 | 13 | `refactor/cv-13-contract-checks` | 15 | #232 (draft) | test(frontend): fail when a contract schema or limit goes unchecked |
@@ -51,7 +52,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 21 | `refactor/cv-21-structure-adr` | 21 | #243 (draft) | docs(adr): record module boundaries, owners and their enforcement |
 | 22 | `refactor/cv-22-config-and-pins` | 22 | #244 (draft) | test(config): check settings, pinned versions and exact pins |
 
-Base of the stack: `main` at 931d809 (#227, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
+Base of the stack: `main` at 0098f92 (#228, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
 ## State of the structure at the stack tip
 
