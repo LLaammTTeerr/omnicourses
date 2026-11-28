@@ -1,4 +1,4 @@
-import type { Seeder } from '../common/seed-options.js';
+import type { Seeder } from '../common/seeder.js';
 import { seed as seedCurricula } from '../curriculum/seed-curricula.js';
 import { seed as seedGuides } from '../guides/seed-guides.js';
 import { withDatabase } from './data-source.js';

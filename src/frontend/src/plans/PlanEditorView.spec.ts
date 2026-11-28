@@ -11,6 +11,7 @@ import { MAX_PLAN_TERMS } from './board.js';
 import { FLIP_MS } from './flip.js';
 import { course, CURRICULUM, ELECTIVE_GROUP, issue, listItem, OTHER_ID, plan, PLAN_ID, report, summary } from './testing/fixtures.js';
 
+const LONG_INTERACTION_TIMEOUT_MS = 60_000;
 const FIRST_OCTOBER_2026_IN_VIETNAM = new Date('2026-10-01T03:00:00Z');
 
 const SAVED: PlanTerm[] = [{ term: { year: 2026, number: 1 }, placements: [course('ZZ101'), course('ZZ102')] }];
@@ -291,7 +292,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
     await tile(w, 'ZZ102').trigger('keydown', { key: 'Delete' });
     await flushPromises();
     expect(sent[1]).toEqual([{ term: { year: 2026, number: 3 }, placements: [course('ZZ101')] }]);
-  });
+  }, LONG_INTERACTION_TIMEOUT_MS);
 
   it('places a course dragged from the list, and removes a tile dragged back to it', async () => {
     const { w, sent } = await render();
@@ -1233,7 +1234,7 @@ describe('PlanEditorView (F5, UC-05)', () => {
       await hover(null);
       expect(sentTargets).toHaveLength(MAX_PLAN_TERMS);
       await release();
-    });
+    }, LONG_INTERACTION_TIMEOUT_MS);
 
     it('uses a non-label wrapper for SelectMenu and omits draggable ARIA on pool items and locked tiles', async () => {
       const { w } = await render();

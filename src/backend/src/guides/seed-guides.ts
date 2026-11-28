@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { DataSource, EntityManager } from 'typeorm';
-import type { SeedOptions } from '../common/seed-options.js';
+import type { SeedOptions } from '../common/seeder.js';
 import { nodeEnv } from '../config/env.js';
 import { vietnamDate } from '../config/time.js';
 import { GUIDE_FILES } from './content/index.js';

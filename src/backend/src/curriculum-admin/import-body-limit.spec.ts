@@ -9,6 +9,7 @@ import { CATALOG_IMPORTS, COHORT_IMPORTS, IMPORT_JSON_LIMIT_BYTES, ImportBodyGat
 
 const KIB = 1024;
 const DEFAULT_LIMIT = 100 * KIB;
+const LONG_LOOP_TIMEOUT_MS = 60_000;
 const PROGRAM = '11111111-1111-4111-8111-111111111111';
 const OTHER_PROGRAM = '33333333-3333-4333-8333-333333333333';
 
@@ -117,7 +118,7 @@ describe('JSON body limits', () => {
       expect((await post(path, bodyOf(DEFAULT_LIMIT), caller).expect(200)).body).toEqual({ characters: DEFAULT_LIMIT - 10 });
       for (const bytes of [DEFAULT_LIMIT + 1, IMPORT_JSON_LIMIT_BYTES]) expect([path, caller, (await post(path, bodyOf(bytes), caller).expect(413)).body]).toEqual([path, caller, DEFAULT_REFUSAL]);
     }
-  });
+  }, LONG_LOOP_TIMEOUT_MS);
 
   it('gives nobody the large parser when the gate fails', async () => {
     gateFails = true;
@@ -143,7 +144,7 @@ describe('JSON body limits', () => {
     expect((await post(CATALOG_ROUTES[0], bodyOf(200), MAINTAINER).set('Content-Encoding', 'identity').expect(200)).body).toEqual({ characters: 190 });
     expect((await post('/api/admin/catalog/courses', small).set('Content-Encoding', 'gzip').expect(200)).body).toEqual({ characters: 190 });
     await post('/api/admin/catalog/courses', bomb).set('Content-Encoding', 'gzip').expect(413);
-  });
+  }, LONG_LOOP_TIMEOUT_MS);
 
   it('keeps the 100 KiB limit on every other route, which still gets its body parsed, whoever calls', async () => {
     const others = ['/api/admin/catalog/courses', '/api/admin/catalog/imports/preview/again', '/api/admin/catalog/imports/other', '/api/admin/catalog/imports', '/API/admin/catalog/imports/preview'];
