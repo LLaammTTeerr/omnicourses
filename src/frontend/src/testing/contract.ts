@@ -1,4 +1,5 @@
 import contract from '../../../backend/openapi.json';
+import { API_URL } from '../api.js';
 
 interface Property {
   type?: string | string[];
@@ -65,7 +66,7 @@ export function contractMaximum(schema: string, property: string): number | unde
 
 export const contractSchemaNames = (): string[] => Object.keys(schemas);
 
-const API_PREFIX = '/api';
+const API_PREFIX = new URL(API_URL).pathname;
 const PARAMETER_SEGMENT = /^\{[^}]+\}$/;
 
 const routeTemplates = Object.entries(contract.paths).flatMap(([path, operations]) =>
@@ -76,7 +77,7 @@ export function contractHasRoute(method: string, path: string): boolean {
   const segments = `${API_PREFIX}${path.split('?')[0]}`.split('/');
   return routeTemplates.some(
     (route) =>
-      route.method === method.toUpperCase() &&
+      route.method === method &&
       route.segments.length === segments.length &&
       route.segments.every((segment, index) => (PARAMETER_SEGMENT.test(segment) ? segments[index] !== '' : segment === segments[index])),
   );

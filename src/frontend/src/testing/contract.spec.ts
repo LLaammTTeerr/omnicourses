@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { contractHasRoute } from './contract.js';
+import { mockApi } from './fetch.js';
 
 describe('contractHasRoute', () => {
   it('accepts a literal path', () => {
@@ -26,5 +27,15 @@ describe('contractHasRoute', () => {
 
   it('refuses an unknown path', () => {
     expect(contractHasRoute('GET', '/no-such-route')).toBe(false);
+  });
+});
+
+describe('contract method matching', () => {
+  it('compares the method exactly', () => {
+    expect(contractHasRoute('get', '/academic-calendar')).toBe(false);
+  });
+
+  it('refuses a mockApi key that has no method and path', () => {
+    expect(() => mockApi({ 'GET/academic-calendar': {} })).toThrow('Route is not in openapi.json: GET/academic-calendar');
   });
 });

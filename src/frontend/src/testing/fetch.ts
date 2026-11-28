@@ -7,7 +7,7 @@ type Answer = unknown | ((init: RequestInit | undefined, url: string) => Respons
 function refuseRoutesOutsideContract(routes: Record<string, Answer>): void {
   for (const key of Object.keys(routes)) {
     const [method, path] = key.split(' ');
-    if (!contractHasRoute(method, path)) throw new Error(`Route is not in openapi.json: ${key}`);
+    if (path === undefined || !contractHasRoute(method, path)) throw new Error(`Route is not in openapi.json: ${key}`);
   }
 }
 
