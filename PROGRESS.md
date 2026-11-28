@@ -32,8 +32,8 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 02 | `refactor/cv-02-plan-view` | 10 | #221 (merged 28 Nov as fc0c34d, approved by Dũng) | refactor(plans): split the pure issue view out of the planner loaders |
 | 03 | `refactor/cv-03-locks-and-seeds` | 02 | #222 (merged 28 Nov as f7d0c5a, approved by Dũng) | refactor(backend): one lock-key registry, curriculum seeds in curriculum |
 | 04 | `refactor/cv-04-engine-vocabulary` | 03 | #223 (merged 28 Nov as d13f5b9, approved by Dũng) | refactor(rules): move engine input types into pure curriculum-rules.ts |
-| 05 | `refactor/cv-05-fe-kernel` | 09 | #224 (ready, auto-merge on) | refactor(frontend): give sign-out keys, grants and busy text one owner |
-| 06 | `refactor/cv-06-rules-one-derivation` | 04 | #225 (draft) | refactor(rules): derive course status and prerequisite sets once |
+| 05 | `refactor/cv-05-fe-kernel` | 09 | #224 (merged 28 Nov as df2826e, approved by Dũng) | refactor(frontend): give sign-out keys, grants and busy text one owner |
+| 06 | `refactor/cv-06-rules-one-derivation` | 04 | #225 (ready, auto-merge on) | refactor(rules): derive course status and prerequisite sets once |
 | 07 | `refactor/cv-07-admin-screens` | 13 | #226 (draft) | refactor(admin): share the saved-document and calendar-event code |
 | 08 | `refactor/cv-08-plan-components` | 11 | #227 (draft) | refactor(plans): share issue cards and credit meter with the shared page |
 | 09 | `refactor/cv-09-admin-messages` | 16 | #228 (draft) | refactor(admin): split the admin message catalogue by screen |
@@ -51,7 +51,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 21 | `refactor/cv-21-structure-adr` | 21 | #243 (draft) | docs(adr): record module boundaries, owners and their enforcement |
 | 22 | `refactor/cv-22-config-and-pins` | 22 | #244 (draft) | test(config): check settings, pinned versions and exact pins |
 
-Base of the stack: `main` at d13f5b9 (#223, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
+Base of the stack: `main` at df2826e (#224, merged 28 Nov), merged into every remaining layer after each merge. Every layer passed the full verify when it was stacked; each new bottom passed it again on `main` before it was marked ready, and the tip (stack 22) passed after each restack with backend 1214 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
 ## State of the structure at the stack tip
 
