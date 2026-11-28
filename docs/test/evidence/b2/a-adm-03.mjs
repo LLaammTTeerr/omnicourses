@@ -82,8 +82,8 @@ check('ADM-03c', '(3) 400 validation_failed, the code-format message', is(c3, 40
 const c4 = await call('POST', cohorts, { token: a1, body: { cohortYear: 1999, code: 'APCS1999', nameVi: 'Khóa thử' } });
 check('ADM-03c', '(4) 400 validation_failed (2000 to 2100)', is(c4, 400, 'validation_failed'), c4.json);
 const base = { ...body, cohortYear: Y - 1, code: `APCS${Y - 1}` };
-const c5 = await call('POST', cohorts, { token: a1, body: { ...base, totalCreditsMin: 120 } });
-check('ADM-03c', '(5) 400, "property totalCreditsMin should not exist"', c5.status === 400 && says(c5, 'property totalCreditsMin should not exist'), c5.json);
+const c5 = await call('POST', cohorts, { token: a1, body: { ...base, totalCreditsMin: -1 } });
+check('ADM-03c', '(5) 400, "totalCreditsMin must not be less than 0"', c5.status === 400 && says(c5, 'totalCreditsMin must not be less than 0'), c5.json);
 const c6 = await call('POST', cohorts, { token: a1, body: { ...base, programId: KHMT } });
 check('ADM-03c', '(6) 400, "property programId should not exist"', c6.status === 400 && says(c6, 'property programId should not exist'), c6.json);
 const c7a = await call('PATCH', `${cohorts}/${CY}`, { token: a1, body: { cohortYear: Y - 1 } });
@@ -108,8 +108,8 @@ const d2 = await call('POST', groups, { token: a1, body: { name: 'Nhóm thử AD
 const G1 = d1.json?.id, G2 = d2.json?.id;
 console.log(`  {G1} = ${G1}, {G2} = ${G2}`);
 check('ADM-03d', '(1) and (2) 201, curriculumId {CY}', d1.status === 201 && d2.status === 201 && d1.json.curriculumId === CY && d2.json.curriculumId === CY);
-const d3 = await call('POST', groups, { token: a1, body: { name: 'Nhóm thử ADM-03 B', kind: 'elective', creditsTotalMin: 16 } });
-check('ADM-03d', '(3) 400 validation_failed, "property creditsTotalMin should not exist"', is(d3, 400, 'validation_failed') && says(d3, 'property creditsTotalMin should not exist'), d3.json);
+const d3 = await call('POST', groups, { token: a1, body: { name: 'Nhóm thử ADM-03 B', kind: 'elective', creditsTotal: 16 } });
+check('ADM-03d', '(3) 400 validation_failed, "creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)"', is(d3, 400, 'validation_failed') && says(d3, 'creditsTotal: an elective group stores creditsTotalMin, not a fixed total (ADR 0005)'), d3.json);
 const d4 = [await call('PUT', `${groups}/${G1}/courses/CS420`, { token: a1 }), await call('PUT', `${groups}/${G1}/courses/cs163`, { token: a1 }), await call('PUT', `${groups}/${G2}/courses/CS163`, { token: a1 })];
 check('ADM-03d', '(4) each 204', d4.every((x) => x.status === 204), d4.map((x) => x.status));
 const d5 = await call('PUT', `${groups}/${G1}/courses/CS420`, { token: a1 });
