@@ -131,9 +131,12 @@ Another session reviewed the repository at an older commit (bd9f32c) and sent it
 
 ## Follow-ups owed to teammates
 
-- PR #166 (csv empty periods): the stack changed three import-path lines in `curriculum-admin/csv-import.service.ts` and one in its e2e spec. When #166 rebases, resolve those for its author.
-- PR #77 (advisor harness): conflicts with `main` since before this mission; `features.ts` is now one module per line, `ai-cost-guard.service.ts` imports its lock key from `common/advisory-locks.ts`. Whoever rebases #77 re-adds its module line.
-- Sprite threads: one per PR, named `#N title`; the progress log is the thread "refactor: converge the codebase (stacked PRs), progress log".
+Checked on 28 Nov, after the last merge, with a trial merge of `main` into every open pull request outside the stack (nothing pushed):
+
+- PR #251 (Dũng, test evidence): merges cleanly and `npm run lint` passes. Nothing owed.
+- PR #166 (csv empty periods, draft): conflicts in three files. The stack's own part is import paths; the rest is that `main` has restructured the CSV import since the branch was cut, so the fix has to be made again on the new structure. That is work on the fix, not a merge chore; a note on the PR says so. Not done here.
+- PR #77 (advisor harness): conflicts in 18 files, most of them older than this mission. A note on the PR lists the four things the stack changed that its rebase must carry (the module line in `features.ts`, the lock key in `ai-cost-guard.service.ts`, edges in `scripts/layers.mjs`, the `ai_usage` table of the drift check).
+- Sprite threads: one per PR, named `#N title`, all 24 marked done; the progress log is the thread "refactor: converge the codebase (stacked PRs), progress log", also marked done.
 
 ## Next
 
