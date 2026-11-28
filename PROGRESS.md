@@ -47,7 +47,7 @@ This file lives only on `refactor/converge`. It is the task pool and the recover
 | 17 | `refactor/cv-17-docs-and-extras` | 17 | #236 (draft) | docs: match decision records and architecture map to the code |
 | 18 | `refactor/cv-18-dashboard-folder` | 18 | #237 (draft) | refactor(dashboard): move the dashboard screen into its own folder |
 | 19 | `refactor/cv-19-route-contract` | 19 | #238 (draft) | test(frontend): make mockApi refuse routes outside openapi.json |
-| 20 | `refactor/cv-20-tests-that-can-fail` | 20 | #239 (draft) | test: make 27 specs able to fail and remove assertions that cannot |
+| 20 | `refactor/cv-20-tests-that-can-fail` | 20 | #239 (draft) | test: make weak tests able to fail and drop assertions that cannot |
 
 Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. Every layer passed the full verify when it was stacked; the tip (stack 20) passes with backend 1205 unit / 365 e2e and frontend 1402 unit / 68 browser (`main`: 1132 / 364 / 1263 / 68). Stack 20 removed two tests and three assertions that had nothing of their own to check; each is listed in PR #239 with the reason.
 
@@ -115,10 +115,10 @@ Base of the stack: `main` at 778d120 (#214), merged into every layer on 28 Nov. 
 All 20 batches are pushed as PRs #220 to #239. Nothing is building. The mission now waits on people:
 
 1. **Approvals**, starting with #220 (ready, auto-merge on, CI green). When it merges, follow "Merging the stack". When a teammate asks for a change on a PR: fix it on that PR's branch in `cv-stack`, then merge that branch into each branch above it and push them all.
-2. **Hoà** has, in the #237 and #239 threads: seven findings and five questions on the dashboard code (`converge/survey/dashboard.md`; nothing is changed there without his word), four weak assertions in the dashboard specs (`converge/tests-scan.md`, chunk 5), and the earlier questions (8, 8a, 11 under "Needs a decision").
+2. **Hoà** has, in the #237, #238 and #239 threads: a question whether the route check in the test mock should have an opt-out (#238); seven findings and five questions on the dashboard code (`converge/survey/dashboard.md`; nothing is changed there without his word), four weak assertions in the dashboard specs (`converge/tests-scan.md`, chunk 5), and the earlier questions (8, 8a, 11 under "Needs a decision").
 3. **Lâm** has the decisions under "Needs a decision".
 
-What was checked last: an independent read of the stack through layer 16 (`converge/final-read.md`) found one remaining structural item, the dashboard folder (now stack 18), and for every other area nothing more worth a pull request. Since then: the route check in the test mock (stack 19, a gap that was blocked until #214 merged) and the complete "Tests" extra (stack 20: all 139 specs changed since the last test clean-up were read; 27 tests rewritten after each weakness was confirmed by mutating the code).
+What was checked last: an independent read of the stack through layer 16 (`converge/final-read.md`) found one remaining structural item, the dashboard folder (now stack 18), and for every other area nothing more worth a pull request. Since then: the route check in the test mock (stack 19, a gap that was blocked until #214 merged) and the complete "Tests" extra (stack 20: all 139 specs changed since the last test clean-up were read; 25 tests rewritten in 25 spec files, 23 of them after a mutation of the code showed the old test still passing, 2 by adding an assertion without such proof; two rewrites that could not be proven were undone; 5 removals are listed in the PR).
 
 The "Comments" extra removed one line (an eslint directive); the 76 comment lines in migrations stay, because applied migrations are never edited.
 
